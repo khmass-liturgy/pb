@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>양계·계육 시세 대시보드</title>
-<meta name="description" content="육계·산란계·토종닭·종계 주간 시세 및 업계 뉴스 대시보드" />
+<meta name="description" content="육계·산란계·토종닭·종계 주간 시세 및 협회 공지사항 바로가기" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -18,8 +18,6 @@
   input { font-family: inherit; }
   a { text-decoration: none; }
   .display { font-family: 'Black Han Sans', sans-serif; letter-spacing: -0.5px; }
-
-  /* 헤더 */
   header {
     background: linear-gradient(90deg, #1a2744 0%, #2C3E6B 100%);
     color: #fff; padding: 0 20px; position: sticky; top: 0; z-index: 100;
@@ -33,39 +31,28 @@
     font-size: 13px; border-radius: 8px 8px 0 0; border-bottom: 3px solid transparent;
   }
   .tab.active { background: rgba(255,255,255,0.15); font-weight: 700; border-bottom: 3px solid #F9C74F; }
-
   main { max-width: 900px; margin: 0 auto; padding: 20px 16px 40px; }
   .card { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 1px 8px rgba(0,0,0,0.07); }
-
-  /* 시세 카드 그리드 */
   .price-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 10px; }
   .price-card {
     background: #fff; border-radius: 14px; padding: 14px 15px; cursor: pointer;
     border: 2px solid transparent; box-shadow: 0 1px 6px rgba(0,0,0,0.07); transition: all 0.2s;
   }
-
   table { width: 100%; border-collapse: collapse; }
-  .news-item { background: #fff; border-radius: 12px; padding: 13px 16px; border: 1px solid #efefef; transition: box-shadow 0.15s; }
-  .news-item:hover { box-shadow: 0 3px 12px rgba(0,0,0,0.08); }
-  .chip {
-    border: 1px solid #e0e0e0; border-radius: 20px; background: #fff;
-    padding: 4px 12px; font-size: 12px; color: #666;
+
+  /* 공지 바로가기 */
+  .board-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+  .board-card {
+    border-radius: 14px; padding: 18px; border: 1px solid #eee;
+    transition: transform 0.15s, box-shadow 0.15s; background: #fff;
   }
-  .modal-overlay {
-    position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,0.45);
-    display: flex; align-items: center; justify-content: center;
+  .board-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
+  .board-link {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; border-radius: 10px; margin-top: 8px;
+    font-size: 13px; font-weight: 600; transition: background 0.15s;
   }
-  .modal {
-    background: #fff; border-radius: 20px; width: min(520px, 95vw);
-    max-height: 85vh; overflow: hidden; display: flex; flex-direction: column;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
-  }
-  .modal-body { overflow-y: auto; flex: 1; padding: 16px 24px; }
-  .field-input {
-    width: 100%; padding: 9px 12px; border-radius: 8px; border: 1px solid #ddd;
-    font-size: 13px; outline: none; background: #fff; color: #1a1a1a; caret-color: #1a2744;
-  }
-  .field-input:focus { border-color: #1a2744; }
+  .board-link:hover { filter: brightness(0.96); }
   .hidden { display: none !important; }
 </style>
 </head>
@@ -74,37 +61,23 @@
 
 <script>
 // ═══════════════════════════════════════════════════════════════════════════
-// 데이터 & 상수
+// 시세 데이터
 // ═══════════════════════════════════════════════════════════════════════════
 const WEEK_DAYS = ["일","월","화","수","목","금","토"];
-
-function getLast7Days(){
-  const days=[];
-  for(let i=6;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); days.push(d); }
-  return days;
-}
+function getLast7Days(){ const days=[]; for(let i=6;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); days.push(d); } return days; }
 function fmtDate(d){ return `${d.getMonth()+1}/${d.getDate()}(${WEEK_DAYS[d.getDay()]})`; }
 function fmtFull(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
-
 function seedRand(seed){ let s=seed; return ()=>{ s=(s*1664525+1013904223)&0xffffffff; return (s>>>0)/0xffffffff; }; }
-
 function genWeekData(){
   return getLast7Days().map((d,i)=>{
-    const r=seedRand(d.getDate()*100+i);
-    const wk = d.getDay()===0||d.getDay()===6;
-    return {
-      date:d, label:fmtDate(d), fullDate:fmtFull(d), isWeekend:wk,
-      broiler:   wk?null:Math.round((1750+r()*400)/10)*10,
-      egg:       wk?null:Math.round((135+r()*40)),
-      native:    wk?null:Math.round((3800+r()*600)/10)*10,
-      breeder:   wk?null:Math.round((800+r()*400)/10)*10,
-      wholesale: wk?null:Math.round((3200+r()*500)/10)*10,
-      chick:     wk?null:Math.round((700+r()*500)/10)*10,
-    };
+    const r=seedRand(d.getDate()*100+i); const wk=d.getDay()===0||d.getDay()===6;
+    return { date:d, label:fmtDate(d), fullDate:fmtFull(d), isWeekend:wk,
+      broiler:wk?null:Math.round((1750+r()*400)/10)*10, egg:wk?null:Math.round((135+r()*40)),
+      native:wk?null:Math.round((3800+r()*600)/10)*10, breeder:wk?null:Math.round((800+r()*400)/10)*10,
+      wholesale:wk?null:Math.round((3200+r()*500)/10)*10, chick:wk?null:Math.round((700+r()*500)/10)*10 };
   });
 }
 const WEEK_DATA = genWeekData();
-
 const PRICE_CATEGORIES = [
   { key:"broiler",   label:"육계",      sub:"산지가", unit:"원/kg",   icon:"🐔", color:"#E8530A", bg:"#FFF3EE" },
   { key:"egg",       label:"계란",      sub:"특란",   unit:"원/개",   icon:"🥚", color:"#D4A012", bg:"#FFFBEE" },
@@ -114,470 +87,252 @@ const PRICE_CATEGORIES = [
   { key:"chick",     label:"육계병아리",sub:"입추가", unit:"원/마리", icon:"🐤", color:"#C0792A", bg:"#FDF5EC" },
 ];
 
-const DEFAULT_SOURCES = [
-  { id:"poultry", name:"대한양계협회",   url:"https://www.poultry.or.kr",       color:"#E8530A", isDefault:true },
-  { id:"chicken", name:"대한계육협회",   url:"https://chicken.or.kr",           color:"#1B7A3E", isDefault:true },
-  { id:"country", name:"농축산저널",     url:"https://countrynews.co.kr/ko-kr", color:"#1565C0", isDefault:true },
-  { id:"vet",     name:"수의사전문채널", url:"https://www.dailyvet.co.kr",      color:"#7B1FA2", isDefault:true },
+// ═══════════════════════════════════════════════════════════════════════════
+// 협회별 공지사항 게시판 바로가기 (실제 게시판 주소)
+// ═══════════════════════════════════════════════════════════════════════════
+const BOARD_SITES = [
+  {
+    id:"poultry", name:"대한양계협회", color:"#E8530A", icon:"🥚",
+    home:"https://www.poultry.or.kr",
+    boards:[
+      { label:"공지사항",            url:"https://www.poultry.or.kr/bbs/board.php?bo_table=notice" },
+      { label:"산란계 관측정보",     url:"https://poultry.or.kr/bbs/board.php?bo_table=egg_watch_info" },
+      { label:"양계 정보마당",       url:"https://www.poultry.or.kr/bbs/board.php?bo_table=info" },
+      { label:"계란 수급예측시스템", url:"https://egg.poultry.or.kr" },
+    ],
+  },
+  {
+    id:"chicken", name:"대한계육협회", color:"#1B7A3E", icon:"🍗",
+    home:"https://chicken.or.kr/home/start.php",
+    boards:[
+      { label:"공지사항",     url:"https://chicken.or.kr/bbs/boardlist_2025.php?Ncode=b3_1" },
+      { label:"최신육계뉴스", url:"https://chicken.or.kr/bbs/boardlist_2025.php?Ncode=b3_2" },
+      { label:"입찰정보",     url:"https://chicken.or.kr/bbs/boardlist_2025.php?Ncode=b3_3" },
+      { label:"협회동향",     url:"https://chicken.or.kr/bbs/boardlist_2025.php?Ncode=b3_6" },
+    ],
+  },
+  {
+    id:"country", name:"농축산저널", color:"#1565C0", icon:"📰",
+    home:"https://countrynews.co.kr/ko-kr",
+    boards:[
+      { label:"전체 뉴스",   url:"https://countrynews.co.kr/ko-kr" },
+      { label:"축산 뉴스",   url:"https://countrynews.co.kr/ko-kr" },
+    ],
+  },
+  {
+    id:"vet", name:"수의사전문채널", color:"#7B1FA2", icon:"🩺",
+    home:"https://www.dailyvet.co.kr",
+    boards:[
+      { label:"산업동물 뉴스", url:"https://www.dailyvet.co.kr/category/news/practice/industrial-animal" },
+      { label:"전체 뉴스",     url:"https://www.dailyvet.co.kr" },
+    ],
+  },
 ];
 
-const PALETTE = ["#E8530A","#1B7A3E","#1565C0","#7B1FA2","#C0792A","#B71C1C","#006064","#33691E","#4527A0","#BF360C","#0D47A1","#1B5E20"];
+// ═══════════════════════════════════════════════════════════════════════════
+// 상태 + 사용자 추가 사이트(localStorage)
+// ═══════════════════════════════════════════════════════════════════════════
+let state = { tab:"price", selectedCategory:"broiler", customSites:loadCustom() };
 
-const TOPIC_POOL = [
-  { tag:"육계시세",   title:"육계 산지가 강보합세 유지…여름 성수기 수요 증가", summary:"외식 수요 증가로 육계 산지가격이 kg당 1,900~2,100원 수준의 강보합세를 유지하고 있다. 공급 물량은 전년 대비 소폭 감소한 것으로 파악된다." },
-  { tag:"산란계",     title:"계란 생산량 안정권 진입…특란 175~185원대", summary:"산란계 사육 마릿수 회복세에 힘입어 계란 공급이 안정되고 있다. 특란 기준 175~185원, 대란은 155~165원대를 기록 중이다." },
-  { tag:"토종닭",     title:"토종닭 산지가 복날 수요 선반영…3,900~4,200원대", summary:"삼복 시즌을 앞두고 토종닭 선주문이 증가하면서 산지 가격이 오름세를 보이고 있다. 업계는 초복 전후 가격 정점을 예상하고 있다." },
-  { tag:"종계",       title:"종계 입식 상반기 목표 53% 달성…하반기 공급 안정", summary:"상반기 종계 입식이 활발히 이뤄지며 하반기 육계 병아리 공급 안정화가 기대된다. 성계 사육 마릿수도 전년 대비 소폭 증가세다." },
-  { tag:"육계병아리", title:"육계 병아리 입추가 800~1,000원…전주 대비 강세", summary:"병아리 공급이 수요를 따라가지 못하면서 입추가격이 강세를 보이고 있다. 계열사들은 안정적 물량 확보를 위한 계약 확대에 나서고 있다." },
-  { tag:"닭고기시세", title:"닭고기 도매가 부분육 수요 증가로 전월 대비 3% 상승", summary:"치킨 프랜차이즈와 급식업체의 부분육 주문이 늘며 도매가격이 오름세다. 업계는 복날 특수 이후 점차 안정될 것으로 전망하고 있다." },
-  { tag:"방역",       title:"AI 청정국 지위 6개월 유지…대일 수출 협상 본격화", summary:"조류인플루엔자 발생이 6개월 이상 없어 국제 청정국 지위 유지가 가시화됐다. 정부와 업계는 주요국과의 수출 재개 협상을 본격 추진하고 있다." },
-  { tag:"정책",       title:"농식품부, 계열화 농가 경영안정 자금 20% 확대", summary:"농림축산식품부가 육계 계열화 농가의 경영 안정을 위한 지원 자금을 대폭 늘렸다. 이달 말까지 신청을 받으며 저금리 융자로 제공된다." },
-  { tag:"사료",       title:"옥수수·대두박 국제가 하락세…하반기 사료비 인하 기대", summary:"국제 곡물 가격이 안정세를 보이면서 하반기 배합사료 가격 인하 가능성이 제기되고 있다. 사료업계는 원자재 가격 동향을 주시하고 있다." },
-  { tag:"질병방역",   title:"뉴캐슬병 여름철 위험 증가…백신 접종 주기 준수 당부", summary:"고온다습한 여름철 뉴캐슬병 발생 위험 증가에 대비해 산란계·육계 모두 백신 접종 주기를 철저히 지킬 것이 권고됐다." },
-  { tag:"수급동향",   title:"도계량 전년 동기 대비 2.1% 감소 전망", summary:"종계 입식 물량 조정 여파로 육계 도계량이 소폭 줄어들 것으로 예측된다. 이는 단기적으로 산지 가격을 지지하는 요인으로 작용할 전망이다." },
-  { tag:"소비트렌드", title:"닭가슴살 간편식 시장 급성장…가공육 수요 다변화", summary:"건강 관심 증가로 닭가슴살 HMR 시장이 전년 대비 15% 이상 성장했다. 부위별 단가 차별화가 농가 수익 구조에도 영향을 미치고 있다." },
-];
+function loadCustom(){
+  try { const s=localStorage.getItem("poultry_custom_boards"); if(s){ const p=JSON.parse(s); if(Array.isArray(p)) return p; } } catch(e){}
+  return [];
+}
+function saveCustom(){ try { localStorage.setItem("poultry_custom_boards", JSON.stringify(state.customSites)); } catch(e){} }
+
+function allSites(){ return BOARD_SITES.concat(state.customSites); }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 상태
-// ═══════════════════════════════════════════════════════════════════════════
-let state = {
-  tab: "price",
-  selectedCategory: "broiler",
-  activeFilter: "all",
-  sources: loadSources(),
-  newsData: [],
-  showModal: false,
-  lastUpdated: null,
-};
-
-function loadSources(){
-  try {
-    const saved = localStorage.getItem("poultry_sources");
-    if(saved){ const p = JSON.parse(saved); if(Array.isArray(p)&&p.length>0) return p; }
-  } catch(e){}
-  return JSON.parse(JSON.stringify(DEFAULT_SOURCES));
-}
-function saveSources(arr){
-  try { localStorage.setItem("poultry_sources", JSON.stringify(arr)); } catch(e){}
-}
-
-function generateNews(){
-  const today = fmtFull(new Date());
-  const news = [];
-  state.sources.forEach((src, si)=>{
-    for(let k=0;k<5;k++){
-      const t = TOPIC_POOL[(si*5+k)%TOPIC_POOL.length];
-      news.push({ source:src.id, date:today, tag:t.tag, title:`${src.name} - ${t.title}`, summary:t.summary, url:src.url });
-    }
-  });
-  state.newsData = news;
-  state.lastUpdated = new Date();
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// 유틸 렌더
+// 유틸
 // ═══════════════════════════════════════════════════════════════════════════
 function esc(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
-
-function sparkline(data, color){
-  const vals = data.filter(v=>v!==null);
-  if(vals.length<2) return "";
-  const min=Math.min(...vals), max=Math.max(...vals), range=max-min||1;
-  const W=80,H=30;
+function sparkline(data,color){
+  const vals=data.filter(v=>v!==null); if(vals.length<2) return "";
+  const min=Math.min(...vals),max=Math.max(...vals),range=max-min||1,W=80,H=30;
   const pts=data.map((v,i)=>v!==null?[i,v]:null).filter(Boolean);
-  const toX=i=>(i/(data.length-1))*W, toY=v=>H-((v-min)/range)*H;
+  const toX=i=>(i/(data.length-1))*W,toY=v=>H-((v-min)/range)*H;
   const path=pts.map((p,j)=>`${j===0?"M":"L"}${toX(p[0]).toFixed(1)},${toY(p[1]).toFixed(1)}`).join(" ");
   const circles=pts.map(p=>`<circle cx="${toX(p[0]).toFixed(1)}" cy="${toY(p[1]).toFixed(1)}" r="2" fill="${color}"/>`).join("");
   return `<svg width="${W}" height="${H}" style="overflow:visible"><path d="${path}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>${circles}</svg>`;
 }
-
-function deltaBadge(cur, prev){
+function deltaBadge(cur,prev){
   if(!cur||!prev) return "";
-  const diff=cur-prev, pct=((diff/prev)*100).toFixed(1), up=diff>0, flat=diff===0;
-  const bg = flat?"#f0f0f0":up?"#FEE8E8":"#E8F7EE";
-  const col = flat?"#888":up?"#D32F2F":"#1B7A3E";
-  const txt = flat?"─":up?`▲ +${diff.toLocaleString()} (${pct}%)`:`▼ ${diff.toLocaleString()} (${pct}%)`;
+  const diff=cur-prev,pct=((diff/prev)*100).toFixed(1),up=diff>0,flat=diff===0;
+  const bg=flat?"#f0f0f0":up?"#FEE8E8":"#E8F7EE",col=flat?"#888":up?"#D32F2F":"#1B7A3E";
+  const txt=flat?"─":up?`▲ +${diff.toLocaleString()} (${pct}%)`:`▼ ${diff.toLocaleString()} (${pct}%)`;
   return `<span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;background:${bg};color:${col}">${txt}</span>`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 메인 렌더
+// 렌더
 // ═══════════════════════════════════════════════════════════════════════════
 function render(){
-  const app = document.getElementById("app");
-  app.innerHTML = `
+  document.getElementById("app").innerHTML = `
     ${renderHeader()}
     <main>
-      ${state.tab==="price" ? renderPriceTab() : renderNewsTab()}
+      ${state.tab==="price" ? renderPriceTab() : renderBoardTab()}
       ${renderFooter()}
-    </main>
-    ${state.showModal ? renderModal() : ""}
-  `;
+    </main>`;
   attachEvents();
 }
 
 function renderHeader(){
-  const now = new Date();
+  const now=new Date();
   return `
-  <header>
-    <div class="header-inner">
-      <div class="header-top">
-        <div style="display:flex;align-items:center;gap:10px">
-          <span style="font-size:26px">🐓</span>
-          <div>
-            <div class="display" style="font-size:20px;line-height:1.1">양계·계육 시세 대시보드</div>
-            <div style="font-size:11px;opacity:0.65;margin-top:2px">육계 · 산란계 · 토종닭 · 종계 주간 시세 &amp; 업계 뉴스</div>
-          </div>
-        </div>
-        <div style="text-align:right">
-          <div style="font-size:13px;font-weight:700;color:#F9C74F">${fmtDate(now)}</div>
-          ${state.lastUpdated?`<div style="font-size:10px;opacity:0.55">업데이트 ${state.lastUpdated.toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"})}</div>`:""}
+  <header><div class="header-inner">
+    <div class="header-top">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:26px">🐓</span>
+        <div>
+          <div class="display" style="font-size:20px;line-height:1.1">양계·계육 시세 대시보드</div>
+          <div style="font-size:11px;opacity:0.65;margin-top:2px">육계 · 산란계 · 토종닭 · 종계 주간 시세 &amp; 협회 공지사항</div>
         </div>
       </div>
-      <div class="tabs">
-        <button class="tab ${state.tab==="price"?"active":""}" data-tab="price">📊 주간 시세</button>
-        <button class="tab ${state.tab==="news"?"active":""}" data-tab="news">📰 업계 뉴스</button>
-      </div>
+      <div style="text-align:right"><div style="font-size:13px;font-weight:700;color:#F9C74F">${fmtDate(now)}</div></div>
     </div>
-  </header>`;
+    <div class="tabs">
+      <button class="tab ${state.tab==="price"?"active":""}" data-tab="price">📊 주간 시세</button>
+      <button class="tab ${state.tab==="board"?"active":""}" data-tab="board">📋 공지사항 바로가기</button>
+    </div>
+  </div></header>`;
 }
 
 function renderPriceTab(){
-  const today = WEEK_DATA[WEEK_DATA.length-1];
-  const yest  = WEEK_DATA[WEEK_DATA.length-2];
-  const selCat = PRICE_CATEGORIES.find(c=>c.key===state.selectedCategory);
-  const weekVals = WEEK_DATA.map(d=>d[state.selectedCategory]);
-
-  // 요약 카드
-  const cards = PRICE_CATEGORIES.map(cat=>{
-    const val=today[cat.key], prev=yest[cat.key], sel=state.selectedCategory===cat.key;
-    const deltaTxt = (val&&prev)
-      ? (val===prev?"─ 보합":val>prev?`▲ +${(val-prev).toLocaleString()}`:`▼ ${(val-prev).toLocaleString()}`)
-      : "휴장";
-    const deltaCol = sel
-      ? (val&&prev?(val>prev?"#FFD0CC":val<prev?"#CCFFD9":"rgba(255,255,255,0.6)"):"rgba(255,255,255,0.5)")
-      : (val&&prev?(val>prev?"#D32F2F":val<prev?"#1B7A3E":"#888"):"#bbb");
-    return `
-    <div class="price-card" data-cat="${cat.key}" style="${sel?`background:${cat.color};border-color:${cat.color};box-shadow:0 4px 20px ${cat.color}40`:""}">
-      <div style="display:flex;align-items:center;justify-content:space-between">
-        <span style="font-size:22px">${cat.icon}</span>
-        ${sparkline(WEEK_DATA.map(d=>d[cat.key]), sel?"#fff":cat.color)}
-      </div>
+  const today=WEEK_DATA[WEEK_DATA.length-1], yest=WEEK_DATA[WEEK_DATA.length-2];
+  const selCat=PRICE_CATEGORIES.find(c=>c.key===state.selectedCategory);
+  const weekVals=WEEK_DATA.map(d=>d[state.selectedCategory]);
+  const cards=PRICE_CATEGORIES.map(cat=>{
+    const val=today[cat.key],prev=yest[cat.key],sel=state.selectedCategory===cat.key;
+    const dt=(val&&prev)?(val===prev?"─ 보합":val>prev?`▲ +${(val-prev).toLocaleString()}`:`▼ ${(val-prev).toLocaleString()}`):"휴장";
+    const dc=sel?(val&&prev?(val>prev?"#FFD0CC":val<prev?"#CCFFD9":"rgba(255,255,255,0.6)"):"rgba(255,255,255,0.5)"):(val&&prev?(val>prev?"#D32F2F":val<prev?"#1B7A3E":"#888"):"#bbb");
+    return `<div class="price-card" data-cat="${cat.key}" style="${sel?`background:${cat.color};border-color:${cat.color};box-shadow:0 4px 20px ${cat.color}40`:""}">
+      <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:22px">${cat.icon}</span>${sparkline(WEEK_DATA.map(d=>d[cat.key]),sel?"#fff":cat.color)}</div>
       <div style="margin-top:8px">
         <div style="font-size:12px;font-weight:700;color:${sel?"rgba(255,255,255,0.8)":"#888"}">${cat.label} <span style="font-weight:400">${cat.sub}</span></div>
         <div style="font-size:20px;font-weight:800;color:${sel?"#fff":cat.color};letter-spacing:-0.5px">${val?val.toLocaleString():"-"}<span style="font-size:11px;font-weight:400;margin-left:2px">${cat.unit}</span></div>
-        <div style="margin-top:4px"><span style="font-size:10px;font-weight:700;color:${deltaCol}">${deltaTxt}</span></div>
-      </div>
-    </div>`;
+        <div style="margin-top:4px"><span style="font-size:10px;font-weight:700;color:${dc}">${dt}</span></div>
+      </div></div>`;
   }).join("");
-
-  // 바 차트
-  const vals = weekVals.filter(v=>v!==null);
-  const maxV=Math.max(...vals), minV=Math.min(...vals);
-  const bars = WEEK_DATA.map((d,i)=>{
-    const v=d[state.selectedCategory];
-    const pct=v?((v-minV)/(maxV-minV+1))*70+20:0;
-    const isToday=i===WEEK_DATA.length-1;
-    return `
-    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
-      ${v?`<div style="font-size:10px;font-weight:700;color:${isToday?selCat.color:"#888"}">${v>=10000?(v/1000).toFixed(1)+"k":v.toLocaleString()}</div>`:""}
-      <div style="width:100%;height:${v?pct+"px":"6px"};background:${v?(isToday?selCat.color:selCat.color+"55"):"#f0f0f0"};border-radius:4px 4px 0 0;transition:height .4s"></div>
-      <div style="font-size:10px;color:${isToday?selCat.color:"#aaa"};font-weight:${isToday?700:400};text-align:center">${d.label}</div>
-    </div>`;
+  const vals=weekVals.filter(v=>v!==null),maxV=Math.max(...vals),minV=Math.min(...vals);
+  const bars=WEEK_DATA.map((d,i)=>{
+    const v=d[state.selectedCategory],pct=v?((v-minV)/(maxV-minV+1))*70+20:0,isT=i===WEEK_DATA.length-1;
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+      ${v?`<div style="font-size:10px;font-weight:700;color:${isT?selCat.color:"#888"}">${v>=10000?(v/1000).toFixed(1)+"k":v.toLocaleString()}</div>`:""}
+      <div style="width:100%;height:${v?pct+"px":"6px"};background:${v?(isT?selCat.color:selCat.color+"55"):"#f0f0f0"};border-radius:4px 4px 0 0"></div>
+      <div style="font-size:10px;color:${isT?selCat.color:"#aaa"};font-weight:${isT?700:400}">${d.label}</div></div>`;
   }).join("");
-
-  // 상세 테이블
-  const detailRows = WEEK_DATA.map((d,i)=>{
-    const val=d[state.selectedCategory];
-    const prevVal=i>0?WEEK_DATA[i-1][state.selectedCategory]:null;
-    const isToday=i===WEEK_DATA.length-1;
-    return `
-    <tr style="border-bottom:1px solid #f8f8f8;background:${isToday?selCat.bg:"transparent"}">
-      <td style="padding:10px;color:${isToday?selCat.color:d.isWeekend?"#bbb":"#444"};font-weight:${isToday?700:400}">${d.label} ${isToday?`<span style="font-size:10px;margin-left:4px;background:${selCat.color};color:#fff;padding:1px 6px;border-radius:10px">오늘</span>`:""}</td>
-      <td style="padding:10px;text-align:right;font-weight:700;color:${isToday?selCat.color:"#333"}">${val?val.toLocaleString()+" "+selCat.unit:'<span style="color:#ccc">휴장</span>'}</td>
-      <td style="padding:10px;text-align:right">${deltaBadge(val,prevVal)}</td>
-    </tr>`;
+  const detailRows=WEEK_DATA.map((d,i)=>{
+    const val=d[state.selectedCategory],pv=i>0?WEEK_DATA[i-1][state.selectedCategory]:null,isT=i===WEEK_DATA.length-1;
+    return `<tr style="border-bottom:1px solid #f8f8f8;background:${isT?selCat.bg:"transparent"}">
+      <td style="padding:10px;color:${isT?selCat.color:d.isWeekend?"#bbb":"#444"};font-weight:${isT?700:400}">${d.label} ${isT?`<span style="font-size:10px;margin-left:4px;background:${selCat.color};color:#fff;padding:1px 6px;border-radius:10px">오늘</span>`:""}</td>
+      <td style="padding:10px;text-align:right;font-weight:700;color:${isT?selCat.color:"#333"}">${val?val.toLocaleString()+" "+selCat.unit:'<span style="color:#ccc">휴장</span>'}</td>
+      <td style="padding:10px;text-align:right">${deltaBadge(val,pv)}</td></tr>`;
   }).join("");
-
-  // 전체 비교 테이블
-  const compareHead = PRICE_CATEGORIES.map(c=>`<th style="padding:10px 8px;text-align:right">${c.icon} ${c.label}</th>`).join("");
-  const compareRows = WEEK_DATA.map((d,i)=>{
-    const isToday=i===WEEK_DATA.length-1;
-    const cells=PRICE_CATEGORIES.map(cat=>{
-      const v=d[cat.key];
-      return `<td style="padding:10px 8px;text-align:right;font-weight:${isToday?700:400};color:${isToday?cat.color:v?"#333":"#ccc"}">${v?v.toLocaleString():"-"}</td>`;
-    }).join("");
-    return `<tr style="border-bottom:1px solid #f0f0f0;background:${isToday?"#F0F4FF":i%2===0?"#fafafa":"#fff"}">
-      <td style="padding:10px 12px;font-weight:${isToday?700:400};color:${isToday?"#2C3E6B":d.isWeekend?"#bbb":"#555"}">${d.label}${isToday?" ★":""}</td>${cells}</tr>`;
+  const cmpHead=PRICE_CATEGORIES.map(c=>`<th style="padding:10px 8px;text-align:right">${c.icon} ${c.label}</th>`).join("");
+  const cmpRows=WEEK_DATA.map((d,i)=>{
+    const isT=i===WEEK_DATA.length-1;
+    const cells=PRICE_CATEGORIES.map(cat=>{const v=d[cat.key];return `<td style="padding:10px 8px;text-align:right;font-weight:${isT?700:400};color:${isT?cat.color:v?"#333":"#ccc"}">${v?v.toLocaleString():"-"}</td>`;}).join("");
+    return `<tr style="border-bottom:1px solid #f0f0f0;background:${isT?"#F0F4FF":i%2===0?"#fafafa":"#fff"}"><td style="padding:10px 12px;font-weight:${isT?700:400};color:${isT?"#2C3E6B":d.isWeekend?"#bbb":"#555"}">${d.label}${isT?" ★":""}</td>${cells}</tr>`;
   }).join("");
-
   return `
   <div style="margin-bottom:20px">
     <div style="font-size:12px;color:#888;margin-bottom:10px;font-weight:600;letter-spacing:1px">TODAY SUMMARY · ${fmtFull(new Date())}</div>
     <div class="price-grid">${cards}</div>
   </div>
-
   <div class="card" style="margin-bottom:20px">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
       <span style="font-size:22px">${selCat.icon}</span>
-      <div>
-        <div class="display" style="font-size:16px;color:${selCat.color}">${selCat.label} 주간 시세 (${selCat.unit})</div>
-        <div style="font-size:11px;color:#aaa">일별 가격 추이 · 최근 7일</div>
-      </div>
+      <div><div class="display" style="font-size:16px;color:${selCat.color}">${selCat.label} 주간 시세 (${selCat.unit})</div>
+      <div style="font-size:11px;color:#aaa">일별 가격 추이 · 최근 7일</div></div>
     </div>
     <div style="display:flex;align-items:flex-end;gap:6px;height:100px;margin-bottom:16px">${bars}</div>
-    <div style="overflow-x:auto">
-      <table style="font-size:13px">
-        <thead><tr style="border-bottom:2px solid #f0f0f0">
-          <th style="padding:8px 10px;text-align:left;color:#888;font-weight:600;font-size:11px">날짜</th>
-          <th style="padding:8px 10px;text-align:right;color:#888;font-weight:600;font-size:11px">가격</th>
-          <th style="padding:8px 10px;text-align:right;color:#888;font-weight:600;font-size:11px">전일대비</th>
-        </tr></thead>
-        <tbody>${detailRows}</tbody>
-      </table>
-    </div>
+    <div style="overflow-x:auto"><table style="font-size:13px">
+      <thead><tr style="border-bottom:2px solid #f0f0f0">
+        <th style="padding:8px 10px;text-align:left;color:#888;font-weight:600;font-size:11px">날짜</th>
+        <th style="padding:8px 10px;text-align:right;color:#888;font-weight:600;font-size:11px">가격</th>
+        <th style="padding:8px 10px;text-align:right;color:#888;font-weight:600;font-size:11px">전일대비</th>
+      </tr></thead><tbody>${detailRows}</tbody></table></div>
   </div>
-
   <div class="card">
     <div class="display" style="font-size:16px;margin-bottom:16px">📋 전 품목 일별 비교</div>
-    <div style="overflow-x:auto">
-      <table style="font-size:12px;min-width:600px">
-        <thead><tr style="background:#1a2744;color:#fff">
-          <th style="padding:10px 12px;text-align:left">날짜</th>${compareHead}
-        </tr></thead>
-        <tbody>${compareRows}</tbody>
-      </table>
-    </div>
+    <div style="overflow-x:auto"><table style="font-size:12px;min-width:600px">
+      <thead><tr style="background:#1a2744;color:#fff"><th style="padding:10px 12px;text-align:left">날짜</th>${cmpHead}</tr></thead>
+      <tbody>${cmpRows}</tbody></table></div>
     <div style="margin-top:10px;font-size:11px;color:#aaa;text-align:right">단위: 육계·토종닭·닭고기(원/kg) | 계란(원/개) | 종계병아리·육계병아리(원/마리)</div>
   </div>`;
 }
 
-function renderNewsTab(){
-  const allIds = state.sources.map(s=>s.id);
-  const filtered = state.activeFilter==="all"
-    ? state.newsData.filter(n=>allIds.includes(n.source))
-    : state.newsData.filter(n=>n.source===state.activeFilter);
-
-  const totalCount = state.newsData.filter(n=>allIds.includes(n.source)).length;
-  const chips = [`<button class="chip filter-chip ${state.activeFilter==="all"?"active":""}" data-filter="all" style="${state.activeFilter==="all"?"border:2px solid #555;background:#55515515;font-weight:700;color:#555":""}">전체 (${totalCount})</button>`]
-    .concat(state.sources.map(s=>{
-      const cnt=state.newsData.filter(n=>n.source===s.id).length;
-      const act=state.activeFilter===s.id;
-      return `<button class="chip filter-chip" data-filter="${s.id}" style="${act?`border:2px solid ${s.color};background:${s.color}15;font-weight:700;color:${s.color}`:""}">${esc(s.name)}${cnt?` (${cnt})`:""}</button>`;
-    })).join("");
-
-  const items = filtered.map(item=>{
-    const src=state.sources.find(s=>s.id===item.source);
-    if(!src) return "";
+function renderBoardTab(){
+  const cards = allSites().map((site,idx)=>{
+    const isCustom = idx >= BOARD_SITES.length;
+    const links = site.boards.map(b=>`
+      <a href="${esc(b.url)}" target="_blank" rel="noopener" class="board-link" style="background:${site.color}12;color:${site.color}">
+        <span>📄 ${esc(b.label)}</span><span style="font-size:16px">↗</span>
+      </a>`).join("");
     return `
-    <div class="news-item" style="border-left:4px solid ${src.color}">
-      <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;flex-wrap:wrap">
-        <span style="font-size:10px;font-weight:700;color:${src.color};background:${src.color}18;padding:2px 8px;border-radius:20px">${esc(src.name)}</span>
-        <span style="font-size:11px;color:#aaa">${esc(item.date)}</span>
-        ${item.tag?`<span style="font-size:10px;font-weight:600;background:#F3F4F6;color:#555;padding:2px 8px;border-radius:20px">#${esc(item.tag)}</span>`:""}
-        ${!src.isDefault?`<span style="font-size:9px;font-weight:700;background:#FFF8E1;color:#F57F17;padding:2px 7px;border-radius:20px">사용자 추가</span>`:""}
+    <div class="board-card" style="border-top:4px solid ${site.color}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:22px">${site.icon}</span>
+          <div>
+            <div class="display" style="font-size:16px;color:${site.color}">${esc(site.name)}</div>
+            <a href="${esc(site.home)}" target="_blank" rel="noopener" style="font-size:11px;color:#aaa">${esc(site.home.replace(/^https?:\/\//,""))}</a>
+          </div>
+        </div>
+        ${isCustom?`<button class="del-site" data-idx="${idx-BOARD_SITES.length}" style="border:1px solid #fcc;border-radius:8px;background:#fff;padding:3px 9px;font-size:11px;color:#D32F2F">🗑</button>`:""}
       </div>
-      <div style="font-size:14px;font-weight:600;color:#1a1a1a;line-height:1.5;margin-bottom:4px">${esc(item.title)}</div>
-      ${item.summary?`<div style="font-size:12px;color:#666;line-height:1.6;margin-bottom:8px">${esc(item.summary)}</div>`:""}
-      <div style="display:flex;align-items:center;gap:8px">
-        ${item.url?`<a href="${esc(item.url)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:${src.color};padding:3px 10px;border:1px solid ${src.color};border-radius:20px;background:${src.color}10">🔗 원문 보기</a>`:""}
-        <a href="${esc(src.url)}" target="_blank" rel="noopener" style="font-size:11px;color:#aaa">↗ ${esc(src.name)} 사이트</a>
-      </div>
+      ${links}
     </div>`;
   }).join("");
 
   return `
   <div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
       <div style="display:flex;align-items:center;gap:10px">
-        <span style="font-size:20px">📰</span>
-        <span class="display" style="font-size:18px">주요 업계 뉴스</span>
+        <span style="font-size:20px">📋</span>
+        <span class="display" style="font-size:18px">협회 공지사항 바로가기</span>
       </div>
-      <div style="display:flex;gap:8px">
-        <button id="btn-manage" style="border:1px solid #1a2744;border-radius:8px;background:#1a2744;padding:5px 12px;font-size:12px;color:#fff">⚙️ 소스 관리</button>
-        <button id="btn-refresh" style="border:1px solid #ddd;border-radius:8px;background:#fff;padding:5px 12px;font-size:12px;color:#555">🔄 새로고침</button>
-      </div>
+      <button id="btn-add-site" style="border:1px solid #1a2744;border-radius:8px;background:#1a2744;padding:6px 13px;font-size:12px;color:#fff">➕ 사이트 추가</button>
     </div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">${chips}</div>
-    ${state.sources.length===0
-      ? `<div style="text-align:center;padding:30px 20px;color:#aaa;background:#fafafa;border-radius:12px;border:1px dashed #ddd"><div style="font-size:32px;margin-bottom:8px">📭</div><div style="font-size:14px;font-weight:600;margin-bottom:6px">등록된 뉴스 소스가 없습니다</div><div style="font-size:12px">위의 <strong>소스 관리</strong> 버튼으로 매체를 추가하세요</div></div>`
-      : filtered.length===0
-        ? `<div style="text-align:center;padding:40px 0;color:#aaa">뉴스 데이터가 없습니다</div>`
-        : `<div style="display:flex;flex-direction:column;gap:10px">${items}</div>`
-    }
+    <div style="font-size:12px;color:#888;margin-bottom:16px;line-height:1.6">
+      각 협회·매체의 공지사항 게시판으로 바로 이동합니다. 버튼을 누르면 새 탭에서 실제 게시판이 열립니다.
+    </div>
+    <div class="board-grid">${cards}</div>
   </div>`;
 }
 
 function renderFooter(){
-  const links = state.sources.map((s,i)=>`<a href="${esc(s.url)}" target="_blank" rel="noopener" style="color:#aaa">${esc(s.name)}</a>${i<state.sources.length-1?" · ":""}`).join("");
-  return `<div style="margin-top:20px;font-size:11px;color:#bbb;text-align:center;line-height:1.8">데이터 출처 · ${links}<br>※ 시세는 업계 평균 수준을 반영한 참고 데이터입니다. 정확한 시세는 각 협회 공식 사이트를 확인하세요.</div>`;
+  const links=allSites().map((s,i)=>`<a href="${esc(s.home)}" target="_blank" rel="noopener" style="color:#aaa">${esc(s.name)}</a>${i<allSites().length-1?" · ":""}`).join("");
+  return `<div style="margin-top:20px;font-size:11px;color:#bbb;text-align:center;line-height:1.8">데이터 출처 · ${links}<br>※ 시세는 업계 평균 수준을 반영한 참고 데이터입니다. 정확한 시세·공지는 각 협회 공식 사이트를 확인하세요.</div>`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 소스 관리 모달
-// ═══════════════════════════════════════════════════════════════════════════
-let modalList = [];
-let modalForm = { name:"", url:"", color:PALETTE[4] };
-let modalEditId = null;
-let modalError = "";
-
-function openModal(){
-  modalList = JSON.parse(JSON.stringify(state.sources));
-  modalForm = { name:"", url:"", color:PALETTE[modalList.length%PALETTE.length] };
-  modalEditId = null;
-  modalError = "";
-  state.showModal = true;
-  render();
-}
-
-function renderModal(){
-  const sourceRows = modalList.map(s=>`
-    <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;border:${modalEditId===s.id?`2px solid ${s.color}`:"1px solid #efefef"};background:${modalEditId===s.id?s.color+"08":"#fafafa"}">
-      <div style="width:14px;height:14px;border-radius:50%;background:${s.color};flex-shrink:0"></div>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:700">${esc(s.name)}</div>
-        <div style="font-size:11px;color:#999;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(s.url)}</div>
-      </div>
-      ${s.isDefault?`<span style="font-size:9px;font-weight:700;background:#E8F0FE;color:#1565C0;padding:2px 7px;border-radius:20px">기본</span>`:""}
-      <button class="m-edit" data-id="${s.id}" style="border:1px solid #ddd;border-radius:8px;background:#fff;padding:4px 10px;font-size:11px;color:#555">✏️ 수정</button>
-      ${!s.isDefault?`<button class="m-del" data-id="${s.id}" style="border:1px solid #fcc;border-radius:8px;background:#fff;padding:4px 10px;font-size:11px;color:#D32F2F">🗑 삭제</button>`:""}
-    </div>`).join("") || `<div style="text-align:center;color:#ccc;padding:20px;font-size:13px">등록된 소스가 없습니다</div>`;
-
-  const palette = PALETTE.map(c=>`<div class="m-color" data-color="${c}" style="width:26px;height:26px;border-radius:50%;background:${c};cursor:pointer;border:${modalForm.color===c?"3px solid #1a1a1a":"3px solid transparent"};box-sizing:border-box"></div>`).join("");
-
-  return `
-  <div class="modal-overlay" id="modal-overlay">
-    <div class="modal">
-      <div style="padding:20px 24px 16px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between">
-        <div>
-          <div class="display" style="font-size:18px">📋 뉴스 소스 관리</div>
-          <div style="font-size:11px;color:#aaa;margin-top:3px">매체를 추가하거나 삭제할 수 있습니다</div>
-        </div>
-        <button id="m-close" style="border:none;background:#f5f5f5;border-radius:50%;width:32px;height:32px;font-size:16px;color:#666">✕</button>
-      </div>
-      <div class="modal-body">
-        <div style="margin-bottom:20px">
-          <div style="font-size:12px;font-weight:700;color:#888;letter-spacing:1px;margin-bottom:10px">등록된 뉴스 소스 (${modalList.length}개)</div>
-          <div style="display:flex;flex-direction:column;gap:8px">${sourceRows}</div>
-        </div>
-        <div style="background:#f8f9fa;border-radius:14px;padding:16px;border:1px solid #e8e8e8">
-          <div style="font-size:13px;font-weight:700;color:#444;margin-bottom:12px">${modalEditId?"✏️ 소스 수정":"➕ 새 소스 추가"}</div>
-          <div style="display:flex;flex-direction:column;gap:10px">
-            <div>
-              <label style="font-size:11px;font-weight:600;color:#666;display:block;margin-bottom:4px">매체명 *</label>
-              <input id="m-name" class="field-input" placeholder="예: 축산신문" value="${esc(modalForm.name)}" />
-            </div>
-            <div>
-              <label style="font-size:11px;font-weight:600;color:#666;display:block;margin-bottom:4px">웹사이트 URL *</label>
-              <input id="m-url" class="field-input" placeholder="https://example.com" value="${esc(modalForm.url)}" />
-            </div>
-            <div>
-              <label style="font-size:11px;font-weight:600;color:#666;display:block;margin-bottom:6px">색상</label>
-              <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">${palette}
-                <input type="color" id="m-color-custom" value="${modalForm.color}" title="직접 선택" style="width:26px;height:26px;border:none;border-radius:50%;cursor:pointer;padding:0;background:none" />
-              </div>
-            </div>
-            ${modalForm.name?`<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;background:${modalForm.color}12;border:1px solid ${modalForm.color}40"><div style="width:10px;height:10px;border-radius:50%;background:${modalForm.color}"></div><span style="font-size:12px;font-weight:700;color:${modalForm.color}">${esc(modalForm.name)}</span><span style="font-size:11px;color:#999">미리보기</span></div>`:""}
-            ${modalError?`<div style="font-size:12px;color:#D32F2F;background:#FEE8E8;padding:8px 12px;border-radius:8px">⚠️ ${esc(modalError)}</div>`:""}
-            <div style="display:flex;gap:8px">
-              <button id="m-add" style="flex:1;padding:10px;border-radius:8px;border:none;background:#1a2744;color:#fff;font-weight:700;font-size:13px">${modalEditId?"✅ 수정 완료":"➕ 추가하기"}</button>
-              ${modalEditId?`<button id="m-cancel" style="padding:10px 16px;border-radius:8px;border:1px solid #ddd;background:#fff;color:#666;font-size:13px">취소</button>`:""}
-            </div>
-          </div>
-        </div>
-      </div>
-      <div style="padding:14px 24px;border-top:1px solid #f0f0f0;display:flex;justify-content:flex-end;gap:8px;background:#fafafa">
-        <button id="m-closebtn" style="padding:9px 20px;border-radius:10px;border:1px solid #ddd;background:#fff;color:#666;font-size:13px">닫기</button>
-        <button id="m-save" style="padding:9px 24px;border-radius:10px;border:none;background:#1a2744;color:#fff;font-weight:700;font-size:13px">💾 저장하기</button>
-      </div>
-    </div>
-  </div>`;
-}
-
-function modalValidate(){
-  if(!modalForm.name.trim()) return "매체명을 입력하세요.";
-  if(!modalForm.url.trim()||!/^https?:\/\//.test(modalForm.url.trim())) return "올바른 URL을 입력하세요. (http:// 또는 https://)";
-  if(!modalEditId && modalList.find(s=>s.name===modalForm.name.trim())) return "같은 이름의 매체가 이미 있습니다.";
-  return "";
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// 이벤트 바인딩
+// 이벤트
 // ═══════════════════════════════════════════════════════════════════════════
 function attachEvents(){
-  // 탭
   document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{ state.tab=b.dataset.tab; render(); });
-  // 시세 카드
   document.querySelectorAll(".price-card").forEach(c=>c.onclick=()=>{ state.selectedCategory=c.dataset.cat; render(); });
-  // 필터칩
-  document.querySelectorAll(".filter-chip").forEach(c=>c.onclick=()=>{ state.activeFilter=c.dataset.filter; render(); });
-  // 뉴스 버튼
-  const bm=document.getElementById("btn-manage"); if(bm) bm.onclick=openModal;
-  const br=document.getElementById("btn-refresh"); if(br) br.onclick=()=>{ generateNews(); render(); };
 
-  // 모달
-  if(state.showModal){
-    const ov=document.getElementById("modal-overlay");
-    if(ov) ov.onclick=e=>{ if(e.target===ov){ state.showModal=false; render(); } };
-    document.getElementById("m-close").onclick=()=>{ state.showModal=false; render(); };
-    document.getElementById("m-closebtn").onclick=()=>{ state.showModal=false; render(); };
-
-    const nameI=document.getElementById("m-name");
-    const urlI=document.getElementById("m-url");
-    if(nameI){ nameI.oninput=e=>{ modalForm.name=e.target.value; updatePreview(); }; if(!modalEditId) setTimeout(()=>nameI.focus(),50); }
-    if(urlI) urlI.oninput=e=>{ modalForm.url=e.target.value; };
-
-    document.querySelectorAll(".m-color").forEach(d=>d.onclick=()=>{ modalForm.color=d.dataset.color; render(); refocus(); });
-    const cc=document.getElementById("m-color-custom"); if(cc) cc.oninput=e=>{ modalForm.color=e.target.value; };
-
-    document.querySelectorAll(".m-edit").forEach(b=>b.onclick=()=>{
-      const s=modalList.find(x=>x.id===b.dataset.id);
-      modalEditId=s.id; modalForm={name:s.name,url:s.url,color:s.color}; modalError=""; render();
+  const addBtn=document.getElementById("btn-add-site");
+  if(addBtn) addBtn.onclick=()=>{
+    const name=prompt("매체/협회 이름을 입력하세요\n(예: 축산신문)");
+    if(!name||!name.trim()) return;
+    const home=prompt("공지사항 게시판 URL을 입력하세요\n(예: https://example.com/notice)");
+    if(!home||!/^https?:\/\//.test(home.trim())){ if(home!==null) alert("올바른 URL을 입력하세요 (http:// 또는 https://로 시작)"); return; }
+    const colors=["#C0792A","#B71C1C","#006064","#33691E","#4527A0","#0D47A1"];
+    state.customSites.push({
+      id:"custom_"+Date.now(), name:name.trim(), color:colors[state.customSites.length%colors.length], icon:"🔖",
+      home:home.trim(), boards:[{ label:"공지사항 바로가기", url:home.trim() }],
     });
-    document.querySelectorAll(".m-del").forEach(b=>b.onclick=()=>{
-      modalList=modalList.filter(x=>x.id!==b.dataset.id);
-      if(modalEditId===b.dataset.id){ modalEditId=null; modalForm={name:"",url:"",color:PALETTE[4]}; }
-      render();
-    });
+    saveCustom(); render();
+  };
 
-    document.getElementById("m-add").onclick=()=>{
-      // 최신 입력값 반영
-      const n=document.getElementById("m-name"), u=document.getElementById("m-url");
-      if(n) modalForm.name=n.value; if(u) modalForm.url=u.value;
-      const err=modalValidate();
-      if(err){ modalError=err; render(); return; }
-      if(modalEditId){
-        modalList=modalList.map(s=>s.id===modalEditId?{...s,name:modalForm.name.trim(),url:modalForm.url.trim(),color:modalForm.color}:s);
-        modalEditId=null;
-      } else {
-        modalList.push({ id:"custom_"+Date.now(), name:modalForm.name.trim(), url:modalForm.url.trim(), color:modalForm.color, isDefault:false });
-      }
-      modalForm={name:"",url:"",color:PALETTE[modalList.length%PALETTE.length]}; modalError=""; render();
-    };
-
-    const mc=document.getElementById("m-cancel");
-    if(mc) mc.onclick=()=>{ modalEditId=null; modalForm={name:"",url:"",color:PALETTE[modalList.length%PALETTE.length]}; modalError=""; render(); };
-
-    document.getElementById("m-save").onclick=()=>{
-      state.sources=JSON.parse(JSON.stringify(modalList));
-      saveSources(state.sources);
-      state.activeFilter="all";
-      generateNews();
-      state.showModal=false;
-      render();
-    };
-  }
+  document.querySelectorAll(".del-site").forEach(b=>b.onclick=()=>{
+    const i=parseInt(b.dataset.idx,10);
+    if(confirm("이 사이트를 삭제할까요?")){ state.customSites.splice(i,1); saveCustom(); render(); }
+  });
 }
 
-// 미리보기만 갱신 (포커스 유지용 - 이름 입력 중엔 전체 재렌더 안 함)
-function updatePreview(){ /* 입력 중에는 재렌더하지 않아 포커스 유지, 추가 시 반영 */ }
-function refocus(){ const n=document.getElementById("m-name"); if(n&&!modalEditId) n.focus(); }
-
-// ═══════════════════════════════════════════════════════════════════════════
-// 초기화
-// ═══════════════════════════════════════════════════════════════════════════
-generateNews();
 render();
 </script>
 </body>
