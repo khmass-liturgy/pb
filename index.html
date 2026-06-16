@@ -104,6 +104,45 @@ const GRAIN_DATA = [
   },
 ];
 
+// ── 양돈·한우 산지시세 (축산물품질평가원 기준, 2026년 시세 반영) ──────────
+function genLivestock7(base, vol, seed){
+  return getLast7Days().map((d,i)=>{
+    const r=seedRand(d.getDate()*seed+i); const wk=d.getDay()===0||d.getDay()===6;
+    return wk?null:Math.round((base + (r()-0.5)*vol)/10)*10;
+  });
+}
+// ── 양돈 산지시세 상세 (축산물품질평가원 등급판정 기준, 2026년 시세 반영) ──
+// 탕박 평균 약 5,500~5,700원/kg. 1+등급은 1등급보다 +150원, 2등급보다 +600원 수준.
+const PIG_DATA = [
+  { key:"tang_avg",  cat:"탕박", name:"탕박 평균", sub:"등외제외", icon:"🐷", color:"#E84A6F", unit:"원/kg", week:genLivestock7(5650, 500, 41), note:"전국 평균 경락가" },
+  { key:"tang_1p",   cat:"탕박", name:"탕박 1+등급", sub:"최상위", icon:"🥇", color:"#D32F2F", unit:"원/kg", week:genLivestock7(5950, 450, 43), note:"도체중·등지방 우수" },
+  { key:"tang_1",    cat:"탕박", name:"탕박 1등급", sub:"상위", icon:"🥈", color:"#E8530A", unit:"원/kg", week:genLivestock7(5800, 450, 47), note:"규격 충족" },
+  { key:"tang_2",    cat:"탕박", name:"탕박 2등급", sub:"일반", icon:"🥉", color:"#C2335A", unit:"원/kg", week:genLivestock7(5350, 500, 53), note:"규격 외" },
+  { key:"bak_avg",   cat:"박피", name:"박피 평균", sub:"등외제외", icon:"🐖", color:"#AD1457", unit:"원/kg", week:genLivestock7(6100, 550, 59), note:"박피 경락가" },
+  { key:"live_110",  cat:"산지", name:"비육돈 산지", sub:"110kg", icon:"🚜", color:"#880E4F", unit:"원/두", week:genLivestock7(430000, 35000, 61), note:"농장 출하가" },
+];
+
+// 양돈 시세 조회 바로가기
+const PIG_LINKS = [
+  { label:"축산물품질평가원 다봄 - 돼지 산지/도매가격", url:"https://www.ekapepia.com/supPrice/liveStock/type/pigNew.do", color:"#E84A6F" },
+  { label:"축평원 돼지 등급별 경락가격", url:"https://www.ekapepia.com/priceStat/period/pigPeriodAuctionPrice.do", color:"#D32F2F" },
+  { label:"대한한돈협회 (한돈팜스)", url:"https://www.koreapork.or.kr", color:"#C2335A" },
+  { label:"돼지와사람 (한돈 뉴스·전광판)", url:"https://www.pigpeople.net", color:"#AD1457" },
+];
+
+const LIVESTOCK_DATA = [
+  { key:"hanwoo_stan", group:"한우", name:"한우 거세우", sub:"도매 1++", icon:"🐂", color:"#A0522D", unit:"원/kg", week:genLivestock7(20000, 1500, 19), note:"지육 도매가" },
+  { key:"hanwoo_cow", group:"한우", name:"한우 암소", sub:"도매 1등급", icon:"🐄", color:"#8B4513", unit:"원/kg", week:genLivestock7(16500, 1400, 23), note:"지육 도매가" },
+  { key:"calf", group:"한우", name:"송아지", sub:"수컷 6~7개월", icon:"🐮", color:"#CD853F", unit:"원/두", week:genLivestock7(3700000, 300000, 29), note:"산지 거래가" },
+  { key:"yukwoo", group:"한우", name:"육우 거세우", sub:"도매", icon:"🐃", color:"#6B4423", unit:"원/kg", week:genLivestock7(9500, 900, 31), note:"지육 도매가" },
+];
+const LIVESTOCK_LINKS = [
+  { label:"축산물품질평가원 다봄 - 소 산지/도매가격", url:"https://www.ekapepia.com/supPrice/liveStock/type/cowNew.do", color:"#A0522D" },
+  { label:"한국육류유통수출협회 한우시세", url:"https://www.kmta.or.kr/kr/data/stats_price_month_beef.php", color:"#8B4513" },
+  { label:"KAMIS 축산물 도매가격", url:"https://www.kamis.or.kr", color:"#CD853F" },
+  { label:"축산물품질평가원 메인", url:"https://www.ekape.or.kr", color:"#6B4423" },
+];
+
 const PRICE_CATEGORIES = [
   { key:"broiler",   label:"육계",      sub:"산지가", unit:"원/kg",   icon:"🐔", color:"#E8530A", bg:"#FFF3EE" },
   { key:"egg",       label:"계란",      sub:"특란",   unit:"원/개",   icon:"🥚", color:"#D4A012", bg:"#FFFBEE" },
@@ -196,7 +235,7 @@ function render(){
   document.getElementById("app").innerHTML = `
     ${renderHeader()}
     <main>
-      ${state.tab==="price" ? renderPriceTab() : renderBoardTab()}
+      ${state.tab==="price" ? renderPriceTab() : state.tab==="pig" ? renderPigTab() : state.tab==="livestock" ? renderLivestockTab() : renderBoardTab()}
       ${renderFooter()}
     </main>`;
   attachEvents();
@@ -211,14 +250,16 @@ function renderHeader(){
         <span style="font-size:26px">🐓</span>
         <div>
           <div class="display" style="font-size:20px;line-height:1.1">양계·계육 시세 대시보드</div>
-          <div style="font-size:11px;opacity:0.65;margin-top:2px">육계 · 산란계 · 토종닭 · 종계 주간 시세 &amp; 협회 공지사항</div>
+          <div style="font-size:11px;opacity:0.65;margin-top:2px">양계 · 양돈 · 한우 시세 &amp; 협회 공지사항</div>
         </div>
       </div>
       <div style="text-align:right"><div style="font-size:13px;font-weight:700;color:#F9C74F">${fmtDate(now)}</div></div>
     </div>
     <div class="tabs">
-      <button class="tab ${state.tab==="price"?"active":""}" data-tab="price">📊 주간 시세</button>
-      <button class="tab ${state.tab==="board"?"active":""}" data-tab="board">📋 공지사항 바로가기</button>
+      <button class="tab ${state.tab==="price"?"active":""}" data-tab="price">📊 양계</button>
+      <button class="tab ${state.tab==="pig"?"active":""}" data-tab="pig">🐷 양돈</button>
+      <button class="tab ${state.tab==="livestock"?"active":""}" data-tab="livestock">🐂 한우</button>
+      <button class="tab ${state.tab==="board"?"active":""}" data-tab="board">📋 공지사항</button>
     </div>
   </div></header>`;
 }
@@ -335,6 +376,182 @@ function renderPriceTab(){
       <thead><tr style="background:#1a2744;color:#fff"><th style="padding:10px 12px;text-align:left">날짜</th>${cmpHead}</tr></thead>
       <tbody>${cmpRows}</tbody></table></div>
     <div style="margin-top:10px;font-size:11px;color:#aaa;text-align:right">단위: 육계·토종닭·닭고기(원/kg) | 계란(원/개) | 종계병아리·육계병아리(원/마리)</div>
+  </div>`;
+}
+
+function renderPigTab(){
+  const today = new Date();
+  // 탕박/박피/산지 그룹별 카드
+  const renderPigGroup = (catName, emoji, desc) => {
+    const items = PIG_DATA.filter(x=>x.cat===catName);
+    if(items.length===0) return "";
+    const cards = items.map(item=>{
+      const vals = item.week.filter(v=>v!==null);
+      const cur = vals[vals.length-1];
+      const prev = vals[vals.length-2];
+      const diff = (cur&&prev)?cur-prev:0;
+      const pct = (cur&&prev)?((diff/prev)*100).toFixed(1):0;
+      const up = diff>0, flat = diff===0;
+      const arrow = flat?"─":up?"▲":"▼";
+      const dColor = flat?"#888":up?"#D32F2F":"#1B7A3E";
+      return `
+      <div style="background:#fff;border-radius:14px;padding:16px;border:1px solid #efefef;border-top:3px solid ${item.color}">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:22px">${item.icon}</span>
+            <div>
+              <div style="font-size:14px;font-weight:700;color:#1a1a1a">${item.name}</div>
+              <div style="font-size:10px;color:#aaa">${item.sub} · ${item.note}</div>
+            </div>
+          </div>
+          ${sparkline(item.week, item.color)}
+        </div>
+        <div style="display:flex;align-items:baseline;gap:6px">
+          <span style="font-size:21px;font-weight:800;color:${item.color};letter-spacing:-0.5px">${cur?cur.toLocaleString():"-"}</span>
+          <span style="font-size:11px;color:#888">${item.unit}</span>
+        </div>
+        <div style="margin-top:5px">
+          <span style="font-size:11px;font-weight:700;color:${dColor}">${arrow} ${Math.abs(diff).toLocaleString()} (${pct}%)</span>
+          <span style="font-size:10px;color:#aaa;margin-left:6px">전일대비</span>
+        </div>
+      </div>`;
+    }).join("");
+    return `
+    <div style="margin-bottom:22px">
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:12px">
+        <span class="display" style="font-size:17px;color:#880E4F">${emoji} ${catName}</span>
+        <span style="font-size:11px;color:#aaa">${desc}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">${cards}</div>
+    </div>`;
+  };
+
+  // 등급 비교 안내 박스
+  const gradeInfo = `
+  <div style="background:#FFF0F4;border-radius:14px;padding:16px;margin-bottom:22px;border:1px solid #F8BBD0">
+    <div style="font-size:13px;font-weight:700;color:#880E4F;margin-bottom:8px">💡 돼지 등급 한눈에 보기</div>
+    <div style="font-size:12px;color:#666;line-height:1.8">
+      <strong>1+등급</strong>은 1등급보다 약 <strong>150원/kg</strong>, 2등급보다 약 <strong>600원/kg</strong> 높게 거래됩니다. 88kg 도체 기준 1+와 2등급은 <strong>두당 약 5만원</strong> 차이가 납니다.<br>
+      <strong>탕박</strong>(털만 제거)이 대부분이며, <strong>박피</strong>(껍질 제거)는 별도 가격이 형성됩니다. 도체중 87~94kg 구간이 가장 좋은 가격을 받습니다.
+    </div>
+  </div>`;
+
+  // 7일 추이 테이블
+  const tblHead = PIG_DATA.map(x=>`<th style="padding:10px 8px;text-align:right;font-size:11px">${x.name}</th>`).join("");
+  const tblRows = getLast7Days().map((d,i)=>{
+    const isT = i===6;
+    const wk = d.getDay()===0||d.getDay()===6;
+    const cells = PIG_DATA.map(x=>{
+      const v=x.week[i];
+      return `<td style="padding:10px 8px;text-align:right;font-weight:${isT?700:400};color:${isT?x.color:v?"#333":"#ccc"}">${v?v.toLocaleString():"-"}</td>`;
+    }).join("");
+    return `<tr style="border-bottom:1px solid #f0f0f0;background:${isT?"#FFF0F4":i%2===0?"#fafafa":"#fff"}">
+      <td style="padding:10px 12px;font-weight:${isT?700:400};color:${isT?"#E84A6F":wk?"#bbb":"#555"}">${fmtDate(d)}${isT?" ★":""}</td>${cells}</tr>`;
+  }).join("");
+
+  const linkBtns = PIG_LINKS.map(l=>`
+    <a href="${esc(l.url)}" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-radius:10px;background:${l.color}12;color:${l.color};font-size:13px;font-weight:600;border:1px solid ${l.color}30">
+      <span>🔗 ${esc(l.label)}</span><span style="font-size:15px">↗</span>
+    </a>`).join("");
+
+  return `
+  <div style="margin-bottom:16px">
+    <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px">🐷 양돈 농장 산지시세 · ${fmtFull(today)}</div>
+  </div>
+  ${gradeInfo}
+  ${renderPigGroup("탕박","🐷","털만 제거한 도체 · 국내 대부분")}
+  ${renderPigGroup("박피","🐖","껍질까지 제거한 도체")}
+  ${renderPigGroup("산지","🚜","농장 출하 거래가")}
+
+  <div class="card" style="margin-bottom:20px">
+    <div class="display" style="font-size:16px;margin-bottom:16px">📋 최근 7일 추이 (등급별)</div>
+    <div style="overflow-x:auto"><table style="font-size:12px;min-width:720px">
+      <thead><tr style="background:#880E4F;color:#fff"><th style="padding:10px 12px;text-align:left">날짜</th>${tblHead}</tr></thead>
+      <tbody>${tblRows}</tbody></table></div>
+    <div style="margin-top:10px;font-size:11px;color:#aaa;text-align:right">단위: 등급별 경락가(원/kg) | 비육돈 산지(원/두)</div>
+  </div>
+
+  <div class="card">
+    <div class="display" style="font-size:16px;margin-bottom:6px">🔗 실시간 양돈 시세 조회</div>
+    <div style="font-size:12px;color:#888;margin-bottom:14px;line-height:1.6">정확한 실시간 돼지 경락가격은 아래 공식 사이트에서 확인하세요. 새 탭에서 열립니다.</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">${linkBtns}</div>
+  </div>`;
+}
+
+function renderLivestockTab(){
+  const today = new Date();
+  const renderGroup = (groupName, emoji) => {
+    const items = LIVESTOCK_DATA.filter(x=>x.group===groupName);
+    const cards = items.map(item=>{
+      const week = item.week;
+      const vals = week.filter(v=>v!==null);
+      const cur = vals[vals.length-1];
+      const prev = vals[vals.length-2];
+      const diff = (cur&&prev)?cur-prev:0;
+      const pct = (cur&&prev)?((diff/prev)*100).toFixed(1):0;
+      const up = diff>0, flat = diff===0;
+      const arrow = flat?"─":up?"▲":"▼";
+      const dColor = flat?"#888":up?"#D32F2F":"#1B7A3E";
+      return `
+      <div style="background:#fff;border-radius:14px;padding:16px;border:1px solid #efefef;border-top:3px solid ${item.color}">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:24px">${item.icon}</span>
+            <div>
+              <div style="font-size:14px;font-weight:700;color:#1a1a1a">${item.name}</div>
+              <div style="font-size:10px;color:#aaa">${item.sub} · ${item.note}</div>
+            </div>
+          </div>
+          ${sparkline(week, item.color)}
+        </div>
+        <div style="display:flex;align-items:baseline;gap:6px">
+          <span style="font-size:22px;font-weight:800;color:${item.color};letter-spacing:-0.5px">${cur?cur.toLocaleString():"-"}</span>
+          <span style="font-size:11px;color:#888">${item.unit}</span>
+        </div>
+        <div style="margin-top:5px">
+          <span style="font-size:11px;font-weight:700;color:${dColor}">${arrow} ${Math.abs(diff).toLocaleString()} (${pct}%)</span>
+          <span style="font-size:10px;color:#aaa;margin-left:6px">전일대비</span>
+        </div>
+      </div>`;
+    }).join("");
+    return `
+    <div style="margin-bottom:22px">
+      <div class="display" style="font-size:17px;margin-bottom:12px;color:#1a2744">${emoji} ${groupName}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">${cards}</div>
+    </div>`;
+  };
+  const tblHead = LIVESTOCK_DATA.map(x=>`<th style="padding:10px 8px;text-align:right;font-size:11px">${x.icon} ${x.name}</th>`).join("");
+  const tblRows = getLast7Days().map((d,i)=>{
+    const isT = i===6;
+    const lbl = fmtDate(d);
+    const wk = d.getDay()===0||d.getDay()===6;
+    const cells = LIVESTOCK_DATA.map(x=>{
+      const v=x.week[i];
+      return `<td style="padding:10px 8px;text-align:right;font-weight:${isT?700:400};color:${isT?x.color:v?"#333":"#ccc"}">${v?v.toLocaleString():"-"}</td>`;
+    }).join("");
+    return `<tr style="border-bottom:1px solid #f0f0f0;background:${isT?"#FFF0F4":i%2===0?"#fafafa":"#fff"}">
+      <td style="padding:10px 12px;font-weight:${isT?700:400};color:${isT?"#E84A6F":wk?"#bbb":"#555"}">${lbl}${isT?" ★":""}</td>${cells}</tr>`;
+  }).join("");
+  const linkBtns = LIVESTOCK_LINKS.map(l=>`
+    <a href="${esc(l.url)}" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-radius:10px;background:${l.color}12;color:${l.color};font-size:13px;font-weight:600;border:1px solid ${l.color}30">
+      <span>🔗 ${esc(l.label)}</span><span style="font-size:15px">↗</span>
+    </a>`).join("");
+  return `
+  <div style="margin-bottom:16px">
+    <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px">🐂 한우 산지·도매시세 · ${fmtFull(today)}</div>
+  </div>
+  ${renderGroup("한우","🐂")}
+  <div class="card" style="margin-bottom:20px">
+    <div class="display" style="font-size:16px;margin-bottom:16px">📋 최근 7일 추이</div>
+    <div style="overflow-x:auto"><table style="font-size:12px;min-width:680px">
+      <thead><tr style="background:#1a2744;color:#fff"><th style="padding:10px 12px;text-align:left">날짜</th>${tblHead}</tr></thead>
+      <tbody>${tblRows}</tbody></table></div>
+    <div style="margin-top:10px;font-size:11px;color:#aaa;text-align:right">단위: 지육·도매(원/kg) | 비육돈·송아지(원/두)</div>
+  </div>
+  <div class="card">
+    <div class="display" style="font-size:16px;margin-bottom:6px">🔗 실시간 시세 조회 바로가기</div>
+    <div style="font-size:12px;color:#888;margin-bottom:14px;line-height:1.6">정확한 실시간 산지시세는 아래 공식 사이트에서 확인하세요. 새 탭에서 열립니다.</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">${linkBtns}</div>
   </div>`;
 }
 
