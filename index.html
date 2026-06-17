@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>축산관련 정보 대시보드</title>
+<title>축산관련 시세 대시보드</title>
 <meta name="description" content="육계·산란계·토종닭·종계 주간 시세 및 협회 공지사항 바로가기" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -101,6 +101,31 @@ const GRAIN_DATA = [
     key:"soymeal", name:"대두박", en:"Soymeal", icon:"🟫", color:"#8D5524", unit:"$/ton",
     current:298, prevDay:296, note:"CBOT 기준",
     trend:[340,332,325,318,305,292,288,295,302,300,296,298],
+  },
+];
+
+// ── 세계 유가 동향 (2026년 6월 시세 반영) ────────────────────────────────────
+// 미·이란 평화협정 기대감으로 최근 한 달 약세. 브렌트 약 79$, WTI 약 75$.
+const OIL_DATA = [
+  {
+    key:"brent", name:"브렌트유", en:"Brent", icon:"🛢️", color:"#1B3A5C", unit:"$/bbl",
+    current:79.45, prevDay:78.95, note:"국제 기준유",
+    trend:[75.2,82.6,95.4,109.5,103.1,94.8,88.2,85.6,84.6,81.3,78.9,79.45],
+  },
+  {
+    key:"wti", name:"WTI", en:"WTI", icon:"🛢️", color:"#2C5F2D", unit:"$/bbl",
+    current:75.10, prevDay:75.80, note:"미국 서부텍사스유",
+    trend:[71.5,78.9,91.2,105.3,98.7,90.1,83.5,80.9,80.2,77.1,75.8,75.10],
+  },
+  {
+    key:"dubai", name:"두바이유", en:"Dubai", icon:"🛢️", color:"#8B6914", unit:"$/bbl",
+    current:77.80, prevDay:77.40, note:"국내 도입 기준유",
+    trend:[73.8,80.5,93.1,107.2,100.5,92.3,86.0,83.2,82.4,79.5,77.4,77.80],
+  },
+  {
+    key:"gas", name:"국내 휘발유", en:"Gasoline", icon:"⛽", color:"#C0392B", unit:"원/L",
+    current:1638, prevDay:1642, note:"전국 평균",
+    trend:[1710,1735,1788,1845,1820,1772,1715,1688,1672,1655,1642,1638],
   },
 ];
 
@@ -247,9 +272,8 @@ function renderHeader(){
   <header><div class="header-inner">
     <div class="header-top">
       <div style="display:flex;align-items:center;gap:10px">
-        <span style="font-size:26px">🐓</span>
         <div>
-          <div class="display" style="font-size:20px;line-height:1.1">양계·계육 시세 대시보드</div>
+          <div class="display" style="font-size:20px;line-height:1.1">축산관련 시세 대시보드</div>
           <div style="font-size:11px;opacity:0.65;margin-top:2px">양계 · 양돈 · 한우 시세 &amp; 협회 공지사항</div>
         </div>
       </div>
@@ -264,8 +288,8 @@ function renderHeader(){
   </div></header>`;
 }
 
-function renderGrainPanel(){
-  const cards = GRAIN_DATA.map(g=>{
+function renderCommodityPanel(data, title, link, footnote, decimals){
+  const cards = data.map(g=>{
     const diff = g.current - g.prevDay;
     const pct = ((diff/g.prevDay)*100).toFixed(1);
     const up = diff>0, flat = Math.abs(diff)<0.001;
@@ -275,6 +299,7 @@ function renderGrainPanel(){
     const yearAgo = g.trend[0];
     const yearDiff = (((g.current - yearAgo)/yearAgo)*100).toFixed(1);
     const yearUp = g.current > yearAgo;
+    const diffStr = (decimals===0) ? Math.abs(diff).toLocaleString() : Math.abs(diff).toFixed(2);
     return `
     <div style="background:#fff;border-radius:14px;padding:15px;border:1px solid #efefef;border-top:3px solid ${g.color}">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
@@ -292,7 +317,7 @@ function renderGrainPanel(){
         <span style="font-size:11px;color:#888">${g.unit}</span>
       </div>
       <div style="display:flex;align-items:center;gap:8px;margin-top:5px">
-        <span style="font-size:11px;font-weight:700;color:${dColor}">${arrow} ${Math.abs(diff).toFixed(2)} (${pct}%)</span>
+        <span style="font-size:11px;font-weight:700;color:${dColor}">${arrow} ${diffStr} (${pct}%)</span>
         <span style="font-size:10px;color:#aaa">전일대비</span>
       </div>
       <div style="margin-top:8px;padding-top:8px;border-top:1px solid #f5f5f5;display:flex;justify-content:space-between;align-items:center">
@@ -305,12 +330,32 @@ function renderGrainPanel(){
   return `
   <div style="margin-bottom:20px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-      <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px">🌍 세계 사료곡물 가격동향 · CBOT</div>
-      <a href="https://www.barchart.com/futures/quotes/ZC*0/futures-prices" target="_blank" rel="noopener" style="font-size:11px;color:#aaa">실시간 시세 ↗</a>
+      <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px">${title}</div>
+      <a href="${link.url}" target="_blank" rel="noopener" style="font-size:11px;color:#aaa">${link.label} ↗</a>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px">${cards}</div>
-    <div style="margin-top:8px;font-size:10px;color:#bbb;text-align:right">※ 사료곡물가는 환율·운임에 따라 국내 사료가에 시차를 두고 반영됩니다.</div>
+    <div style="margin-top:8px;font-size:10px;color:#bbb;text-align:right">${footnote}</div>
   </div>`;
+}
+
+function renderGrainPanel(){
+  return renderCommodityPanel(
+    GRAIN_DATA,
+    "🌍 세계 사료곡물 가격동향 · CBOT",
+    { url:"https://www.barchart.com/futures/quotes/ZC*0/futures-prices", label:"실시간 시세" },
+    "※ 사료곡물가는 환율·운임에 따라 국내 사료가에 시차를 두고 반영됩니다.",
+    2
+  );
+}
+
+function renderOilPanel(){
+  return renderCommodityPanel(
+    OIL_DATA,
+    "🛢️ 세계 유가 동향 · 국제 원유",
+    { url:"https://oilprice.com", label:"실시간 시세" },
+    "※ 국제 유가는 환율·정제마진을 거쳐 국내 사료·물류비에 영향을 미칩니다.",
+    2
+  );
 }
 
 function renderPriceTab(){
@@ -352,6 +397,7 @@ function renderPriceTab(){
   }).join("");
   return `
   ${renderGrainPanel()}
+  ${renderOilPanel()}
   <div style="margin-bottom:20px">
     <div style="font-size:12px;color:#888;margin-bottom:10px;font-weight:600;letter-spacing:1px">TODAY SUMMARY · ${fmtFull(new Date())}</div>
     <div class="price-grid">${cards}</div>
