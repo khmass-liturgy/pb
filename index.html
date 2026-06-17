@@ -129,6 +129,49 @@ const OIL_DATA = [
   },
 ];
 
+// ── 국내외 주가동향 (2026년 6월 시세 반영) ──────────────────────────────────
+// AI·반도체 붐 + 미·이란 평화협정 기대로 코스피·닛케이 사상 최고치 랠리.
+const STOCK_DATA = [
+  {
+    group:"국내", key:"kospi", name:"코스피", en:"KOSPI", icon:"🇰🇷", color:"#0047A0", unit:"pt",
+    current:8545.98, prevDay:8160.59, note:"한국 종합주가지수",
+    trend:[6598,6850,7120,7680,8160,7950,8240,8476,8545,8420,8160,8545.98],
+  },
+  {
+    group:"국내", key:"kosdaq", name:"코스닥", en:"KOSDAQ", icon:"🇰🇷", color:"#E8530A", unit:"pt",
+    current:1074.80, prevDay:1192.35, note:"코스닥 지수",
+    trend:[1192,1210,1185,1150,1192,1160,1095,1074,1085,1100,1192,1074.80],
+  },
+  {
+    group:"미국", key:"sp500", name:"S&P 500", en:"S&P500", icon:"🇺🇸", color:"#1B5E20", unit:"pt",
+    current:6420.5, prevDay:6385.2, note:"미국 대형주 지수",
+    trend:[5980,6050,6120,6280,6385,6310,6360,6400,6420,6395,6385,6420.5],
+  },
+  {
+    group:"미국", key:"nasdaq", name:"나스닥", en:"Nasdaq", icon:"🇺🇸", color:"#4527A0", unit:"pt",
+    current:22150, prevDay:21980, note:"미국 기술주 지수",
+    trend:[20100,20500,21000,21800,21980,21500,21850,22050,22150,22000,21980,22150],
+  },
+  {
+    group:"아시아", key:"nikkei", name:"닛케이225", en:"Nikkei", icon:"🇯🇵", color:"#B71C1C", unit:"pt",
+    current:69317.50, prevDay:66020.40, note:"일본 대표 지수",
+    trend:[59285,61200,63500,66020,66588,65800,66329,68000,69317,67500,66020,69317.50],
+  },
+  {
+    group:"아시아", key:"hangseng", name:"항셍", en:"HangSeng", icon:"🇭🇰", color:"#00695C", unit:"pt",
+    current:24850, prevDay:24718, note:"홍콩 항셍지수",
+    trend:[23200,23600,24100,24700,24718,24500,24650,24800,24850,24750,24718,24850],
+  },
+];
+
+// 주가 시세 조회 바로가기
+const STOCK_LINKS = [
+  { label:"네이버페이 증권 - 국내증시", url:"https://finance.naver.com/sise/", color:"#0047A0" },
+  { label:"한국거래소 KRX", url:"https://www.krx.co.kr", color:"#E8530A" },
+  { label:"인베스팅닷컴 - 세계지수", url:"https://kr.investing.com/indices/major-indices", color:"#1B5E20" },
+  { label:"CNBC 마켓", url:"https://www.cnbc.com/world-markets/", color:"#4527A0" },
+];
+
 // ── 양돈·한우 산지시세 (축산물품질평가원 기준, 2026년 시세 반영) ──────────
 function genLivestock7(base, vol, seed){
   return getLast7Days().map((d,i)=>{
@@ -260,7 +303,7 @@ function render(){
   document.getElementById("app").innerHTML = `
     ${renderHeader()}
     <main>
-      ${state.tab==="price" ? renderPriceTab() : state.tab==="pig" ? renderPigTab() : state.tab==="livestock" ? renderLivestockTab() : renderBoardTab()}
+      ${state.tab==="price" ? renderPriceTab() : state.tab==="pig" ? renderPigTab() : state.tab==="livestock" ? renderLivestockTab() : state.tab==="stock" ? renderStockTab() : renderBoardTab()}
       ${renderFooter()}
     </main>`;
   attachEvents();
@@ -284,6 +327,7 @@ function renderHeader(){
       <button class="tab ${state.tab==="pig"?"active":""}" data-tab="pig">🐷 양돈</button>
       <button class="tab ${state.tab==="livestock"?"active":""}" data-tab="livestock">🐂 한우</button>
       <button class="tab ${state.tab==="board"?"active":""}" data-tab="board">📋 공지사항</button>
+      <button class="tab ${state.tab==="stock"?"active":""}" data-tab="stock">📈 주가동향</button>
     </div>
   </div></header>`;
 }
@@ -597,6 +641,77 @@ function renderLivestockTab(){
   <div class="card">
     <div class="display" style="font-size:16px;margin-bottom:6px">🔗 실시간 시세 조회 바로가기</div>
     <div style="font-size:12px;color:#888;margin-bottom:14px;line-height:1.6">정확한 실시간 산지시세는 아래 공식 사이트에서 확인하세요. 새 탭에서 열립니다.</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">${linkBtns}</div>
+  </div>`;
+}
+
+function renderStockTab(){
+  const today = new Date();
+  // 그룹별(국내/미국/아시아) 카드 렌더
+  const renderStockGroup = (groupName, emoji) => {
+    const items = STOCK_DATA.filter(x=>x.group===groupName);
+    if(items.length===0) return "";
+    const cards = items.map(s=>{
+      const diff = s.current - s.prevDay;
+      const pct = ((diff/s.prevDay)*100).toFixed(2);
+      const up = diff>0, flat = Math.abs(diff)<0.001;
+      const arrow = flat?"─":up?"▲":"▼";
+      // 주가는 한국 관례상 상승=빨강, 하락=파랑
+      const dColor = flat?"#888":up?"#D32F2F":"#1565C0";
+      const yearAgo = s.trend[0];
+      const yearDiff = (((s.current - yearAgo)/yearAgo)*100).toFixed(1);
+      const yearUp = s.current > yearAgo;
+      const fmtNum = (n)=> n.toLocaleString(undefined,{maximumFractionDigits:2});
+      return `
+      <div style="background:#fff;border-radius:14px;padding:15px;border:1px solid #efefef;border-top:3px solid ${s.color}">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <div style="display:flex;align-items:center;gap:7px">
+            <span style="font-size:20px">${s.icon}</span>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:#1a1a1a">${s.name} <span style="font-size:10px;color:#aaa;font-weight:400">${s.en}</span></div>
+              <div style="font-size:9px;color:#bbb">${s.note}</div>
+            </div>
+          </div>
+          ${sparkline(s.trend, s.color)}
+        </div>
+        <div style="display:flex;align-items:baseline;gap:6px;margin-top:4px">
+          <span style="font-size:20px;font-weight:800;color:${s.color};letter-spacing:-0.5px">${fmtNum(s.current)}</span>
+          <span style="font-size:11px;color:#888">${s.unit}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:5px">
+          <span style="font-size:11px;font-weight:700;color:${dColor}">${arrow} ${fmtNum(Math.abs(diff))} (${pct}%)</span>
+          <span style="font-size:10px;color:#aaa">전일대비</span>
+        </div>
+        <div style="margin-top:8px;padding-top:8px;border-top:1px solid #f5f5f5;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:10px;color:#999">최근 1년</span>
+          <span style="font-size:11px;font-weight:700;color:${yearUp?"#D32F2F":"#1565C0"}">${yearUp?"▲":"▼"} ${Math.abs(yearDiff)}%</span>
+        </div>
+      </div>`;
+    }).join("");
+    return `
+    <div style="margin-bottom:22px">
+      <div class="display" style="font-size:16px;margin-bottom:12px;color:#1a2744">${emoji} ${groupName}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px">${cards}</div>
+    </div>`;
+  };
+
+  const linkBtns = STOCK_LINKS.map(l=>`
+    <a href="${esc(l.url)}" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-radius:10px;background:${l.color}12;color:${l.color};font-size:13px;font-weight:600;border:1px solid ${l.color}30">
+      <span>🔗 ${esc(l.label)}</span><span style="font-size:15px">↗</span>
+    </a>`).join("");
+
+  return `
+  <div style="margin-bottom:16px">
+    <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px">📈 국내외 주가동향 · ${fmtFull(today)}</div>
+    <div style="font-size:11px;color:#aaa;margin-top:4px">상승 <span style="color:#D32F2F;font-weight:700">▲ 빨강</span> · 하락 <span style="color:#1565C0;font-weight:700">▼ 파랑</span> (국내 증시 관례 기준)</div>
+  </div>
+  ${renderStockGroup("국내","🇰🇷")}
+  ${renderStockGroup("미국","🇺🇸")}
+  ${renderStockGroup("아시아","🌏")}
+
+  <div class="card">
+    <div class="display" style="font-size:16px;margin-bottom:6px">🔗 실시간 주가 조회</div>
+    <div style="font-size:12px;color:#888;margin-bottom:14px;line-height:1.6">정확한 실시간 지수는 아래 사이트에서 확인하세요. 새 탭에서 열립니다.</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">${linkBtns}</div>
   </div>`;
 }
