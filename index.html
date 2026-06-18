@@ -176,32 +176,32 @@ const STOCK_LINKS = [
 // 미·이란 갈등 매도세 후 반등 국면. 변동성 큰 상태.
 const COIN_DATA = [
   {
-    key:"btc", name:"비트코인", en:"BTC", icon:"🟠", color:"#F7931A", unit:"원",
+    key:"btc", market:"KRW-BTC", name:"비트코인", en:"BTC", icon:"🟠", color:"#F7931A", unit:"원",
     current:84500000, prevDay:82300000, note:"업비트 KRW 마켓",
     trend:[88000000,92000000,86000000,78000000,72000000,68000000,74000000,80000000,83000000,85000000,82300000,84500000],
   },
   {
-    key:"eth", name:"이더리움", en:"ETH", icon:"🔷", color:"#627EEA", unit:"원",
+    key:"eth", market:"KRW-ETH", name:"이더리움", en:"ETH", icon:"🔷", color:"#627EEA", unit:"원",
     current:3450000, prevDay:3380000, note:"업비트 KRW 마켓",
     trend:[3800000,4100000,3700000,3200000,2950000,2720000,3050000,3300000,3420000,3500000,3380000,3450000],
   },
   {
-    key:"xrp", name:"리플", en:"XRP", icon:"⚫", color:"#23292F", unit:"원",
+    key:"xrp", market:"KRW-XRP", name:"리플", en:"XRP", icon:"⚫", color:"#23292F", unit:"원",
     current:1645, prevDay:1612, note:"업비트 KRW 마켓",
     trend:[2050,2200,1950,1780,1620,1540,1680,1750,1690,1660,1612,1645],
   },
   {
-    key:"sol", name:"솔라나", en:"SOL", icon:"🟣", color:"#9945FF", unit:"원",
+    key:"sol", market:"KRW-SOL", name:"솔라나", en:"SOL", icon:"🟣", color:"#9945FF", unit:"원",
     current:215000, prevDay:208000, note:"업비트 KRW 마켓",
     trend:[265000,290000,255000,220000,195000,178000,200000,212000,218000,222000,208000,215000],
   },
   {
-    key:"doge", name:"도지코인", en:"DOGE", icon:"🐕", color:"#C2A633", unit:"원",
+    key:"doge", market:"KRW-DOGE", name:"도지코인", en:"DOGE", icon:"🐕", color:"#C2A633", unit:"원",
     current:285, prevDay:278, note:"업비트 KRW 마켓",
     trend:[380,420,360,310,275,250,285,300,292,288,278,285],
   },
   {
-    key:"usdt", name:"테더", en:"USDT", icon:"🟢", color:"#26A17B", unit:"원",
+    key:"usdt", market:"KRW-USDT", name:"테더", en:"USDT", icon:"🟢", color:"#26A17B", unit:"원",
     current:1378, prevDay:1376, note:"원/달러 연동 스테이블",
     trend:[1340,1352,1365,1380,1395,1388,1382,1379,1377,1376,1376,1378],
   },
@@ -355,6 +355,54 @@ function deltaBadge(cur,prev){
 // ═══════════════════════════════════════════════════════════════════════════
 // 렌더
 // ═══════════════════════════════════════════════════════════════════════════
+// ── 업비트 실시간 시세 자동 갱신 ────────────────────────────────────────────
+let coinFetchStatus = "idle"; // idle | loading | done | error
+
+async function fetchUpbitPrices(){
+  // 기본 코인 + 사용자 코인 중 market 코드가 있는 것만
+  const all = allCoins().filter(c=>c.market);
+  if(all.length===0){ coinFetchStatus="done"; return; }
+  coinFetchStatus = "loading";
+  if(state.tab==="coin") render();
+  try {
+    const markets = all.map(c=>c.market).join(",");
+    const url = "https://api.upbit.com/v1/ticker?markets=" + encodeURIComponent(markets);
+    const resp = await fetch(url, { headers:{ "Accept":"application/json" } });
+    if(!resp.ok) throw new Error("HTTP "+resp.status);
+    const data = await resp.json();
+    // 응답을 market별로 매핑
+    const map = {};
+    data.forEach(d=>{ map[d.market] = d; });
+    // 기본 코인 갱신
+    COIN_DATA.forEach(c=>{
+      if(c.market && map[c.market]){
+        const t = map[c.market];
+        c.current = t.trade_price;
+        c.prevDay = t.prev_closing_price;
+        // 추이 마지막 값을 실시간으로 교체
+        c.trend = c.trend.slice(0,11).concat([t.trade_price]);
+        c.note = "업비트 실시간";
+      }
+    });
+    // 사용자 코인 갱신
+    state.customCoins.forEach(c=>{
+      if(c.market && map[c.market]){
+        const t = map[c.market];
+        c.current = t.trade_price;
+        c.prevDay = t.prev_closing_price;
+        c.trend = makeFlatTrend(t.trade_price);
+        c.note = "업비트 실시간";
+      }
+    });
+    saveCustomCoins();
+    coinFetchStatus = "done";
+  } catch(e){
+    console.error("업비트 시세 조회 실패:", e);
+    coinFetchStatus = "error";
+  }
+  if(state.tab==="coin") render();
+}
+
 function render(){
   document.getElementById("app").innerHTML = `
     ${renderHeader()}
@@ -754,14 +802,18 @@ function renderCoinTab(){
         <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px">🪙 업비트 메이저 코인 시세 · ${fmtFull(today)}</div>
         <div style="font-size:11px;color:#aaa;margin-top:4px">상승 <span style="color:#D32F2F;font-weight:700">▲ 빨강</span> · 하락 <span style="color:#1565C0;font-weight:700">▼ 파랑</span> · 업비트 KRW 마켓 기준</div>
       </div>
-      <button id="btn-add-coin" style="border:1px solid #F7931A;border-radius:8px;background:#F7931A;padding:7px 14px;font-size:12px;color:#fff;font-weight:600">➕ 관심코인 추가</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="font-size:11px;color:${coinFetchStatus==="done"?"#1B7A3E":coinFetchStatus==="error"?"#D32F2F":"#aaa"}">${coinFetchStatus==="loading"?"⏳ 갱신중...":coinFetchStatus==="done"?"🟢 실시간 연동됨":coinFetchStatus==="error"?"⚠️ 연동 실패":""}</span>
+        <button id="btn-refresh-coin" style="border:1px solid #093687;border-radius:8px;background:#fff;padding:7px 12px;font-size:12px;color:#093687;font-weight:600">🔄 시세 갱신</button>
+        <button id="btn-add-coin" style="border:1px solid #F7931A;border-radius:8px;background:#F7931A;padding:7px 14px;font-size:12px;color:#fff;font-weight:600">➕ 관심코인 추가</button>
+      </div>
     </div>
   </div>
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin-bottom:22px">${cards}</div>
 
   <div class="card">
     <div class="display" style="font-size:16px;margin-bottom:6px">🔗 실시간 코인 시세 조회</div>
-    <div style="font-size:12px;color:#888;margin-bottom:14px;line-height:1.6">암호화폐는 24시간 변동성이 매우 큽니다. 실시간 시세는 아래 업비트에서 확인하세요. 새 탭에서 열립니다.</div>
+    <div style="font-size:12px;color:#888;margin-bottom:14px;line-height:1.6">위 시세는 업비트 공개 API로 자동 연동됩니다. 갱신이 안 되면 🔄 버튼을 누르세요. 더 자세한 정보는 아래 업비트에서 확인하세요.</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">${linkBtns}</div>
   </div>`;
 }
@@ -828,7 +880,7 @@ function renderStockTab(){
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
       <div>
         <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px">📈 국내외 주가동향 · ${fmtFull(today)}</div>
-        <div style="font-size:11px;color:#aaa;margin-top:4px">상승 <span style="color:#D32F2F;font-weight:700">▲ 빨강</span> · 하락 <span style="color:#1565C0;font-weight:700">▼ 파랑</span> (국내 증시 관례 기준)</div>
+        <div style="font-size:11px;color:#aaa;margin-top:4px">상승 <span style="color:#D32F2F;font-weight:700">▲ 빨강</span> · 하락 <span style="color:#1565C0;font-weight:700">▼ 파랑</span> (국내 증시 관례 기준) · 주가는 수동 입력</div>
       </div>
       <button id="btn-add-stock" style="border:1px solid #0047A0;border-radius:8px;background:#0047A0;padding:7px 14px;font-size:12px;color:#fff;font-weight:600">➕ 관심종목 추가</button>
     </div>
@@ -906,7 +958,10 @@ function renderFooter(){
 // 이벤트
 // ═══════════════════════════════════════════════════════════════════════════
 function attachEvents(){
-  document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{ state.tab=b.dataset.tab; render(); });
+  document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
+    state.tab=b.dataset.tab; render();
+    if(state.tab==="coin" && coinFetchStatus!=="done" && coinFetchStatus!=="loading") fetchUpbitPrices();
+  });
   document.querySelectorAll(".price-card").forEach(c=>c.onclick=()=>{ state.selectedCategory=c.dataset.cat; render(); });
 
   // 개선 요구사항 메일 보내기
@@ -936,23 +991,38 @@ function attachEvents(){
 
   // 관심코인 추가
   const addCoinBtn=document.getElementById("btn-add-coin");
-  if(addCoinBtn) addCoinBtn.onclick=()=>{
-    const name=prompt("코인명을 입력하세요\n(예: 에이다, 트론)");
-    if(!name||!name.trim()) return;
-    const sym=prompt("심볼을 입력하세요 (예: ADA, TRX)","")||"";
-    const priceStr=prompt("현재가를 원화 숫자로 입력하세요\n(예: 850)");
-    if(priceStr===null) return;
-    const cur=parseFloat(priceStr.replace(/[,\s]/g,""));
-    if(!cur||cur<=0){ alert("올바른 숫자를 입력하세요."); return; }
+  if(addCoinBtn) addCoinBtn.onclick=async ()=>{
+    const sym=prompt("업비트 코인 심볼을 입력하세요 (대문자)\n예: ADA, TRX, LINK, AVAX, MATIC");
+    if(!sym||!sym.trim()) return;
+    const symbol = sym.trim().toUpperCase();
+    const market = "KRW-" + symbol;
+    // 중복 체크
+    if(allCoins().some(c=>c.market===market)){ alert("이미 추가된 코인입니다."); return; }
+    const name=prompt("코인 이름을 입력하세요 (예: 에이다)", symbol)||symbol;
     const colors=["#F7931A","#627EEA","#9945FF","#C2A633","#26A17B","#0033AD","#FF060A","#2775CA"];
+    // 먼저 업비트에서 현재가 조회 시도
+    let cur=0, prev=0, ok=false;
+    try {
+      const resp=await fetch("https://api.upbit.com/v1/ticker?markets="+encodeURIComponent(market),{headers:{"Accept":"application/json"}});
+      if(resp.ok){
+        const d=await resp.json();
+        if(Array.isArray(d)&&d.length>0){ cur=d[0].trade_price; prev=d[0].prev_closing_price; ok=true; }
+      }
+    } catch(e){ console.error(e); }
+    if(!ok){
+      alert("'"+symbol+"'을(를) 업비트 KRW 마켓에서 찾을 수 없습니다.\n심볼을 확인하거나, 업비트에 상장된 코인인지 확인하세요.");
+      return;
+    }
     state.customCoins.push({
-      key:"ucoin_"+Date.now(), name:name.trim(), en:sym.trim().toUpperCase(), icon:"⭐",
+      key:"ucoin_"+Date.now(), market:market, name:name.trim(), en:symbol, icon:"⭐",
       color:colors[state.customCoins.length%colors.length], unit:"원",
-      current:cur, prevDay:Math.round(cur*0.995), note:"사용자 추가 · 직접 입력",
+      current:cur, prevDay:prev, note:"업비트 실시간",
       trend:makeFlatTrend(cur), custom:true,
     });
     saveCustomCoins(); render();
   };
+  const refreshCoinBtn=document.getElementById("btn-refresh-coin");
+  if(refreshCoinBtn) refreshCoinBtn.onclick=()=>{ coinFetchStatus="idle"; fetchUpbitPrices(); };
   document.querySelectorAll(".del-coin").forEach(b=>b.onclick=()=>{
     state.customCoins=state.customCoins.filter(x=>x.key!==b.dataset.id);
     saveCustomCoins(); render();
@@ -990,6 +1060,8 @@ function attachEvents(){
 }
 
 render();
+// 페이지 로드 시 업비트 코인 시세 미리 갱신 (백그라운드)
+fetchUpbitPrices();
 </script>
 </body>
 </html>
