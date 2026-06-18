@@ -308,13 +308,26 @@ const BOARD_SITES = [
 // ═══════════════════════════════════════════════════════════════════════════
 // 상태 + 사용자 추가 사이트(localStorage)
 // ═══════════════════════════════════════════════════════════════════════════
-let state = { tab:"price", selectedCategory:"broiler", customSites:loadCustom() };
+let state = { tab:"price", selectedCategory:"broiler", customSites:loadCustom(), customStocks:loadCustomList("custom_stocks"), customCoins:loadCustomList("custom_coins") };
 
 function loadCustom(){
   try { const s=localStorage.getItem("poultry_custom_boards"); if(s){ const p=JSON.parse(s); if(Array.isArray(p)) return p; } } catch(e){}
   return [];
 }
 function saveCustom(){ try { localStorage.setItem("poultry_custom_boards", JSON.stringify(state.customSites)); } catch(e){} }
+
+function loadCustomList(key){
+  try { const s=localStorage.getItem(key); if(s){ const p=JSON.parse(s); if(Array.isArray(p)) return p; } } catch(e){}
+  return [];
+}
+function saveCustomStocks(){ try { localStorage.setItem("custom_stocks", JSON.stringify(state.customStocks)); } catch(e){} }
+function saveCustomCoins(){ try { localStorage.setItem("custom_coins", JSON.stringify(state.customCoins)); } catch(e){} }
+
+// 사용자가 추가한 종목의 trend는 입력한 현재가 기준으로 평탄하게 생성
+function makeFlatTrend(cur){ const arr=[]; for(let i=0;i<12;i++){ arr.push(Math.round(cur*(0.96+0.08*(i/11)))); } arr[11]=cur; return arr; }
+
+function allStocks(){ return STOCK_DATA.concat(state.customStocks); }
+function allCoins(){ return COIN_DATA.concat(state.customCoins); }
 
 function allSites(){ return BOARD_SITES.concat(state.customSites); }
 
@@ -691,7 +704,7 @@ function renderLivestockTab(){
 
 function renderCoinTab(){
   const today = new Date();
-  const cards = COIN_DATA.map(c=>{
+  const cards = allCoins().map(c=>{
     const diff = c.current - c.prevDay;
     const pct = ((diff/c.prevDay)*100).toFixed(2);
     const up = diff>0, flat = Math.abs(diff)<0.001;
@@ -700,21 +713,23 @@ function renderCoinTab(){
     const yearAgo = c.trend[0];
     const yearDiff = (((c.current - yearAgo)/yearAgo)*100).toFixed(1);
     const yearUp = c.current > yearAgo;
+    const isCustom = !!c.custom;
     return `
-    <div style="background:#fff;border-radius:14px;padding:15px;border:1px solid #efefef;border-top:3px solid ${c.color}">
+    <div style="background:#fff;border-radius:14px;padding:15px;border:1px solid #efefef;border-top:3px solid ${c.color};position:relative">
+      ${isCustom?`<button class="del-coin" data-id="${c.key}" title="삭제" style="position:absolute;top:8px;right:8px;border:none;background:#f5f5f5;border-radius:50%;width:22px;height:22px;font-size:12px;color:#999;line-height:1">✕</button>`:""}
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <div style="display:flex;align-items:center;gap:7px">
           <span style="font-size:20px">${c.icon}</span>
           <div>
-            <div style="font-size:13px;font-weight:700;color:#1a1a1a">${c.name} <span style="font-size:10px;color:#aaa;font-weight:400">${c.en}</span></div>
-            <div style="font-size:9px;color:#bbb">${c.note}</div>
+            <div style="font-size:13px;font-weight:700;color:#1a1a1a">${esc(c.name)} <span style="font-size:10px;color:#aaa;font-weight:400">${esc(c.en)}</span></div>
+            <div style="font-size:9px;color:#bbb">${esc(c.note)}</div>
           </div>
         </div>
         ${sparkline(c.trend, c.color)}
       </div>
       <div style="display:flex;align-items:baseline;gap:4px;margin-top:4px">
         <span style="font-size:18px;font-weight:800;color:${c.color};letter-spacing:-0.5px">${c.current.toLocaleString()}</span>
-        <span style="font-size:11px;color:#888">${c.unit}</span>
+        <span style="font-size:11px;color:#888">${esc(c.unit)}</span>
       </div>
       <div style="display:flex;align-items:center;gap:8px;margin-top:5px">
         <span style="font-size:11px;font-weight:700;color:${dColor}">${arrow} ${Math.abs(diff).toLocaleString()} (${pct}%)</span>
@@ -734,8 +749,13 @@ function renderCoinTab(){
 
   return `
   <div style="margin-bottom:16px">
-    <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px">🪙 업비트 메이저 코인 시세 · ${fmtFull(today)}</div>
-    <div style="font-size:11px;color:#aaa;margin-top:4px">상승 <span style="color:#D32F2F;font-weight:700">▲ 빨강</span> · 하락 <span style="color:#1565C0;font-weight:700">▼ 파랑</span> · 업비트 KRW 마켓 기준</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div>
+        <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px">🪙 업비트 메이저 코인 시세 · ${fmtFull(today)}</div>
+        <div style="font-size:11px;color:#aaa;margin-top:4px">상승 <span style="color:#D32F2F;font-weight:700">▲ 빨강</span> · 하락 <span style="color:#1565C0;font-weight:700">▼ 파랑</span> · 업비트 KRW 마켓 기준</div>
+      </div>
+      <button id="btn-add-coin" style="border:1px solid #F7931A;border-radius:8px;background:#F7931A;padding:7px 14px;font-size:12px;color:#fff;font-weight:600">➕ 관심코인 추가</button>
+    </div>
   </div>
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin-bottom:22px">${cards}</div>
 
@@ -748,9 +768,9 @@ function renderCoinTab(){
 
 function renderStockTab(){
   const today = new Date();
-  // 그룹별(국내/미국/아시아) 카드 렌더
+  // 그룹별(국내/미국/아시아/관심종목) 카드 렌더
   const renderStockGroup = (groupName, emoji) => {
-    const items = STOCK_DATA.filter(x=>x.group===groupName);
+    const items = allStocks().filter(x=>x.group===groupName);
     if(items.length===0) return "";
     const cards = items.map(s=>{
       const diff = s.current - s.prevDay;
@@ -763,21 +783,23 @@ function renderStockTab(){
       const yearDiff = (((s.current - yearAgo)/yearAgo)*100).toFixed(1);
       const yearUp = s.current > yearAgo;
       const fmtNum = (n)=> n.toLocaleString(undefined,{maximumFractionDigits:2});
+      const isCustom = !!s.custom;
       return `
-      <div style="background:#fff;border-radius:14px;padding:15px;border:1px solid #efefef;border-top:3px solid ${s.color}">
+      <div style="background:#fff;border-radius:14px;padding:15px;border:1px solid #efefef;border-top:3px solid ${s.color};position:relative">
+        ${isCustom?`<button class="del-stock" data-id="${s.key}" title="삭제" style="position:absolute;top:8px;right:8px;border:none;background:#f5f5f5;border-radius:50%;width:22px;height:22px;font-size:12px;color:#999;line-height:1">✕</button>`:""}
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
           <div style="display:flex;align-items:center;gap:7px">
             <span style="font-size:20px">${s.icon}</span>
             <div>
-              <div style="font-size:13px;font-weight:700;color:#1a1a1a">${s.name} <span style="font-size:10px;color:#aaa;font-weight:400">${s.en}</span></div>
-              <div style="font-size:9px;color:#bbb">${s.note}</div>
+              <div style="font-size:13px;font-weight:700;color:#1a1a1a">${esc(s.name)} <span style="font-size:10px;color:#aaa;font-weight:400">${esc(s.en)}</span></div>
+              <div style="font-size:9px;color:#bbb">${esc(s.note)}</div>
             </div>
           </div>
           ${sparkline(s.trend, s.color)}
         </div>
         <div style="display:flex;align-items:baseline;gap:6px;margin-top:4px">
           <span style="font-size:20px;font-weight:800;color:${s.color};letter-spacing:-0.5px">${fmtNum(s.current)}</span>
-          <span style="font-size:11px;color:#888">${s.unit}</span>
+          <span style="font-size:11px;color:#888">${esc(s.unit)}</span>
         </div>
         <div style="display:flex;align-items:center;gap:8px;margin-top:5px">
           <span style="font-size:11px;font-weight:700;color:${dColor}">${arrow} ${fmtNum(Math.abs(diff))} (${pct}%)</span>
@@ -803,12 +825,18 @@ function renderStockTab(){
 
   return `
   <div style="margin-bottom:16px">
-    <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px">📈 국내외 주가동향 · ${fmtFull(today)}</div>
-    <div style="font-size:11px;color:#aaa;margin-top:4px">상승 <span style="color:#D32F2F;font-weight:700">▲ 빨강</span> · 하락 <span style="color:#1565C0;font-weight:700">▼ 파랑</span> (국내 증시 관례 기준)</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div>
+        <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px">📈 국내외 주가동향 · ${fmtFull(today)}</div>
+        <div style="font-size:11px;color:#aaa;margin-top:4px">상승 <span style="color:#D32F2F;font-weight:700">▲ 빨강</span> · 하락 <span style="color:#1565C0;font-weight:700">▼ 파랑</span> (국내 증시 관례 기준)</div>
+      </div>
+      <button id="btn-add-stock" style="border:1px solid #0047A0;border-radius:8px;background:#0047A0;padding:7px 14px;font-size:12px;color:#fff;font-weight:600">➕ 관심종목 추가</button>
+    </div>
   </div>
   ${renderStockGroup("국내","🇰🇷")}
   ${renderStockGroup("미국","🇺🇸")}
   ${renderStockGroup("아시아","🌏")}
+  ${renderStockGroup("관심종목","⭐")}
 
   <div class="card">
     <div class="display" style="font-size:16px;margin-bottom:6px">🔗 실시간 주가 조회</div>
@@ -882,6 +910,54 @@ function attachEvents(){
   document.querySelectorAll(".price-card").forEach(c=>c.onclick=()=>{ state.selectedCategory=c.dataset.cat; render(); });
 
   // 개선 요구사항 메일 보내기
+  // 관심종목 추가
+  const addStockBtn=document.getElementById("btn-add-stock");
+  if(addStockBtn) addStockBtn.onclick=()=>{
+    const name=prompt("종목명을 입력하세요\n(예: 삼성전자, 애플)");
+    if(!name||!name.trim()) return;
+    const priceStr=prompt("현재가를 숫자로 입력하세요\n(예: 75000)");
+    if(priceStr===null) return;
+    const cur=parseFloat(priceStr.replace(/[,\s]/g,""));
+    if(!cur||cur<=0){ alert("올바른 숫자를 입력하세요."); return; }
+    const unit=prompt("단위를 입력하세요 (예: 원, pt, $)","원")||"원";
+    const colors=["#0047A0","#E8530A","#1B5E20","#4527A0","#B71C1C","#00695C","#6A1B9A","#283593"];
+    state.customStocks.push({
+      group:"관심종목", key:"ustk_"+Date.now(), name:name.trim(), en:"", icon:"⭐",
+      color:colors[state.customStocks.length%colors.length], unit:unit.trim(),
+      current:cur, prevDay:Math.round(cur*0.995), note:"사용자 추가 · 직접 입력",
+      trend:makeFlatTrend(cur), custom:true,
+    });
+    saveCustomStocks(); render();
+  };
+  document.querySelectorAll(".del-stock").forEach(b=>b.onclick=()=>{
+    state.customStocks=state.customStocks.filter(x=>x.key!==b.dataset.id);
+    saveCustomStocks(); render();
+  });
+
+  // 관심코인 추가
+  const addCoinBtn=document.getElementById("btn-add-coin");
+  if(addCoinBtn) addCoinBtn.onclick=()=>{
+    const name=prompt("코인명을 입력하세요\n(예: 에이다, 트론)");
+    if(!name||!name.trim()) return;
+    const sym=prompt("심볼을 입력하세요 (예: ADA, TRX)","")||"";
+    const priceStr=prompt("현재가를 원화 숫자로 입력하세요\n(예: 850)");
+    if(priceStr===null) return;
+    const cur=parseFloat(priceStr.replace(/[,\s]/g,""));
+    if(!cur||cur<=0){ alert("올바른 숫자를 입력하세요."); return; }
+    const colors=["#F7931A","#627EEA","#9945FF","#C2A633","#26A17B","#0033AD","#FF060A","#2775CA"];
+    state.customCoins.push({
+      key:"ucoin_"+Date.now(), name:name.trim(), en:sym.trim().toUpperCase(), icon:"⭐",
+      color:colors[state.customCoins.length%colors.length], unit:"원",
+      current:cur, prevDay:Math.round(cur*0.995), note:"사용자 추가 · 직접 입력",
+      trend:makeFlatTrend(cur), custom:true,
+    });
+    saveCustomCoins(); render();
+  };
+  document.querySelectorAll(".del-coin").forEach(b=>b.onclick=()=>{
+    state.customCoins=state.customCoins.filter(x=>x.key!==b.dataset.id);
+    saveCustomCoins(); render();
+  });
+
   const fbBtn=document.getElementById("feedback-send");
   if(fbBtn) fbBtn.onclick=()=>{
     const ta=document.getElementById("feedback-text");
