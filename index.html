@@ -358,33 +358,56 @@ function deltaBadge(cur,prev){
 // ── 업비트 실시간 시세 자동 갱신 ────────────────────────────────────────────
 let coinFetchStatus = "idle"; // idle | loading | done | error
 
+// 타임아웃 포함 fetch
+function fetchWithTimeout(url, ms){
+  return Promise.race([
+    fetch(url, { headers:{ "Accept":"application/json" } }),
+    new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")), ms)),
+  ]);
+}
+
+// 여러 경로를 순차 시도 (직접 → CORS 프록시들)
+async function fetchUpbitData(markets){
+  const apiUrl = "https://api.upbit.com/v1/ticker?markets=" + encodeURIComponent(markets);
+  const routes = [
+    apiUrl,
+    "https://corsproxy.io/?url=" + encodeURIComponent(apiUrl),
+    "https://api.allorigins.win/raw?url=" + encodeURIComponent(apiUrl),
+  ];
+  for(let i=0;i<routes.length;i++){
+    try {
+      const resp = await fetchWithTimeout(routes[i], 8000);
+      if(!resp.ok) throw new Error("HTTP "+resp.status);
+      const data = await resp.json();
+      if(Array.isArray(data) && data.length>0) return data;
+      throw new Error("빈 응답");
+    } catch(e){
+      console.warn("경로 "+(i+1)+" 실패:", e.message);
+      // 다음 경로 시도
+    }
+  }
+  throw new Error("모든 경로 실패");
+}
+
 async function fetchUpbitPrices(){
-  // 기본 코인 + 사용자 코인 중 market 코드가 있는 것만
   const all = allCoins().filter(c=>c.market);
   if(all.length===0){ coinFetchStatus="done"; return; }
   coinFetchStatus = "loading";
   if(state.tab==="coin") render();
   try {
     const markets = all.map(c=>c.market).join(",");
-    const url = "https://api.upbit.com/v1/ticker?markets=" + encodeURIComponent(markets);
-    const resp = await fetch(url, { headers:{ "Accept":"application/json" } });
-    if(!resp.ok) throw new Error("HTTP "+resp.status);
-    const data = await resp.json();
-    // 응답을 market별로 매핑
+    const data = await fetchUpbitData(markets);
     const map = {};
     data.forEach(d=>{ map[d.market] = d; });
-    // 기본 코인 갱신
     COIN_DATA.forEach(c=>{
       if(c.market && map[c.market]){
         const t = map[c.market];
         c.current = t.trade_price;
         c.prevDay = t.prev_closing_price;
-        // 추이 마지막 값을 실시간으로 교체
         c.trend = c.trend.slice(0,11).concat([t.trade_price]);
         c.note = "업비트 실시간";
       }
     });
-    // 사용자 코인 갱신
     state.customCoins.forEach(c=>{
       if(c.market && map[c.market]){
         const t = map[c.market];
@@ -809,6 +832,7 @@ function renderCoinTab(){
       </div>
     </div>
   </div>
+  ${coinFetchStatus==="error"?`<div style="background:#FEF3F2;border:1px solid #FECDCA;border-radius:12px;padding:12px 16px;margin-bottom:14px;font-size:12px;color:#B42318;line-height:1.7">⚠️ <strong>실시간 연동에 실패했습니다.</strong> 아래 시세는 참고용 고정값입니다. 🔄 버튼으로 다시 시도하거나, 네트워크 환경(회사 방화벽 등)이 업비트·프록시 접속을 차단하는지 확인해주세요. 정확한 시세는 하단 업비트 링크에서 볼 수 있습니다.</div>`:""}
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin-bottom:22px">${cards}</div>
 
   <div class="card">
@@ -939,18 +963,6 @@ function renderBoardTab(){
 function renderFooter(){
   const links=allSites().map((s,i)=>`<a href="${esc(s.home)}" target="_blank" rel="noopener" style="color:#aaa">${esc(s.name)}</a>${i<allSites().length-1?" · ":""}`).join("");
   return `
-  <div class="card" style="margin-top:20px;background:#fff">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-      <span style="font-size:18px">✉️</span>
-      <span class="display" style="font-size:15px;color:#1a2744">개선 요구사항 보내기</span>
-    </div>
-    <div style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.6">대시보드 개선 의견이나 추가했으면 하는 기능을 자유롭게 남겨주세요. 작성 후 버튼을 누르면 메일 앱이 열립니다.</div>
-    <textarea id="feedback-text" placeholder="예) 오리 시세도 추가해주세요 / 특정 지역 시세를 보고 싶어요" style="width:100%;min-height:90px;padding:12px;border-radius:10px;border:1px solid #ddd;font-size:13px;outline:none;resize:vertical;color:#1a1a1a;caret-color:#1a2744;line-height:1.6"></textarea>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;flex-wrap:wrap;gap:8px">
-      <span style="font-size:11px;color:#aaa">받는 사람: trsumun@daum.net</span>
-      <button id="feedback-send" style="border:none;border-radius:10px;background:#1a2744;color:#fff;font-weight:700;font-size:13px;padding:10px 20px">📨 메일 보내기</button>
-    </div>
-  </div>
   <div style="margin-top:20px;font-size:11px;color:#bbb;text-align:center;line-height:1.8">데이터 출처 · ${links}<br>※ 시세는 업계 평균 수준을 반영한 참고 데이터입니다. 정확한 시세·공지는 각 협회 공식 사이트를 확인하세요.</div>`;
 }
 
@@ -964,7 +976,6 @@ function attachEvents(){
   });
   document.querySelectorAll(".price-card").forEach(c=>c.onclick=()=>{ state.selectedCategory=c.dataset.cat; render(); });
 
-  // 개선 요구사항 메일 보내기
   // 관심종목 추가
   const addStockBtn=document.getElementById("btn-add-stock");
   if(addStockBtn) addStockBtn.onclick=()=>{
@@ -1000,14 +1011,11 @@ function attachEvents(){
     if(allCoins().some(c=>c.market===market)){ alert("이미 추가된 코인입니다."); return; }
     const name=prompt("코인 이름을 입력하세요 (예: 에이다)", symbol)||symbol;
     const colors=["#F7931A","#627EEA","#9945FF","#C2A633","#26A17B","#0033AD","#FF060A","#2775CA"];
-    // 먼저 업비트에서 현재가 조회 시도
+    // 먼저 업비트에서 현재가 조회 시도 (다중 경로)
     let cur=0, prev=0, ok=false;
     try {
-      const resp=await fetch("https://api.upbit.com/v1/ticker?markets="+encodeURIComponent(market),{headers:{"Accept":"application/json"}});
-      if(resp.ok){
-        const d=await resp.json();
-        if(Array.isArray(d)&&d.length>0){ cur=d[0].trade_price; prev=d[0].prev_closing_price; ok=true; }
-      }
+      const d = await fetchUpbitData(market);
+      if(Array.isArray(d)&&d.length>0){ cur=d[0].trade_price; prev=d[0].prev_closing_price; ok=true; }
     } catch(e){ console.error(e); }
     if(!ok){
       alert("'"+symbol+"'을(를) 업비트 KRW 마켓에서 찾을 수 없습니다.\n심볼을 확인하거나, 업비트에 상장된 코인인지 확인하세요.");
@@ -1027,17 +1035,6 @@ function attachEvents(){
     state.customCoins=state.customCoins.filter(x=>x.key!==b.dataset.id);
     saveCustomCoins(); render();
   });
-
-  const fbBtn=document.getElementById("feedback-send");
-  if(fbBtn) fbBtn.onclick=()=>{
-    const ta=document.getElementById("feedback-text");
-    const body=ta?ta.value.trim():"";
-    if(!body){ alert("개선 요구사항을 입력해주세요."); if(ta) ta.focus(); return; }
-    const today=fmtFull(new Date());
-    const subject=encodeURIComponent("[축산시세 대시보드] 개선 요구사항");
-    const mailBody=encodeURIComponent(body + "\n\n----------\n작성일: " + today + "\n(축산관련 시세 대시보드)");
-    window.location.href = "mailto:trsumun@daum.net?subject=" + subject + "&body=" + mailBody;
-  };
 
   const addBtn=document.getElementById("btn-add-site");
   if(addBtn) addBtn.onclick=()=>{
