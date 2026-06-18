@@ -133,34 +133,39 @@ const OIL_DATA = [
 // AI·반도체 붐 + 미·이란 평화협정 기대로 코스피·닛케이 사상 최고치 랠리.
 const STOCK_DATA = [
   {
-    group:"국내", key:"kospi", name:"코스피", en:"KOSPI", icon:"🇰🇷", color:"#0047A0", unit:"pt",
-    current:8545.98, prevDay:8160.59, note:"한국 종합주가지수",
-    trend:[6598,6850,7120,7680,8160,7950,8240,8476,8545,8420,8160,8545.98],
+    group:"국내", key:"kospi", ysym:"^KS11", name:"코스피", en:"KOSPI", icon:"🇰🇷", color:"#0047A0", unit:"pt",
+    current:8923.62, prevDay:8980.15, note:"한국 종합주가지수",
+    trend:[5200,5800,6400,7100,7600,8100,8400,8650,8800,8990,8980,8923.62],
   },
   {
-    group:"국내", key:"kosdaq", name:"코스닥", en:"KOSDAQ", icon:"🇰🇷", color:"#E8530A", unit:"pt",
-    current:1074.80, prevDay:1192.35, note:"코스닥 지수",
-    trend:[1192,1210,1185,1150,1192,1160,1095,1074,1085,1100,1192,1074.80],
+    group:"국내", key:"kosdaq", ysym:"^KQ11", name:"코스닥", en:"KOSDAQ", icon:"🇰🇷", color:"#E8530A", unit:"pt",
+    current:1194.03, prevDay:1162.20, note:"코스닥 지수",
+    trend:[750,820,880,950,1020,1118,1150,1187,1162,1175,1162,1194.03],
   },
   {
-    group:"미국", key:"sp500", name:"S&P 500", en:"S&P500", icon:"🇺🇸", color:"#1B5E20", unit:"pt",
-    current:6420.5, prevDay:6385.2, note:"미국 대형주 지수",
-    trend:[5980,6050,6120,6280,6385,6310,6360,6400,6420,6395,6385,6420.5],
+    group:"미국", key:"sp500", ysym:"^GSPC", name:"S&P 500", en:"S&P500", icon:"🇺🇸", color:"#1B5E20", unit:"pt",
+    current:7420.10, prevDay:7510.55, note:"미국 대형주 지수",
+    trend:[6280,6450,6600,6845,7050,7408,7599,7600,7550,7480,7510,7420.10],
   },
   {
-    group:"미국", key:"nasdaq", name:"나스닥", en:"Nasdaq", icon:"🇺🇸", color:"#4527A0", unit:"pt",
-    current:22150, prevDay:21980, note:"미국 기술주 지수",
-    trend:[20100,20500,21000,21800,21980,21500,21850,22050,22150,22000,21980,22150],
+    group:"미국", key:"nasdaq", ysym:"^IXIC", name:"나스닥", en:"Nasdaq", icon:"🇺🇸", color:"#4527A0", unit:"pt",
+    current:26021.66, prevDay:26375.20, note:"미국 기술주 지수",
+    trend:[22100,22800,23241,24000,25000,26225,27086,27000,26800,26500,26375,26021.66],
   },
   {
-    group:"아시아", key:"nikkei", name:"닛케이225", en:"Nikkei", icon:"🇯🇵", color:"#B71C1C", unit:"pt",
-    current:69317.50, prevDay:66020.40, note:"일본 대표 지수",
-    trend:[59285,61200,63500,66020,66588,65800,66329,68000,69317,67500,66020,69317.50],
+    group:"미국", key:"dow", ysym:"^DJI", name:"다우존스", en:"Dow", icon:"🇺🇸", color:"#283593", unit:"pt",
+    current:51492.55, prevDay:52003.10, note:"미국 대표 30종목",
+    trend:[48063,48800,49526,50200,50800,51078,51200,51400,51600,51900,52003,51492.55],
   },
   {
-    group:"아시아", key:"hangseng", name:"항셍", en:"HangSeng", icon:"🇭🇰", color:"#00695C", unit:"pt",
-    current:24850, prevDay:24718, note:"홍콩 항셍지수",
-    trend:[23200,23600,24100,24700,24718,24500,24650,24800,24850,24750,24718,24850],
+    group:"아시아", key:"nikkei", ysym:"^N225", name:"닛케이225", en:"Nikkei", icon:"🇯🇵", color:"#B71C1C", unit:"pt",
+    current:71053.49, prevDay:69900.30, note:"일본 대표 지수",
+    trend:[59285,61200,63500,66020,66588,66934,68000,69317,70200,69900,69900,71053.49],
+  },
+  {
+    group:"아시아", key:"hangseng", ysym:"^HSI", name:"항셍", en:"HangSeng", icon:"🇭🇰", color:"#00695C", unit:"pt",
+    current:23924.81, prevDay:24310.50, note:"홍콩 항셍지수",
+    trend:[23200,23600,24100,24700,25200,24718,24500,23817,24200,24310,24310,23924.81],
   },
 ];
 
@@ -424,6 +429,67 @@ async function fetchUpbitPrices(){
     coinFetchStatus = "error";
   }
   if(state.tab==="coin") render();
+}
+
+// ── 야후 파이낸스 주가지수 자동 갱신 ───────────────────────────────────────
+let stockFetchStatus = "idle"; // idle | loading | done | error
+
+// 야후 차트 API를 프록시로 우회 호출 (단일 심볼)
+async function fetchYahooQuote(symbol){
+  const yurl = "https://query1.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(symbol) + "?interval=1d&range=5d";
+  const routes = [
+    "https://corsproxy.io/?url=" + encodeURIComponent(yurl),
+    "https://api.allorigins.win/raw?url=" + encodeURIComponent(yurl),
+    yurl,
+  ];
+  for(let i=0;i<routes.length;i++){
+    try {
+      const resp = await fetchWithTimeout(routes[i], 8000);
+      if(!resp.ok) throw new Error("HTTP "+resp.status);
+      const data = await resp.json();
+      const r = data?.chart?.result?.[0];
+      if(!r) throw new Error("형식 오류");
+      const meta = r.meta;
+      const cur = meta.regularMarketPrice;
+      const prev = meta.chartPreviousClose || meta.previousClose;
+      // 5일 종가 추이
+      const closes = (r.indicators?.quote?.[0]?.close || []).filter(v=>v!=null);
+      if(cur==null) throw new Error("가격 없음");
+      return { cur, prev: prev||cur, closes };
+    } catch(e){
+      console.warn("야후 "+symbol+" 경로 "+(i+1)+" 실패:", e.message);
+    }
+  }
+  return null;
+}
+
+async function fetchStockPrices(){
+  const targets = STOCK_DATA.filter(s=>s.ysym).concat(state.customStocks.filter(s=>s.ysym));
+  if(targets.length===0){ stockFetchStatus="done"; return; }
+  stockFetchStatus = "loading";
+  if(state.tab==="stock") render();
+  let okCount = 0;
+  // 순차 호출(프록시 부하 분산)
+  for(const s of targets){
+    const q = await fetchYahooQuote(s.ysym);
+    if(q){
+      s.current = q.cur;
+      s.prevDay = q.prev;
+      // 추이: 기존 trend 앞부분 + 야후 최근 종가로 갱신
+      if(q.closes.length>=2){
+        const tail = q.closes.slice(-6);
+        s.trend = s.trend.slice(0, 12-tail.length).concat(tail);
+      } else {
+        s.trend = s.trend.slice(0,11).concat([q.cur]);
+      }
+      s.note = "야후 파이낸스 실시간";
+      s._live = true;
+      okCount++;
+    }
+  }
+  if(okCount>0){ saveCustomStocks(); stockFetchStatus="done"; }
+  else stockFetchStatus="error";
+  if(state.tab==="stock") render();
 }
 
 function render(){
@@ -904,10 +970,15 @@ function renderStockTab(){
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
       <div>
         <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px">📈 국내외 주가동향 · ${fmtFull(today)}</div>
-        <div style="font-size:11px;color:#aaa;margin-top:4px">상승 <span style="color:#D32F2F;font-weight:700">▲ 빨강</span> · 하락 <span style="color:#1565C0;font-weight:700">▼ 파랑</span> (국내 증시 관례 기준) · 주가는 수동 입력</div>
+        <div style="font-size:11px;color:#aaa;margin-top:4px">상승 <span style="color:#D32F2F;font-weight:700">▲ 빨강</span> · 하락 <span style="color:#1565C0;font-weight:700">▼ 파랑</span> (국내 증시 관례 기준)</div>
       </div>
-      <button id="btn-add-stock" style="border:1px solid #0047A0;border-radius:8px;background:#0047A0;padding:7px 14px;font-size:12px;color:#fff;font-weight:600">➕ 관심종목 추가</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="font-size:11px;color:${stockFetchStatus==="done"?"#1B7A3E":stockFetchStatus==="error"?"#D32F2F":"#aaa"}">${stockFetchStatus==="loading"?"⏳ 갱신중...":stockFetchStatus==="done"?"🟢 실시간 연동됨":stockFetchStatus==="error"?"⚠️ 연동 실패":""}</span>
+        <button id="btn-refresh-stock" style="border:1px solid #0047A0;border-radius:8px;background:#fff;padding:7px 12px;font-size:12px;color:#0047A0;font-weight:600">🔄 시세 갱신</button>
+        <button id="btn-add-stock" style="border:1px solid #0047A0;border-radius:8px;background:#0047A0;padding:7px 14px;font-size:12px;color:#fff;font-weight:600">➕ 관심종목 추가</button>
+      </div>
     </div>
+    ${stockFetchStatus==="error"?`<div style="background:#FEF3F2;border:1px solid #FECDCA;border-radius:12px;padding:12px 16px;margin-top:12px;font-size:12px;color:#B42318;line-height:1.7">⚠️ <strong>실시간 연동에 실패했습니다.</strong> 아래 지수는 참고용 고정값입니다. 🔄 버튼으로 다시 시도하거나, 네트워크 환경(회사 방화벽 등)이 야후·프록시 접속을 차단하는지 확인해주세요.</div>`:""}
   </div>
   ${renderStockGroup("국내","🇰🇷")}
   ${renderStockGroup("미국","🇺🇸")}
@@ -973,6 +1044,7 @@ function attachEvents(){
   document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
     state.tab=b.dataset.tab; render();
     if(state.tab==="coin" && coinFetchStatus!=="done" && coinFetchStatus!=="loading") fetchUpbitPrices();
+    if(state.tab==="stock" && stockFetchStatus!=="done" && stockFetchStatus!=="loading") fetchStockPrices();
   });
   document.querySelectorAll(".price-card").forEach(c=>c.onclick=()=>{ state.selectedCategory=c.dataset.cat; render(); });
 
@@ -1031,6 +1103,8 @@ function attachEvents(){
   };
   const refreshCoinBtn=document.getElementById("btn-refresh-coin");
   if(refreshCoinBtn) refreshCoinBtn.onclick=()=>{ coinFetchStatus="idle"; fetchUpbitPrices(); };
+  const refreshStockBtn=document.getElementById("btn-refresh-stock");
+  if(refreshStockBtn) refreshStockBtn.onclick=()=>{ stockFetchStatus="idle"; fetchStockPrices(); };
   document.querySelectorAll(".del-coin").forEach(b=>b.onclick=()=>{
     state.customCoins=state.customCoins.filter(x=>x.key!==b.dataset.id);
     saveCustomCoins(); render();
@@ -1059,6 +1133,8 @@ function attachEvents(){
 render();
 // 페이지 로드 시 업비트 코인 시세 미리 갱신 (백그라운드)
 fetchUpbitPrices();
+// 페이지 로드 시 야후 주가지수 미리 갱신 (백그라운드)
+fetchStockPrices();
 </script>
 </body>
 </html>
