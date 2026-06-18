@@ -172,6 +172,49 @@ const STOCK_LINKS = [
   { label:"CNBC 마켓", url:"https://www.cnbc.com/world-markets/", color:"#4527A0" },
 ];
 
+// ── 업비트 기준 메이저 코인 시세 (원화, 2026년 6월 시세 반영) ────────────────
+// 미·이란 갈등 매도세 후 반등 국면. 변동성 큰 상태.
+const COIN_DATA = [
+  {
+    key:"btc", name:"비트코인", en:"BTC", icon:"🟠", color:"#F7931A", unit:"원",
+    current:84500000, prevDay:82300000, note:"업비트 KRW 마켓",
+    trend:[88000000,92000000,86000000,78000000,72000000,68000000,74000000,80000000,83000000,85000000,82300000,84500000],
+  },
+  {
+    key:"eth", name:"이더리움", en:"ETH", icon:"🔷", color:"#627EEA", unit:"원",
+    current:3450000, prevDay:3380000, note:"업비트 KRW 마켓",
+    trend:[3800000,4100000,3700000,3200000,2950000,2720000,3050000,3300000,3420000,3500000,3380000,3450000],
+  },
+  {
+    key:"xrp", name:"리플", en:"XRP", icon:"⚫", color:"#23292F", unit:"원",
+    current:1645, prevDay:1612, note:"업비트 KRW 마켓",
+    trend:[2050,2200,1950,1780,1620,1540,1680,1750,1690,1660,1612,1645],
+  },
+  {
+    key:"sol", name:"솔라나", en:"SOL", icon:"🟣", color:"#9945FF", unit:"원",
+    current:215000, prevDay:208000, note:"업비트 KRW 마켓",
+    trend:[265000,290000,255000,220000,195000,178000,200000,212000,218000,222000,208000,215000],
+  },
+  {
+    key:"doge", name:"도지코인", en:"DOGE", icon:"🐕", color:"#C2A633", unit:"원",
+    current:285, prevDay:278, note:"업비트 KRW 마켓",
+    trend:[380,420,360,310,275,250,285,300,292,288,278,285],
+  },
+  {
+    key:"usdt", name:"테더", en:"USDT", icon:"🟢", color:"#26A17B", unit:"원",
+    current:1378, prevDay:1376, note:"원/달러 연동 스테이블",
+    trend:[1340,1352,1365,1380,1395,1388,1382,1379,1377,1376,1376,1378],
+  },
+];
+
+// 코인 시세 조회 바로가기
+const COIN_LINKS = [
+  { label:"업비트 - 비트코인", url:"https://upbit.com/exchange?code=CRIX.UPBIT.KRW-BTC", color:"#F7931A" },
+  { label:"업비트 - 이더리움", url:"https://upbit.com/exchange?code=CRIX.UPBIT.KRW-ETH", color:"#627EEA" },
+  { label:"업비트 - 리플(XRP)", url:"https://upbit.com/exchange?code=CRIX.UPBIT.KRW-XRP", color:"#23292F" },
+  { label:"업비트 거래소 메인", url:"https://upbit.com", color:"#093687" },
+];
+
 // ── 양돈·한우 산지시세 (축산물품질평가원 기준, 2026년 시세 반영) ──────────
 function genLivestock7(base, vol, seed){
   return getLast7Days().map((d,i)=>{
@@ -303,7 +346,7 @@ function render(){
   document.getElementById("app").innerHTML = `
     ${renderHeader()}
     <main>
-      ${state.tab==="price" ? renderPriceTab() : state.tab==="pig" ? renderPigTab() : state.tab==="livestock" ? renderLivestockTab() : state.tab==="stock" ? renderStockTab() : renderBoardTab()}
+      ${state.tab==="price" ? renderPriceTab() : state.tab==="pig" ? renderPigTab() : state.tab==="livestock" ? renderLivestockTab() : state.tab==="stock" ? renderStockTab() : state.tab==="coin" ? renderCoinTab() : renderBoardTab()}
       ${renderFooter()}
     </main>`;
   attachEvents();
@@ -328,6 +371,7 @@ function renderHeader(){
       <button class="tab ${state.tab==="livestock"?"active":""}" data-tab="livestock">🐂 한우</button>
       <button class="tab ${state.tab==="board"?"active":""}" data-tab="board">📋 공지사항</button>
       <button class="tab ${state.tab==="stock"?"active":""}" data-tab="stock">📈 주가동향</button>
+      <button class="tab ${state.tab==="coin"?"active":""}" data-tab="coin">🪙 코인시세</button>
     </div>
   </div></header>`;
 }
@@ -645,6 +689,63 @@ function renderLivestockTab(){
   </div>`;
 }
 
+function renderCoinTab(){
+  const today = new Date();
+  const cards = COIN_DATA.map(c=>{
+    const diff = c.current - c.prevDay;
+    const pct = ((diff/c.prevDay)*100).toFixed(2);
+    const up = diff>0, flat = Math.abs(diff)<0.001;
+    const arrow = flat?"─":up?"▲":"▼";
+    const dColor = flat?"#888":up?"#D32F2F":"#1565C0";
+    const yearAgo = c.trend[0];
+    const yearDiff = (((c.current - yearAgo)/yearAgo)*100).toFixed(1);
+    const yearUp = c.current > yearAgo;
+    return `
+    <div style="background:#fff;border-radius:14px;padding:15px;border:1px solid #efefef;border-top:3px solid ${c.color}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="display:flex;align-items:center;gap:7px">
+          <span style="font-size:20px">${c.icon}</span>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#1a1a1a">${c.name} <span style="font-size:10px;color:#aaa;font-weight:400">${c.en}</span></div>
+            <div style="font-size:9px;color:#bbb">${c.note}</div>
+          </div>
+        </div>
+        ${sparkline(c.trend, c.color)}
+      </div>
+      <div style="display:flex;align-items:baseline;gap:4px;margin-top:4px">
+        <span style="font-size:18px;font-weight:800;color:${c.color};letter-spacing:-0.5px">${c.current.toLocaleString()}</span>
+        <span style="font-size:11px;color:#888">${c.unit}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:5px">
+        <span style="font-size:11px;font-weight:700;color:${dColor}">${arrow} ${Math.abs(diff).toLocaleString()} (${pct}%)</span>
+        <span style="font-size:10px;color:#aaa">전일대비</span>
+      </div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid #f5f5f5;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:10px;color:#999">최근 1년</span>
+        <span style="font-size:11px;font-weight:700;color:${yearUp?"#D32F2F":"#1565C0"}">${yearUp?"▲":"▼"} ${Math.abs(yearDiff)}%</span>
+      </div>
+    </div>`;
+  }).join("");
+
+  const linkBtns = COIN_LINKS.map(l=>`
+    <a href="${esc(l.url)}" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-radius:10px;background:${l.color}12;color:${l.color};font-size:13px;font-weight:600;border:1px solid ${l.color}30">
+      <span>🔗 ${esc(l.label)}</span><span style="font-size:15px">↗</span>
+    </a>`).join("");
+
+  return `
+  <div style="margin-bottom:16px">
+    <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px">🪙 업비트 메이저 코인 시세 · ${fmtFull(today)}</div>
+    <div style="font-size:11px;color:#aaa;margin-top:4px">상승 <span style="color:#D32F2F;font-weight:700">▲ 빨강</span> · 하락 <span style="color:#1565C0;font-weight:700">▼ 파랑</span> · 업비트 KRW 마켓 기준</div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin-bottom:22px">${cards}</div>
+
+  <div class="card">
+    <div class="display" style="font-size:16px;margin-bottom:6px">🔗 실시간 코인 시세 조회</div>
+    <div style="font-size:12px;color:#888;margin-bottom:14px;line-height:1.6">암호화폐는 24시간 변동성이 매우 큽니다. 실시간 시세는 아래 업비트에서 확인하세요. 새 탭에서 열립니다.</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">${linkBtns}</div>
+  </div>`;
+}
+
 function renderStockTab(){
   const today = new Date();
   // 그룹별(국내/미국/아시아) 카드 렌더
@@ -757,7 +858,20 @@ function renderBoardTab(){
 
 function renderFooter(){
   const links=allSites().map((s,i)=>`<a href="${esc(s.home)}" target="_blank" rel="noopener" style="color:#aaa">${esc(s.name)}</a>${i<allSites().length-1?" · ":""}`).join("");
-  return `<div style="margin-top:20px;font-size:11px;color:#bbb;text-align:center;line-height:1.8">데이터 출처 · ${links}<br>※ 시세는 업계 평균 수준을 반영한 참고 데이터입니다. 개선사항은 이메일로 trsumun@daum.net</div>`;
+  return `
+  <div class="card" style="margin-top:20px;background:#fff">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <span style="font-size:18px">✉️</span>
+      <span class="display" style="font-size:15px;color:#1a2744">개선 요구사항 보내기</span>
+    </div>
+    <div style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.6">대시보드 개선 의견이나 추가했으면 하는 기능을 자유롭게 남겨주세요. 작성 후 버튼을 누르면 메일 앱이 열립니다.</div>
+    <textarea id="feedback-text" placeholder="예) 오리 시세도 추가해주세요 / 특정 지역 시세를 보고 싶어요" style="width:100%;min-height:90px;padding:12px;border-radius:10px;border:1px solid #ddd;font-size:13px;outline:none;resize:vertical;color:#1a1a1a;caret-color:#1a2744;line-height:1.6"></textarea>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;flex-wrap:wrap;gap:8px">
+      <span style="font-size:11px;color:#aaa">받는 사람: trsumun@daum.net</span>
+      <button id="feedback-send" style="border:none;border-radius:10px;background:#1a2744;color:#fff;font-weight:700;font-size:13px;padding:10px 20px">📨 메일 보내기</button>
+    </div>
+  </div>
+  <div style="margin-top:20px;font-size:11px;color:#bbb;text-align:center;line-height:1.8">데이터 출처 · ${links}<br>※ 시세는 업계 평균 수준을 반영한 참고 데이터입니다. 정확한 시세·공지는 각 협회 공식 사이트를 확인하세요.</div>`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -766,6 +880,18 @@ function renderFooter(){
 function attachEvents(){
   document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{ state.tab=b.dataset.tab; render(); });
   document.querySelectorAll(".price-card").forEach(c=>c.onclick=()=>{ state.selectedCategory=c.dataset.cat; render(); });
+
+  // 개선 요구사항 메일 보내기
+  const fbBtn=document.getElementById("feedback-send");
+  if(fbBtn) fbBtn.onclick=()=>{
+    const ta=document.getElementById("feedback-text");
+    const body=ta?ta.value.trim():"";
+    if(!body){ alert("개선 요구사항을 입력해주세요."); if(ta) ta.focus(); return; }
+    const today=fmtFull(new Date());
+    const subject=encodeURIComponent("[축산시세 대시보드] 개선 요구사항");
+    const mailBody=encodeURIComponent(body + "\n\n----------\n작성일: " + today + "\n(축산관련 시세 대시보드)");
+    window.location.href = "mailto:trsumun@daum.net?subject=" + subject + "&body=" + mailBody;
+  };
 
   const addBtn=document.getElementById("btn-add-site");
   if(addBtn) addBtn.onclick=()=>{
