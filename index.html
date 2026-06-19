@@ -331,6 +331,24 @@ const BOARD_SITES = [
 // ═══════════════════════════════════════════════════════════════════════════
 let state = { tab:"price", selectedCategory:"broiler", customSites:loadCustom(), customStocks:loadCustomList("custom_stocks"), customCoins:loadCustomList("custom_coins") };
 
+// ── 국내 주요뉴스 ─────────────────────────────────────────────────────────
+const NEWS_CHANNELS = [
+  { id:"livestock", label:"축산·농업", color:"#E8530A", icon:"🐄",
+    rss:"https://news.google.com/rss/search?q=축산+농업&hl=ko&gl=KR&ceid=KR:ko" },
+  { id:"economy",  label:"경제",      color:"#1565C0", icon:"📊",
+    rss:"https://news.google.com/rss/search?q=경제+금리+환율&hl=ko&gl=KR&ceid=KR:ko" },
+  { id:"politics", label:"정치·사회", color:"#1B5E20", icon:"🏛️",
+    rss:"https://news.google.com/rss/search?q=정치+사회&hl=ko&gl=KR&ceid=KR:ko" },
+  { id:"world",    label:"국제",      color:"#4527A0", icon:"🌍",
+    rss:"https://news.google.com/rss/search?q=국제+세계&hl=ko&gl=KR&ceid=KR:ko" },
+];
+let newsState = {
+  status:"idle",   // idle | loading | done | error
+  activeChannel:"livestock",
+  items:{},        // { channelId: [{title,link,pubDate,source},...] }
+};
+const RSS2JSON = "https://api.rss2json.com/v1/api.json";
+
 // ── 날씨 상태 ──────────────────────────────────────────────────────────────
 let weatherState = {
   status:"idle", // idle | loading | done | error
@@ -555,6 +573,33 @@ async function fetchStockPrices(){
   if(state.tab==="price") render();
 }
 
+// ── 국내 뉴스 RSS fetch ───────────────────────────────────────────────────
+async function fetchNews(channelId){
+  const ch = NEWS_CHANNELS.find(c=>c.id===channelId);
+  if(!ch) return;
+  newsState.status="loading"; newsState.activeChannel=channelId;
+  if(state.tab==="news") render();
+  try {
+    // rss2json.com 무료 API로 CORS 우회
+    const url = RSS2JSON + "?rss_url=" + encodeURIComponent(ch.rss) + "&count=10";
+    const resp = await fetchWithTimeout(url, 10000);
+    if(!resp.ok) throw new Error("HTTP "+resp.status);
+    const data = await resp.json();
+    if(data.status!=="ok") throw new Error(data.message||"RSS 오류");
+    newsState.items[channelId] = data.items.map(item=>({
+      title: item.title.replace(/<[^>]+>/g,"").trim(),
+      link:  item.link,
+      pubDate: item.pubDate ? item.pubDate.slice(0,16) : "",
+      source: item.author || "",
+    }));
+    newsState.status="done";
+  } catch(e){
+    console.error("뉴스 조회 실패:", e);
+    newsState.status="error";
+  }
+  if(state.tab==="news") render();
+}
+
 // ── Open-Meteo 날씨 연동 ───────────────────────────────────────────────────
 async function fetchWeather(lat, lng, name){
   weatherState.status="loading"; weatherState.locationName=name;
@@ -612,7 +657,7 @@ function render(){
   document.getElementById("app").innerHTML = `
     ${renderHeader()}
     <main>
-      ${state.tab==="price" ? renderPriceTab() : state.tab==="pig" ? renderPigTab() : state.tab==="livestock" ? renderLivestockTab() : state.tab==="stock" ? renderStockTab() : state.tab==="coin" ? renderCoinTab() : state.tab==="weather" ? renderWeatherTab() : renderBoardTab()}
+      ${state.tab==="price" ? renderPriceTab() : state.tab==="pig" ? renderPigTab() : state.tab==="livestock" ? renderLivestockTab() : state.tab==="stock" ? renderStockTab() : state.tab==="coin" ? renderCoinTab() : state.tab==="weather" ? renderWeatherTab() : state.tab==="news" ? renderNewsTab() : renderBoardTab()}
       ${renderFooter()}
     </main>`;
   attachEvents();
@@ -639,6 +684,7 @@ function renderHeader(){
       <button class="tab ${state.tab==="stock"?"active":""}" data-tab="stock">📈 주가</button>
       <button class="tab ${state.tab==="coin"?"active":""}" data-tab="coin">🪙 코인</button>
       <button class="tab ${state.tab==="weather"?"active":""}" data-tab="weather">🌤️ 날씨</button>
+      <button class="tab ${state.tab==="news"?"active":""}" data-tab="news">📰 뉴스</button>
     </div>
   </div></header>`;
 }
@@ -1167,6 +1213,66 @@ function renderStockTab(){
   </div>`;
 }
 
+function renderNewsTab(){
+  const ch = NEWS_CHANNELS.find(c=>c.id===newsState.activeChannel)||NEWS_CHANNELS[0];
+  const items = newsState.items[newsState.activeChannel]||[];
+
+  // 채널 선택 탭
+  const chTabs = NEWS_CHANNELS.map(c=>{
+    const active = c.id===newsState.activeChannel;
+    return `<button class="news-ch-btn" data-ch="${c.id}" style="border:1px solid ${c.color};border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;background:${active?c.color:"#fff"};color:${active?"#fff":c.color};cursor:pointer">${c.icon} ${c.label}</button>`;
+  }).join("");
+
+  // 로딩/오류
+  let content = "";
+  if(newsState.status==="loading"){
+    content=`<div style="text-align:center;padding:30px;color:#888;font-size:13px">⏳ 뉴스를 가져오는 중...</div>`;
+  } else if(newsState.status==="error"||(!items.length&&newsState.status==="done")){
+    content=`<div style="text-align:center;padding:30px">
+      <div style="font-size:13px;color:#D32F2F;margin-bottom:12px">⚠️ 뉴스를 가져오지 못했습니다.</div>
+      <button class="news-ch-btn" data-ch="${ch.id}" style="border:none;border-radius:8px;background:#1a2744;color:#fff;padding:8px 16px;font-size:12px;font-weight:600">🔄 다시 시도</button>
+    </div>`;
+  } else if(items.length){
+    // 뉴스 목록
+    const list = items.map((item,i)=>{
+      const d = item.pubDate ? item.pubDate.replace("T"," ").slice(5,16) : "";
+      return `
+      <a href="${esc(item.link)}" target="_blank" rel="noopener" style="display:block;padding:13px 0;border-bottom:1px solid #f0f0f0;text-decoration:none">
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <span style="min-width:20px;font-size:11px;font-weight:700;color:#bbb;margin-top:2px">${i+1}</span>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:600;color:#1a1a1a;line-height:1.5;margin-bottom:4px">${esc(item.title)}</div>
+            <div style="display:flex;gap:10px;font-size:10px;color:#aaa">
+              ${item.source?`<span>${esc(item.source)}</span>`:""}
+              ${d?`<span>${d}</span>`:""}
+            </div>
+          </div>
+          <span style="font-size:14px;color:#ccc;flex-shrink:0">↗</span>
+        </div>
+      </a>`;
+    }).join("");
+    content=`<div style="padding:0 4px">${list}</div>`;
+  } else {
+    // idle 초기 상태
+    content=`<div style="text-align:center;padding:30px;color:#aaa;font-size:13px">채널을 선택하면 최신 뉴스를 불러옵니다.</div>`;
+  }
+
+  return `
+  <div style="margin-bottom:14px">
+    <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px;margin-bottom:12px">📰 국내 주요뉴스 · Google 뉴스 기반</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">${chTabs}</div>
+  </div>
+
+  <div class="card" style="min-height:200px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <div style="font-size:14px;font-weight:700;color:${ch.color}">${ch.icon} ${ch.label} 뉴스</div>
+      <button class="news-ch-btn" data-ch="${ch.id}" style="border:1px solid #ddd;border-radius:8px;background:#fff;padding:5px 10px;font-size:11px;color:#888">🔄 새로고침</button>
+    </div>
+    <div style="font-size:10px;color:#bbb;margin-bottom:12px">클릭하면 원문으로 이동합니다 · Google 뉴스 제공</div>
+    ${content}
+  </div>`;
+}
+
 function renderWeatherTab(){
   const today = new Date();
   const dayNames = ["일","월","화","수","목","금","토"];
@@ -1345,8 +1451,18 @@ function attachEvents(){
       const saved=loadWeatherLocation();
       if(saved) fetchWeather(saved.lat, saved.lng, saved.name);
     }
+    if(state.tab==="news" && newsState.status==="idle") fetchNews(newsState.activeChannel);
   });
   document.querySelectorAll(".price-card").forEach(c=>c.onclick=()=>{ state.selectedCategory=c.dataset.cat; render(); });
+
+  // 뉴스 채널 버튼
+  document.querySelectorAll(".news-ch-btn").forEach(b=>b.onclick=()=>{
+    const ch=b.dataset.ch;
+    newsState.activeChannel=ch;
+    newsState.status="loading";
+    render();
+    fetchNews(ch);
+  });
 
   // 날씨 GPS 버튼
   const wxGpsBtn=document.getElementById("btn-wx-gps");
