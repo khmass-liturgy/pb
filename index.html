@@ -134,13 +134,13 @@ const OIL_DATA = [
 const STOCK_DATA = [
   {
     group:"국내", key:"kospi", ysym:"^KS11", name:"코스피", en:"KOSPI", icon:"🇰🇷", color:"#0047A0", unit:"pt",
-    current:8923.62, prevDay:8980.15, note:"한국 종합주가지수",
-    trend:[5200,5800,6400,7100,7600,8100,8400,8650,8800,8990,8980,8923.62],
+    current:9322.27, prevDay:9064.10, note:"한국 종합주가지수",
+    trend:[5200,5800,6400,7100,7600,8100,8400,8650,8800,8923,9064,9322.27],
   },
   {
     group:"국내", key:"kosdaq", ysym:"^KQ11", name:"코스닥", en:"KOSDAQ", icon:"🇰🇷", color:"#E8530A", unit:"pt",
-    current:1194.03, prevDay:1162.20, note:"코스닥 지수",
-    trend:[750,820,880,950,1020,1118,1150,1187,1162,1175,1162,1194.03],
+    current:984.86, prevDay:1001.07, note:"코스닥 지수",
+    trend:[750,820,880,950,1020,1118,1150,1187,1162,1194,1001,984.86],
   },
   {
     group:"미국", key:"sp500", ysym:"^GSPC", name:"S&P 500", en:"S&P500", icon:"🇺🇸", color:"#1B5E20", unit:"pt",
@@ -451,11 +451,14 @@ async function fetchYahooQuote(symbol){
       if(!r) throw new Error("형식 오류");
       const meta = r.meta;
       const cur = meta.regularMarketPrice;
-      const prev = meta.chartPreviousClose || meta.previousClose;
+      // regularMarketPreviousClose가 가장 정확한 전일 종가
+      const prev = meta.regularMarketPreviousClose || meta.previousClose || meta.chartPreviousClose;
       // 5일 종가 추이
       const closes = (r.indicators?.quote?.[0]?.close || []).filter(v=>v!=null);
       if(cur==null) throw new Error("가격 없음");
-      return { cur, prev: prev||cur, closes };
+      // prev가 없으면 종가 배열 직전값으로 보완
+      const prevFinal = prev || (closes.length>=2 ? closes[closes.length-2] : cur);
+      return { cur, prev: prevFinal, closes };
     } catch(e){
       console.warn("야후 "+symbol+" 경로 "+(i+1)+" 실패:", e.message);
     }
