@@ -1075,20 +1075,27 @@ function attachEvents(){
 
   // 관심종목 추가
   const addStockBtn=document.getElementById("btn-add-stock");
-  if(addStockBtn) addStockBtn.onclick=()=>{
-    const name=prompt("종목명을 입력하세요\n(예: 삼성전자, 애플)");
-    if(!name||!name.trim()) return;
-    const priceStr=prompt("현재가를 숫자로 입력하세요\n(예: 75000)");
-    if(priceStr===null) return;
-    const cur=parseFloat(priceStr.replace(/[,\s]/g,""));
-    if(!cur||cur<=0){ alert("올바른 숫자를 입력하세요."); return; }
-    const unit=prompt("단위를 입력하세요 (예: 원, pt, $)","원")||"원";
+  if(addStockBtn) addStockBtn.onclick=async ()=>{
+    const sym=prompt("야후 파이낸스 종목 심볼을 입력하세요\n예) 삼성전자: 005930.KS\n    SK하이닉스: 000660.KS\n    애플: AAPL\n    테슬라: TSLA\n    엔비디아: NVDA");
+    if(!sym||!sym.trim()) return;
+    const symbol = sym.trim().toUpperCase();
+    // 중복 체크
+    if(state.customStocks.some(x=>x.ysym===symbol)){ alert("이미 추가된 종목입니다."); return; }
+    const name=prompt("종목 이름을 입력하세요", symbol)||symbol;
+    const unit=prompt("가격 단위 (원화 종목은 원, 미국 종목은 $)", symbol.endsWith(".KS")?"원":"$")||"원";
     const colors=["#0047A0","#E8530A","#1B5E20","#4527A0","#B71C1C","#00695C","#6A1B9A","#283593"];
+    // 야후 API로 현재가 자동 조회
+    const q = await fetchYahooQuote(symbol);
+    if(!q||!q.cur){
+      alert("'"+symbol+"'의 시세를 가져오지 못했습니다.\n심볼을 확인하거나, 야후 파이낸스에서 정확한 심볼을 검색해 주세요.\n(예: 삼성전자 → finance.yahoo.com 검색)");
+      return;
+    }
     state.customStocks.push({
-      group:"관심종목", key:"ustk_"+Date.now(), name:name.trim(), en:"", icon:"⭐",
+      group:"관심종목", key:"ustk_"+Date.now(), ysym:symbol,
+      name:name.trim(), en:symbol, icon:"⭐",
       color:colors[state.customStocks.length%colors.length], unit:unit.trim(),
-      current:cur, prevDay:Math.round(cur*0.995), note:"사용자 추가 · 직접 입력",
-      trend:makeFlatTrend(cur), custom:true,
+      current:q.cur, prevDay:q.prev, note:"야후 실시간",
+      trend:makeFlatTrend(q.cur), custom:true,
     });
     saveCustomStocks(); render();
   };
