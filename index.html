@@ -436,7 +436,9 @@ let stockFetchStatus = "idle"; // idle | loading | done | error
 
 // 야후 차트 API를 프록시로 우회 호출 (단일 심볼)
 async function fetchYahooQuote(symbol){
-  const yurl = "https://query1.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(symbol) + "?interval=1d&range=5d";
+  // range=10d로 늘려 종가 배열에 충분한 전일 데이터 확보
+  const yurl = "https://query1.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(symbol) + "?interval=1d&range=10d";
+  const headers = { "Accept":"application/json", "User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" };
   const routes = [
     "https://corsproxy.io/?url=" + encodeURIComponent(yurl),
     "https://api.allorigins.win/raw?url=" + encodeURIComponent(yurl),
@@ -451,14 +453,14 @@ async function fetchYahooQuote(symbol){
       if(!r) throw new Error("형식 오류");
       const meta = r.meta;
       const cur = meta.regularMarketPrice;
-      // regularMarketPreviousClose가 가장 정확한 전일 종가
-      const prev = meta.regularMarketPreviousClose || meta.previousClose || meta.chartPreviousClose;
-      // 5일 종가 추이
-      const closes = (r.indicators?.quote?.[0]?.close || []).filter(v=>v!=null);
       if(cur==null) throw new Error("가격 없음");
-      // prev가 없으면 종가 배열 직전값으로 보완
-      const prevFinal = prev || (closes.length>=2 ? closes[closes.length-2] : cur);
-      return { cur, prev: prevFinal, closes };
+      // 종가 배열에서 전일 종가 추출 (null 제외 후 마지막 2개)
+      const closes = (r.indicators?.quote?.[0]?.close || []).filter(v=>v!=null);
+      // 장중이면 closes 마지막이 전일 종가, 장 마감 후면 마지막-1이 전전일
+      // chartPreviousClose는 range 시작 기준이라 부정확 → closes 배열 우선 사용
+      const prev = closes.length>=2 ? closes[closes.length-2] :
+                   (meta.previousClose || meta.chartPreviousClose || cur);
+      return { cur, prev, closes };
     } catch(e){
       console.warn("야후 "+symbol+" 경로 "+(i+1)+" 실패:", e.message);
     }
