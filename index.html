@@ -83,17 +83,17 @@ const WEEK_DATA = genWeekData();
 // 최근 12개월 추이를 시뮬레이션. 마지막 값이 최신 현물가 수준.
 const GRAIN_DATA = [
   {
-    key:"corn", ysym:"ZC=F", name:"옥수수", en:"Corn", icon:"🌽", color:"#E8A50A", unit:"$/bu",
+    key:"corn", ysym:"ZC=F", yahooCents:true, name:"옥수수", en:"Corn", icon:"🌽", color:"#E8A50A", unit:"$/bu",
     current:4.14, prevDay:4.155, note:"CBOT 선물 기준",
     trend:[4.45,4.38,4.52,4.71,4.64,4.48,4.21,4.05,3.95,3.88,4.155,4.14],
   },
   {
-    key:"soybean", ysym:"ZS=F", name:"대두", en:"Soybean", icon:"🫘", color:"#7A8B1B", unit:"$/bu",
+    key:"soybean", ysym:"ZS=F", yahooCents:true, name:"대두", en:"Soybean", icon:"🫘", color:"#7A8B1B", unit:"$/bu",
     current:11.30, prevDay:11.24, note:"CBOT 선물 기준",
     trend:[12.10,11.85,11.40,10.95,10.30,9.88,10.15,10.45,10.72,10.68,11.24,11.30],
   },
   {
-    key:"wheat", ysym:"ZW=F", name:"소맥", en:"Wheat", icon:"🌾", color:"#C0792A", unit:"$/bu",
+    key:"wheat", ysym:"ZW=F", yahooCents:true, name:"소맥", en:"Wheat", icon:"🌾", color:"#C0792A", unit:"$/bu",
     current:5.74, prevDay:5.68, note:"CBOT SRW 선물 기준",
     trend:[6.01,5.88,5.69,5.44,5.38,5.55,5.62,5.58,5.49,5.45,5.68,5.74],
   },
@@ -481,13 +481,15 @@ async function fetchStockPrices(){
   for(const s of targets){
     const q = await fetchYahooQuote(s.ysym);
     if(q){
-      s.current = q.cur;
-      s.prevDay = q.prev;
+      // CBOT 곡물(옥수수·대두·소맥)은 야후가 센트/부셸로 제공 → 100으로 나눠 달러로 변환
+      const scale = s.yahooCents ? 100 : 1;
+      s.current = Math.round((q.cur / scale) * 100) / 100;
+      s.prevDay = Math.round((q.prev / scale) * 100) / 100;
       if(q.closes.length>=2){
-        const tail = q.closes.slice(-6);
+        const tail = q.closes.slice(-6).map(v=>Math.round((v/scale)*100)/100);
         s.trend = s.trend.slice(0, 12-tail.length).concat(tail);
       } else {
-        s.trend = s.trend.slice(0,11).concat([q.cur]);
+        s.trend = s.trend.slice(0,11).concat([s.current]);
       }
       s.note = "야후 실시간";
       s._live = true;
