@@ -177,6 +177,22 @@ const STOCK_LINKS = [
   { label:"CNBC 마켓", url:"https://www.cnbc.com/world-markets/", color:"#4527A0" },
 ];
 
+// ── 주요 환율 (원화 기준, 야후 파이낸스 실시간 연동) ────────────────────────
+const FX_DATA = [
+  { key:"usdkrw", ysym:"USDKRW=X", name:"달러/원", en:"USD/KRW", icon:"🇺🇸", color:"#1565C0", unit:"원",
+    current:1527, prevDay:1538.91, note:"야후 실시간",
+    trend:[1380,1420,1450,1480,1520,1556,1540,1535,1530,1538,1538.91,1527] },
+  { key:"jpykrw", ysym:"JPYKRW=X", name:"엔/원", en:"JPY/KRW", icon:"🇯🇵", color:"#B71C1C", unit:"원",
+    current:9.48, prevDay:9.52, note:"야후 실시간",
+    trend:[9.80,9.70,9.65,9.60,9.55,9.52,9.50,9.48,9.45,9.50,9.52,9.48] },
+  { key:"eurkrw", ysym:"EURKRW=X", name:"유로/원", en:"EUR/KRW", icon:"🇪🇺", color:"#1B5E20", unit:"원",
+    current:1751, prevDay:1762, note:"야후 실시간",
+    trend:[1650,1680,1700,1720,1740,1762,1755,1748,1751,1760,1762,1751] },
+  { key:"cnykrw", ysym:"CNYKRW=X", name:"위안/원", en:"CNY/KRW", icon:"🇨🇳", color:"#C62828", unit:"원",
+    current:211, prevDay:212, note:"야후 실시간",
+    trend:[196,198,200,203,207,210,212,211,210,212,212,211] },
+];
+
 // ── 업비트 기준 메이저 코인 시세 (원화, 2026년 6월 시세 반영) ────────────────
 // 미·이란 갈등 매도세 후 반등 국면. 변동성 큰 상태.
 const COIN_DATA = [
@@ -473,7 +489,8 @@ async function fetchStockPrices(){
   const targets = STOCK_DATA.filter(s=>s.ysym)
     .concat(state.customStocks.filter(s=>s.ysym))
     .concat(GRAIN_DATA.filter(s=>s.ysym))
-    .concat(OIL_DATA.filter(s=>s.ysym));
+    .concat(OIL_DATA.filter(s=>s.ysym))
+    .concat(FX_DATA.filter(s=>s.ysym));
   if(targets.length===0){ stockFetchStatus="done"; return; }
   stockFetchStatus = "loading";
   if(state.tab==="stock") render();
@@ -997,6 +1014,38 @@ function renderStockTab(){
       <span>🔗 ${esc(l.label)}</span><span style="font-size:15px">↗</span>
     </a>`).join("");
 
+  // 환율 카드 렌더
+  const fxCards = FX_DATA.map(fx=>{
+    const diff = fx.current - fx.prevDay;
+    const pct = ((diff/fx.prevDay)*100).toFixed(2);
+    const up = diff>0, flat = Math.abs(diff)<0.001;
+    const arrow = flat?"─":up?"▲":"▼";
+    // 환율은 오를수록 원화약세(부정적) → 한국 관례상 상승=파랑, 하락=빨강 반대로 표시
+    const dColor = flat?"#888":up?"#1565C0":"#D32F2F";
+    const fmtVal = (v)=> v>=1000 ? v.toLocaleString(undefined,{maximumFractionDigits:0}) : v.toLocaleString(undefined,{maximumFractionDigits:2});
+    return `
+    <div style="background:#fff;border-radius:14px;padding:15px;border:1px solid #efefef;border-top:3px solid ${fx.color}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="display:flex;align-items:center;gap:7px">
+          <span style="font-size:20px">${fx.icon}</span>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#1a1a1a">${fx.name} <span style="font-size:10px;color:#aaa;font-weight:400">${fx.en}</span></div>
+            <div style="font-size:9px;color:#bbb">${fx.note}</div>
+          </div>
+        </div>
+        ${sparkline(fx.trend, fx.color)}
+      </div>
+      <div style="display:flex;align-items:baseline;gap:4px;margin-top:4px">
+        <span style="font-size:20px;font-weight:800;color:${fx.color};letter-spacing:-0.5px">${fmtVal(fx.current)}</span>
+        <span style="font-size:11px;color:#888">${fx.unit}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:5px">
+        <span style="font-size:11px;font-weight:700;color:${dColor}">${arrow} ${fmtVal(Math.abs(diff))} (${pct}%)</span>
+        <span style="font-size:10px;color:#aaa">전일대비</span>
+      </div>
+    </div>`;
+  }).join("");
+
   return `
   <div style="margin-bottom:16px">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
@@ -1016,6 +1065,12 @@ function renderStockTab(){
   ${renderStockGroup("미국","🇺🇸")}
   ${renderStockGroup("아시아","🌏")}
   ${renderStockGroup("관심종목","⭐")}
+
+  <div style="margin-bottom:22px">
+    <div class="display" style="font-size:16px;margin-bottom:12px;color:#1a2744">💱 주요 환율 (원화 기준)</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px">${fxCards}</div>
+    <div style="font-size:10px;color:#888;margin-top:8px">※ 환율 상승(▲)은 원화 약세, 하락(▼)은 원화 강세를 의미합니다. 야후 파이낸스 실시간 연동.</div>
+  </div>
 
   <div class="card">
     <div class="display" style="font-size:16px;margin-bottom:6px">🔗 실시간 주가 조회</div>
