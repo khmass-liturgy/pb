@@ -492,6 +492,139 @@ async function fetchStockPrices(){
   if(state.tab==="stock") render();
 }
 
+// ── 축산물품질평가원(ekape) 경락가격 API 연동 ──────────────────────────────
+let ekapeStatus = "idle"; // idle | loading | done | error | nokey
+const EKAPE_BASE = "https://data.ekape.or.kr/openapi-data/service/user/grade";
+
+// 축산물품질평가원 기본 인증키 (공공데이터포털 발급)
+const EKAPE_DEFAULT_KEY = "06f6c5e384687b1b2578919a786a9ae6f1cdcfe34cd30a668d94fb5e9f1ed35a";
+function getEkapeKey(){ try { return localStorage.getItem("ekape_key")||EKAPE_DEFAULT_KEY; } catch(e){ return EKAPE_DEFAULT_KEY; } }
+function setEkapeKey(k){ try { localStorage.setItem("ekape_key", k); } catch(e){} }
+
+// 최근 영업일(주말 제외) YYYYMMDD 반환, n일 전
+function ekapeDateStr(daysAgo){
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}`;
+}
+
+// 프록시 경유 fetch (XML 텍스트 반환)
+async function ekapeFetch(url){
+  // ekape는 http 엔드포인트라 https 페이지에선 프록시 우회가 필수.
+  // http 원본 URL을 만들어 프록시로 전달.
+  const httpUrl = url.replace(/^https:/, "http:");
+  const routes = [
+    "https://corsproxy.io/?url=" + encodeURIComponent(httpUrl),
+    "https://api.allorigins.win/raw?url=" + encodeURIComponent(httpUrl),
+    "https://corsproxy.io/?url=" + encodeURIComponent(url),
+    url,
+  ];
+  for(let i=0;i<routes.length;i++){
+    try {
+      const resp = await fetchWithTimeout(routes[i], 9000);
+      if(!resp.ok) throw new Error("HTTP "+resp.status);
+      const text = await resp.text();
+      if(text && text.indexOf("<")>=0) return text;
+      throw new Error("빈 응답");
+    } catch(e){ console.warn("ekape 경로 "+(i+1)+" 실패:", e.message); }
+  }
+  return null;
+}
+
+// XML에서 태그값 추출 헬퍼
+function xmlVal(item, tag){
+  const m = item.match(new RegExp("<"+tag+">([^<]*)<\\/"+tag+">"));
+  return m ? m[1].trim() : "";
+}
+
+// 돼지/소 경락가격 조회 후 카드 데이터 갱신
+async function fetchEkapePrices(){
+  const key = getEkapeKey();
+  if(!key){ ekapeStatus="nokey"; if(state.tab==="pig"||state.tab==="livestock") render(); return; }
+  ekapeStatus = "loading";
+  if(state.tab==="pig"||state.tab==="livestock") render();
+
+  let okAny = false;
+
+  // 최근 영업일 범위(오늘~10일전)로 조회. 응답에서 가장 최근 데이터 사용.
+  const endY = ekapeDateStr(1);
+  const startY = ekapeDateStr(10);
+
+  // 등급명에서 전국평균가(CTotAmt) 추출
+  function parseItems(xml){
+    const items = xml.match(/<item>[\s\S]*?<\/item>/g);
+    if(!items) return null;
+    return items.map(it=>({
+      grade: xmlVal(it,"gradeNm"),
+      gradeCd: xmlVal(it,"gradeCd"),
+      breed: xmlVal(it,"judgeBreedNm"),
+      sex: xmlVal(it,"judgeSexNm"),
+      total: parseFloat(xmlVal(it,"CTotAmt")||"0"),
+      cnt: parseInt(xmlVal(it,"CTotCnt")||"0",10),
+      ymd: xmlVal(it,"startYmd")||xmlVal(it,"endYmd"),
+    })).filter(x=>x.total>0);
+  }
+
+  // ── 돼지 경락가격: /grade/auct/pig ──
+  // 탕박(skinYn=N), 박피(skinYn=Y) 각각 조회
+  try {
+    const buildPig = (skinYn)=>`${EKAPE_BASE}/auct/pig?serviceKey=${key}&startYmd=${startY}&endYmd=${endY}&skinYn=${skinYn}&sexCd=025001&egradeExceptYn=Y&_type=xml`;
+
+    // 탕박 (skinYn=N)
+    const tangXml = await ekapeFetch(buildPig("N"));
+    if(tangXml && tangXml.indexOf("SERVICE")<0 && tangXml.indexOf("등록되지")<0){
+      const rows = parseItems(tangXml);
+      if(rows && rows.length>0){
+        const setPig = (cardKey, match)=>{
+          const row = rows.filter(match).pop(); // 가장 최근
+          if(row){
+            const c=PIG_DATA.find(x=>x.key===cardKey);
+            if(c){ c.prevDay=c.current; c.current=Math.round(row.total); c.trend=c.trend.slice(0,11).concat([c.current]); c.note="축평원 실시간"; okAny=true; }
+          }
+        };
+        setPig("tang_1p", r=>r.grade.indexOf("1+")>=0);
+        setPig("tang_1",  r=>r.grade.indexOf("1")>=0 && r.grade.indexOf("1+")<0);
+        setPig("tang_2",  r=>r.grade.indexOf("2")>=0);
+        // 탕박 평균 = 등급별 평균
+        const avg = Math.round(rows.reduce((a,b)=>a+b.total,0)/rows.length);
+        const ca=PIG_DATA.find(x=>x.key==="tang_avg");
+        if(ca && avg>0){ ca.prevDay=ca.current; ca.current=avg; ca.trend=ca.trend.slice(0,11).concat([avg]); ca.note="축평원 실시간"; okAny=true; }
+      }
+    }
+    // 박피 (skinYn=Y)
+    const bakXml = await ekapeFetch(buildPig("Y"));
+    if(bakXml && bakXml.indexOf("SERVICE")<0){
+      const rows = parseItems(bakXml);
+      if(rows && rows.length>0){
+        const avg = Math.round(rows.reduce((a,b)=>a+b.total,0)/rows.length);
+        const c=PIG_DATA.find(x=>x.key==="bak_avg");
+        if(c && avg>0){ c.prevDay=c.current; c.current=avg; c.trend=c.trend.slice(0,11).concat([avg]); c.note="축평원 실시간"; okAny=true; }
+      }
+    }
+  } catch(e){ console.error("돼지 경락 파싱 오류:", e); }
+
+  // ── 소(한우) 경락가격: /grade/auct/cattle ──
+  // breedCd=024001(한우), 거세우 등 1++ → hanwoo_stan, 암소 1등급 → hanwoo_cow
+  try {
+    const cattleUrl = `${EKAPE_BASE}/auct/cattle?serviceKey=${key}&startYmd=${startY}&endYmd=${endY}&breedCd=024001&sexCd=025001&qgradeYn=Y&defectIncludeYn=Y&_type=xml`;
+    const xml = await ekapeFetch(cattleUrl);
+    if(xml && xml.indexOf("SERVICE")<0 && xml.indexOf("등록되지")<0){
+      const rows = parseItems(xml);
+      if(rows && rows.length>0){
+        // 한우 1++ → hanwoo_stan
+        const stan = rows.filter(r=>r.grade.indexOf("1++")>=0).pop();
+        if(stan){ const c=LIVESTOCK_DATA.find(x=>x.key==="hanwoo_stan"); if(c){ c.prevDay=c.current; c.current=Math.round(stan.total); c.trend=c.trend.slice(0,11).concat([c.current]); c.note="축평원 실시간"; okAny=true; } }
+        // 한우 1등급 → hanwoo_cow (암소 대용)
+        const g1 = rows.filter(r=>r.grade.indexOf("1")>=0 && r.grade.indexOf("1+")<0).pop();
+        if(g1){ const c=LIVESTOCK_DATA.find(x=>x.key==="hanwoo_cow"); if(c){ c.prevDay=c.current; c.current=Math.round(g1.total); c.trend=c.trend.slice(0,11).concat([c.current]); c.note="축평원 실시간"; okAny=true; } }
+      }
+    }
+  } catch(e){ console.error("소 경락 파싱 오류:", e); }
+
+  ekapeStatus = okAny ? "done" : "error";
+  if(state.tab==="pig"||state.tab==="livestock") render();
+}
+
 function render(){
   document.getElementById("app").innerHTML = `
     ${renderHeader()}
@@ -594,6 +727,32 @@ function renderOilPanel(){
     "※ 국제 유가는 환율·정제마진을 거쳐 국내 사료·물류비에 영향을 미칩니다.",
     2
   );
+}
+
+function renderEkapeBar(){
+  const key = getEkapeKey();
+  const statusTxt = ekapeStatus==="loading" ? "⏳ 갱신중..."
+    : ekapeStatus==="done" ? "🟢 축평원 실시간 연동됨"
+    : ekapeStatus==="error" ? "⚠️ 연동 실패"
+    : ekapeStatus==="nokey" ? "🔑 인증키 미설정"
+    : "";
+  const statusCol = ekapeStatus==="done" ? "#1B7A3E" : ekapeStatus==="error" ? "#D32F2F" : ekapeStatus==="nokey" ? "#B7791F" : "#aaa";
+  return `
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <span style="font-size:11px;color:${statusCol}">${statusTxt}</span>
+    <button id="btn-ekape-key" style="border:1px solid #888;border-radius:8px;background:#fff;padding:7px 12px;font-size:12px;color:#555;font-weight:600">🔑 인증키 ${key?"변경":"설정"}</button>
+    <button id="btn-ekape-refresh" style="border:1px solid #E84A6F;border-radius:8px;background:#fff;padding:7px 12px;font-size:12px;color:#E84A6F;font-weight:600">🔄 시세 갱신</button>
+  </div>`;
+}
+
+function renderEkapeErrorBox(){
+  if(ekapeStatus==="nokey"){
+    return `<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:12px;padding:12px 16px;margin-bottom:14px;font-size:12px;color:#92400E;line-height:1.7">🔑 인증키가 설정되어 있습니다. <strong>🔄 시세 갱신</strong> 버튼을 눌러 축평원 실시간 경락가격을 불러오세요.</div>`;
+  }
+  if(ekapeStatus==="error"){
+    return `<div style="background:#FEF3F2;border:1px solid #FECDCA;border-radius:12px;padding:12px 16px;margin-bottom:14px;font-size:12px;color:#B42318;line-height:1.7">⚠️ <strong>축평원 연동에 실패했습니다.</strong> 인증키가 올바른지, 또는 공공데이터포털 트래픽(일 1,000건)을 초과하지 않았는지 확인하세요. 아래는 참고용 값입니다.</div>`;
+  }
+  return "";
 }
 
 function renderPriceTab(){
@@ -740,8 +899,12 @@ function renderPigTab(){
 
   return `
   <div style="margin-bottom:16px">
-    <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px">🐷 양돈 농장 산지시세 · ${fmtFull(today)}</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px">🐷 양돈 농장 산지시세 · ${fmtFull(today)}</div>
+      ${renderEkapeBar()}
+    </div>
   </div>
+  ${renderEkapeErrorBox()}
   ${gradeInfo}
   ${renderPigGroup("탕박","🐷","털만 제거한 도체 · 국내 대부분")}
   ${renderPigGroup("박피","🐖","껍질까지 제거한 도체")}
@@ -822,8 +985,12 @@ function renderLivestockTab(){
     </a>`).join("");
   return `
   <div style="margin-bottom:16px">
-    <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px">🐂 한우 산지·도매시세 · ${fmtFull(today)}</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px">🐂 한우 산지·도매시세 · ${fmtFull(today)}</div>
+      ${renderEkapeBar()}
+    </div>
   </div>
+  ${renderEkapeErrorBox()}
   ${renderGroup("한우","🐂")}
   <div class="card" style="margin-bottom:20px">
     <div class="display" style="font-size:16px;margin-bottom:16px">📋 최근 7일 추이</div>
@@ -1045,6 +1212,7 @@ function attachEvents(){
     state.tab=b.dataset.tab; render();
     if(state.tab==="coin" && coinFetchStatus!=="done" && coinFetchStatus!=="loading") fetchUpbitPrices();
     if(state.tab==="stock" && stockFetchStatus!=="done" && stockFetchStatus!=="loading") fetchStockPrices();
+    if((state.tab==="pig"||state.tab==="livestock") && ekapeStatus!=="done" && ekapeStatus!=="loading") fetchEkapePrices();
   });
   document.querySelectorAll(".price-card").forEach(c=>c.onclick=()=>{ state.selectedCategory=c.dataset.cat; render(); });
 
@@ -1105,6 +1273,19 @@ function attachEvents(){
   if(refreshCoinBtn) refreshCoinBtn.onclick=()=>{ coinFetchStatus="idle"; fetchUpbitPrices(); };
   const refreshStockBtn=document.getElementById("btn-refresh-stock");
   if(refreshStockBtn) refreshStockBtn.onclick=()=>{ stockFetchStatus="idle"; fetchStockPrices(); };
+
+  // 축평원 인증키 설정/갱신
+  const ekapeKeyBtn=document.getElementById("btn-ekape-key");
+  if(ekapeKeyBtn) ekapeKeyBtn.onclick=()=>{
+    const cur=getEkapeKey();
+    const k=prompt("공공데이터포털에서 발급받은 축산물품질평가원 인증키를 입력하세요.\n(일반 인증키 Decoding 값 권장)", cur);
+    if(k===null) return;
+    setEkapeKey(k.trim());
+    ekapeStatus="idle";
+    fetchEkapePrices();
+  };
+  const ekapeRefreshBtn=document.getElementById("btn-ekape-refresh");
+  if(ekapeRefreshBtn) ekapeRefreshBtn.onclick=()=>{ ekapeStatus="idle"; fetchEkapePrices(); };
   document.querySelectorAll(".del-coin").forEach(b=>b.onclick=()=>{
     state.customCoins=state.customCoins.filter(x=>x.key!==b.dataset.id);
     saveCustomCoins(); render();
@@ -1135,6 +1316,8 @@ render();
 fetchUpbitPrices();
 // 페이지 로드 시 야후 주가지수 미리 갱신 (백그라운드)
 fetchStockPrices();
+// 페이지 로드 시 축평원 축산물 시세 미리 갱신 (키 있으면)
+fetchEkapePrices();
 </script>
 </body>
 </html>
