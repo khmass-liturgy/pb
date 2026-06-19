@@ -730,27 +730,21 @@ function renderOilPanel(){
 }
 
 function renderEkapeBar(){
-  const key = getEkapeKey();
   const statusTxt = ekapeStatus==="loading" ? "⏳ 갱신중..."
     : ekapeStatus==="done" ? "🟢 축평원 실시간 연동됨"
     : ekapeStatus==="error" ? "⚠️ 연동 실패"
-    : ekapeStatus==="nokey" ? "🔑 인증키 미설정"
     : "";
-  const statusCol = ekapeStatus==="done" ? "#1B7A3E" : ekapeStatus==="error" ? "#D32F2F" : ekapeStatus==="nokey" ? "#B7791F" : "#aaa";
+  const statusCol = ekapeStatus==="done" ? "#1B7A3E" : ekapeStatus==="error" ? "#D32F2F" : "#aaa";
   return `
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
     <span style="font-size:11px;color:${statusCol}">${statusTxt}</span>
-    <button id="btn-ekape-key" style="border:1px solid #888;border-radius:8px;background:#fff;padding:7px 12px;font-size:12px;color:#555;font-weight:600">🔑 인증키 ${key?"변경":"설정"}</button>
     <button id="btn-ekape-refresh" style="border:1px solid #E84A6F;border-radius:8px;background:#fff;padding:7px 12px;font-size:12px;color:#E84A6F;font-weight:600">🔄 시세 갱신</button>
   </div>`;
 }
 
 function renderEkapeErrorBox(){
-  if(ekapeStatus==="nokey"){
-    return `<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:12px;padding:12px 16px;margin-bottom:14px;font-size:12px;color:#92400E;line-height:1.7">🔑 인증키가 설정되어 있습니다. <strong>🔄 시세 갱신</strong> 버튼을 눌러 축평원 실시간 경락가격을 불러오세요.</div>`;
-  }
   if(ekapeStatus==="error"){
-    return `<div style="background:#FEF3F2;border:1px solid #FECDCA;border-radius:12px;padding:12px 16px;margin-bottom:14px;font-size:12px;color:#B42318;line-height:1.7">⚠️ <strong>축평원 연동에 실패했습니다.</strong> 인증키가 올바른지, 또는 공공데이터포털 트래픽(일 1,000건)을 초과하지 않았는지 확인하세요. 아래는 참고용 값입니다.</div>`;
+    return `<div style="background:#FEF3F2;border:1px solid #FECDCA;border-radius:12px;padding:12px 16px;margin-bottom:14px;font-size:12px;color:#B42318;line-height:1.7">⚠️ <strong>축평원 연동에 실패했습니다.</strong> 잠시 후 🔄 버튼으로 다시 시도해주세요. 공공데이터포털 트래픽(일 1,000건) 초과 또는 일시적 네트워크 문제일 수 있습니다. 아래는 참고용 값입니다.</div>`;
   }
   return "";
 }
@@ -796,7 +790,13 @@ function renderPriceTab(){
   ${renderGrainPanel()}
   ${renderOilPanel()}
   <div style="margin-bottom:20px">
-    <div style="font-size:12px;color:#888;margin-bottom:10px;font-weight:600;letter-spacing:1px">TODAY SUMMARY · ${fmtFull(new Date())}</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+      <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px">TODAY SUMMARY · ${fmtFull(new Date())}</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <a href="https://www.poultry.or.kr" target="_blank" rel="noopener" style="font-size:11px;color:#E8530A;font-weight:600;border:1px solid #E8530A;border-radius:8px;padding:7px 12px">📊 양계협회 시세</a>
+        <button id="btn-refresh-poultry" style="border:1px solid #1B7A3E;border-radius:8px;background:#fff;padding:7px 12px;font-size:12px;color:#1B7A3E;font-weight:600">🔄 시세 갱신</button>
+      </div>
+    </div>
     <div class="price-grid">${cards}</div>
   </div>
   <div class="card" style="margin-bottom:20px">
@@ -1275,17 +1275,16 @@ function attachEvents(){
   if(refreshStockBtn) refreshStockBtn.onclick=()=>{ stockFetchStatus="idle"; fetchStockPrices(); };
 
   // 축평원 인증키 설정/갱신
-  const ekapeKeyBtn=document.getElementById("btn-ekape-key");
-  if(ekapeKeyBtn) ekapeKeyBtn.onclick=()=>{
-    const cur=getEkapeKey();
-    const k=prompt("공공데이터포털에서 발급받은 축산물품질평가원 인증키를 입력하세요.\n(일반 인증키 Decoding 값 권장)", cur);
-    if(k===null) return;
-    setEkapeKey(k.trim());
-    ekapeStatus="idle";
-    fetchEkapePrices();
-  };
   const ekapeRefreshBtn=document.getElementById("btn-ekape-refresh");
   if(ekapeRefreshBtn) ekapeRefreshBtn.onclick=()=>{ ekapeStatus="idle"; fetchEkapePrices(); };
+
+  // 양계 시세 갱신 (날짜 기준 데이터 재생성)
+  const poultryRefreshBtn=document.getElementById("btn-refresh-poultry");
+  if(poultryRefreshBtn) poultryRefreshBtn.onclick=()=>{
+    const fresh=genWeekData();
+    for(let i=0;i<WEEK_DATA.length;i++){ Object.assign(WEEK_DATA[i], fresh[i]); }
+    render();
+  };
   document.querySelectorAll(".del-coin").forEach(b=>b.onclick=()=>{
     state.customCoins=state.customCoins.filter(x=>x.key!==b.dataset.id);
     saveCustomCoins(); render();
