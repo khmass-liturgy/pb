@@ -650,6 +650,7 @@ function renderPriceTab(){
   <div style="margin-bottom:20px">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
       <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px">TODAY SUMMARY · ${fmtFull(new Date())}</div>
+      <div style="font-size:11px;color:#F9A825;margin-top:4px">⚠️ 아래 시세는 실제 거래가가 아닌 <strong>가격 흐름 참고용</strong> 데이터입니다. 정확한 시세는 각 협회 공식 사이트를 확인하세요.</div>
       <div style="display:flex;gap:8px;align-items:center">
         <a href="https://www.poultry.or.kr" target="_blank" rel="noopener" style="font-size:11px;color:#E8530A;font-weight:600;border:1px solid #E8530A;border-radius:8px;padding:7px 12px">📊 양계협회 시세</a>
         <button id="btn-refresh-poultry" style="border:1px solid #1B7A3E;border-radius:8px;background:#fff;padding:7px 12px;font-size:12px;color:#1B7A3E;font-weight:600">🔄 시세 갱신</button>
@@ -761,7 +762,7 @@ function renderPigTab(){
       <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px">🐷 양돈 농장 산지시세 · ${fmtFull(today)}</div>
       ${renderDabomBar("https://www.ekapepia.com/web/main.do")}
     </div>
-    <div style="font-size:11px;color:#aaa;margin-top:6px">아래는 참고용 시세입니다. 정확한 당일 경락가는 ‘다봄 실시간 시세’에서 확인하세요.</div>
+    <div style="font-size:11px;color:#F9A825;margin-top:6px">⚠️ 아래 시세는 실제 거래가가 아닌 <strong>가격 흐름 참고용</strong> 데이터입니다. 정확한 경락가는 '다봄 실시간 시세'에서 확인하세요.</div>
   </div>
   ${gradeInfo}
   ${renderPigGroup("탕박","🐷","털만 제거한 도체 · 국내 대부분")}
@@ -847,7 +848,7 @@ function renderLivestockTab(){
       <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px">🐂 한우 산지·도매시세 · ${fmtFull(today)}</div>
       ${renderDabomBar("https://www.ekapepia.com/web/main.do")}
     </div>
-    <div style="font-size:11px;color:#aaa;margin-top:6px">아래는 참고용 시세입니다. 정확한 당일 경락가는 ‘다봄 실시간 시세’에서 확인하세요.</div>
+    <div style="font-size:11px;color:#F9A825;margin-top:6px">⚠️ 아래 시세는 실제 거래가가 아닌 <strong>가격 흐름 참고용</strong> 데이터입니다. 정확한 경락가는 '다봄 실시간 시세'에서 확인하세요.</div>
   </div>
   ${renderGroup("한우","🐂")}
   <div class="card" style="margin-bottom:20px">
