@@ -561,10 +561,12 @@ async function fetchWeather(lat, lng, name){
   if(state.tab==="weather") render();
   try {
     const today = new Date();
-    const lastYearDate = new Date(today); lastYearDate.setFullYear(today.getFullYear()-1);
-    const lyStr = `${lastYearDate.getFullYear()}-${String(lastYearDate.getMonth()+1).padStart(2,"0")}-${String(lastYearDate.getDate()).padStart(2,"0")}`;
+    // 작년 같은 주 7일: 오늘부터 6일 후까지 (예보와 같은 기간)
+    const lyStart = new Date(today); lyStart.setFullYear(today.getFullYear()-1);
+    const lyEnd = new Date(lyStart); lyEnd.setDate(lyStart.getDate()+6);
+    const dateFmt = (d)=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
     const fcstUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max&timezone=Asia%2FSeoul&forecast_days=7`;
-    const histUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=${lyStr}&end_date=${lyStr}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=Asia%2FSeoul`;
+    const histUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=${dateFmt(lyStart)}&end_date=${dateFmt(lyEnd)}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=Asia%2FSeoul`;
     const [fcstResp, histResp] = await Promise.all([
       fetchWithTimeout(fcstUrl, 10000),
       fetchWithTimeout(histUrl, 10000),
@@ -577,14 +579,15 @@ async function fetchWeather(lat, lng, name){
       tMax:days.temperature_2m_max[i], tMin:days.temperature_2m_min[i],
       rain:days.precipitation_sum[i], wind:days.windspeed_10m_max[i],
     }));
+    // 작년 7일치 배열로 저장
     if(histResp.ok){
       const hd = (await histResp.json()).daily;
-      if(hd && hd.time && hd.time.length>0){
-        weatherState.lastYear = {
-          date:hd.time[0], code:hd.weathercode[0],
-          tMax:hd.temperature_2m_max[0], tMin:hd.temperature_2m_min[0],
-          rain:hd.precipitation_sum[0],
-        };
+      if(hd && hd.time){
+        weatherState.lastYear = hd.time.map((t,i)=>({
+          date:t, code:hd.weathercode[i],
+          tMax:hd.temperature_2m_max[i], tMin:hd.temperature_2m_min[i],
+          rain:hd.precipitation_sum[i],
+        }));
       }
     }
     weatherState.lat=lat; weatherState.lng=lng;
@@ -1170,10 +1173,18 @@ function renderWeatherTab(){
   const fmtDay = (dateStr)=>{
     const d=new Date(dateStr); return `${d.getMonth()+1}/${d.getDate()}(${dayNames[d.getDay()]})`;
   };
-  const icon = (code)=> WX_ICONS[code]||"🌡️";
-  const desc = (code)=> WX_DESC[code]||"";
+  const icon = (code)=> WX_ICONS[code!=null?code:0]||"🌡️";
+  const desc = (code)=> WX_DESC[code!=null?code:0]||"";
+  const tStr = (v)=> v!=null ? Math.round(v)+"°" : "-";
+  const diffStr = (a,b)=>{
+    if(a==null||b==null) return "";
+    const d=Math.round(a)-Math.round(b);
+    if(d===0) return '<span style="color:#888">±0°</span>';
+    return d>0
+      ? `<span style="color:#D32F2F">▲${d}°</span>`
+      : `<span style="color:#1565C0">▼${Math.abs(d)}°</span>`;
+  };
 
-  // 로딩/오류 상태
   if(weatherState.status==="loading"){
     return `<div class="card" style="text-align:center;padding:40px">
       <div style="font-size:32px;margin-bottom:12px">⏳</div>
@@ -1187,13 +1198,11 @@ function renderWeatherTab(){
       <button id="btn-wx-gps" style="border:none;border-radius:10px;background:#1a2744;color:#fff;padding:10px 20px;font-size:13px;font-weight:600">📍 내 위치로 다시 시도</button>
     </div>`;
   }
-
-  // 초기 화면 (위치 미설정)
   if(weatherState.status==="idle"){
     return `
     <div class="card" style="text-align:center;padding:40px">
       <div style="font-size:48px;margin-bottom:12px">🌤️</div>
-      <div class="display" style="font-size:18px;margin-bottom:8px">주간 날씨 & 작년 오늘</div>
+      <div class="display" style="font-size:18px;margin-bottom:8px">주간 날씨 & 작년 비교</div>
       <div style="font-size:12px;color:#888;margin-bottom:24px;line-height:1.8">GPS로 현재 위치를 감지하거나, 지역명을 직접 입력하세요.</div>
       <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
         <button id="btn-wx-gps" style="border:none;border-radius:10px;background:#1a2744;color:#fff;padding:12px 24px;font-size:13px;font-weight:600">📍 현재 위치 감지</button>
@@ -1202,51 +1211,52 @@ function renderWeatherTab(){
     </div>`;
   }
 
-  // 날씨 데이터 표시
-  const loc = weatherState.locationName;
   const fc = weatherState.forecast;
-  const ly = weatherState.lastYear;
+  const ly = Array.isArray(weatherState.lastYear) ? weatherState.lastYear : [];
+  const loc = weatherState.locationName;
 
-  // 7일 예보 카드
-  const fcCards = fc.map((d,i)=>{
+  // 올해/작년 7일 비교 카드 (하나의 열에 올해·작년 나란히)
+  const compCards = fc.map((d,i)=>{
+    const l = ly[i]||null;
     const isToday = i===0;
     return `
-    <div style="background:${isToday?"#1a2744":"#fff"};border-radius:14px;padding:14px 10px;text-align:center;border:1px solid ${isToday?"#1a2744":"#efefef"}">
-      <div style="font-size:11px;font-weight:700;color:${isToday?"#F9C74F":"#888"};margin-bottom:4px">${isToday?"오늘":fmtDay(d.date)}</div>
-      <div style="font-size:28px;margin:6px 0">${icon(d.code)}</div>
-      <div style="font-size:10px;color:${isToday?"rgba(255,255,255,0.7)":"#aaa"};margin-bottom:6px">${desc(d.code)}</div>
-      <div style="font-size:13px;font-weight:700;color:${isToday?"#fff":"#D32F2F"}">${d.tMax!=null?Math.round(d.tMax)+"°":"-"}</div>
-      <div style="font-size:12px;color:${isToday?"rgba(255,255,255,0.7)":"#1565C0"}">${d.tMin!=null?Math.round(d.tMin)+"°":"-"}</div>
-      ${d.rain>0?`<div style="font-size:10px;color:${isToday?"rgba(255,255,255,0.7)":"#1565C0"};margin-top:4px">💧${d.rain.toFixed(1)}mm</div>`:""}
+    <div style="border-radius:14px;overflow:hidden;border:1px solid ${isToday?"#1a2744":"#efefef"}">
+      <!-- 날짜 헤더 -->
+      <div style="background:${isToday?"#1a2744":"#f5f5f5"};padding:8px;text-align:center">
+        <div style="font-size:11px;font-weight:700;color:${isToday?"#F9C74F":"#555"}">${isToday?"오늘":fmtDay(d.date)}</div>
+      </div>
+      <!-- 올해 -->
+      <div style="background:${isToday?"#f0f4ff":"#fff"};padding:12px 8px;text-align:center;border-bottom:1px dashed #efefef">
+        <div style="font-size:9px;color:#888;margin-bottom:4px;font-weight:600">올해</div>
+        <div style="font-size:24px">${icon(d.code)}</div>
+        <div style="font-size:9px;color:#aaa;margin:2px 0">${desc(d.code)}</div>
+        <div style="font-size:13px;font-weight:700;color:#D32F2F">${tStr(d.tMax)}</div>
+        <div style="font-size:11px;color:#1565C0">${tStr(d.tMin)}</div>
+        ${d.rain>0?`<div style="font-size:9px;color:#1565C0;margin-top:2px">💧${d.rain.toFixed(1)}mm</div>`:""}
+      </div>
+      <!-- 작년 -->
+      <div style="background:#fafafa;padding:12px 8px;text-align:center">
+        <div style="font-size:9px;color:#888;margin-bottom:4px;font-weight:600">작년</div>
+        ${l ? `
+        <div style="font-size:24px">${icon(l.code)}</div>
+        <div style="font-size:9px;color:#aaa;margin:2px 0">${desc(l.code)}</div>
+        <div style="font-size:13px;font-weight:700;color:#D32F2F">${tStr(l.tMax)}</div>
+        <div style="font-size:11px;color:#1565C0">${tStr(l.tMin)}</div>
+        ${l.rain>0?`<div style="font-size:9px;color:#1565C0;margin-top:2px">💧${l.rain.toFixed(1)}mm</div>`:""}
+        <div style="margin-top:6px;padding-top:6px;border-top:1px solid #eee;font-size:10px">
+          최고 ${diffStr(d.tMax,l.tMax)} / 최저 ${diffStr(d.tMin,l.tMin)}
+        </div>
+        ` : `<div style="font-size:20px;color:#ddd">-</div><div style="font-size:9px;color:#ccc">데이터 없음</div>`}
+      </div>
     </div>`;
   }).join("");
-
-  // 작년 오늘 비교
-  const lyCard = ly ? `
-  <div class="card" style="margin-bottom:20px">
-    <div class="display" style="font-size:16px;margin-bottom:14px">📅 작년 오늘 (${ly.date}) 날씨</div>
-    <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
-      <div style="font-size:48px">${icon(ly.code)}</div>
-      <div>
-        <div style="font-size:18px;font-weight:700;color:#1a1a1a">${desc(ly.code)}</div>
-        <div style="font-size:14px;color:#D32F2F;margin-top:4px">최고 ${ly.tMax!=null?Math.round(ly.tMax)+"°C":"-"} <span style="color:#aaa;margin:0 6px">|</span> <span style="color:#1565C0">최저 ${ly.tMin!=null?Math.round(ly.tMin)+"°C":"-"}</span></div>
-        ${ly.rain>0?`<div style="font-size:12px;color:#1565C0;margin-top:4px">강수량 ${ly.rain.toFixed(1)}mm</div>`:"<div style=\"font-size:12px;color:#888;margin-top:4px\">강수 없음</div>"}
-      </div>
-      ${fc[0]?`
-      <div style="margin-left:auto;background:#f8f4ef;border-radius:12px;padding:12px 16px;font-size:12px;color:#555;line-height:1.8">
-        <div style="font-weight:700;margin-bottom:4px">올해 vs 작년 비교</div>
-        <div>최고: <strong style="color:#D32F2F">${fc[0].tMax!=null?Math.round(fc[0].tMax)+"°":"-"}</strong> vs ${ly.tMax!=null?Math.round(ly.tMax)+"°":"-"} → ${fc[0].tMax!=null&&ly.tMax!=null?(Math.round(fc[0].tMax)-Math.round(ly.tMax)>0?"▲ "+Math.abs(Math.round(fc[0].tMax)-Math.round(ly.tMax))+"° 높음":"▼ "+Math.abs(Math.round(fc[0].tMax)-Math.round(ly.tMax))+"° 낮음"):"비교 불가"}</div>
-        <div>최저: <strong style="color:#1565C0">${fc[0].tMin!=null?Math.round(fc[0].tMin)+"°":"-"}</strong> vs ${ly.tMin!=null?Math.round(ly.tMin)+"°":"-"} → ${fc[0].tMin!=null&&ly.tMin!=null?(Math.round(fc[0].tMin)-Math.round(ly.tMin)>0?"▲ "+Math.abs(Math.round(fc[0].tMin)-Math.round(ly.tMin))+"° 높음":"▼ "+Math.abs(Math.round(fc[0].tMin)-Math.round(ly.tMin))+"° 낮음"):"비교 불가"}</div>
-      </div>`:``}
-    </div>
-  </div>` : "";
 
   return `
   <div style="margin-bottom:16px">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
       <div>
-        <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px">🌤️ 주간 날씨 예보 · ${loc||""}</div>
-        <div style="font-size:11px;color:#aaa;margin-top:4px">Open-Meteo 기반 · 데이터 출처: ECMWF</div>
+        <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px">🌤️ 주간 날씨 · 올해 vs 작년 비교 · ${esc(loc)||""}</div>
+        <div style="font-size:11px;color:#aaa;margin-top:4px">Open-Meteo (ECMWF IFS) · 작년: ERA5 재분석</div>
       </div>
       <div style="display:flex;gap:8px">
         <button id="btn-wx-gps" style="border:1px solid #1a2744;border-radius:8px;background:#fff;padding:7px 12px;font-size:12px;color:#1a2744;font-weight:600">📍 내 위치</button>
@@ -1255,14 +1265,14 @@ function renderWeatherTab(){
     </div>
   </div>
 
-  <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:20px">${fcCards}</div>
-
-  ${lyCard}
-
-  <div style="font-size:10px;color:#bbb;text-align:right">
-    ※ 기상 데이터: Open-Meteo (ECMWF IFS 모델 기반) · 작년 날씨: ERA5 재분석 데이터
+  <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:12px">
+    ${compCards}
+  </div>
+  <div style="font-size:10px;color:#aaa;text-align:right">
+    기온 차이: <span style="color:#D32F2F">▲ 올해가 높음</span> · <span style="color:#1565C0">▼ 올해가 낮음</span>
   </div>`;
 }
+
 
 function renderBoardTab(){
   const cards = allSites().map((site,idx)=>{
