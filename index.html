@@ -80,92 +80,183 @@ function genWeekData(){
 const WEEK_DATA = genWeekData();
 
 // ── 세계 사료곡물 가격동향 (CBOT 기준, 2026년 6월 시세 반영) ──────────────
+// 최근 12개월 추이를 시뮬레이션. 마지막 값이 최신 현물가 수준.
 const GRAIN_DATA = [
-  { key:"corn", name:"옥수수", en:"Corn", icon:"🌽", color:"#E8A50A", unit:"$/bu", current:3.81, prevDay:3.79, note:"CBOT 현물 기준", trend:[4.45,4.38,4.52,4.71,4.64,4.48,4.21,4.05,3.95,3.88,3.79,3.81] },
-  { key:"soybean", name:"대두", en:"Soybean", icon:"🫘", color:"#7A8B1B", unit:"$/bu", current:10.60, prevDay:10.62, note:"CBOT 현물 기준", trend:[12.10,11.85,11.40,10.95,10.30,9.88,10.15,10.45,10.72,10.68,10.62,10.60] },
-  { key:"wheat", name:"소맥", en:"Wheat", icon:"🌾", color:"#C0792A", unit:"$/bu", current:5.42, prevDay:5.40, note:"CBOT SRW 기준", trend:[6.01,5.88,5.69,5.44,5.38,5.55,5.62,5.58,5.49,5.45,5.40,5.42] },
-  { key:"soymeal", name:"대두박", en:"Soymeal", icon:"🟫", color:"#8D5524", unit:"$/ton", current:298, prevDay:296, note:"CBOT 기준", trend:[340,332,325,318,305,292,288,295,302,300,296,298] }
+  {
+    key:"corn", name:"옥수수", en:"Corn", icon:"🌽", color:"#E8A50A", unit:"$/bu",
+    current:3.81, prevDay:3.79, note:"CBOT 현물 기준",
+    trend:[4.45,4.38,4.52,4.71,4.64,4.48,4.21,4.05,3.95,3.88,3.79,3.81],
+  },
+  {
+    key:"soybean", name:"대두", en:"Soybean", icon:"🫘", color:"#7A8B1B", unit:"$/bu",
+    current:10.60, prevDay:10.62, note:"CBOT 현물 기준",
+    trend:[12.10,11.85,11.40,10.95,10.30,9.88,10.15,10.45,10.72,10.68,10.62,10.60],
+  },
+  {
+    key:"wheat", name:"소맥", en:"Wheat", icon:"🌾", color:"#C0792A", unit:"$/bu",
+    current:5.42, prevDay:5.40, note:"CBOT SRW 기준",
+    trend:[6.01,5.88,5.69,5.44,5.38,5.55,5.62,5.58,5.49,5.45,5.40,5.42],
+  },
+  {
+    key:"soymeal", name:"대두박", en:"Soymeal", icon:"🟫", color:"#8D5524", unit:"$/ton",
+    current:298, prevDay:296, note:"CBOT 기준",
+    trend:[340,332,325,318,305,292,288,295,302,300,296,298],
+  },
 ];
 
 // ── 세계 유가 동향 (2026년 6월 시세 반영) ────────────────────────────────────
+// 미·이란 평화협정 기대감으로 최근 한 달 약세. 브렌트 약 79$, WTI 약 75$.
 const OIL_DATA = [
-  { key:"brent", name:"브렌트유", en:"Brent", icon:"🛢️", color:"#1B3A5C", unit:"$/bbl", current:79.45, prevDay:78.95, note:"국제 기준유", trend:[75.2,82.6,95.4,109.5,103.1,94.8,88.2,85.6,84.6,81.3,78.9,79.45] },
-  { key:"wti", name:"WTI", en:"WTI", icon:"🛢️", color:"#2C5F2D", unit:"$/bbl", current:75.10, prevDay:75.80, note:"미국 서부텍사스유", trend:[71.5,78.9,91.2,105.3,98.7,90.1,83.5,80.9,80.2,77.1,75.8,75.10] },
-  { key:"dubai", name:"두바이유", en:"Dubai", icon:"🛢️", color:"#8B6914", unit:"$/bbl", current:77.80, prevDay:77.40, note:"국내 도입 기준유", trend:[73.8,80.5,93.1,107.2,100.5,92.3,86.0,83.2,82.4,79.5,77.4,77.80] },
-  { key:"gas", name:"국내 휘발유", en:"Gasoline", icon:"⛽", color:"#C0392B", unit:"원/L", current:1638, prevDay:1642, note:"전국 평균", trend:[1710,1735,1788,1845,1820,1772,1715,1688,1672,1655,1642,1638] }
+  {
+    key:"brent", name:"브렌트유", en:"Brent", icon:"🛢️", color:"#1B3A5C", unit:"$/bbl",
+    current:79.45, prevDay:78.95, note:"국제 기준유",
+    trend:[75.2,82.6,95.4,109.5,103.1,94.8,88.2,85.6,84.6,81.3,78.9,79.45],
+  },
+  {
+    key:"wti", name:"WTI", en:"WTI", icon:"🛢️", color:"#2C5F2D", unit:"$/bbl",
+    current:75.10, prevDay:75.80, note:"미국 서부텍사스유",
+    trend:[71.5,78.9,91.2,105.3,98.7,90.1,83.5,80.9,80.2,77.1,75.8,75.10],
+  },
+  {
+    key:"dubai", name:"두바이유", en:"Dubai", icon:"🛢️", color:"#8B6914", unit:"$/bbl",
+    current:77.80, prevDay:77.40, note:"국내 도입 기준유",
+    trend:[73.8,80.5,93.1,107.2,100.5,92.3,86.0,83.2,82.4,79.5,77.4,77.80],
+  },
+  {
+    key:"gas", name:"국내 휘발유", en:"Gasoline", icon:"⛽", color:"#C0392B", unit:"원/L",
+    current:1638, prevDay:1642, note:"전국 평균",
+    trend:[1710,1735,1788,1845,1820,1772,1715,1688,1672,1655,1642,1638],
+  },
 ];
 
 // ── 국내외 주가동향 (2026년 6월 시세 반영) ──────────────────────────────────
+// AI·반도체 붐 + 미·이란 평화협정 기대로 코스피·닛케이 사상 최고치 랠리.
 const STOCK_DATA = [
-  { group:"국내", key:"kospi", ysym:"^KS11", name:"코스피", en:"KOSPI", icon:"🇰🇷", color:"#0047A0", unit:"pt", current:8923.62, prevDay:8980.15, note:"한국 종합주가지수", trend:[5200,5800,6400,7100,7600,8100,8400,8650,8800,8990,8980,8923.62] },
-  { group:"국내", key:"kosdaq", ysym:"^KQ11", name:"코스닥", en:"KOSDAQ", icon:"🇰🇷", color:"#E8530A", unit:"pt", current:1194.03, prevDay:1162.20, note:"코스닥 지수", trend:[750,820,880,950,1020,1118,1150,1187,1162,1175,1162,1194.03] },
-  { group:"미국", key:"sp500", ysym:"^GSPC", name:"S&P 500", en:"S&P500", icon:"🇺🇸", color:"#1B5E20", unit:"pt", current:7420.10, prevDay:7510.55, note:"미국 대형주 지수", trend:[6280,6450,6600,6845,7050,7408,7599,7600,7550,7480,7510,7420.10] },
-  { group:"미국", key:"nasdaq", ysym:"^IXIC", name:"나스닥", en:"Nasdaq", icon:"🇺🇸", color:"#4527A0", unit:"pt", current:26021.66, prevDay:26375.20, note:"미국 기술주 지수", trend:[22100,22800,23241,24000,25000,26225,27086,27000,26800,26500,26375,26021.66] },
-  { group:"미국", key:"dow", ysym:"^DJI", name:"다우존스", en:"Dow", icon:"🇺🇸", color:"#283593", unit:"pt", current:51492.55, prevDay:52003.10, note:"미국 대표 30종목", trend:[48063,48800,49526,50200,50800,51078,51200,51400,51600,51900,52003,51492.55] },
-  { group:"아시아", key:"nikkei", ysym:"^N225", name:"닛케이225", en:"Nikkei", icon:"🇯🇵", color:"#B71C1C", unit:"pt", current:71053.49, prevDay:69900.30, note:"일본 대표 지수", trend:[59285,61200,63500,66020,66588,66934,68000,69317,70200,69900,69900,71053.49] },
-  { group:"아시아", key:"hangseng", ysym:"^HSI", name:"항셍", en:"HangSeng", icon:"🇭🇰", color:"#00695C", unit:"pt", current:23924.81, prevDay:24310.50, note:"홍콩 항셍지수", trend:[23200,23600,24100,24700,25200,24718,24500,23817,24200,24310,24310,23924.81] }
+  {
+    group:"국내", key:"kospi", ysym:"^KS11", name:"코스피", en:"KOSPI", icon:"🇰🇷", color:"#0047A0", unit:"pt",
+    current:8923.62, prevDay:8980.15, note:"한국 종합주가지수",
+    trend:[5200,5800,6400,7100,7600,8100,8400,8650,8800,8990,8980,8923.62],
+  },
+  {
+    group:"국내", key:"kosdaq", ysym:"^KQ11", name:"코스닥", en:"KOSDAQ", icon:"🇰🇷", color:"#E8530A", unit:"pt",
+    current:1194.03, prevDay:1162.20, note:"코스닥 지수",
+    trend:[750,820,880,950,1020,1118,1150,1187,1162,1175,1162,1194.03],
+  },
+  {
+    group:"미국", key:"sp500", ysym:"^GSPC", name:"S&P 500", en:"S&P500", icon:"🇺🇸", color:"#1B5E20", unit:"pt",
+    current:7420.10, prevDay:7510.55, note:"미국 대형주 지수",
+    trend:[6280,6450,6600,6845,7050,7408,7599,7600,7550,7480,7510,7420.10],
+  },
+  {
+    group:"미국", key:"nasdaq", ysym:"^IXIC", name:"나스닥", en:"Nasdaq", icon:"🇺🇸", color:"#4527A0", unit:"pt",
+    current:26021.66, prevDay:26375.20, note:"미국 기술주 지수",
+    trend:[22100,22800,23241,24000,25000,26225,27086,27000,26800,26500,26375,26021.66],
+  },
+  {
+    group:"미국", key:"dow", ysym:"^DJI", name:"다우존스", en:"Dow", icon:"🇺🇸", color:"#283593", unit:"pt",
+    current:51492.55, prevDay:52003.10, note:"미국 대표 30종목",
+    trend:[48063,48800,49526,50200,50800,51078,51200,51400,51600,51900,52003,51492.55],
+  },
+  {
+    group:"아시아", key:"nikkei", ysym:"^N225", name:"닛케이225", en:"Nikkei", icon:"🇯🇵", color:"#B71C1C", unit:"pt",
+    current:71053.49, prevDay:69900.30, note:"일본 대표 지수",
+    trend:[59285,61200,63500,66020,66588,66934,68000,69317,70200,69900,69900,71053.49],
+  },
+  {
+    group:"아시아", key:"hangseng", ysym:"^HSI", name:"항셍", en:"HangSeng", icon:"🇭🇰", color:"#00695C", unit:"pt",
+    current:23924.81, prevDay:24310.50, note:"홍콩 항셍지수",
+    trend:[23200,23600,24100,24700,25200,24718,24500,23817,24200,24310,24310,23924.81],
+  },
 ];
 
+// 주가 시세 조회 바로가기
 const STOCK_LINKS = [
   { label:"네이버페이 증권 - 국내증시", url:"https://finance.naver.com/sise/", color:"#0047A0" },
   { label:"한국거래소 KRX", url:"https://www.krx.co.kr", color:"#E8530A" },
   { label:"인베스팅닷컴 - 세계지수", url:"https://kr.investing.com/indices/major-indices", color:"#1B5E20" },
-  { label:"CNBC 마켓", url:"https://www.cnbc.com/world-markets/", color:"#4527A0" }
+  { label:"CNBC 마켓", url:"https://www.cnbc.com/world-markets/", color:"#4527A0" },
 ];
 
 // ── 업비트 기준 메이저 코인 시세 (원화, 2026년 6월 시세 반영) ────────────────
+// 미·이란 갈등 매도세 후 반등 국면. 변동성 큰 상태.
 const COIN_DATA = [
-  { key:"btc", market:"KRW-BTC", name:"비트코인", en:"BTC", icon:"🟠", color:"#F7931A", unit:"원", current:84500000, prevDay:82300000, note:"업비트 KRW 마켓", trend:[88000000,92000000,86000000,78000000,72000000,68000000,74000000,80000000,83000000,85000000,82300000,84500000] },
-  { key:"eth", market:"KRW-ETH", name:"이더리움", en:"ETH", icon:"🔷", color:"#627EEA", unit:"원", current:3450000, prevDay:3380000, note:"업비트 KRW 마켓", trend:[3800000,4100000,3700000,3200000,2950000,2720000,3050000,3300000,3420000,3500000,3380000,3450000] },
-  { key:"xrp", market:"KRW-XRP", name:"리플", en:"XRP", icon:"⚫", color:"#23292F", unit:"원", current:1645, prevDay:1612, note:"업비트 KRW 마켓", trend:[2050,2200,1950,1780,1620,1540,1680,1750,1690,1660,1612,1645] },
-  { key:"sol", market:"KRW-SOL", name:"솔라나", en:"SOL", icon:"🟣", color:"#9945FF", unit:"원", current:215000, prevDay:208000, note:"업비트 KRW 마켓", trend:[265000,290000,255000,220000,195000,178000,200000,212000,218000,222000,208000,215000] },
-  { key:"doge", market:"KRW-DOGE", name:"도지코인", en:"DOGE", icon:"🐕", color:"#C2A633", unit:"원", current:285, prevDay:278, note:"업비트 KRW 마켓", trend:[380,420,360,310,275,250,285,300,292,288,278,285] },
-  { key:"usdt", market:"KRW-USDT", name:"테더", en:"USDT", icon:"🟢", color:"#26A17B", unit:"원", current:1378, prevDay:1376, note:"원/달러 연동 스테이블", trend:[1340,1352,1365,1380,1395,1388,1382,1379,1377,1376,1376,1378] }
+  {
+    key:"btc", market:"KRW-BTC", name:"비트코인", en:"BTC", icon:"🟠", color:"#F7931A", unit:"원",
+    current:84500000, prevDay:82300000, note:"업비트 KRW 마켓",
+    trend:[88000000,92000000,86000000,78000000,72000000,68000000,74000000,80000000,83000000,85000000,82300000,84500000],
+  },
+  {
+    key:"eth", market:"KRW-ETH", name:"이더리움", en:"ETH", icon:"🔷", color:"#627EEA", unit:"원",
+    current:3450000, prevDay:3380000, note:"업비트 KRW 마켓",
+    trend:[3800000,4100000,3700000,3200000,2950000,2720000,3050000,3300000,3420000,3500000,3380000,3450000],
+  },
+  {
+    key:"xrp", market:"KRW-XRP", name:"리플", en:"XRP", icon:"⚫", color:"#23292F", unit:"원",
+    current:1645, prevDay:1612, note:"업비트 KRW 마켓",
+    trend:[2050,2200,1950,1780,1620,1540,1680,1750,1690,1660,1612,1645],
+  },
+  {
+    key:"sol", market:"KRW-SOL", name:"솔라나", en:"SOL", icon:"🟣", color:"#9945FF", unit:"원",
+    current:215000, prevDay:208000, note:"업비트 KRW 마켓",
+    trend:[265000,290000,255000,220000,195000,178000,200000,212000,218000,222000,208000,215000],
+  },
+  {
+    key:"doge", market:"KRW-DOGE", name:"도지코인", en:"DOGE", icon:"🐕", color:"#C2A633", unit:"원",
+    current:285, prevDay:278, note:"업비트 KRW 마켓",
+    trend:[380,420,360,310,275,250,285,300,292,288,278,285],
+  },
+  {
+    key:"usdt", market:"KRW-USDT", name:"테더", en:"USDT", icon:"🟢", color:"#26A17B", unit:"원",
+    current:1378, prevDay:1376, note:"원/달러 연동 스테이블",
+    trend:[1340,1352,1365,1380,1395,1388,1382,1379,1377,1376,1376,1378],
+  },
 ];
 
+// 코인 시세 조회 바로가기
 const COIN_LINKS = [
   { label:"업비트 - 비트코인", url:"https://upbit.com/exchange?code=CRIX.UPBIT.KRW-BTC", color:"#F7931A" },
   { label:"업비트 - 이더리움", url:"https://upbit.com/exchange?code=CRIX.UPBIT.KRW-ETH", color:"#627EEA" },
   { label:"업비트 - 리플(XRP)", url:"https://upbit.com/exchange?code=CRIX.UPBIT.KRW-XRP", color:"#23292F" },
-  { label:"업비트 거래소 메인", url:"https://upbit.com", color:"#093687" }
+  { label:"업비트 거래소 메인", url:"https://upbit.com", color:"#093687" },
 ];
 
-// ── 양돈·한우 산지시세 ───────────────────────────────────────────────────────
+// ── 양돈·한우 산지시세 (축산물품질평가원 기준, 2026년 시세 반영) ──────────
 function genLivestock7(base, vol, seed){
   return getLast7Days().map((d,i)=>{
     const r=seedRand(d.getDate()*seed+i); const wk=d.getDay()===0||d.getDay()===6;
     return wk?null:Math.round((base + (r()-0.5)*vol)/10)*10;
   });
 }
-
+// ── 양돈 산지시세 상세 (축산물품질평가원 등급판정 기준, 2026년 시세 반영) ──
+// 탕박 평균 약 5,500~5,700원/kg. 1+등급은 1등급보다 +150원, 2등급보다 +600원 수준.
 const PIG_DATA = [
   { key:"tang_avg",  cat:"탕박", name:"탕박 평균", sub:"등외제외", icon:"🐷", color:"#E84A6F", unit:"원/kg", week:genLivestock7(5650, 500, 41), note:"전국 평균 경락가" },
-  { key:"tang_1p",  cat:"탕박", name:"탕박 1+등급", sub:"최상위", icon:"🥇", color:"#D32F2F", unit:"원/kg", week:genLivestock7(5950, 450, 43), note:"도체중·등지방 우수" },
-  { key:"tang_1",   cat:"탕박", name:"탕박 1등급", sub:"상위", icon:"🥈", color:"#E8530A", unit:"원/kg", week:genLivestock7(5800, 450, 47), note:"규격 충족" },
-  { key:"tang_2",   cat:"탕박", name:"탕박 2등급", sub:"일반", icon:"🥉", color:"#C2335A", unit:"원/kg", week:genLivestock7(5350, 500, 53), note:"규격 외" },
-  { key:"bak_avg",  cat:"박피", name:"박피 평균", sub:"등외제외", icon:"🐖", color:"#AD1457", unit:"원/kg", week:genLivestock7(6100, 550, 59), note:"박피 경락가" },
-  { key:"live_110", cat:"산지", name:"비육돈 산지", sub:"110kg", icon:"🚜", color:"#880E4F", unit:"원/두", week:genLivestock7(430000, 35000, 61), note:"농장 출하가" }
+  { key:"tang_1p",   cat:"탕박", name:"탕박 1+등급", sub:"최상위", icon:"🥇", color:"#D32F2F", unit:"원/kg", week:genLivestock7(5950, 450, 43), note:"도체중·등지방 우수" },
+  { key:"tang_1",    cat:"탕박", name:"탕박 1등급", sub:"상위", icon:"🥈", color:"#E8530A", unit:"원/kg", week:genLivestock7(5800, 450, 47), note:"규격 충족" },
+  { key:"tang_2",    cat:"탕박", name:"탕박 2등급", sub:"일반", icon:"🥉", color:"#C2335A", unit:"원/kg", week:genLivestock7(5350, 500, 53), note:"규격 외" },
+  { key:"bak_avg",   cat:"박피", name:"박피 평균", sub:"등외제외", icon:"🐖", color:"#AD1457", unit:"원/kg", week:genLivestock7(6100, 550, 59), note:"박피 경락가" },
+  { key:"live_110",  cat:"산지", name:"비육돈 산지", sub:"110kg", icon:"🚜", color:"#880E4F", unit:"원/두", week:genLivestock7(430000, 35000, 61), note:"농장 출하가" },
 ];
 
+// 양돈 시세 조회 바로가기
 const PIG_LINKS = [
-  { label:"축산물품질평가원 다봄 - 돼지 산지/도매가격", url:"https://www.ekapepia.com/supPrice/liveStock/type/pigNew.do", color:"#E84A6F" },
-  { label:"축평원 돼지 등급별 경락가격", url:"https://www.ekapepia.com/priceStat/period/pigPeriodAuctionPrice.do", color:"#D32F2F" },
+  { label:"축산물품질평가원 다봄 - 돼지 산지/도매가격", url:"https://www.ekapepia.com/web/main.do", color:"#E84A6F" },
+  { label:"대한한돈협회", url:"https://www.koreapork.or.kr", color:"#D32F2F" },
   { label:"대한한돈협회 (한돈팜스)", url:"https://www.koreapork.or.kr", color:"#C2335A" },
-  { label:"돼지와사람 (한돈 뉴스·전광판)", url:"https://www.pigpeople.net", color:"#AD1457" }
+  { label:"돼지와사람 (한돈 뉴스·전광판)", url:"https://www.pigpeople.net", color:"#AD1457" },
 ];
 
 const LIVESTOCK_DATA = [
   { key:"hanwoo_stan", group:"한우", name:"한우 거세우", sub:"도매 1++", icon:"🐂", color:"#A0522D", unit:"원/kg", week:genLivestock7(20000, 1500, 19), note:"지육 도매가" },
   { key:"hanwoo_cow", group:"한우", name:"한우 암소", sub:"도매 1등급", icon:"🐄", color:"#8B4513", unit:"원/kg", week:genLivestock7(16500, 1400, 23), note:"지육 도매가" },
   { key:"calf", group:"한우", name:"송아지", sub:"수컷 6~7개월", icon:"🐮", color:"#CD853F", unit:"원/두", week:genLivestock7(3700000, 300000, 29), note:"산지 거래가" },
-  { key:"yukwoo", group:"한우", name:"육우 거세우", sub:"도매", icon:"🐃", color:"#6B4423", unit:"원/kg", week:genLivestock7(9500, 900, 31), note:"지육 도매가" }
+  { key:"yukwoo", group:"한우", name:"육우 거세우", sub:"도매", icon:"🐃", color:"#6B4423", unit:"원/kg", week:genLivestock7(9500, 900, 31), note:"지육 도매가" },
 ];
-
 const LIVESTOCK_LINKS = [
-  { label:"축산물품질평가원 다봄 - 소 산지/도매가격", url:"https://www.ekapepia.com/supPrice/liveStock/type/cowNew.do", color:"#A0522D" },
+  { label:"축산물품질평가원 다봄 - 소 산지/도매가격", url:"https://www.ekapepia.com/web/main.do", color:"#A0522D" },
   { label:"한국육류유통수출협회 한우시세", url:"https://www.kmta.or.kr/kr/data/stats_price_month_beef.php", color:"#8B4513" },
   { label:"KAMIS 축산물 도매가격", url:"https://www.kamis.or.kr", color:"#CD853F" },
-  { label:"축산물품질평가원 메인", url:"https://www.ekape.or.kr", color:"#6B4423" }
+  { label:"축산물품질평가원 메인", url:"https://www.ekape.or.kr", color:"#6B4423" },
 ];
 
 const PRICE_CATEGORIES = [
@@ -174,23 +265,55 @@ const PRICE_CATEGORIES = [
   { key:"native",    label:"토종닭",    sub:"산지가", unit:"원/kg",   icon:"🐓", color:"#1B7A3E", bg:"#EEF7F1" },
   { key:"breeder",   label:"종계",      sub:"병아리", unit:"원/마리", icon:"🐣", color:"#7B1FA2", bg:"#F5EEF9" },
   { key:"wholesale", label:"닭고기",    sub:"도매가", unit:"원/kg",   icon:"🍗", color:"#1565C0", bg:"#EEF2FB" },
-  { key:"chick",     label:"육계병아리",sub:"입추가", unit:"원/마리", icon:"🐤", color:"#C0792A", bg:"#FDF5EC" }
+  { key:"chick",     label:"육계병아리",sub:"입추가", unit:"원/마리", icon:"🐤", color:"#C0792A", bg:"#FDF5EC" },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 협회별 공지사항 게시판 바로가기
+// 협회별 공지사항 게시판 바로가기 (실제 게시판 주소)
 // ═══════════════════════════════════════════════════════════════════════════
 const BOARD_SITES = [
-  { id:"poultry", name:"대한양계협회", color:"#E8530A", icon:"🥚", home:"https://www.poultry.or.kr", boards:[ { label:"공지사항", url:"https://www.poultry.or.kr/bbs/board.php?bo_table=notice" }, { label:"산란계 관측정보", url:"https://poultry.or.kr/bbs/board.php?bo_table=egg_watch_info" }, { label:"양계 정보마당", url:"https://www.poultry.or.kr/bbs/board.php?bo_table=info" }, { label:"계란 수급예측시스템", url:"https://egg.poultry.or.kr" } ] },
-  { id:"chicken", name:"대한계육협회", color:"#1B7A3E", icon:"🍗", home:"https://chicken.or.kr/home/start.php", boards:[ { label:"공지사항", url:"https://chicken.or.kr/bbs/boardlist_2025.php?Ncode=b3_1" }, { label:"최신육계뉴스", url:"https://chicken.or.kr/bbs/boardlist_2025.php?Ncode=b3_2" }, { label:"입찰정보", url:"https://chicken.or.kr/bbs/boardlist_2025.php?Ncode=b3_3" }, { label:"협회동향", url:"https://chicken.or.kr/bbs/boardlist_2025.php?Ncode=b3_6" } ] },
-  { id:"country", name:"농축산저널", color:"#1565C0", icon:"📰", home:"https://countrynews.co.kr/ko-kr", boards:[ { label:"전체 뉴스", url:"https://countrynews.co.kr/ko-kr" }, { label:"축산 뉴스", url:"https://countrynews.co.kr/ko-kr" } ] },
-  { id:"vet", name:"수의사전문채널", color:"#7B1FA2", icon:"🩺", home:"https://www.dailyvet.co.kr", boards:[ { label:"산업동물 뉴스", url:"https://www.dailyvet.co.kr/category/news/practice/industrial-animal" }, { label:"전체 뉴스", url:"https://www.dailyvet.co.kr" } ] }
+  {
+    id:"poultry", name:"대한양계협회", color:"#E8530A", icon:"🥚",
+    home:"https://www.poultry.or.kr",
+    boards:[
+      { label:"공지사항",            url:"https://www.poultry.or.kr/bbs/board.php?bo_table=notice" },
+      { label:"산란계 관측정보",     url:"https://poultry.or.kr/bbs/board.php?bo_table=egg_watch_info" },
+      { label:"양계 정보마당",       url:"https://www.poultry.or.kr/bbs/board.php?bo_table=info" },
+      { label:"계란 수급예측시스템", url:"https://egg.poultry.or.kr" },
+    ],
+  },
+  {
+    id:"chicken", name:"대한계육협회", color:"#1B7A3E", icon:"🍗",
+    home:"https://chicken.or.kr/home/start.php",
+    boards:[
+      { label:"공지사항",     url:"https://chicken.or.kr/bbs/boardlist_2025.php?Ncode=b3_1" },
+      { label:"최신육계뉴스", url:"https://chicken.or.kr/bbs/boardlist_2025.php?Ncode=b3_2" },
+      { label:"입찰정보",     url:"https://chicken.or.kr/bbs/boardlist_2025.php?Ncode=b3_3" },
+      { label:"협회동향",     url:"https://chicken.or.kr/bbs/boardlist_2025.php?Ncode=b3_6" },
+    ],
+  },
+  {
+    id:"country", name:"농축산저널", color:"#1565C0", icon:"📰",
+    home:"https://countrynews.co.kr/ko-kr",
+    boards:[
+      { label:"전체 뉴스",   url:"https://countrynews.co.kr/ko-kr" },
+      { label:"축산 뉴스",   url:"https://countrynews.co.kr/ko-kr" },
+    ],
+  },
+  {
+    id:"vet", name:"수의사전문채널", color:"#7B1FA2", icon:"🩺",
+    home:"https://www.dailyvet.co.kr",
+    boards:[
+      { label:"산업동물 뉴스", url:"https://www.dailyvet.co.kr/category/news/practice/industrial-animal" },
+      { label:"전체 뉴스",     url:"https://www.dailyvet.co.kr" },
+    ],
+  },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 상태 + 사용자 추가 사이트(localStorage)
 // ═══════════════════════════════════════════════════════════════════════════
-let state = { tab:"price", selectedCategory:"broiler", customSites:loadCustom(), customStocks:loadCustomList("custom_stocks"), customCoins:loadCustomList("custom_coins"), isFetching: false };
+let state = { tab:"price", selectedCategory:"broiler", customSites:loadCustom(), customStocks:loadCustomList("custom_stocks"), customCoins:loadCustomList("custom_coins") };
 
 function loadCustom(){
   try { const s=localStorage.getItem("poultry_custom_boards"); if(s){ const p=JSON.parse(s); if(Array.isArray(p)) return p; } } catch(e){}
@@ -205,10 +328,12 @@ function loadCustomList(key){
 function saveCustomStocks(){ try { localStorage.setItem("custom_stocks", JSON.stringify(state.customStocks)); } catch(e){} }
 function saveCustomCoins(){ try { localStorage.setItem("custom_coins", JSON.stringify(state.customCoins)); } catch(e){} }
 
+// 사용자가 추가한 종목의 trend는 입력한 현재가 기준으로 평탄하게 생성
 function makeFlatTrend(cur){ const arr=[]; for(let i=0;i<12;i++){ arr.push(Math.round(cur*(0.96+0.08*(i/11)))); } arr[11]=cur; return arr; }
 
 function allStocks(){ return STOCK_DATA.concat(state.customStocks); }
 function allCoins(){ return COIN_DATA.concat(state.customCoins); }
+
 function allSites(){ return BOARD_SITES.concat(state.customSites); }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -233,11 +358,12 @@ function deltaBadge(cur,prev){
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 렌더 및 API 통신 제어
+// 렌더
 // ═══════════════════════════════════════════════════════════════════════════
-let coinFetchStatus = "idle"; 
-let stockFetchStatus = "idle";
+// ── 업비트 실시간 시세 자동 갱신 ────────────────────────────────────────────
+let coinFetchStatus = "idle"; // idle | loading | done | error
 
+// 타임아웃 포함 fetch
 function fetchWithTimeout(url, ms){
   return Promise.race([
     fetch(url, { headers:{ "Accept":"application/json" } }),
@@ -245,6 +371,7 @@ function fetchWithTimeout(url, ms){
   ]);
 }
 
+// 여러 경로를 순차 시도 (직접 → CORS 프록시들)
 async function fetchUpbitData(markets){
   const apiUrl = "https://api.upbit.com/v1/ticker?markets=" + encodeURIComponent(markets);
   const routes = [
@@ -257,66 +384,57 @@ async function fetchUpbitData(markets){
       const resp = await fetchWithTimeout(routes[i], 8000);
       if(!resp.ok) throw new Error("HTTP "+resp.status);
       const data = await resp.json();
-      
-      // [개선 포인트] 데이터 바인딩 전 Array.isArray 검증 수행
       if(Array.isArray(data) && data.length>0) return data;
-      throw new Error("빈 응답 혹은 배열 형식이 아님");
+      throw new Error("빈 응답");
     } catch(e){
       console.warn("경로 "+(i+1)+" 실패:", e.message);
+      // 다음 경로 시도
     }
   }
   throw new Error("모든 경로 실패");
 }
 
 async function fetchUpbitPrices(){
-  if (state.isFetching) return; // 중복 호출 방지 고정
   const all = allCoins().filter(c=>c.market);
   if(all.length===0){ coinFetchStatus="done"; return; }
-  
   coinFetchStatus = "loading";
-  state.isFetching = true;
-  
+  if(state.tab==="coin") render();
   try {
     const markets = all.map(c=>c.market).join(",");
     const data = await fetchUpbitData(markets);
-    
-    // [개선 포인트] 가공 전 한 번 더 Array.isArray 최종 안전장치 검증
-    if (data && Array.isArray(data)) {
-      const map = {};
-      data.forEach(d=>{ if(d && d.market) map[d.market] = d; });
-      
-      COIN_DATA.forEach(c=>{
-        if(c.market && map[c.market]){
-          const t = map[c.market];
-          c.current = t.trade_price;
-          c.prevDay = t.prev_closing_price;
-          c.trend = c.trend.slice(0,11).concat([t.trade_price]);
-          c.note = "업비트 실시간";
-        }
-      });
-      state.customCoins.forEach(c=>{
-        if(c.market && map[c.market]){
-          const t = map[c.market];
-          c.current = t.trade_price;
-          c.prevDay = t.prev_closing_price;
-          c.trend = makeFlatTrend(t.trade_price);
-          c.note = "업비트 실시간";
-        }
-      });
-      saveCustomCoins();
-      coinFetchStatus = "done";
-    } else {
-      throw new Error("정상적인 배열 데이터를 수신하지 못했습니다.");
-    }
+    const map = {};
+    data.forEach(d=>{ map[d.market] = d; });
+    COIN_DATA.forEach(c=>{
+      if(c.market && map[c.market]){
+        const t = map[c.market];
+        c.current = t.trade_price;
+        c.prevDay = t.prev_closing_price;
+        c.trend = c.trend.slice(0,11).concat([t.trade_price]);
+        c.note = "업비트 실시간";
+      }
+    });
+    state.customCoins.forEach(c=>{
+      if(c.market && map[c.market]){
+        const t = map[c.market];
+        c.current = t.trade_price;
+        c.prevDay = t.prev_closing_price;
+        c.trend = makeFlatTrend(t.trade_price);
+        c.note = "업비트 실시간";
+      }
+    });
+    saveCustomCoins();
+    coinFetchStatus = "done";
   } catch(e){
     console.error("업비트 시세 조회 실패:", e);
     coinFetchStatus = "error";
-  } finally {
-    state.isFetching = false;
-    render(); // 데이터 수신 완료 후 단 한번 순수하게 렌더링 호출
   }
+  if(state.tab==="coin") render();
 }
 
+// ── 야후 파이낸스 주가지수 자동 갱신 ───────────────────────────────────────
+let stockFetchStatus = "idle"; // idle | loading | done | error
+
+// 야후 차트 API를 프록시로 우회 호출 (단일 심볼)
 async function fetchYahooQuote(symbol){
   const yurl = "https://query1.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(symbol) + "?interval=1d&range=5d";
   const routes = [
@@ -334,6 +452,7 @@ async function fetchYahooQuote(symbol){
       const meta = r.meta;
       const cur = meta.regularMarketPrice;
       const prev = meta.chartPreviousClose || meta.previousClose;
+      // 5일 종가 추이
       const closes = (r.indicators?.quote?.[0]?.close || []).filter(v=>v!=null);
       if(cur==null) throw new Error("가격 없음");
       return { cur, prev: prev||cur, closes };
@@ -345,19 +464,18 @@ async function fetchYahooQuote(symbol){
 }
 
 async function fetchStockPrices(){
-  if (state.isFetching) return;
   const targets = STOCK_DATA.filter(s=>s.ysym).concat(state.customStocks.filter(s=>s.ysym));
   if(targets.length===0){ stockFetchStatus="done"; return; }
-  
   stockFetchStatus = "loading";
-  state.isFetching = true;
+  if(state.tab==="stock") render();
   let okCount = 0;
-  
+  // 순차 호출(프록시 부하 분산)
   for(const s of targets){
     const q = await fetchYahooQuote(s.ysym);
     if(q){
       s.current = q.cur;
       s.prevDay = q.prev;
+      // 추이: 기존 trend 앞부분 + 야후 최근 종가로 갱신
       if(q.closes.length>=2){
         const tail = q.closes.slice(-6);
         s.trend = s.trend.slice(0, 12-tail.length).concat(tail);
@@ -371,12 +489,10 @@ async function fetchStockPrices(){
   }
   if(okCount>0){ saveCustomStocks(); stockFetchStatus="done"; }
   else stockFetchStatus="error";
-  
-  state.isFetching = false;
-  render(); // 데이터 바인딩 종료 후 순수 렌더링 호출
+  if(state.tab==="stock") render();
 }
 
-// ── 순수 렌더링 함수 (내부 비동기 처리 제거) ──────────────────────────────────
+
 function render(){
   document.getElementById("app").innerHTML = `
     ${renderHeader()}
@@ -416,7 +532,7 @@ function renderCommodityPanel(data, title, link, footnote, decimals){
     const diff = g.current - g.prevDay;
     const pct = ((diff/g.prevDay)*100).toFixed(1);
     const up = diff>0, flat = Math.abs(diff)<0.001;
-    const arrow = flat?"─":up?"▲":"▼";
+    const arrow = flat?"\u2500":up?"\u25B2":"\u25BC";
     const dColor = flat?"#888":up?"#D32F2F":"#1B7A3E";
     const spark = sparkline(g.trend, g.color);
     const yearAgo = g.trend[0];
@@ -445,7 +561,7 @@ function renderCommodityPanel(data, title, link, footnote, decimals){
       </div>
       <div style="margin-top:8px;padding-top:8px;border-top:1px solid #f5f5f5;display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:10px;color:#999">최근 1년</span>
-        <span style="font-size:11px;font-weight:700;color:${yearUp?"#D32F2F":"#1B7A3E"}">${yearUp?"▲":"▼"} ${Math.abs(yearDiff)}%</span>
+        <span style="font-size:11px;font-weight:700;color:${yearUp?"#D32F2F":"#1B7A3E"}">${yearUp?"\u25B2":"\u25BC"} ${Math.abs(yearDiff)}%</span>
       </div>
     </div>`;
   }).join("");
@@ -462,15 +578,28 @@ function renderCommodityPanel(data, title, link, footnote, decimals){
 }
 
 function renderGrainPanel(){
-  return renderCommodityPanel(GRAIN_DATA, "🌍 세계 사료곡물 가격동향 · CBOT", { url:"https://www.barchart.com/futures/quotes/ZC*0/futures-prices", label:"실시간 시세" }, "※ 사료곡물가는 환율·운임에 따라 국내 사료가에 시차를 두고 반영됩니다.", 2);
+  return renderCommodityPanel(
+    GRAIN_DATA,
+    "🌍 세계 사료곡물 가격동향 · CBOT",
+    { url:"https://www.barchart.com/futures/quotes/ZC*0/futures-prices", label:"실시간 시세" },
+    "※ 사료곡물가는 환율·운임에 따라 국내 사료가에 시차를 두고 반영됩니다.",
+    2
+  );
 }
 
 function renderOilPanel(){
-  return renderCommodityPanel(OIL_DATA, "🛢️ 세계 유가 동향 · 국제 원유", { url:"https://oilprice.com", label:"실시간 시세" }, "※ 국제 유가는 환율·정제마진을 거쳐 국내 사료·물류비에 영향을 미칩니다.", 2);
+  return renderCommodityPanel(
+    OIL_DATA,
+    "🛢️ 세계 유가 동향 · 국제 원유",
+    { url:"https://oilprice.com", label:"실시간 시세" },
+    "※ 국제 유가는 환율·정제마진을 거쳐 국내 사료·물류비에 영향을 미칩니다.",
+    2
+  );
 }
 
 function renderDabomBar(dabomUrl){
-  return `<a href="${dabomUrl}" target="_blank" rel="noopener" style="display:inline-flex;gap:6px;align-items:center;font-size:12px;color:#E84A6F;font-weight:600;border:1px solid #E84A6F;border-radius:8px;padding:7px 13px">📊 다봄 실시간 시세 ↗</a>`;
+  return `
+  <a href="${dabomUrl}" target="_blank" rel="noopener" style="display:inline-flex;gap:6px;align-items:center;font-size:12px;color:#E84A6F;font-weight:600;border:1px solid #E84A6F;border-radius:8px;padding:7px 13px">📊 다봄 실시간 시세 ↗</a>`;
 }
 
 function renderPriceTab(){
@@ -504,330 +633,537 @@ function renderPriceTab(){
       <td style="padding:10px;text-align:right;font-weight:700;color:${isT?selCat.color:"#333"}">${val?val.toLocaleString()+" "+selCat.unit:'<span style="color:#ccc">휴장</span>'}</td>
       <td style="padding:10px;text-align:right">${deltaBadge(val,pv)}</td></tr>`;
   }).join("");
-  
+  const cmpHead=PRICE_CATEGORIES.map(c=>`<th style="padding:10px 8px;text-align:right">${c.icon} ${c.label}</th>`).join("");
+  const cmpRows=WEEK_DATA.map((d,i)=>{
+    const isT=i===WEEK_DATA.length-1;
+    const cells=PRICE_CATEGORIES.map(cat=>{const v=d[cat.key];return `<td style="padding:10px 8px;text-align:right;font-weight:${isT?700:400};color:${isT?cat.color:v?"#333":"#ccc"}">${v?v.toLocaleString():"-"}</td>`;}).join("");
+    return `<tr style="border-bottom:1px solid #f0f0f0;background:${isT?"#F0F4FF":i%2===0?"#fafafa":"#fff"}"><td style="padding:10px 12px;font-weight:${isT?700:400};color:${isT?"#2C3E6B":d.isWeekend?"#bbb":"#555"}">${d.label}${isT?" ★":""}</td>${cells}</tr>`;
+  }).join("");
   return `
-  <div style="margin-bottom:25px;display:flex;justify-content:space-between;align-items:center">
-    <h2 class="display" style="font-size:24px;color:#1a2744">📊 양계 산지/도매 시세추이</h2>
-    ${renderDabomBar("https://www.ekapepia.com/supPrice/liveStock/type/poultryNew.do")}
-  </div>
-  <div class="price-grid" style="margin-bottom:20px">${cards}</div>
-  <div class="card" style="margin-bottom:25px">
-    <div style="font-size:14px;font-weight:700;margin-bottom:15px;color:#444">📊 ${selCat.label} 최근 7일 가격 흐름</div>
-    <div style="display:flex;align-items:flex-end;height:140px;padding:10px 0;border-bottom:2px solid #eee;margin-bottom:15px">${bars}</div>
-    <table style="margin-top:10px"><thead><tr style="border-bottom:2px solid #eee;font-size:12px;color:#666"><th style="padding:8px;text-align:left">날짜</th><th style="padding:8px;text-align:right">시세</th><th style="padding:8px;text-align:right">변동</th></tr></thead><tbody>${detailRows}</tbody></table>
-  </div>
   ${renderGrainPanel()}
-  ${renderOilPanel()}`;
+  ${renderOilPanel()}
+  <div style="margin-bottom:20px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+      <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px">TODAY SUMMARY · ${fmtFull(new Date())}</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <a href="https://www.poultry.or.kr" target="_blank" rel="noopener" style="font-size:11px;color:#E8530A;font-weight:600;border:1px solid #E8530A;border-radius:8px;padding:7px 12px">📊 양계협회 시세</a>
+        <button id="btn-refresh-poultry" style="border:1px solid #1B7A3E;border-radius:8px;background:#fff;padding:7px 12px;font-size:12px;color:#1B7A3E;font-weight:600">🔄 시세 갱신</button>
+      </div>
+    </div>
+    <div class="price-grid">${cards}</div>
+  </div>
+  <div class="card" style="margin-bottom:20px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <span style="font-size:22px">${selCat.icon}</span>
+      <div><div class="display" style="font-size:16px;color:${selCat.color}">${selCat.label} 주간 시세 (${selCat.unit})</div>
+      <div style="font-size:11px;color:#aaa">일별 가격 추이 · 최근 7일</div></div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:6px;height:100px;margin-bottom:16px">${bars}</div>
+    <div style="overflow-x:auto"><table style="font-size:13px">
+      <thead><tr style="border-bottom:2px solid #f0f0f0">
+        <th style="padding:8px 10px;text-align:left;color:#888;font-weight:600;font-size:11px">날짜</th>
+        <th style="padding:8px 10px;text-align:right;color:#888;font-weight:600;font-size:11px">가격</th>
+        <th style="padding:8px 10px;text-align:right;color:#888;font-weight:600;font-size:11px">전일대비</th>
+      </tr></thead><tbody>${detailRows}</tbody></table></div>
+  </div>
+  <div class="card">
+    <div class="display" style="font-size:16px;margin-bottom:16px">📋 전 품목 일별 비교</div>
+    <div style="overflow-x:auto"><table style="font-size:12px;min-width:600px">
+      <thead><tr style="background:#1a2744;color:#fff"><th style="padding:10px 12px;text-align:left">날짜</th>${cmpHead}</tr></thead>
+      <tbody>${cmpRows}</tbody></table></div>
+    <div style="margin-top:10px;font-size:11px;color:#aaa;text-align:right">단위: 육계·토종닭·닭고기(원/kg) | 계란(원/개) | 종계병아리·육계병아리(원/마리)</div>
+  </div>`;
 }
 
 function renderPigTab(){
-  const cards = PIG_DATA.map(p=>{
-    const v=p.week[p.week.length-1], pv=p.week[p.week.length-2];
-    const dt=v&&pv?(v===pv?"─ 보합":v>pv?`▲ +${(v-pv).toLocaleString()}`:`▼ ${(v-pv).toLocaleString()}`):"휴장";
-    const dc=v&&pv?(v>pv?"#D32F2F":v<pv?"#1B7A3E":"#888"):"#bbb";
+  const today = new Date();
+  // 탕박/박피/산지 그룹별 카드
+  const renderPigGroup = (catName, emoji, desc) => {
+    const items = PIG_DATA.filter(x=>x.cat===catName);
+    if(items.length===0) return "";
+    const cards = items.map(item=>{
+      const vals = item.week.filter(v=>v!==null);
+      const cur = vals[vals.length-1];
+      const prev = vals[vals.length-2];
+      const diff = (cur&&prev)?cur-prev:0;
+      const pct = (cur&&prev)?((diff/prev)*100).toFixed(1):0;
+      const up = diff>0, flat = diff===0;
+      const arrow = flat?"─":up?"▲":"▼";
+      const dColor = flat?"#888":up?"#D32F2F":"#1B7A3E";
+      return `
+      <div style="background:#fff;border-radius:14px;padding:16px;border:1px solid #efefef;border-top:3px solid ${item.color}">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:22px">${item.icon}</span>
+            <div>
+              <div style="font-size:14px;font-weight:700;color:#1a1a1a">${item.name}</div>
+              <div style="font-size:10px;color:#aaa">${item.sub} · ${item.note}</div>
+            </div>
+          </div>
+          ${sparkline(item.week, item.color)}
+        </div>
+        <div style="display:flex;align-items:baseline;gap:6px">
+          <span style="font-size:21px;font-weight:800;color:${item.color};letter-spacing:-0.5px">${cur?cur.toLocaleString():"-"}</span>
+          <span style="font-size:11px;color:#888">${item.unit}</span>
+        </div>
+        <div style="margin-top:5px">
+          <span style="font-size:11px;font-weight:700;color:${dColor}">${arrow} ${Math.abs(diff).toLocaleString()} (${pct}%)</span>
+          <span style="font-size:10px;color:#aaa;margin-left:6px">전일대비</span>
+        </div>
+      </div>`;
+    }).join("");
     return `
-    <div class="card" style="padding:15px;border-top:3px solid ${p.color}">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div style="display:flex;gap:8px;align-items:center"><span style="font-size:22px">${p.icon}</span><div><div style="font-size:13px;font-weight:700">${p.name}</div><div style="font-size:10px;color:#999">${p.note}</div></div></div>
-        ${sparkline(p.week, p.color)}
+    <div style="margin-bottom:22px">
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:12px">
+        <span class="display" style="font-size:17px;color:#880E4F">${emoji} ${catName}</span>
+        <span style="font-size:11px;color:#aaa">${desc}</span>
       </div>
-      <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:baseline">
-        <span style="font-size:20px;font-weight:800;color:${p.color}">${v?v.toLocaleString():"-"}<span style="font-size:11px;font-weight:400;color:#666;margin-left:2px">${p.unit}</span></span>
-        <span style="font-size:11px;font-weight:700;color:${dc}">${dt}</span>
-      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">${cards}</div>
     </div>`;
-  }).join("");
+  };
 
-  const links = PIG_LINKS.map(l=>`<a href="${l.url}" target="_blank" rel="noopener" class="board-link" style="background:#fff;border:1px solid #eee;color:${l.color}"><span>${l.label}</span><span style="color:#aaa">↗</span></a>`).join("");
-
-  return `
-  <div style="margin-bottom:25px;display:flex;justify-content:space-between;align-items:center">
-    <h2 class="display" style="font-size:24px;color:#1a2744">🐷 양돈 등급별 산지/경락 시세</h2>
-    ${renderDabomBar("https://www.ekapepia.com/supPrice/liveStock/type/pigNew.do")}
-  </div>
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-bottom:25px">${cards}</div>
-  <div class="card" style="margin-bottom:25px">
-    <div style="font-size:14px;font-weight:700;margin-bottom:12px;color:#444">🔗 양돈 시세조회 주요 바로가기</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px">${links}</div>
-  </div>
-  ${renderGrainPanel()}
-  ${renderOilPanel()}`;
-}
-
-function renderLivestockTab(){
-  const cards = LIVESTOCK_DATA.map(p=>{
-    const v=p.week[p.week.length-1], pv=p.week[p.week.length-2];
-    const dt=v&&pv?(v===pv?"─ 보합":v>pv?`▲ +${(v-pv).toLocaleString()}`:`▼ ${(v-pv).toLocaleString()}`):"휴장";
-    const dc=v&&pv?(v>pv?"#D32F2F":v<pv?"#1B7A3E":"#888"):"#bbb";
-    return `
-    <div class="card" style="padding:15px;border-top:3px solid ${p.color}">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div style="display:flex;gap:8px;align-items:center"><span style="font-size:22px">${p.icon}</span><div><div style="font-size:13px;font-weight:700">${p.name}</div><div style="font-size:10px;color:#999">${p.sub} · ${p.note}</div></div></div>
-        ${sparkline(p.week, p.color)}
-      </div>
-      <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:baseline">
-        <span style="font-size:20px;font-weight:800;color:${p.color}">${v?v.toLocaleString():"-"}<span style="font-size:11px;font-weight:400;color:#666;margin-left:2px">${p.unit}</span></span>
-        <span style="font-size:11px;font-weight:700;color:${dc}">${dt}</span>
-      </div>
-    </div>`;
-  }).join("");
-
-  const links = LIVESTOCK_LINKS.map(l=>`<a href="${l.url}" target="_blank" rel="noopener" class="board-link" style="background:#fff;border:1px solid #eee;color:${l.color}"><span>${l.label}</span><span style="color:#aaa">↗</span></a>`).join("");
-
-  return `
-  <div style="margin-bottom:25px;display:flex;justify-content:space-between;align-items:center">
-    <h2 class="display" style="font-size:24px;color:#1a2744">🐂 한우/육우 산지 및 도매 시세</h2>
-    ${renderDabomBar("https://www.ekapepia.com/supPrice/liveStock/type/cowNew.do")}
-  </div>
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-bottom:25px">${cards}</div>
-  <div class="card" style="margin-bottom:25px">
-    <div style="font-size:14px;font-weight:700;margin-bottom:12px;color:#444">🔗 한우 시세조회 주요 바로가기</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px">${links}</div>
-  </div>
-  ${renderGrainPanel()}
-  ${renderOilPanel()}`;
-}
-
-function renderStockTab(){
-  let statusHtml = "";
-  if(stockFetchStatus==="loading") statusHtml = `<div style="font-size:12px;color:#283593;font-weight:600;background:#E8EAF6;padding:4px 10px;border-radius:6px;animation:pulse 1.5s infinite">🔄 야후 파이낸스 동기화 중...</div>`;
-  else if(stockFetchStatus==="error") statusHtml = `<div style="font-size:12px;color:#D32F2F;font-weight:600;background:#FFEBEE;padding:4px 10px;border-radius:6px">⚠️ 실시간 연동 실패 (캐시 표시됨)</div>`;
-  else if(stockFetchStatus==="done") statusHtml = `<div style="font-size:12px;color:#1B7A3E;font-weight:600;background:#E8F7EE;padding:4px 10px;border-radius:6px">● 실시간 연동 완료</div>`;
-
-  const rows = allStocks().map(s=>{
-    const spark = sparkline(s.trend, s.color);
-    return `
-    <tr style="border-bottom:1px solid #eee">
-      <td style="padding:12px 8px"><span style="font-size:11px;font-weight:700;padding:2px 5px;background:#f0f0f0;border-radius:4px;color:#666;margin-right:6px">${s.group}</span><b>${esc(s.name)}</b> <span style="font-size:11px;color:#999">${esc(s.ysym||'')}</span></td>
-      <td style="padding:12px 8px;text-align:right;font-weight:800;font-size:15px;color:${s.color}">${s.current.toLocaleString()}<span style="font-size:11px;color:#666;font-weight:400;margin-left:2px">${s.unit}</span></td>
-      <td style="padding:12px 8px;text-align:right">${deltaBadge(s.current, s.prevDay)}</td>
-      <td style="padding:12px 8px;display:flex;justify-content:center;align-items:center;height:45px">${spark}</td>
-      <td style="padding:12px 8px;text-align:right;font-size:10px;color:#aaa">${s.note}</td>
-    </tr>`;
-  }).join("");
-
-  const links = STOCK_LINKS.map(l=>`<a href="${l.url}" target="_blank" rel="noopener" class="board-link" style="background:#f8fafc;color:${l.color}"><span>${l.label}</span><span>↗</span></a>`).join("");
-
-  return `
-  <div style="margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
-    <h2 class="display" style="font-size:24px;color:#1a2744">📈 국내외 주요 주가지수 동향</h2>
-    ${statusHtml}
-  </div>
-  
-  <div class="card" style="padding:10px;margin-bottom:20px;overflow-x:auto">
-    <table style="min-width:600px">
-      <thead>
-        <tr style="border-bottom:2px solid #eee;font-size:12px;color:#666;text-align:left">
-          <th style="padding:10px 8px">지수명</th><th style="padding:10px 8px;text-align:right">현재가</th><th style="padding:10px 8px;text-align:right">전일대비</th><th style="padding:10px 8px;text-align:center">최근추이</th><th style="padding:10px 8px;text-align:right">출처</th>
-        </tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>
-  </div>
-
-  <div class="card" style="margin-bottom:20px;background:#FFFDE7;border:1px solid #FFF59D">
-    <div style="font-size:13px;font-weight:700;color:#F57F17;margin-bottom:6px">💡 커스텀 관심 종목 주가 추가 가이드</div>
-    <div style="font-size:12px;color:#5D4037;line-height:1.5">
-      야후 파이낸스 심볼 코드(예: 삼성전자 <code style="background:#fff;padding:1px 4px;border-radius:3px;font-weight:700">005930.KS</code>, 현대차 <code style="background:#fff;padding:1px 4px;border-radius:3px;font-weight:700">005380.KS</code>, 카카오 <code style="background:#fff;padding:1px 4px;border-radius:3px;font-weight:700">035720.KS</code>)를 입력하여 실시간으로 추적할 수 있습니다.
+  // 등급 비교 안내 박스
+  const gradeInfo = `
+  <div style="background:#FFF0F4;border-radius:14px;padding:16px;margin-bottom:22px;border:1px solid #F8BBD0">
+    <div style="font-size:13px;font-weight:700;color:#880E4F;margin-bottom:8px">💡 돼지 등급 한눈에 보기</div>
+    <div style="font-size:12px;color:#666;line-height:1.8">
+      <strong>1+등급</strong>은 1등급보다 약 <strong>150원/kg</strong>, 2등급보다 약 <strong>600원/kg</strong> 높게 거래됩니다. 88kg 도체 기준 1+와 2등급은 <strong>두당 약 5만원</strong> 차이가 납니다.<br>
+      <strong>탕박</strong>(털만 제거)이 대부분이며, <strong>박피</strong>(껍질 제거)는 별도 가격이 형성됩니다. 도체중 87~94kg 구간이 가장 좋은 가격을 받습니다.
     </div>
-    <div style="margin-top:12px;display:flex;gap:6px">
-      <input type="text" id="cust-stock-group" placeholder="분류 (예: 국산)" style="padding:6px 10px;font-size:12px;border:1px solid #ccc;border-radius:6px;width:80px" />
-      <input type="text" id="cust-stock-name" placeholder="종목명 (예: 삼성전자)" style="padding:6px 10px;font-size:12px;border:1px solid #ccc;border-radius:6px;width:130px" />
-      <input type="text" id="cust-stock-sym" placeholder="야후 심볼 (005930.KS)" style="padding:6px 10px;font-size:12px;border:1px solid #ccc;border-radius:6px;width:150px" />
-      <input type="number" id="cust-stock-cur" placeholder="현재가" style="padding:6px 10px;font-size:12px;border:1px solid #ccc;border-radius:6px;width:90px" />
-      <button id="btn-add-stock" style="background:#F57F17;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:700">추가하기</button>
+  </div>`;
+
+  // 7일 추이 테이블
+  const tblHead = PIG_DATA.map(x=>`<th style="padding:10px 8px;text-align:right;font-size:11px">${x.name}</th>`).join("");
+  const tblRows = getLast7Days().map((d,i)=>{
+    const isT = i===6;
+    const wk = d.getDay()===0||d.getDay()===6;
+    const cells = PIG_DATA.map(x=>{
+      const v=x.week[i];
+      return `<td style="padding:10px 8px;text-align:right;font-weight:${isT?700:400};color:${isT?x.color:v?"#333":"#ccc"}">${v?v.toLocaleString():"-"}</td>`;
+    }).join("");
+    return `<tr style="border-bottom:1px solid #f0f0f0;background:${isT?"#FFF0F4":i%2===0?"#fafafa":"#fff"}">
+      <td style="padding:10px 12px;font-weight:${isT?700:400};color:${isT?"#E84A6F":wk?"#bbb":"#555"}">${fmtDate(d)}${isT?" ★":""}</td>${cells}</tr>`;
+  }).join("");
+
+  const linkBtns = PIG_LINKS.map(l=>`
+    <a href="${esc(l.url)}" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-radius:10px;background:${l.color}12;color:${l.color};font-size:13px;font-weight:600;border:1px solid ${l.color}30">
+      <span>🔗 ${esc(l.label)}</span><span style="font-size:15px">↗</span>
+    </a>`).join("");
+
+  return `
+  <div style="margin-bottom:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px">🐷 양돈 농장 산지시세 · ${fmtFull(today)}</div>
+      ${renderDabomBar("https://www.ekapepia.com/web/main.do")}
     </div>
+    <div style="font-size:11px;color:#aaa;margin-top:6px">아래는 참고용 시세입니다. 정확한 당일 경락가는 ‘다봄 실시간 시세’에서 확인하세요.</div>
+  </div>
+  ${gradeInfo}
+  ${renderPigGroup("탕박","🐷","털만 제거한 도체 · 국내 대부분")}
+  ${renderPigGroup("박피","🐖","껍질까지 제거한 도체")}
+  ${renderPigGroup("산지","🚜","농장 출하 거래가")}
+
+  <div class="card" style="margin-bottom:20px">
+    <div class="display" style="font-size:16px;margin-bottom:16px">📋 최근 7일 추이 (등급별)</div>
+    <div style="overflow-x:auto"><table style="font-size:12px;min-width:720px">
+      <thead><tr style="background:#880E4F;color:#fff"><th style="padding:10px 12px;text-align:left">날짜</th>${tblHead}</tr></thead>
+      <tbody>${tblRows}</tbody></table></div>
+    <div style="margin-top:10px;font-size:11px;color:#aaa;text-align:right">단위: 등급별 경락가(원/kg) | 비육돈 산지(원/두)</div>
   </div>
 
   <div class="card">
-    <div style="font-size:14px;font-weight:700;margin-bottom:10px;color:#444">🔗 국내외 증시조회 주요 바로가기</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px">${links}</div>
+    <div class="display" style="font-size:16px;margin-bottom:6px">🔗 실시간 양돈 시세 조회</div>
+    <div style="font-size:12px;color:#888;margin-bottom:14px;line-height:1.6">정확한 실시간 돼지 경락가격은 아래 공식 사이트에서 확인하세요. 새 탭에서 열립니다.</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">${linkBtns}</div>
+  </div>`;
+}
+
+function renderLivestockTab(){
+  const today = new Date();
+  const renderGroup = (groupName, emoji) => {
+    const items = LIVESTOCK_DATA.filter(x=>x.group===groupName);
+    const cards = items.map(item=>{
+      const week = item.week;
+      const vals = week.filter(v=>v!==null);
+      const cur = vals[vals.length-1];
+      const prev = vals[vals.length-2];
+      const diff = (cur&&prev)?cur-prev:0;
+      const pct = (cur&&prev)?((diff/prev)*100).toFixed(1):0;
+      const up = diff>0, flat = diff===0;
+      const arrow = flat?"─":up?"▲":"▼";
+      const dColor = flat?"#888":up?"#D32F2F":"#1B7A3E";
+      return `
+      <div style="background:#fff;border-radius:14px;padding:16px;border:1px solid #efefef;border-top:3px solid ${item.color}">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:24px">${item.icon}</span>
+            <div>
+              <div style="font-size:14px;font-weight:700;color:#1a1a1a">${item.name}</div>
+              <div style="font-size:10px;color:#aaa">${item.sub} · ${item.note}</div>
+            </div>
+          </div>
+          ${sparkline(week, item.color)}
+        </div>
+        <div style="display:flex;align-items:baseline;gap:6px">
+          <span style="font-size:22px;font-weight:800;color:${item.color};letter-spacing:-0.5px">${cur?cur.toLocaleString():"-"}</span>
+          <span style="font-size:11px;color:#888">${item.unit}</span>
+        </div>
+        <div style="margin-top:5px">
+          <span style="font-size:11px;font-weight:700;color:${dColor}">${arrow} ${Math.abs(diff).toLocaleString()} (${pct}%)</span>
+          <span style="font-size:10px;color:#aaa;margin-left:6px">전일대비</span>
+        </div>
+      </div>`;
+    }).join("");
+    return `
+    <div style="margin-bottom:22px">
+      <div class="display" style="font-size:17px;margin-bottom:12px;color:#1a2744">${emoji} ${groupName}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">${cards}</div>
+    </div>`;
+  };
+  const tblHead = LIVESTOCK_DATA.map(x=>`<th style="padding:10px 8px;text-align:right;font-size:11px">${x.icon} ${x.name}</th>`).join("");
+  const tblRows = getLast7Days().map((d,i)=>{
+    const isT = i===6;
+    const lbl = fmtDate(d);
+    const wk = d.getDay()===0||d.getDay()===6;
+    const cells = LIVESTOCK_DATA.map(x=>{
+      const v=x.week[i];
+      return `<td style="padding:10px 8px;text-align:right;font-weight:${isT?700:400};color:${isT?x.color:v?"#333":"#ccc"}">${v?v.toLocaleString():"-"}</td>`;
+    }).join("");
+    return `<tr style="border-bottom:1px solid #f0f0f0;background:${isT?"#FFF0F4":i%2===0?"#fafafa":"#fff"}">
+      <td style="padding:10px 12px;font-weight:${isT?700:400};color:${isT?"#E84A6F":wk?"#bbb":"#555"}">${lbl}${isT?" ★":""}</td>${cells}</tr>`;
+  }).join("");
+  const linkBtns = LIVESTOCK_LINKS.map(l=>`
+    <a href="${esc(l.url)}" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-radius:10px;background:${l.color}12;color:${l.color};font-size:13px;font-weight:600;border:1px solid ${l.color}30">
+      <span>🔗 ${esc(l.label)}</span><span style="font-size:15px">↗</span>
+    </a>`).join("");
+  return `
+  <div style="margin-bottom:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px">🐂 한우 산지·도매시세 · ${fmtFull(today)}</div>
+      ${renderDabomBar("https://www.ekapepia.com/web/main.do")}
+    </div>
+    <div style="font-size:11px;color:#aaa;margin-top:6px">아래는 참고용 시세입니다. 정확한 당일 경락가는 ‘다봄 실시간 시세’에서 확인하세요.</div>
+  </div>
+  ${renderGroup("한우","🐂")}
+  <div class="card" style="margin-bottom:20px">
+    <div class="display" style="font-size:16px;margin-bottom:16px">📋 최근 7일 추이</div>
+    <div style="overflow-x:auto"><table style="font-size:12px;min-width:680px">
+      <thead><tr style="background:#1a2744;color:#fff"><th style="padding:10px 12px;text-align:left">날짜</th>${tblHead}</tr></thead>
+      <tbody>${tblRows}</tbody></table></div>
+    <div style="margin-top:10px;font-size:11px;color:#aaa;text-align:right">단위: 지육·도매(원/kg) | 비육돈·송아지(원/두)</div>
+  </div>
+  <div class="card">
+    <div class="display" style="font-size:16px;margin-bottom:6px">🔗 실시간 시세 조회 바로가기</div>
+    <div style="font-size:12px;color:#888;margin-bottom:14px;line-height:1.6">정확한 실시간 산지시세는 아래 공식 사이트에서 확인하세요. 새 탭에서 열립니다.</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">${linkBtns}</div>
   </div>`;
 }
 
 function renderCoinTab(){
-  let statusHtml = "";
-  if(coinFetchStatus==="loading") statusHtml = `<div style="font-size:12px;color:#E65100;font-weight:600;background:#FFF3E0;padding:4px 10px;border-radius:6px;animation:pulse 1.5s infinite">🔄 업비트 실시간 연동 중...</div>`;
-  else if(coinFetchStatus==="error") statusHtml = `<div style="font-size:12px;color:#D32F2F;font-weight:600;background:#FFEBEE;padding:4px 10px;border-radius:6px">⚠️ 연동 실패 (프록시 우회 캐시 가동)</div>`;
-  else if(coinFetchStatus==="done") statusHtml = `<div style="font-size:12px;color:#1B7A3E;font-weight:600;background:#E8F7EE;padding:4px 10px;border-radius:6px">● 업비트 실시간 연결 완료</div>`;
-
-  const rows = allCoins().map(c=>{
-    const spark = sparkline(c.trend, c.color);
+  const today = new Date();
+  const cards = allCoins().map(c=>{
+    const diff = c.current - c.prevDay;
+    const pct = ((diff/c.prevDay)*100).toFixed(2);
+    const up = diff>0, flat = Math.abs(diff)<0.001;
+    const arrow = flat?"─":up?"▲":"▼";
+    const dColor = flat?"#888":up?"#D32F2F":"#1565C0";
+    const yearAgo = c.trend[0];
+    const yearDiff = (((c.current - yearAgo)/yearAgo)*100).toFixed(1);
+    const yearUp = c.current > yearAgo;
+    const isCustom = !!c.custom;
     return `
-    <tr style="border-bottom:1px solid #eee">
-      <td style="padding:12px 8px">
-        <span style="font-size:16px;margin-right:6px">${c.icon}</span>
-        <b>${esc(c.name)}</b> <span style="font-size:11px;color:#aaa">${esc(c.market||'')}</span>
-      </td>
-      <td style="padding:12px 8px;text-align:right;font-weight:800;font-size:15px;color:${c.color}">${c.current.toLocaleString()}<span style="font-size:11px;color:#666;font-weight:400;margin-left:2px">${c.unit}</span></td>
-      <td style="padding:12px 8px;text-align:right">${deltaBadge(c.current, c.prevDay)}</td>
-      <td style="padding:12px 8px;display:flex;justify-content:center;align-items:center;height:45px">${spark}</td>
-      <td style="padding:12px 8px;text-align:right;font-size:10px;color:#aaa">${c.note}</td>
-    </tr>`;
+    <div style="background:#fff;border-radius:14px;padding:15px;border:1px solid #efefef;border-top:3px solid ${c.color};position:relative">
+      ${isCustom?`<button class="del-coin" data-id="${c.key}" title="삭제" style="position:absolute;top:8px;right:8px;border:none;background:#f5f5f5;border-radius:50%;width:22px;height:22px;font-size:12px;color:#999;line-height:1">✕</button>`:""}
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="display:flex;align-items:center;gap:7px">
+          <span style="font-size:20px">${c.icon}</span>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#1a1a1a">${esc(c.name)} <span style="font-size:10px;color:#aaa;font-weight:400">${esc(c.en)}</span></div>
+            <div style="font-size:9px;color:#bbb">${esc(c.note)}</div>
+          </div>
+        </div>
+        ${sparkline(c.trend, c.color)}
+      </div>
+      <div style="display:flex;align-items:baseline;gap:4px;margin-top:4px">
+        <span style="font-size:18px;font-weight:800;color:${c.color};letter-spacing:-0.5px">${c.current.toLocaleString()}</span>
+        <span style="font-size:11px;color:#888">${esc(c.unit)}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:5px">
+        <span style="font-size:11px;font-weight:700;color:${dColor}">${arrow} ${Math.abs(diff).toLocaleString()} (${pct}%)</span>
+        <span style="font-size:10px;color:#aaa">전일대비</span>
+      </div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid #f5f5f5;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:10px;color:#999">최근 1년</span>
+        <span style="font-size:11px;font-weight:700;color:${yearUp?"#D32F2F":"#1565C0"}">${yearUp?"▲":"▼"} ${Math.abs(yearDiff)}%</span>
+      </div>
+    </div>`;
   }).join("");
 
-  const links = COIN_LINKS.map(l=>`<a href="${l.url}" target="_blank" rel="noopener" class="board-link" style="background:#f8fafc;color:${l.color}"><span>${l.label}</span><span>↗</span></a>`).join("");
+  const linkBtns = COIN_LINKS.map(l=>`
+    <a href="${esc(l.url)}" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-radius:10px;background:${l.color}12;color:${l.color};font-size:13px;font-weight:600;border:1px solid ${l.color}30">
+      <span>🔗 ${esc(l.label)}</span><span style="font-size:15px">↗</span>
+    </a>`).join("");
 
   return `
-  <div style="margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
-    <h2 class="display" style="font-size:24px;color:#1a2744">🪙 메이저 가상자산 원화 시세 (업비트)</h2>
-    ${statusHtml}
-  </div>
-  
-  <div class="card" style="padding:10px;margin-bottom:20px;overflow-x:auto">
-    <table style="min-width:600px">
-      <thead>
-        <tr style="border-bottom:2px solid #eee;font-size:12px;color:#666;text-align:left">
-          <th style="padding:10px 8px">자산명</th><th style="padding:10px 8px;text-align:right">현재가 (KRW)</th><th style="padding:10px 8px;text-align:right">전일대비</th><th style="padding:10px 8px;text-align:center">최근추이</th><th style="padding:10px 8px;text-align:right">출처</th>
-        </tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>
-  </div>
-
-  <div class="card" style="margin-bottom:20px;background:#E8F5E9;border:1px solid #A5D6A7">
-    <div style="font-size:13px;font-weight:700;color:#2E7D32;margin-bottom:6px">💡 관심 알트코인 추가 마켓 가이드</div>
-    <div style="font-size:12px;color:#1B5E20;line-height:1.5">
-      업비트 원화 마켓 심볼명 (예: 리플 <code style="background:#fff;padding:1px 4px;border-radius:3px;font-weight:700">KRW-XRP</code>, 에이다 <code style="background:#fff;padding:1px 4px;border-radius:3px;font-weight:700">KRW-ADA</code>)을 정확히 입력하시면 실시간 시세가 즉시 반영됩니다.
-    </div>
-    <div style="margin-top:12px;display:flex;gap:6px">
-      <input type="text" id="cust-coin-name" placeholder="코인명 (예: 에이다)" style="padding:6px 10px;font-size:12px;border:1px solid #ccc;border-radius:6px;width:150px" />
-      <input type="text" id="cust-coin-mk" placeholder="업비트 마켓명 (KRW-ADA)" style="padding:6px 10px;font-size:12px;border:1px solid #ccc;border-radius:6px;width:180px" />
-      <input type="number" id="cust-coin-cur" placeholder="기본 현재가" style="padding:6px 10px;font-size:12px;border:1px solid #ccc;border-radius:6px;width:120px" />
-      <button id="btn-add-coin" style="background:#2E7D32;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:700">추가하기</button>
+  <div style="margin-bottom:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div>
+        <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px">🪙 업비트 메이저 코인 시세 · ${fmtFull(today)}</div>
+        <div style="font-size:11px;color:#aaa;margin-top:4px">상승 <span style="color:#D32F2F;font-weight:700">▲ 빨강</span> · 하락 <span style="color:#1565C0;font-weight:700">▼ 파랑</span> · 업비트 KRW 마켓 기준</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="font-size:11px;color:${coinFetchStatus==="done"?"#1B7A3E":coinFetchStatus==="error"?"#D32F2F":"#aaa"}">${coinFetchStatus==="loading"?"⏳ 갱신중...":coinFetchStatus==="done"?"🟢 실시간 연동됨":coinFetchStatus==="error"?"⚠️ 연동 실패":""}</span>
+        <button id="btn-refresh-coin" style="border:1px solid #093687;border-radius:8px;background:#fff;padding:7px 12px;font-size:12px;color:#093687;font-weight:600">🔄 시세 갱신</button>
+        <button id="btn-add-coin" style="border:1px solid #F7931A;border-radius:8px;background:#F7931A;padding:7px 14px;font-size:12px;color:#fff;font-weight:600">➕ 관심코인 추가</button>
+      </div>
     </div>
   </div>
+  ${coinFetchStatus==="error"?`<div style="background:#FEF3F2;border:1px solid #FECDCA;border-radius:12px;padding:12px 16px;margin-bottom:14px;font-size:12px;color:#B42318;line-height:1.7">⚠️ <strong>실시간 연동에 실패했습니다.</strong> 아래 시세는 참고용 고정값입니다. 🔄 버튼으로 다시 시도하거나, 네트워크 환경(회사 방화벽 등)이 업비트·프록시 접속을 차단하는지 확인해주세요. 정확한 시세는 하단 업비트 링크에서 볼 수 있습니다.</div>`:""}
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin-bottom:22px">${cards}</div>
 
   <div class="card">
-    <div style="font-size:14px;font-weight:700;margin-bottom:10px;color:#444">🔗 가상자산 시세 주요 바로가기</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px">${links}</div>
+    <div class="display" style="font-size:16px;margin-bottom:6px">🔗 실시간 코인 시세 조회</div>
+    <div style="font-size:12px;color:#888;margin-bottom:14px;line-height:1.6">위 시세는 업비트 공개 API로 자동 연동됩니다. 갱신이 안 되면 🔄 버튼을 누르세요. 더 자세한 정보는 아래 업비트에서 확인하세요.</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">${linkBtns}</div>
+  </div>`;
+}
+
+function renderStockTab(){
+  const today = new Date();
+  // 그룹별(국내/미국/아시아/관심종목) 카드 렌더
+  const renderStockGroup = (groupName, emoji) => {
+    const items = allStocks().filter(x=>x.group===groupName);
+    if(items.length===0) return "";
+    const cards = items.map(s=>{
+      const diff = s.current - s.prevDay;
+      const pct = ((diff/s.prevDay)*100).toFixed(2);
+      const up = diff>0, flat = Math.abs(diff)<0.001;
+      const arrow = flat?"─":up?"▲":"▼";
+      // 주가는 한국 관례상 상승=빨강, 하락=파랑
+      const dColor = flat?"#888":up?"#D32F2F":"#1565C0";
+      const yearAgo = s.trend[0];
+      const yearDiff = (((s.current - yearAgo)/yearAgo)*100).toFixed(1);
+      const yearUp = s.current > yearAgo;
+      const fmtNum = (n)=> n.toLocaleString(undefined,{maximumFractionDigits:2});
+      const isCustom = !!s.custom;
+      return `
+      <div style="background:#fff;border-radius:14px;padding:15px;border:1px solid #efefef;border-top:3px solid ${s.color};position:relative">
+        ${isCustom?`<button class="del-stock" data-id="${s.key}" title="삭제" style="position:absolute;top:8px;right:8px;border:none;background:#f5f5f5;border-radius:50%;width:22px;height:22px;font-size:12px;color:#999;line-height:1">✕</button>`:""}
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <div style="display:flex;align-items:center;gap:7px">
+            <span style="font-size:20px">${s.icon}</span>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:#1a1a1a">${esc(s.name)} <span style="font-size:10px;color:#aaa;font-weight:400">${esc(s.en)}</span></div>
+              <div style="font-size:9px;color:#bbb">${esc(s.note)}</div>
+            </div>
+          </div>
+          ${sparkline(s.trend, s.color)}
+        </div>
+        <div style="display:flex;align-items:baseline;gap:6px;margin-top:4px">
+          <span style="font-size:20px;font-weight:800;color:${s.color};letter-spacing:-0.5px">${fmtNum(s.current)}</span>
+          <span style="font-size:11px;color:#888">${esc(s.unit)}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:5px">
+          <span style="font-size:11px;font-weight:700;color:${dColor}">${arrow} ${fmtNum(Math.abs(diff))} (${pct}%)</span>
+          <span style="font-size:10px;color:#aaa">전일대비</span>
+        </div>
+        <div style="margin-top:8px;padding-top:8px;border-top:1px solid #f5f5f5;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:10px;color:#999">최근 1년</span>
+          <span style="font-size:11px;font-weight:700;color:${yearUp?"#D32F2F":"#1565C0"}">${yearUp?"▲":"▼"} ${Math.abs(yearDiff)}%</span>
+        </div>
+      </div>`;
+    }).join("");
+    return `
+    <div style="margin-bottom:22px">
+      <div class="display" style="font-size:16px;margin-bottom:12px;color:#1a2744">${emoji} ${groupName}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px">${cards}</div>
+    </div>`;
+  };
+
+  const linkBtns = STOCK_LINKS.map(l=>`
+    <a href="${esc(l.url)}" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-radius:10px;background:${l.color}12;color:${l.color};font-size:13px;font-weight:600;border:1px solid ${l.color}30">
+      <span>🔗 ${esc(l.label)}</span><span style="font-size:15px">↗</span>
+    </a>`).join("");
+
+  return `
+  <div style="margin-bottom:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div>
+        <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px">📈 국내외 주가동향 · ${fmtFull(today)}</div>
+        <div style="font-size:11px;color:#aaa;margin-top:4px">상승 <span style="color:#D32F2F;font-weight:700">▲ 빨강</span> · 하락 <span style="color:#1565C0;font-weight:700">▼ 파랑</span> (국내 증시 관례 기준)</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="font-size:11px;color:${stockFetchStatus==="done"?"#1B7A3E":stockFetchStatus==="error"?"#D32F2F":"#aaa"}">${stockFetchStatus==="loading"?"⏳ 갱신중...":stockFetchStatus==="done"?"🟢 실시간 연동됨":stockFetchStatus==="error"?"⚠️ 연동 실패":""}</span>
+        <button id="btn-refresh-stock" style="border:1px solid #0047A0;border-radius:8px;background:#fff;padding:7px 12px;font-size:12px;color:#0047A0;font-weight:600">🔄 시세 갱신</button>
+        <button id="btn-add-stock" style="border:1px solid #0047A0;border-radius:8px;background:#0047A0;padding:7px 14px;font-size:12px;color:#fff;font-weight:600">➕ 관심종목 추가</button>
+      </div>
+    </div>
+    ${stockFetchStatus==="error"?`<div style="background:#FEF3F2;border:1px solid #FECDCA;border-radius:12px;padding:12px 16px;margin-top:12px;font-size:12px;color:#B42318;line-height:1.7">⚠️ <strong>실시간 연동에 실패했습니다.</strong> 아래 지수는 참고용 고정값입니다. 🔄 버튼으로 다시 시도하거나, 네트워크 환경(회사 방화벽 등)이 야후·프록시 접속을 차단하는지 확인해주세요.</div>`:""}
+  </div>
+  ${renderStockGroup("국내","🇰🇷")}
+  ${renderStockGroup("미국","🇺🇸")}
+  ${renderStockGroup("아시아","🌏")}
+  ${renderStockGroup("관심종목","⭐")}
+
+  <div class="card">
+    <div class="display" style="font-size:16px;margin-bottom:6px">🔗 실시간 주가 조회</div>
+    <div style="font-size:12px;color:#888;margin-bottom:14px;line-height:1.6">정확한 실시간 지수는 아래 사이트에서 확인하세요. 새 탭에서 열립니다.</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">${linkBtns}</div>
   </div>`;
 }
 
 function renderBoardTab(){
-  const grids = allSites().map(s=>{
-    const links = s.boards.map(b=>`
-    <a href="${b.url}" target="_blank" rel="noopener" class="board-link" style="background:${s.color}08;color:${s.color}">
-      <span>${esc(b.label)}</span>
-      <span style="opacity:0.6">→</span>
-    </a>`).join("");
+  const cards = allSites().map((site,idx)=>{
+    const isCustom = idx >= BOARD_SITES.length;
+    const links = site.boards.map(b=>`
+      <a href="${esc(b.url)}" target="_blank" rel="noopener" class="board-link" style="background:${site.color}12;color:${site.color}">
+        <span>📄 ${esc(b.label)}</span><span style="font-size:16px">↗</span>
+      </a>`).join("");
     return `
-    <div class="board-card" style="border-top:4px solid ${s.color}">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-        <div style="display:flex;align-items:center;gap:6px">
-          <span style="font-size:20px">${s.icon}</span>
-          <h3 style="font-size:15px;color:#222;font-weight:700">${esc(s.name)}</h3>
+    <div class="board-card" style="border-top:4px solid ${site.color}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:22px">${site.icon}</span>
+          <div>
+            <div class="display" style="font-size:16px;color:${site.color}">${esc(site.name)}</div>
+            <a href="${esc(site.home)}" target="_blank" rel="noopener" style="font-size:11px;color:#aaa">${esc(site.home.replace(/^https?:\/\//,""))}</a>
+          </div>
         </div>
-        <a href="${s.home}" target="_blank" rel="noopener" style="font-size:11px;color:#aaa;font-weight:600">홈페이지 ↗</a>
+        ${isCustom?`<button class="del-site" data-idx="${idx-BOARD_SITES.length}" style="border:1px solid #fcc;border-radius:8px;background:#fff;padding:3px 9px;font-size:11px;color:#D32F2F">🗑</button>`:""}
       </div>
-      <div style="display:flex;flex-direction:column;gap:6px">${links}</div>
+      ${links}
     </div>`;
   }).join("");
 
   return `
-  <div style="margin-bottom:20px"><h2 class="display" style="font-size:24px;color:#1a2744">📋 축산 유관기관 및 협회 공지사항 게시판</h2></div>
-  <div class="board-grid" style="margin-bottom:30px">${grids}</div>
-  <div class="card" style="background:#f4f6f9">
-    <div style="font-size:14px;font-weight:700;margin-bottom:10px;color:#333">➕ 자주 방문하는 커스텀 사이트 추가</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:12px">
-      <div><label style="font-size:11px;color:#666;display:block;margin-bottom:4px">사이트명</label><input type="text" id="add-site-name" placeholder="예: 농림축산식품부" style="width:100%;padding:7px 10px;font-size:13px;border:1px solid #ccc;border-radius:6px" /></div>
-      <div><label style="font-size:11px;color:#666;display:block;margin-bottom:4px">메인 URL</label><input type="text" id="add-site-home" placeholder="https://..." style="width:100%;padding:7px 10px;font-size:13px;border:1px solid #ccc;border-radius:6px" /></div>
-      <div><label style="font-size:11px;color:#666;display:block;margin-bottom:4px">링크1 이름</label><input type="text" id="add-link-lbl" placeholder="예: 알림마당" style="width:100%;padding:7px 10px;font-size:13px;border:1px solid #ccc;border-radius:6px" /></div>
-      <div><label style="font-size:11px;color:#666;display:block;margin-bottom:4px">링크1 URL</label><input type="text" id="add-link-url" placeholder="https://..." style="width:100%;padding:7px 10px;font-size:13px;border:1px solid #ccc;border-radius:6px" /></div>
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:20px">📋</span>
+        <span class="display" style="font-size:18px">협회 공지사항 바로가기</span>
+      </div>
+      <button id="btn-add-site" style="border:1px solid #1a2744;border-radius:8px;background:#1a2744;padding:6px 13px;font-size:12px;color:#fff">➕ 사이트 추가</button>
     </div>
-    <button id="btn-add-site" style="background:#1a2744;color:#fff;border:none;padding:8px 18px;border-radius:6px;font-size:13px;font-weight:700">나만의 대시보드 사이트 등록</button>
+    <div style="font-size:12px;color:#888;margin-bottom:16px;line-height:1.6">
+      각 협회·매체의 공지사항 게시판으로 바로 이동합니다. 버튼을 누르면 새 탭에서 실제 게시판이 열립니다.
+    </div>
+    <div class="board-grid">${cards}</div>
   </div>`;
 }
 
 function renderFooter(){
+  const links=allSites().map((s,i)=>`<a href="${esc(s.home)}" target="_blank" rel="noopener" style="color:#aaa">${esc(s.name)}</a>${i<allSites().length-1?" · ":""}`).join("");
   return `
-  <footer style="margin-top:4px;padding-top:20px;border-top:1px solid #e0e0e0;text-align:center;font-size:12px;color:#999;line-height:1.6">
-    <div>본 시세 대시보드는 모의 데이터 시뮬레이션 및 외부 공개 API 연동 정보입니다. 실제 거래 및 투자 시 참고용으로만 사용하십시오.</div>
-    <div style="margin-top:4px;font-weight:600;color:#666">© 2026 Livestock Price Dashboard. All Rights Reserved.</div>
-  </footer>
-  <style>
-    @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
-  </style>`;
+  <div style="margin-top:20px;font-size:11px;color:#bbb;text-align:center;line-height:1.8">데이터 출처 · ${links}<br>※ 시세는 업계 평균 수준을 반영한 참고 데이터입니다. 정확한 시세·공지는 각 협회 공식 사이트를 확인하세요.</div>`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 이벤트 핸들러 바인딩 (이벤트 발동 시에만 데이터 요청 처리)
+// 이벤트
 // ═══════════════════════════════════════════════════════════════════════════
 function attachEvents(){
-  document.querySelectorAll(".tab").forEach(btn=>{
-    btn.onclick = () => {
-      const targetTab = btn.getAttribute("data-tab");
-      state.tab = targetTab;
-      
-      // 1. 탭 UI를 먼저 신속하게 그립니다 (로딩 메시지 바인딩 목적 포함)
-      render(); 
-      
-      // 2. 비동기 데이터 갱신 요청을 독립적으로 처리하여 무한 렌더링 루프를 완벽 차단합니다.
-      if(targetTab === "coin" && coinFetchStatus === "idle"){
-        fetchUpbitPrices();
-      } else if(targetTab === "stock" && stockFetchStatus === "idle"){
-        fetchStockPrices();
-      }
-    };
+  document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
+    state.tab=b.dataset.tab; render();
+    if(state.tab==="coin" && coinFetchStatus!=="done" && coinFetchStatus!=="loading") fetchUpbitPrices();
+    if(state.tab==="stock" && stockFetchStatus!=="done" && stockFetchStatus!=="loading") fetchStockPrices();
+  });
+  document.querySelectorAll(".price-card").forEach(c=>c.onclick=()=>{ state.selectedCategory=c.dataset.cat; render(); });
+
+  // 관심종목 추가
+  const addStockBtn=document.getElementById("btn-add-stock");
+  if(addStockBtn) addStockBtn.onclick=()=>{
+    const name=prompt("종목명을 입력하세요\n(예: 삼성전자, 애플)");
+    if(!name||!name.trim()) return;
+    const priceStr=prompt("현재가를 숫자로 입력하세요\n(예: 75000)");
+    if(priceStr===null) return;
+    const cur=parseFloat(priceStr.replace(/[,\s]/g,""));
+    if(!cur||cur<=0){ alert("올바른 숫자를 입력하세요."); return; }
+    const unit=prompt("단위를 입력하세요 (예: 원, pt, $)","원")||"원";
+    const colors=["#0047A0","#E8530A","#1B5E20","#4527A0","#B71C1C","#00695C","#6A1B9A","#283593"];
+    state.customStocks.push({
+      group:"관심종목", key:"ustk_"+Date.now(), name:name.trim(), en:"", icon:"⭐",
+      color:colors[state.customStocks.length%colors.length], unit:unit.trim(),
+      current:cur, prevDay:Math.round(cur*0.995), note:"사용자 추가 · 직접 입력",
+      trend:makeFlatTrend(cur), custom:true,
+    });
+    saveCustomStocks(); render();
+  };
+  document.querySelectorAll(".del-stock").forEach(b=>b.onclick=()=>{
+    state.customStocks=state.customStocks.filter(x=>x.key!==b.dataset.id);
+    saveCustomStocks(); render();
   });
 
-  document.querySelectorAll(".price-card").forEach(card=>{
-    card.onclick = () => {
-      state.selectedCategory = card.getAttribute("data-cat");
-      render();
-    };
+  // 관심코인 추가
+  const addCoinBtn=document.getElementById("btn-add-coin");
+  if(addCoinBtn) addCoinBtn.onclick=async ()=>{
+    const sym=prompt("업비트 코인 심볼을 입력하세요 (대문자)\n예: ADA, TRX, LINK, AVAX, MATIC");
+    if(!sym||!sym.trim()) return;
+    const symbol = sym.trim().toUpperCase();
+    const market = "KRW-" + symbol;
+    // 중복 체크
+    if(allCoins().some(c=>c.market===market)){ alert("이미 추가된 코인입니다."); return; }
+    const name=prompt("코인 이름을 입력하세요 (예: 에이다)", symbol)||symbol;
+    const colors=["#F7931A","#627EEA","#9945FF","#C2A633","#26A17B","#0033AD","#FF060A","#2775CA"];
+    // 먼저 업비트에서 현재가 조회 시도 (다중 경로)
+    let cur=0, prev=0, ok=false;
+    try {
+      const d = await fetchUpbitData(market);
+      if(Array.isArray(d)&&d.length>0){ cur=d[0].trade_price; prev=d[0].prev_closing_price; ok=true; }
+    } catch(e){ console.error(e); }
+    if(!ok){
+      alert("'"+symbol+"'을(를) 업비트 KRW 마켓에서 찾을 수 없습니다.\n심볼을 확인하거나, 업비트에 상장된 코인인지 확인하세요.");
+      return;
+    }
+    state.customCoins.push({
+      key:"ucoin_"+Date.now(), market:market, name:name.trim(), en:symbol, icon:"⭐",
+      color:colors[state.customCoins.length%colors.length], unit:"원",
+      current:cur, prevDay:prev, note:"업비트 실시간",
+      trend:makeFlatTrend(cur), custom:true,
+    });
+    saveCustomCoins(); render();
+  };
+  const refreshCoinBtn=document.getElementById("btn-refresh-coin");
+  if(refreshCoinBtn) refreshCoinBtn.onclick=()=>{ coinFetchStatus="idle"; fetchUpbitPrices(); };
+  const refreshStockBtn=document.getElementById("btn-refresh-stock");
+  if(refreshStockBtn) refreshStockBtn.onclick=()=>{ stockFetchStatus="idle"; fetchStockPrices(); };
+
+  // 축평원 인증키 설정/갱신
+  // 양계 시세 갱신 (날짜 기준 데이터 재생성)
+  const poultryRefreshBtn=document.getElementById("btn-refresh-poultry");
+  if(poultryRefreshBtn) poultryRefreshBtn.onclick=()=>{
+    const fresh=genWeekData();
+    for(let i=0;i<WEEK_DATA.length;i++){ Object.assign(WEEK_DATA[i], fresh[i]); }
+    render();
+  };
+  document.querySelectorAll(".del-coin").forEach(b=>b.onclick=()=>{
+    state.customCoins=state.customCoins.filter(x=>x.key!==b.dataset.id);
+    saveCustomCoins(); render();
   });
 
-  const bAddSite = document.getElementById("btn-add-site");
-  if(bAddSite){
-    bAddSite.onclick = () => {
-      const name = document.getElementById("add-site-name").value.trim();
-      const home = document.getElementById("add-site-home").value.trim();
-      const lbl = document.getElementById("add-link-lbl").value.trim();
-      const url = document.getElementById("add-link-url").value.trim();
-      if(!name || !home || !lbl || !url){ alert("모든 항목을 입력해주세요."); return; }
-      state.customSites.push({ id:"custom_"+Date.now(), name, color:"#475569", icon:"🔖", home, boards:[{ label:lbl, url }] });
-      saveCustom();
-      render();
-    };
-  }
+  const addBtn=document.getElementById("btn-add-site");
+  if(addBtn) addBtn.onclick=()=>{
+    const name=prompt("매체/협회 이름을 입력하세요\n(예: 축산신문)");
+    if(!name||!name.trim()) return;
+    const home=prompt("공지사항 게시판 URL을 입력하세요\n(예: https://example.com/notice)");
+    if(!home||!/^https?:\/\//.test(home.trim())){ if(home!==null) alert("올바른 URL을 입력하세요 (http:// 또는 https://로 시작)"); return; }
+    const colors=["#C0792A","#B71C1C","#006064","#33691E","#4527A0","#0D47A1"];
+    state.customSites.push({
+      id:"custom_"+Date.now(), name:name.trim(), color:colors[state.customSites.length%colors.length], icon:"🔖",
+      home:home.trim(), boards:[{ label:"공지사항 바로가기", url:home.trim() }],
+    });
+    saveCustom(); render();
+  };
 
-  const bAddStock = document.getElementById("btn-add-stock");
-  if(bAddStock){
-    bAddStock.onclick = () => {
-      const group = document.getElementById("cust-stock-group").value.trim() || "관심";
-      const name = document.getElementById("cust-stock-name").value.trim();
-      const sym = document.getElementById("cust-stock-sym").value.trim();
-      const cur = parseFloat(document.getElementById("cust-stock-cur").value) || 0;
-      if(!name || !sym || cur <= 0){ alert("종목명, 야후 심볼, 정상 가격을 입력해 주세요."); return; }
-      state.customStocks.push({ group, key:"cst_"+Date.now(), ysym:sym, name, en:"", icon:"📌", color:"#374151", unit:"pt", current:cur, prevDay:cur, note:"사용자 추가", trend:makeFlatTrend(cur) });
-      saveCustomStocks();
-      stockFetchStatus = "idle"; // 새로고침 유도용 상태 초기화
-      render();
-      fetchStockPrices();
-    };
-  }
-
-  const bAddCoin = document.getElementById("btn-add-coin");
-  if(bAddCoin){
-    bAddCoin.onclick = () => {
-      const name = document.getElementById("cust-coin-name").value.trim();
-      const mk = document.getElementById("cust-coin-mk").value.trim().toUpperCase();
-      const cur = parseFloat(document.getElementById("cust-coin-cur").value) || 0;
-      if(!name || !mk || cur <= 0){ alert("코인명, 업비트 마켓명(KRW-), 정상 가격을 정확히 입력해 주세요."); return; }
-      state.customCoins.push({ key:"cc_"+Date.now(), market:mk, name, en:"", icon:"🪙", color:"#4B5563", unit:"원", current:cur, prevDay:cur, note:"사용자 추가", trend:makeFlatTrend(cur) });
-      saveCustomCoins();
-      coinFetchStatus = "idle"; // 새로고침 유도용 상태 초기화
-      render();
-      fetchUpbitPrices();
-    };
-  }
+  document.querySelectorAll(".del-site").forEach(b=>b.onclick=()=>{
+    const i=parseInt(b.dataset.idx,10);
+    if(confirm("이 사이트를 삭제할까요?")){ state.customSites.splice(i,1); saveCustom(); render(); }
+  });
 }
 
-// 최초 화면 구동 실행 인터페이스
-window.onload = () => {
-  render();
-};
+render();
+// 페이지 로드 시 업비트 코인 시세 미리 갱신 (백그라운드)
+fetchUpbitPrices();
+// 페이지 로드 시 야후 주가지수 미리 갱신 (백그라운드)
+fetchStockPrices();
 </script>
 </body>
 </html>
