@@ -1270,9 +1270,22 @@ function renderWeatherTab(){
   </div>
   <div style="font-size:10px;color:#aaa;text-align:right">
     기온 차이: <span style="color:#D32F2F">▲ 올해가 높음</span> · <span style="color:#1565C0">▼ 올해가 낮음</span>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <span style="font-size:32px">🎬</span>
+      <div style="flex:1">
+        <div class="display" style="font-size:15px;color:#FF0000;margin-bottom:4px">소박사 날씨 정보</div>
+        <div style="font-size:12px;color:#888;margin-bottom:10px;line-height:1.6">축산·농업 현장에 맞는 날씨 정보를 제공하는 소박사 유튜브 채널입니다.</div>
+        <a href="https://youtube.com/@drsohtv?si=bbqdyduKggZmVDAB" target="_blank" rel="noopener"
+           style="display:inline-flex;align-items:center;gap:8px;background:#FF0000;color:#fff;font-size:13px;font-weight:700;padding:10px 18px;border-radius:10px;text-decoration:none">
+          ▶ 유튜브 채널 바로가기
+        </a>
+      </div>
+    </div>
   </div>`;
 }
-
 
 function renderBoardTab(){
   const cards = allSites().map((site,idx)=>{
