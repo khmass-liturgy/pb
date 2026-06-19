@@ -83,49 +83,49 @@ const WEEK_DATA = genWeekData();
 // 최근 12개월 추이를 시뮬레이션. 마지막 값이 최신 현물가 수준.
 const GRAIN_DATA = [
   {
-    key:"corn", name:"옥수수", en:"Corn", icon:"🌽", color:"#E8A50A", unit:"$/bu",
-    current:3.81, prevDay:3.79, note:"CBOT 현물 기준",
-    trend:[4.45,4.38,4.52,4.71,4.64,4.48,4.21,4.05,3.95,3.88,3.79,3.81],
+    key:"corn", ysym:"ZC=F", name:"옥수수", en:"Corn", icon:"🌽", color:"#E8A50A", unit:"$/bu",
+    current:4.14, prevDay:4.155, note:"CBOT 선물 기준",
+    trend:[4.45,4.38,4.52,4.71,4.64,4.48,4.21,4.05,3.95,3.88,4.155,4.14],
   },
   {
-    key:"soybean", name:"대두", en:"Soybean", icon:"🫘", color:"#7A8B1B", unit:"$/bu",
-    current:10.60, prevDay:10.62, note:"CBOT 현물 기준",
-    trend:[12.10,11.85,11.40,10.95,10.30,9.88,10.15,10.45,10.72,10.68,10.62,10.60],
+    key:"soybean", ysym:"ZS=F", name:"대두", en:"Soybean", icon:"🫘", color:"#7A8B1B", unit:"$/bu",
+    current:11.30, prevDay:11.24, note:"CBOT 선물 기준",
+    trend:[12.10,11.85,11.40,10.95,10.30,9.88,10.15,10.45,10.72,10.68,11.24,11.30],
   },
   {
-    key:"wheat", name:"소맥", en:"Wheat", icon:"🌾", color:"#C0792A", unit:"$/bu",
-    current:5.42, prevDay:5.40, note:"CBOT SRW 기준",
-    trend:[6.01,5.88,5.69,5.44,5.38,5.55,5.62,5.58,5.49,5.45,5.40,5.42],
+    key:"wheat", ysym:"ZW=F", name:"소맥", en:"Wheat", icon:"🌾", color:"#C0792A", unit:"$/bu",
+    current:5.74, prevDay:5.68, note:"CBOT SRW 선물 기준",
+    trend:[6.01,5.88,5.69,5.44,5.38,5.55,5.62,5.58,5.49,5.45,5.68,5.74],
   },
   {
-    key:"soymeal", name:"대두박", en:"Soymeal", icon:"🟫", color:"#8D5524", unit:"$/ton",
-    current:298, prevDay:296, note:"CBOT 기준",
-    trend:[340,332,325,318,305,292,288,295,302,300,296,298],
+    key:"soymeal", ysym:"ZM=F", name:"대두박", en:"Soymeal", icon:"🟫", color:"#8D5524", unit:"$/ton",
+    current:301.10, prevDay:302.00, note:"CBOT 선물 기준",
+    trend:[340,332,325,318,305,292,288,295,302,300,302,301.10],
   },
 ];
 
-// ── 세계 유가 동향 (2026년 6월 시세 반영) ────────────────────────────────────
-// 미·이란 평화협정 기대감으로 최근 한 달 약세. 브렌트 약 79$, WTI 약 75$.
+// ── 세계 유가 동향 (2026년 6월 19일 시세 반영) ───────────────────────────────
+// 미·이란 평화협정 + IEA 공급과잉 경고로 급락세. 브렌트 $77대, WTI $76대.
 const OIL_DATA = [
   {
-    key:"brent", name:"브렌트유", en:"Brent", icon:"🛢️", color:"#1B3A5C", unit:"$/bbl",
-    current:79.45, prevDay:78.95, note:"국제 기준유",
-    trend:[75.2,82.6,95.4,109.5,103.1,94.8,88.2,85.6,84.6,81.3,78.9,79.45],
+    key:"brent", ysym:"BZ=F", name:"브렌트유", en:"Brent", icon:"🛢️", color:"#1B3A5C", unit:"$/bbl",
+    current:77.22, prevDay:79.55, note:"국제 기준유",
+    trend:[75.2,82.6,95.4,109.5,103.1,94.8,88.2,85.6,84.6,81.3,79.55,77.22],
   },
   {
-    key:"wti", name:"WTI", en:"WTI", icon:"🛢️", color:"#2C5F2D", unit:"$/bbl",
-    current:75.10, prevDay:75.80, note:"미국 서부텍사스유",
-    trend:[71.5,78.9,91.2,105.3,98.7,90.1,83.5,80.9,80.2,77.1,75.8,75.10],
+    key:"wti", ysym:"CL=F", name:"WTI", en:"WTI", icon:"🛢️", color:"#2C5F2D", unit:"$/bbl",
+    current:76.32, prevDay:78.60, note:"미국 서부텍사스유",
+    trend:[71.5,78.9,91.2,105.3,98.7,90.1,83.5,80.9,80.2,77.1,78.60,76.32],
   },
   {
     key:"dubai", name:"두바이유", en:"Dubai", icon:"🛢️", color:"#8B6914", unit:"$/bbl",
-    current:77.80, prevDay:77.40, note:"국내 도입 기준유",
-    trend:[73.8,80.5,93.1,107.2,100.5,92.3,86.0,83.2,82.4,79.5,77.4,77.80],
+    current:76.90, prevDay:78.80, note:"국내 도입 기준유",
+    trend:[73.8,80.5,93.1,107.2,100.5,92.3,86.0,83.2,82.4,79.5,78.80,76.90],
   },
   {
     key:"gas", name:"국내 휘발유", en:"Gasoline", icon:"⛽", color:"#C0392B", unit:"원/L",
-    current:1638, prevDay:1642, note:"전국 평균",
-    trend:[1710,1735,1788,1845,1820,1772,1715,1688,1672,1655,1642,1638],
+    current:1598, prevDay:1638, note:"전국 평균",
+    trend:[1710,1735,1788,1845,1820,1772,1715,1688,1672,1655,1638,1598],
   },
 ];
 
@@ -469,25 +469,27 @@ async function fetchYahooQuote(symbol){
 }
 
 async function fetchStockPrices(){
-  const targets = STOCK_DATA.filter(s=>s.ysym).concat(state.customStocks.filter(s=>s.ysym));
+  // 주가지수 + 사용자 관심종목 + 곡물 + 유가 (야후 심볼 있는 것만)
+  const targets = STOCK_DATA.filter(s=>s.ysym)
+    .concat(state.customStocks.filter(s=>s.ysym))
+    .concat(GRAIN_DATA.filter(s=>s.ysym))
+    .concat(OIL_DATA.filter(s=>s.ysym));
   if(targets.length===0){ stockFetchStatus="done"; return; }
   stockFetchStatus = "loading";
   if(state.tab==="stock") render();
   let okCount = 0;
-  // 순차 호출(프록시 부하 분산)
   for(const s of targets){
     const q = await fetchYahooQuote(s.ysym);
     if(q){
       s.current = q.cur;
       s.prevDay = q.prev;
-      // 추이: 기존 trend 앞부분 + 야후 최근 종가로 갱신
       if(q.closes.length>=2){
         const tail = q.closes.slice(-6);
         s.trend = s.trend.slice(0, 12-tail.length).concat(tail);
       } else {
         s.trend = s.trend.slice(0,11).concat([q.cur]);
       }
-      s.note = "야후 파이낸스 실시간";
+      s.note = "야후 실시간";
       s._live = true;
       okCount++;
     }
@@ -495,6 +497,8 @@ async function fetchStockPrices(){
   if(okCount>0){ saveCustomStocks(); stockFetchStatus="done"; }
   else stockFetchStatus="error";
   if(state.tab==="stock") render();
+  // 양계 탭도 곡물·유가 갱신됐으면 재렌더
+  if(state.tab==="price") render();
 }
 
 
@@ -578,7 +582,7 @@ function renderCommodityPanel(data, title, link, footnote, decimals){
       <a href="${link.url}" target="_blank" rel="noopener" style="font-size:11px;color:#aaa">${link.label} ↗</a>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px">${cards}</div>
-    <div style="margin-top:8px;font-size:10px;color:#bbb;text-align:right">${footnote}</div>
+    <div style="margin-top:8px;font-size:10px;color:#888;text-align:right">${footnote}</div>
   </div>`;
 }
 
@@ -587,7 +591,7 @@ function renderGrainPanel(){
     GRAIN_DATA,
     "🌍 세계 사료곡물 가격동향 · CBOT",
     { url:"https://www.barchart.com/futures/quotes/ZC*0/futures-prices", label:"실시간 시세" },
-    "※ 사료곡물가는 환율·운임에 따라 국내 사료가에 시차를 두고 반영됩니다.",
+    "옥수수·대두·소맥·대두박은 야후 파이낸스 실시간 연동 | 환율·운임에 따라 국내 사료가에 시차를 두고 반영됩니다.",
     2
   );
 }
@@ -597,7 +601,7 @@ function renderOilPanel(){
     OIL_DATA,
     "🛢️ 세계 유가 동향 · 국제 원유",
     { url:"https://oilprice.com", label:"실시간 시세" },
-    "※ 국제 유가는 환율·정제마진을 거쳐 국내 사료·물류비에 영향을 미칩니다.",
+    "브렌트·WTI는 야후 파이낸스 실시간 연동 | 두바이·국내 휘발유는 참고용 고정값 | 환율·정제마진을 거쳐 국내 사료·물류비에 영향을 미칩니다.",
     2
   );
 }
