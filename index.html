@@ -275,6 +275,69 @@ const LIVESTOCK_LINKS = [
   { label:"축산물품질평가원 메인", url:"https://www.ekape.or.kr", color:"#6B4423" },
 ];
 
+// ── 산지 원가 정보 (농촌경제연구원·축산물생산비조사 기준) ──────────────────
+// 출처: 농경연 2025 축산물생산비조사, 2026 농업전망
+const COST_DATA = {
+  poultry: {
+    title:"🐔 양계 산지 생산비",
+    source:"농경연 2025 축산물생산비조사",
+    updatedYear:"2025",
+    items:[
+      { label:"육계 생산비",      value:"1,413", unit:"원/kg",      note:"전년比 -51원(-3.5%)" },
+      { label:"육계 손익분기",    value:"약 1,750", unit:"원/kg",   note:"현 시세 대비 수익 구간" },
+      { label:"계란 생산비",      value:"1,293", unit:"원/10개",    note:"전년比 +7원(+0.6%)" },
+      { label:"계란 손익분기",    value:"약 1,300", unit:"원/10개", note:"현 시세 대비 수익 구간" },
+    ],
+  },
+  pig: {
+    title:"🐷 양돈 산지 생산비",
+    source:"농경연 2025 축산물생산비조사",
+    updatedYear:"2025",
+    items:[
+      { label:"비육돈 생산비",    value:"359,000", unit:"원/100kg", note:"전년比 -7천원(-1.9%)" },
+      { label:"kg당 생산비",      value:"3,590",   unit:"원/kg",   note:"생체 기준" },
+      { label:"손익분기 도매가",  value:"약 4,000", unit:"원/kg",  note:"지육 기준 환산" },
+      { label:"마리당 순수익",    value:"82,000",  unit:"원/두",   note:"전년比 +5만원(+157%)" },
+    ],
+  },
+  cattle: {
+    title:"🐂 한우 산지 생산비",
+    source:"농경연 2025 축산물생산비조사",
+    updatedYear:"2025",
+    items:[
+      { label:"비육우 생산비",    value:"1,289,000", unit:"원/100kg", note:"전년比 +1.3만원(+1.0%)" },
+      { label:"kg당 생산비",      value:"12,890",    unit:"원/kg",    note:"생체 기준" },
+      { label:"지육 손익분기",    value:"약 17,000", unit:"원/kg",   note:"도축율·등급 반영" },
+      { label:"비육우 순수익",    value:"2,230,000", unit:"원/두",   note:"전년比 +61.5만원(+38%)" },
+      { label:"송아지 생산비",    value:"5,173,000", unit:"원/마리", note:"번식우 기준" },
+    ],
+  },
+};
+
+function renderCostPanel(costKey){
+  const d = COST_DATA[costKey];
+  if(!d) return "";
+  const rows = d.items.map(item=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f5f5f5">
+      <div style="font-size:12px;color:#555;font-weight:600">${item.label}</div>
+      <div style="text-align:right">
+        <span style="font-size:14px;font-weight:800;color:#1a2744">${item.value}</span>
+        <span style="font-size:10px;color:#888;margin-left:3px">${item.unit}</span>
+        <div style="font-size:10px;color:#aaa;margin-top:2px">${item.note}</div>
+      </div>
+    </div>`).join("");
+  return `
+  <div class="card" style="margin-bottom:20px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <div class="display" style="font-size:15px;color:#1a2744">${d.title}</div>
+      <span style="font-size:10px;color:#aaa">${d.updatedYear}년 기준</span>
+    </div>
+    <div style="font-size:10px;color:#bbb;margin-bottom:12px">출처: ${d.source}</div>
+    ${rows}
+    <div style="margin-top:10px;font-size:10px;color:#F9A825">⚠️ 농가별 규모·사양방식에 따라 실제 생산비는 다를 수 있습니다.</div>
+  </div>`;
+}
+
 const PRICE_CATEGORIES = [
   { key:"broiler",   label:"육계",      sub:"산지가", unit:"원/kg",   icon:"🐔", color:"#E8530A", bg:"#FFF3EE" },
   { key:"egg",       label:"계란",      sub:"특란",   unit:"원/개",   icon:"🥚", color:"#D4A012", bg:"#FFFBEE" },
@@ -802,6 +865,7 @@ function renderPriceTab(){
     return `<tr style="border-bottom:1px solid #f0f0f0;background:${isT?"#F0F4FF":i%2===0?"#fafafa":"#fff"}"><td style="padding:10px 12px;font-weight:${isT?700:400};color:${isT?"#2C3E6B":d.isWeekend?"#bbb":"#555"}">${d.label}${isT?" ★":""}</td>${cells}</tr>`;
   }).join("");
   return `
+  ${renderCostPanel("poultry")}
   ${renderGrainPanel()}
   ${renderOilPanel()}
   <div style="margin-bottom:20px">
@@ -938,7 +1002,8 @@ function renderPigTab(){
     <div class="display" style="font-size:16px;margin-bottom:6px">🔗 실시간 양돈 시세 조회</div>
     <div style="font-size:12px;color:#888;margin-bottom:14px;line-height:1.6">정확한 실시간 돼지 경락가격은 아래 공식 사이트에서 확인하세요. 새 탭에서 열립니다.</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">${linkBtns}</div>
-  </div>`;
+  </div>
+  ${renderCostPanel("pig")}`;
 }
 
 function renderLivestockTab(){
@@ -1019,7 +1084,8 @@ function renderLivestockTab(){
     <div class="display" style="font-size:16px;margin-bottom:6px">🔗 실시간 시세 조회 바로가기</div>
     <div style="font-size:12px;color:#888;margin-bottom:14px;line-height:1.6">정확한 실시간 산지시세는 아래 공식 사이트에서 확인하세요. 새 탭에서 열립니다.</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">${linkBtns}</div>
-  </div>`;
+  </div>
+  ${renderCostPanel("cattle")}`;
 }
 
 function renderCoinTab(){
