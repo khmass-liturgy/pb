@@ -2,14 +2,15 @@ name: 🐄 축산·수의 일일 브리핑
 
 on:
   schedule:
-    - cron: '0 0 * * *'   # 매일 오전 9시 KST (= 00:00 UTC, KST = UTC+9)
-  workflow_dispatch:        # 수동 실행 버튼 활성화
+    - cron: '0 0 * * *'   # 매일 오전 9시 KST (= 00:00 UTC)
+  workflow_dispatch:
 
 jobs:
   generate-briefing:
     runs-on: ubuntu-latest
     permissions:
-      contents: write       # 커밋 푸시 권한
+      contents: write
+      models: read          # GitHub Models 접근 권한
 
     steps:
       - name: Checkout repository
@@ -21,11 +22,11 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: echo "No external dependencies required"
+        run: pip install openai
 
       - name: Generate daily briefing
         env:
-          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python scripts/generate_briefing.py
 
       - name: Commit and push briefing
