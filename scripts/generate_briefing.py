@@ -65,19 +65,34 @@ PROMPT = f"""오늘 날짜: {date_str} ({weekday}요일)
 
 # ── Gemini REST API 호출 ─────────────────────────────────────────────────────
 def call_gemini(api_key: str, prompt: str) -> str:
-    url = (
-        "https://generativelanguage.googleapis.com/v1beta/models/"
-        f"gemini-1.5-flash-latest:generateContent?key={api_key}"
-    )
-    body = json.dumps({
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.7, "maxOutputTokens": 8192}
-    }).encode("utf-8")
-    req = urllib.request.Request(url, data=body, method="POST")
-    req.add_header("Content-Type", "application/json")
-    with urllib.request.urlopen(req, timeout=120) as resp:
-        data = json.loads(resp.read())
-    return data["candidates"][0]["content"]["parts"][0]["text"]
+    # 사용 가능한 모델을 순서대로 시도
+    models = [
+        "gemini-1.5-flash",
+        "gemini-1.5-flash-001",
+        "gemini-pro",
+    ]
+    last_error = None
+    for model in models:
+        url = (
+            "https://generativelanguage.googleapis.com/v1beta/models/"
+            f"{model}:generateContent?key={api_key}"
+        )
+        body = json.dumps({
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {"temperature": 0.7, "maxOutputTokens": 8192}
+        }).encode("utf-8")
+        req = urllib.request.Request(url, data=body, method="POST")
+        req.add_header("Content-Type", "application/json")
+        try:
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                data = json.loads(resp.read())
+            print(f"✅ 모델 사용: {model}")
+            return data["candidates"][0]["content"]["parts"][0]["text"]
+        except urllib.error.HTTPError as e:
+            body_txt = e.read().decode("utf-8", errors="replace")
+            print(f"⚠️ {model} 실패 ({e.code}): {body_txt[:300]}")
+            last_error = e
+    raise last_error
 
 # ── README 업데이트 ──────────────────────────────────────────────────────────
 def update_readme(file_date: str, date_str: str, weekday: str) -> None:
