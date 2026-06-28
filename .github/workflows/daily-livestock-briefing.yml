@@ -1,0 +1,37 @@
+name: 🐄 축산·수의 일일 브리핑
+
+on:
+  schedule:
+    - cron: '0 0 * * *'   # 매일 오전 9시 KST (= 00:00 UTC, KST = UTC+9)
+  workflow_dispatch:        # 수동 실행 버튼 활성화
+
+jobs:
+  generate-briefing:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write       # 커밋 푸시 권한
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install anthropic
+
+      - name: Generate daily briefing
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python scripts/generate_briefing.py
+
+      - name: Commit and push briefing
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add briefings/ README.md
+          git diff --staged --quiet || git commit -m "📊 축산·수의 일일 브리핑 $(TZ=Asia/Seoul date +%Y-%m-%d)"
+          git push
