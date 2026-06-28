@@ -11,7 +11,7 @@ import os
 import sys
 from datetime import datetime, timezone, timedelta
 from google import genai
-from google.genai.types import Tool, GenerateContentConfig, GoogleSearch
+from google.genai.types import GenerateContentConfig
 
 # ── 날짜 설정 (KST) ─────────────────────────────────────────────────────────
 KST = timezone(timedelta(hours=9))
@@ -115,10 +115,9 @@ def main() -> None:
     client = genai.Client(api_key=api_key)
 
     response = client.models.generate_content(
-        model="gemini-2.0-flash",
+        model="gemini-1.5-flash",
         contents=PROMPT,
         config=GenerateContentConfig(
-            tools=[Tool(google_search=GoogleSearch())],
             temperature=0.7,
         ),
     )
