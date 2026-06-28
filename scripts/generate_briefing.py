@@ -10,8 +10,7 @@
 import os
 import sys
 from datetime import datetime, timezone, timedelta
-from google import genai
-from google.genai.types import GenerateContentConfig
+import google.generativeai as genai
 
 # ── 날짜 설정 (KST) ─────────────────────────────────────────────────────────
 KST = timezone(timedelta(hours=9))
@@ -112,16 +111,9 @@ def main() -> None:
 
     print(f"📋 브리핑 생성 시작: {date_str} ({weekday}요일)")
 
-    client = genai.Client(api_key=api_key)
-
-    response = client.models.generate_content(
-        model="gemini-1.5-flash",
-        contents=PROMPT,
-        config=GenerateContentConfig(
-            temperature=0.7,
-        ),
-    )
-
+    genai.configure(api_key=api_key)
+    model = genai.GenerativeModel("gemini-1.5-flash")
+    response = model.generate_content(PROMPT)
     briefing_text = response.text.strip()
 
     if not briefing_text:
