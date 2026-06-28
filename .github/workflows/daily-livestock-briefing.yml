@@ -21,7 +21,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install google-generativeai
+        run: echo "No external dependencies required"
 
       - name: Generate daily briefing
         env:
