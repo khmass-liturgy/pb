@@ -7,6 +7,7 @@
 <meta name="description" content="육계·산란계·토종닭·종계 주간 시세 및 협회 공지사항 바로가기" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -54,6 +55,21 @@
   }
   .board-link:hover { filter: brightness(0.96); }
   .hidden { display: none !important; }
+  /* ── 브리핑 마크다운 스타일 ── */
+  #briefing-md h1{font-size:1.15rem;color:#1a2744;border-bottom:2px solid #e8ecf5;padding-bottom:10px;margin-bottom:16px}
+  #briefing-md h2{font-size:1.0rem;color:#2C3E6B;margin:20px 0 8px;font-weight:700}
+  #briefing-md h3{font-size:.88rem;font-weight:700;color:#444;margin:14px 0 6px}
+  #briefing-md p{font-size:.87rem;line-height:1.75;color:#333;margin-bottom:8px}
+  #briefing-md ul,#briefing-md ol{padding-left:18px;margin-bottom:10px}
+  #briefing-md li{font-size:.86rem;line-height:1.75;color:#333}
+  #briefing-md table{width:100%;border-collapse:collapse;font-size:.84rem;margin:10px 0}
+  #briefing-md th{background:#1a2744;color:#fff;padding:8px 10px;text-align:left;font-size:.82rem}
+  #briefing-md td{padding:7px 10px;border-bottom:1px solid #f0f0f0}
+  #briefing-md tr:hover td{background:#f8f9fb}
+  #briefing-md blockquote{border-left:3px solid #2C3E6B;background:#f0f3fa;padding:8px 14px;margin:10px 0;border-radius:0 8px 8px 0;font-size:.85rem;color:#2C3E6B}
+  #briefing-md strong{color:#1a2744}
+  #briefing-md hr{border:none;border-top:1px solid #eee;margin:16px 0}
+  #briefing-md code{background:#f4f4f4;padding:2px 5px;border-radius:4px;font-size:.82rem}
 </style>
 </head>
 <body>
@@ -716,11 +732,92 @@ async function searchLocation(query){
   return data.results||[];
 }
 
+// ── 브리핑 탭 상태 ─────────────────────────────────────────────────────────
+let briefingState = {
+  status:"idle",         // idle | loading | done | error
+  files:[],
+  selected:null,
+  content:"",
+  contentStatus:"idle",  // idle | loading | done | error
+};
+
+async function loadBriefingList(){
+  if(briefingState.files.length>0) return;
+  briefingState.status="loading";
+  if(state.tab==="briefing") render();
+  try {
+    const res = await fetchWithTimeout("https://api.github.com/repos/khmass-liturgy/pb/contents/briefings", 8000);
+    if(!res.ok) throw new Error(res.status);
+    const data = await res.json();
+    briefingState.files = data
+      .filter(f=>f.name.endsWith('.md'))
+      .map(f=>f.name.replace('.md',''))
+      .sort((a,b)=>b.localeCompare(a));
+    briefingState.status="done";
+    if(briefingState.files.length && !briefingState.selected)
+      loadBriefingContent(briefingState.files[0]);
+  } catch(e){
+    briefingState.status="error";
+  }
+  if(state.tab==="briefing") render();
+}
+
+async function loadBriefingContent(date){
+  briefingState.selected=date;
+  briefingState.contentStatus="loading";
+  if(state.tab==="briefing") render();
+  try {
+    const res = await fetchWithTimeout(
+      `https://raw.githubusercontent.com/khmass-liturgy/pb/main/briefings/${date}.md`, 8000);
+    if(!res.ok) throw new Error(res.status);
+    briefingState.content = await res.text();
+    briefingState.contentStatus="done";
+  } catch(e){
+    briefingState.contentStatus="error";
+  }
+  if(state.tab==="briefing") render();
+}
+
+function renderBriefingTab(){
+  if(briefingState.status==="loading")
+    return `<div class="card" style="text-align:center;padding:40px"><div style="font-size:30px;margin-bottom:12px">⏳</div><div style="color:#888;font-size:13px">브리핑 목록을 불러오는 중...</div></div>`;
+  if(briefingState.status==="error")
+    return `<div class="card" style="text-align:center;padding:40px"><div style="font-size:30px;margin-bottom:12px">⚠️</div><div style="color:#D32F2F;font-size:13px">브리핑 목록을 불러오지 못했습니다.</div></div>`;
+  if(!briefingState.files.length && briefingState.status==="done")
+    return `<div class="card" style="text-align:center;padding:40px"><div style="font-size:40px;margin-bottom:12px">📋</div><div style="color:#888;font-size:13px">아직 생성된 브리핑이 없습니다.</div></div>`;
+
+  const DOW=["일","월","화","수","목","금","토"];
+  const dateList = briefingState.files.map((date,i)=>{
+    const [,m,d]=date.split('-');
+    const dow=DOW[new Date(date).getDay()];
+    const label=`${parseInt(m)}/${parseInt(d)} (${dow})`;
+    const sel=date===briefingState.selected;
+    return `<button class="briefing-date-btn" data-date="${date}" style="width:100%;text-align:left;border:none;border-radius:10px;padding:9px 12px;font-size:12px;cursor:pointer;background:${sel?"#1a2744":"#fff"};color:${sel?"#fff":"#333"};font-weight:${sel?700:400};box-shadow:0 1px 4px rgba(0,0,0,.07);margin-bottom:4px;display:flex;align-items:center;justify-content:space-between">${label}${i===0?`<span style="font-size:9px;background:#F9C74F;color:#1a2744;padding:1px 5px;border-radius:10px;font-weight:700">최신</span>`:""}</button>`;
+  }).join('');
+
+  let body="";
+  if(briefingState.contentStatus==="loading")
+    body=`<div style="text-align:center;padding:40px;color:#888;font-size:13px">⏳ 불러오는 중...</div>`;
+  else if(briefingState.contentStatus==="error")
+    body=`<div style="text-align:center;padding:40px;color:#D32F2F;font-size:13px">⚠️ 내용을 불러오지 못했습니다.</div>`;
+  else if(briefingState.content)
+    body=`<div id="briefing-md">${typeof marked!=="undefined"?marked.parse(briefingState.content):briefingState.content.replace(/\n/g,"<br>")}</div>`;
+
+  return `
+  <div style="display:flex;gap:14px;align-items:flex-start">
+    <div style="width:138px;flex-shrink:0">
+      <div style="font-size:11px;color:#888;font-weight:600;letter-spacing:.08em;margin-bottom:8px;padding-left:2px">브리핑 목록</div>
+      ${dateList}
+    </div>
+    <div style="flex:1;min-width:0"><div class="card">${body}</div></div>
+  </div>`;
+}
+
 function render(){
   document.getElementById("app").innerHTML = `
     ${renderHeader()}
     <main>
-      ${state.tab==="price" ? renderPriceTab() : state.tab==="pig" ? renderPigTab() : state.tab==="livestock" ? renderLivestockTab() : state.tab==="stock" ? renderStockTab() : state.tab==="coin" ? renderCoinTab() : state.tab==="weather" ? renderWeatherTab() : state.tab==="news" ? renderNewsTab() : renderBoardTab()}
+      ${state.tab==="price" ? renderPriceTab() : state.tab==="pig" ? renderPigTab() : state.tab==="livestock" ? renderLivestockTab() : state.tab==="stock" ? renderStockTab() : state.tab==="coin" ? renderCoinTab() : state.tab==="weather" ? renderWeatherTab() : state.tab==="news" ? renderNewsTab() : state.tab==="briefing" ? renderBriefingTab() : renderBoardTab()}
       ${renderFooter()}
     </main>`;
   attachEvents();
@@ -748,6 +845,7 @@ function renderHeader(){
       <button class="tab ${state.tab==="coin"?"active":""}" data-tab="coin">🪙 코인</button>
       <button class="tab ${state.tab==="weather"?"active":""}" data-tab="weather">🌤️ 날씨</button>
       <button class="tab ${state.tab==="news"?"active":""}" data-tab="news">📰 뉴스</button>
+      <button class="tab ${state.tab==="briefing"?"active":""}" data-tab="briefing">📋 브리핑</button>
     </div>
   </div></header>`;
 }
@@ -1518,7 +1616,9 @@ function attachEvents(){
       if(saved) fetchWeather(saved.lat, saved.lng, saved.name);
     }
     if(state.tab==="news" && newsState.status==="idle") fetchNews(newsState.activeChannel);
+    if(state.tab==="briefing" && briefingState.status==="idle") loadBriefingList();
   });
+  document.querySelectorAll(".briefing-date-btn").forEach(b=>b.onclick=()=>loadBriefingContent(b.dataset.date));
   document.querySelectorAll(".price-card").forEach(c=>c.onclick=()=>{ state.selectedCategory=c.dataset.cat; render(); });
 
   // 뉴스 채널 버튼
@@ -1560,7 +1660,6 @@ function attachEvents(){
   // 날씨 지역 검색 버튼
   const wxSearchBtn=document.getElementById("btn-wx-search");
   if(wxSearchBtn) wxSearchBtn.onclick=async ()=>{
-    const query=prompt("지역명을 입력하세요\n(예: 서울, 부산, 대구, 광주, 제주)");
     if(!query||!query.trim()) return;
     try {
       const results=await searchLocation(query.trim());
