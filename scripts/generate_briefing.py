@@ -4,13 +4,14 @@
 매일 GitHub Actions에서 실행됩니다.
 
 필요 환경변수:
-  ANTHROPIC_API_KEY — GitHub Secrets에 저장
+  GOOGLE_API_KEY — GitHub Secrets에 저장
 """
 
 import os
 import sys
 from datetime import datetime, timezone, timedelta
-import anthropic
+from google import genai
+from google.genai.types import Tool, GenerateContentConfig, GoogleSearch
 
 # ── 날짜 설정 (KST) ─────────────────────────────────────────────────────────
 KST = timezone(timedelta(hours=9))
@@ -79,9 +80,9 @@ def update_readme(file_date: str, date_str: str, weekday: str) -> None:
                 if line.strip() == "## 최근 브리핑":
                     in_section = True
                     result.append(line)
-                    result.append(new_entry)   # 최신 항목을 맨 위에 삽입
+                    result.append(new_entry)
                 elif in_section and line.startswith("- ["):
-                    if entry_count < 29:       # 최근 30개만 유지
+                    if entry_count < 29:
                         result.append(line)
                     entry_count += 1
                 else:
@@ -104,47 +105,36 @@ def update_readme(file_date: str, date_str: str, weekday: str) -> None:
 
 # ── 메인 ────────────────────────────────────────────────────────────────────
 def main() -> None:
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    api_key = os.environ.get("GOOGLE_API_KEY")
     if not api_key:
-        print("❌ 오류: ANTHROPIC_API_KEY 환경변수가 설정되지 않았습니다.")
+        print("❌ 오류: GOOGLE_API_KEY 환경변수가 설정되지 않았습니다.")
         sys.exit(1)
 
     print(f"📋 브리핑 생성 시작: {date_str} ({weekday}요일)")
 
-    client = anthropic.Anthropic(api_key=api_key)
+    client = genai.Client(api_key=api_key)
 
-    # Claude API 호출 (웹 검색 도구 활성화)
-    response = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=8096,
-        tools=[
-            {
-                "type": "web_search_20250305",
-                "name": "web_search",
-                "max_uses": 15,
-            }
-        ],
-        messages=[{"role": "user", "content": PROMPT}],
+    response = client.models.generate_content(
+        model="gemini-2.0-flash",
+        contents=PROMPT,
+        config=GenerateContentConfig(
+            tools=[Tool(google_search=GoogleSearch())],
+            temperature=0.7,
+        ),
     )
 
-    # 최종 텍스트 추출 (tool_use 블록 제외)
-    briefing_text = "\n".join(
-        block.text for block in response.content
-        if block.type == "text"
-    ).strip()
+    briefing_text = response.text.strip()
 
     if not briefing_text:
-        print("❌ 오류: Claude로부터 텍스트 응답을 받지 못했습니다.")
+        print("❌ 오류: Gemini로부터 텍스트 응답을 받지 못했습니다.")
         sys.exit(1)
 
-    # 파일 저장
     os.makedirs("briefings", exist_ok=True)
     output_path = f"briefings/{file_date}.md"
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(briefing_text)
     print(f"✅ 브리핑 저장 완료: {output_path}")
 
-    # README 업데이트
     update_readme(file_date, date_str, weekday)
 
 
