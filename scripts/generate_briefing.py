@@ -9,8 +9,9 @@
 
 import os
 import sys
+import json
+import urllib.request
 from datetime import datetime, timezone, timedelta
-import google.generativeai as genai
 
 # ── 날짜 설정 (KST) ─────────────────────────────────────────────────────────
 KST = timezone(timedelta(hours=9))
@@ -23,9 +24,8 @@ weekday    = ["월", "화", "수", "목", "금", "토", "일"][today.weekday()]
 PROMPT = f"""오늘 날짜: {date_str} ({weekday}요일)
 
 매일 아침 축산·수의 관련 업계 브리핑을 작성하세요.
-웹 검색을 통해 최신 정보를 수집하고 아래 5개 항목을 포함하여 한국어로 보고서를 작성하세요.
-
-오늘 날짜를 기준으로 최근 24~48시간 이내 정보를 우선 수집하세요.
+아래 5개 항목을 포함하여 한국어로 보고서를 작성하세요.
+가장 최신 학습 데이터 기준으로 시세와 정보를 제공하고, 불확실한 경우 추정임을 명시하세요.
 
 ### 1. 🐄 축산물 시세
 - 한우 (도매가, 등급별 시세 변동)
@@ -52,7 +52,7 @@ PROMPT = f"""오늘 날짜: {date_str} ({weekday}요일)
 - 농림축산식품부 방역 조치 사항
 
 ### 5. 🌤️ 날씨 정보
-- 오늘의 날씨 (온도/습도)
+- 오늘의 날씨 (온도/습도, 서울 기준)
 - 육계/산란계 사양관리 컨설팅 포인트
 - 금주 날씨 전망
 
@@ -63,6 +63,22 @@ PROMPT = f"""오늘 날짜: {date_str} ({weekday}요일)
 - 전체 분량: A4 1~2페이지 분량
 """
 
+# ── Gemini REST API 호출 ─────────────────────────────────────────────────────
+def call_gemini(api_key: str, prompt: str) -> str:
+    url = (
+        "https://generativelanguage.googleapis.com/v1beta/models/"
+        f"gemini-1.5-flash-latest:generateContent?key={api_key}"
+    )
+    body = json.dumps({
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {"temperature": 0.7, "maxOutputTokens": 8192}
+    }).encode("utf-8")
+    req = urllib.request.Request(url, data=body, method="POST")
+    req.add_header("Content-Type", "application/json")
+    with urllib.request.urlopen(req, timeout=120) as resp:
+        data = json.loads(resp.read())
+    return data["candidates"][0]["content"]["parts"][0]["text"]
+
 # ── README 업데이트 ──────────────────────────────────────────────────────────
 def update_readme(file_date: str, date_str: str, weekday: str) -> None:
     readme_path = "README.md"
@@ -71,7 +87,6 @@ def update_readme(file_date: str, date_str: str, weekday: str) -> None:
     if os.path.exists(readme_path):
         with open(readme_path, "r", encoding="utf-8") as f:
             content = f.read()
-
         if "## 최근 브리핑" in content:
             lines = content.splitlines()
             result, in_section, entry_count = [], False, 0
@@ -96,11 +111,9 @@ def update_readme(file_date: str, date_str: str, weekday: str) -> None:
             "매일 자동 생성되는 축산·수의 업계 브리핑입니다.\n\n"
             f"## 최근 브리핑\n{new_entry}\n"
         )
-
     with open(readme_path, "w", encoding="utf-8") as f:
         f.write(content)
     print("✅ README 업데이트 완료")
-
 
 # ── 메인 ────────────────────────────────────────────────────────────────────
 def main() -> None:
@@ -111,10 +124,7 @@ def main() -> None:
 
     print(f"📋 브리핑 생성 시작: {date_str} ({weekday}요일)")
 
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-1.5-flash")
-    response = model.generate_content(PROMPT)
-    briefing_text = response.text.strip()
+    briefing_text = call_gemini(api_key, PROMPT).strip()
 
     if not briefing_text:
         print("❌ 오류: Gemini로부터 텍스트 응답을 받지 못했습니다.")
