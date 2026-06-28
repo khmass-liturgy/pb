@@ -3,15 +3,14 @@
 축산·수의 업계 일일 브리핑 자동 생성 스크립트
 매일 GitHub Actions에서 실행됩니다.
 
-필요 환경변수:
-  GOOGLE_API_KEY — GitHub Secrets에 저장
+GitHub Models (무료) 사용 — GITHUB_TOKEN은 Actions에서 자동 제공됩니다.
+별도 API 키 불필요.
 """
 
 import os
 import sys
-import json
-import urllib.request
 from datetime import datetime, timezone, timedelta
+from openai import OpenAI
 
 # ── 날짜 설정 (KST) ─────────────────────────────────────────────────────────
 KST = timezone(timedelta(hours=9))
@@ -63,37 +62,6 @@ PROMPT = f"""오늘 날짜: {date_str} ({weekday}요일)
 - 전체 분량: A4 1~2페이지 분량
 """
 
-# ── Gemini REST API 호출 ─────────────────────────────────────────────────────
-def call_gemini(api_key: str, prompt: str) -> str:
-    # 사용 가능한 모델을 순서대로 시도
-    models = [
-        "gemini-1.5-flash",
-        "gemini-1.5-flash-001",
-        "gemini-pro",
-    ]
-    last_error = None
-    for model in models:
-        url = (
-            "https://generativelanguage.googleapis.com/v1beta/models/"
-            f"{model}:generateContent?key={api_key}"
-        )
-        body = json.dumps({
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"temperature": 0.7, "maxOutputTokens": 8192}
-        }).encode("utf-8")
-        req = urllib.request.Request(url, data=body, method="POST")
-        req.add_header("Content-Type", "application/json")
-        try:
-            with urllib.request.urlopen(req, timeout=120) as resp:
-                data = json.loads(resp.read())
-            print(f"✅ 모델 사용: {model}")
-            return data["candidates"][0]["content"]["parts"][0]["text"]
-        except urllib.error.HTTPError as e:
-            body_txt = e.read().decode("utf-8", errors="replace")
-            print(f"⚠️ {model} 실패 ({e.code}): {body_txt[:300]}")
-            last_error = e
-    raise last_error
-
 # ── README 업데이트 ──────────────────────────────────────────────────────────
 def update_readme(file_date: str, date_str: str, weekday: str) -> None:
     readme_path = "README.md"
@@ -132,17 +100,29 @@ def update_readme(file_date: str, date_str: str, weekday: str) -> None:
 
 # ── 메인 ────────────────────────────────────────────────────────────────────
 def main() -> None:
-    api_key = os.environ.get("GOOGLE_API_KEY")
-    if not api_key:
-        print("❌ 오류: GOOGLE_API_KEY 환경변수가 설정되지 않았습니다.")
+    github_token = os.environ.get("GITHUB_TOKEN")
+    if not github_token:
+        print("❌ 오류: GITHUB_TOKEN이 없습니다.")
         sys.exit(1)
 
     print(f"📋 브리핑 생성 시작: {date_str} ({weekday}요일)")
 
-    briefing_text = call_gemini(api_key, PROMPT).strip()
+    client = OpenAI(
+        base_url="https://models.inference.ai.azure.com",
+        api_key=github_token,
+    )
+
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content": PROMPT}],
+        temperature=0.7,
+        max_tokens=8192,
+    )
+
+    briefing_text = response.choices[0].message.content.strip()
 
     if not briefing_text:
-        print("❌ 오류: Gemini로부터 텍스트 응답을 받지 못했습니다.")
+        print("❌ 오류: 텍스트 응답을 받지 못했습니다.")
         sys.exit(1)
 
     os.makedirs("briefings", exist_ok=True)
