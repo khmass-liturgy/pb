@@ -2,7 +2,7 @@ name: 🐄 축산·수의 일일 브리핑
 
 on:
   schedule:
-    - cron: '0 23 * * *'   # 매일 오전 9시 KST (= 00:00 UTC)
+    - cron: '0 23 * * *'   # 매일 오전 8시 KST (= 00:00 UTC)
   workflow_dispatch:
 
 jobs:
