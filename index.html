@@ -672,10 +672,12 @@ async function fetchNews(channelId){
   newsState.status="loading"; newsState.activeChannel=channelId;
   if(state.tab==="news") render();
   try {
-    // 구글 뉴스 RSS에 최근 7일 날짜 필터 추가
-    const d7 = new Date(); d7.setDate(d7.getDate()-7);
-    const afterStr = `${d7.getFullYear()}-${String(d7.getMonth()+1).padStart(2,"0")}-${String(d7.getDate()).padStart(2,"0")}`;
-    const rssWithDate = ch.rss + (ch.rss.includes("?")?"&":"?") + "after:" + afterStr;
+    // 구글 뉴스 RSS: when:7d 파라미터로 최근 7일 필터
+    // after: 방식은 구글 뉴스 RSS에서 동작 안 함
+    const rssWithDate = ch.rss.replace(
+      /(&hl=ko)/,
+      "&when=7d$1"
+    );
     const url = RSS2JSON + "?rss_url=" + encodeURIComponent(rssWithDate) + "&count=20";
     const resp = await fetchWithTimeout(url, 10000);
     if(!resp.ok) throw new Error("HTTP "+resp.status);
