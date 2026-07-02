@@ -424,7 +424,32 @@ function saveCustomCoins(){ try { localStorage.setItem("custom_coins", JSON.stri
 // ═══════════════════════════════════════════════════════════════════════════
 let state = { tab:"price", selectedCategory:"broiler", customSites:loadCustom(), customStocks:loadCustomList("custom_stocks"), customCoins:loadCustomList("custom_coins") };
 
-// ── 국내 주요뉴스 ─────────────────────────────────────────────────────────
+// ── 다봄 실시간 시세 (GitHub Actions → prices/prices.json) ────────────────
+const PRICES_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/prices/prices.json";
+let pricesCache = null;
+let pricesState = { status:"idle", data:null, updatedAt:"" };
+
+async function fetchDabomPrices(){
+  if(pricesCache) return pricesCache;
+  try {
+    const resp = await fetchWithTimeout(PRICES_JSON_URL + "?t=" + Date.now(), 8000);
+    if(!resp.ok) throw new Error("HTTP "+resp.status);
+    pricesCache = await resp.json();
+    pricesState.data = pricesCache.prices || {};
+    pricesState.updatedAt = pricesCache.updated || "";
+    pricesState.status = "done";
+  } catch(e) {
+    console.warn("다봄 시세 로드 실패:", e.message);
+    pricesState.status = "error";
+  }
+  return pricesCache;
+}
+
+function getDabomPrice(type, field){
+  return pricesState.data?.[type]?.[field] ?? null;
+}
+
+
 const NEWS_CHANNELS = [
   { id:"livestock", label:"축산·농업", color:"#E8530A", icon:"🐄",
     rss:"https://news.google.com/rss/search?q=축산+농업&hl=ko&gl=KR&ceid=KR:ko" },
@@ -923,6 +948,93 @@ function renderOilPanel(){
   );
 }
 
+function renderDabomPricePanel(type){
+  const d = pricesState.data;
+  const updAt = pricesState.updatedAt;
+  const status = pricesState.status;
+
+  // 공통 카드 스타일
+  const card = (label, val, unit, sub="") => {
+    const hasVal = val != null;
+    return `
+    <div style="background:#fff;border-radius:10px;padding:12px;border:1px solid #efefef;text-align:center">
+      <div style="font-size:10px;color:#888;margin-bottom:4px;font-weight:600">${label}</div>
+      <div style="font-size:16px;font-weight:800;color:#1a2744">${hasVal ? Number(val).toLocaleString() : "-"}</div>
+      <div style="font-size:10px;color:#aaa">${unit}</div>
+      ${sub ? `<div style="font-size:9px;color:#bbb;margin-top:2px">${sub}</div>` : ""}
+    </div>`;
+  };
+
+  let cards = "";
+  let title = "", link = "", dateStr = "";
+
+  if(type === "chicken"){
+    const ch = d?.chicken;
+    dateStr = ch?.date || "";
+    title = "🐔 육계 실시간 시세";
+    link = "https://www.ekapepia.com/v3/price/livestock/chicken/distrPrice.do?menuSn=35&boardInfoNo=";
+    cards = [
+      card("산지(생계유통·대)", ch?.sanji_live, "원/kg"),
+      card("산지(위탁생계·중)", ch?.sanji_contract, "원/kg"),
+      card("도매(전체)", ch?.wholesale_all, "원/kg"),
+      card("도매(10호)", ch?.wholesale_10, "원/kg"),
+      card("소매", ch?.consumer, "원/kg"),
+    ].join("");
+  } else if(type === "pig"){
+    const pg = d?.pig;
+    dateStr = pg?.date || "";
+    title = "🐷 돼지 실시간 시세";
+    link = "https://www.ekapepia.com/v3/price/livestock/pig/distrPrice.do?menuSn=34&boardInfoNo=";
+    const sanji_kg = pg?.sanji_110kg ? Math.round(pg.sanji_110kg * 1000 / 110) : null;
+    cards = [
+      card("산지(농가수취)", pg?.sanji_110kg, "천원/110kg"),
+      card("산지(kg당환산)", sanji_kg, "원/kg", "110kg 기준"),
+      card("도매탕박(전체)", pg?.wholesale_all, "원/kg"),
+      card("도매탕박(1등급)", pg?.wholesale_1grade, "원/kg"),
+      card("삼겹살(소비자)", pg?.consumer_samgyupsal, "원/kg"),
+    ].join("");
+  } else if(type === "egg"){
+    const eg = d?.egg;
+    dateStr = eg?.date || "";
+    title = "🥚 계란 실시간 시세";
+    link = "https://www.ekapepia.com/v3/price/livestock/egg/distrPrice.do?menuSn=36&boardInfoNo=";
+    cards = [
+      card("특란 산지", eg?.sanji_special, "원/개"),
+      card("대란 산지", eg?.sanji_large, "원/개"),
+      card("특란 도매", eg?.wholesale_special, "원/개"),
+      card("대란 도매", eg?.wholesale_large, "원/개"),
+      card("소매(특란10개)", eg?.consumer_10, "원"),
+    ].join("");
+  }
+
+  const statusBadge = status === "done"
+    ? `<span style="font-size:10px;color:#1B7A3E">🟢 ${updAt} 수집</span>`
+    : status === "error"
+    ? `<span style="font-size:10px;color:#D32F2F">⚠️ 데이터 없음</span>`
+    : `<span style="font-size:10px;color:#aaa">⏳ 로딩중...</span>`;
+
+  return `
+  <div class="card" style="margin-bottom:20px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:6px">
+      <div>
+        <div class="display" style="font-size:15px">${title}</div>
+        <div style="margin-top:3px">${statusBadge}${dateStr?` <span style="font-size:10px;color:#aaa">· ${dateStr} 기준</span>`:""}</div>
+      </div>
+      <a href="${link}" target="_blank" rel="noopener"
+         style="font-size:11px;color:#E84A6F;border:1px solid #E84A6F;border-radius:6px;padding:5px 10px;text-decoration:none">
+        📊 다봄 상세보기 ↗
+      </a>
+    </div>
+    ${status === "idle" || status === "error"
+      ? `<div style="text-align:center;padding:16px;color:#aaa;font-size:12px">
+           ${status==="error" ? "⚠️ Actions 수집 데이터가 없습니다. 수동 실행 후 다시 확인해주세요." : "데이터 로딩 중..."}
+         </div>`
+      : `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px">${cards}</div>`
+    }
+    <div style="font-size:9px;color:#ccc;margin-top:8px;text-align:right">※ GitHub Actions 매일 오전 8시·12시·15시 자동 수집 · 출처: KAPE 다봄</div>
+  </div>`;
+}
+
 function renderDabomBar(dabomUrl){
   return `
   <a href="${dabomUrl}" target="_blank" rel="noopener" style="display:inline-flex;gap:6px;align-items:center;font-size:12px;color:#E84A6F;font-weight:600;border:1px solid #E84A6F;border-radius:8px;padding:7px 13px">📊 다봄 실시간 시세 ↗</a>`;
@@ -966,6 +1078,8 @@ function renderPriceTab(){
     return `<tr style="border-bottom:1px solid #f0f0f0;background:${isT?"#F0F4FF":i%2===0?"#fafafa":"#fff"}"><td style="padding:10px 12px;font-weight:${isT?700:400};color:${isT?"#2C3E6B":d.isWeekend?"#bbb":"#555"}">${d.label}${isT?" ★":""}</td>${cells}</tr>`;
   }).join("");
   return `
+  ${renderDabomPricePanel("chicken")}
+  ${renderDabomPricePanel("egg")}
   ${renderCostPanel("poultry")}
   ${renderGrainPanel()}
   ${renderOilPanel()}
@@ -1104,6 +1218,7 @@ function renderPigTab(){
     <div style="font-size:12px;color:#888;margin-bottom:14px;line-height:1.6">정확한 실시간 돼지 경락가격은 아래 공식 사이트에서 확인하세요. 새 탭에서 열립니다.</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">${linkBtns}</div>
   </div>
+  ${renderDabomPricePanel("pig")}
   ${renderCostPanel("pig")}`;
 }
 
@@ -1778,6 +1893,8 @@ render();
 fetchUpbitPrices();
 // 페이지 로드 시 야후 주가지수 미리 갱신 (백그라운드)
 fetchStockPrices();
+// 다봄 실시간 시세 자동 로드 (백그라운드)
+fetchDabomPrices().then(()=>{ if(state.tab==="price"||state.tab==="pig") render(); });
 </script>
 </body>
 </html>
