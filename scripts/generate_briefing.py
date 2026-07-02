@@ -32,6 +32,7 @@ PROMPT = f"""오늘 날짜: {date_str} ({weekday}요일)
 - 닭 (육계, 토종닭, 계란, 육계병아리, 삼계 도매가)
 - 한우,돼지,닭 (산지시세)
 - 전일 대비 등락 방향 명시
+- 닭,돼지,한우,계란 산지시세는 https://www.ekapepia.com/v3/web/main.do?userGroup=producer 에서 추출
 
 ### 2. 🌾 사료 원료 시세
 - 옥수수 (국제 선물가, CBOT)
