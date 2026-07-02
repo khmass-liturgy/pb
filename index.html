@@ -426,6 +426,27 @@ let state = { tab:"price", selectedCategory:"broiler", customSites:loadCustom(),
 
 // ── 다봄 실시간 시세 (GitHub Actions → prices/prices.json) ────────────────
 const PRICES_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/prices/prices.json";
+
+// ── 공지사항 (GitHub Actions → notices/notices.json) ──────────────────────
+const NOTICES_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/notices/notices.json";
+let noticesCache = null;
+let noticesState = { status:"idle", data:null, updatedAt:"", activeSite:"poultry", activeBoard:"공지사항" };
+
+async function fetchNotices(){
+  if(noticesCache) return noticesCache;
+  try {
+    const resp = await fetchWithTimeout(NOTICES_JSON_URL + "?t=" + Date.now(), 8000);
+    if(!resp.ok) throw new Error("HTTP "+resp.status);
+    noticesCache = await resp.json();
+    noticesState.data = noticesCache.sites || {};
+    noticesState.updatedAt = noticesCache.updated || "";
+    noticesState.status = "done";
+  } catch(e) {
+    console.warn("공지사항 로드 실패:", e.message);
+    noticesState.status = "error";
+  }
+  return noticesCache;
+}
 let pricesCache = null;
 let pricesState = { status:"idle", data:null, updatedAt:"" };
 
@@ -1699,41 +1720,108 @@ function renderWeatherTab(){
 }
 
 function renderBoardTab(){
-  const cards = allSites().map((site,idx)=>{
-    const isCustom = idx >= BOARD_SITES.length;
-    const links = site.boards.map(b=>`
-      <a href="${esc(b.url)}" target="_blank" rel="noopener" class="board-link" style="background:${site.color}12;color:${site.color}">
-        <span>📄 ${esc(b.label)}</span><span style="font-size:16px">↗</span>
-      </a>`).join("");
-    return `
-    <div class="board-card" style="border-top:4px solid ${site.color}">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-size:22px">${site.icon}</span>
-          <div>
-            <div class="display" style="font-size:16px;color:${site.color}">${esc(site.name)}</div>
-            <a href="${esc(site.home)}" target="_blank" rel="noopener" style="font-size:11px;color:#aaa">${esc(site.home.replace(/^https?:\/\//,""))}</a>
-          </div>
-        </div>
-        ${isCustom?`<button class="del-site" data-idx="${idx-BOARD_SITES.length}" style="border:1px solid #fcc;border-radius:8px;background:#fff;padding:3px 9px;font-size:11px;color:#D32F2F">🗑</button>`:""}
-      </div>
-      ${links}
-    </div>`;
+  const ns = noticesState;
+  const siteList = BOARD_SITES;
+
+  // 사이트 탭 버튼
+  const siteTabs = siteList.map(s=>{
+    const active = ns.activeSite === s.id;
+    return `<button class="notice-site-btn" data-site="${s.id}"
+      style="border:1px solid ${s.color};border-radius:8px;padding:6px 12px;font-size:11px;font-weight:600;
+             background:${active?s.color:"#fff"};color:${active?"#fff":s.color};cursor:pointer">
+      ${s.icon} ${s.name}
+    </button>`;
   }).join("");
 
+  // 현재 선택된 사이트
+  const curSite = siteList.find(s=>s.id===ns.activeSite) || siteList[0];
+
+  // 게시판 탭
+  const boardTabs = curSite.boards.map(b=>{
+    const active = ns.activeBoard === b.label;
+    return `<button class="notice-board-btn" data-board="${esc(b.label)}" data-url="${esc(b.url)}"
+      style="border:1px solid ${curSite.color}55;border-radius:6px;padding:5px 10px;font-size:11px;
+             background:${active?curSite.color+"22":"#fff"};color:${active?curSite.color:"#666"};cursor:pointer">
+      ${esc(b.label)}
+    </button>`;
+  }).join("");
+
+  // 공지 목록
+  let listHtml = "";
+  if(ns.status === "idle" || ns.status === "loading"){
+    listHtml = `<div style="text-align:center;padding:24px;color:#aaa;font-size:13px">⏳ 공지사항을 불러오는 중...</div>`;
+  } else if(ns.status === "error"){
+    listHtml = `<div style="text-align:center;padding:24px">
+      <div style="color:#D32F2F;font-size:13px;margin-bottom:12px">⚠️ 공지사항을 가져오지 못했습니다.</div>
+      <div style="font-size:11px;color:#aaa">Actions 수동 실행 후 다시 확인해주세요.</div>
+    </div>`;
+  } else if(ns.status === "done"){
+    const siteData = ns.data?.[ns.activeSite];
+    const boardItems = siteData?.boards?.[ns.activeBoard] || [];
+    if(boardItems.length === 0){
+      listHtml = `<div style="text-align:center;padding:24px;color:#aaa;font-size:12px">📭 수집된 공지사항이 없습니다.</div>`;
+    } else {
+      listHtml = boardItems.map((item,i)=>`
+      <a href="${esc(item.link||"#")}" target="_blank" rel="noopener"
+         style="display:block;padding:12px 0;border-bottom:1px solid #f0f0f0;text-decoration:none">
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <span style="min-width:20px;font-size:11px;font-weight:700;color:#bbb;margin-top:2px">${i+1}</span>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:600;color:#1a1a1a;line-height:1.5">${esc(item.title)}</div>
+            ${item.date?`<div style="font-size:10px;color:#aaa;margin-top:3px">${esc(item.date)}</div>`:""}
+          </div>
+          <span style="font-size:13px;color:#ccc;flex-shrink:0">↗</span>
+        </div>
+      </a>`).join("");
+    }
+  }
+
+  // 바로가기 버튼 (기존 기능 유지)
+  const shortcuts = curSite.boards.map(b=>`
+    <a href="${esc(b.url)}" target="_blank" rel="noopener"
+       style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:${curSite.color};
+              border:1px solid ${curSite.color};border-radius:6px;padding:5px 10px;text-decoration:none">
+      📄 ${esc(b.label)} ↗
+    </a>`).join("");
+
+  const statusBadge = ns.status==="done"
+    ? `<span style="font-size:10px;color:#1B7A3E">🟢 ${ns.updatedAt} 수집</span>`
+    : ns.status==="error"
+    ? `<span style="font-size:10px;color:#D32F2F">⚠️ 데이터 없음</span>`
+    : `<span style="font-size:10px;color:#aaa">⏳ 로딩중...</span>`;
+
   return `
-  <div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-      <div style="display:flex;align-items:center;gap:10px">
-        <span style="font-size:20px">📋</span>
-        <span class="display" style="font-size:18px">협회 공지사항 바로가기</span>
+  <div style="margin-bottom:14px">
+    <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px;margin-bottom:12px">
+      📋 협회 공지사항 · ${statusBadge}
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">${siteTabs}</div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:20px">${curSite.icon}</span>
+        <span class="display" style="font-size:15px;color:${curSite.color}">${curSite.name}</span>
       </div>
-      <button id="btn-add-site" style="border:1px solid #1a2744;border-radius:8px;background:#1a2744;padding:6px 13px;font-size:12px;color:#fff">➕ 사이트 추가</button>
+      <a href="${esc(curSite.home)}" target="_blank" rel="noopener"
+         style="font-size:11px;color:${curSite.color};border:1px solid ${curSite.color};border-radius:6px;padding:5px 10px;text-decoration:none">
+        🏠 사이트 홈 ↗
+      </a>
     </div>
-    <div style="font-size:12px;color:#888;margin-bottom:16px;line-height:1.6">
-      각 협회·매체의 공지사항 게시판으로 바로 이동합니다. 버튼을 누르면 새 탭에서 실제 게시판이 열립니다.
-    </div>
-    <div class="board-grid">${cards}</div>
+
+    <!-- 게시판 선택 탭 -->
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">${boardTabs}</div>
+
+    <!-- 공지 목록 -->
+    <div style="font-size:10px;color:#bbb;margin-bottom:8px">클릭하면 원문 게시판으로 이동 · GitHub Actions 매일 오전 8시 수집</div>
+    ${listHtml}
+  </div>
+
+  <!-- 게시판 바로가기 버튼 (원문 직접 이동) -->
+  <div class="card">
+    <div class="display" style="font-size:14px;margin-bottom:10px">🔗 게시판 바로가기</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">${shortcuts}</div>
   </div>`;
 }
 
@@ -1758,9 +1846,24 @@ function attachEvents(){
     }
     if(state.tab==="news" && newsState.status==="idle") fetchNews(newsState.activeChannel);
     if(state.tab==="briefing" && briefingState.status==="idle") loadBriefingList();
+    if(state.tab==="board" && noticesState.status==="idle") fetchNotices().then(()=>render());
   });
   document.querySelectorAll(".briefing-date-btn").forEach(b=>b.onclick=()=>loadBriefingContent(b.dataset.date));
   document.querySelectorAll(".price-card").forEach(c=>c.onclick=()=>{ state.selectedCategory=c.dataset.cat; render(); });
+
+  // 공지 사이트 버튼
+  document.querySelectorAll(".notice-site-btn").forEach(b=>b.onclick=()=>{
+    noticesState.activeSite = b.dataset.site;
+    const site = BOARD_SITES.find(s=>s.id===b.dataset.site);
+    if(site && site.boards.length) noticesState.activeBoard = site.boards[0].label;
+    render();
+  });
+
+  // 공지 게시판 버튼
+  document.querySelectorAll(".notice-board-btn").forEach(b=>b.onclick=()=>{
+    noticesState.activeBoard = b.dataset.board;
+    render();
+  });
 
   // 뉴스 채널 버튼
   document.querySelectorAll(".news-ch-btn").forEach(b=>b.onclick=()=>{
