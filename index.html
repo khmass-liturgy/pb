@@ -1006,11 +1006,26 @@ function renderDabomPricePanel(type){
     title = "🥚 계란 실시간 시세";
     link = "https://www.ekapepia.com/v3/price/livestock/egg/distrPrice.do?menuSn=36&boardInfoNo=";
     cards = [
-      card("특란 산지",     eg?.sanji_special,      "원/개", eg?.diff_sanji_special),
-      card("대란 산지",     eg?.sanji_large,         "원/개"),
-      card("특란 도매",     eg?.wholesale_special,   "원/개", eg?.diff_wholesale_special),
-      card("대란 도매",     eg?.wholesale_large,     "원/개"),
-      card("소매(특란10개)", eg?.consumer_10,        "원"),
+      card("특란 산지",      eg?.sanji_special,      "원/10개", eg?.diff_sanji_special),
+      card("대란 산지",      eg?.sanji_large,         "원/10개"),
+      card("특란 도매",      eg?.wholesale_special,   "원/10개", eg?.diff_wholesale_special),
+      card("대란 도매",      eg?.wholesale_large,     "원/10개"),
+      card("소매(특란·10개)", eg?.consumer_10,        "원/10개"),
+    ].join("");
+  } else if(type === "cow"){
+    const cw = d?.cow;
+    dateStr = cw?.date || "";
+    title = "🐂 한우 산지 시세";
+    link = "https://www.ekapepia.com/v3/price/livestock/cow/producer.do";
+    cards = [
+      card("큰암소",        cw?.big_cow,          "천원/마리", cw?.diff_big_cow),
+      card("수송아지(6~7월)", cw?.calf_m_67,        "천원/마리"),
+      card("암송아지(6~7월)", cw?.calf_f_67,        "천원/마리"),
+      card("수송아지(4~5월)", cw?.calf_m_45,        "천원/마리"),
+      card("암송아지(4~5월)", cw?.calf_f_45,        "천원/마리"),
+      card("농가수취 거세우", cw?.hanwoo_castrated, "천원/마리", cw?.diff_castrated),
+      card("농가수취 평균",  cw?.hanwoo_avg,       "천원/마리"),
+      card("농가수취 비거세", cw?.hanwoo_noncasted, "천원/마리"),
     ].join("");
   }
 
@@ -1308,7 +1323,8 @@ function renderLivestockTab(){
     <div style="font-size:12px;color:#888;margin-bottom:14px;line-height:1.6">정확한 실시간 산지시세는 아래 공식 사이트에서 확인하세요. 새 탭에서 열립니다.</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">${linkBtns}</div>
   </div>
-  ${renderCostPanel("cattle")}`;
+  ${renderCostPanel("cattle")}
+  ${renderDabomPricePanel("cow")}`;
 }
 
 function renderCoinTab(){
