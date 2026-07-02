@@ -1,77 +1,84 @@
 {
-  "updated": "2026-07-02 18:28 KST",
+  "updated": "2026-07-02 21:18 KST",
   "prices": {
-    "pig": {
-      "date": "5580",
-      "sanji_110kg": 620914.0,
-      "wholesale_all": 66142.0,
-      "wholesale_1grade": 28860160.0,
-      "consumer_samgyupsal": null,
-      "recent": [
-        {
-          "date": "5580",
-          "sanji": 620914.0,
-          "wholesale": 66142.0
-        },
-        {
-          "date": "5581",
-          "sanji": 622343.0,
-          "wholesale": 661210.0
-        },
-        {
-          "date": "55928",
-          "sanji": 6180153.0,
-          "wholesale": 6622330.0
-        }
-      ]
-    },
     "chicken": {
-      "date": "1,685115",
-      "sanji_live": 17914.0,
-      "sanji_contract": 373947.0,
-      "wholesale_10": 346545.0,
+      "date": "1,685",
+      "sanji_live": 1791.0,
+      "sanji_contract": 3739.0,
+      "wholesale_10": 3465.0,
       "wholesale_all": null,
       "consumer": null,
+      "diff_sanji_live": -4.0,
+      "diff_wholesale_all": null,
       "recent": [
         {
-          "date": "1,685115",
-          "sanji": 17914.0,
-          "wholesale": null
-        },
-        {
-          "date": "1,8000",
-          "sanji": 17951.0,
-          "wholesale": 636829.0
+          "date": "1,685",
+          "sanji_live": 1791.0,
+          "wholesale_all": null
         },
         {
           "date": "1,800",
-          "sanji": 179629.0,
-          "wholesale": 63398.0
+          "sanji_live": 1795.0,
+          "wholesale_all": 6368.0
+        },
+        {
+          "date": "1,800",
+          "sanji_live": 1796.0,
+          "wholesale_all": 6339.0
+        }
+      ]
+    },
+    "pig": {
+      "date": "558",
+      "sanji_110kg": 6209.0,
+      "wholesale_all": 6614.0,
+      "wholesale_1grade": 6660.0,
+      "consumer_samgyupsal": 28860.0,
+      "sanji_per_kg": 56445,
+      "diff_sanji": -14.0,
+      "diff_wholesale": 2.0,
+      "recent": [
+        {
+          "date": "558",
+          "sanji_110kg": 6209.0,
+          "wholesale_all": 6614.0
+        },
+        {
+          "date": "558",
+          "sanji_110kg": 6223.0,
+          "wholesale_all": 6612.0
+        },
+        {
+          "date": "559",
+          "sanji_110kg": 6180.0,
+          "wholesale_all": 6622.0
         }
       ]
     },
     "egg": {
-      "date": "6,60625",
-      "sanji_special": 22028.0,
-      "sanji_large": 731623.0,
-      "wholesale_special": 24398.0,
+      "date": "6,606",
+      "sanji_special": 2202.0,
+      "sanji_large": 7316.0,
+      "wholesale_special": 2439.0,
       "wholesale_large": null,
       "consumer_10": null,
+      "diff_sanji_special": -8.0,
+      "diff_wholesale_special": 8.0,
       "recent": [
         {
-          "date": "6,60625",
-          "sanji": 22028.0,
-          "wholesale": 24398.0
+          "date": "6,606",
+          "sanji_special": 2202.0,
+          "wholesale_special": 2439.0
         },
         {
-          "date": "6,63150",
-          "sanji": 221017.0,
-          "wholesale": 24318.0
+          "date": "6,631",
+          "sanji_special": 2210.0,
+          "wholesale_special": 2431.0
         },
         {
-          "date": "6,681149",
-          "sanji": 222750.0,
-          "wholesale": 24235.0
+          "date": "6,681",
+          "sanji_special": 2227.0,
+          "wholesale_special": 2423.0
         }
       ]
     }
