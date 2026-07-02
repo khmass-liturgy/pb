@@ -672,18 +672,28 @@ async function fetchNews(channelId){
   newsState.status="loading"; newsState.activeChannel=channelId;
   if(state.tab==="news") render();
   try {
-    // rss2json.com 무료 API로 CORS 우회
-    const url = RSS2JSON + "?rss_url=" + encodeURIComponent(ch.rss) + "&count=10";
+    // 구글 뉴스 RSS에 최근 7일 날짜 필터 추가
+    const d7 = new Date(); d7.setDate(d7.getDate()-7);
+    const afterStr = `${d7.getFullYear()}-${String(d7.getMonth()+1).padStart(2,"0")}-${String(d7.getDate()).padStart(2,"0")}`;
+    const rssWithDate = ch.rss + (ch.rss.includes("?")?"&":"?") + "after:" + afterStr;
+    const url = RSS2JSON + "?rss_url=" + encodeURIComponent(rssWithDate) + "&count=20";
     const resp = await fetchWithTimeout(url, 10000);
     if(!resp.ok) throw new Error("HTTP "+resp.status);
     const data = await resp.json();
     if(data.status!=="ok") throw new Error(data.message||"RSS 오류");
-    newsState.items[channelId] = data.items.map(item=>({
-      title: item.title.replace(/<[^>]+>/g,"").trim(),
-      link:  item.link,
-      pubDate: item.pubDate ? item.pubDate.slice(0,16) : "",
-      source: item.author || "",
-    }));
+    const cutoff = Date.now() - 7*24*60*60*1000; // 7일 전 timestamp
+    newsState.items[channelId] = data.items
+      .filter(item=>{
+        if(!item.pubDate) return true; // 날짜 없으면 포함
+        return new Date(item.pubDate).getTime() >= cutoff;
+      })
+      .slice(0,10)
+      .map(item=>({
+        title:   item.title.replace(/<[^>]+>/g,"").trim(),
+        link:    item.link,
+        pubDate: item.pubDate ? item.pubDate.slice(0,16) : "",
+        source:  item.author || "",
+      }));
     newsState.status="done";
   } catch(e){
     console.error("뉴스 조회 실패:", e);
@@ -1437,7 +1447,7 @@ function renderNewsTab(){
 
   return `
   <div style="margin-bottom:14px">
-    <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px;margin-bottom:12px">📰 국내 주요뉴스 · Google 뉴스 기반</div>
+    <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px;margin-bottom:12px">📰 국내 주요뉴스 · 최근 7일 · Google 뉴스 기반</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">${chTabs}</div>
   </div>
 
@@ -1446,7 +1456,7 @@ function renderNewsTab(){
       <div style="font-size:14px;font-weight:700;color:${ch.color}">${ch.icon} ${ch.label} 뉴스</div>
       <button class="news-ch-btn" data-ch="${ch.id}" style="border:1px solid #ddd;border-radius:8px;background:#fff;padding:5px 10px;font-size:11px;color:#888">🔄 새로고침</button>
     </div>
-    <div style="font-size:10px;color:#bbb;margin-bottom:12px">클릭하면 원문으로 이동합니다 · Google 뉴스 제공</div>
+    <div style="font-size:10px;color:#bbb;margin-bottom:12px">최근 7일 이내 기사만 표시 · 클릭하면 원문으로 이동 · Google 뉴스 제공</div>
     ${content}
   </div>`;
 }
