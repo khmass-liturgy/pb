@@ -415,10 +415,18 @@ let state = { tab:"price", selectedCategory:"broiler", customSites:loadCustom(),
 const NEWS_CHANNELS = [
   { id:"livestock", label:"축산·농업", color:"#E8530A", icon:"🐄",
     rss:"https://news.google.com/rss/search?q=축산+농업&hl=ko&gl=KR&ceid=KR:ko" },
+  { id:"chuksannews", label:"축산신문", color:"#C0792A", icon:"📰",
+    rss:"https://news.google.com/rss/search?q=site:chuksannews.co.kr&hl=ko&gl=KR&ceid=KR:ko" },
+  { id:"vet", label:"수의·방역", color:"#7B1FA2", icon:"🩺",
+    rss:"https://news.google.com/rss/search?q=수의사+가축+방역+동물병원&hl=ko&gl=KR&ceid=KR:ko" },
+  { id:"dailyvet", label:"데일리벳", color:"#1B5E20", icon:"🐾",
+    rss:"https://news.google.com/rss/search?q=site:dailyvet.co.kr&hl=ko&gl=KR&ceid=KR:ko" },
+  { id:"disease", label:"가축질병", color:"#B71C1C", icon:"⚠️",
+    rss:"https://news.google.com/rss/search?q=가축전염병+AI+구제역+럼피스킨+방역&hl=ko&gl=KR&ceid=KR:ko" },
+  { id:"feed", label:"사료·약품", color:"#5D4037", icon:"🌾",
+    rss:"https://news.google.com/rss/search?q=사료+동물약품+배합사료+가격&hl=ko&gl=KR&ceid=KR:ko" },
   { id:"economy",  label:"경제",      color:"#1565C0", icon:"📊",
     rss:"https://news.google.com/rss/search?q=경제+금리+환율&hl=ko&gl=KR&ceid=KR:ko" },
-  { id:"politics", label:"정치·사회", color:"#1B5E20", icon:"🏛️",
-    rss:"https://news.google.com/rss/search?q=정치+사회&hl=ko&gl=KR&ceid=KR:ko" },
   { id:"world",    label:"국제",      color:"#4527A0", icon:"🌍",
     rss:"https://news.google.com/rss/search?q=국제+세계&hl=ko&gl=KR&ceid=KR:ko" },
 ];
@@ -585,13 +593,16 @@ let stockFetchStatus = "idle"; // idle | loading | done | error
 
 // 야후 차트 API를 프록시로 우회 호출 (단일 심볼)
 async function fetchYahooQuote(symbol){
-  // range=10d로 늘려 종가 배열에 충분한 전일 데이터 확보
-  const yurl = "https://query1.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(symbol) + "?interval=1d&range=10d";
-  const headers = { "Accept":"application/json", "User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" };
+  // query1·query2 교차 + corsDomain 파라미터로 차단 우회
+  const urlQ1 = "https://query1.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(symbol) + "?interval=1d&range=10d&corsDomain=finance.yahoo.com";
+  const urlQ2 = "https://query2.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(symbol) + "?interval=1d&range=10d&corsDomain=finance.yahoo.com";
   const routes = [
-    "https://corsproxy.io/?url=" + encodeURIComponent(yurl),
-    "https://api.allorigins.win/raw?url=" + encodeURIComponent(yurl),
-    yurl,
+    "https://corsproxy.io/?url=" + encodeURIComponent(urlQ1),
+    "https://corsproxy.io/?url=" + encodeURIComponent(urlQ2),
+    "https://api.allorigins.win/raw?url=" + encodeURIComponent(urlQ1),
+    "https://api.allorigins.win/raw?url=" + encodeURIComponent(urlQ2),
+    urlQ1,
+    urlQ2,
   ];
   for(let i=0;i<routes.length;i++){
     try {
@@ -603,12 +614,13 @@ async function fetchYahooQuote(symbol){
       const meta = r.meta;
       const cur = meta.regularMarketPrice;
       if(cur==null) throw new Error("가격 없음");
-      // 종가 배열에서 전일 종가 추출 (null 제외 후 마지막 2개)
       const closes = (r.indicators?.quote?.[0]?.close || []).filter(v=>v!=null);
-      // 장중이면 closes 마지막이 전일 종가, 장 마감 후면 마지막-1이 전전일
-      // chartPreviousClose는 range 시작 기준이라 부정확 → closes 배열 우선 사용
-      const prev = closes.length>=2 ? closes[closes.length-2] :
-                   (meta.previousClose || meta.chartPreviousClose || cur);
+      // meta.previousClose가 가장 정확한 전일 종가
+      // chartPreviousClose는 range 시작일 기준이라 부정확 → 마지막 폴백
+      const prev = meta.previousClose
+        || (closes.length>=2 ? closes[closes.length-2] : null)
+        || meta.chartPreviousClose
+        || cur;
       return { cur, prev, closes };
     } catch(e){
       console.warn("야후 "+symbol+" 경로 "+(i+1)+" 실패:", e.message);
@@ -1386,7 +1398,7 @@ function renderNewsTab(){
   // 채널 선택 탭
   const chTabs = NEWS_CHANNELS.map(c=>{
     const active = c.id===newsState.activeChannel;
-    return `<button class="news-ch-btn" data-ch="${c.id}" style="border:1px solid ${c.color};border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;background:${active?c.color:"#fff"};color:${active?"#fff":c.color};cursor:pointer">${c.icon} ${c.label}</button>`;
+    return `<button class="news-ch-btn" data-ch="${c.id}" style="border:1px solid ${c.color};border-radius:8px;padding:6px 11px;font-size:11px;font-weight:600;background:${active?c.color:"#fff"};color:${active?"#fff":c.color};cursor:pointer">${c.icon} ${c.label}</button>`;
   }).join("");
 
   // 로딩/오류
