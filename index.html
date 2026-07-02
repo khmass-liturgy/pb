@@ -953,15 +953,22 @@ function renderDabomPricePanel(type){
   const updAt = pricesState.updatedAt;
   const status = pricesState.status;
 
-  // 공통 카드 스타일
-  const card = (label, val, unit, sub="") => {
+  // 공통 카드 - 가격과 전일대비를 완전히 분리
+  const card = (label, val, unit, diff=null) => {
     const hasVal = val != null;
+    let diffHtml = "";
+    if(diff != null){
+      const up = diff > 0, flat = diff === 0;
+      const color = flat ? "#888" : up ? "#D32F2F" : "#1565C0";
+      const arrow = flat ? "─" : up ? "▲" : "▼";
+      diffHtml = `<div style="font-size:10px;color:${color};margin-top:3px">${arrow} ${Math.abs(diff).toLocaleString()}</div>`;
+    }
     return `
     <div style="background:#fff;border-radius:10px;padding:12px;border:1px solid #efefef;text-align:center">
-      <div style="font-size:10px;color:#888;margin-bottom:4px;font-weight:600">${label}</div>
+      <div style="font-size:10px;color:#888;margin-bottom:6px;font-weight:600">${label}</div>
       <div style="font-size:16px;font-weight:800;color:#1a2744">${hasVal ? Number(val).toLocaleString() : "-"}</div>
       <div style="font-size:10px;color:#aaa">${unit}</div>
-      ${sub ? `<div style="font-size:9px;color:#bbb;margin-top:2px">${sub}</div>` : ""}
+      ${diffHtml}
     </div>`;
   };
 
@@ -974,11 +981,11 @@ function renderDabomPricePanel(type){
     title = "🐔 육계 실시간 시세";
     link = "https://www.ekapepia.com/v3/price/livestock/chicken/distrPrice.do?menuSn=35&boardInfoNo=";
     cards = [
-      card("산지(생계유통·대)", ch?.sanji_live, "원/kg"),
-      card("산지(위탁생계·중)", ch?.sanji_contract, "원/kg"),
-      card("도매(전체)", ch?.wholesale_all, "원/kg"),
-      card("도매(10호)", ch?.wholesale_10, "원/kg"),
-      card("소매", ch?.consumer, "원/kg"),
+      card("산지(생계유통·대)", ch?.sanji_live,     "원/kg", ch?.diff_sanji_live),
+      card("산지(위탁생계·중)", ch?.sanji_contract,  "원/kg"),
+      card("도매(전체)",       ch?.wholesale_all,   "원/kg", ch?.diff_wholesale_all),
+      card("도매(10호)",       ch?.wholesale_10,    "원/kg"),
+      card("소매",             ch?.consumer,         "원/kg"),
     ].join("");
   } else if(type === "pig"){
     const pg = d?.pig;
@@ -987,11 +994,11 @@ function renderDabomPricePanel(type){
     link = "https://www.ekapepia.com/v3/price/livestock/pig/distrPrice.do?menuSn=34&boardInfoNo=";
     const sanji_kg = pg?.sanji_110kg ? Math.round(pg.sanji_110kg * 1000 / 110) : null;
     cards = [
-      card("산지(농가수취)", pg?.sanji_110kg, "천원/110kg"),
-      card("산지(kg당환산)", sanji_kg, "원/kg", "110kg 기준"),
-      card("도매탕박(전체)", pg?.wholesale_all, "원/kg"),
-      card("도매탕박(1등급)", pg?.wholesale_1grade, "원/kg"),
-      card("삼겹살(소비자)", pg?.consumer_samgyupsal, "원/kg"),
+      card("산지(농가수취)",   pg?.sanji_110kg,          "천원/110kg", pg?.diff_sanji),
+      card("산지(kg당환산)",   sanji_kg,                  "원/kg"),
+      card("도매탕박(전체)",   pg?.wholesale_all,         "원/kg", pg?.diff_wholesale),
+      card("도매탕박(1등급)",  pg?.wholesale_1grade,      "원/kg"),
+      card("삼겹살(소비자)",   pg?.consumer_samgyupsal,   "원/kg"),
     ].join("");
   } else if(type === "egg"){
     const eg = d?.egg;
@@ -999,11 +1006,11 @@ function renderDabomPricePanel(type){
     title = "🥚 계란 실시간 시세";
     link = "https://www.ekapepia.com/v3/price/livestock/egg/distrPrice.do?menuSn=36&boardInfoNo=";
     cards = [
-      card("특란 산지", eg?.sanji_special, "원/개"),
-      card("대란 산지", eg?.sanji_large, "원/개"),
-      card("특란 도매", eg?.wholesale_special, "원/개"),
-      card("대란 도매", eg?.wholesale_large, "원/개"),
-      card("소매(특란10개)", eg?.consumer_10, "원"),
+      card("특란 산지",     eg?.sanji_special,      "원/개", eg?.diff_sanji_special),
+      card("대란 산지",     eg?.sanji_large,         "원/개"),
+      card("특란 도매",     eg?.wholesale_special,   "원/개", eg?.diff_wholesale_special),
+      card("대란 도매",     eg?.wholesale_large,     "원/개"),
+      card("소매(특란10개)", eg?.consumer_10,        "원"),
     ].join("");
   }
 
