@@ -1,19 +1,16 @@
 #!/usr/bin/env python3
 """
 다봄(KAPE) 축산물 시세 수집 스크립트
-GitHub Actions에서 매일 실행 → prices/prices.json 저장
-
-핵심: 각 td 안의 가격 숫자만 추출, 등락(↑115, ↓45) 제외
-구조: <td>1,685 <span class="down">↓115</span></td>
-   또는 <td><em>1,685</em><img...> 115</td>
+HTML 구조: <em>1,685</em> <img src="kape_table_down.png"> 115
+→ <em> 태그 정규식으로 가격만 추출, 이미지/등락수치 무시
 """
 
 import requests
-from bs4 import BeautifulSoup
 import json
 import re
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
+from html.parser import HTMLParser
 
 KST = timezone(timedelta(hours=9))
 HEADERS = {
@@ -23,179 +20,170 @@ HEADERS = {
     "Referer": "https://www.ekapepia.com/",
 }
 
-def get_soup(url):
+def get_html(url):
     resp = requests.get(url, headers=HEADERS, timeout=15)
     resp.encoding = 'utf-8'
-    return BeautifulSoup(resp.text, 'lxml')
+    return resp.text
 
-def extract_price_only(td):
+def extract_em_values(html_text):
     """
-    td에서 가격 숫자만 추출, 등락 수치 제외
-    다봄 구조:
-      방식A: <td>1,685 <span class="down">↓115</span></td>
-      방식B: <td><em>1,685</em><img src="kape_table_down.png"> 115</td>
-      방식C: <td>1,685↓115</td>  (텍스트만)
+    HTML에서 <em>숫자</em> 패턴만 추출
+    예: <em>1,685</em> → 1685.0
     """
-    # 방식A: em 태그에 가격이 있음
-    em = td.find('em')
-    if em:
-        text = em.get_text(strip=True).replace(',', '')
-        m = re.match(r'^[\d]+$', text)
-        if m:
-            try:
-                return float(text)
-            except:
-                pass
-
-    # 방식B: span.up/down/rise/fall 등 등락 태그 제거 후 추출
-    clone = BeautifulSoup(str(td), 'lxml').find('td') or td
-    # 등락 관련 태그 제거 (span, img, i, b 등)
-    for tag in clone.find_all(['span', 'img', 'i', 'b', 'small']):
-        tag.decompose()
-
-    raw = clone.get_text(strip=True)
-
-    # 방식C: 숫자,숫자 패턴에서 첫 번째 숫자 그룹만 (쉼표 포함)
-    # ex) "1,685115" → "1,685"  /  "1,685 115" → "1,685"  /  "1,685↓115" → "1,685"
-    # 쉼표로 구분된 숫자 패턴 우선
-    m = re.match(r'^([\d]{1,3}(?:,\d{3})*(?:\.\d+)?)', raw.replace(' ',''))
-    if m:
+    pattern = r'<em>([\d,\.]+)</em>'
+    matches = re.findall(pattern, html_text)
+    result = []
+    for m in matches:
         try:
-            return float(m.group(1).replace(',', ''))
+            result.append(float(m.replace(',', '')))
         except:
             pass
+    return result
 
-    # 공백 기준 첫 번째 토큰에서 숫자
-    first_token = raw.split()[0] if raw.split() else ''
-    m2 = re.match(r'^([\d,]+)', first_token)
-    if m2:
-        try:
-            return float(m2.group(1).replace(',', ''))
-        except:
-            pass
+def extract_dates(html_text):
+    """tbody의 날짜 패턴 추출: 07월 02일 형태"""
+    pattern = r'(\d{2}월\s*\d{2}일)'
+    return re.findall(pattern, html_text)
 
-    return None
-
-def extract_date(td):
-    """날짜 td에서 텍스트만"""
-    for tag in td.find_all(['img', 'span']):
-        tag.decompose()
-    return td.get_text(strip=True)
-
-def parse_table(soup, col_map, limit=3):
+def parse_price_table(html_text, col_indices, date_limit=3):
     """
-    tbody에서 파싱
-    col_map: {컬럼인덱스: 필드명}
+    tbody 내 tr 행별로 파싱
+    각 td에서 <em> 값만 추출 (이미지·등락수치 무시)
+    col_indices: 가져올 열 인덱스 목록
     """
-    rows = []
-    tbody = soup.find('tbody')
-    if not tbody:
-        # tbody 없으면 table 안의 tr 직접 탐색
-        table = soup.find('table')
-        if table:
-            tbody = table
+    # tbody 구간만 추출
+    tbody_match = re.search(r'<tbody>([\s\S]*?)</tbody>', html_text)
+    if not tbody_match:
+        return []
+    tbody = tbody_match.group(1)
 
-    if not tbody:
-        return rows
+    rows_data = []
+    # tr 행 분리
+    tr_list = re.findall(r'<tr[^>]*>([\s\S]*?)</tr>', tbody)
 
-    for tr in tbody.find_all('tr')[:limit]:
-        tds = tr.find_all('td')
-        if len(tds) < 2:
+    for tr in tr_list[:date_limit + 5]:  # 여유있게 가져오기
+        # td 목록 추출
+        td_list = re.findall(r'<td[^>]*>([\s\S]*?)</td>', tr)
+        if len(td_list) < 2:
             continue
-        date = extract_date(tds[0])
-        if not date or not any(c.isdigit() for c in date):
-            continue  # 헤더 행 스킵
-        row = {"date": date}
-        for idx, field in col_map.items():
-            row[field] = extract_price_only(tds[idx]) if idx < len(tds) else None
-        rows.append(row)
 
-    return rows
+        # 날짜 추출 (첫 번째 td)
+        date_match = re.search(r'(\d{2}월\s*\d{2}일)', td_list[0])
+        if not date_match:
+            continue
+        date_str = date_match.group(1).strip()
+
+        # 각 열에서 em 값 추출
+        row = {"date": date_str}
+        for idx in col_indices:
+            if idx < len(td_list):
+                em_vals = extract_em_values(td_list[idx])
+                row[f"col_{idx}"] = em_vals[0] if em_vals else None
+            else:
+                row[f"col_{idx}"] = None
+
+        rows_data.append(row)
+        if len(rows_data) >= date_limit:
+            break
+
+    return rows_data
 
 def fetch_chicken():
+    """
+    육계 컬럼: 날짜(0) | 생계유통대(1) | 위탁생계중(2) | 도매10호(3) | 도매전체(4) | 소매(5)
+    """
     url = "https://www.ekapepia.com/v3/price/livestock/chicken/distrPrice.do?menuSn=35&boardInfoNo="
     try:
-        soup = get_soup(url)
-        col_map = {
-            1: "sanji_live",      # 산지매입 생계유통(대)
-            2: "sanji_contract",  # 위탁생계(중)
-            3: "wholesale_10",    # 도매 10호
-            4: "wholesale_all",   # 도매 전체
-            5: "consumer",        # 소매
-        }
-        rows = parse_table(soup, col_map)
+        html = get_html(url)
+        rows = parse_price_table(html, [1, 2, 3, 4, 5])
         if not rows:
             return None
         latest = rows[0]
+        result = {
+            "date": latest["date"],
+            "sanji_live":      latest.get("col_1"),
+            "sanji_contract":  latest.get("col_2"),
+            "wholesale_10":    latest.get("col_3"),
+            "wholesale_all":   latest.get("col_4"),
+            "consumer":        latest.get("col_5"),
+        }
         if len(rows) >= 2:
             prev = rows[1]
-            def diff(a, b): return round(a - b, 1) if a and b else None
-            latest["diff_sanji_live"]    = diff(latest.get("sanji_live"), prev.get("sanji_live"))
-            latest["diff_wholesale_all"] = diff(latest.get("wholesale_all"), prev.get("wholesale_all"))
-        latest["recent"] = [
-            {"date": r["date"], "sanji_live": r.get("sanji_live"), "wholesale_all": r.get("wholesale_all")}
+            def diff(a, b): return round(a - b) if a and b else None
+            result["diff_sanji_live"]    = diff(result["sanji_live"],    prev.get("col_1"))
+            result["diff_wholesale_all"] = diff(result["wholesale_all"], prev.get("col_4"))
+        result["recent"] = [
+            {"date": r["date"], "sanji_live": r.get("col_1"), "wholesale_all": r.get("col_4")}
             for r in rows
         ]
-        return latest
+        return result
     except Exception as e:
         print(f"  ❌ 육계 오류: {e}")
         return None
 
 def fetch_pig():
+    """
+    돼지 컬럼: 날짜(0) | 산지천원/110kg(1) | 도매탕박전체(2) | 도매탕박1등급(3) | 삼겹살(4)
+    """
     url = "https://www.ekapepia.com/v3/price/livestock/pig/distrPrice.do?menuSn=34&boardInfoNo="
     try:
-        soup = get_soup(url)
-        col_map = {
-            1: "sanji_110kg",
-            2: "wholesale_all",
-            3: "wholesale_1grade",
-            4: "consumer_samgyupsal",
-        }
-        rows = parse_table(soup, col_map)
+        html = get_html(url)
+        rows = parse_price_table(html, [1, 2, 3, 4])
         if not rows:
             return None
         latest = rows[0]
-        if latest.get("sanji_110kg"):
-            latest["sanji_per_kg"] = round(latest["sanji_110kg"] * 1000 / 110)
+        sanji = latest.get("col_1")
+        result = {
+            "date": latest["date"],
+            "sanji_110kg":         sanji,
+            "sanji_per_kg":        round(sanji * 1000 / 110) if sanji else None,
+            "wholesale_all":       latest.get("col_2"),
+            "wholesale_1grade":    latest.get("col_3"),
+            "consumer_samgyupsal": latest.get("col_4"),
+        }
         if len(rows) >= 2:
             prev = rows[1]
             def diff(a, b): return round(a - b, 1) if a and b else None
-            latest["diff_sanji"]     = diff(latest.get("sanji_110kg"), prev.get("sanji_110kg"))
-            latest["diff_wholesale"] = diff(latest.get("wholesale_all"), prev.get("wholesale_all"))
-        latest["recent"] = [
-            {"date": r["date"], "sanji_110kg": r.get("sanji_110kg"), "wholesale_all": r.get("wholesale_all")}
+            result["diff_sanji"]     = diff(result["sanji_110kg"],   prev.get("col_1"))
+            result["diff_wholesale"] = diff(result["wholesale_all"], prev.get("col_2"))
+        result["recent"] = [
+            {"date": r["date"], "sanji_110kg": r.get("col_1"), "wholesale_all": r.get("col_2")}
             for r in rows
         ]
-        return latest
+        return result
     except Exception as e:
         print(f"  ❌ 돼지 오류: {e}")
         return None
 
 def fetch_egg():
+    """
+    계란 컬럼: 날짜(0) | 특란산지(1) | 대란산지(2) | 특란도매(3) | 대란도매(4) | 소매특란10개(5)
+    """
     url = "https://www.ekapepia.com/v3/price/livestock/egg/distrPrice.do?menuSn=36&boardInfoNo="
     try:
-        soup = get_soup(url)
-        col_map = {
-            1: "sanji_special",
-            2: "sanji_large",
-            3: "wholesale_special",
-            4: "wholesale_large",
-            5: "consumer_10",
-        }
-        rows = parse_table(soup, col_map)
+        html = get_html(url)
+        rows = parse_price_table(html, [1, 2, 3, 4, 5])
         if not rows:
             return None
         latest = rows[0]
+        result = {
+            "date": latest["date"],
+            "sanji_special":      latest.get("col_1"),
+            "sanji_large":        latest.get("col_2"),
+            "wholesale_special":  latest.get("col_3"),
+            "wholesale_large":    latest.get("col_4"),
+            "consumer_10":        latest.get("col_5"),
+        }
         if len(rows) >= 2:
             prev = rows[1]
             def diff(a, b): return round(a - b, 1) if a and b else None
-            latest["diff_sanji_special"]     = diff(latest.get("sanji_special"), prev.get("sanji_special"))
-            latest["diff_wholesale_special"] = diff(latest.get("wholesale_special"), prev.get("wholesale_special"))
-        latest["recent"] = [
-            {"date": r["date"], "sanji_special": r.get("sanji_special"), "wholesale_special": r.get("wholesale_special")}
+            result["diff_sanji_special"]     = diff(result["sanji_special"],     prev.get("col_1"))
+            result["diff_wholesale_special"] = diff(result["wholesale_special"], prev.get("col_3"))
+        result["recent"] = [
+            {"date": r["date"], "sanji_special": r.get("col_1"), "wholesale_special": r.get("col_3")}
             for r in rows
         ]
-        return latest
+        return result
     except Exception as e:
         print(f"  ❌ 계란 오류: {e}")
         return None
@@ -234,7 +222,6 @@ def main():
 
     with open("prices/prices.json", "w", encoding="utf-8") as f:
         json.dump(result, f, ensure_ascii=False, indent=2)
-
     print(f"\n✅ prices/prices.json 저장 완료 ({result['updated']})")
 
 if __name__ == "__main__":
