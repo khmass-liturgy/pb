@@ -412,309 +412,71 @@ const BOARD_SITES = [
 let state = { tab:"price", selectedCategory:"broiler", customSites:loadCustom(), customStocks:loadCustomList("custom_stocks"), customCoins:loadCustomList("custom_coins") };
 
 // ── 국내 주요뉴스 ─────────────────────────────────────────────────────────
+// 채널 정의 (Actions의 fetch_news.py와 id 일치)
 const NEWS_CHANNELS = [
-  { id:"livestock", label:"축산·농업", color:"#E8530A", icon:"🐄",
-    rss:"https://news.google.com/rss/search?q=축산+농업&hl=ko&gl=KR&ceid=KR:ko" },
-  { id:"chuksannews", label:"축산신문", color:"#C0792A", icon:"📰",
-    rss:"https://news.google.com/rss/search?q=site:chuksannews.co.kr&hl=ko&gl=KR&ceid=KR:ko" },
-  { id:"vet", label:"수의·방역", color:"#7B1FA2", icon:"🩺",
-    rss:"https://news.google.com/rss/search?q=수의사+가축+방역+동물병원&hl=ko&gl=KR&ceid=KR:ko" },
-  { id:"dailyvet", label:"데일리벳", color:"#1B5E20", icon:"🐾",
-    rss:"https://news.google.com/rss/search?q=site:dailyvet.co.kr&hl=ko&gl=KR&ceid=KR:ko" },
-  { id:"disease", label:"가축질병", color:"#B71C1C", icon:"⚠️",
-    rss:"https://news.google.com/rss/search?q=가축전염병+AI+구제역+럼피스킨+방역&hl=ko&gl=KR&ceid=KR:ko" },
-  { id:"feed", label:"사료·약품", color:"#5D4037", icon:"🌾",
-    rss:"https://news.google.com/rss/search?q=사료+동물약품+배합사료+가격&hl=ko&gl=KR&ceid=KR:ko" },
-  { id:"economy",  label:"경제",      color:"#1565C0", icon:"📊",
-    rss:"https://news.google.com/rss/search?q=경제+금리+환율&hl=ko&gl=KR&ceid=KR:ko" },
-  { id:"world",    label:"국제",      color:"#4527A0", icon:"🌍",
-    rss:"https://news.google.com/rss/search?q=국제+세계&hl=ko&gl=KR&ceid=KR:ko" },
+  { id:"livestock", label:"축산·농업", color:"#E8530A", icon:"🐄" },
+  { id:"vet",       label:"수의·방역", color:"#7B1FA2", icon:"🩺" },
+  { id:"disease",   label:"가축질병",  color:"#B71C1C", icon:"⚠️" },
+  { id:"feed",      label:"사료·약품", color:"#5D4037", icon:"🌾" },
+  { id:"economy",   label:"경제",      color:"#1565C0", icon:"📊" },
+  { id:"world",     label:"국제",      color:"#4527A0", icon:"🌍" },
 ];
+// GitHub Actions가 매일 저장하는 뉴스 JSON URL
+const NEWS_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/news/news.json";
 let newsState = {
-  status:"idle",   // idle | loading | done | error
+  status:"idle",
   activeChannel:"livestock",
-  items:{},        // { channelId: [{title,link,pubDate,source},...] }
+  items:{},
+  updatedAt:"",
 };
-// RSS XML 직접 파싱 헬퍼 (rss2json 대체)
-function parseRssXml(xml){
-  const items = [];
-  const matches = xml.match(/<item>[\s\S]*?<\/item>/gi)||[];
-  matches.forEach(item=>{
-    const get = (tag)=>{
-      const m=item.match(new RegExp('<'+tag+'[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\/'+tag+'>|<'+tag+'[^>]*>([^<]*)<\/'+tag+'>','i'));
-      return m?(m[1]||m[2]||"").trim():"";
-    };
-    const link = get('link')||(item.match(/<link[^>]*\/?>\s*([^<]+)/i)||[])[1]||"";
-    const title = get('title');
-    if(title) items.push({ title, link:link.trim(), pubDate:get('pubDate'), source:get('source')||get('dc:creator') });
-  });
-  return items;
+// ── 뉴스: GitHub Actions가 저장한 JSON을 읽어옴 ─────────────────────────────
+// 매일 오전 8시 Actions 실행 → news/news.json 저장 → 여기서 읽기
+let newsJsonCache = null; // 세션 중 캐시 (채널 전환 시 재요청 방지)
+
+async function fetchNewsJson(){
+  if(newsJsonCache) return newsJsonCache;
+  const resp = await fetchWithTimeout(NEWS_JSON_URL + "?t=" + Date.now(), 10000);
+  if(!resp.ok) throw new Error("HTTP "+resp.status);
+  newsJsonCache = await resp.json();
+  return newsJsonCache;
 }
 
-// ── 날씨 상태 ──────────────────────────────────────────────────────────────
-let weatherState = {
-  status:"idle", // idle | loading | done | error
-  lat:null, lng:null, locationName:"",
-  forecast:[], // 7일 예보
-  lastYear:null, // 작년 오늘 날씨
-};
-function saveWeatherLocation(lat,lng,name){
-  try { localStorage.setItem("weather_loc", JSON.stringify({lat,lng,name})); } catch(e){}
-}
-function loadWeatherLocation(){
-  try { const s=localStorage.getItem("weather_loc"); if(s) return JSON.parse(s); } catch(e){}
-  return null;
-}
-const WX_ICONS = {
-  0:"☀️",1:"🌤️",2:"⛅",3:"☁️",
-  45:"🌫️",48:"🌫️",
-  51:"🌦️",53:"🌦️",55:"🌧️",
-  61:"🌧️",63:"🌧️",65:"🌧️",
-  71:"🌨️",73:"🌨️",75:"❄️",
-  77:"🌨️",80:"🌦️",81:"🌧️",82:"⛈️",
-  85:"🌨️",86:"❄️",
-  95:"⛈️",96:"⛈️",99:"⛈️",
-};
-const WX_DESC = {
-  0:"맑음",1:"대체로 맑음",2:"구름 조금",3:"흐림",
-  45:"안개",48:"안개",
-  51:"가벼운 이슬비",53:"이슬비",55:"짙은 이슬비",
-  61:"가벼운 비",63:"비",65:"강한 비",
-  71:"가벼운 눈",73:"눈",75:"강한 눈",77:"싸락눈",
-  80:"소나기",81:"강한 소나기",82:"폭우",
-  85:"소량 적설",86:"강한 적설",
-  95:"뇌우",96:"뇌우(우박)",99:"강한 뇌우(우박)",
-};
-
-function loadCustom(){
-  try { const s=localStorage.getItem("poultry_custom_boards"); if(s){ const p=JSON.parse(s); if(Array.isArray(p)) return p; } } catch(e){}
-  return [];
-}
-function saveCustom(){ try { localStorage.setItem("poultry_custom_boards", JSON.stringify(state.customSites)); } catch(e){} }
-
-function loadCustomList(key){
-  try { const s=localStorage.getItem(key); if(s){ const p=JSON.parse(s); if(Array.isArray(p)) return p; } } catch(e){}
-  return [];
-}
-function saveCustomStocks(){ try { localStorage.setItem("custom_stocks", JSON.stringify(state.customStocks)); } catch(e){} }
-function saveCustomCoins(){ try { localStorage.setItem("custom_coins", JSON.stringify(state.customCoins)); } catch(e){} }
-
-// 사용자가 추가한 종목의 trend는 입력한 현재가 기준으로 평탄하게 생성
-function makeFlatTrend(cur){ const arr=[]; for(let i=0;i<12;i++){ arr.push(Math.round(cur*(0.96+0.08*(i/11)))); } arr[11]=cur; return arr; }
-
-function allStocks(){ return STOCK_DATA.concat(state.customStocks); }
-function allCoins(){ return COIN_DATA.concat(state.customCoins); }
-
-function allSites(){ return BOARD_SITES.concat(state.customSites); }
-
-// ═══════════════════════════════════════════════════════════════════════════
-// 유틸
-// ═══════════════════════════════════════════════════════════════════════════
-function esc(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
-function sparkline(data,color){
-  const vals=data.filter(v=>v!==null); if(vals.length<2) return "";
-  const min=Math.min(...vals),max=Math.max(...vals),range=max-min||1,W=80,H=30;
-  const pts=data.map((v,i)=>v!==null?[i,v]:null).filter(Boolean);
-  const toX=i=>(i/(data.length-1))*W,toY=v=>H-((v-min)/range)*H;
-  const path=pts.map((p,j)=>`${j===0?"M":"L"}${toX(p[0]).toFixed(1)},${toY(p[1]).toFixed(1)}`).join(" ");
-  const circles=pts.map(p=>`<circle cx="${toX(p[0]).toFixed(1)}" cy="${toY(p[1]).toFixed(1)}" r="2" fill="${color}"/>`).join("");
-  return `<svg width="${W}" height="${H}" style="overflow:visible"><path d="${path}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>${circles}</svg>`;
-}
-function deltaBadge(cur,prev){
-  if(!cur||!prev) return "";
-  const diff=cur-prev,pct=((diff/prev)*100).toFixed(1),up=diff>0,flat=diff===0;
-  const bg=flat?"#f0f0f0":up?"#FEE8E8":"#E8F7EE",col=flat?"#888":up?"#D32F2F":"#1B7A3E";
-  const txt=flat?"─":up?`▲ +${diff.toLocaleString()} (${pct}%)`:`▼ ${diff.toLocaleString()} (${pct}%)`;
-  return `<span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;background:${bg};color:${col}">${txt}</span>`;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// 렌더
-// ═══════════════════════════════════════════════════════════════════════════
-// ── 업비트 실시간 시세 자동 갱신 ────────────────────────────────────────────
-let coinFetchStatus = "idle"; // idle | loading | done | error
-
-// 타임아웃 포함 fetch
-function fetchWithTimeout(url, ms){
-  return Promise.race([
-    fetch(url, { headers:{ "Accept":"application/json" } }),
-    new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")), ms)),
-  ]);
-}
-
-// 여러 경로를 순차 시도 (직접 → CORS 프록시들)
-async function fetchUpbitData(markets){
-  const apiUrl = "https://api.upbit.com/v1/ticker?markets=" + encodeURIComponent(markets);
-  const routes = [
-    apiUrl,
-    "https://corsproxy.io/?url=" + encodeURIComponent(apiUrl),
-    "https://api.allorigins.win/raw?url=" + encodeURIComponent(apiUrl),
-  ];
-  for(let i=0;i<routes.length;i++){
-    try {
-      const resp = await fetchWithTimeout(routes[i], 8000);
-      if(!resp.ok) throw new Error("HTTP "+resp.status);
-      const data = await resp.json();
-      if(Array.isArray(data) && data.length>0) return data;
-      throw new Error("빈 응답");
-    } catch(e){
-      console.warn("경로 "+(i+1)+" 실패:", e.message);
-      // 다음 경로 시도
-    }
-  }
-  throw new Error("모든 경로 실패");
-}
-
-async function fetchUpbitPrices(){
-  const all = allCoins().filter(c=>c.market);
-  if(all.length===0){ coinFetchStatus="done"; return; }
-  coinFetchStatus = "loading";
-  if(state.tab==="coin") render();
-  try {
-    const markets = all.map(c=>c.market).join(",");
-    const data = await fetchUpbitData(markets);
-    const map = {};
-    data.forEach(d=>{ map[d.market] = d; });
-    COIN_DATA.forEach(c=>{
-      if(c.market && map[c.market]){
-        const t = map[c.market];
-        c.current = t.trade_price;
-        c.prevDay = t.prev_closing_price;
-        c.trend = c.trend.slice(0,11).concat([t.trade_price]);
-        c.note = "업비트 실시간";
-      }
-    });
-    state.customCoins.forEach(c=>{
-      if(c.market && map[c.market]){
-        const t = map[c.market];
-        c.current = t.trade_price;
-        c.prevDay = t.prev_closing_price;
-        c.trend = makeFlatTrend(t.trade_price);
-        c.note = "업비트 실시간";
-      }
-    });
-    saveCustomCoins();
-    coinFetchStatus = "done";
-  } catch(e){
-    console.error("업비트 시세 조회 실패:", e);
-    coinFetchStatus = "error";
-  }
-  if(state.tab==="coin") render();
-}
-
-// ── 야후 파이낸스 주가지수 자동 갱신 ───────────────────────────────────────
-let stockFetchStatus = "idle"; // idle | loading | done | error
-
-// 야후 차트 API를 프록시로 우회 호출 (단일 심볼)
-async function fetchYahooQuote(symbol){
-  // query1·query2 교차 + corsDomain 파라미터로 차단 우회
-  const urlQ1 = "https://query1.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(symbol) + "?interval=1d&range=10d&corsDomain=finance.yahoo.com";
-  const urlQ2 = "https://query2.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(symbol) + "?interval=1d&range=10d&corsDomain=finance.yahoo.com";
-  const routes = [
-    "https://corsproxy.io/?url=" + encodeURIComponent(urlQ1),
-    "https://corsproxy.io/?url=" + encodeURIComponent(urlQ2),
-    "https://api.allorigins.win/raw?url=" + encodeURIComponent(urlQ1),
-    "https://api.allorigins.win/raw?url=" + encodeURIComponent(urlQ2),
-    urlQ1,
-    urlQ2,
-  ];
-  for(let i=0;i<routes.length;i++){
-    try {
-      const resp = await fetchWithTimeout(routes[i], 8000);
-      if(!resp.ok) throw new Error("HTTP "+resp.status);
-      const data = await resp.json();
-      const r = data?.chart?.result?.[0];
-      if(!r) throw new Error("형식 오류");
-      const meta = r.meta;
-      const cur = meta.regularMarketPrice;
-      if(cur==null) throw new Error("가격 없음");
-      const closes = (r.indicators?.quote?.[0]?.close || []).filter(v=>v!=null);
-      // meta.previousClose가 가장 정확한 전일 종가
-      // chartPreviousClose는 range 시작일 기준이라 부정확 → 마지막 폴백
-      const prev = meta.previousClose
-        || (closes.length>=2 ? closes[closes.length-2] : null)
-        || meta.chartPreviousClose
-        || cur;
-      return { cur, prev, closes };
-    } catch(e){
-      console.warn("야후 "+symbol+" 경로 "+(i+1)+" 실패:", e.message);
-    }
-  }
-  return null;
-}
-
-async function fetchStockPrices(){
-  // 주가지수 + 사용자 관심종목 + 곡물 + 유가 (야후 심볼 있는 것만)
-  const targets = STOCK_DATA.filter(s=>s.ysym)
-    .concat(state.customStocks.filter(s=>s.ysym))
-    .concat(GRAIN_DATA.filter(s=>s.ysym))
-    .concat(OIL_DATA.filter(s=>s.ysym))
-    .concat(FX_DATA.filter(s=>s.ysym));
-  if(targets.length===0){ stockFetchStatus="done"; return; }
-  stockFetchStatus = "loading";
-  if(state.tab==="stock") render();
-  let okCount = 0;
-  for(const s of targets){
-    const q = await fetchYahooQuote(s.ysym);
-    if(q){
-      // CBOT 곡물(옥수수·대두·소맥)은 야후가 센트/부셸로 제공 → 100으로 나눠 달러로 변환
-      const scale = s.yahooCents ? 100 : 1;
-      s.current = Math.round((q.cur / scale) * 100) / 100;
-      s.prevDay = Math.round((q.prev / scale) * 100) / 100;
-      if(q.closes.length>=2){
-        const tail = q.closes.slice(-6).map(v=>Math.round((v/scale)*100)/100);
-        s.trend = s.trend.slice(0, 12-tail.length).concat(tail);
-      } else {
-        s.trend = s.trend.slice(0,11).concat([s.current]);
-      }
-      s.note = "야후 실시간";
-      s._live = true;
-      okCount++;
-    }
-  }
-  if(okCount>0){ saveCustomStocks(); stockFetchStatus="done"; }
-  else stockFetchStatus="error";
-  if(state.tab==="stock") render();
-  // 양계 탭도 곡물·유가 갱신됐으면 재렌더
-  if(state.tab==="price") render();
-}
-
-// ── 국내 뉴스 RSS fetch ───────────────────────────────────────────────────
 async function fetchNews(channelId){
   const ch = NEWS_CHANNELS.find(c=>c.id===channelId);
   if(!ch) return;
   newsState.status="loading"; newsState.activeChannel=channelId;
   if(state.tab==="news") render();
   try {
-    // rss2json 대신 allorigins/corsproxy로 RSS XML 직접 파싱
-    const rss = ch.rss + "&when=7d";
-    const routes = [
-      "https://api.allorigins.win/raw?url=" + encodeURIComponent(rss),
-      "https://corsproxy.io/?url=" + encodeURIComponent(rss),
-    ];
-    let items = [];
-    for(let i=0;i<routes.length;i++){
-      try {
-        const resp = await fetchWithTimeout(routes[i], 10000);
-        if(!resp.ok) throw new Error("HTTP "+resp.status);
-        const xml = await resp.text();
-        if(!xml||!xml.includes("<item>")) throw new Error("빈 RSS");
-        items = parseRssXml(xml);
-        if(items.length>0) break;
-      } catch(e){ console.warn("뉴스 경로 "+(i+1)+" 실패:", e.message); }
+    const data = await fetchNewsJson();
+    const chData = data.channels?.[channelId];
+    if(chData && chData.items && chData.items.length>0){
+      newsState.items[channelId] = chData.items.map(item=>({
+        title:   item.title||"",
+        link:    item.link||"",
+        pubDate: item.date||"",
+        source:  item.source||"",
+      }));
+      newsState.status="done";
+      // 뉴스 갱신 시간 표시
+      newsState.updatedAt = data.updated||"";
+    } else {
+      newsState.items[channelId] = [];
+      newsState.status="empty";
     }
-    const cutoff = Date.now() - 7*24*60*60*1000;
-    newsState.items[channelId] = items
-      .filter(item=>{ if(!item.pubDate) return true; return new Date(item.pubDate).getTime()>=cutoff; })
-      .slice(0,10)
-      .map(item=>({ title:item.title.replace(/<[^>]+>/g,"").trim(), link:item.link, pubDate:item.pubDate?item.pubDate.slice(0,16):"", source:item.source }));
-    newsState.status = newsState.items[channelId].length>0 ? "done" : "empty";
   } catch(e){
     console.error("뉴스 조회 실패:", e);
     newsState.status="error";
   }
   if(state.tab==="news") render();
 }
+
+function refreshNewsCache(){ newsJsonCache=null; }
+
+async function fetchNewsRefresh(){
+  newsJsonCache=null;
+  await fetchNews(newsState.activeChannel);
+}
+
 
 // ── Open-Meteo 날씨 연동 ───────────────────────────────────────────────────
 async function fetchWeather(lat, lng, name){
@@ -1463,14 +1225,14 @@ function renderNewsTab(){
 
   return `
   <div style="margin-bottom:14px">
-    <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px;margin-bottom:12px">📰 국내 주요뉴스 · 최근 7일 · Google 뉴스 기반</div>
+    <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px;margin-bottom:12px">📰 국내 주요뉴스 · 최근 7일 · Google 뉴스 기반${newsState.updatedAt?` <span style="font-weight:400;color:#aaa">· ${newsState.updatedAt} 수집</span>`:""}</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">${chTabs}</div>
   </div>
 
   <div class="card" style="min-height:200px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
       <div style="font-size:14px;font-weight:700;color:${ch.color}">${ch.icon} ${ch.label} 뉴스</div>
-      <button class="news-ch-btn" data-ch="${ch.id}" style="border:1px solid #ddd;border-radius:8px;background:#fff;padding:5px 10px;font-size:11px;color:#888">🔄 새로고침</button>
+      <button class="news-ch-btn" data-ch="${ch.id}" style="border:1px solid #ddd;border-radius:8px;background:#fff;padding:5px 10px;font-size:11px;color:#888" onclick="fetchNewsRefresh()">🔄 새로고침</button>
     </div>
     <div style="font-size:10px;color:#bbb;margin-bottom:12px">최근 7일 이내 기사만 표시 · 클릭하면 원문으로 이동 · Google 뉴스 제공</div>
     ${content}
