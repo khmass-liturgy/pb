@@ -2,6 +2,9 @@
 """
 다봄(KAPE) 축산물 시세 수집 스크립트
 GitHub Actions에서 매일 실행 → prices/prices.json 저장
+
+핵심: 각 td 안의 <em> 태그에서 가격만 추출
+      등락 이미지(kape_table_up/down.png)와 등락수치는 무시
 """
 
 import requests
@@ -18,138 +21,183 @@ HEADERS = {
     "Accept-Language": "ko-KR,ko;q=0.9",
 }
 
-def clean_num(s):
-    """숫자 문자열 정리 → float"""
-    if not s:
-        return None
-    s = re.sub(r'[^\d.]', '', str(s).strip())
-    try:
-        return float(s) if s else None
-    except:
-        return None
-
 def get_soup(url):
     resp = requests.get(url, headers=HEADERS, timeout=15)
     resp.encoding = 'utf-8'
     return BeautifulSoup(resp.text, 'lxml')
 
-def parse_table_rows(soup, limit=3):
-    """tbody의 첫 limit 행에서 날짜와 숫자값 추출"""
+def extract_price_from_td(td):
+    """
+    td 안의 <em> 태그에서 가격 숫자만 추출
+    구조 예시:
+      <td><em>1,685</em><img src="kape_table_down.png"> 115</td>
+    em 태그가 없으면 텍스트에서 첫 번째 숫자 그룹 추출
+    """
+    em = td.find('em')
+    if em:
+        text = em.get_text(strip=True)
+    else:
+        # em 태그 없는 경우 이미지 제거 후 첫 숫자 추출
+        for img in td.find_all('img'):
+            img.decompose()
+        text = td.get_text(strip=True)
+        # 첫 번째 숫자 그룹만 (쉼표 포함)
+        m = re.match(r'^[\d,]+', text)
+        text = m.group(0) if m else ""
+    
+    if not text or text == '-':
+        return None
+    try:
+        return float(text.replace(',', ''))
+    except:
+        return None
+
+def extract_date_from_td(td):
+    """날짜 td에서 텍스트만 추출"""
+    # 이미지 태그 제거
+    for img in td.find_all('img'):
+        img.decompose()
+    return td.get_text(strip=True)
+
+def parse_price_table(soup, col_map, limit=3):
+    """
+    tbody에서 행별로 파싱
+    col_map: {컬럼인덱스: 필드명} 딕셔너리
+    """
     rows = []
     tbody = soup.find('tbody')
     if not tbody:
         return rows
+    
     for tr in tbody.find_all('tr')[:limit]:
         tds = tr.find_all('td')
         if not tds:
             continue
-        date_text = tds[0].get_text(strip=True)
-        vals = [clean_num(td.get_text(strip=True)) for td in tds[1:]]
-        rows.append({"date": date_text, "vals": vals})
+        
+        date = extract_date_from_td(tds[0])
+        if not date:
+            continue
+        
+        row = {"date": date}
+        for idx, field in col_map.items():
+            if idx < len(tds):
+                row[field] = extract_price_from_td(tds[idx])
+            else:
+                row[field] = None
+        rows.append(row)
+    
     return rows
 
-def fetch_pig():
-    """돼지 산지·도매·소비자 가격"""
-    url = "https://www.ekapepia.com/v3/price/livestock/pig/distrPrice.do?menuSn=34&boardInfoNo="
-    try:
-        soup = get_soup(url)
-        rows = parse_table_rows(soup, 3)
-        if not rows:
-            return None
-        r = rows[0]
-        # 컬럼 순서: 산지(천원/110kg), 도매탕박전체, 도매탕박전체, 1등급, 삼겹살
-        return {
-            "date": r["date"],
-            "sanji_110kg": r["vals"][0],        # 천원/110kg
-            "wholesale_all": r["vals"][1],       # 원/kg 전체평균
-            "wholesale_1grade": r["vals"][3] if len(r["vals"])>3 else None,  # 1등급
-            "consumer_samgyupsal": r["vals"][4] if len(r["vals"])>4 else None,  # 삼겹살 원/kg
-            "recent": [
-                {"date": row["date"], "sanji": row["vals"][0], "wholesale": row["vals"][1]}
-                for row in rows
-            ]
-        }
-    except Exception as e:
-        print(f"  ❌ 돼지 오류: {e}")
-        return None
-
 def fetch_chicken():
-    """육계 산지매입·도매·소매 가격"""
+    """
+    육계 유통단계별가격
+    컬럼: 날짜(0) | 산지매입생계유통대(1) | 위탁생계중(2) | 도매10호(3) | 도매전체(4) | 소매(5)
+    """
     url = "https://www.ekapepia.com/v3/price/livestock/chicken/distrPrice.do?menuSn=35&boardInfoNo="
     try:
         soup = get_soup(url)
-        rows = parse_table_rows(soup, 3)
+        col_map = {
+            1: "sanji_live",      # 산지매입 생계유통(대)
+            2: "sanji_contract",  # 위탁생계(중)
+            3: "wholesale_10",    # 도매 10호
+            4: "wholesale_all",   # 도매 전체
+            5: "consumer",        # 소매
+        }
+        rows = parse_price_table(soup, col_map, limit=3)
         if not rows:
             return None
-        r = rows[0]
-        # 컬럼 순서: 생계유통(대), 위탁생계(중), 도매10호, 도매전체, 소매
-        return {
-            "date": r["date"],
-            "sanji_live": r["vals"][0],          # 생계유통(대) 원/kg
-            "sanji_contract": r["vals"][1],      # 위탁생계(중) 원/kg
-            "wholesale_10": r["vals"][2],         # 도매 10호 원/kg
-            "wholesale_all": r["vals"][3],        # 도매 전체 원/kg
-            "consumer": r["vals"][4] if len(r["vals"])>4 else None,  # 소매 원/kg
-            "recent": [
-                {"date": row["date"], "sanji": row["vals"][0], "wholesale": row["vals"][3]}
-                for row in rows
-            ]
-        }
+        
+        latest = rows[0]
+        # 전일대비 계산
+        if len(rows) >= 2:
+            prev = rows[1]
+            def diff(a, b): return round(a - b) if a and b else None
+            latest["diff_sanji_live"] = diff(latest.get("sanji_live"), prev.get("sanji_live"))
+            latest["diff_wholesale_all"] = diff(latest.get("wholesale_all"), prev.get("wholesale_all"))
+        
+        latest["recent"] = [
+            {"date": r["date"], "sanji_live": r.get("sanji_live"), "wholesale_all": r.get("wholesale_all")}
+            for r in rows
+        ]
+        return latest
     except Exception as e:
         print(f"  ❌ 육계 오류: {e}")
+        import traceback; traceback.print_exc()
+        return None
+
+def fetch_pig():
+    """
+    돼지 유통단계별가격
+    컬럼: 날짜(0) | 산지(1) | 도매탕박전체(2) | 도매탕박1등급(3) | 삼겹살(4)
+    """
+    url = "https://www.ekapepia.com/v3/price/livestock/pig/distrPrice.do?menuSn=34&boardInfoNo="
+    try:
+        soup = get_soup(url)
+        col_map = {
+            1: "sanji_110kg",         # 산지(천원/110kg)
+            2: "wholesale_all",        # 도매 탕박 전체
+            3: "wholesale_1grade",     # 도매 탕박 1등급
+            4: "consumer_samgyupsal",  # 삼겹살 소비자가
+        }
+        rows = parse_price_table(soup, col_map, limit=3)
+        if not rows:
+            return None
+        
+        latest = rows[0]
+        # kg당 환산 (천원/110kg → 원/kg)
+        if latest.get("sanji_110kg"):
+            latest["sanji_per_kg"] = round(latest["sanji_110kg"] * 1000 / 110)
+        
+        if len(rows) >= 2:
+            prev = rows[1]
+            def diff(a, b): return round(a - b) if a and b else None
+            latest["diff_sanji"] = diff(latest.get("sanji_110kg"), prev.get("sanji_110kg"))
+            latest["diff_wholesale"] = diff(latest.get("wholesale_all"), prev.get("wholesale_all"))
+        
+        latest["recent"] = [
+            {"date": r["date"], "sanji_110kg": r.get("sanji_110kg"), "wholesale_all": r.get("wholesale_all")}
+            for r in rows
+        ]
+        return latest
+    except Exception as e:
+        print(f"  ❌ 돼지 오류: {e}")
+        import traceback; traceback.print_exc()
         return None
 
 def fetch_egg():
-    """계란 산지·도매·소매 가격"""
+    """
+    계란 유통단계별가격
+    컬럼: 날짜(0) | 특란산지(1) | 대란산지(2) | 특란도매(3) | 대란도매(4) | 소매특란10개(5)
+    """
     url = "https://www.ekapepia.com/v3/price/livestock/egg/distrPrice.do?menuSn=36&boardInfoNo="
     try:
         soup = get_soup(url)
-        rows = parse_table_rows(soup, 3)
+        col_map = {
+            1: "sanji_special",      # 특란 산지
+            2: "sanji_large",        # 대란 산지
+            3: "wholesale_special",  # 특란 도매
+            4: "wholesale_large",    # 대란 도매
+            5: "consumer_10",        # 소매 특란 10개
+        }
+        rows = parse_price_table(soup, col_map, limit=3)
         if not rows:
             return None
-        r = rows[0]
-        # 컬럼 순서: 특란산지, 대란산지, 특란도매, 대란도매, 소매(특란10개)
-        return {
-            "date": r["date"],
-            "sanji_special": r["vals"][0],       # 특란 산지 원/개
-            "sanji_large": r["vals"][1] if len(r["vals"])>1 else None,
-            "wholesale_special": r["vals"][2] if len(r["vals"])>2 else None,
-            "wholesale_large": r["vals"][3] if len(r["vals"])>3 else None,
-            "consumer_10": r["vals"][4] if len(r["vals"])>4 else None,  # 소매 특란 10개
-            "recent": [
-                {"date": row["date"], "sanji": row["vals"][0], "wholesale": row["vals"][2] if len(row["vals"])>2 else None}
-                for row in rows
-            ]
-        }
+        
+        latest = rows[0]
+        if len(rows) >= 2:
+            prev = rows[1]
+            def diff(a, b): return round(a - b) if a and b else None
+            latest["diff_sanji_special"] = diff(latest.get("sanji_special"), prev.get("sanji_special"))
+            latest["diff_wholesale_special"] = diff(latest.get("wholesale_special"), prev.get("wholesale_special"))
+        
+        latest["recent"] = [
+            {"date": r["date"], "sanji_special": r.get("sanji_special"), "wholesale_special": r.get("wholesale_special")}
+            for r in rows
+        ]
+        return latest
     except Exception as e:
         print(f"  ❌ 계란 오류: {e}")
-        return None
-
-def fetch_cattle():
-    """소 산지·도매 가격 (메인페이지에서 파싱)"""
-    url = "https://www.ekapepia.com/v3/web/main.do?userGroup=producer"
-    try:
-        soup = get_soup(url)
-        # 메인페이지의 소 관련 가격 테이블 파싱
-        result = {"date": "", "items": []}
-        
-        # 소 가격 섹션 찾기
-        tables = soup.find_all('table')
-        for table in tables:
-            text = table.get_text()
-            if '거세' in text or '한우' in text or '송아지' in text:
-                rows = table.find_all('tr')
-                for tr in rows[:5]:
-                    tds = tr.find_all('td')
-                    if len(tds) >= 2:
-                        name = tds[0].get_text(strip=True)
-                        val = clean_num(tds[1].get_text(strip=True))
-                        if name and val:
-                            result["items"].append({"name": name, "value": val})
-        
-        return result if result["items"] else None
-    except Exception as e:
-        print(f"  ❌ 소 오류: {e}")
+        import traceback; traceback.print_exc()
         return None
 
 def main():
@@ -161,29 +209,34 @@ def main():
 
     Path("prices").mkdir(exist_ok=True)
 
-    print("🐷 돼지 가격 수집...")
-    pig = fetch_pig()
-    if pig:
-        result["prices"]["pig"] = pig
-        print(f"  ✅ 산지 {pig.get('sanji_110kg')}천원/110kg, 도매 {pig.get('wholesale_all')}원/kg")
-
     print("🐔 육계 가격 수집...")
     chicken = fetch_chicken()
     if chicken:
         result["prices"]["chicken"] = chicken
         print(f"  ✅ 산지(대) {chicken.get('sanji_live')}원/kg, 도매전체 {chicken.get('wholesale_all')}원/kg")
+    else:
+        print("  ❌ 수집 실패")
+
+    print("🐷 돼지 가격 수집...")
+    pig = fetch_pig()
+    if pig:
+        result["prices"]["pig"] = pig
+        print(f"  ✅ 산지 {pig.get('sanji_110kg')}천원/110kg ({pig.get('sanji_per_kg')}원/kg), 도매 {pig.get('wholesale_all')}원/kg")
+    else:
+        print("  ❌ 수집 실패")
 
     print("🥚 계란 가격 수집...")
     egg = fetch_egg()
     if egg:
         result["prices"]["egg"] = egg
-        print(f"  ✅ 특란산지 {egg.get('sanji_special')}원/개")
+        print(f"  ✅ 특란산지 {egg.get('sanji_special')}원/개, 특란도매 {egg.get('wholesale_special')}원/개")
+    else:
+        print("  ❌ 수집 실패")
 
     with open("prices/prices.json", "w", encoding="utf-8") as f:
         json.dump(result, f, ensure_ascii=False, indent=2)
 
-    print(f"\n✅ prices/prices.json 저장 완료")
-    print(f"   업데이트: {result['updated']}")
+    print(f"\n✅ prices/prices.json 저장 완료 ({now_kst.strftime('%Y-%m-%d %H:%M KST')})")
 
 if __name__ == "__main__":
     main()
