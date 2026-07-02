@@ -435,7 +435,21 @@ let newsState = {
   activeChannel:"livestock",
   items:{},        // { channelId: [{title,link,pubDate,source},...] }
 };
-const RSS2JSON = "https://api.rss2json.com/v1/api.json";
+// RSS XML 직접 파싱 헬퍼 (rss2json 대체)
+function parseRssXml(xml){
+  const items = [];
+  const matches = xml.match(/<item>[\s\S]*?<\/item>/gi)||[];
+  matches.forEach(item=>{
+    const get = (tag)=>{
+      const m=item.match(new RegExp('<'+tag+'[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\/'+tag+'>|<'+tag+'[^>]*>([^<]*)<\/'+tag+'>','i'));
+      return m?(m[1]||m[2]||"").trim():"";
+    };
+    const link = get('link')||(item.match(/<link[^>]*\/?>\s*([^<]+)/i)||[])[1]||"";
+    const title = get('title');
+    if(title) items.push({ title, link:link.trim(), pubDate:get('pubDate'), source:get('source')||get('dc:creator') });
+  });
+  return items;
+}
 
 // ── 날씨 상태 ──────────────────────────────────────────────────────────────
 let weatherState = {
@@ -672,31 +686,29 @@ async function fetchNews(channelId){
   newsState.status="loading"; newsState.activeChannel=channelId;
   if(state.tab==="news") render();
   try {
-    // 구글 뉴스 RSS: when:7d 파라미터로 최근 7일 필터
-    // after: 방식은 구글 뉴스 RSS에서 동작 안 함
-    const rssWithDate = ch.rss.replace(
-      /(&hl=ko)/,
-      "&when=7d$1"
-    );
-    const url = RSS2JSON + "?rss_url=" + encodeURIComponent(rssWithDate) + "&count=20";
-    const resp = await fetchWithTimeout(url, 10000);
-    if(!resp.ok) throw new Error("HTTP "+resp.status);
-    const data = await resp.json();
-    if(data.status!=="ok") throw new Error(data.message||"RSS 오류");
-    const cutoff = Date.now() - 7*24*60*60*1000; // 7일 전 timestamp
-    newsState.items[channelId] = data.items
-      .filter(item=>{
-        if(!item.pubDate) return true; // 날짜 없으면 포함
-        return new Date(item.pubDate).getTime() >= cutoff;
-      })
+    // rss2json 대신 allorigins/corsproxy로 RSS XML 직접 파싱
+    const rss = ch.rss + "&when=7d";
+    const routes = [
+      "https://api.allorigins.win/raw?url=" + encodeURIComponent(rss),
+      "https://corsproxy.io/?url=" + encodeURIComponent(rss),
+    ];
+    let items = [];
+    for(let i=0;i<routes.length;i++){
+      try {
+        const resp = await fetchWithTimeout(routes[i], 10000);
+        if(!resp.ok) throw new Error("HTTP "+resp.status);
+        const xml = await resp.text();
+        if(!xml||!xml.includes("<item>")) throw new Error("빈 RSS");
+        items = parseRssXml(xml);
+        if(items.length>0) break;
+      } catch(e){ console.warn("뉴스 경로 "+(i+1)+" 실패:", e.message); }
+    }
+    const cutoff = Date.now() - 7*24*60*60*1000;
+    newsState.items[channelId] = items
+      .filter(item=>{ if(!item.pubDate) return true; return new Date(item.pubDate).getTime()>=cutoff; })
       .slice(0,10)
-      .map(item=>({
-        title:   item.title.replace(/<[^>]+>/g,"").trim(),
-        link:    item.link,
-        pubDate: item.pubDate ? item.pubDate.slice(0,16) : "",
-        source:  item.author || "",
-      }));
-    newsState.status="done";
+      .map(item=>({ title:item.title.replace(/<[^>]+>/g,"").trim(), link:item.link, pubDate:item.pubDate?item.pubDate.slice(0,16):"", source:item.source }));
+    newsState.status = newsState.items[channelId].length>0 ? "done" : "empty";
   } catch(e){
     console.error("뉴스 조회 실패:", e);
     newsState.status="error";
@@ -1417,8 +1429,10 @@ function renderNewsTab(){
   let content = "";
   if(newsState.status==="loading"){
     content=`<div style="text-align:center;padding:30px;color:#888;font-size:13px">⏳ 뉴스를 가져오는 중...</div>`;
-  } else if(newsState.status==="error"||(!items.length&&newsState.status==="done")){
-    content=`<div style="text-align:center;padding:30px">
+  } else if(newsState.status==="error"||newsState.status==="empty"||(!items.length&&newsState.status==="done")){
+    content = newsState.status==="empty"
+      ? `<div style="text-align:center;padding:30px;color:#888;font-size:13px">📭 최근 7일 이내 기사가 없습니다.<br><span style="font-size:11px;color:#bbb">다른 채널을 선택하거나 잠시 후 다시 시도해보세요.</span></div>`
+      : `<div style="text-align:center;padding:30px">
       <div style="font-size:13px;color:#D32F2F;margin-bottom:12px">⚠️ 뉴스를 가져오지 못했습니다.</div>
       <button class="news-ch-btn" data-ch="${ch.id}" style="border:none;border-radius:8px;background:#1a2744;color:#fff;padding:8px 16px;font-size:12px;font-weight:600">🔄 다시 시도</button>
     </div>`;
