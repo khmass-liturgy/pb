@@ -969,6 +969,137 @@ function renderOilPanel(){
   );
 }
 
+// ── 계란 산지가격 전용 패널 ──────────────────────────────────────────────────
+function renderEggPanel(){
+  const eg = pricesState.data?.egg;
+  const status = pricesState.status;
+  const updAt = pricesState.updatedAt;
+  const DABOM_EGG_URL = "https://www.ekapepia.com/v3/mobile/price/livestock/egg/producer/nation.do?menuSn=136&boardInfoNo=";
+
+  const statusBadge = status==="done"
+    ? `<span style="font-size:10px;color:#1B7A3E">🟢 ${updAt} 수집</span>`
+    : status==="error"
+    ? `<span style="font-size:10px;color:#D32F2F">⚠️ 데이터 없음</span>`
+    : `<span style="font-size:10px;color:#aaa">⏳ 로딩중...</span>`;
+
+  // 전일대비 뱃지
+  const diffBadge = (val)=>{
+    if(val==null) return "";
+    const up=val>0, flat=val===0;
+    const color=flat?"#888":up?"#D32F2F":"#1565C0";
+    const arrow=flat?"─":up?"▲":"▼";
+    return `<span style="font-size:10px;color:${color};margin-left:4px">${arrow}${Math.abs(val)}</span>`;
+  };
+
+  // 실시간 시세 카드 (XL=특란, L=대란, 10개 기준)
+  let priceCards = "";
+  if(status==="done" && eg){
+    const grades = [
+      { label:"XL (특란)", val10:eg.xl_10, diff:eg.diff_xl_10, color:"#E8530A" },
+      { label:"L (대란)",  val10:eg.l_10,  diff:eg.diff_l_10,  color:"#D4A012" },
+    ];
+    priceCards = grades.map(g=>`
+    <div style="flex:1;min-width:140px;background:#fff;border-radius:12px;padding:16px;border:1px solid #efefef;border-top:3px solid ${g.color}">
+      <div style="font-size:11px;color:#888;font-weight:600;margin-bottom:8px">${g.label}</div>
+      <div style="display:flex;align-items:baseline;gap:4px">
+        <span style="font-size:24px;font-weight:800;color:${g.color}">${g.val10!=null?g.val10.toLocaleString():"-"}</span>
+        <span style="font-size:11px;color:#aaa">원/10개</span>
+      </div>
+      <div style="margin-top:4px;font-size:11px;color:#555">
+        30개: <strong>${g.val10!=null?(g.val10*3).toLocaleString():"-"}원</strong>
+        ${diffBadge(g.diff)}
+      </div>
+    </div>`).join("");
+
+    // M(중란) 추가 표시 (작게)
+    if(eg.m_10){
+      priceCards += `
+      <div style="flex:1;min-width:120px;background:#f9f9f9;border-radius:12px;padding:14px;border:1px solid #efefef">
+        <div style="font-size:11px;color:#888;font-weight:600;margin-bottom:6px">M (중란)</div>
+        <div style="font-size:20px;font-weight:700;color:#888">${eg.m_10.toLocaleString()}</div>
+        <div style="font-size:10px;color:#aaa">원/10개</div>
+      </div>`;
+    }
+  } else if(status==="error"||status==="empty"){
+    priceCards = `<div style="text-align:center;padding:20px;color:#aaa;font-size:12px">
+      ⚠️ Actions 수집 데이터가 없습니다.
+    </div>`;
+  } else {
+    priceCards = `<div style="text-align:center;padding:20px;color:#aaa;font-size:12px">⏳ 데이터 로딩 중...</div>`;
+  }
+
+  // 2026년 월평균 (XL/L 10개 환산)
+  let monthlyHtml = "";
+  if(status==="done" && eg?.monthly){
+    const months = ["1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"];
+    const xlM = eg.monthly["XL"]||{};
+    const lM  = eg.monthly["L"]||{};
+    const validMonths = months.map((_,i)=>i+1).filter(i=>xlM[i]||lM[i]);
+
+    if(validMonths.length>0){
+      const headerCells = validMonths.map(i=>`<th style="padding:6px 8px;font-size:10px;color:#888;font-weight:600;background:#f8f8f8;border-bottom:1px solid #eee">${months[i-1]}</th>`).join("");
+      const xlRow = validMonths.map(i=>{
+        const v=xlM[i]; const v10=v?Math.round(v/3):null;
+        return `<td style="padding:6px 8px;text-align:center;font-size:12px;font-weight:600;color:#E8530A">${v10?v10.toLocaleString():"-"}</td>`;
+      }).join("");
+      const lRow = validMonths.map(i=>{
+        const v=lM[i]; const v10=v?Math.round(v/3):null;
+        return `<td style="padding:6px 8px;text-align:center;font-size:12px;font-weight:600;color:#D4A012">${v10?v10.toLocaleString():"-"}</td>`;
+      }).join("");
+
+      monthlyHtml = `
+      <div style="margin-top:16px">
+        <div style="font-size:12px;font-weight:700;color:#1a2744;margin-bottom:8px">📅 2026년 월평균 (원/10개)</div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;min-width:400px">
+            <thead>
+              <tr>
+                <th style="padding:6px 8px;font-size:10px;color:#555;font-weight:700;background:#f8f8f8;border-bottom:1px solid #eee;text-align:left">규격</th>
+                ${headerCells}
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom:1px solid #f0f0f0">
+                <td style="padding:6px 8px;font-size:11px;font-weight:700;color:#E8530A">XL(특란)</td>
+                ${xlRow}
+              </tr>
+              <tr>
+                <td style="padding:6px 8px;font-size:11px;font-weight:700;color:#D4A012">L(대란)</td>
+                ${lRow}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="font-size:9px;color:#bbb;margin-top:4px">※ 월평균 원/30개 데이터를 10개 단위로 환산 · 出處: KAPE 다봄</div>
+      </div>`;
+    }
+  }
+
+  return `
+  <div class="card" style="margin-bottom:20px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:6px">
+      <div>
+        <div class="display" style="font-size:15px">🥚 계란 산지가격 (전국)</div>
+        <div style="margin-top:3px">${statusBadge}${eg?.date?` <span style="font-size:10px;color:#aaa">· ${eg.date} 기준</span>`:""}</div>
+      </div>
+      <a href="${DABOM_EGG_URL}" target="_blank" rel="noopener"
+         style="font-size:11px;color:#E8530A;border:1px solid #E8530A;border-radius:6px;padding:5px 10px;text-decoration:none">
+        📊 다봄 상세보기 ↗
+      </a>
+    </div>
+
+    <!-- 실시간 시세 (XL·L 10개 기준) -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap">${priceCards}</div>
+
+    <!-- 월평균 테이블 -->
+    ${monthlyHtml}
+
+    <div style="font-size:9px;color:#ccc;margin-top:10px;text-align:right">
+      ※ 규격명: 왕→2XL·특→XL·대→L·중→M·소→S (26.5.21 변경) · GitHub Actions 매일 오전 8시 수집
+    </div>
+  </div>`;
+}
+
 function renderDabomPricePanel(type){
   const d = pricesState.data;
   const updAt = pricesState.updatedAt;
@@ -1122,7 +1253,7 @@ function renderPriceTab(){
   }).join("");
   return `
   ${renderDabomPricePanel("chicken")}
-  ${renderDabomPricePanel("egg")}
+  ${renderEggPanel()}
   ${renderCostPanel("poultry")}
   ${renderGrainPanel()}
   ${renderOilPanel()}
