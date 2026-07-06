@@ -1,5 +1,5 @@
 {
-  "updated": "2026-07-05 09:02 KST",
+  "updated": "2026-07-06 09:08 KST",
   "sites": {
     "poultry": {
       "name": "대한양계협회",
@@ -22,6 +22,11 @@
       "icon": "📰",
       "boards": {
         "전체 뉴스": [
+          {
+            "title": "농촌진흥청, FAO 국제 가축다양성정보시스템에 국내 자원 신규 등재",
+            "link": "https://countrynews.co.kr/ko-kr/articles/571",
+            "date": "2026-02-24"
+          },
           {
             "title": "토종닭협회 환영, 닭 부화장 소득안정비용 지원 확대",
             "link": "https://countrynews.co.kr/ko-kr/articles/570",
@@ -63,13 +68,8 @@
             "date": "2026-02-24"
           },
           {
-            "title": "농식품부-현대그린푸드, 민간 급식 최초 '저탄소 돼지고기' 공급… 밥상 위 ESG 혁명 이끈다",
+            "title": "농식품부-현대그린푸드, 민간 급식 최초 '저탄소 돼지고기' 공급… 밥상 위 ESG 혁명 이끈다 농림축산식품부는 기후변화 대응과 지속 가능한 농업의 실현을 위해 저탄소 인증 축산물의 소비 기반을 다각도로 확대하는 가운데, 현대그린푸드와 긴밀한 협력 체계를 구축하고 오는 7월부터 기업 단체급식 사업장에 저탄소 인증을 받은 돼지고기 등 친환경 축산물 공급을 본격적으로 시작한다고 공식 발표했다. 이번 조치는 그동안 학교 급식이나 군부대 급식 등 공공 영역에 주로 머물러 있던 저탄소 축산물의 유통망을 민간 기업의 단체급식 시장으로 확장하는 첫 번째 획기적인 사례로, 국가적 탄소중립 목표 달성에 있어 중요한 이정표가 될 것으로...",
             "link": "https://countrynews.co.kr/ko-kr/articles/562",
-            "date": "2026-02-24"
-          },
-          {
-            "title": "농식품부, 2026년 고병원성 AI 방역 결의대회 개최... \"민관 협력으로 철통 방역\" 농림축산식품부는 다가오는 동절기를 대비하여 고병원성 AI의 발생을 원천 차단하고 민관의 방역 역량을 극대화하기 위한 대규모 결의대회를 개최했다. 박정훈 농림축산식품부 식량정책실장은 6월 29일 농림축산식품부를 비롯해 행정안전부, 기후에너지환경부 등 중앙부처와 전국 지방자치단체, 유관기관, 그리고 가금류 생산자단체 관계자 등 200여 명이 대거 참석한 가운데 열린 &#39;2026년 고병원성 AI 방역 협의 및 결의대회&#39;에 참석해 국가적 차원의 방역 체계 점검을 주도했다.",
-            "link": "https://countrynews.co.kr/ko-kr/articles/561",
             "date": "2026-02-24"
           }
         ]
@@ -79,58 +79,7 @@
       "name": "데일리벳",
       "icon": "🩺",
       "boards": {
-        "산업동물 뉴스": [
-          {
-            "title": "리크루트 회원전용",
-            "link": "https://www.dailyvet.co.kr/login?redirect=https://www.dailyvet.co.kr/recruit",
-            "date": "2026/07/03"
-          },
-          {
-            "title": "라이프 회원전용",
-            "link": "https://www.dailyvet.co.kr/login?redirect=https://www.dailyvet.co.kr/life",
-            "date": "2023/10/30"
-          },
-          {
-            "title": "커뮤니티 회원전용",
-            "link": "https://www.dailyvet.co.kr/login?redirect=https://www.dailyvet.co.kr/community",
-            "date": "2023/10/30"
-          },
-          {
-            "title": "검역/방역/위생",
-            "link": "https://www.dailyvet.co.kr/category/news/prevention-hygiene",
-            "date": "2023/10/30"
-          },
-          {
-            "title": "박성훈 세무칼럼",
-            "link": "https://www.dailyvet.co.kr/category/opinion/column_psh_tax",
-            "date": "2023/10/30"
-          },
-          {
-            "title": "최수환 노무사의 인사를 배우다",
-            "link": "https://www.dailyvet.co.kr/category/opinion/cshwork",
-            "date": "2026/07/03"
-          },
-          {
-            "title": "실습후기 공모전 2026",
-            "link": "https://www.dailyvet.co.kr/category/opinion/contest2026",
-            "date": "2026.07.02"
-          },
-          {
-            "title": "세바코리아 Happy Experts",
-            "link": "https://www.dailyvet.co.kr/category/opinion/happyexperts",
-            "date": "2026/07/01"
-          },
-          {
-            "title": "수의 윤리 라운드토론",
-            "link": "https://www.dailyvet.co.kr/category/opinion/vetethics",
-            "date": "2026.07.02"
-          },
-          {
-            "title": "학생기자단 프로젝트",
-            "link": "https://www.dailyvet.co.kr/category/news/student_project",
-            "date": "2026/06/23"
-          }
-        ]
+        "산업동물 뉴스": []
       }
     }
   }
