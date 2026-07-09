@@ -1477,8 +1477,6 @@ function renderDabomBar(dabomUrl){
 
 function renderPriceTab(){
   const today=WEEK_DATA[WEEK_DATA.length-1], yest=WEEK_DATA[WEEK_DATA.length-2];
-  const selCat=PRICE_CATEGORIES.find(c=>c.key===state.selectedCategory);
-  const weekVals=WEEK_DATA.map(d=>d[state.selectedCategory]);
   const cards=PRICE_CATEGORIES.map(cat=>{
     const val=today[cat.key],prev=yest[cat.key],sel=state.selectedCategory===cat.key;
     const dt=(val&&prev)?(val===prev?"─ 보합":val>prev?`▲ +${(val-prev).toLocaleString()}`:`▼ ${(val-prev).toLocaleString()}`):"휴장";
@@ -1491,21 +1489,6 @@ function renderPriceTab(){
         <div style="margin-top:4px"><span style="font-size:10px;font-weight:700;color:${dc}">${dt}</span></div>
       </div></div>`;
   }).join("");
-  const vals=weekVals.filter(v=>v!==null),maxV=Math.max(...vals),minV=Math.min(...vals);
-  const bars=WEEK_DATA.map((d,i)=>{
-    const v=d[state.selectedCategory],pct=v?((v-minV)/(maxV-minV+1))*70+20:0,isT=i===WEEK_DATA.length-1;
-    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
-      ${v?`<div style="font-size:10px;font-weight:700;color:${isT?selCat.color:"#888"}">${v>=10000?(v/1000).toFixed(1)+"k":v.toLocaleString()}</div>`:""}
-      <div style="width:100%;height:${v?pct+"px":"6px"};background:${v?(isT?selCat.color:selCat.color+"55"):"#f0f0f0"};border-radius:4px 4px 0 0"></div>
-      <div style="font-size:10px;color:${isT?selCat.color:"#aaa"};font-weight:${isT?700:400}">${d.label}</div></div>`;
-  }).join("");
-  const detailRows=WEEK_DATA.map((d,i)=>{
-    const val=d[state.selectedCategory],pv=i>0?WEEK_DATA[i-1][state.selectedCategory]:null,isT=i===WEEK_DATA.length-1;
-    return `<tr style="border-bottom:1px solid #f8f8f8;background:${isT?selCat.bg:"transparent"}">
-      <td style="padding:10px;color:${isT?selCat.color:d.isWeekend?"#bbb":"#444"};font-weight:${isT?700:400}">${d.label} ${isT?`<span style="font-size:10px;margin-left:4px;background:${selCat.color};color:#fff;padding:1px 6px;border-radius:10px">오늘</span>`:""}</td>
-      <td style="padding:10px;text-align:right;font-weight:700;color:${isT?selCat.color:"#333"}">${val?val.toLocaleString()+" "+selCat.unit:'<span style="color:#ccc">휴장</span>'}</td>
-      <td style="padding:10px;text-align:right">${deltaBadge(val,pv)}</td></tr>`;
-  }).join("");
   const cmpHead=PRICE_CATEGORIES.map(c=>`<th style="padding:10px 8px;text-align:right">${c.icon} ${c.label}</th>`).join("");
   const cmpRows=WEEK_DATA.map((d,i)=>{
     const isT=i===WEEK_DATA.length-1;
@@ -1513,11 +1496,7 @@ function renderPriceTab(){
     return `<tr style="border-bottom:1px solid #f0f0f0;background:${isT?"#F0F4FF":i%2===0?"#fafafa":"#fff"}"><td style="padding:10px 12px;font-weight:${isT?700:400};color:${isT?"#2C3E6B":d.isWeekend?"#bbb":"#555"}">${d.label}${isT?" ★":""}</td>${cells}</tr>`;
   }).join("");
   return `
-  ${renderChickenPricePanel()}
-  ${renderEggPanel()}
   ${renderCostPanel("poultry")}
-  ${renderGrainPanel()}
-  ${renderOilPanel()}
   <div style="margin-bottom:20px">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
       <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px">TODAY SUMMARY · ${fmtFull(new Date())}</div>
@@ -1528,20 +1507,6 @@ function renderPriceTab(){
       </div>
     </div>
     <div class="price-grid">${cards}</div>
-  </div>
-  <div class="card" style="margin-bottom:20px">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
-      <span style="font-size:22px">${selCat.icon}</span>
-      <div><div class="display" style="font-size:16px;color:${selCat.color}">${selCat.label} 주간 시세 (${selCat.unit})</div>
-      <div style="font-size:11px;color:#aaa">일별 가격 추이 · 최근 7일</div></div>
-    </div>
-    <div style="display:flex;align-items:flex-end;gap:6px;height:100px;margin-bottom:16px">${bars}</div>
-    <div style="overflow-x:auto"><table style="font-size:13px">
-      <thead><tr style="border-bottom:2px solid #f0f0f0">
-        <th style="padding:8px 10px;text-align:left;color:#888;font-weight:600;font-size:11px">날짜</th>
-        <th style="padding:8px 10px;text-align:right;color:#888;font-weight:600;font-size:11px">가격</th>
-        <th style="padding:8px 10px;text-align:right;color:#888;font-weight:600;font-size:11px">전일대비</th>
-      </tr></thead><tbody>${detailRows}</tbody></table></div>
   </div>
   <div class="card">
     <div class="display" style="font-size:16px;margin-bottom:16px">📋 전 품목 일별 비교</div>
@@ -2470,8 +2435,7 @@ fetchUpbitPrices();
 fetchStockPrices();
 // 다봄 실시간 시세 자동 로드 (백그라운드)
 fetchDabomPrices().then(()=>{ if(state.tab==="price"||state.tab==="pig") render(); });
-// 육계 시세 페이지 로드 시 자동 갱신
-fetchChickenPrices();
+
 </script>
 </body>
 </html>
