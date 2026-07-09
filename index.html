@@ -503,7 +503,7 @@ async function fetchOneSite(targetUrl, parseFn, label){
 
 async function fetchNotices(){
   noticesState.status="loading";
-  if(state.tab==="board") render();
+  if(state.tab==="briefing") render();
   const [pr,cr]=await Promise.allSettled([
     fetchOneSite("https://www.poultry.or.kr/bbs/board.php?bo_table=notice", parsePoultryHTML, "양계협회"),
     fetchOneSite("https://chicken.or.kr/bbs/boardlist_2025.php?Ncode=b3_1", parseChickenNoticeHTML, "계육협회"),
@@ -516,7 +516,7 @@ async function fetchNotices(){
   noticesState.fallback.chicken = cv.fallback;
   noticesState.updatedAt= new Date().toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"});
   noticesState.status   = "done";
-  if(state.tab==="board") render();
+  if(state.tab==="briefing") render();
 }
 
 // ── 육계 시세: chicken.or.kr/ch_price/price_2025.php ─────────────────────
@@ -762,7 +762,7 @@ async function fetchUpbitPrices(){
   const all = allCoins().filter(c=>c.market);
   if(all.length===0){ coinFetchStatus="done"; return; }
   coinFetchStatus = "loading";
-  if(state.tab==="coin") render();
+  if(state.tab==="coin"||state.tab==="briefing") render();
   try {
     const markets = all.map(c=>c.market).join(",");
     const data = await fetchUpbitData(markets);
@@ -792,7 +792,7 @@ async function fetchUpbitPrices(){
     console.error("업비트 시세 조회 실패:", e);
     coinFetchStatus = "error";
   }
-  if(state.tab==="coin") render();
+  if(state.tab==="coin"||state.tab==="briefing") render();
 }
 
 // ── 야후 파이낸스 주가지수 자동 갱신 ───────────────────────────────────────
@@ -841,7 +841,7 @@ async function fetchStockPrices(){
     .concat(FX_DATA.filter(s=>s.ysym));
   if(targets.length===0){ stockFetchStatus="done"; return; }
   stockFetchStatus = "loading";
-  if(state.tab==="stock") render();
+  if(state.tab==="stock"||state.tab==="briefing") render();
   let okCount = 0;
   for(const s of targets){
     const q = await fetchYahooQuote(s.ysym);
@@ -863,7 +863,7 @@ async function fetchStockPrices(){
   }
   if(okCount>0){ saveCustomStocks(); stockFetchStatus="done"; }
   else stockFetchStatus="error";
-  if(state.tab==="stock") render();
+  if(state.tab==="stock"||state.tab==="briefing") render();
   // 양계 탭도 곡물·유가 갱신됐으면 재렌더
   if(state.tab==="price") render();
 }
@@ -905,8 +905,8 @@ async function fetchWeather(lat, lng, name){
     const lyStart = new Date(today); lyStart.setFullYear(today.getFullYear()-1);
     const lyEnd = new Date(lyStart); lyEnd.setDate(lyStart.getDate()+6);
     const dateFmt = (d)=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-    const fcstUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max&timezone=Asia%2FSeoul&forecast_days=7`;
-    const histUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=${dateFmt(lyStart)}&end_date=${dateFmt(lyEnd)}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=Asia%2FSeoul`;
+    const fcstUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max,relative_humidity_2m_mean&timezone=Asia%2FSeoul&forecast_days=7`;
+    const histUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=${dateFmt(lyStart)}&end_date=${dateFmt(lyEnd)}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,relative_humidity_2m_mean&timezone=Asia%2FSeoul`;
     const [fcstResp, histResp] = await Promise.all([
       fetchWithTimeout(fcstUrl, 10000),
       fetchWithTimeout(histUrl, 10000),
@@ -918,6 +918,7 @@ async function fetchWeather(lat, lng, name){
       date:t, code:days.weathercode[i],
       tMax:days.temperature_2m_max[i], tMin:days.temperature_2m_min[i],
       rain:days.precipitation_sum[i], wind:days.windspeed_10m_max[i],
+      hum: days.relative_humidity_2m_mean ? days.relative_humidity_2m_mean[i] : null,
     }));
     // 작년 7일치 배열로 저장
     if(histResp.ok){
@@ -927,6 +928,7 @@ async function fetchWeather(lat, lng, name){
           date:t, code:hd.weathercode[i],
           tMax:hd.temperature_2m_max[i], tMin:hd.temperature_2m_min[i],
           rain:hd.precipitation_sum[i],
+          hum: hd.relative_humidity_2m_mean ? hd.relative_humidity_2m_mean[i] : null,
         }));
       }
     }
@@ -995,12 +997,15 @@ async function loadBriefingContent(date){
 }
 
 function renderBriefingTab(){
+  // ① 협회 공지사항 + ② 경제동향 은 브리핑 목록 상태와 무관하게 항상 표시
+  const topSections = renderNoticesSection() + renderEconSection();
+
   if(briefingState.status==="loading")
-    return `<div class="card" style="text-align:center;padding:40px"><div style="font-size:30px;margin-bottom:12px">⏳</div><div style="color:#888;font-size:13px">브리핑 목록을 불러오는 중...</div></div>`;
+    return topSections + `<div class="card" style="text-align:center;padding:40px"><div style="font-size:30px;margin-bottom:12px">⏳</div><div style="color:#888;font-size:13px">브리핑 목록을 불러오는 중...</div></div>`;
   if(briefingState.status==="error")
-    return `<div class="card" style="text-align:center;padding:40px"><div style="font-size:30px;margin-bottom:12px">⚠️</div><div style="color:#D32F2F;font-size:13px">브리핑 목록을 불러오지 못했습니다.</div></div>`;
+    return topSections + `<div class="card" style="text-align:center;padding:40px"><div style="font-size:30px;margin-bottom:12px">⚠️</div><div style="color:#D32F2F;font-size:13px">브리핑 목록을 불러오지 못했습니다.</div></div>`;
   if(!briefingState.files.length && briefingState.status==="done")
-    return `<div class="card" style="text-align:center;padding:40px"><div style="font-size:40px;margin-bottom:12px">📋</div><div style="color:#888;font-size:13px">아직 생성된 브리핑이 없습니다.</div></div>`;
+    return topSections + `<div class="card" style="text-align:center;padding:40px"><div style="font-size:40px;margin-bottom:12px">📋</div><div style="color:#888;font-size:13px">아직 생성된 브리핑이 없습니다.</div></div>`;
 
   const DOW=["일","월","화","수","목","금","토"];
   const dateList = briefingState.files.map((date,i)=>{
@@ -1019,7 +1024,8 @@ function renderBriefingTab(){
   else if(briefingState.content)
     body=`<div id="briefing-md">${typeof marked!=="undefined"?marked.parse(briefingState.content):briefingState.content.replace(/\n/g,"<br>")}</div>`;
 
-  return `
+  return topSections + `
+  <div class="display" style="font-size:16px;margin-bottom:12px">📋 일일 브리핑</div>
   <div style="display:flex;gap:14px;align-items:flex-start">
     <div style="width:138px;flex-shrink:0">
       <div style="font-size:11px;color:#888;font-weight:600;letter-spacing:.08em;margin-bottom:8px;padding-left:2px">브리핑 목록</div>
@@ -1033,7 +1039,7 @@ function render(){
   document.getElementById("app").innerHTML = `
     ${renderHeader()}
     <main>
-      ${state.tab==="price" ? renderPriceTab() : state.tab==="pig" ? renderPigTab() : state.tab==="livestock" ? renderLivestockTab() : state.tab==="stock" ? renderStockTab() : state.tab==="coin" ? renderCoinTab() : state.tab==="weather" ? renderWeatherTab() : state.tab==="news" ? renderNewsTab() : state.tab==="briefing" ? renderBriefingTab() : renderBoardTab()}
+      ${state.tab==="price" ? renderPriceTab() : state.tab==="pig" ? renderPigTab() : state.tab==="livestock" ? renderLivestockTab() : state.tab==="stock" ? renderStockTab() : state.tab==="coin" ? renderCoinTab() : state.tab==="weather" ? renderWeatherTab() : state.tab==="news" ? renderNewsTab() : state.tab==="briefing" ? renderBriefingTab() : renderPriceTab()}
       ${renderFooter()}
     </main>`;
   attachEvents();
@@ -1057,7 +1063,6 @@ function renderHeader(){
       <button class="tab ${state.tab==="price"?"active":""}" data-tab="price">📊 양계</button>
       <button class="tab ${state.tab==="pig"?"active":""}" data-tab="pig">🐷 양돈</button>
       <button class="tab ${state.tab==="livestock"?"active":""}" data-tab="livestock">🐂 한우</button>
-      <button class="tab ${state.tab==="board"?"active":""}" data-tab="board">📋 공지</button>
       <button class="tab ${state.tab==="stock"?"active":""}" data-tab="stock">📈 주가</button>
       <button class="tab ${state.tab==="coin"?"active":""}" data-tab="coin">🪙 코인</button>
       <button class="tab ${state.tab==="weather"?"active":""}" data-tab="weather">🌤️ 날씨</button>
@@ -2051,6 +2056,7 @@ function renderWeatherTab(){
         <div style="font-size:9px;color:#aaa;margin:2px 0">${desc(d.code)}</div>
         <div style="font-size:13px;font-weight:700;color:#D32F2F">${tStr(d.tMax)}</div>
         <div style="font-size:11px;color:#1565C0">${tStr(d.tMin)}</div>
+        ${d.hum!=null?`<div style="font-size:9px;color:#0288D1;margin-top:2px">💦 습도 ${Math.round(d.hum)}%</div>`:""}
         ${d.rain>0?`<div style="font-size:9px;color:#1565C0;margin-top:2px">💧${d.rain.toFixed(1)}mm</div>`:""}
       </div>
       <!-- 작년 -->
@@ -2061,6 +2067,7 @@ function renderWeatherTab(){
         <div style="font-size:9px;color:#aaa;margin:2px 0">${desc(l.code)}</div>
         <div style="font-size:13px;font-weight:700;color:#D32F2F">${tStr(l.tMax)}</div>
         <div style="font-size:11px;color:#1565C0">${tStr(l.tMin)}</div>
+        ${l.hum!=null?`<div style="font-size:9px;color:#0288D1;margin-top:2px">💦 습도 ${Math.round(l.hum)}%</div>`:""}
         ${l.rain>0?`<div style="font-size:9px;color:#1565C0;margin-top:2px">💧${l.rain.toFixed(1)}mm</div>`:""}
         <div style="margin-top:6px;padding-top:6px;border-top:1px solid #eee;font-size:10px">
           최고 ${diffStr(d.tMax,l.tMax)} / 최저 ${diffStr(d.tMin,l.tMin)}
@@ -2106,7 +2113,76 @@ function renderWeatherTab(){
   </div>`;
 }
 
-function renderBoardTab(){
+// ── 브리핑: 경제동향 (주가·코인 요약) ────────────────────────────────────────
+function renderEconSection(){
+  const fmtNum = (n)=> n.toLocaleString(undefined,{maximumFractionDigits:2});
+  const row = (item)=>{
+    const diff = item.current - item.prevDay;
+    const pct = ((diff/item.prevDay)*100).toFixed(2);
+    const up = diff>0, flat = Math.abs(diff)<0.001;
+    const arrow = flat?"─":up?"▲":"▼";
+    const dColor = flat?"#888":up?"#D32F2F":"#1565C0";
+    return `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f3f3f3">
+      <div style="display:flex;align-items:center;gap:7px;min-width:0">
+        <span style="font-size:15px">${item.icon}</span>
+        <span style="font-size:12px;font-weight:600;color:#1a1a1a;white-space:nowrap">${esc(item.name)}</span>
+      </div>
+      <div style="text-align:right">
+        <span style="font-size:13px;font-weight:800;color:#1a2744">${fmtNum(item.current)}</span>
+        <span style="font-size:10px;color:#aaa"> ${esc(item.unit)}</span>
+        <span style="font-size:11px;font-weight:700;color:${dColor};margin-left:6px">${arrow} ${pct}%</span>
+      </div>
+    </div>`;
+  };
+
+  const stockKeys = ["kospi","kosdaq","sp500","nasdaq"];
+  const stocks = stockKeys.map(k=>STOCK_DATA.find(s=>s.key===k)).filter(Boolean);
+  const fx = FX_DATA.filter(f=>f.key==="usdkrw");
+  const coinKeys = ["btc","eth","xrp"];
+  const coins = coinKeys.map(k=>COIN_DATA.find(c=>c.key===k)).filter(Boolean);
+
+  const sStat = stockFetchStatus, cStat = coinFetchStatus;
+  const statBadge = (st)=> st==="loading"?`<span style="font-size:10px;color:#aaa">⏳ 갱신중</span>`
+    : st==="done"?`<span style="font-size:10px;color:#1B7A3E">🟢 실시간</span>`
+    : st==="error"?`<span style="font-size:10px;color:#e67700">⚡ 저장값</span>`:"";
+
+  return `
+  <div style="margin-bottom:22px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <div>
+        <div class="display" style="font-size:16px">💹 경제동향</div>
+        <div style="font-size:10px;color:#aaa;margin-top:3px">주가지수 · 환율 · 주요 코인 시세 요약</div>
+      </div>
+      <button id="btn-econ-refresh"
+        style="border:none;border-radius:8px;background:#1a2744;padding:6px 14px;font-size:12px;color:#fff;font-weight:600;cursor:pointer">
+        🔄 갱신
+      </button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
+      <div class="card" style="border-top:4px solid #0047A0">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="font-size:13px;font-weight:700;color:#0047A0">📈 주가 · 환율</div>
+          ${statBadge(sStat)}
+        </div>
+        ${stocks.map(row).join("")}
+        ${fx.map(row).join("")}
+        <div style="margin-top:8px;text-align:right"><span class="tab-jump" data-jump="stock" style="font-size:11px;color:#0047A0;cursor:pointer;font-weight:600">전체 주가 보기 →</span></div>
+      </div>
+      <div class="card" style="border-top:4px solid #F7931A">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="font-size:13px;font-weight:700;color:#F7931A">🪙 코인 (업비트 KRW)</div>
+          ${statBadge(cStat)}
+        </div>
+        ${coins.map(row).join("")}
+        <div style="margin-top:8px;text-align:right"><span class="tab-jump" data-jump="coin" style="font-size:11px;color:#F7931A;cursor:pointer;font-weight:600">전체 코인 보기 →</span></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── 브리핑: 협회 공지사항 섹션 ───────────────────────────────────────────────
+function renderNoticesSection(){
   const ns = noticesState;
   const timeLabel = ns.status==="done"
     ? `🟢 ${ns.updatedAt} 조회`
@@ -2130,6 +2206,7 @@ function renderBoardTab(){
   const loading = ns.status==="idle"||ns.status==="loading";
 
   return `
+  <div style="margin-bottom:22px">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
     <div>
       <div class="display" style="font-size:16px">📋 협회 공지사항</div>
@@ -2182,6 +2259,7 @@ function renderBoardTab(){
       ${noticeList(ns.chicken,"#1B7A3E",ns.fallback?.chicken,loading)}
     </div>
 
+  </div>
   </div>`;
 }
 
@@ -2206,8 +2284,12 @@ function attachEvents(){
       if(saved) fetchWeather(saved.lat, saved.lng, saved.name);
     }
     if(state.tab==="news" && newsState.status==="idle") fetchNews(newsState.activeChannel);
-    if(state.tab==="briefing" && briefingState.status==="idle") loadBriefingList();
-    if(state.tab==="board" && noticesState.status==="idle") fetchNotices();
+    if(state.tab==="briefing"){
+      if(briefingState.status==="idle") loadBriefingList();
+      if(noticesState.status==="idle") fetchNotices();
+      if(stockFetchStatus!=="done" && stockFetchStatus!=="loading") fetchStockPrices();
+      if(coinFetchStatus!=="done" && coinFetchStatus!=="loading") fetchUpbitPrices();
+    }
     if(state.tab==="price" && chPriceState.status==="idle") fetchChickenPrices();
   });
   document.querySelectorAll(".briefing-date-btn").forEach(b=>b.onclick=()=>loadBriefingContent(b.dataset.date));
@@ -2216,6 +2298,17 @@ function attachEvents(){
   // 공지 갱신 버튼
   const noticesRefreshBtn=document.getElementById("btn-notices-refresh");
   if(noticesRefreshBtn) noticesRefreshBtn.onclick=()=>{ noticesState.status="loading"; render(); fetchNotices(); };
+
+  // 경제동향 갱신 버튼 (주가+코인 동시 갱신)
+  const econRefreshBtn=document.getElementById("btn-econ-refresh");
+  if(econRefreshBtn) econRefreshBtn.onclick=()=>{ fetchStockPrices(); fetchUpbitPrices(); };
+
+  // 경제동향 → 주가/코인 탭 이동
+  document.querySelectorAll(".tab-jump").forEach(b=>b.onclick=()=>{
+    state.tab=b.dataset.jump; render();
+    if(state.tab==="coin" && coinFetchStatus!=="done" && coinFetchStatus!=="loading") fetchUpbitPrices();
+    if(state.tab==="stock" && stockFetchStatus!=="done" && stockFetchStatus!=="loading") fetchStockPrices();
+  });
 
   // 육계 시세 갱신 버튼
   const chPriceRefreshBtn=document.getElementById("btn-ch-price-refresh");
