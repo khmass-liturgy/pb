@@ -1,5 +1,5 @@
 {
-  "updated": "2026-07-10 09:03 KST",
+  "updated": "2026-07-11 08:56 KST",
   "channels": {
     "livestock": {
       "label": "축산·농업",
@@ -18,8 +18,15 @@
     },
     "feed": {
       "label": "사료·약품",
-      "items": [],
-      "count": 0
+      "items": [
+        {
+          "title": "[전광판] '26년 28주차 평균 도매가격 6,402원(전주대비 3.5%, 전년동기대비 0.6%) - 돼지와사람",
+          "link": "https://news.google.com/rss/articles/CBMiZEFVX3lxTE1jRWM3SElnMVVDNXJUdmZIdVFxanJ1WExGaWx5OTZQUzk1cWJFRlpMNmdkSXBnVS1aZV9PZVZacXRkdElzM1RHWnNTS2JCQ21scE84YTRvWWplOWE1T3NGSnpxRW8?oc=5",
+          "date": "07/08 16:00",
+          "source": "돼지와사람"
+        }
+      ],
+      "count": 1
     },
     "economy": {
       "label": "경제",
@@ -29,6 +36,12 @@
           "link": "https://news.google.com/rss/articles/CBMiVEFVX3lxTE9BY2pzbUxwR094aE9uamdhUTFTQ0U3d2ZZbzhfX2dNSEE3M3VLRHhkSmI0YTNfY2tDdTUzcVRGLWZfdURjVzRabXZuMnhwU3A3cnh1OQ?oc=5",
           "date": "07/08 18:01",
           "source": "매일경제"
+        },
+        {
+          "title": "\"환율·물가·집값 불안 … 이달 기준금리 인상 유력\" - v.daum.net",
+          "link": "https://news.google.com/rss/articles/CBMiT0FVX3lxTE8wX0NyeDdlVmpEQ2FYUnhucGpKaG54WVJoZDJ2bnU2eFk3eE5aWEtKblF2SGdrYjJHMkdoc19hdm5Ya0VPcW5DaXl2TnY5bzg?oc=5",
+          "date": "07/08 18:03",
+          "source": "v.daum.net"
         },
         {
           "title": "신현송 \"적절한 시기 금리 인상 필요\"…환율·물가·집값 불안 경계 - 머니투데이 - 머니투데이",
@@ -49,27 +62,21 @@
           "source": "금융소비자뉴스"
         },
         {
-          "title": "美 연준 ‘금리 인상’ 다시 꺼냈다…‘환율·물가·대출’ 충격 우려 커지나 - v.daum.net",
-          "link": "https://news.google.com/rss/articles/CBMiT0FVX3lxTFBWSTRpaHlVNmpOQm5XRHVZZ2YxcWx4RjkyUG83VURONERUWmZBTlQtdzRnN3hfa3VkdFJhLXhWakdQTTVYZzgyX1FMTVFma0k?oc=5",
-          "date": "07/09 09:25",
-          "source": "v.daum.net"
-        },
-        {
           "title": "[이슈PICK+] 8연속 동결 끝내나···7월 금통위, ‘환율·물가’ 압박에 금리인상 전망 무게 - 투데이코리아",
           "link": "https://news.google.com/rss/articles/CBMicEFVX3lxTE1pVkdGQUdOMTUwVmJWVGRoclp2ZU5ObTN5a2R0NUJpWTUyWnV1Q3g3c29QNUdQNEZXc0sxdUVoaU1JLWYtWnVvNUx1eW9DZHVXaEFmalFpdi1ITUh6NEtaS2J6anY0NUZCcUZQZUlxRjE?oc=5",
           "date": "07/08 16:30",
           "source": "투데이코리아"
         },
         {
-          "title": "[이코노미플러스]경제 전문가 “환율·물가·집값 불안… 기준금리 2.50% 유지 전망” - 강원일보",
-          "link": "https://news.google.com/rss/articles/CBMigAFBVV95cUxNUVhUQ2dVc3NDR0NRT0NtTGF2MmxvZTJOdmljaWhFQ1VDbENtel9nd0FuLTk5YUQ1SUJ6LVVWX3JVTE5xdktsbVVvM3VSbW9zVFB4UEtNMlpzbUNvZkdLY2FnU0kxWTNsMWppZnVNNmhJTDRZUTBtOXBVNnpwUEQ5eA?oc=5",
-          "date": "07/04 01:13",
-          "source": "강원일보"
+          "title": "\"환율·물가·집값 불안 … 이달 기준금리 인상 유력\" - v.daum.net",
+          "link": "https://news.google.com/rss/articles/CBMiS0FVX3lxTFBheXdqenQ1VEMtbHV5MVdLVlNGbTJmcFBYbDk0aUZIY1ZXZUhyMDk3YUltOEZ0LUpJX1Y4U2l0OWFJamx0Vmhab2VaYw?oc=5",
+          "date": "07/08 18:03",
+          "source": "v.daum.net"
         },
         {
-          "title": "\"환율·물가·집값 불안 … 이달 기준금리 인상 유력\" - v.daum.net",
-          "link": "https://news.google.com/rss/articles/CBMiRkFVX3lxTFBmbGQxalZVZDhnWTE0TVlhM2hlV2pRYkxtd0xoS0xZcjltSFJHN01ZVTNPWkNLbWlVdGFzZHc0cE51N3FxOWc?oc=5",
-          "date": "07/08 18:03",
+          "title": "美 연준 ‘금리 인상’ 다시 꺼냈다…‘환율·물가·대출’ 충격 우려 커지나 - v.daum.net",
+          "link": "https://news.google.com/rss/articles/CBMiT0FVX3lxTFBWSTRpaHlVNmpOQm5XRHVZZ2YxcWx4RjkyUG83VURONERUWmZBTlQtdzRnN3hfa3VkdFJhLXhWakdQTTVYZzgyX1FMTVFma0k?oc=5",
+          "date": "07/09 09:25",
           "source": "v.daum.net"
         }
       ],
@@ -77,8 +84,15 @@
     },
     "world": {
       "label": "국제",
-      "items": [],
-      "count": 0
+      "items": [
+        {
+          "title": "중국 조선사 상반기 1131척 수주 세계 72%···한국 195척 '격차' - 인천투데이",
+          "link": "https://news.google.com/rss/articles/CBMicEFVX3lxTFBpUkY0WWlCQ3ZVY1BUUHhiNWFRT1gxTWZtd1VHLXp0YmhoaEtKV3IwWU5uY2htVi1DekVsdzlKNU9UclJVdmFueFZwQWQ5cTM2enF6d2ZKeHY2NmdXWlpUYU50VEphQkp5bVZHU2YzWVQ?oc=5",
+          "date": "07/10 14:42",
+          "source": "인천투데이"
+        }
+      ],
+      "count": 1
     }
   }
 }
