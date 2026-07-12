@@ -422,7 +422,7 @@ function saveCustomCoins(){ try { localStorage.setItem("custom_coins", JSON.stri
 // ═══════════════════════════════════════════════════════════════════════════
 // 상태 + 사용자 추가 사이트(localStorage)
 // ═══════════════════════════════════════════════════════════════════════════
-let state = { tab:"price", selectedCategory:"broiler", customSites:loadCustom(), customStocks:loadCustomList("custom_stocks"), customCoins:loadCustomList("custom_coins") };
+let state = { tab:"price", customSites:loadCustom(), customStocks:loadCustomList("custom_stocks"), customCoins:loadCustomList("custom_coins") };
 
 // ── 다봄 실시간 시세 (GitHub Actions → prices/prices.json) ────────────────
 const PRICES_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/prices/prices.json";
@@ -1489,235 +1489,97 @@ function renderDabomBar(dabomUrl){
   <a href="${dabomUrl}" target="_blank" rel="noopener" style="display:inline-flex;gap:6px;align-items:center;font-size:12px;color:#E84A6F;font-weight:600;border:1px solid #E84A6F;border-radius:8px;padding:7px 13px">📊 다봄 실시간 시세 ↗</a>`;
 }
 
-function renderPriceTab(){
-  const today=WEEK_DATA[WEEK_DATA.length-1], yest=WEEK_DATA[WEEK_DATA.length-2];
-  const cards=PRICE_CATEGORIES.map(cat=>{
-    const val=today[cat.key],prev=yest[cat.key],sel=state.selectedCategory===cat.key;
+// ═══════════════════════════════════════════════════════════════════════════
+// 공통 시세 렌더러 — 양계/양돈/한우 탭 형식 통일 (양계 형식 기준)
+// items: [{icon,label,sub,unit,color,week:[7일값]}]
+// ═══════════════════════════════════════════════════════════════════════════
+function renderSummaryCards(items){
+  return items.map(it=>{
+    const w=it.week, val=w[w.length-1], prev=w[w.length-2];
     const dt=(val&&prev)?(val===prev?"─ 보합":val>prev?`▲ +${(val-prev).toLocaleString()}`:`▼ ${(val-prev).toLocaleString()}`):"휴장";
-    const dc=sel?(val&&prev?(val>prev?"#FFD0CC":val<prev?"#CCFFD9":"rgba(255,255,255,0.6)"):"rgba(255,255,255,0.5)"):(val&&prev?(val>prev?"#D32F2F":val<prev?"#1B7A3E":"#888"):"#bbb");
-    return `<div class="price-card" data-cat="${cat.key}" style="${sel?`background:${cat.color};border-color:${cat.color};box-shadow:0 4px 20px ${cat.color}40`:""}">
-      <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:22px">${cat.icon}</span>${sparkline(WEEK_DATA.map(d=>d[cat.key]),sel?"#fff":cat.color)}</div>
+    const dc=(val&&prev)?(val>prev?"#D32F2F":val<prev?"#1B7A3E":"#888"):"#bbb";
+    return `<div class="price-card">
+      <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:22px">${it.icon}</span>${sparkline(w,it.color)}</div>
       <div style="margin-top:8px">
-        <div style="font-size:12px;font-weight:700;color:${sel?"rgba(255,255,255,0.8)":"#888"}">${cat.label} <span style="font-weight:400">${cat.sub}</span></div>
-        <div style="font-size:20px;font-weight:800;color:${sel?"#fff":cat.color};letter-spacing:-0.5px">${val?val.toLocaleString():"-"}<span style="font-size:11px;font-weight:400;margin-left:2px">${cat.unit}</span></div>
+        <div style="font-size:12px;font-weight:700;color:#888">${it.label} <span style="font-weight:400">${it.sub}</span></div>
+        <div style="font-size:20px;font-weight:800;color:${it.color};letter-spacing:-0.5px">${val?val.toLocaleString():"-"}<span style="font-size:11px;font-weight:400;margin-left:2px">${it.unit}</span></div>
         <div style="margin-top:4px"><span style="font-size:10px;font-weight:700;color:${dc}">${dt}</span></div>
       </div></div>`;
   }).join("");
-  const cmpHead=PRICE_CATEGORIES.map(c=>`<th style="padding:10px 8px;text-align:right">${c.icon} ${c.label}</th>`).join("");
-  const cmpRows=WEEK_DATA.map((d,i)=>{
-    const isT=i===WEEK_DATA.length-1;
-    const cells=PRICE_CATEGORIES.map(cat=>{const v=d[cat.key];return `<td style="padding:10px 8px;text-align:right;font-weight:${isT?700:400};color:${isT?cat.color:v?"#333":"#ccc"}">${v?v.toLocaleString():"-"}</td>`;}).join("");
-    return `<tr style="border-bottom:1px solid #f0f0f0;background:${isT?"#F0F4FF":i%2===0?"#fafafa":"#fff"}"><td style="padding:10px 12px;font-weight:${isT?700:400};color:${isT?"#2C3E6B":d.isWeekend?"#bbb":"#555"}">${d.label}${isT?" ★":""}</td>${cells}</tr>`;
-  }).join("");
+}
+
+function renderSummarySection(items, opts){
   return `
-  ${renderCostPanel("poultry")}
   <div style="margin-bottom:20px">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
       <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px">TODAY SUMMARY · ${fmtFull(new Date())}</div>
-      <div style="font-size:11px;color:#F9A825;margin-top:4px">⚠️ 아래 시세는 실제 거래가가 아닌 <strong>가격 흐름 참고용</strong> 데이터입니다. 정확한 시세는 각 협회 공식 사이트를 확인하세요.</div>
+      <div style="font-size:11px;color:#F9A825;margin-top:4px">⚠️ 아래 시세는 실제 거래가가 아닌 <strong>가격 흐름 참고용</strong> 데이터입니다. ${opts.warnTail||""}</div>
       <div style="display:flex;gap:8px;align-items:center">
-        <a href="https://www.poultry.or.kr" target="_blank" rel="noopener" style="font-size:11px;color:#E8530A;font-weight:600;border:1px solid #E8530A;border-radius:8px;padding:7px 12px">📊 양계협회 시세</a>
-        <button id="btn-refresh-poultry" style="border:1px solid #1B7A3E;border-radius:8px;background:#fff;padding:7px 12px;font-size:12px;color:#1B7A3E;font-weight:600">🔄 시세 갱신</button>
+        <a href="${opts.linkUrl}" target="_blank" rel="noopener" style="font-size:11px;color:${opts.linkColor};font-weight:600;border:1px solid ${opts.linkColor};border-radius:8px;padding:7px 12px">${opts.linkLabel}</a>
+        <button id="${opts.refreshId}" style="border:1px solid #1B7A3E;border-radius:8px;background:#fff;padding:7px 12px;font-size:12px;color:#1B7A3E;font-weight:600">🔄 시세 갱신</button>
       </div>
     </div>
-    <div class="price-grid">${cards}</div>
-  </div>
+    <div class="price-grid">${renderSummaryCards(items)}</div>
+  </div>`;
+}
+
+function renderCompareTable(items, days, opts){
+  const cmpHead=items.map(c=>`<th style="padding:10px 8px;text-align:right">${c.icon} ${c.label}</th>`).join("");
+  const cmpRows=days.map((d,i)=>{
+    const isT=i===days.length-1;
+    const cells=items.map(it=>{const v=it.week[i];return `<td style="padding:10px 8px;text-align:right;font-weight:${isT?700:400};color:${isT?it.color:v?"#333":"#ccc"}">${v?v.toLocaleString():"-"}</td>`;}).join("");
+    return `<tr style="border-bottom:1px solid #f0f0f0;background:${isT?"#F0F4FF":i%2===0?"#fafafa":"#fff"}"><td style="padding:10px 12px;font-weight:${isT?700:400};color:${isT?"#2C3E6B":d.isWeekend?"#bbb":"#555"}">${d.label}${isT?" ★":""}</td>${cells}</tr>`;
+  }).join("");
+  return `
   <div class="card">
     <div class="display" style="font-size:16px;margin-bottom:16px">📋 전 품목 일별 비교</div>
     <div style="overflow-x:auto"><table style="font-size:12px;min-width:600px">
       <thead><tr style="background:#1a2744;color:#fff"><th style="padding:10px 12px;text-align:left">날짜</th>${cmpHead}</tr></thead>
       <tbody>${cmpRows}</tbody></table></div>
-    <div style="margin-top:10px;font-size:11px;color:#aaa;text-align:right">단위: 육계·토종닭·닭고기(원/kg) | 계란(원/개) | 종계병아리·육계병아리(원/마리)</div>
+    <div style="margin-top:10px;font-size:11px;color:#aaa;text-align:right">${opts.unitNote||""}</div>
   </div>`;
+}
+
+function last7DayInfos(){
+  return getLast7Days().map(d=>({label:fmtDate(d), isWeekend:d.getDay()===0||d.getDay()===6}));
+}
+
+function renderPriceTab(){
+  const items=PRICE_CATEGORIES.map(c=>({icon:c.icon,label:c.label,sub:c.sub,unit:c.unit,color:c.color,week:WEEK_DATA.map(d=>d[c.key])}));
+  const days=WEEK_DATA.map(d=>({label:d.label,isWeekend:d.isWeekend}));
+  return `
+  ${renderCostPanel("poultry")}
+  ${renderSummarySection(items,{
+    warnTail:"정확한 시세는 각 협회 공식 사이트를 확인하세요.",
+    linkUrl:"https://www.poultry.or.kr", linkLabel:"📊 양계협회 시세", linkColor:"#E8530A",
+    refreshId:"btn-refresh-poultry"})}
+  ${renderCompareTable(items,days,{unitNote:"단위: 육계·토종닭·닭고기(원/kg) | 계란(원/개) | 종계병아리·육계병아리(원/마리)"})}`;
 }
 
 function renderPigTab(){
-  const today = new Date();
-  // 탕박/박피/산지 그룹별 카드
-  const renderPigGroup = (catName, emoji, desc) => {
-    const items = PIG_DATA.filter(x=>x.cat===catName);
-    if(items.length===0) return "";
-    const cards = items.map(item=>{
-      const vals = item.week.filter(v=>v!==null);
-      const cur = vals[vals.length-1];
-      const prev = vals[vals.length-2];
-      const diff = (cur&&prev)?cur-prev:0;
-      const pct = (cur&&prev)?((diff/prev)*100).toFixed(1):0;
-      const up = diff>0, flat = diff===0;
-      const arrow = flat?"─":up?"▲":"▼";
-      const dColor = flat?"#888":up?"#D32F2F":"#1B7A3E";
-      return `
-      <div style="background:#fff;border-radius:14px;padding:16px;border:1px solid #efefef;border-top:3px solid ${item.color}">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:22px">${item.icon}</span>
-            <div>
-              <div style="font-size:14px;font-weight:700;color:#1a1a1a">${item.name}</div>
-              <div style="font-size:10px;color:#aaa">${item.sub} · ${item.note}</div>
-            </div>
-          </div>
-          ${sparkline(item.week, item.color)}
-        </div>
-        <div style="display:flex;align-items:baseline;gap:6px">
-          <span style="font-size:21px;font-weight:800;color:${item.color};letter-spacing:-0.5px">${cur?cur.toLocaleString():"-"}</span>
-          <span style="font-size:11px;color:#888">${item.unit}</span>
-        </div>
-        <div style="margin-top:5px">
-          <span style="font-size:11px;font-weight:700;color:${dColor}">${arrow} ${Math.abs(diff).toLocaleString()} (${pct}%)</span>
-          <span style="font-size:10px;color:#aaa;margin-left:6px">전일대비</span>
-        </div>
-      </div>`;
-    }).join("");
-    return `
-    <div style="margin-bottom:22px">
-      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:12px">
-        <span class="display" style="font-size:17px;color:#880E4F">${emoji} ${catName}</span>
-        <span style="font-size:11px;color:#aaa">${desc}</span>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">${cards}</div>
-    </div>`;
-  };
-
-  // 등급 비교 안내 박스
-  const gradeInfo = `
-  <div style="background:#FFF0F4;border-radius:14px;padding:16px;margin-bottom:22px;border:1px solid #F8BBD0">
-    <div style="font-size:13px;font-weight:700;color:#880E4F;margin-bottom:8px">💡 돼지 등급 한눈에 보기</div>
-    <div style="font-size:12px;color:#666;line-height:1.8">
-      <strong>1+등급</strong>은 1등급보다 약 <strong>150원/kg</strong>, 2등급보다 약 <strong>600원/kg</strong> 높게 거래됩니다. 88kg 도체 기준 1+와 2등급은 <strong>두당 약 5만원</strong> 차이가 납니다.<br>
-      <strong>탕박</strong>(털만 제거)이 대부분이며, <strong>박피</strong>(껍질 제거)는 별도 가격이 형성됩니다. 도체중 87~94kg 구간이 가장 좋은 가격을 받습니다.
-    </div>
-  </div>`;
-
-  // 7일 추이 테이블
-  const tblHead = PIG_DATA.map(x=>`<th style="padding:10px 8px;text-align:right;font-size:11px">${x.name}</th>`).join("");
-  const tblRows = getLast7Days().map((d,i)=>{
-    const isT = i===6;
-    const wk = d.getDay()===0||d.getDay()===6;
-    const cells = PIG_DATA.map(x=>{
-      const v=x.week[i];
-      return `<td style="padding:10px 8px;text-align:right;font-weight:${isT?700:400};color:${isT?x.color:v?"#333":"#ccc"}">${v?v.toLocaleString():"-"}</td>`;
-    }).join("");
-    return `<tr style="border-bottom:1px solid #f0f0f0;background:${isT?"#FFF0F4":i%2===0?"#fafafa":"#fff"}">
-      <td style="padding:10px 12px;font-weight:${isT?700:400};color:${isT?"#E84A6F":wk?"#bbb":"#555"}">${fmtDate(d)}${isT?" ★":""}</td>${cells}</tr>`;
-  }).join("");
-
-  const linkBtns = PIG_LINKS.map(l=>`
-    <a href="${esc(l.url)}" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-radius:10px;background:${l.color}12;color:${l.color};font-size:13px;font-weight:600;border:1px solid ${l.color}30">
-      <span>🔗 ${esc(l.label)}</span><span style="font-size:15px">↗</span>
-    </a>`).join("");
-
+  const items=PIG_DATA.map(x=>({icon:x.icon,label:x.name,sub:x.sub,unit:x.unit,color:x.color,week:x.week}));
   return `
-  <div style="margin-bottom:16px">
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-      <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px">🐷 양돈 농장 산지시세 · ${fmtFull(today)}</div>
-      ${renderDabomBar("https://www.ekapepia.com/web/main.do")}
-    </div>
-    <div style="font-size:11px;color:#F9A825;margin-top:6px">⚠️ 아래 시세는 실제 거래가가 아닌 <strong>가격 흐름 참고용</strong> 데이터입니다. 정확한 경락가는 '다봄 실시간 시세'에서 확인하세요.</div>
-  </div>
-  ${gradeInfo}
-  ${renderPigGroup("탕박","🐷","털만 제거한 도체 · 국내 대부분")}
-  ${renderPigGroup("박피","🐖","껍질까지 제거한 도체")}
-  ${renderPigGroup("산지","🚜","농장 출하 거래가")}
-
-  <div class="card" style="margin-bottom:20px">
-    <div class="display" style="font-size:16px;margin-bottom:16px">📋 최근 7일 추이 (등급별)</div>
-    <div style="overflow-x:auto"><table style="font-size:12px;min-width:720px">
-      <thead><tr style="background:#880E4F;color:#fff"><th style="padding:10px 12px;text-align:left">날짜</th>${tblHead}</tr></thead>
-      <tbody>${tblRows}</tbody></table></div>
-    <div style="margin-top:10px;font-size:11px;color:#aaa;text-align:right">단위: 등급별 경락가(원/kg) | 비육돈 산지(원/두)</div>
-  </div>
-
-  <div class="card">
-    <div class="display" style="font-size:16px;margin-bottom:6px">🔗 실시간 양돈 시세 조회</div>
-    <div style="font-size:12px;color:#888;margin-bottom:14px;line-height:1.6">정확한 실시간 돼지 경락가격은 아래 공식 사이트에서 확인하세요. 새 탭에서 열립니다.</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">${linkBtns}</div>
-  </div>
-  ${renderDabomPricePanel("pig")}
-  ${renderCostPanel("pig")}`;
+  ${renderCostPanel("pig")}
+  ${renderSummarySection(items,{
+    warnTail:"정확한 경락가는 아래 '다봄 실시간 시세'에서 확인하세요.",
+    linkUrl:"https://www.ekapepia.com/web/main.do", linkLabel:"📊 다봄 돼지 시세", linkColor:"#E84A6F",
+    refreshId:"btn-refresh-pig"})}
+  ${renderCompareTable(items,last7DayInfos(),{unitNote:"단위: 등급별 경락가(원/kg) | 비육돈 산지(원/두)"})}
+  ${renderDabomPricePanel("pig")}`;
 }
 
 function renderLivestockTab(){
-  const today = new Date();
-  const renderGroup = (groupName, emoji) => {
-    const items = LIVESTOCK_DATA.filter(x=>x.group===groupName);
-    const cards = items.map(item=>{
-      const week = item.week;
-      const vals = week.filter(v=>v!==null);
-      const cur = vals[vals.length-1];
-      const prev = vals[vals.length-2];
-      const diff = (cur&&prev)?cur-prev:0;
-      const pct = (cur&&prev)?((diff/prev)*100).toFixed(1):0;
-      const up = diff>0, flat = diff===0;
-      const arrow = flat?"─":up?"▲":"▼";
-      const dColor = flat?"#888":up?"#D32F2F":"#1B7A3E";
-      return `
-      <div style="background:#fff;border-radius:14px;padding:16px;border:1px solid #efefef;border-top:3px solid ${item.color}">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:24px">${item.icon}</span>
-            <div>
-              <div style="font-size:14px;font-weight:700;color:#1a1a1a">${item.name}</div>
-              <div style="font-size:10px;color:#aaa">${item.sub} · ${item.note}</div>
-            </div>
-          </div>
-          ${sparkline(week, item.color)}
-        </div>
-        <div style="display:flex;align-items:baseline;gap:6px">
-          <span style="font-size:22px;font-weight:800;color:${item.color};letter-spacing:-0.5px">${cur?cur.toLocaleString():"-"}</span>
-          <span style="font-size:11px;color:#888">${item.unit}</span>
-        </div>
-        <div style="margin-top:5px">
-          <span style="font-size:11px;font-weight:700;color:${dColor}">${arrow} ${Math.abs(diff).toLocaleString()} (${pct}%)</span>
-          <span style="font-size:10px;color:#aaa;margin-left:6px">전일대비</span>
-        </div>
-      </div>`;
-    }).join("");
-    return `
-    <div style="margin-bottom:22px">
-      <div class="display" style="font-size:17px;margin-bottom:12px;color:#1a2744">${emoji} ${groupName}</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">${cards}</div>
-    </div>`;
-  };
-  const tblHead = LIVESTOCK_DATA.map(x=>`<th style="padding:10px 8px;text-align:right;font-size:11px">${x.icon} ${x.name}</th>`).join("");
-  const tblRows = getLast7Days().map((d,i)=>{
-    const isT = i===6;
-    const lbl = fmtDate(d);
-    const wk = d.getDay()===0||d.getDay()===6;
-    const cells = LIVESTOCK_DATA.map(x=>{
-      const v=x.week[i];
-      return `<td style="padding:10px 8px;text-align:right;font-weight:${isT?700:400};color:${isT?x.color:v?"#333":"#ccc"}">${v?v.toLocaleString():"-"}</td>`;
-    }).join("");
-    return `<tr style="border-bottom:1px solid #f0f0f0;background:${isT?"#FFF0F4":i%2===0?"#fafafa":"#fff"}">
-      <td style="padding:10px 12px;font-weight:${isT?700:400};color:${isT?"#E84A6F":wk?"#bbb":"#555"}">${lbl}${isT?" ★":""}</td>${cells}</tr>`;
-  }).join("");
-  const linkBtns = LIVESTOCK_LINKS.map(l=>`
-    <a href="${esc(l.url)}" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-radius:10px;background:${l.color}12;color:${l.color};font-size:13px;font-weight:600;border:1px solid ${l.color}30">
-      <span>🔗 ${esc(l.label)}</span><span style="font-size:15px">↗</span>
-    </a>`).join("");
+  const items=LIVESTOCK_DATA.map(x=>({icon:x.icon,label:x.name,sub:x.sub,unit:x.unit,color:x.color,week:x.week}));
   return `
-  <div style="margin-bottom:16px">
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-      <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px">🐂 한우 산지·도매시세 · ${fmtFull(today)}</div>
-      ${renderDabomBar("https://www.ekapepia.com/web/main.do")}
-    </div>
-    <div style="font-size:11px;color:#F9A825;margin-top:6px">⚠️ 아래 시세는 실제 거래가가 아닌 <strong>가격 흐름 참고용</strong> 데이터입니다. 정확한 경락가는 '다봄 실시간 시세'에서 확인하세요.</div>
-  </div>
-  ${renderGroup("한우","🐂")}
-  <div class="card" style="margin-bottom:20px">
-    <div class="display" style="font-size:16px;margin-bottom:16px">📋 최근 7일 추이</div>
-    <div style="overflow-x:auto"><table style="font-size:12px;min-width:680px">
-      <thead><tr style="background:#1a2744;color:#fff"><th style="padding:10px 12px;text-align:left">날짜</th>${tblHead}</tr></thead>
-      <tbody>${tblRows}</tbody></table></div>
-    <div style="margin-top:10px;font-size:11px;color:#aaa;text-align:right">단위: 지육·도매(원/kg) | 비육돈·송아지(원/두)</div>
-  </div>
-  <div class="card">
-    <div class="display" style="font-size:16px;margin-bottom:6px">🔗 실시간 시세 조회 바로가기</div>
-    <div style="font-size:12px;color:#888;margin-bottom:14px;line-height:1.6">정확한 실시간 산지시세는 아래 공식 사이트에서 확인하세요. 새 탭에서 열립니다.</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">${linkBtns}</div>
-  </div>
   ${renderCostPanel("cattle")}
+  ${renderSummarySection(items,{
+    warnTail:"정확한 경락가는 아래 '다봄 실시간 시세'에서 확인하세요.",
+    linkUrl:"https://www.ekapepia.com/web/main.do", linkLabel:"📊 다봄 소 시세", linkColor:"#A0522D",
+    refreshId:"btn-refresh-cattle"})}
+  ${renderCompareTable(items,last7DayInfos(),{unitNote:"단위: 지육·도매(원/kg) | 송아지(원/두)"})}
   ${renderDabomPricePanel("cow")}`;
 }
+
 
 function renderCoinTab(){
   const today = new Date();
@@ -2272,7 +2134,6 @@ function attachEvents(){
     if(state.tab==="price" && chPriceState.status==="idle") fetchChickenPrices();
   });
   document.querySelectorAll(".briefing-date-btn").forEach(b=>b.onclick=()=>loadBriefingContent(b.dataset.date));
-  document.querySelectorAll(".price-card").forEach(c=>c.onclick=()=>{ state.selectedCategory=c.dataset.cat; render(); });
 
   // 공지 갱신 버튼
   const noticesRefreshBtn=document.getElementById("btn-notices-refresh");
@@ -2410,6 +2271,11 @@ function attachEvents(){
     for(let i=0;i<WEEK_DATA.length;i++){ Object.assign(WEEK_DATA[i], fresh[i]); }
     render();
   };
+  // 양돈/한우 시세 갱신 (다봄 실시간 재조회)
+  const pigRefreshBtn=document.getElementById("btn-refresh-pig");
+  if(pigRefreshBtn) pigRefreshBtn.onclick=()=>{ fetchDabomPrices().then(()=>render()); };
+  const cattleRefreshBtn=document.getElementById("btn-refresh-cattle");
+  if(cattleRefreshBtn) cattleRefreshBtn.onclick=()=>{ fetchDabomPrices().then(()=>render()); };
   document.querySelectorAll(".del-coin").forEach(b=>b.onclick=()=>{
     state.customCoins=state.customCoins.filter(x=>x.key!==b.dataset.id);
     saveCustomCoins(); render();
