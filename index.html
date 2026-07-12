@@ -427,59 +427,76 @@ let state = { tab:"price", selectedCategory:"broiler", customSites:loadCustom(),
 // ── 다봄 실시간 시세 (GitHub Actions → prices/prices.json) ────────────────
 const PRICES_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/prices/prices.json";
 
-// ── 공지사항: 브라우저 직접 fetch (CORS 프록시 → HTML 파싱) ───────────────
-// poultry.or.kr: gnuboard5 구조 · chicken.or.kr: custom PHP board
+// ── 뉴스 게시판: 브라우저 직접 fetch (CORS 프록시 → HTML 파싱) ───────────────
+// chuksannews.co.kr: mediaOn CMS (article.html?no=) · pignpork.com: ndsoft CMS (articleView.html?idxno=)
 
 const NOTICE_FALLBACK = {
-  poultry:[
-    { title:"[선거공고] (사)대한양계협회 제24대 회장선거",                           date:"2026-04-17", url:"https://www.poultry.or.kr/bbs/board.php?bo_table=notice&wr_id=66282" },
-    { title:"2026년 닭·오리·계란 이력제 이력번호 표시 지원사업 안내",                  date:"2026-04-06", url:"https://www.poultry.or.kr/bbs/board.php?bo_table=notice&wr_id=66281" },
-    { title:"2026년 계란공판장 활성화지원, 출하촉진 지원사업 시행지침 알림",           date:"2026-04-02", url:"https://www.poultry.or.kr/bbs/board.php?bo_table=notice&wr_id=66280" },
-    { title:"가금농장 외국인 근로자 대상 가축 방역 영상교육 계획 알림",                 date:"2026-03-19", url:"https://www.poultry.or.kr/bbs/board.php?bo_table=notice&wr_id=66279" },
-    { title:"고병원성 AI 특별방역대책기간 연장에 따른 방역관리 방안 알림",              date:"2026-02-27", url:"https://www.poultry.or.kr/bbs/board.php?bo_table=notice&wr_id=66278" },
+  chuksan:[
+    { title:"주민 주도 재생에너지 모델 정착‧제도 개선 방안 논의",                              date:"2026-07-09", url:"https://www.chuksannews.co.kr/news/article.html?no=272519" },
+    { title:"빅데이터로 축산 경쟁력 높인다",                                                 date:"2026-07-09", url:"https://www.chuksannews.co.kr/news/article.html?no=272513" },
+    { title:"한우산업 육성법 시행·럼피스킨 방역체계 개편…농가 경영안정·자원순환 확대 기대",       date:"2026-07-09", url:"https://www.chuksannews.co.kr/news/article.html?no=272512" },
+    { title:"구제역 SAT1형 백신 접종 완료…선제 방역 강화",                                    date:"2026-07-09", url:"https://www.chuksannews.co.kr/news/article.html?no=272509" },
+    { title:"농식품부, 장마철 농업재해 대응 총력",                                            date:"2026-07-09", url:"https://www.chuksannews.co.kr/news/article.html?no=272507" },
   ],
-  chicken:[
-    { title:"고병원성 조류인플루엔자 전국 위기경보단계 하향(주의→관심) 및 평시 방역관리 방안 알림", date:"2026-06", url:"https://chicken.or.kr/bbs/boardlist_2025.php?Ncode=b3_1" },
-    { title:"(사전홍보) 고병원성 AI 전파 차단을 위한 행정명령 및 공고 시행 홍보",               date:"2026-01", url:"https://chicken.or.kr/bbs/boardlist_2025.php?Ncode=b3_1" },
-    { title:"2026년 가금농장 방역실태 점검 추진계획 알림",                                      date:"2026-01", url:"https://chicken.or.kr/bbs/boardlist_2025.php?Ncode=b3_1" },
-    { title:"육계계열화사업 불공정행위 신고센터 운영 안내",                                      date:"2025-12", url:"https://chicken.or.kr/bbs/boardlist_2025.php?Ncode=b3_1" },
-    { title:"주간계육정보 및 닭고기 시장 동향 공지",                                             date:"2025-11", url:"https://chicken.or.kr/bbs/boardlist_2025.php?Ncode=b3_2" },
+  handon:[
+    { title:"고령 양돈장서 액비 저장조 작업 중 추락… 60대 작업자 숨져",                        date:"07.10", url:"https://www.pignpork.com/news/articleView.html?idxno=19025" },
+    { title:"경북 구제역, 부분 살처분 첫 적용… “방역수칙 철저히”",                             date:"07.10", url:"https://www.pignpork.com/news/articleView.html?idxno=19019" },
+    { title:"“탄소는 줄이고 생산성은 높이고”… 정밀영양·사양 기술로 축산 미래 연다",              date:"07.10", url:"https://www.pignpork.com/news/articleView.html?idxno=19018" },
+    { title:"축산기자재 현장 목소리 듣는다… 정책 건의 조사 실시",                              date:"07.10", url:"https://www.pignpork.com/news/articleView.html?idxno=19017" },
+    { title:"이재식 축산정책관, 제주 양돈 현장 방문… “규제 완화·제도 개선 노력”",               date:"07.10", url:"https://www.pignpork.com/news/articleView.html?idxno=19016" },
   ],
 };
 
 let noticesState = {
   status:"idle",
-  poultry:[], chicken:[],
-  fallback:{ poultry:false, chicken:false },
+  chuksan:[], handon:[],
+  fallback:{ chuksan:false, handon:false },
   updatedAt:"",
 };
 
-function parsePoultryHTML(html){
-  const doc = new DOMParser().parseFromString(html,"text/html");
-  const out=[];
-  doc.querySelectorAll("td.td_subject a, .bo_subject a, #bo_list a[href*='wr_id']").forEach(a=>{
-    const title=(a.getAttribute("title")||a.textContent).trim().replace(/\s+/g," ");
-    if(!title||title.length<4) return;
-    let href=a.getAttribute("href")||"";
-    if(!href.startsWith("http")) href="https://www.poultry.or.kr"+href;
-    const row=a.closest("tr");
-    const date=row?.querySelector(".td_date,td:last-child")?.textContent?.trim()?.slice(0,10)||"";
-    if(href.includes("wr_id")) out.push({title,date,url:href});
+// 축산신문 (mediaOn CMS): a[href*='article.html?no='] · 날짜 YYYY-MM-DD
+function parseChuksanHTML(html){
+  const doc=new DOMParser().parseFromString(html,"text/html");
+  const out=[], seen=new Set();
+  doc.querySelectorAll("a[href*='article.html?no=']").forEach(a=>{
+    const href0=a.getAttribute("href")||"";
+    const no=(href0.match(/no=(\d+)/)||[])[1];
+    if(!no||seen.has(no)) return;
+    // 카테고리·기자·본문요약 요소를 제거한 사본에서 제목 추출
+    const clone=a.cloneNode(true);
+    clone.querySelectorAll("[class*='cate'],[class*='writer'],[class*='date'],[class*='txt'],[class*='summary'],[class*='byline'],img").forEach(el=>el.remove());
+    let title="";
+    const tEl=clone.querySelector("[class*='tit'],strong,h2,h3,h4");
+    if(tEl) title=tEl.textContent.replace(/\s+/g," ").trim();
+    if(title.length<6) title=(a.getAttribute("title")||"").replace(/\s+/g," ").trim();
+    if(title.length<6) title=clone.textContent.replace(/\s+/g," ").trim().split("[축산신문")[0].trim();
+    if(title.length<6) return;
+    if(title.length>90) title=title.slice(0,90)+"…";
+    let url=href0;
+    if(!url.startsWith("http")) url="https://www.chuksannews.co.kr"+(url.startsWith("/")?url:"/news/"+url);
+    const date=(a.textContent.match(/\d{4}-\d{2}-\d{2}/)||[])[0]||"";
+    seen.add(no);
+    out.push({title,date,url});
   });
   return out.slice(0,5);
 }
 
-function parseChickenNoticeHTML(html){
+// 한돈뉴스 (ndsoft CMS): a[href*='articleView.html?idxno='] · 날짜 MM.DD HH:MM
+function parseHandonHTML(html){
   const doc=new DOMParser().parseFromString(html,"text/html");
-  const out=[];
-  doc.querySelectorAll("a[href*='boardview_2025'],a[href*='_view.html']").forEach(a=>{
-    const title=a.textContent.trim().replace(/\s+/g," ");
-    if(title.length<5) return;
-    let href=a.getAttribute("href")||"";
-    if(!href.startsWith("http")) href="https://chicken.or.kr"+href;
-    const row=a.closest("tr,li");
-    const dateEl=row?[...row.querySelectorAll("td,span")].find(el=>/\d{4}-\d{2}|\d{2}\.\d{2}/.test(el.textContent)):null;
-    out.push({title, date:dateEl?.textContent?.trim()?.slice(0,10)||"", url:href});
+  const out=[], seen=new Set();
+  const scope=doc.querySelector("#section-list")||doc;   // 본문 기사목록 우선
+  scope.querySelectorAll("a[href*='articleView.html?idxno=']").forEach(a=>{
+    const href0=a.getAttribute("href")||"";
+    const id=(href0.match(/idxno=(\d+)/)||[])[1];
+    if(!id||seen.has(id)) return;
+    const title=a.textContent.replace(/\s+/g," ").trim();
+    if(title.length<8) return;
+    let url=href0.startsWith("http")?href0:"https://www.pignpork.com"+(href0.startsWith("/")?href0:"/news/"+href0);
+    const row=a.closest("li,article,div");
+    const date=row?(row.textContent.match(/\d{2}\.\d{2}\s?\d{2}:\d{2}|\d{4}[-.]\d{2}[-.]\d{2}/)||[""])[0].trim():"";
+    seen.add(id);
+    out.push({title,date,url});
   });
   return out.slice(0,5);
 }
@@ -496,7 +513,7 @@ async function fetchOneSite(targetUrl, parseFn, label){
       const items=parseFn(await r.text());
       if(items.length>=2) return {items,fallback:false};
       throw new Error("파싱 결과 부족");
-    } catch(e){ console.warn(label+" 공지 경로"+(i+1)+" 실패:",e.message); }
+    } catch(e){ console.warn(label+" 뉴스 경로"+(i+1)+" 실패:",e.message); }
   }
   return {items:null, fallback:true};
 }
@@ -505,15 +522,15 @@ async function fetchNotices(){
   noticesState.status="loading";
   if(state.tab==="briefing") render();
   const [pr,cr]=await Promise.allSettled([
-    fetchOneSite("https://www.poultry.or.kr/bbs/board.php?bo_table=notice", parsePoultryHTML, "양계협회"),
-    fetchOneSite("https://chicken.or.kr/bbs/boardlist_2025.php?Ncode=b3_1", parseChickenNoticeHTML, "계육협회"),
+    fetchOneSite("https://www.chuksannews.co.kr/news/section_list_all.html?sec_no=2", parseChuksanHTML, "축산신문"),
+    fetchOneSite("https://www.pignpork.com/news/articleList.html?sc_section_code=S1N1&view_type=sm", parseHandonHTML, "한돈뉴스"),
   ]);
   const pv=pr.status==="fulfilled"?pr.value:{items:null,fallback:true};
   const cv=cr.status==="fulfilled"?cr.value:{items:null,fallback:true};
-  noticesState.poultry  = pv.items||NOTICE_FALLBACK.poultry;
-  noticesState.fallback.poultry = pv.fallback;
-  noticesState.chicken  = cv.items||NOTICE_FALLBACK.chicken;
-  noticesState.fallback.chicken = cv.fallback;
+  noticesState.chuksan  = pv.items||NOTICE_FALLBACK.chuksan;
+  noticesState.fallback.chuksan = pv.fallback;
+  noticesState.handon   = cv.items||NOTICE_FALLBACK.handon;
+  noticesState.fallback.handon = cv.fallback;
   noticesState.updatedAt= new Date().toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"});
   noticesState.status   = "done";
   if(state.tab==="briefing") render();
@@ -997,7 +1014,7 @@ async function loadBriefingContent(date){
 }
 
 function renderBriefingTab(){
-  // ① 협회 공지사항 + ② 경제동향 은 브리핑 목록 상태와 무관하게 항상 표시
+  // ① 축산 뉴스(축산신문·한돈뉴스) + ② 경제동향 은 브리핑 목록 상태와 무관하게 항상 표시
   const topSections = renderNoticesSection() + renderEconSection();
 
   if(briefingState.status==="loading")
@@ -2143,7 +2160,7 @@ function renderEconSection(){
   </div>`;
 }
 
-// ── 브리핑: 협회 공지사항 섹션 ───────────────────────────────────────────────
+// ── 브리핑: 축산 뉴스 섹션 (축산신문·한돈뉴스) ───────────────────────────────────────────────
 function renderNoticesSection(){
   const ns = noticesState;
   const timeLabel = ns.status==="done"
@@ -2161,7 +2178,7 @@ function renderNoticesSection(){
           ${item.date?`<div style="font-size:10px;color:#bbb;margin-top:2px">${esc(item.date)}</div>`:""}
         </div>
         <span style="font-size:11px;color:#ddd;flex-shrink:0">↗</span>
-      </a>`).join("") || `<div style="text-align:center;padding:20px;font-size:11px;color:#ccc">📭 공지사항 없음</div>`;
+      </a>`).join("") || `<div style="text-align:center;padding:20px;font-size:11px;color:#ccc">📭 기사 없음</div>`;
     return rows + (isFallback ? `<div style="margin-top:8px;font-size:10px;color:#e67700;background:#fff8e8;border-radius:6px;padding:5px 8px">⚡ 저장된 데이터 (실시간 수집 실패)</div>` : "");
   }
 
@@ -2171,8 +2188,8 @@ function renderNoticesSection(){
   <div style="margin-bottom:22px">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
     <div>
-      <div class="display" style="font-size:16px">📋 협회 공지사항</div>
-      <div style="font-size:10px;color:#aaa;margin-top:3px">대한양계협회 · 대한계육협회 최신 5건</div>
+      <div class="display" style="font-size:16px">📰 축산 뉴스</div>
+      <div style="font-size:10px;color:#aaa;margin-top:3px">축산신문 · 한돈뉴스 최신 5건</div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
       <span style="font-size:10px;color:#888">${timeLabel}</span>
@@ -2185,40 +2202,40 @@ function renderNoticesSection(){
 
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
 
-    <!-- 대한양계협회 -->
-    <div class="card" style="border-top:4px solid #E8530A">
+    <!-- 축산신문 -->
+    <div class="card" style="border-top:4px solid #C62828">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div style="display:flex;align-items:center;gap:7px">
-          <span style="font-size:20px">🥚</span>
+          <span style="font-size:20px">📰</span>
           <div>
-            <div class="display" style="font-size:14px;color:#E8530A">대한양계협회</div>
-            <div style="font-size:10px;color:#aaa">poultry.or.kr</div>
+            <div class="display" style="font-size:14px;color:#C62828">축산신문</div>
+            <div style="font-size:10px;color:#aaa">chuksannews.co.kr · 종합</div>
           </div>
         </div>
-        <a href="https://www.poultry.or.kr/bbs/board.php?bo_table=notice" target="_blank" rel="noopener"
-           style="font-size:11px;color:#E8530A;border:1px solid #E8530A;border-radius:6px;padding:4px 9px;text-decoration:none">
+        <a href="https://www.chuksannews.co.kr/news/section_list_all.html?sec_no=2" target="_blank" rel="noopener"
+           style="font-size:11px;color:#C62828;border:1px solid #C62828;border-radius:6px;padding:4px 9px;text-decoration:none">
           전체 ↗
         </a>
       </div>
-      ${noticeList(ns.poultry,"#E8530A",ns.fallback?.poultry,loading)}
+      ${noticeList(ns.chuksan,"#C62828",ns.fallback?.chuksan,loading)}
     </div>
 
-    <!-- 대한계육협회 -->
-    <div class="card" style="border-top:4px solid #1B7A3E">
+    <!-- 한돈뉴스 -->
+    <div class="card" style="border-top:4px solid #AD1457">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div style="display:flex;align-items:center;gap:7px">
-          <span style="font-size:20px">🍗</span>
+          <span style="font-size:20px">🐷</span>
           <div>
-            <div class="display" style="font-size:14px;color:#1B7A3E">대한계육협회</div>
-            <div style="font-size:10px;color:#aaa">chicken.or.kr</div>
+            <div class="display" style="font-size:14px;color:#AD1457">한돈뉴스</div>
+            <div style="font-size:10px;color:#aaa">pignpork.com · 피그앤포크</div>
           </div>
         </div>
-        <a href="https://chicken.or.kr/bbs/boardlist_2025.php?Ncode=b3_1" target="_blank" rel="noopener"
-           style="font-size:11px;color:#1B7A3E;border:1px solid #1B7A3E;border-radius:6px;padding:4px 9px;text-decoration:none">
+        <a href="https://www.pignpork.com/news/articleList.html?sc_section_code=S1N1&view_type=sm" target="_blank" rel="noopener"
+           style="font-size:11px;color:#AD1457;border:1px solid #AD1457;border-radius:6px;padding:4px 9px;text-decoration:none">
           전체 ↗
         </a>
       </div>
-      ${noticeList(ns.chicken,"#1B7A3E",ns.fallback?.chicken,loading)}
+      ${noticeList(ns.handon,"#AD1457",ns.fallback?.handon,loading)}
     </div>
 
   </div>
