@@ -1039,7 +1039,7 @@ function render(){
   document.getElementById("app").innerHTML = `
     ${renderHeader()}
     <main>
-      ${state.tab==="price" ? renderPriceTab() : state.tab==="pig" ? renderPigTab() : state.tab==="livestock" ? renderLivestockTab() : state.tab==="stock" ? renderStockTab() : state.tab==="coin" ? renderCoinTab() : state.tab==="weather" ? renderWeatherTab() : state.tab==="news" ? renderNewsTab() : state.tab==="briefing" ? renderBriefingTab() : renderPriceTab()}
+      ${state.tab==="price" ? renderPriceTab() : state.tab==="pig" ? renderPigTab() : state.tab==="livestock" ? renderLivestockTab() : state.tab==="weather" ? renderWeatherTab() : state.tab==="briefing" ? renderBriefingTab() : renderPriceTab()}
       ${renderFooter()}
     </main>`;
   attachEvents();
@@ -1063,10 +1063,7 @@ function renderHeader(){
       <button class="tab ${state.tab==="price"?"active":""}" data-tab="price">📊 양계</button>
       <button class="tab ${state.tab==="pig"?"active":""}" data-tab="pig">🐷 양돈</button>
       <button class="tab ${state.tab==="livestock"?"active":""}" data-tab="livestock">🐂 한우</button>
-      <button class="tab ${state.tab==="stock"?"active":""}" data-tab="stock">📈 주가</button>
-      <button class="tab ${state.tab==="coin"?"active":""}" data-tab="coin">🪙 코인</button>
       <button class="tab ${state.tab==="weather"?"active":""}" data-tab="weather">🌤️ 날씨</button>
-      <button class="tab ${state.tab==="news"?"active":""}" data-tab="news">📰 뉴스</button>
       <button class="tab ${state.tab==="briefing"?"active":""}" data-tab="briefing">📋 브리핑</button>
     </div>
   </div></header>`;
@@ -2132,7 +2129,7 @@ function renderEconSection(){
         </div>
         ${stocks.map(row).join("")}
         ${fx.map(row).join("")}
-        <div style="margin-top:8px;text-align:right"><span class="tab-jump" data-jump="stock" style="font-size:11px;color:#0047A0;cursor:pointer;font-weight:600">전체 주가 보기 →</span></div>
+        <div style="margin-top:8px;text-align:right"><a href="https://finance.naver.com/sise/" target="_blank" rel="noopener" style="font-size:11px;color:#0047A0;font-weight:600">네이버 증권 →</a></div>
       </div>
       <div class="card" style="border-top:4px solid #F7931A">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
@@ -2140,7 +2137,7 @@ function renderEconSection(){
           ${statBadge(cStat)}
         </div>
         ${coins.map(row).join("")}
-        <div style="margin-top:8px;text-align:right"><span class="tab-jump" data-jump="coin" style="font-size:11px;color:#F7931A;cursor:pointer;font-weight:600">전체 코인 보기 →</span></div>
+        <div style="margin-top:8px;text-align:right"><a href="https://upbit.com/exchange?code=CRIX.UPBIT.KRW-BTC" target="_blank" rel="noopener" style="font-size:11px;color:#F7931A;font-weight:600">업비트 시세 →</a></div>
       </div>
     </div>
   </div>`;
@@ -2267,13 +2264,6 @@ function attachEvents(){
   // 경제동향 갱신 버튼 (주가+코인 동시 갱신)
   const econRefreshBtn=document.getElementById("btn-econ-refresh");
   if(econRefreshBtn) econRefreshBtn.onclick=()=>{ fetchStockPrices(); fetchUpbitPrices(); };
-
-  // 경제동향 → 주가/코인 탭 이동
-  document.querySelectorAll(".tab-jump").forEach(b=>b.onclick=()=>{
-    state.tab=b.dataset.jump; render();
-    if(state.tab==="coin" && coinFetchStatus!=="done" && coinFetchStatus!=="loading") fetchUpbitPrices();
-    if(state.tab==="stock" && stockFetchStatus!=="done" && stockFetchStatus!=="loading") fetchStockPrices();
-  });
 
   // 육계 시세 갱신 버튼
   const chPriceRefreshBtn=document.getElementById("btn-ch-price-refresh");
