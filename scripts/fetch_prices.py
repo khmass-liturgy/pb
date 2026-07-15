@@ -1,261 +1,303 @@
 #!/usr/bin/env python3
 """
-다봄(KAPE) 축산물 산지시세 수집 스크립트
+축산물품질평가원 공공데이터 API 기반 시세 수집 스크립트
 GitHub Actions에서 매일 실행 → prices/prices.json 저장
 
-산지시세 전용 URL:
-  육계: /v3/price/livestock/chicken/distrPrice.do?menuSn=35
-  양돈: /v3/price/livestock/pig/producer.do?menuSn=119
-  계란: /v3/mobile/price/livestock/egg/producer/nation.do?menuSn=136
+API: 공공데이터포털 (data.go.kr) - 자동승인, 무료
+- 육계 산지/도매 일일가격: data.ekape.or.kr/openapi-data/service/user/grade/poultry/
+- 계란 일일가격: data.ekape.or.kr/openapi-data/service/user/grade/egg/
 
-HTML 구조: <em>숫자</em> <img up/down> 등락수치
-→ <em> 정규식으로 가격만 추출
+환경변수: EKAPE_API_KEY (GitHub Secrets → Settings → Secrets → EKAPE_API_KEY)
 """
 
+import os
+import sys
 import requests
 import json
-import re
+import xml.etree.ElementTree as ET
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 KST = timezone(timedelta(hours=9))
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-    "Accept": "text/html,application/xhtml+xml,*/*",
-    "Accept-Language": "ko-KR,ko;q=0.9",
-    "Referer": "https://www.ekapepia.com/",
-}
+BASE_URL = "http://data.ekape.or.kr/openapi-data/service/user/grade"
 
-def get_html(url, timeout=15):
-    resp = requests.get(url, headers=HEADERS, timeout=timeout)
-    resp.encoding = resp.apparent_encoding or 'utf-8'
-    return resp.text
+def get_api_key():
+    key = os.environ.get("EKAPE_API_KEY")
+    if not key:
+        print("❌ EKAPE_API_KEY 환경변수 없음")
+        print("   GitHub: Settings → Secrets → EKAPE_API_KEY 에 인증키 설정 필요")
+        sys.exit(1)
+    return key
 
-def em_val(td_html):
-    """<em>숫자</em>에서 숫자만 추출"""
-    m = re.search(r'<em>([\d,]+)</em>', td_html)
-    if m:
-        try:
-            return float(m.group(1).replace(',', ''))
-        except:
-            pass
-    return None
-
-def parse_rows(html, limit=3):
-    """tbody에서 날짜 행 파싱 → [{"date":str, "tds":[em값...]}]"""
-    tbody_m = re.search(r'<tbody[^>]*>([\s\S]*?)</tbody>', html)
-    body = tbody_m.group(1) if tbody_m else html
-    rows = []
-    for tr in re.findall(r'<tr[^>]*>([\s\S]*?)</tr>', body):
-        tds = re.findall(r'<td[^>]*>([\s\S]*?)</td>', tr)
-        if not tds:
-            continue
-        date_m = re.search(r'(\d{2}년?\s*\d{2}월\s*\d{2}일|\d{2}월\s*\d{2}일)', tds[0])
-        if not date_m:
-            continue
-        rows.append({"date": date_m.group(1).strip(), "tds": [em_val(td) for td in tds]})
-        if len(rows) >= limit:
-            break
-    return rows
-
-def diff_calc(a, b):
-    if a is not None and b is not None:
-        return round(a - b, 1)
-    return None
-
-# ── 육계 산지시세 ─────────────────────────────────────────────────────────────
-def fetch_chicken():
-    """
-    URL: /v3/price/livestock/chicken/distrPrice.do?menuSn=35
-    컬럼: 날짜|산지생계유통대(1)|위탁생계중(2)|도매10호(3)|도매전체(4)|소매(5)
-    """
-    html = get_html(
-        "https://www.ekapepia.com/v3/price/livestock/chicken/distrPrice.do?menuSn=35&boardInfoNo="
-    )
-    rows = parse_rows(html)
-    if not rows:
-        return None
-    r0 = rows[0]; t0 = r0["tds"]
-    t1 = rows[1]["tds"] if len(rows) > 1 else []
-    return {
-        "date":               r0["date"],
-        "sanji_live":         t0[1] if len(t0)>1 else None,   # 생계유통(대) 원/kg
-        "sanji_contract":     t0[2] if len(t0)>2 else None,   # 위탁생계(중) 원/kg
-        "wholesale_10":       t0[3] if len(t0)>3 else None,   # 도매 10호
-        "wholesale_all":      t0[4] if len(t0)>4 else None,   # 도매 전체
-        "consumer":           t0[5] if len(t0)>5 else None,   # 소매
-        "diff_sanji_live":    diff_calc(t0[1] if len(t0)>1 else None, t1[1] if len(t1)>1 else None),
-        "diff_wholesale_all": diff_calc(t0[4] if len(t0)>4 else None, t1[4] if len(t1)>4 else None),
-    }
-
-# ── 양돈 산지시세 (산지가격 전용 페이지) ────────────────────────────────────
-def fetch_pig():
-    """
-    URL: /v3/price/livestock/pig/producer.do?menuSn=119
-    구조:
-      농가수취 평균(원/kg)  / 비육돈(천원/110kg)
-      금일 | 전일 | 전월평균 | 전년동월평균 | 전년말월평균
-    td 구조: 구분(0) | 농가수취평균(1) | 비육돈(2)
-    """
-    html = get_html(
-        "https://www.ekapepia.com/v3/price/livestock/pig/producer.do?menuSn=119&boardInfoNo="
-    )
-    rows = parse_rows(html, limit=5)
-    if not rows:
-        return None
-
-    # 금일 / 전일
-    r0 = rows[0]; t0 = r0["tds"]
-    r1 = rows[1] if len(rows) > 1 else None; t1 = r1["tds"] if r1 else []
-    # 전월평균
-    r2 = rows[2] if len(rows) > 2 else None; t2 = r2["tds"] if r2 else []
-    # 전년동월
-    r3 = rows[3] if len(rows) > 3 else None; t3 = r3["tds"] if r3 else []
-
-    avg_today  = t0[1] if len(t0)>1 else None   # 농가수취 평균 원/kg
-    pig_today  = t0[2] if len(t0)>2 else None   # 비육돈 천원/110kg
-    avg_prev   = t1[1] if len(t1)>1 else None
-    pig_prev   = t1[2] if len(t1)>2 else None
-
-    return {
-        "date":              r0["date"],
-        # 금일
-        "avg_per_kg":        avg_today,           # 농가수취 평균 원/kg
-        "pig_110kg":         pig_today,           # 비육돈 천원/110kg
-        "pig_per_kg":        round(pig_today * 1000 / 110) if pig_today else None,
-        # 전일
-        "prev_avg_per_kg":   avg_prev,
-        "prev_pig_110kg":    pig_prev,
-        # 전일대비
-        "diff_avg":          diff_calc(avg_today, avg_prev),
-        "diff_pig":          diff_calc(pig_today, pig_prev),
-        # 전월/전년 평균
-        "month_avg_per_kg":  t2[1] if len(t2)>1 else None,
-        "month_pig_110kg":   t2[2] if len(t2)>2 else None,
-        "year_avg_per_kg":   t3[1] if len(t3)>1 else None,
-        "year_pig_110kg":    t3[2] if len(t3)>2 else None,
-    }
-
-# ── 한우 산지시세 ─────────────────────────────────────────────────────────────
-def fetch_cow():
-    """
-    URL: /v3/price/livestock/cow/producer.do
-    컬럼: 날짜|큰암소|암송아지4~5|수송아지4~5|암송아지6~7|수송아지6~7|평균|거세우|비거세
-    단위: 천원/마리
-    """
-    html = get_html("https://www.ekapepia.com/v3/price/livestock/cow/producer.do")
-    rows = parse_rows(html)
-    if not rows:
-        return None
-    r0 = rows[0]; t0 = r0["tds"]
-    t1 = rows[1]["tds"] if len(rows) > 1 else []
-    return {
-        "date":             r0["date"],
-        "big_cow":          t0[1] if len(t0)>1 else None,
-        "calf_f_45":        t0[2] if len(t0)>2 else None,
-        "calf_m_45":        t0[3] if len(t0)>3 else None,
-        "calf_f_67":        t0[4] if len(t0)>4 else None,
-        "calf_m_67":        t0[5] if len(t0)>5 else None,
-        "hanwoo_avg":       t0[6] if len(t0)>6 else None,
-        "hanwoo_castrated": t0[7] if len(t0)>7 else None,
-        "hanwoo_noncasted": t0[8] if len(t0)>8 else None,
-        "diff_big_cow":     diff_calc(t0[1] if len(t0)>1 else None, t1[1] if len(t1)>1 else None),
-        "diff_castrated":   diff_calc(t0[7] if len(t0)>7 else None, t1[7] if len(t1)>7 else None),
-    }
-
-# ── 계란 산지시세 (모바일 전국 페이지) ─────────────────────────────────────
-def fetch_egg():
-    """
-    URL: /v3/mobile/price/livestock/egg/producer/nation.do?menuSn=136
-    규격(26.5.21 변경): 왕→2XL, 특→XL, 대→L, 중→M, 소→S
-    컬럼: 날짜|2XL_30|2XL_10|XL_30|XL_10|L_30|L_10|M_30|M_10|S_30|S_10
-    단위: 원/30개, 원/10개
-    """
-    url = "https://www.ekapepia.com/v3/mobile/price/livestock/egg/producer/nation.do?menuSn=136&boardInfoNo="
+def call_api(endpoint, params):
+    """공공데이터 API 호출 → items 리스트 반환"""
+    url = f"{BASE_URL}/{endpoint}"
     try:
-        html = get_html(url)
-        rows = parse_rows(html, limit=3)
-        if not rows:
-            return None
-        r0 = rows[0]; t0 = r0["tds"]
-        t1 = rows[1]["tds"] if len(rows) > 1 else []
-        monthly = parse_egg_monthly(html)
-        return {
-            "date":       r0["date"],
-            "xl2_30":     t0[1] if len(t0)>1 else None,
-            "xl2_10":     t0[2] if len(t0)>2 else None,
-            "xl_30":      t0[3] if len(t0)>3 else None,
-            "xl_10":      t0[4] if len(t0)>4 else None,
-            "l_30":       t0[5] if len(t0)>5 else None,
-            "l_10":       t0[6] if len(t0)>6 else None,
-            "m_30":       t0[7] if len(t0)>7 else None,
-            "m_10":       t0[8] if len(t0)>8 else None,
-            "diff_xl_10": diff_calc(t0[4] if len(t0)>4 else None, t1[4] if len(t1)>4 else None),
-            "diff_l_10":  diff_calc(t0[6] if len(t0)>6 else None, t1[6] if len(t1)>6 else None),
-            "monthly":    monthly,
-        }
+        resp = requests.get(url, params=params, timeout=15)
+        resp.encoding = 'utf-8'
+        print(f"    HTTP {resp.status_code} ({len(resp.text)}bytes)")
+        if resp.status_code != 200:
+            print(f"    ❌ 응답 오류: {resp.text[:200]}")
+            return []
+        root = ET.fromstring(resp.text)
+        # 결과 코드 확인
+        result_code = root.findtext('.//resultCode', '')
+        result_msg  = root.findtext('.//resultMsg', '')
+        if result_code not in ('00', '0000', ''):
+            print(f"    ❌ API 오류: {result_code} - {result_msg}")
+            return []
+        items = root.findall('.//item')
+        return items
     except Exception as e:
-        print(f"  ❌ 계란 오류: {e}")
-        import traceback; traceback.print_exc()
+        print(f"    ❌ 오류: {e}")
+        return []
+
+def xml_text(item, tag, default=None):
+    """XML item에서 태그 값 추출"""
+    el = item.find(tag)
+    if el is not None and el.text:
+        return el.text.strip()
+    return default
+
+def safe_int(val):
+    if val is None:
+        return None
+    try:
+        return int(str(val).replace(',', ''))
+    except:
         return None
 
-def parse_egg_monthly(html):
-    """2026년 월평균 파싱 → {"XL":{1:5208,...}, "L":{...}} 단위: 원/30개"""
-    result = {}
-    tbodies = re.findall(r'<tbody[^>]*>([\s\S]*?)</tbody>', html)
-    if len(tbodies) < 2:
-        return result
-    grade_map = {"2XL":"2XL","XL":"XL","L":"L","M":"M","S":"S",
-                 "왕":"2XL","특":"XL","대":"L","중":"M","소":"S"}
-    for tr in re.findall(r'<tr[^>]*>([\s\S]*?)</tr>', tbodies[1]):
-        tds = re.findall(r'<td[^>]*>([\s\S]*?)</td>', tr)
-        if not tds:
-            continue
-        grade_raw = re.sub(r'<[^>]+>', '', tds[0]).strip()
-        grade = grade_map.get(grade_raw)
-        if not grade:
-            continue
-        monthly = {}
-        for i, td in enumerate(tds[1:13], 1):
-            val = em_val(td)
-            if val:
-                monthly[i] = int(val)
-        if monthly:
-            result[grade] = monthly
-    return result
+def safe_float(val):
+    if val is None:
+        return None
+    try:
+        return float(str(val).replace(',', ''))
+    except:
+        return None
 
+def date_params(api_key, days_back=2):
+    """오늘~days_back일 전 날짜 파라미터 생성"""
+    today = datetime.now(KST)
+    start = today - timedelta(days=days_back)
+    return {
+        "serviceKey": api_key,
+        "pageNo": 1,
+        "numOfRows": 10,
+        "startYmd": start.strftime("%Y%m%d"),
+        "endYmd": today.strftime("%Y%m%d"),
+    }
+
+# ── 육계 산지가격 ─────────────────────────────────────────────────────────────
+def fetch_chicken_producer(api_key):
+    """
+    엔드포인트: poultry/broilerProducerPriceInfo
+    반환 필드: tradeDate(거래일), tradeGubn(거래구분), avgPrice(평균가격), unit(단위)
+    """
+    print("  GET 육계 산지가격...")
+    params = date_params(api_key)
+    items = call_api("poultry/broilerProducerPriceInfo", params)
+    if not items:
+        return None
+
+    # 최신 날짜 데이터
+    records = []
+    for item in items:
+        records.append({
+            "date":      xml_text(item, "tradeDate") or xml_text(item, "modYmd", ""),
+            "type":      xml_text(item, "tradeGubn") or xml_text(item, "typeName", ""),
+            "avg_price": safe_int(xml_text(item, "avgPrice") or xml_text(item, "average")),
+            "unit":      xml_text(item, "unit", "원/kg"),
+        })
+
+    if not records:
+        return None
+
+    # 날짜 정렬 후 최신 2일치
+    records.sort(key=lambda x: x["date"], reverse=True)
+    latest_date = records[0]["date"]
+    today_records = [r for r in records if r["date"] == latest_date]
+    prev_records  = [r for r in records if r["date"] != latest_date]
+
+    def get_price(recs, type_hint=None):
+        if not recs:
+            return None
+        if type_hint:
+            matched = [r for r in recs if type_hint in (r["type"] or "")]
+            if matched:
+                return matched[0]["avg_price"]
+        return recs[0]["avg_price"]
+
+    today_price = get_price(today_records)
+    prev_price  = get_price(prev_records)
+
+    return {
+        "date":           latest_date,
+        "sanji_live":     today_price,
+        "prev_sanji":     prev_price,
+        "diff_sanji_live": round(today_price - prev_price) if today_price and prev_price else None,
+        "records":        today_records[:5],
+    }
+
+# ── 육계 도매가격 ─────────────────────────────────────────────────────────────
+def fetch_chicken_wholesale(api_key):
+    """
+    엔드포인트: poultry/broilerWholesalePriceInfo
+    반환 필드: tradeDate, typeName(등급/부위), avgPrice
+    """
+    print("  GET 육계 도매가격...")
+    params = date_params(api_key)
+    items = call_api("poultry/broilerWholesalePriceInfo", params)
+    if not items:
+        return None
+
+    records = []
+    for item in items:
+        records.append({
+            "date":      xml_text(item, "tradeDate") or xml_text(item, "modYmd", ""),
+            "type":      xml_text(item, "typeName", ""),
+            "avg_price": safe_int(xml_text(item, "avgPrice") or xml_text(item, "average")),
+        })
+
+    if not records:
+        return None
+
+    records.sort(key=lambda x: x["date"], reverse=True)
+    latest_date = records[0]["date"]
+    today_records = [r for r in records if r["date"] == latest_date]
+    prev_records  = [r for r in records if r["date"] != latest_date]
+
+    # 10호 기준 도매가
+    def get_10ho(recs):
+        matched = [r for r in recs if "10" in (r["type"] or "")]
+        if matched:
+            return matched[0]["avg_price"]
+        return recs[0]["avg_price"] if recs else None
+
+    today_10 = get_10ho(today_records)
+    prev_10  = get_10ho(prev_records)
+
+    # 전체 평균
+    all_prices = [r["avg_price"] for r in today_records if r["avg_price"]]
+    avg_all = round(sum(all_prices) / len(all_prices)) if all_prices else None
+
+    return {
+        "date":               latest_date,
+        "wholesale_10":       today_10,
+        "wholesale_all":      avg_all,
+        "diff_wholesale_all": round(avg_all - get_10ho(prev_records)) if avg_all and get_10ho(prev_records) else None,
+        "records":            today_records[:5],
+    }
+
+# ── 계란 일일가격 ─────────────────────────────────────────────────────────────
+def fetch_egg(api_key):
+    """
+    엔드포인트: egg/dailyPriceInfo
+    반환 필드: tradeDate, sizeName(특란/대란 등), avgPrice, unit
+    """
+    print("  GET 계란 일일가격...")
+    params = date_params(api_key)
+    items = call_api("egg/dailyPriceInfo", params)
+    if not items:
+        return None
+
+    records = []
+    for item in items:
+        records.append({
+            "date":      xml_text(item, "tradeDate") or xml_text(item, "modYmd", ""),
+            "size":      xml_text(item, "sizeName") or xml_text(item, "typeName", ""),
+            "avg_price": safe_int(xml_text(item, "avgPrice") or xml_text(item, "average")),
+            "unit":      xml_text(item, "unit", ""),
+        })
+
+    if not records:
+        return None
+
+    records.sort(key=lambda x: x["date"], reverse=True)
+    latest_date = records[0]["date"]
+    today_records = [r for r in records if r["date"] == latest_date]
+    prev_records  = [r for r in records if r["date"] != latest_date]
+
+    def get_by_size(recs, keywords):
+        for kw in keywords:
+            matched = [r for r in recs if kw in (r["size"] or "")]
+            if matched:
+                return matched[0]["avg_price"]
+        return None
+
+    # XL=특란, L=대란 (2026.5.21 규격명 변경)
+    xl_today = get_by_size(today_records, ["XL", "특란", "특"])
+    l_today  = get_by_size(today_records, ["L", "대란", "대"])
+    xl_prev  = get_by_size(prev_records,  ["XL", "특란", "특"])
+    l_prev   = get_by_size(prev_records,  ["L", "대란", "대"])
+
+    # 원/개 → 원/10개 환산
+    def to10(v): return round(v * 10) if v else None
+
+    return {
+        "date":       latest_date,
+        "xl_10":      to10(xl_today),   # XL(특란) 원/10개
+        "l_10":       to10(l_today),    # L(대란) 원/10개
+        "xl_30":      round(xl_today * 30) if xl_today else None,
+        "l_30":       round(l_today  * 30) if l_today  else None,
+        "diff_xl_10": round((xl_today - xl_prev) * 10) if xl_today and xl_prev else None,
+        "diff_l_10":  round((l_today  - l_prev)  * 10) if l_today  and l_prev  else None,
+        "records":    today_records[:8],
+    }
+
+# ── 메인 ──────────────────────────────────────────────────────────────────────
 def main():
+    api_key = get_api_key()
     now_kst = datetime.now(KST)
     result = {"updated": now_kst.strftime("%Y-%m-%d %H:%M KST"), "prices": {}}
     Path("prices").mkdir(exist_ok=True)
 
-    for name, fn, label in [
-        ("chicken", fetch_chicken, "🐔 육계"),
-        ("pig",     fetch_pig,     "🐷 돼지(산지)"),
-        ("cow",     fetch_cow,     "🐂 한우"),
-        ("egg",     fetch_egg,     "🥚 계란"),
-    ]:
-        print(f"{label} 가격 수집...")
-        try:
-            data = fn()
-            if data:
-                result["prices"][name] = data
-                print(f"  ✅ {data.get('date')} 수집 완료")
-                # 주요 수치 출력
-                if name=="pig" and data.get("avg_per_kg"):
-                    print(f"     농가수취평균: {int(data['avg_per_kg']):,}원/kg  비육돈: {data.get('pig_110kg','-')}천원/110kg")
-                elif name=="chicken" and data.get("sanji_live"):
-                    print(f"     산지(대): {int(data['sanji_live']):,}원/kg  도매전체: {int(data.get('wholesale_all',0)):,}원/kg")
-                elif name=="egg" and data.get("xl_10"):
-                    print(f"     XL(특란): {int(data['xl_10']):,}원/10개  L(대란): {int(data.get('l_10',0)):,}원/10개")
-            else:
-                print(f"  ❌ 수집 실패")
-        except Exception as e:
-            print(f"  ❌ 오류: {e}")
+    print("🐔 육계 산지가격 수집...")
+    producer = fetch_chicken_producer(api_key)
+    wholesale = None
+    print("🐔 육계 도매가격 수집...")
+    wholesale = fetch_chicken_wholesale(api_key)
+
+    if producer or wholesale:
+        chicken = {
+            "date":               (producer or wholesale or {}).get("date", ""),
+            "sanji_live":         producer.get("sanji_live")     if producer  else None,
+            "prev_sanji":         producer.get("prev_sanji")     if producer  else None,
+            "diff_sanji_live":    producer.get("diff_sanji_live") if producer else None,
+            "wholesale_10":       wholesale.get("wholesale_10")   if wholesale else None,
+            "wholesale_all":      wholesale.get("wholesale_all")  if wholesale else None,
+            "diff_wholesale_all": wholesale.get("diff_wholesale_all") if wholesale else None,
+        }
+        result["prices"]["chicken"] = chicken
+        print(f"  ✅ 육계 수집 완료 ({chicken.get('date')})")
+        if chicken.get("sanji_live"):
+            diff = f" (▼{abs(chicken['diff_sanji_live'])})" if chicken.get("diff_sanji_live") and chicken["diff_sanji_live"] < 0 else \
+                   f" (▲{chicken['diff_sanji_live']})" if chicken.get("diff_sanji_live") and chicken["diff_sanji_live"] > 0 else ""
+            print(f"     산지: {chicken['sanji_live']:,}원/kg{diff}")
+        if chicken.get("wholesale_all"):
+            print(f"     도매: {chicken['wholesale_all']:,}원/kg")
+    else:
+        print("  ❌ 육계 수집 실패")
+
+    print("\n🥚 계란 일일가격 수집...")
+    egg = fetch_egg(api_key)
+    if egg:
+        result["prices"]["egg"] = egg
+        print(f"  ✅ 계란 수집 완료 ({egg.get('date')})")
+        if egg.get("xl_10"):
+            print(f"     XL(특란): {egg['xl_10']:,}원/10개")
+        if egg.get("l_10"):
+            print(f"     L(대란): {egg['l_10']:,}원/10개")
+    else:
+        print("  ❌ 계란 수집 실패")
+
+    # 돼지·한우는 별도 API 미포함 (다봄 차단으로 임시 제외)
+    print("\n⚠️  돼지·한우: 공공데이터 API 미제공 → 추후 KAMIS API 연동 예정")
 
     with open("prices/prices.json", "w", encoding="utf-8") as f:
         json.dump(result, f, ensure_ascii=False, indent=2)
-    print(f"\n✅ prices/prices.json 저장 완료 ({result['updated']})")
+
+    total = len(result["prices"])
+    print(f"\n✅ prices/prices.json 저장 완료 ({total}개 축종, {result['updated']})")
 
 if __name__ == "__main__":
     main()
