@@ -1,45 +1,25 @@
 {
-  "updated": "2026-07-15 10:40 KST",
+  "updated": "2026-07-15 10:43 KST",
   "prices": {
     "chicken": {
-      "date": "2026-07-15",
+      "date": "20260714",
       "sanji_live": 6852,
-      "sanji_url": "http://data.ekape.or.kr/openapi-data/service/user/grade/poultry/nativechichen"
+      "prev_sanji": 6393,
+      "diff_sanji_live": 459
     },
     "egg": {
-      "date": "2026-07-15",
-      "egg_url": "http://data.ekape.or.kr/openapi-data/service/user/grade/poultry/egg",
-      "records": [
-        {
-          "size": "도매",
-          "price": null
-        },
-        {
-          "size": "산지",
-          "price": null
-        },
-        {
-          "size": "도매",
-          "price": null
-        },
-        {
-          "size": "산지",
-          "price": null
-        },
-        {
-          "size": "도매",
-          "price": null
-        },
-        {
-          "size": "산지",
-          "price": null
-        }
-      ]
+      "date": "20260714",
+      "raw_big": 7196,
+      "raw_medium": 6919,
+      "raw_modYmd": 20260714,
+      "raw_special": 7258,
+      "raw_verybig": 7633,
+      "l_raw": 7196,
+      "prev_l_raw": 6761,
+      "m_raw": 6919,
+      "prev_m_raw": 6545,
+      "xl_raw": 7258,
+      "prev_xl_raw": 6841
     }
-  },
-  "found_urls": {
-    "chicken_producer": "http://data.ekape.or.kr/openapi-data/service/user/grade/poultry/nativechichen",
-    "chicken_wholesale": null,
-    "egg": "http://data.ekape.or.kr/openapi-data/service/user/grade/poultry/egg"
   }
 }
