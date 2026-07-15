@@ -72,13 +72,13 @@ def format_prices(prices):
     # 돼지
     pg = prices.get("pig")
     if pg:
-        diff_s = f"({'+' if (pg.get('diff_sanji') or 0)>0 else ''}{pg.get('diff_sanji','N/A')})" if pg.get('diff_sanji') is not None else ""
-        diff_w = f"({'+' if (pg.get('diff_wholesale') or 0)>0 else ''}{pg.get('diff_wholesale','N/A')})" if pg.get('diff_wholesale') is not None else ""
-        lines.append(f"\n【돼지】{pg.get('date','')} 기준")
-        lines.append(f"  산지: {int(pg['sanji_110kg']):,}천원/110kg ({int(pg['sanji_per_kg']):,}원/kg) {diff_s}" if pg.get('sanji_110kg') else "  산지: N/A")
-        lines.append(f"  도매(탕박 전체): {int(pg['wholesale_all']):,}원/kg {diff_w}" if pg.get('wholesale_all') else "  도매: N/A")
-        lines.append(f"  도매(탕박 1등급): {int(pg['wholesale_1grade']):,}원/kg" if pg.get('wholesale_1grade') else "")
-        lines.append(f"  삼겹살(소비자): {int(pg['consumer_samgyupsal']):,}원/kg" if pg.get('consumer_samgyupsal') else "")
+        diff_a = f"({'+' if (pg.get('diff_avg') or 0)>0 else ''}{pg.get('diff_avg','N/A')})" if pg.get('diff_avg') is not None else ""
+        diff_p = f"({'+' if (pg.get('diff_pig') or 0)>0 else ''}{pg.get('diff_pig','N/A')})" if pg.get('diff_pig') is not None else ""
+        lines.append(f"\n【돼지】{pg.get('date','')} 기준 (산지가격)")
+        lines.append(f"  농가수취 평균: {int(pg['avg_per_kg']):,}원/kg {diff_a}" if pg.get('avg_per_kg') else "  농가수취 평균: N/A")
+        lines.append(f"  비육돈: {pg.get('pig_110kg')}천원/110kg ({int(pg['pig_per_kg']):,}원/kg) {diff_p}" if pg.get('pig_per_kg') else "  비육돈: N/A")
+        lines.append(f"  전월평균: {int(pg['month_avg_per_kg']):,}원/kg" if pg.get('month_avg_per_kg') else "")
+        lines.append(f"  전년동월평균: {int(pg['year_avg_per_kg']):,}원/kg" if pg.get('year_avg_per_kg') else "")
 
     # 한우
     cw = prices.get("cow")
