@@ -2,7 +2,7 @@ name: 🐄 다봄 시세 수집
 
 on:
   schedule:
-    - cron: '0 0,3,6 * * 1-5'   # 평일 KST 09:00, 12:00, 15:00 (UTC 기준)
+    - cron: '0 23 * * 1-5'   # 평일 오전 8시 KST (= 전날 23:00 UTC)
   workflow_dispatch:
 
 jobs:
@@ -21,9 +21,11 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install requests beautifulsoup4 lxml
+        run: pip install requests
 
-      - name: Fetch prices from 다봄
+      - name: Fetch prices from KAPE API
+        env:
+          EKAPE_API_KEY: ${{ secrets.EKAPE_API_KEY }}
         run: python scripts/fetch_prices.py
 
       - name: Commit and push
