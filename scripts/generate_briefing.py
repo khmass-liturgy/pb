@@ -3,68 +3,131 @@
 축산·수의 업계 일일 브리핑 자동 생성 스크립트
 매일 GitHub Actions에서 실행됩니다.
 
-GitHub Models (무료) 사용 — GITHUB_TOKEN은 Actions에서 자동 제공됩니다.
-별도 API 키 불필요.
+개선사항:
+- prices/prices.json 실제 수집 데이터를 프롬프트에 직접 주입
+- 가축질병·방역 동향을 구글 뉴스 RSS에서 실시간 수집
+- gpt-4o 모델 사용으로 품질 향상
 """
 
 import os
 import sys
+import json
+import re
+import requests
 from datetime import datetime, timezone, timedelta
+from pathlib import Path
 from openai import OpenAI
 
 # ── 날짜 설정 (KST) ─────────────────────────────────────────────────────────
 KST = timezone(timedelta(hours=9))
 today = datetime.now(KST)
-date_str   = today.strftime("%Y년 %m월 %d일")
-file_date  = today.strftime("%Y-%m-%d")
-weekday    = ["월", "화", "수", "목", "금", "토", "일"][today.weekday()]
+date_str  = today.strftime("%Y년 %m월 %d일")
+file_date = today.strftime("%Y-%m-%d")
+weekday   = ["월","화","수","목","금","토","일"][today.weekday()]
 
-# ── 브리핑 프롬프트 ──────────────────────────────────────────────────────────
-PROMPT = f"""오늘 날짜: {date_str} ({weekday}요일)
+HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
 
-매일 아침 축산·수의 관련 업계 브리핑을 작성하세요.
-아래 5개 항목을 포함하여 한국어로 보고서를 작성하세요.
-가장 최신 학습 데이터 기준으로 시세와 정보를 제공하고, 불확실한 경우 추정임을 명시하세요.
+# ── 실제 시세 데이터 로드 ────────────────────────────────────────────────────
+def load_prices():
+    """prices/prices.json에서 실제 수집된 시세 로드"""
+    try:
+        with open("prices/prices.json", "r", encoding="utf-8") as f:
+            data = json.load(f)
+        prices = data.get("prices", {})
+        updated = data.get("updated", "")
+        if not prices:
+            return None, updated
+        return prices, updated
+    except Exception as e:
+        print(f"  ⚠️ prices.json 로드 실패: {e}")
+        return None, ""
 
-### 1. 🐄 축산물 시세
-- 간략한 한우,돼지,닭 (산지시세)
-- 닭,돼지,한우,계란 산지시세는 https://www.ekapepia.com/v3/web/main.do?userGroup=producer 에서 추출
+def format_prices(prices):
+    """시세 데이터를 브리핑용 텍스트로 변환"""
+    if not prices:
+        return "※ 시세 데이터 수집 실패 — 다봄 Actions 확인 필요"
 
-### 2. 🌾 사료 원료 시세
-- 옥수수 (국제 선물가, CBOT)
-- 대두박 (국제 선물가, CBOT)
-- 원유가격 (WTI)
+    lines = []
 
-### 3. 📰 업계 뉴스
-- 축산관련 주요 정책 및 규제 변화
-- 수의관련 정책 및 주요뉴스
-- 동물약품업계/사료회사 주요 이슈 (수출입, 동물약품회사, 사료회사 동향 등)
-- 소비 트렌드 및 시장 변화
+    # 육계
+    ch = prices.get("chicken")
+    if ch:
+        diff_s = f"({'+' if (ch.get('diff_sanji_live') or 0)>0 else ''}{ch.get('diff_sanji_live','N/A')})" if ch.get('diff_sanji_live') is not None else ""
+        diff_w = f"({'+' if (ch.get('diff_wholesale_all') or 0)>0 else ''}{ch.get('diff_wholesale_all','N/A')})" if ch.get('diff_wholesale_all') is not None else ""
+        lines.append(f"【육계】{ch.get('date','')} 기준")
+        lines.append(f"  산지(생계유통 대): {int(ch['sanji_live']):,}원/kg {diff_s}" if ch.get('sanji_live') else "  산지: N/A")
+        lines.append(f"  도매(전체): {int(ch['wholesale_all']):,}원/kg {diff_w}" if ch.get('wholesale_all') else "  도매: N/A")
+        if ch.get('consumer'):
+            lines.append(f"  소매: {int(ch['consumer']):,}원/kg")
 
-### 4. 🦠 질병/방역 동향
-- 국내외 고병원성 조류인플루엔자(AI) 발생 현황
-- 구제역(FMD) 발생 및 위험 경보
-- 아프리카돼지열병(ASF) 동향
+    # 계란
+    eg = prices.get("egg")
+    if eg:
+        diff_xl = f"({'+' if (eg.get('diff_xl_10') or 0)>0 else ''}{eg.get('diff_xl_10','N/A')})" if eg.get('diff_xl_10') is not None else ""
+        lines.append(f"\n【계란】{eg.get('date','')} 기준 (10개 단위)")
+        lines.append(f"  XL(특란): {int(eg['xl_10']):,}원/10개 {diff_xl}" if eg.get('xl_10') else "  XL: N/A")
+        lines.append(f"  L(대란): {int(eg['l_10']):,}원/10개" if eg.get('l_10') else "  L: N/A")
+        lines.append(f"  30개환산 XL: {int(eg['xl_30']):,}원" if eg.get('xl_30') else "")
 
+    # 돼지
+    pg = prices.get("pig")
+    if pg:
+        diff_s = f"({'+' if (pg.get('diff_sanji') or 0)>0 else ''}{pg.get('diff_sanji','N/A')})" if pg.get('diff_sanji') is not None else ""
+        diff_w = f"({'+' if (pg.get('diff_wholesale') or 0)>0 else ''}{pg.get('diff_wholesale','N/A')})" if pg.get('diff_wholesale') is not None else ""
+        lines.append(f"\n【돼지】{pg.get('date','')} 기준")
+        lines.append(f"  산지: {int(pg['sanji_110kg']):,}천원/110kg ({int(pg['sanji_per_kg']):,}원/kg) {diff_s}" if pg.get('sanji_110kg') else "  산지: N/A")
+        lines.append(f"  도매(탕박 전체): {int(pg['wholesale_all']):,}원/kg {diff_w}" if pg.get('wholesale_all') else "  도매: N/A")
+        lines.append(f"  도매(탕박 1등급): {int(pg['wholesale_1grade']):,}원/kg" if pg.get('wholesale_1grade') else "")
+        lines.append(f"  삼겹살(소비자): {int(pg['consumer_samgyupsal']):,}원/kg" if pg.get('consumer_samgyupsal') else "")
 
-### 5. 🌤️ 날씨 정보
-- 오늘의 날씨 (온도/습도, 서울 기준)
-- 육계/산란계 사양관리 컨설팅 포인트
-- 해당월 계절별 가금류 질병발생 동향
-- 금주 날씨 전망
+    # 한우
+    cw = prices.get("cow")
+    if cw:
+        diff_c = f"({'+' if (cw.get('diff_castrated') or 0)>0 else ''}{cw.get('diff_castrated','N/A')})" if cw.get('diff_castrated') is not None else ""
+        lines.append(f"\n【한우】{cw.get('date','')} 기준 (천원/마리)")
+        lines.append(f"  농가수취 거세우: {int(cw['hanwoo_castrated']):,}천원 {diff_c}" if cw.get('hanwoo_castrated') else "  거세우: N/A")
+        lines.append(f"  농가수취 평균: {int(cw['hanwoo_avg']):,}천원" if cw.get('hanwoo_avg') else "")
+        lines.append(f"  큰암소: {int(cw['big_cow']):,}천원" if cw.get('big_cow') else "")
+        lines.append(f"  수송아지(6~7월령): {int(cw['calf_m_67']):,}천원" if cw.get('calf_m_67') else "")
+        lines.append(f"  암송아지(6~7월령): {int(cw['calf_f_67']):,}천원" if cw.get('calf_f_67') else "")
 
-## 출력 형식
-- 날짜와 요일을 제목에 포함
-- 각 섹션별 핵심 수치와 전일/전주 대비 변동 명시
-- 특이사항이 없는 항목은 "이상 없음"으로 간략히 기재
-- 전체 분량: A4 3~4페이지 분량
-"""
+    return "\n".join(l for l in lines if l)
 
-# ── README 업데이트 ──────────────────────────────────────────────────────────
-def update_readme(file_date: str, date_str: str, weekday: str) -> None:
+# ── 가축질병 방역 뉴스 수집 ──────────────────────────────────────────────────
+def fetch_disease_news():
+    """구글 뉴스 RSS에서 가축질병·방역 관련 최신 뉴스 수집"""
+    keywords = [
+        ("조류인플루엔자 AI", "고병원성 AI"),
+        ("구제역 FMD", "구제역"),
+        ("아프리카돼지열병 ASF", "ASF"),
+        ("가축전염병 방역", "방역"),
+    ]
+    results = []
+    for query, label in keywords:
+        try:
+            rss_url = f"https://news.google.com/rss/search?q={requests.utils.quote(query)}&hl=ko&gl=KR&ceid=KR:ko&when=7d"
+            resp = requests.get(rss_url, headers=HEADERS, timeout=10)
+            resp.encoding = 'utf-8'
+            # 제목 추출
+            titles = re.findall(r'<title><!\[CDATA\[(.*?)\]\]></title>', resp.text)
+            dates  = re.findall(r'<pubDate>(.*?)</pubDate>', resp.text)
+            items  = []
+            for i, title in enumerate(titles[1:4]):  # 최대 3개, 첫번째는 채널제목
+                date_str_n = dates[i].strip()[:16] if i < len(dates) else ""
+                items.append(f"  - {title.strip()} ({date_str_n})")
+            if items:
+                results.append(f"[{label}]")
+                results.extend(items)
+            else:
+                results.append(f"[{label}] 최근 7일 특이사항 없음")
+        except Exception as e:
+            results.append(f"[{label}] 뉴스 수집 실패: {e}")
+    return "\n".join(results)
+
+# ── 메인 ────────────────────────────────────────────────────────────────────
+def update_readme(file_date, date_str, weekday):
     readme_path = "README.md"
     new_entry = f"- [{date_str} ({weekday}요일)](briefings/{file_date}.md)"
-
     if os.path.exists(readme_path):
         with open(readme_path, "r", encoding="utf-8") as f:
             content = f.read()
@@ -96,8 +159,7 @@ def update_readme(file_date: str, date_str: str, weekday: str) -> None:
         f.write(content)
     print("✅ README 업데이트 완료")
 
-# ── 메인 ────────────────────────────────────────────────────────────────────
-def main() -> None:
+def main():
     github_token = os.environ.get("GITHUB_TOKEN")
     if not github_token:
         print("❌ 오류: GITHUB_TOKEN이 없습니다.")
@@ -105,22 +167,93 @@ def main() -> None:
 
     print(f"📋 브리핑 생성 시작: {date_str} ({weekday}요일)")
 
+    # 실제 시세 데이터 로드
+    print("  💰 시세 데이터 로드 중...")
+    prices, prices_updated = load_prices()
+    prices_text = format_prices(prices)
+    print(f"  {'✅' if prices else '⚠️'} 시세: {prices_updated or '없음'}")
+
+    # 가축질병 방역 뉴스 수집
+    print("  🦠 방역 뉴스 수집 중...")
+    disease_news = fetch_disease_news()
+    print("  ✅ 방역 뉴스 수집 완료")
+
+    # 브리핑 프롬프트 (실제 데이터 주입)
+    prompt = f"""오늘 날짜: {date_str} ({weekday}요일)
+
+당신은 축산·수의 업계 전문 애널리스트입니다.
+아래에 제공된 【실제 수집 데이터】를 반드시 사용하여 오늘의 일일 브리핑을 작성하세요.
+데이터가 없는 항목만 "추정" 또는 "확인 필요"로 표시하세요.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【실제 수집된 산지·도매 시세】 (출처: KAPE 다봄, {prices_updated})
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+{prices_text}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【실제 수집된 가축질병·방역 뉴스】 (출처: Google 뉴스, 최근 7일)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+{disease_news}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+위 데이터를 바탕으로 아래 5개 섹션으로 브리핑을 작성하세요.
+
+### 1. 🐄 축산물 산지·도매 시세 분석
+- 위의 실제 수집 데이터를 그대로 인용하여 표 형태로 정리
+- 전일 대비 등락(▲▼) 명시
+- 시세 수준에 대한 전문가 코멘트 (최근 추세, 계절적 요인 등)
+- 육계·계란·돼지·한우 각각 1~2줄 분석
+
+### 2. 🌾 사료 원료 및 에너지 시세
+- 옥수수 CBOT 선물가 (최신 학습 데이터 기준, 추정 명시)
+- 대두박 CBOT 선물가 (추정)
+- WTI 원유가 (추정)
+- 환율 USD/KRW (추정)
+- 국내 배합사료 가격 동향
+
+### 3. 📰 축산·수의 업계 주요 뉴스
+- 국내 축산 정책 및 규제 동향
+- 수의사·동물병원 관련 이슈
+- 동물약품·사료회사 동향
+- 소비 트렌드 및 수출입 현황
+
+### 4. 🦠 가축질병·방역 동향
+- 위의 실제 수집된 방역 뉴스를 구체적으로 인용
+- 고병원성 AI(H5N1) 국내외 발생 현황
+- 구제역(FMD) 발생 및 위험도 평가
+- ASF 국내외 동향
+- 농가 방역 조치 권고사항
+
+### 5. 🌤️ 날씨 및 사양관리
+- 오늘·금주 날씨 전망 (서울 기준 추정)
+- {today.month}월 계절적 특성에 따른 가금류 사양관리 포인트
+- 고온다습 시 폐사 예방, 음수 관리 등 실무 조언
+- 계절성 질병(열스트레스, 뉴캐슬, 마렉 등) 주의사항
+
+## 출력 형식 요구사항
+- 제목: # {date_str} ({weekday}요일) 축산·수의 일일 브리핑
+- 각 섹션은 ### 헤더로 구분
+- 시세는 반드시 위의 실제 데이터 수치 사용 (추정값 혼용 금지)
+- 전문적이고 실무에 바로 활용 가능한 내용
+- 분량: A4 3~4페이지 (마크다운 기준 약 1,500~2,500단어)
+"""
+
     client = OpenAI(
         base_url="https://models.inference.ai.azure.com",
         api_key=github_token,
     )
 
+    print("  🤖 AI 브리핑 생성 중...")
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": PROMPT}],
-        temperature=0.7,
+        model="gpt-4o",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.5,   # 낮춰서 실제 데이터에 충실하게
         max_tokens=8192,
     )
 
     briefing_text = response.choices[0].message.content.strip()
-
     if not briefing_text:
-        print("❌ 오류: 텍스트 응답을 받지 못했습니다.")
+        print("❌ 오류: 응답이 비어있습니다.")
         sys.exit(1)
 
     os.makedirs("briefings", exist_ok=True)
@@ -130,7 +263,6 @@ def main() -> None:
     print(f"✅ 브리핑 저장 완료: {output_path}")
 
     update_readme(file_date, date_str, weekday)
-
 
 if __name__ == "__main__":
     main()
