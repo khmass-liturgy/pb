@@ -679,6 +679,8 @@ let weatherState = {
   lat:null, lng:null, locationName:"",
   forecast:[], // 7일 예보
   lastYear:null, // 작년 오늘 날씨
+  hourly:{},    // { "2026-07-16": [{hour,code,temp,rain,wind,humidity},...] }
+  selectedDate:null, // 클릭한 날짜 (시간대별 보기)
 };
 function saveWeatherLocation(lat,lng,name){
   try { localStorage.setItem("weather_loc", JSON.stringify({lat,lng,name})); } catch(e){}
@@ -922,7 +924,7 @@ async function fetchWeather(lat, lng, name){
     const lyStart = new Date(today); lyStart.setFullYear(today.getFullYear()-1);
     const lyEnd = new Date(lyStart); lyEnd.setDate(lyStart.getDate()+6);
     const dateFmt = (d)=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-    const fcstUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max,relative_humidity_2m_mean&timezone=Asia%2FSeoul&forecast_days=7`;
+    const fcstUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max,relative_humidity_2m_mean&hourly=temperature_2m,weathercode,precipitation,windspeed_10m,relativehumidity_2m&timezone=Asia%2FSeoul&forecast_days=7`;
     const histUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=${dateFmt(lyStart)}&end_date=${dateFmt(lyEnd)}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,relative_humidity_2m_mean&timezone=Asia%2FSeoul`;
     const [fcstResp, histResp] = await Promise.all([
       fetchWithTimeout(fcstUrl, 10000),
@@ -937,6 +939,28 @@ async function fetchWeather(lat, lng, name){
       rain:days.precipitation_sum[i], wind:days.windspeed_10m_max[i],
       hum: days.relative_humidity_2m_mean ? days.relative_humidity_2m_mean[i] : null,
     }));
+    // 시간대별 데이터 → 날짜별 그룹핑
+    const h = fcstData.hourly;
+    const hourlyByDate = {};
+    if(h && h.time){
+      h.time.forEach((dt,i)=>{
+        const date = dt.slice(0,10);
+        const hour = parseInt(dt.slice(11,13));
+        if(!hourlyByDate[date]) hourlyByDate[date]=[];
+        hourlyByDate[date].push({
+          hour,
+          code:     h.weathercode[i],
+          temp:     h.temperature_2m[i],
+          rain:     h.precipitation[i],
+          wind:     h.windspeed_10m[i],
+          humidity: h.relativehumidity_2m[i],
+        });
+      });
+    }
+    weatherState.hourly = hourlyByDate;
+    if(!weatherState.selectedDate && days.time.length>0){
+      weatherState.selectedDate = days.time[0];
+    }
     // 작년 7일치 배열로 저장
     if(histResp.ok){
       const hd = (await histResp.json()).daily;
@@ -1880,15 +1904,18 @@ function renderWeatherTab(){
   const ly = Array.isArray(weatherState.lastYear) ? weatherState.lastYear : [];
   const loc = weatherState.locationName;
 
-  // 올해/작년 7일 비교 카드 (하나의 열에 올해·작년 나란히)
+  // 올해/작년 7일 비교 카드 (클릭하면 시간대별 상세 표시)
   const compCards = fc.map((d,i)=>{
     const l = ly[i]||null;
     const isToday = i===0;
+    const isSel = d.date === weatherState.selectedDate;
     return `
-    <div style="border-radius:14px;overflow:hidden;border:1px solid ${isToday?"#1a2744":"#efefef"}">
+    <div class="wx-day-card" data-date="${d.date}"
+      style="border-radius:14px;overflow:hidden;border:2px solid ${isSel?"#F9A825":isToday?"#1a2744":"#efefef"};cursor:pointer">
       <!-- 날짜 헤더 -->
       <div style="background:${isToday?"#1a2744":"#f5f5f5"};padding:8px;text-align:center">
         <div style="font-size:11px;font-weight:700;color:${isToday?"#F9C74F":"#555"}">${isToday?"오늘":fmtDay(d.date)}</div>
+        ${isSel?`<div style="font-size:9px;color:${isToday?"#F9C74F":"#F9A825"};margin-top:1px">▼ 시간대</div>`:""}
       </div>
       <!-- 올해 -->
       <div style="background:${isToday?"#f0f4ff":"#fff"};padding:12px 8px;text-align:center;border-bottom:1px dashed #efefef">
@@ -1918,6 +1945,44 @@ function renderWeatherTab(){
     </div>`;
   }).join("");
 
+  // 시간대별 상세 패널
+  const selDate = weatherState.selectedDate;
+  const selDay = fc.find(d=>d.date===selDate);
+  const hourData = (weatherState.hourly[selDate]||[]).filter(h=>[0,3,6,9,12,15,18,21].includes(h.hour));
+  const dayNames2=["일","월","화","수","목","금","토"];
+  const selLabel = selDate?(()=>{const dd=new Date(selDate);return `${selDate.slice(5).replace('-','/')}(${dayNames2[dd.getDay()]})`})():"";
+  const timeLabel={0:"자정",3:"새벽3시",6:"새벽6시",9:"오전9시",12:"정오",15:"오후3시",18:"오후6시",21:"밤9시"};
+
+  let hourlyPanel = "";
+  if(selDate && hourData.length>0){
+    const slots = hourData.map(h=>{
+      const isNight = h.hour>=21||h.hour<6;
+      const isMorn  = h.hour>=6&&h.hour<12;
+      const isAft   = h.hour>=12&&h.hour<18;
+      const bg = isNight?"#1a1a2e":isMorn?"#e3f2fd":isAft?"#fff8e1":"#ede7f6";
+      const tc = isNight?"#fff":"#1a1a1a";
+      const sub= isNight?"rgba(255,255,255,0.6)":"#555";
+      return `
+      <div style="flex:1;min-width:78px;background:${bg};border-radius:10px;padding:10px 5px;text-align:center">
+        <div style="font-size:10px;font-weight:700;color:${sub};margin-bottom:4px">${timeLabel[h.hour]||h.hour+"시"}</div>
+        <div style="font-size:22px;margin:3px 0">${icon(h.code)}</div>
+        <div style="font-size:14px;font-weight:800;color:${isNight?"#ff8a80":"#D32F2F"}">${h.temp!=null?Math.round(h.temp)+"°":"-"}</div>
+        <div style="font-size:9px;color:${isNight?"#80cbc4":"#0288D1"};margin-top:3px">💦${h.humidity!=null?Math.round(h.humidity)+"%":"-"}</div>
+        ${h.rain>0?`<div style="font-size:9px;color:${isNight?"#80cbc4":"#1565C0"}">💧${h.rain.toFixed(1)}mm</div>`:""}
+        <div style="font-size:9px;color:${sub};margin-top:2px">💨${h.wind!=null?Math.round(h.wind):"?"}km</div>
+      </div>`;
+    }).join("");
+
+    hourlyPanel = `
+    <div class="card" id="wx-hourly-panel" style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div class="display" style="font-size:15px">🕐 ${selLabel} 시간대별 날씨</div>
+        <span style="font-size:10px;color:#aaa">3시간 간격 · 탭을 눌러 날짜 변경</span>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${slots}</div>
+      <div style="margin-top:8px;font-size:10px;color:#aaa">💦 습도 · 💧 강수량 · 💨 풍속(km/h)</div>
+    </div>`;
+
   return `
   <div style="margin-bottom:16px">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
@@ -1935,9 +2000,10 @@ function renderWeatherTab(){
   <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:12px">
     ${compCards}
   </div>
-  <div style="font-size:10px;color:#aaa;text-align:right">
-    기온 차이: <span style="color:#D32F2F">▲ 올해가 높음</span> · <span style="color:#1565C0">▼ 올해가 낮음</span>
+  <div style="font-size:10px;color:#aaa;text-align:right;margin-bottom:12px">
+    기온 차이: <span style="color:#D32F2F">▲ 올해가 높음</span> · <span style="color:#1565C0">▼ 올해가 낮음</span> · 날짜 카드를 누르면 시간대별 날씨
   </div>
+  ${hourlyPanel}
 
   <div class="card" style="margin-top:16px">
     <div style="display:flex;align-items:center;gap:12px">
@@ -2197,6 +2263,16 @@ function attachEvents(){
       alert("지역 검색에 실패했습니다. 다시 시도해주세요.");
     }
   };
+
+  // 날씨 요일 카드 클릭 → 시간대별 상세
+  document.querySelectorAll(".wx-day-card").forEach(b=>b.onclick=()=>{
+    weatherState.selectedDate = b.dataset.date;
+    render();
+    setTimeout(()=>{
+      const el=document.getElementById("wx-hourly-panel");
+      if(el) el.scrollIntoView({behavior:"smooth",block:"start"});
+    },80);
+  });
 
   // 관심종목 추가
   const addStockBtn=document.getElementById("btn-add-stock");
