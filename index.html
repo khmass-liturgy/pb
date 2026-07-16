@@ -2254,6 +2254,7 @@ function attachEvents(){
   // 날씨 지역 검색 버튼
   const wxSearchBtn=document.getElementById("btn-wx-search");
   if(wxSearchBtn) wxSearchBtn.onclick=async ()=>{
+    const query=prompt("지역명을 입력하세요 (예: 서울, 부산, 고양)");
     if(!query||!query.trim()) return;
     try {
       const results=await searchLocation(query.trim());
