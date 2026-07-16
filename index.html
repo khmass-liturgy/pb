@@ -2253,18 +2253,130 @@ function attachEvents(){
 
   // 날씨 지역 검색 버튼
   const wxSearchBtn=document.getElementById("btn-wx-search");
-  if(wxSearchBtn) wxSearchBtn.onclick=async ()=>{
-    const query=prompt("지역명을 입력하세요 (예: 서울, 부산, 고양)");
-    if(!query||!query.trim()) return;
-    try {
-      const results=await searchLocation(query.trim());
-      if(!results||results.length===0){ alert("'"+query+"' 지역을 찾을 수 없습니다.\n다른 이름으로 다시 시도해주세요."); return; }
-      const r=results[0];
-      const name=r.name+(r.admin1?", "+r.admin1:"")+(r.country_code==="KR"?"":"("+r.country+")");
-      fetchWeather(r.latitude, r.longitude, name);
-    } catch(e){
-      alert("지역 검색에 실패했습니다. 다시 시도해주세요.");
-    }
+  if(wxSearchBtn) wxSearchBtn.onclick=()=>{
+    // 기존 모달 제거
+    const old=document.getElementById("wx-location-modal");
+    if(old) old.remove();
+
+    const REGIONS = [
+      { group:"수도권",  list:[
+        {name:"서울",    lat:37.5665, lng:126.9780},
+        {name:"인천",    lat:37.4563, lng:126.7052},
+        {name:"수원",    lat:37.2636, lng:127.0286},
+        {name:"고양",    lat:37.6564, lng:126.8320},
+        {name:"성남",    lat:37.4201, lng:127.1262},
+        {name:"용인",    lat:37.2411, lng:127.1775},
+      ]},
+      { group:"충청·세종", list:[
+        {name:"세종",    lat:36.4800, lng:127.2890},
+        {name:"대전",    lat:36.3504, lng:127.3845},
+        {name:"천안",    lat:36.8151, lng:127.1139},
+        {name:"청주",    lat:36.6424, lng:127.4890},
+        {name:"공주",    lat:36.4468, lng:127.1192},
+        {name:"홍성",    lat:36.6010, lng:126.6611},
+      ]},
+      { group:"전라",    list:[
+        {name:"전주",    lat:35.8242, lng:127.1480},
+        {name:"광주",    lat:35.1595, lng:126.8526},
+        {name:"익산",    lat:35.9483, lng:126.9577},
+        {name:"나주",    lat:35.0160, lng:126.7106},
+        {name:"정읍",    lat:35.5700, lng:126.8560},
+        {name:"순천",    lat:34.9506, lng:127.4872},
+      ]},
+      { group:"경상",    list:[
+        {name:"대구",    lat:35.8714, lng:128.6014},
+        {name:"부산",    lat:35.1796, lng:129.0756},
+        {name:"울산",    lat:35.5384, lng:129.3114},
+        {name:"창원",    lat:35.2280, lng:128.6811},
+        {name:"진주",    lat:35.1798, lng:128.1076},
+        {name:"안동",    lat:36.5684, lng:128.7294},
+        {name:"포항",    lat:36.0190, lng:129.3435},
+        {name:"구미",    lat:36.1195, lng:128.3445},
+      ]},
+      { group:"강원",    list:[
+        {name:"춘천",    lat:37.8747, lng:127.7342},
+        {name:"원주",    lat:37.3422, lng:127.9202},
+        {name:"강릉",    lat:37.7519, lng:128.8761},
+      ]},
+      { group:"제주",    list:[
+        {name:"제주",    lat:33.4996, lng:126.5312},
+        {name:"서귀포",  lat:33.2541, lng:126.5600},
+      ]},
+    ];
+
+    // 모달 HTML
+    const modal = document.createElement("div");
+    modal.id = "wx-location-modal";
+    modal.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px";
+    modal.innerHTML = `
+    <div style="background:#fff;border-radius:16px;width:100%;max-width:480px;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
+      <div style="padding:16px 20px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#fff;z-index:1">
+        <div>
+          <div style="font-size:16px;font-weight:700;color:#1a2744">🌤️ 지역 선택</div>
+          <div style="font-size:11px;color:#aaa;margin-top:2px">날씨를 확인할 지역을 선택하세요</div>
+        </div>
+        <button id="wx-modal-close" style="border:none;background:none;font-size:20px;color:#aaa;cursor:pointer;padding:4px">✕</button>
+      </div>
+      <div style="padding:8px 0">
+        ${REGIONS.map(g=>`
+        <div style="padding:8px 0">
+          <div style="font-size:11px;font-weight:700;color:#888;padding:4px 20px;letter-spacing:1px">${g.group}</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0">
+            ${g.list.map(r=>`
+            <button class="wx-loc-btn"
+              data-name="${r.name}" data-lat="${r.lat}" data-lng="${r.lng}"
+              style="border:none;background:none;padding:11px 8px;font-size:14px;font-weight:500;color:#1a2744;cursor:pointer;text-align:center;border-radius:8px;margin:2px">
+              ${r.name}
+            </button>`).join("")}
+          </div>
+        </div>`).join("")}
+      </div>
+      <div style="padding:12px 20px 16px;border-top:1px solid #f0f0f0;position:sticky;bottom:0;background:#fff">
+        <div style="display:flex;gap:8px">
+          <input id="wx-custom-input" type="text" placeholder="직접 입력 (예: 화성, 파주, 김제...)"
+            style="flex:1;border:1px solid #ddd;border-radius:8px;padding:9px 12px;font-size:13px;outline:none">
+          <button id="wx-custom-search" style="border:none;background:#1a2744;color:#fff;border-radius:8px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer">검색</button>
+        </div>
+      </div>
+    </div>`;
+
+    document.body.appendChild(modal);
+
+    // 닫기
+    const closeModal = ()=>modal.remove();
+    document.getElementById("wx-modal-close").onclick = closeModal;
+    modal.onclick = (e)=>{ if(e.target===modal) closeModal(); };
+
+    // 지역 버튼 클릭
+    modal.querySelectorAll(".wx-loc-btn").forEach(btn=>btn.onclick=async ()=>{
+      const name=btn.dataset.name, lat=parseFloat(btn.dataset.lat), lng=parseFloat(btn.dataset.lng);
+      closeModal();
+      fetchWeather(lat, lng, name);
+    });
+
+    // 호버 효과
+    modal.querySelectorAll(".wx-loc-btn").forEach(btn=>{
+      btn.onmouseenter=()=>btn.style.background="#f0f4ff";
+      btn.onmouseleave=()=>btn.style.background="none";
+    });
+
+    // 직접 입력 검색
+    const doSearch = async ()=>{
+      const q = document.getElementById("wx-custom-input").value.trim();
+      if(!q) return;
+      try {
+        const results = await searchLocation(q);
+        if(!results||results.length===0){ alert("'"+q+"' 지역을 찾을 수 없습니다."); return; }
+        const r=results[0];
+        const name=r.name+(r.admin1?", "+r.admin1:"")+(r.country_code==="KR"?"":"("+r.country+")");
+        closeModal();
+        fetchWeather(r.latitude, r.longitude, name);
+      } catch(e){ alert("검색에 실패했습니다. 다시 시도해주세요."); }
+    };
+    document.getElementById("wx-custom-search").onclick = doSearch;
+    document.getElementById("wx-custom-input").onkeydown = (e)=>{ if(e.key==="Enter") doSearch(); };
+    // 포커스
+    setTimeout(()=>document.getElementById("wx-custom-input")?.focus(), 100);
   };
 
   // 날씨 요일 카드 클릭 → 시간대별 상세
