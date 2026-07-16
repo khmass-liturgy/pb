@@ -93,35 +93,92 @@ def format_prices(prices):
 
     return "\n".join(l for l in lines if l)
 
-# ── 가축질병 방역 뉴스 수집 ──────────────────────────────────────────────────
+# ── 가축질병·방역 동향 — 데일리벳 + Google 뉴스 수집 ────────────────────────
+def fetch_dailyvet_welfare():
+    """
+    데일리벳 동물복지·방역 카테고리 기사 수집
+    URL: https://www.dailyvet.co.kr/category/news/animalwelfare
+    """
+    url = "https://www.dailyvet.co.kr/category/news/animalwelfare"
+    try:
+        resp = requests.get(url, headers=HEADERS, timeout=15)
+        resp.encoding = resp.apparent_encoding or 'utf-8'
+        html = resp.text
+
+        items = []
+        seen = set()
+        # 데일리벳 뉴스 링크: /news/ 포함 URL
+        links = re.findall(
+            r'href="(https://www\.dailyvet\.co\.kr/news/[^"]+)"[^>]*>([^<]{10,120})<',
+            html
+        )
+        dates = re.findall(r'(\d{4}\.\d{2}\.\d{2})', html)
+        date_idx = 0
+
+        for href, title in links:
+            title = title.strip()
+            if not title or title in seen:
+                continue
+            if any(x in title for x in ['로그인','AI 기사요약','일부 결과','댓글','좋아요']):
+                continue
+            seen.add(title)
+            date = dates[date_idx] if date_idx < len(dates) else ""
+            if date:
+                date_idx += 1
+            items.append({"title": title, "link": href, "date": date})
+            if len(items) >= 8:
+                break
+
+        return items
+    except Exception as e:
+        print(f"  ⚠️ 데일리벳 수집 실패: {e}")
+        return []
+
+
 def fetch_disease_news():
-    """구글 뉴스 RSS에서 가축질병·방역 관련 최신 뉴스 수집"""
+    """
+    가축질병·방역 동향 수집
+    1) 데일리벳 동물복지·방역 카테고리 (주요 소스)
+    2) Google 뉴스 RSS (AI·구제역·ASF 보완)
+    """
+    results = []
+
+    # ① 데일리벳 기사
+    dv_items = fetch_dailyvet_welfare()
+    if dv_items:
+        results.append("[데일리벳 동물복지·방역 최신 기사]")
+        for item in dv_items[:6]:
+            results.append(f"  - {item['title']} ({item['date']}) {item['link']}")
+    else:
+        results.append("[데일리벳] 수집 실패 — Google 뉴스로 대체")
+
+    results.append("")
+
+    # ② Google 뉴스 RSS (가축전염병 보완)
     keywords = [
-        ("조류인플루엔자 AI", "고병원성 AI"),
+        ("고병원성 조류인플루엔자 AI", "고병원성 AI"),
         ("구제역 FMD", "구제역"),
         ("아프리카돼지열병 ASF", "ASF"),
-        ("가축전염병 방역", "방역"),
     ]
-    results = []
     for query, label in keywords:
         try:
             rss_url = f"https://news.google.com/rss/search?q={requests.utils.quote(query)}&hl=ko&gl=KR&ceid=KR:ko&when=7d"
             resp = requests.get(rss_url, headers=HEADERS, timeout=10)
             resp.encoding = 'utf-8'
-            # 제목 추출
             titles = re.findall(r'<title><!\[CDATA\[(.*?)\]\]></title>', resp.text)
             dates  = re.findall(r'<pubDate>(.*?)</pubDate>', resp.text)
             items  = []
-            for i, title in enumerate(titles[1:4]):  # 최대 3개, 첫번째는 채널제목
-                date_str_n = dates[i].strip()[:16] if i < len(dates) else ""
-                items.append(f"  - {title.strip()} ({date_str_n})")
+            for i, title in enumerate(titles[1:3]):
+                date_s = dates[i].strip()[:16] if i < len(dates) else ""
+                items.append(f"  - {title.strip()} ({date_s})")
             if items:
                 results.append(f"[{label}]")
                 results.extend(items)
             else:
                 results.append(f"[{label}] 최근 7일 특이사항 없음")
         except Exception as e:
-            results.append(f"[{label}] 뉴스 수집 실패: {e}")
+            results.append(f"[{label}] 수집 실패: {e}")
+
     return "\n".join(results)
 
 # ── 메인 ────────────────────────────────────────────────────────────────────
@@ -218,11 +275,11 @@ def main():
 - 소비 트렌드 및 수출입 현황
 
 ### 4. 🦠 가축질병·방역 동향
-- 위의 실제 수집된 방역 뉴스를 구체적으로 인용
-- 고병원성 AI(H5N1) 국내외 발생 현황
-- 구제역(FMD) 발생 및 위험도 평가
-- ASF 국내외 동향
-- 농가 방역 조치 권고사항
+- 위의 【데일리벳 동물복지·방역 최신 기사】를 최우선으로 인용·요약
+- 각 기사 제목과 핵심 내용을 1~2줄로 정리 (URL은 괄호 안에 표시)
+- 고병원성 AI·구제역·ASF 관련 기사가 있으면 별도 강조
+- 농가 방역 관련 주의사항·정책 동향 포함
+- 데일리벳 기사가 없는 경우 Google 뉴스 수집 결과 활용
 
 ### 5. 🌤️ 날씨 및 사양관리
 - 오늘·금주 날씨 전망 (서울 기준 추정)

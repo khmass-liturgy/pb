@@ -206,12 +206,53 @@ SITES = [
             {
                 "label": "산업동물 뉴스",
                 "url": "https://www.dailyvet.co.kr/category/news/practice/industrial-animal",
-                "parser": "news",
+                "parser": "dailyvet",
+                "base": "https://www.dailyvet.co.kr",
+            },
+            {
+                "label": "가축질병·방역동향",
+                "url": "https://www.dailyvet.co.kr/category/news/animalwelfare",
+                "parser": "dailyvet",
                 "base": "https://www.dailyvet.co.kr",
             },
         ],
     },
 ]
+
+def parse_dailyvet(html, base_url):
+    """
+    데일리벳(WordPress) 기사 목록 파싱
+    구조: <a href="https://www.dailyvet.co.kr/news/...">제목</a>
+          날짜: 2026.07.15
+    """
+    items = []
+    seen = set()
+    # 기사 링크 패턴 (뉴스 URL만)
+    links = re.findall(
+        r'<a\s+href="(https://www\.dailyvet\.co\.kr/news/[^"]+)"[^>]*>([\s\S]*?)</a>',
+        html
+    )
+    # 날짜 패턴
+    dates = re.findall(r'(\d{4}\.\d{2}\.\d{2})', html)
+    date_idx = 0
+
+    for href, title_html in links:
+        title = clean(title_html)
+        if not title or len(title) < 5 or title in seen:
+            continue
+        # 너무 짧거나 메뉴성 텍스트 제외
+        if any(x in title for x in ['로그인','회원가입','댓글','좋아요','더보기','AI 기사요약','일부 결과']):
+            continue
+        seen.add(title)
+        date = dates[date_idx] if date_idx < len(dates) else ""
+        if date:
+            date_idx += 1
+        items.append({"title": title, "link": href, "date": date})
+        if len(items) >= 10:
+            break
+
+    return items
+
 
 def fetch_board(board):
     html = get_html(board["url"])
@@ -223,6 +264,8 @@ def fetch_board(board):
         return parse_gnuboard(html, base)
     elif parser == "chicken":
         return parse_chicken_assoc(html, base)
+    elif parser == "dailyvet":
+        return parse_dailyvet(html, base)
     else:
         return parse_news_site(html, base)
 
