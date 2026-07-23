@@ -154,15 +154,18 @@ def fetch_disease_news():
 
     results.append("")
 
-    # ② Google 뉴스 RSS (가축전염병 보완)
+    # ② Google 뉴스 RSS — 가금질병·방역 실시간 동향 (농림부·검역본부·WOAH 중심)
     keywords = [
-        ("고병원성 조류인플루엔자 AI", "고병원성 AI"),
-        ("구제역 FMD", "구제역"),
-        ("아프리카돼지열병 ASF", "ASF"),
+        ("고병원성 조류인플루엔자 가금 검역본부", "🦠 고병원성 AI(HPAI)"),
+        ("전염성기관지염 IB 가금 양계", "🐔 전염성기관지염(IB)"),
+        ("저병원성 조류인플루엔자 LPAI 가금", "🐔 저병원성 AI(LPAI)"),
+        ("아프리카돼지열병 ASF 국내", "🐷 ASF"),
+        ("구제역 FMD 국내 발생", "🐄 구제역(FMD)"),
+        ("가금 대장균 살모넬라 방역", "🦠 세균성 질병(대장균·살모넬라)"),
     ]
     for query, label in keywords:
         try:
-            rss_url = f"https://news.google.com/rss/search?q={requests.utils.quote(query)}&hl=ko&gl=KR&ceid=KR:ko&when=7d"
+            rss_url = f"https://news.google.com/rss/search?q={requests.utils.quote(query)}&hl=ko&gl=KR&ceid=KR:ko&when=14d"
             resp = requests.get(rss_url, headers=HEADERS, timeout=10)
             resp.encoding = 'utf-8'
             titles = re.findall(r'<title><!\[CDATA\[(.*?)\]\]></title>', resp.text)
@@ -175,7 +178,7 @@ def fetch_disease_news():
                 results.append(f"[{label}]")
                 results.extend(items)
             else:
-                results.append(f"[{label}] 최근 7일 특이사항 없음")
+                results.append(f"[{label}] 최근 14일 특이사항 없음")
         except Exception as e:
             results.append(f"[{label}] 수집 실패: {e}")
 
@@ -248,7 +251,7 @@ def main():
 {prices_text}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-【실제 수집된 가축질병·방역 뉴스】 (출처: Google 뉴스, 최근 7일)
+【실제 수집된 가축질병·방역 동향】 (출처: 데일리벳 animalwelfare · Google 뉴스, 최근 14일)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 {disease_news}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -285,7 +288,13 @@ def main():
 - 오늘·금주 날씨 전망 (서울 기준 추정)
 - {today.month}월 계절적 특성에 따른 가금류 사양관리 포인트
 - 고온다습 시 폐사 예방, 음수 관리 등 실무 조언
-- 계절성 질병(열스트레스, 뉴캐슬, 마렉 등) 주의사항
+
+### 6. 📌 현재 주의해야 할 가금 질병 동향
+- 위의 【실제 수집된 가축질병·방역 동향】에서 현재 발생 중이거나 위험도가 높은 질병만 선별
+- 뉴캐슬, 마렉 등 상시 관리 질병은 제외 — 현재 실제 이슈가 되는 질병만 기술
+- 데일리벳 기사·검역본부 발표·WOAH 통계에 근거하여 작성
+- 질병명 / 국내외 발생 현황 / 농가 주의사항 형식으로 정리
+- 수집된 뉴스가 없는 질병은 "현재 특이 발생 없음"으로 표시 (뇌피셜 금지)
 
 ## 출력 형식 요구사항
 - 제목: # {date_str} ({weekday}요일) 축산·수의 일일 브리핑
