@@ -1,5 +1,5 @@
 {
-  "updated": "2026-07-28 09:00 KST",
+  "updated": "2026-07-29 08:57 KST",
   "channels": {
     "livestock": {
       "label": "축산·농업",
@@ -8,8 +8,15 @@
     },
     "vet": {
       "label": "수의·방역",
-      "items": [],
-      "count": 0
+      "items": [
+        {
+          "title": "방역 인력 부족·기피에..퇴직공무원을 가축방역관으로, 동물보건사를 가축방역사로 - 데일리벳",
+          "link": "https://news.google.com/rss/articles/CBMiV0FVX3lxTE1JV3BoS3I5WkdvYkRIQUlDdDVkVG1HUklhSmZZS2I3TVd2R3lQb1R4SHc1a3IxTlBmS281TjUzWlJsUy1NWnZxN293bzFEbDBBNkQzRmFCMA?oc=5",
+          "date": "07/29 08:00",
+          "source": "데일리벳"
+        }
+      ],
+      "count": 1
     },
     "disease": {
       "label": "가축질병",
@@ -31,10 +38,10 @@
           "source": "v.daum.net"
         },
         {
-          "title": "뛰는 유가에 물가 불안 우려…금리·관세·환율도 '경고등' - 연합뉴스",
-          "link": "https://news.google.com/rss/articles/CBMidkFVX3lxTE5UaF9XSWF3Yk4xWXVwbW10QndfajBQOHllQ2xfWlNReVpVYkJmYllXbUNXRmgzUF80ZW5hX0J6OXprOHNBeUJYb01hTll2WklCaEpCUHNzYVRDcFlsTzBmMnNwNFNCdUNJa3FaNDlGa0tfVGQwM2c?oc=5",
-          "date": "07/26 06:30",
-          "source": "연합뉴스"
+          "title": "뛰는 유가에 물가 불안 우려…금리·관세·환율도 '경고등' - 한국경제",
+          "link": "https://news.google.com/rss/articles/CBMiWkFVX3lxTFBzV1RqVmJLeVZ3NV9yZHh1OHBOY0FiWlRkZWlsci1Ga0l3aWVEQTN1QVF2WFJNSENHclRoc25IcDd0NHRkS29wYmFyeTduVml4ay1WX3dqUU95dw?oc=5",
+          "date": "07/26 07:24",
+          "source": "한국경제"
         },
         {
           "title": "고유가·관세·환율 ‘삼중 부담’…하반기 한국 경제 불확실성 확대 - 산경투데이",
@@ -47,13 +54,25 @@
           "link": "https://news.google.com/rss/articles/CBMibEFVX3lxTE53U1pXRUFLMzM1bGZxcS1YcjBEaVZOd3FPbFduVl95cmVhT3E3S1hKTkhpRURxTDNCVzFVdGtEVTNwaXRtT2N6M1pIVVFLOFNNZ1BrVlZyMVVHQnFQLVVyemxTVXQ1Wk9oemFTWdIBcEFVX3lxTE9CVFNsTXM2c1EyQlQwWi1tZE5hVU0teGUxZFdEVXBJZ3FsN2hDZ1p5Vy02TzZxUllDQnZXbWVPVHdHc0tqQkItMWxTZkxBTllITF9TZVhNV0NmZ25HV2JUV1djTnA2QmdNVU45S0c4cVU?oc=5",
           "date": "07/26 15:37",
           "source": "남도일보"
+        },
+        {
+          "title": "국제유가 불안 다시 고조…'물가·환율·금리' 경고등 - 네이트",
+          "link": "https://news.google.com/rss/articles/CBMibkFVX3lxTE54NFRIUU5PSUpTOXh5R3JhbjVaWkhGb0JBb05RSFhzY3F0bThFNHlhaWVrVWNZRUEwUTRPWktiNHlqWDZKUWpfRGZ3STFwMmViLW9vWVJqV1dILTltYkVqeV9mSkExM3BQbEZDakVB?oc=5",
+          "date": "07/26 18:44",
+          "source": "네이트"
         }
       ],
-      "count": 4
+      "count": 5
     },
     "world": {
       "label": "국제",
       "items": [
+        {
+          "title": "[데일리뉴스 국제분석] 중국이 미국을 넘어 새로운 글로벌 패권국으로 부상할 수 있을까? - 데일리뉴스",
+          "link": "https://news.google.com/rss/articles/CBMic0FVX3lxTE5NWVFvR25PeDdJSFh1d2lBSExDQ25pbmxTTHRBM0FRbVpHS1lSY2tSOF90eGhsVWRxNkNPdlNPOE9SdHJsbU0wY09hNklyRkRpS3lKXzhiS0MzeXl5RWpucGtrLUd3SDJGY0JYeDFXYlREOGPSAXNBVV95cUxOTVlRb0duT3g3SUhYdXdpQUhMQ0NuaW5sU0x0QTNBUW1aR0tZUmNrUjhfdHhobFVkcTZDT3ZTTzhPUnRybG1NMGNPYTZJckZEaUt5Sl84YktDM3l5eUVqbnBray1Hd0gyRmNCWHgxV2JURDhj?oc=5",
+          "date": "07/28 02:30",
+          "source": "데일리뉴스"
+        },
         {
           "title": "국제유가, 미국-이란 종전협상 재개 기대감 등 6거래일만에 하락 - 포커스온경제",
           "link": "https://news.google.com/rss/articles/CBMiYEFVX3lxTE1hbThoeDR2X0Z1ZjVOTjhoM1NTRUZKNzdKSlQybUFaalBxaVA3TlpJUkFrb0RYN0tTTXRMMFdZdDg2OXdxQlJZSWZCODdSVGJ6QUVHZnhzMDlIZnZvOUVZdA?oc=5",
@@ -61,7 +80,7 @@
           "source": "포커스온경제"
         }
       ],
-      "count": 1
+      "count": 2
     }
   }
 }
