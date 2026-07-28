@@ -1,13 +1,10 @@
 {
-  "updated": "2026-07-28 08:50 KST",
+  "updated": "2026-07-28 12:29 KST",
   "prices": {
     "chicken": {
-      "date": "2026-07-27",
-      "sanji_live": 6602,
-      "agency": 6316,
-      "mart": 9044,
-      "prev_sanji": 6463,
-      "diff_sanji_live": 139
+      "date": null,
+      "sanji_live": null,
+      "note": "육계 API 엔드포인트 미발견 — 공공데이터포털에서 15073985 오퍼레이션 URL 확인 필요"
     },
     "egg": {
       "date": "2026-07-27",
