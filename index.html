@@ -452,8 +452,8 @@ const NOTICE_FALLBACK = {
 
 let noticesState = {
   status:"idle",
-  chuksan:[], handon:[],
-  fallback:{ chuksan:false, handon:false },
+  chuksan:[], handon:[], econ:[],
+  fallback:{ chuksan:false, handon:false, econ:false },
   updatedAt:"",
 };
 
@@ -503,6 +503,32 @@ function parseHandonHTML(html){
   });
   return out.slice(0,5);
 }
+// 한국경제 경제뉴스 (공식 RSS 2.0): item > title / link / pubDate / author
+function parseHankyungRSS(xml){
+  const doc = new DOMParser().parseFromString(xml, "text/xml");
+  const out = [], seen = new Set();
+  doc.querySelectorAll("item").forEach(it=>{
+    const title = (it.querySelector("title")?.textContent || "").replace(/\s+/g," ").trim();
+    const url   = (it.querySelector("link")?.textContent || "").trim();
+    if(!title || title.length<6 || !url || seen.has(url)) return;
+    // pubDate: "Mon, 20 Jul 2026 16:00:42 +0900" → "07.20 16:00" (KST 고정)
+    let date = "";
+    const pd = (it.querySelector("pubDate")?.textContent || "").trim();
+    if(pd){
+      const d = new Date(pd);
+      if(!isNaN(d)){
+        // 브라우저 시간대와 무관하게 한국시각으로 표기
+        const k = new Date(d.getTime() + 9*3600*1000);
+        date = `${String(k.getUTCMonth()+1).padStart(2,"0")}.${String(k.getUTCDate()).padStart(2,"0")} `
+             + `${String(k.getUTCHours()).padStart(2,"0")}:${String(k.getUTCMinutes()).padStart(2,"0")}`;
+      }
+    }
+    seen.add(url);
+    out.push({title, date, url});
+  });
+  return out.slice(0,5);
+}
+
 
 async function fetchOneSite(targetUrl, parseFn, label){
   const proxies=[
@@ -524,16 +550,20 @@ async function fetchOneSite(targetUrl, parseFn, label){
 async function fetchNotices(){
   noticesState.status="loading";
   if(state.tab==="briefing") render();
-  const [pr,cr]=await Promise.allSettled([
+  const [pr,cr,er]=await Promise.allSettled([
     fetchOneSite("https://www.chuksannews.co.kr/news/section_list_all.html?sec_no=2", parseChuksanHTML, "축산신문"),
     fetchOneSite("https://www.pignpork.com/news/articleList.html?sc_section_code=S1N1&view_type=sm", parseHandonHTML, "한돈뉴스"),
+    fetchOneSite("https://www.hankyung.com/feed/economy", parseHankyungRSS, "한국경제"),
   ]);
   const pv=pr.status==="fulfilled"?pr.value:{items:null,fallback:true};
   const cv=cr.status==="fulfilled"?cr.value:{items:null,fallback:true};
+  const ev=er.status==="fulfilled"?er.value:{items:null,fallback:true};
   noticesState.chuksan  = pv.items||NOTICE_FALLBACK.chuksan;
   noticesState.fallback.chuksan = pv.fallback;
   noticesState.handon   = cv.items||NOTICE_FALLBACK.handon;
   noticesState.fallback.handon = cv.fallback;
+  noticesState.econ     = ev.items||[];
+  noticesState.fallback.econ = ev.fallback;
   noticesState.updatedAt= new Date().toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"});
   noticesState.status   = "done";
   if(state.tab==="briefing") render();
@@ -840,8 +870,8 @@ let stockFetchStatus = "idle"; // idle | loading | done | error
 
 // 야후 차트 API를 프록시로 우회 호출 (단일 심볼)
 async function fetchYahooQuote(symbol){
-  // range=10d로 늘려 종가 배열에 충분한 전일 데이터 확보
-  const yurl = "https://query1.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(symbol) + "?interval=1d&range=10d";
+  // range=1mo: 추세 스파크라인용 일봉 확보 (previousClose는 range와 무관하게 정확)
+  const yurl = "https://query1.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(symbol) + "?interval=1d&range=1mo&includePrePost=false";
   const headers = { "Accept":"application/json", "User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" };
   const routes = [
     "https://corsproxy.io/?url=" + encodeURIComponent(yurl),
@@ -858,12 +888,39 @@ async function fetchYahooQuote(symbol){
       const meta = r.meta;
       const cur = meta.regularMarketPrice;
       if(cur==null) throw new Error("가격 없음");
-      // 종가 배열에서 전일 종가 추출 (null 제외 후 마지막 2개)
-      const closes = (r.indicators?.quote?.[0]?.close || []).filter(v=>v!=null);
-      // 장중이면 closes 마지막이 전일 종가, 장 마감 후면 마지막-1이 전전일
-      // chartPreviousClose는 range 시작 기준이라 부정확 → closes 배열 우선 사용
-      const prev = closes.length>=2 ? closes[closes.length-2] :
-                   (meta.previousClose || meta.chartPreviousClose || cur);
+      // ── 전일 종가 산출 ────────────────────────────────────────────────
+      // ① meta.previousClose = 직전 거래일 종가 (range와 무관하게 정확) → 1순위
+      //   chartPreviousClose는 "조회구간 시작 직전" 값이라 range=1mo면 한 달 전 값이 됨
+      let prev = (typeof meta.previousClose === "number" && meta.previousClose > 0)
+                 ? meta.previousClose : null;
+
+      // ② 폴백: 거래소 현지 날짜 기준 "마지막 봉과 날짜가 다른 마지막 봉" = 전일 종가
+      const ts  = r.timestamp || [];
+      const cl  = r.indicators?.quote?.[0]?.close || [];
+      const gmt = (meta.gmtoffset ?? 0) * 1000;
+      const dayKey = (sec)=> new Date(sec*1000 + gmt).toISOString().slice(0,10);
+      const pairs = [];
+      for(let k=0;k<ts.length;k++){ if(cl[k]!=null) pairs.push({d:dayKey(ts[k]), c:cl[k]}); }
+
+      let prevByDay = null;
+      if(pairs.length>=2){
+        const lastDay = pairs[pairs.length-1].d;
+        for(let k=pairs.length-2;k>=0;k--){
+          if(pairs[k].d !== lastDay){ prevByDay = pairs[k].c; break; }
+        }
+      }
+      if(prev==null) prev = prevByDay;
+      if(prev==null) prev = (typeof meta.chartPreviousClose==="number" ? meta.chartPreviousClose : cur);
+
+      // ③ 검증: 등락률 ±40% 초과면 비정상 → 더 그럴듯한 후보로 교체
+      const errRate = (p)=> (p>0 ? Math.abs(cur/p - 1) : 99);
+      if(errRate(prev) > 0.4){
+        [prevByDay, meta.chartPreviousClose].forEach(alt=>{
+          if(typeof alt === "number" && alt > 0 && errRate(alt) < errRate(prev)) prev = alt;
+        });
+      }
+
+      const closes = pairs.map(p=>p.c);
       return { cur, prev, closes };
     } catch(e){
       console.warn("야후 "+symbol+" 경로 "+(i+1)+" 실패:", e.message);
@@ -890,9 +947,12 @@ async function fetchStockPrices(){
       const scale = s.yahooCents ? 100 : 1;
       s.current = Math.round((q.cur / scale) * 100) / 100;
       s.prevDay = Math.round((q.prev / scale) * 100) / 100;
-      if(q.closes.length>=2){
-        const tail = q.closes.slice(-6).map(v=>Math.round((v/scale)*100)/100);
-        s.trend = s.trend.slice(0, 12-tail.length).concat(tail);
+      // 추세: 실제 일봉 종가 최근 12개로 교체 (부족하면 기존값과 이어붙임)
+      const live = q.closes.map(v=>Math.round((v/scale)*100)/100);
+      if(live.length>=12){
+        s.trend = live.slice(-12);
+      } else if(live.length>=2){
+        s.trend = s.trend.slice(0, 12-live.length).concat(live);
       } else {
         s.trend = s.trend.slice(0,11).concat([s.current]);
       }
@@ -2607,7 +2667,7 @@ function renderEconSection(){
         </div>
         ${stocks.map(row).join("")}
         ${fx.map(row).join("")}
-        <div style="margin-top:8px;text-align:right"><a href="https://finance.naver.com/sise/" target="_blank" rel="noopener" style="font-size:11px;color:#0047A0;font-weight:600">네이버 증권 →</a></div>
+        <div style="margin-top:8px;text-align:right"><a href="https://m.stock.naver.com/domestic/home/capitalization/KOSPI" target="_blank" rel="noopener" style="font-size:11px;color:#0047A0;font-weight:600">네이버 증권 →</a></div>
       </div>
       <div class="card" style="border-top:4px solid #F7931A">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
@@ -2649,8 +2709,8 @@ function renderNoticesSection(){
   <div style="margin-bottom:22px">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
     <div>
-      <div class="display" style="font-size:16px">📰 축산 뉴스</div>
-      <div style="font-size:10px;color:#aaa;margin-top:3px">축산신문 · 한돈뉴스 최신 5건</div>
+      <div class="display" style="font-size:16px">📰 축산 뉴스 · 경제동향</div>
+      <div style="font-size:10px;color:#aaa;margin-top:3px">축산신문 · 한돈뉴스 · 한국경제 최신 5건</div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
       <span style="font-size:10px;color:#888">${timeLabel}</span>
@@ -2697,6 +2757,24 @@ function renderNoticesSection(){
         </a>
       </div>
       ${noticeList(ns.handon,"#AD1457",ns.fallback?.handon,loading)}
+    </div>
+
+    <!-- 경제동향 뉴스 (한국경제) -->
+    <div class="card" style="border-top:4px solid #0047A0">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:7px">
+          <span style="font-size:20px">💹</span>
+          <div>
+            <div class="display" style="font-size:14px;color:#0047A0">경제동향</div>
+            <div style="font-size:10px;color:#aaa">hankyung.com · 한국경제</div>
+          </div>
+        </div>
+        <a href="https://www.hankyung.com/economy" target="_blank" rel="noopener"
+           style="font-size:11px;color:#0047A0;border:1px solid #0047A0;border-radius:6px;padding:4px 9px;text-decoration:none">
+          전체 ↗
+        </a>
+      </div>
+      ${noticeList(ns.econ,"#0047A0",ns.fallback?.econ,loading)}
     </div>
 
   </div>
