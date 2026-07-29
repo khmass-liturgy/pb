@@ -1,0 +1,10906 @@
+
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+
+<meta http-equiv="X-UA-Compatible" content="IE=edge, chrome=1">
+<meta property="og:image" content="/basic_img/common/kape_share.png">
+<!-- fav -->
+<link rel="shortcut icon" type="image/x-icon" href="/basic_img/common/kape_fav.ico" />
+
+<meta name="Author" content="축산물평가원">
+<title>축산유통정보 다봄(여기고기)</title>
+<meta name="Keywords" content="축산유통정보, 실시간 가격,도매시장,한우 가격,돼지 경매,계란 유통,축산물 수급,다봄,농림축산식품부,축산물 플랫폼">
+<meta name="Description" content="한우,돼지,계란 등 주요 축산물의 실시간 가격과 유통정보,도매시장 응찰현황, 수급 예측 데이터를 한곳에서 확인하세요. 믿을 수 있는 공공 축산 플랫폼 다봄.">
+
+<!-- script 기존동일 -->
+<script type="text/javascript" src="/js/webNew/jquery-3.6.0.min.js"></script>
+<script type="text/javascript" src="/js/webNew/jquery-ui.js"></script>
+<script type="text/javascript" src="/js/webNew/swiper.min.js"></script>
+<!--js basic by.ux_ming-->
+
+	
+	
+		<!-- PC -->
+		<script type="text/javascript" src="/js/basic/common.js?ver=260312"></script>
+	
+
+
+<script type="text/javascript" src="/js/lab/common/moment.min.js"></script>
+<script type="text/javascript" src="/js/common/jquery.ui.monthpicker.js"></script>
+<script type="text/javascript" src="/js/common/yearpicker.js"></script>
+
+<!-- AMCHART(S) -->
+	<script src="/resources/amcharts/amcharts4/core.js"></script>
+	<script src="/resources/amcharts/geodata/southKoreaHigh.js"></script>
+	<script src="/resources/amcharts/amcharts4/maps.js"></script>
+	<script src="/resources/amcharts/amcharts4/charts.js"></script>
+	<script src="/resources/amcharts/amcharts4/lang/ko_KR.js"></script>
+	<script src="/resources/amcharts/amcharts4/themes/animated.js"></script>
+	<script src="/resources/amcharts/amcharts4/themes/animated.js"></script>
+	<script src="/resources/amcharts/amcharts4/deps/xlsx.js"></script>
+	
+	<script src="/js/amcharts4/core.js"></script>
+    <script src="/js/amcharts4/charts.js"></script>
+    <script src="/js/amcharts4/themes/animated.js"></script>
+	<script src="/js/amcharts4/lang/ko_KR.js"></script>
+	<script src="/resources/amcharts/geodata/southKoreaHigh.js"></script>
+	<script src="/resources/amcharts/amcharts4/maps.js"></script>
+<!-- AMCHART(E) -->
+
+<!-- css basic by.ux_ming -->
+<link rel="stylesheet" type="text/css" href="/css/basic/import.css?ver=260716">
+<link rel="stylesheet" type="text/css" href="/css/basic/swiper.min.css">
+<link rel="stylesheet" type="text/css" href="/css/jquery-ui.css">
+<link rel="stylesheet" type="text/css" href="/css/yearpicker.css"> 
+
+
+	
+	
+		<!-- PC -->
+		<meta name="viewport" content="width=1360">
+		<style>
+			html {min-width: 1360px; overflow: auto;}
+			.gatewayfin-wrap {min-height: 800px;}
+		</style>
+	
+
+
+
+
+<script type="module">
+	import * as pdfjsLib from "/js/basic/pdfjs-5.4.449-dist/build/pdf.mjs";
+
+	pdfjsLib.GlobalWorkerOptions.workerSrc = "/js/basic/pdfjs-5.4.449-dist/build/pdf.worker.mjs" 
+
+	let pdfDoc = null
+	let pageNum = 1
+	let pageRendering = false
+	let pageNumPending = null
+	const scale = 2.0
+	const canvas = document.getElementById('canvas')
+	const ctx = canvas.getContext('2d')
+
+	let currentPdfLoadingTask = null;
+    let loadingHintTimer = null;
+    let lastProgressPercent = -1;
+    let isPdfOpening = false;
+
+	async function renderPage(num,isLoad) {
+		pageRendering = true
+		
+		pdfDoc.getPage(num).then((page) => {
+			const viewport = page.getViewport({ scale : scale })
+			canvas.height = viewport.height
+			canvas.width = viewport.width
+
+			const renderContext = {
+				canvasContext: ctx,
+				viewport: viewport
+			}
+			const renderTask = page.render(renderContext)
+
+			renderTask.promise.then(() => {
+				pageRendering = false
+				if(pageNumPending != null) {
+					renderPage(pageNumPending)
+					pageNumPending = null
+				}
+				if(isLoad){
+					setPdfSubMessage('로딩 완료')
+            		setTimeout(function () {
+	                	hidePdfLoadingLayer()
+    	        	}, 250)
+				}
+			
+			})
+		})
+
+		document.getElementById('page-num').textContent = num
+
+	}
+
+	function onPrevPage() {
+		if(pageNum <= 1) {
+			return
+		}	
+		pageNum--
+		queueRenderPage(pageNum)
+	}
+	document.getElementById('prev').addEventListener('click', onPrevPage)
+
+	function onNextPage() {
+		if(pageNum >= pdfDoc.numPages) {
+			return
+		}
+		pageNum++
+		queueRenderPage(pageNum)
+	}
+	document.getElementById('next').addEventListener('click', onNextPage)
+
+	
+
+	function queueRenderPage(num) {
+		if(pageRendering) {
+			pageNumPending = num
+		} else {
+			renderPage(num)
+		}
+	}
+
+	
+
+	function loadPage(url,fileExt) {
+
+		if(!fileExt.toLowerCase().endsWith("pdf"))
+			return
+
+		pageNum = 1
+
+		pdfjsLib.getDocument(url).promise.then((pdfDoc_) => {
+			// 파일 로드 시
+			pdfDoc = pdfDoc_
+			document.getElementById('page-count').textContent = pdfDoc.numPages
+			document.getElementById('boardContent').style.display = 'none'
+			document.getElementById('noPreview').style.display = 'none'
+			document.getElementById('file-area').style.display = 'block'
+
+			renderPage(pageNum)
+		}, () => {
+			// 파일 로드 실패 시
+			document.getElementById('boardContent').style.display = 'none'
+			document.getElementById('noPreview').style.display = 'block'
+		})
+	}
+
+	function formatBytes(bytes) {
+        if (bytes === null || bytes === undefined || isNaN(bytes)) {
+            return '-'
+        }
+
+        const units = ['B', 'KB', 'MB', 'GB']
+        let value = bytes
+        let unitIndex = 0
+
+        while (value >= 1024 && unitIndex < units.length - 1) {
+            value /= 1024
+            unitIndex++
+        }
+
+        const fixed = value >= 100 ? 0 : value >= 10 ? 1 : 2
+        return value.toFixed(fixed) + ' ' + units[unitIndex]
+    }
+
+	function showPdfLoadingLayer() {
+        const layer = document.getElementById('pdfLoadingLayer')
+        const bar = document.getElementById('pdfProgressBar')
+        const text = document.getElementById('pdfProgressText')
+        const detail = document.getElementById('pdfProgressDetail')
+        const subDetail = document.getElementById('pdfProgressSubDetail')
+
+        layer.style.display = 'flex'
+        bar.classList.remove('indeterminate')
+        bar.style.width = '0%'
+        text.textContent = '0%'
+        detail.textContent = 'PDF를 준비하고 있습니다.'
+        subDetail.textContent = ''
+
+        lastProgressPercent = -1
+
+        clearTimeout(loadingHintTimer)
+        loadingHintTimer = setTimeout(function () {
+            subDetail.textContent = '대용량 파일이라 시간이 조금 걸릴 수 있습니다.'
+        }, 5000)
+    }
+
+	function hidePdfLoadingLayer() {
+        const layer = document.getElementById('pdfLoadingLayer')
+        layer.style.display = 'none'
+
+        clearTimeout(loadingHintTimer)
+        loadingHintTimer = null
+    }
+
+    function setPdfProgress(percent, detailMessage) {
+        const bar = document.getElementById('pdfProgressBar')
+        const text = document.getElementById('pdfProgressText')
+        const detail = document.getElementById('pdfProgressDetail')
+
+        bar.classList.remove('indeterminate')
+        bar.style.width = percent + '%'
+        text.textContent = percent + '%'
+        detail.textContent = detailMessage || ''
+    }
+
+    function setPdfProgressIndeterminate(detailMessage) {
+        const bar = document.getElementById('pdfProgressBar')
+        const text = document.getElementById('pdfProgressText')
+        const detail = document.getElementById('pdfProgressDetail')
+
+        bar.classList.add('indeterminate')
+        text.textContent = '불러오는 중...'
+        detail.textContent = detailMessage || ''
+    }
+
+    function setPdfSubMessage(message) {
+        const subDetail = document.getElementById('pdfProgressSubDetail')
+        subDetail.textContent = message || ''
+    }
+
+    function resetCurrentPdfState() {
+        currentPdfLoadingTask = null
+       // pdfDoc = null
+        isPdfOpening = false
+    }
+
+    function clearCanvas() {
+        const canvas = document.getElementById('pdfCanvas')
+        const ctx = canvas.getContext('2d')
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
+        canvas.width = 0
+        canvas.height = 0
+    }
+
+	function cancelPdfLoading(silent) {
+        try {
+            if (currentPdfLoadingTask) {
+                currentPdfLoadingTask.destroy();
+            }
+        } catch (e) {
+            console.error('PDF loadingTask destroy error:', e);
+        }
+
+        try {
+            if (pdfDoc) {
+                pdfDoc.destroy();
+            }
+        } catch (e) {
+            console.error('PDF document destroy error:', e);
+        }
+
+        resetCurrentPdfState();
+        hidePdfLoadingLayer();
+
+        if (!silent) {
+            // 취소 시 캔버스를 지울지 유지할지는 정책에 따라 선택
+            // 지금은 기존 화면은 유지하고 새 로딩만 중단
+        }
+    }
+
+	document.getElementById('pdfCancelBtn').addEventListener('click', cancelPdfLoading)
+
+
+
+
+	async function openPdfViewer(pdfUrl,fileExt) {
+
+		if(!fileExt.toLowerCase().endsWith("pdf")){
+			document.getElementById('boardContent').style.display = 'none'
+			document.getElementById('noPreview').style.display = 'block'
+			return
+		}
+
+
+        // 중복 클릭 방지
+        if (isPdfOpening) {
+            cancelPdfLoading(true)
+        }
+
+        isPdfOpening = true
+        showPdfLoadingLayer()
+
+        try {
+            const loadingTask = pdfjsLib.getDocument({
+                url: pdfUrl,
+                withCredentials: true
+            })
+
+            currentPdfLoadingTask = loadingTask
+
+            loadingTask.onProgress = function (progressData) {
+                const loaded = progressData.loaded || 0
+                const total = progressData.total || 0
+
+                if (total > 0) {
+                    const percent = Math.min(100, Math.round((loaded / total) * 100))
+
+                    // 너무 자주 갱신하지 않기
+                    if (percent !== lastProgressPercent) {
+                        lastProgressPercent = percent
+                        setPdfProgress(
+                            percent,
+                            formatBytes(loaded) + ' / ' + formatBytes(total)
+                        )
+                    }
+                } else {
+                    setPdfProgressIndeterminate(
+                        formatBytes(loaded) + ' 다운로드됨'
+                    )
+                }
+            }
+
+            const pdf = await loadingTask.promise
+            pdfDoc = pdf
+
+            setPdfProgress(100, '문서 다운로드 완료')
+            setPdfSubMessage('첫 페이지를 렌더링하는 중입니다...')
+
+            await renderPage(1,true)
+
+            
+
+			document.getElementById('page-count').textContent = pdfDoc.numPages
+			document.getElementById('boardContent').style.display = 'none'
+			document.getElementById('noPreview').style.display = 'none'
+			document.getElementById('file-area').style.display = 'block'
+
+			
+
+        } catch (error) {
+            console.error('PDF 로딩 실패:', error)
+            hidePdfLoadingLayer()
+
+			// 파일 로드 실패 시
+			document.getElementById('boardContent').style.display = 'none'
+			document.getElementById('noPreview').style.display = 'block'
+
+            let msg = 'PDF를 불러오는 중 오류가 발생했습니다.'
+            if (error && error.name === 'RenderingCancelledException') {
+                msg = 'PDF 로딩이 취소되었습니다.'
+            } else if (error && error.message) {
+                msg += '/' + error.message
+            }
+
+            alert(msg)
+        } finally {
+         //   resetCurrentPdfState()
+        }
+    }
+
+
+	
+
+
+	window.loadPage = openPdfViewer
+</script>
+ <script type="text/javascript">
+	 $(document).ready(function() {
+		 $("#selectContent li").on('click', (e) => {
+			 $("#selectContent li").removeClass('on');
+			 $(e.currentTarget).addClass('on');
+		 }) 
+		 
+	 }) 
+	 
+	function showContent() {
+		 //$('.preview_iframe').hide();
+		 $('#file-area').hide();
+		 $('#noPreview').hide();
+		 $('#boardContent').show();
+	 }
+	 
+	function showFile(tag){
+		$('#boardContent').hide();
+		let attachfileViewUrl = '/common/attachfile/attachfileView.do';
+		let orgNm = $(tag).data('value');
+		let index = $(tag).data('index');
+		let lastIdx = orgNm.lastIndexOf('.');
+		
+		let extendNm = orgNm.substring(lastIdx+1);
+		
+		$('.preview_iframe').hide()
+		
+		if(extendNm === 'pdf') {
+			 $('#noPreview').hide();
+			 $('#preview_'+index).show();
+		} else {
+			 $('#preview_'+index).hide();
+			 $('#noPreview').show();
+		}	 
+	}
+ 	
+	function goBoardView(boardNo,boardInfoNo) {
+ 		document.searchForm.dmlType.value = "SELECT";
+ 		document.searchForm.boardNo.value = boardNo; 
+ 		document.searchForm.boardInfoNo.value = boardInfoNo;
+ 		document.searchForm.action = "/v3/board/detail.do";
+ 		document.searchForm.submit();
+ 	}
+ 	
+ 	function attachfileDownload(_contextPath, _attachNo){
+ 		var actionUrl	= ""+_contextPath;
+ 		actionUrl += "?attachNo="+_attachNo;
+ 		document.location.href = actionUrl;
+ 	}
+ </script>
+ 
+</head>
+<body>
+	
+
+
+
+<head>
+
+<script>
+$(document).ready(function() {
+	let userGroup = "";
+	if(!userGroup){
+		userGroup = 'common';
+	}
+	
+	$(`.user-type #${userGroup}`).addClass('on');
+	
+	let userGroupText;
+	
+	if(userGroup == 'common'){
+		userGroupText = '종합';
+	}else if(userGroup == 'producer'){
+		userGroupText = '생산자';
+	}else if(userGroup == 'retailer'){
+		userGroupText = '유통인';
+	}else if(userGroup == 'consumer'){
+		userGroupText = '소비자';
+	}
+	
+	$('span#user-type').text(userGroupText);
+	$(`#mo-${userGroup}`).remove();
+	
+	const currentURI = window.location.pathname;
+	const whiteList = ['main','search','data','Xls','xls'];
+	
+	let save = true; //최근방문페이지 저장여부
+	
+	for(const white of whiteList){
+		if(currentURI.includes(white)){
+			save = false;
+			break;
+		}
+	}		
+	
+	if(save){
+		let visitedPages = JSON.parse(sessionStorage.getItem('visitedPages')) || [];
+		visitedPages = visitedPages.filter(uri => uri !== currentURI);
+		visitedPages.unshift(currentURI);
+		visitedPages = visitedPages.slice(0,3); //최대 3개까지만 저장.
+		sessionStorage.setItem('visitedPages',JSON.stringify(visitedPages)); //리스트 갱신
+	}
+});
+function fn_changeUserType(type){
+	if(userGroup == type){
+		return;
+	}
+		
+	$('#mainForm input[id="userGroup"]').val(type);
+	$('#mainForm').submit();
+}
+</script>
+</head>
+<header>
+	<form id="mainForm" method="get" action="/v3/web/main.do">
+		<input type="hidden" name="userGroup" id="userGroup" /><label for="userGroup" class="hidden-label"></label>
+	</form>
+	<form id="menuForm" name="menuForm" method="get" action="">
+	    <input type="hidden" name="menuSn" id="menuFormMenuSn" value=""/><label for="menuFormMenuSn" class="hidden-label"></label>
+	    <input type="hidden" name="boardInfoNo" id="menuFormBoardInfoNo" value=""/><label for="menuFormBoardInfoNo" class="hidden-label"></label>
+	</form>
+	<script>
+		$(function(){
+			$('.user-type.mob > p').click(function(){
+				$(this).next('ul').slideToggle();
+				
+			});
+			
+		});
+	</script>
+
+	<div class="header-top">
+		<div class="container">
+			<div class="user-type pc">
+				<a href="javascript:fn_changeUserType('common');" id="common" title="종합 페이지 이동">종합</a>
+				<a href="javascript:fn_changeUserType('producer');" id="producer" title="생산자 페이지 이동">생산자</a>
+				<a href="javascript:fn_changeUserType('retailer');" id="retailer" title="유통인 페이지 이동">유통인</a>
+				<a href="javascript:fn_changeUserType('consumer');" id="consumer" title="소비자 페이지 이동">소비자</a>
+			</div>
+			<div class="user-type mob">
+				<p><span id="user-type"></span> <i class="icon-angle-down"></i></p>
+				<ul>
+					<li><a href="javascript:fn_changeUserType('common');" id="mo-common" title="종합 페이지 이동">종합</a></li>
+					<li><a href="javascript:fn_changeUserType('producer');" id="mo-producer" title="생산자 페이지 이동">생산자</a></li>
+					<li><a href="javascript:fn_changeUserType('retailer');" id="mo-retailer" title="유통인 페이지 이동">유통인</a></li>
+					<li><a href="javascript:fn_changeUserType('consumer');" id="mo-consumer" title="소비자 페이지 이동">소비자</a></li>
+				</ul>
+			</div>
+			<div class="user-menu">
+				<a class="header_gogi" href="javascript:void(0)" onclick="window.open('/v3/hereMeat/livestockPriceMap.do?onbrowser', '_blank');" title="여기고기 바로가기"><span><i class="icon-angle-right"></i></span></a>
+				<!-- <a href="/web/main.do" class="tab">이전 홈페이지 이동</a> -->
+				<a href="https://mtrace.go.kr/stats" target="_blank" class="header_nuri">통계누리 바로가기</a>
+				
+					<a href="/v3/user/login.do" class="pc">로그인</a>
+					<a href="/v3/user/phone-verification.do" class="pc">회원가입</a>
+				
+				
+				
+				
+			</div>
+		</div>
+	</div>
+	<div class="header-bottom">
+		<div class="container">
+			<h1><a href="/v3/web/main.do?gateWay=y" title="게이트웨이 페이지이동"><img src="/basic_img/common/kape_logo.png" alt="KAPE 축산유통정보 다봄"></a></h1>
+			<nav>
+				<div class="mob-top">
+					<div>
+						
+							<a href="/v3/user/login.do" title="로그인">로그인</a>
+							<a href="/v3/user/phone-verification.do" title="회원가입">회원가입</a>
+						
+						
+					</div>
+					<a href="#" class="close-mob-menu" title="모바일 메뉴"><img src="/basic_img/basic/kape_layer_close.png" alt="닫기"></a>
+				</div>				
+				<ul class="depth01">
+				
+				
+					<li>
+					
+						
+							<a href="javascript:void(0);" title="가격정보-메뉴" class="">가격정보</a>
+							<ul class="depth02">
+							
+							
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+							
+								
+								
+									
+									
+										<li>
+									
+								
+								
+									
+										<a href="javascript:void(0);" title="경매가격-메뉴" class="">경매가격</a>
+										<ul class="depth03">
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+											<li>
+											
+												
+												<a href="javascript:void(0);" title="실시간 경락가격-메뉴" class="">실시간 경락가격</a>
+												<ul class="depth04">
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+													<li>
+														<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/price/auction/realTime/realTimePrice.do&#034;,&#034;71&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;,&#034;/v3/price/auction/realTime/realTimePrice.do&#034;);" title="실시간 가격-메뉴" class="">실시간 가격</a>
+													</li>
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+													<li>
+														<a href="javascript:void(0);" onclick="fn_menu_go(&#034;&#034;,&#034;72&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;,&#034;/v3/price/auction/realTime/biddingInfo/cow.do&#034;);" title="도매시장 응찰정보-메뉴" class="">도매시장 응찰정보</a>
+													</li>
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+													<li>
+														<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/price/auction/realTime/cow.do&#034;,&#034;73&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;,&#034;/v3/price/auction/realTime/cow.do&#034;);" title="소 도체-메뉴" class="">소 도체</a>
+													</li>
+												
+												
+												
+												
+												
+													<li>
+														<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/price/auction/realTime/pig.do&#034;,&#034;74&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;,&#034;/v3/price/auction/realTime/pig.do&#034;);" title="돼지 도체-메뉴" class="">돼지 도체</a>
+													</li>
+												
+												
+												
+												
+												
+												
+												
+																									
+												</ul>
+												
+												
+											
+											</li>
+										
+										
+										
+										
+										
+											<li>
+											
+												
+												<a href="javascript:void(0);" title="기간별 경락가격-메뉴" class="">기간별 경락가격</a>
+												<ul class="depth04">
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+													<li>
+														<a href="javascript:void(0);" onclick="fn_menu_go(&#034;&#034;,&#034;75&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;,&#034;/v3/price/auction/period/auctionPrice/daily.do&#034;);" title="경락가격-메뉴" class="">경락가격</a>
+													</li>
+												
+												
+												
+													<li>
+														<a href="javascript:void(0);" onclick="fn_menu_go(&#034;&#034;,&#034;76&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;,&#034;/v3/price/auction/period/cow/auctionPrice.do&#034;);" title="소 도체-메뉴" class="">소 도체</a>
+													</li>
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+													<li>
+														<a href="javascript:void(0);" onclick="fn_menu_go(&#034;&#034;,&#034;77&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;,&#034;/v3/price/auction/period/pig/auctionPrice.do&#034;);" title="돼지 도체-메뉴" class="">돼지 도체</a>
+													</li>
+												
+												
+												
+												
+												
+												
+												
+													<li>
+														<a href="javascript:void(0);" onclick="fn_menu_go(&#034;&#034;,&#034;78&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;,&#034;/v3/price/auction/period/cutmeat/auctionPrice.do&#034;);" title="쇠고기부분육-메뉴" class="">쇠고기부분육</a>
+													</li>
+												
+												
+												
+																									
+												</ul>
+												
+												
+											
+											</li>
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										</ul>
+									
+									
+								
+								</li>									
+											
+							
+											
+							
+											
+							
+							
+								
+								
+									
+									
+										<li>
+									
+								
+								
+									
+										<a href="javascript:void(0);" title="축산물가격-메뉴" class="">축산물가격</a>
+										<ul class="depth03">
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+											<li>
+											
+												
+												
+												<a href="javascript:void(0);" onclick="fn_menu_go(&#034;&#034;,&#034;33&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;, &#034;/v3/price/livestock/cow/distrPrice.do&#034;);" title="소-메뉴" class="">소</a>
+												
+											
+											</li>
+										
+										
+										
+										
+										
+											<li>
+											
+												
+												
+												<a href="javascript:void(0);" onclick="fn_menu_go(&#034;&#034;,&#034;34&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;, &#034;/v3/price/livestock/pig/distrPrice.do&#034;);" title="돼지-메뉴" class="">돼지</a>
+												
+											
+											</li>
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+											<li>
+											
+												
+												
+												<a href="javascript:void(0);" onclick="fn_menu_go(&#034;&#034;,&#034;35&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;, &#034;/v3/price/livestock/chicken/distrPrice.do&#034;);" title="육계-메뉴" class="">육계</a>
+												
+											
+											</li>
+										
+										
+										
+										
+										
+										
+										
+											<li>
+											
+												
+												
+												<a href="javascript:void(0);" onclick="fn_menu_go(&#034;&#034;,&#034;36&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;, &#034;/v3/price/livestock/egg/distrPrice.do&#034;);" title="계란-메뉴" class="">계란</a>
+												
+											
+											</li>
+										
+										
+										
+										
+										
+										
+										
+											<li>
+											
+												
+												
+												<a href="javascript:void(0);" onclick="fn_menu_go(&#034;&#034;,&#034;37&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;, &#034;/v3/price/livestock/duck/distrPrice.do&#034;);" title="오리-메뉴" class="">오리</a>
+												
+											
+											</li>
+										
+										
+										
+										
+										
+										
+										
+											<li>
+											
+												
+												
+												<a href="javascript:void(0);" onclick="fn_menu_go(&#034;&#034;,&#034;38&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;, &#034;/v3/price/livestock/localChicken/distrPrice.do&#034;);" title="토종닭-메뉴" class="">토종닭</a>
+												
+											
+											</li>
+										
+										
+										
+										
+										
+										
+										
+											<li>
+											
+												
+												
+												<a href="javascript:void(0);" onclick="fn_menu_go(&#034;&#034;,&#034;39&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;, &#034;/v3/price/livestock/samChicken/distrPrice.do&#034;);" title="삼계-메뉴" class="">삼계</a>
+												
+											
+											</li>
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										</ul>
+									
+									
+								
+								</li>									
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+							
+								
+								
+									
+									
+										<li>
+									
+								
+								
+									
+										<a href="javascript:void(0);" title="소비자가격-메뉴" class="">소비자가격</a>
+										<ul class="depth03">
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+											<li>
+											
+												
+												
+												<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/price/consumer/periodPrice.do&#034;,&#034;40&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;, &#034;/v3/price/consumer/periodPrice.do&#034;);" title="기간별가격-메뉴" class="">기간별가격</a>
+												
+											
+											</li>
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										</ul>
+									
+									
+								
+								</li>									
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+							</ul>
+						
+						
+																						
+					</li>
+				
+				
+				
+					<li>
+					
+						
+							<a href="javascript:void(0);" title="여기고기-메뉴" class="">여기고기</a>
+							<ul class="depth02">
+							
+							
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+							
+								
+								
+									
+									
+										<li>
+									
+								
+								
+									
+									
+										<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/hereMeat/livestockPriceMap.do&#034;,&#034;13&#034;,&#034;&#034;,&#034;CONTENT&#034; ,&#034;_SELF&#034;,&#034;/v3/hereMeat/livestockPriceMap.do&#034;);" title="축산물가격지도-메뉴" class="">축산물가격지도</a>
+									
+								
+								</li>									
+											
+							
+											
+							
+											
+							
+							
+								
+								
+									
+									
+										<li>
+									
+								
+								
+									
+									
+										<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/hereMeat/regionAvgPrice.do&#034;,&#034;10&#034;,&#034;&#034;,&#034;CONTENT&#034; ,&#034;_SELF&#034;,&#034;/v3/hereMeat/regionAvgPrice.do&#034;);" title="지역별평균가격-메뉴" class="">지역별평균가격</a>
+									
+								
+								</li>									
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+							
+								
+								
+									
+									
+										<li>
+									
+								
+								
+									
+									
+										<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/hereMeat/businessTypePriceInfo.do&#034;,&#034;11&#034;,&#034;&#034;,&#034;CONTENT&#034; ,&#034;_SELF&#034;,&#034;/v3/hereMeat/businessTypePriceInfo.do&#034;);" title="업태별가격정보-메뉴" class="">업태별가격정보</a>
+									
+								
+								</li>									
+											
+							
+											
+							
+											
+							
+							
+								
+								
+									
+									
+										<li>
+									
+								
+								
+									
+									
+										<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/hereMeat/companyPriceInfo.do&#034;,&#034;12&#034;,&#034;&#034;,&#034;CONTENT&#034; ,&#034;_SELF&#034;,&#034;/v3/hereMeat/companyPriceInfo.do&#034;);" title="업체별가격정보-메뉴" class="">업체별가격정보</a>
+									
+								
+								</li>									
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+							</ul>
+						
+						
+																						
+					</li>
+				
+				
+				
+					<li>
+					
+						
+							<a href="javascript:void(0);" title="수급현황-메뉴" class="">수급현황</a>
+							<ul class="depth02">
+							
+							
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+							
+								
+								
+										
+										<li class="pc-display">
+									
+									
+								
+								
+									
+									
+										<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/supplyStatus/supplyStatusDashboard.do&#034;,&#034;14&#034;,&#034;&#034;,&#034;CONTENT&#034; ,&#034;_SELF&#034;,&#034;/v3/supplyStatus/supplyStatusDashboard.do&#034;);" title="수급현황판-메뉴" class="">수급현황판</a>
+									
+								
+								</li>									
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+							
+								
+								
+									
+									
+										<li>
+									
+								
+								
+									
+										<a href="javascript:void(0);" title="예측정보-메뉴" class="">예측정보</a>
+										<ul class="depth03">
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+											<li>
+											
+												
+												<a href="javascript:void(0);" title="AI예측-메뉴" class="">AI예측</a>
+												<ul class="depth04">
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+													<li>
+														<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/supplyStatus/predictionInfo/ai/production.do&#034;,&#034;79&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;,&#034;/v3/supplyStatus/predictionInfo/ai/production.do&#034;);" title="생산-메뉴" class="">생산</a>
+													</li>
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+													<li>
+														<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/supplyStatus/predictionInfo/ai/supply.do&#034;,&#034;80&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;,&#034;/v3/supplyStatus/predictionInfo/ai/supply.do&#034;);" title="공급량-메뉴" class="">공급량</a>
+													</li>
+												
+												
+												
+												
+												
+												
+												
+													<li>
+														<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/supplyStatus/predictionInfo/ai/price.do&#034;,&#034;81&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;,&#034;/v3/supplyStatus/predictionInfo/ai/price.do&#034;);" title="가격-메뉴" class="">가격</a>
+													</li>
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+																									
+												</ul>
+												
+												
+											
+											</li>
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										</ul>
+									
+									
+								
+								</li>									
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+							</ul>
+						
+						
+																						
+					</li>
+				
+				
+				
+					<li>
+					
+						
+							<a href="javascript:void(0);" title="수급동향-메뉴" class="">수급동향</a>
+							<ul class="depth02">
+							
+							
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+							
+								
+								
+									
+									
+										<li>
+									
+								
+								
+									
+										<a href="javascript:void(0);" title="생산동향-메뉴" class="">생산동향</a>
+										<ul class="depth03">
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+											<li>
+											
+												
+												<a href="javascript:void(0);" title="사육마릿수-메뉴" class="">사육마릿수</a>
+												<ul class="depth04">
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+													<li>
+														<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/supplyTrend/productTrend/breedingCount/cow.do&#034;,&#034;150&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;,&#034;/v3/supplyTrend/productTrend/breedingCount/cow.do&#034;);" title="소-메뉴" class="">소</a>
+													</li>
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+													<li>
+														<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/supplyTrend/productTrend/breedingCount/pig.do&#034;,&#034;151&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;,&#034;/v3/supplyTrend/productTrend/breedingCount/pig.do&#034;);" title="돼지-메뉴" class="">돼지</a>
+													</li>
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+																									
+												</ul>
+												
+												
+											
+											</li>
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+											<li>
+											
+												
+												
+												<a href="javascript:void(0);" onclick="fn_menu_go(&#034;&#034;,&#034;46&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;, &#034;/v3/supplyTrend/productTrend/feedInfo/cow.do&#034;);" title="사료생산량/가격-메뉴" class="">사료생산량/가격</a>
+												
+											
+											</li>
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										</ul>
+									
+									
+								
+								</li>									
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+							
+								
+								
+									
+									
+										<li>
+									
+								
+								
+									
+										<a href="javascript:void(0);" title="축산수급보고서-메뉴" class="">축산수급보고서</a>
+										<ul class="depth03">
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+											<li>
+											
+												
+												
+												<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/supplyTrend/livestockSupplyReport/daily.do&#034;,&#034;48&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;, &#034;/v3/supplyTrend/livestockSupplyReport/daily.do&#034;);" title="일간보고서-메뉴" class="">일간보고서</a>
+												
+											
+											</li>
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+											<li>
+											
+												
+												
+												<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/board/list.do&#034;,&#034;51&#034;,&#034;0159&#034;,&#034;BOARD&#034;,&#034;_SELF&#034;, &#034;/v3/board/list.do&#034;);" title="주간 계란 수급 정보-메뉴" class="">주간 계란 수급 정보</a>
+												
+											
+											</li>
+										
+										
+										
+										
+										
+											<li>
+											
+												
+												
+												<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/supplyTrend/livestockSupplyReport/productPriceTrend.do&#034;,&#034;52&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;, &#034;/v3/supplyTrend/livestockSupplyReport/productPriceTrend.do&#034;);" title="축산물가격추이-메뉴" class="">축산물가격추이</a>
+												
+											
+											</li>
+										
+										
+										
+										
+										
+										
+										
+										
+										
+											<li>
+											
+												
+												
+												<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/board/list.do&#034;,&#034;53&#034;,&#034;0152&#034;,&#034;BOARD&#034;,&#034;_SELF&#034;, &#034;/v3/board/list.do&#034;);" title="국내 축산물 시장 동향-메뉴" class="">국내 축산물 시장 동향</a>
+												
+											
+											</li>
+										
+										
+										
+										
+										
+											<li>
+											
+												
+												
+												<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/supplyTrend/livestockSupplyReport/poultryPriceTrend.do&#034;,&#034;54&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;, &#034;/v3/supplyTrend/livestockSupplyReport/poultryPriceTrend.do&#034;);" title="가금산물가격동향-메뉴" class="">가금산물가격동향</a>
+												
+											
+											</li>
+										
+										
+										
+											<li>
+											
+												
+												
+												<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/supplyTrend/livestockSupplyReport/poultryTrend.do&#034;,&#034;55&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;, &#034;/v3/supplyTrend/livestockSupplyReport/poultryTrend.do&#034;);" title="한눈에보는 가금산물 동향-메뉴" class="">한눈에보는 가금산물 동향</a>
+												
+											
+											</li>
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										</ul>
+									
+									
+								
+								</li>									
+											
+							
+											
+							
+											
+							
+							
+								
+								
+									
+									
+										<li>
+									
+								
+								
+									
+										<a href="javascript:void(0);" title="글로벌 경기 전망-메뉴" class="">글로벌 경기 전망</a>
+										<ul class="depth03">
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+											<li>
+											
+												
+												
+												<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/supplyTrend/globalEcoOutlook/globalEcoStatus.do&#034;,&#034;56&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;, &#034;/v3/supplyTrend/globalEcoOutlook/globalEcoStatus.do&#034;);" title="국내외 금융 경기 현황 및 향후 전망-메뉴" class="">국내외 금융 경기 현황 및 향후 전망</a>
+												
+											
+											</li>
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+											<li>
+											
+												
+												
+												<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/supplyTrend/globalEcoOutlook/productTrend.do&#034;,&#034;57&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;, &#034;/v3/supplyTrend/globalEcoOutlook/productTrend.do&#034;);" title="원자재(농산물)동향 및 향후 전망-메뉴" class="">원자재(농산물)동향 및 향후 전망</a>
+												
+											
+											</li>
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										</ul>
+									
+									
+								
+								</li>									
+											
+							
+											
+							
+											
+							
+											
+							
+							
+								
+								
+									
+									
+										<li>
+									
+								
+								
+									
+										<a href="javascript:void(0);" title="통계-메뉴" class="">통계</a>
+										<ul class="depth03">
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+											<li>
+											
+												
+												<a href="javascript:void(0);" title="등급판정-메뉴" class="">등급판정</a>
+												<ul class="depth04">
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+													<li>
+														<a href="javascript:void(0);" onclick="fn_menu_go(&#034;&#034;,&#034;85&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;,&#034;/v3/supplyTrend/statistics/gradeCount/cow.do&#034;);" title="소-메뉴" class="">소</a>
+													</li>
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+													<li>
+														<a href="javascript:void(0);" onclick="fn_menu_go(&#034;&#034;,&#034;86&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;,&#034;/v3/supplyTrend/statistics/gradeCount/pig.do&#034;);" title="돼지-메뉴" class="">돼지</a>
+													</li>
+												
+												
+												
+												
+												
+												
+												
+													<li>
+														<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/supplyTrend/statistics/grade/chicken.do&#034;,&#034;87&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;,&#034;/v3/supplyTrend/statistics/grade/chicken.do&#034;);" title="닭고기-메뉴" class="">닭고기</a>
+													</li>
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+													<li>
+														<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/supplyTrend/statistics/grade/egg.do&#034;,&#034;88&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;,&#034;/v3/supplyTrend/statistics/grade/egg.do&#034;);" title="계란-메뉴" class="">계란</a>
+													</li>
+												
+												
+												
+												
+												
+													<li>
+														<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/supplyTrend/statistics/grade/duck.do&#034;,&#034;89&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;,&#034;/v3/supplyTrend/statistics/grade/duck.do&#034;);" title="오리-메뉴" class="">오리</a>
+													</li>
+												
+																									
+												</ul>
+												
+												
+											
+											</li>
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+											<li>
+											
+												
+												<a href="javascript:void(0);" title="축종별 수급동향-메뉴" class="">축종별 수급동향</a>
+												<ul class="depth04">
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+													<li>
+														<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/supplyTrend/statistics/supplyTrend/cowAndPig.do&#034;,&#034;90&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;,&#034;/v3/supplyTrend/statistics/supplyTrend/cowAndPig.do&#034;);" title="수급동향 - 소/돼지-메뉴" class="">수급동향 - 소/돼지</a>
+													</li>
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+													<li>
+														<a href="javascript:void(0);" onclick="fn_menu_go(&#034;&#034;,&#034;91&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;,&#034;/v3/supplyTrend/statistics/auctionPrice/cow.do&#034;);" title="출하물량 및 경락가격-메뉴" class="">출하물량 및 경락가격</a>
+													</li>
+												
+												
+												
+												
+												
+												
+												
+													<li>
+														<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/supplyTrend/statistics/packaging/egg.do&#034;,&#034;92&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;,&#034;/v3/supplyTrend/statistics/packaging/egg.do&#034;);" title="선별포장처리실적 - 계란-메뉴" class="">선별포장처리실적 - 계란</a>
+													</li>
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+												
+																									
+												</ul>
+												
+												
+											
+											</li>
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+											<li>
+											
+												
+												
+												<a href="javascript:void(0);" onclick="fn_menu_go(&#034;&#034;,&#034;60&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;, &#034;/v3/supplyTrend/statistics/stockTrend/cow.do&#034;);" title="재고동향-메뉴" class="">재고동향</a>
+												
+											
+											</li>
+										
+										
+										
+											<li>
+											
+												
+												
+												<a href="javascript:void(0);" onclick="fn_menu_go(&#034;&#034;,&#034;93&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;, &#034;/v3/supplyTrend/statistics/importInfo/cow.do&#034;);" title="수입물량&amp;가격-메뉴" class="">수입물량&amp;가격</a>
+												
+											
+											</li>
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+											<li>
+											
+												
+												
+												<a href="javascript:void(0);" onclick="fn_menu_go(&#034;http://www.ekape.or.kr/board/list.do?menuId=menu17793&amp;boardInfoNo=0031&#034;,&#034;61&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_BLANK&#034;, &#034;http://www.ekape.or.kr/board/list.do?menuId=menu17793&amp;boardInfoNo=0031&#034;);" title="통계월보-메뉴" class="">통계월보</a>
+												
+											
+											</li>
+										
+										
+										
+										
+										
+											<li>
+											
+												
+												
+												<a href="javascript:void(0);" onclick="fn_menu_go(&#034;http://www.ekape.or.kr/board/list.do?menuId=menu138629&amp;boardInfoNo=0032&#034;,&#034;62&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_BLANK&#034;, &#034;http://www.ekape.or.kr/board/list.do?menuId=menu138629&amp;boardInfoNo=0032&#034;);" title="통계연보-메뉴" class="">통계연보</a>
+												
+											
+											</li>
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										</ul>
+									
+									
+								
+								</li>									
+											
+							
+											
+							
+											
+							
+							
+								
+								
+									
+									
+										<li>
+									
+								
+								
+									
+										<a href="javascript:void(0);" title="소비동향-메뉴" class="">소비동향</a>
+										<ul class="depth03">
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+											<li>
+											
+												
+												
+												<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/supplyTrend/consumeTrend/consumerPanelData.do&#034;,&#034;63&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;, &#034;/v3/supplyTrend/consumeTrend/consumerPanelData.do&#034;);" title="소비자 패널데이터-메뉴" class="">소비자 패널데이터</a>
+												
+											
+											</li>
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+											<li>
+											
+												
+												
+												<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/supplyTrend/consumeTrend/salesStatistics.do&#034;,&#034;64&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;, &#034;/v3/supplyTrend/consumeTrend/salesStatistics.do&#034;);" title="판매통계-메뉴" class="">판매통계</a>
+												
+											
+											</li>
+										
+										
+										
+										
+										
+										
+										
+											<li>
+											
+												
+												
+												<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/supplyTrend/consumeTrend/localSalesData.do&#034;,&#034;65&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;, &#034;/v3/supplyTrend/consumeTrend/localSalesData.do&#034;);" title="지역별 판매데이터-메뉴" class="">지역별 판매데이터</a>
+												
+											
+											</li>
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+											<li>
+											
+												
+												
+												<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/supplyTrend/consumeTrend/productSalesData.do&#034;,&#034;66&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;, &#034;/v3/supplyTrend/consumeTrend/productSalesData.do&#034;);" title="품목·구매처별 판매데이터-메뉴" class="">품목·구매처별 판매데이터</a>
+												
+											
+											</li>
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										</ul>
+									
+									
+								
+								</li>									
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+							</ul>
+						
+						
+																						
+					</li>
+				
+				
+				
+					<li>
+					
+						
+							<a href="javascript:void(0);" title="소통정보-메뉴" class="">소통정보</a>
+							<ul class="depth02">
+							
+							
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+							
+								
+								
+									
+									
+										<li>
+									
+								
+								
+									
+									
+										<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/board/bbsList.do&#034;,&#034;25&#034;,&#034;7&#034;,&#034;BOARD&#034; ,&#034;_SELF&#034;,&#034;/v3/board/bbsList.do&#034;);" title="공지사항-메뉴" class="">공지사항</a>
+									
+								
+								</li>									
+											
+							
+							
+								
+								
+									
+									
+										<li>
+									
+								
+								
+									
+										<a href="javascript:void(0);" title="KAPE보고서-메뉴" class="">KAPE보고서</a>
+										<ul class="depth03">
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+											<li>
+											
+												
+												
+												<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/board/list.do&#034;,&#034;67&#034;,&#034;0156&#034;,&#034;BOARD&#034;,&#034;_SELF&#034;, &#034;/v3/board/list.do&#034;);" title="발간물-메뉴" class="">발간물</a>
+												
+											
+											</li>
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+											<li>
+											
+												
+												
+												<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/board/list.do&#034;,&#034;68&#034;,&#034;0158&#034;,&#034;BOARD&#034;,&#034;_SELF&#034;, &#034;/v3/board/list.do&#034;);" title="축산업·기업 분석 및 전망-메뉴" class="">축산업·기업 분석 및 전망</a>
+												
+											
+											</li>
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										</ul>
+									
+									
+								
+								</li>									
+											
+							
+											
+							
+											
+							
+											
+							
+							
+								
+								
+									
+									
+										<li>
+									
+								
+								
+									
+										<a href="javascript:void(0);" title="축산자료실-메뉴" class="">축산자료실</a>
+										<ul class="depth03">
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+											<li>
+											
+												
+												
+												<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/communication/livestockResources/term.do&#034;,&#034;69&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;, &#034;/v3/communication/livestockResources/term.do&#034;);" title="축산용어-메뉴" class="">축산용어</a>
+												
+											
+											</li>
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+											<li>
+											
+												
+												
+												<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/communication/livestockResources/muscle.do&#034;,&#034;70&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;, &#034;/v3/communication/livestockResources/muscle.do&#034;);" title="근육도감-메뉴" class="">근육도감</a>
+												
+											
+											</li>
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										
+										</ul>
+									
+									
+								
+								</li>									
+											
+							
+											
+							
+											
+							
+											
+							
+							
+								
+								
+									
+									
+										<li>
+									
+								
+								
+									
+									
+										<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/board/list.do&#034;,&#034;28&#034;,&#034;0153&#034;,&#034;BOARD&#034; ,&#034;_SELF&#034;,&#034;/v3/board/list.do&#034;);" title="해외시장동향-메뉴" class="">해외시장동향</a>
+									
+								
+								</li>									
+											
+							
+											
+							
+							
+								
+								
+									
+									
+										<li>
+									
+								
+								
+									
+									
+										<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/board/list.do&#034;,&#034;217&#034;,&#034;0161&#034;,&#034;BOARD&#034; ,&#034;_SELF&#034;,&#034;/v3/board/list.do&#034;);" title="수출지원사업-메뉴" class="">수출지원사업</a>
+									
+								
+								</li>									
+											
+							
+											
+							
+											
+							
+							
+								
+								
+									
+									
+										<li>
+									
+								
+								
+									
+									
+										<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/board/bbsList.do&#034;,&#034;29&#034;,&#034;11&#034;,&#034;BOARD&#034; ,&#034;_SELF&#034;,&#034;/v3/board/bbsList.do&#034;);" title="국민소통창구-메뉴" class="">국민소통창구</a>
+									
+								
+								</li>									
+											
+							
+							
+								
+								
+									
+									
+										<li>
+									
+								
+								
+									
+									
+										<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/communication/userGuide.do&#034;,&#034;30&#034;,&#034;&#034;,&#034;CONTENT&#034; ,&#034;_SELF&#034;,&#034;/v3/communication/userGuide.do&#034;);" title="이용안내-메뉴" class="">이용안내</a>
+									
+								
+								</li>									
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+											
+							
+							</ul>
+						
+						
+																						
+					</li>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</ul>
+			</nav>
+			<div class="header-btn">
+				
+				<a href="javascript:openLayer('header-search');" class="open-search" title="통합검색"><img src="/basic_img/basic/kape_header_search.png" alt="검색"></a>
+				<a href="javascript:openLayer('sitemap-layer');" class="open-sitemap" title="사이트맵"><img src="/basic_img/basic/kape_sitemap_open.png" alt="사이트맵"></a>
+			
+				<a href="javascript:open-mob-menu();" class="open-mob-menu" title="모바일메뉴"><img src="/basic_img/basic/kape_sitemap_open.png" alt="모바일 메뉴"></a>
+			</div>
+		</div>
+	</div>
+</header>
+<div class="nav-bg"></div>
+
+
+<script>
+$(document).ready(function() {	
+	document.querySelector('#MsearchKeyword').addEventListener('keydown', handleEnterKey);
+	//인기검색어
+	fn_popularWord();
+	//추천검색어
+	fn_recommendedWord();
+	
+});
+
+function fn_popularWord(){
+	$.ajax({
+		url			: "/v3/web/selectPopularWord.json",
+		dataType	: "json",
+		cache		: false,
+		async		: true,
+		data		: {
+			apiGubun : "popularWord"
+		},
+		success:function(data){
+			if(data && data.jsonMap && data.jsonMap.Data) {
+				const dataSet = data.jsonMap.Data.Query;
+				const len = dataSet.length >= 3 ? 3 : dataSet.length;
+				const ul = $('.popular-keyword ul');
+				for(let i = 0; i < len; i++){
+					const content = dataSet[i].content;
+					const li = $('<li>');
+					const a = $('<a>',{
+						onclick: `fn_search("${content}");`,
+						href: 'javascript:void(0)',
+					});
+					const img = $('<img>',{
+						src: '/basic_img/basic/kape_header_search_time.png',
+						alt: '최근검색어',
+					});
+					
+					a.append(img);
+					a.append(content);
+					
+					li.append(a);
+					ul.append(li);
+				}
+			}
+			
+		},
+		error:function(data){
+			console.error('인기 검색어 조회 실패 관리자에게 문의해주세요.')
+		}
+	});
+}
+
+function fn_recommendedWord(){
+	$.ajax({
+		url			: "/v3/web/selectPopularWord.json",
+		dataType	: "json",
+		cache		: false,
+		async		: true,
+		data		: {
+			apiGubun : "recomendWord"
+		},
+		success:function(data){		
+			if(data && data.jsonMap && data.jsonMap.Data) {
+				const dataSet = data.jsonMap.Data;
+				const len = dataSet.TotalCount;
+				const ul = $('.recomm-keyword ul');
+				for(let i = 0; i < len; i++){
+					const content = dataSet.Word[i];
+					const li = $('<li>');
+					const a = $('<a>',{
+						onclick: `fn_search("${content}");`,
+						href: 'javascript:void(0)',
+					});
+													
+					a.append(content);				
+					
+					li.append(a);
+					ul.append(li);
+				}
+			}
+		},
+		error:function(data){
+			console.error('추천 검색어 조회 실패 관리자에게 문의해주세요.')
+		}
+	});
+}
+
+function handleEnterKey(event){
+	if(event.key === "Enter"){
+		event.preventDefault(); //폼 제출 방지
+		fn_search();
+	}
+}
+
+function fn_search(tKeyword) {
+	
+	const keyword = tKeyword ? tKeyword : $("#MsearchKeyword").val();
+	
+	if(!keyword){
+		alert("검색어를 입력하세요.");
+		$('#MsearchKeyword').focus();
+		return;
+	}
+	
+	$("#keyword").val(keyword);
+	$("#MsearchForm").submit();
+}
+
+</script>
+<form id="MsearchForm" name="MsearchForm" method="get" action="/v3/web/search.do">
+	<input type="hidden" name="keyword" id="keyword"><label for="keyword" class="hidden-label"></label>
+	<input type="hidden" name="collection" id="collection"><label for="collection" class="hidden-label"></label>
+	<input type="hidden" name="pageNum" id="pageNum"><label for="pageNum" class="hidden-label"></label>
+</form>
+<!--layer 기본
+<div class="layer-modal" id="sample-layer">
+	<div class="layer-bg" onclick="closeLayer('sample-layer');"></div>
+	<div class="layer-body">
+		<div class="layer-title">
+			<h5><span class="q-mark"><img src="/basic_img/basic/kape_tooltip.png" alt=""></span>레이어 <b>모달</b></h5>
+
+			<a href="javascript:closeLayer('sample-layer');" class="modal-close"><img src="/basic_img/basic/kape_layer_close.png" alt=""></a>
+		</div>
+		<div class="layer-cont">
+			<div style="height: 50px;">내용</div>
+		</div>
+	</div>
+</div>-->
+
+<!--통합검색-->
+<div class="layer-modal search-layer" id="header-search">
+	<div class="layer-bg" onclick="closeLayer('header-search');"></div>
+	<div class="layer-body">
+		<button class="search-layer-close" onclick="closeLayer('header-search');"><i class="icon-times"></i></button>
+		<div class="layer-search">			
+			<input type="text" placeholder="검색어를 입력해주세요." name="MsearchKeyword" id="MsearchKeyword"><label for="MsearchKeyword" class="hidden-label"></label>
+			<button onclick="fn_search();"><img src="/basic_img/basic/kape_header_search_in.png" alt="검색"></button>
+		</div>
+		<div class="layer-cont">
+			<div class="popular-keyword">
+				<b>인기 검색어</b>
+				<ul>				
+				</ul>
+			</div>
+			<div class="recomm-keyword">
+				<b>추천 검색어</b>
+				<ul>					
+				</ul>
+			</div>
+		</div>
+	</div>
+</div>
+
+
+<div class="sitemap-wrap" id="sitemap-layer">
+	<div class="sitemap-header">
+		<div class="container">			
+			<a href="/v3/web/main.do?gateWay=y" title="게이트웨이 페이지 이동"><img src="/basic_img/common/kape_logo.png" alt="KAPE 축산유통정보 다봄"></a>
+			<button onclick="closeLayer('sitemap-layer')"><img src="/basic_img/basic/kape_sitemap_close.png" alt="사이트맵 닫기"></button>
+		</div>
+	</div>
+	<div class="container">
+		<div class="sitemap-title">
+			사이트맵
+			<p>전체 메뉴를 확인하고 원하시는 페이지로 이동해보세요.</p>
+		</div>
+		
+		
+		
+		<div class="sitemap-menu-wrap">
+			<div class="menu-title">가격정보</div>
+			<div class="sitemap-menu">
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+				<div class="menu-list">
+					
+						
+						<a>경매가격</a>
+						
+						
+					
+					<ul>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+						<li>
+							<a href="javascript:void(0);" onclick="fn_menu_go(&#034;&#034;,&#034;31&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;,&#034;/v3/price/auction/realTime/realTimePrice.do&#034;);">실시간 경락가격</a>
+						</li>
+					
+					
+					
+					
+					
+						<li>
+							<a href="javascript:void(0);" onclick="fn_menu_go(&#034;&#034;,&#034;32&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;,&#034;/v3/price/auction/period/auctionPrice/daily.do&#034;);">기간별 경락가격</a>
+						</li>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+							
+					</ul>
+				</div>
+			
+			
+			
+			
+			
+			
+			
+				<div class="menu-list">
+					
+						
+						<a>축산물가격</a>
+						
+						
+					
+					<ul>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+						<li>
+							<a href="javascript:void(0);" onclick="fn_menu_go(&#034;&#034;,&#034;33&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;,&#034;/v3/price/livestock/cow/distrPrice.do&#034;);">소</a>
+						</li>
+					
+					
+					
+					
+					
+						<li>
+							<a href="javascript:void(0);" onclick="fn_menu_go(&#034;&#034;,&#034;34&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;,&#034;/v3/price/livestock/pig/distrPrice.do&#034;);">돼지</a>
+						</li>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+						<li>
+							<a href="javascript:void(0);" onclick="fn_menu_go(&#034;&#034;,&#034;35&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;,&#034;/v3/price/livestock/chicken/distrPrice.do&#034;);">육계</a>
+						</li>
+					
+					
+					
+					
+					
+					
+					
+						<li>
+							<a href="javascript:void(0);" onclick="fn_menu_go(&#034;&#034;,&#034;36&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;,&#034;/v3/price/livestock/egg/distrPrice.do&#034;);">계란</a>
+						</li>
+					
+					
+					
+					
+					
+					
+					
+						<li>
+							<a href="javascript:void(0);" onclick="fn_menu_go(&#034;&#034;,&#034;37&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;,&#034;/v3/price/livestock/duck/distrPrice.do&#034;);">오리</a>
+						</li>
+					
+					
+					
+					
+					
+					
+					
+						<li>
+							<a href="javascript:void(0);" onclick="fn_menu_go(&#034;&#034;,&#034;38&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;,&#034;/v3/price/livestock/localChicken/distrPrice.do&#034;);">토종닭</a>
+						</li>
+					
+					
+					
+					
+					
+					
+					
+						<li>
+							<a href="javascript:void(0);" onclick="fn_menu_go(&#034;&#034;,&#034;39&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;,&#034;/v3/price/livestock/samChicken/distrPrice.do&#034;);">삼계</a>
+						</li>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+							
+					</ul>
+				</div>
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+				<div class="menu-list">
+					
+						
+						<a>소비자가격</a>
+						
+						
+					
+					<ul>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+						<li>
+							<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/price/consumer/periodPrice.do&#034;,&#034;40&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;,&#034;/v3/price/consumer/periodPrice.do&#034;);">기간별가격</a>
+						</li>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+							
+					</ul>
+				</div>
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			</div>
+		</div>
+		
+		
+		
+		<div class="sitemap-menu-wrap">
+			<div class="menu-title">여기고기</div>
+			<div class="sitemap-menu">
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+				<div class="menu-list">
+					
+						
+						
+						<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/hereMeat/livestockPriceMap.do&#034;,&#034;13&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;,&#034;/v3/hereMeat/livestockPriceMap.do&#034;);">축산물가격지도</a>
+						
+					
+					<ul>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+							
+					</ul>
+				</div>
+			
+			
+			
+			
+			
+			
+			
+				<div class="menu-list">
+					
+						
+						
+						<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/hereMeat/regionAvgPrice.do&#034;,&#034;10&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;,&#034;/v3/hereMeat/regionAvgPrice.do&#034;);">지역별평균가격</a>
+						
+					
+					<ul>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+							
+					</ul>
+				</div>
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+				<div class="menu-list">
+					
+						
+						
+						<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/hereMeat/businessTypePriceInfo.do&#034;,&#034;11&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;,&#034;/v3/hereMeat/businessTypePriceInfo.do&#034;);">업태별가격정보</a>
+						
+					
+					<ul>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+							
+					</ul>
+				</div>
+			
+			
+			
+			
+			
+			
+			
+				<div class="menu-list">
+					
+						
+						
+						<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/hereMeat/companyPriceInfo.do&#034;,&#034;12&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;,&#034;/v3/hereMeat/companyPriceInfo.do&#034;);">업체별가격정보</a>
+						
+					
+					<ul>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+							
+					</ul>
+				</div>
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			</div>
+		</div>
+		
+		
+		
+		<div class="sitemap-menu-wrap">
+			<div class="menu-title">수급현황</div>
+			<div class="sitemap-menu">
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+				<div class="menu-list">
+					
+						
+						
+						<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/supplyStatus/supplyStatusDashboard.do&#034;,&#034;14&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;,&#034;/v3/supplyStatus/supplyStatusDashboard.do&#034;);">수급현황판</a>
+						
+					
+					<ul>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+							
+					</ul>
+				</div>
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+				<div class="menu-list">
+					
+						
+						<a>예측정보</a>
+						
+						
+					
+					<ul>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+						<li>
+							<a href="javascript:void(0);" onclick="fn_menu_go(&#034;&#034;,&#034;42&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;,&#034;/v3/supplyStatus/predictionInfo/ai/production.do&#034;);">AI예측</a>
+						</li>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+							
+					</ul>
+				</div>
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			</div>
+		</div>
+		
+		
+		
+		<div class="sitemap-menu-wrap">
+			<div class="menu-title">수급동향</div>
+			<div class="sitemap-menu">
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+				<div class="menu-list">
+					
+						
+						<a>생산동향</a>
+						
+						
+					
+					<ul>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+						<li>
+							<a href="javascript:void(0);" onclick="fn_menu_go(&#034;&#034;,&#034;45&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;,&#034;/v3/supplyTrend/productTrend/breedingCount/cow.do&#034;);">사육마릿수</a>
+						</li>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+						<li>
+							<a href="javascript:void(0);" onclick="fn_menu_go(&#034;&#034;,&#034;46&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;,&#034;/v3/supplyTrend/productTrend/feedInfo/cow.do&#034;);">사료생산량/가격</a>
+						</li>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+							
+					</ul>
+				</div>
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+				<div class="menu-list">
+					
+						
+						<a>축산수급보고서</a>
+						
+						
+					
+					<ul>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+						<li>
+							<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/supplyTrend/livestockSupplyReport/daily.do&#034;,&#034;48&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;,&#034;/v3/supplyTrend/livestockSupplyReport/daily.do&#034;);">일간보고서</a>
+						</li>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+						<li>
+							<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/board/list.do&#034;,&#034;51&#034;,&#034;0159&#034;,&#034;BOARD&#034;,&#034;_SELF&#034;,&#034;/v3/board/list.do&#034;);">주간 계란 수급 정보</a>
+						</li>
+					
+					
+					
+					
+					
+						<li>
+							<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/supplyTrend/livestockSupplyReport/productPriceTrend.do&#034;,&#034;52&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;,&#034;/v3/supplyTrend/livestockSupplyReport/productPriceTrend.do&#034;);">축산물가격추이</a>
+						</li>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+						<li>
+							<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/board/list.do&#034;,&#034;53&#034;,&#034;0152&#034;,&#034;BOARD&#034;,&#034;_SELF&#034;,&#034;/v3/board/list.do&#034;);">국내 축산물 시장 동향</a>
+						</li>
+					
+					
+					
+					
+					
+						<li>
+							<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/supplyTrend/livestockSupplyReport/poultryPriceTrend.do&#034;,&#034;54&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;,&#034;/v3/supplyTrend/livestockSupplyReport/poultryPriceTrend.do&#034;);">가금산물가격동향</a>
+						</li>
+					
+					
+					
+						<li>
+							<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/supplyTrend/livestockSupplyReport/poultryTrend.do&#034;,&#034;55&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;,&#034;/v3/supplyTrend/livestockSupplyReport/poultryTrend.do&#034;);">한눈에보는 가금산물 동향</a>
+						</li>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+							
+					</ul>
+				</div>
+			
+			
+			
+			
+			
+			
+			
+				<div class="menu-list">
+					
+						
+						<a>글로벌 경기 전망</a>
+						
+						
+					
+					<ul>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+						<li>
+							<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/supplyTrend/globalEcoOutlook/globalEcoStatus.do&#034;,&#034;56&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;,&#034;/v3/supplyTrend/globalEcoOutlook/globalEcoStatus.do&#034;);">국내외 금융 경기 현황 및 향후 전망</a>
+						</li>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+						<li>
+							<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/supplyTrend/globalEcoOutlook/productTrend.do&#034;,&#034;57&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;,&#034;/v3/supplyTrend/globalEcoOutlook/productTrend.do&#034;);">원자재(농산물)동향 및 향후 전망</a>
+						</li>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+							
+					</ul>
+				</div>
+			
+			
+			
+			
+			
+			
+			
+			
+			
+				<div class="menu-list">
+					
+						
+						<a>통계</a>
+						
+						
+					
+					<ul>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+						<li>
+							<a href="javascript:void(0);" onclick="fn_menu_go(&#034;&#034;,&#034;58&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;,&#034;/v3/supplyTrend/statistics/gradeCount/cow.do&#034;);">등급판정</a>
+						</li>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+						<li>
+							<a href="javascript:void(0);" onclick="fn_menu_go(&#034;&#034;,&#034;59&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;,&#034;/v3/supplyTrend/statistics/supplyTrend/cowAndPig.do&#034;);">축종별 수급동향</a>
+						</li>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+						<li>
+							<a href="javascript:void(0);" onclick="fn_menu_go(&#034;&#034;,&#034;60&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;,&#034;/v3/supplyTrend/statistics/stockTrend/cow.do&#034;);">재고동향</a>
+						</li>
+					
+					
+					
+						<li>
+							<a href="javascript:void(0);" onclick="fn_menu_go(&#034;&#034;,&#034;93&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;,&#034;/v3/supplyTrend/statistics/importInfo/cow.do&#034;);">수입물량&amp;가격</a>
+						</li>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+						<li>
+							<a href="javascript:void(0);" onclick="fn_menu_go(&#034;http://www.ekape.or.kr/board/list.do?menuId=menu17793&amp;boardInfoNo=0031&#034;,&#034;61&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_BLANK&#034;,&#034;http://www.ekape.or.kr/board/list.do?menuId=menu17793&amp;boardInfoNo=0031&#034;);">통계월보</a>
+						</li>
+					
+					
+					
+					
+					
+						<li>
+							<a href="javascript:void(0);" onclick="fn_menu_go(&#034;http://www.ekape.or.kr/board/list.do?menuId=menu138629&amp;boardInfoNo=0032&#034;,&#034;62&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_BLANK&#034;,&#034;http://www.ekape.or.kr/board/list.do?menuId=menu138629&amp;boardInfoNo=0032&#034;);">통계연보</a>
+						</li>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+							
+					</ul>
+				</div>
+			
+			
+			
+			
+			
+			
+			
+				<div class="menu-list">
+					
+						
+						<a>소비동향</a>
+						
+						
+					
+					<ul>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+						<li>
+							<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/supplyTrend/consumeTrend/consumerPanelData.do&#034;,&#034;63&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;,&#034;/v3/supplyTrend/consumeTrend/consumerPanelData.do&#034;);">소비자 패널데이터</a>
+						</li>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+						<li>
+							<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/supplyTrend/consumeTrend/salesStatistics.do&#034;,&#034;64&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;,&#034;/v3/supplyTrend/consumeTrend/salesStatistics.do&#034;);">판매통계</a>
+						</li>
+					
+					
+					
+					
+					
+					
+					
+						<li>
+							<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/supplyTrend/consumeTrend/localSalesData.do&#034;,&#034;65&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;,&#034;/v3/supplyTrend/consumeTrend/localSalesData.do&#034;);">지역별 판매데이터</a>
+						</li>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+						<li>
+							<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/supplyTrend/consumeTrend/productSalesData.do&#034;,&#034;66&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;,&#034;/v3/supplyTrend/consumeTrend/productSalesData.do&#034;);">품목·구매처별 판매데이터</a>
+						</li>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+							
+					</ul>
+				</div>
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			</div>
+		</div>
+		
+		
+		
+		<div class="sitemap-menu-wrap">
+			<div class="menu-title">소통정보</div>
+			<div class="sitemap-menu">
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+				<div class="menu-list">
+					
+						
+						
+						<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/board/bbsList.do&#034;,&#034;25&#034;,&#034;7&#034;,&#034;BOARD&#034;,&#034;_SELF&#034;,&#034;/v3/board/bbsList.do&#034;);">공지사항</a>
+						
+					
+					<ul>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+							
+					</ul>
+				</div>
+			
+			
+			
+				<div class="menu-list">
+					
+						
+						<a>KAPE보고서</a>
+						
+						
+					
+					<ul>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+						<li>
+							<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/board/list.do&#034;,&#034;67&#034;,&#034;0156&#034;,&#034;BOARD&#034;,&#034;_SELF&#034;,&#034;/v3/board/list.do&#034;);">발간물</a>
+						</li>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+						<li>
+							<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/board/list.do&#034;,&#034;68&#034;,&#034;0158&#034;,&#034;BOARD&#034;,&#034;_SELF&#034;,&#034;/v3/board/list.do&#034;);">축산업·기업 분석 및 전망</a>
+						</li>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+							
+					</ul>
+				</div>
+			
+			
+			
+			
+			
+			
+			
+			
+			
+				<div class="menu-list">
+					
+						
+						<a>축산자료실</a>
+						
+						
+					
+					<ul>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+						<li>
+							<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/communication/livestockResources/term.do&#034;,&#034;69&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;,&#034;/v3/communication/livestockResources/term.do&#034;);">축산용어</a>
+						</li>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+						<li>
+							<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/communication/livestockResources/muscle.do&#034;,&#034;70&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;,&#034;/v3/communication/livestockResources/muscle.do&#034;);">근육도감</a>
+						</li>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+							
+					</ul>
+				</div>
+			
+			
+			
+			
+			
+			
+			
+			
+			
+				<div class="menu-list">
+					
+						
+						
+						<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/board/list.do&#034;,&#034;28&#034;,&#034;0153&#034;,&#034;BOARD&#034;,&#034;_SELF&#034;,&#034;/v3/board/list.do&#034;);">해외시장동향</a>
+						
+					
+					<ul>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+							
+					</ul>
+				</div>
+			
+			
+			
+			
+			
+				<div class="menu-list">
+					
+						
+						
+						<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/board/list.do&#034;,&#034;217&#034;,&#034;0161&#034;,&#034;BOARD&#034;,&#034;_SELF&#034;,&#034;/v3/board/list.do&#034;);">수출지원사업</a>
+						
+					
+					<ul>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+							
+					</ul>
+				</div>
+			
+			
+			
+			
+			
+			
+			
+				<div class="menu-list">
+					
+						
+						
+						<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/board/bbsList.do&#034;,&#034;29&#034;,&#034;11&#034;,&#034;BOARD&#034;,&#034;_SELF&#034;,&#034;/v3/board/bbsList.do&#034;);">국민소통창구</a>
+						
+					
+					<ul>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+							
+					</ul>
+				</div>
+			
+			
+			
+				<div class="menu-list">
+					
+						
+						
+						<a href="javascript:void(0);" onclick="fn_menu_go(&#034;/v3/communication/userGuide.do&#034;,&#034;30&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;,&#034;/v3/communication/userGuide.do&#034;);">이용안내</a>
+						
+					
+					<ul>
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+							
+					</ul>
+				</div>
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			</div>
+		</div>
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+						
+	</div>
+</div>
+
+	<form id="searchForm" name="searchForm" method="get" action="">
+			<input type="hidden" name="pageIndex"  id="pageIndex" value="1"/>
+			<input type="hidden" name="pageUnit" id="pageUnit" value="9"/>
+			<input type="hidden" name="searchCondition" id="searchCondition" value="SUBJECT"/>
+			<input type="hidden" name="searchKeyword" id="searchKeyword" value=""/>
+			<input type="hidden" name="itemShCd1" id="itemShCd1" value=""/>
+			<input type="hidden" name="itemShCd2" id="itemShCd2" value=""/>
+			<input type="hidden" name="itemShCd3" id="itemShCd3" value=""/>
+	
+			<input type="hidden" name="boardNo" id="boardNo" value="00041017"/>
+			<input type="hidden" name="boardInfoNo" id="boardInfoNo" value="0159"/>
+			<input type="hidden" name="menuId" id="menuId"  value=""/>
+			<input type="hidden" name="dmlType" id="dmlType" value="SELECT" />
+			<input type="hidden" name="searchType" id="searchType" value="" />
+	</form>
+	<div class="sub-wrap">
+		
+
+
+
+
+ <!-- 로그인여부 -->
+
+
+
+<script>
+var tabMenuJson = '';
+var tabMenu;
+if(tabMenuJson){
+	tabMenu = JSON.parse(tabMenuJson); 	
+}
+
+
+$(document).ready(function() {	
+	const isAuthenticated = "false";	
+	const checkbox = $('#bookmark');
+	if(isAuthenticated == 'true'){
+		var isMarked =  "";
+		if(isMarked == 'true'){ //즐겨찾기가 되었다면,
+			checkbox.prop('checked', true);
+		}
+	}
+	
+	if(tabMenu){
+		makeTabMenu(tabMenu);
+	}else{
+		$('#tab-menu').remove();
+	}
+});
+
+function makeTabMenu(tabMenu){
+	
+	if(!Array.isArray(tabMenu)) return;
+	
+	tabMenu.sort((a,b) => a[0].depth.localeCompare(b[0].depth)); 
+	let depth = 1;
+	for(let i = 0; i < tabMenu.length; i++,depth++){		
+		const menus = tabMenu[i];
+		let className = `kape-tab${depth}`;
+		if(i == 0){
+			className = 'kape-tab';
+		}
+		
+		const ul = $('<ul>',{'class':className});
+		if(i == 0 && tabMenu.length > 1){
+			ul.addClass('has-tab2');
+		} else if(i === 0 && menus.length === 7) {
+			ul.addClass('long-tab7')
+		}
+		
+		for(const menu of menus){
+			Object.keys(menu).forEach(key => {
+				if(menu[key] === null){
+					menu[key] = '';
+				}
+			});
+			
+			const li = $('<li>',{
+				'class': menu.className, 
+			});
+			const a = $('<a>',{
+				'text':menu.menuNm,
+				'href': `javascript:fn_menu_go('${menu.linkUrl}','${menu.menuSn}','${menu.linkPrmtr}','${menu.menuGubun}','${menu.linkGoal}','${menu.lastChildUrl}','${menu.lastChildLinkPrmtr}')`,	
+			});
+			
+			li.append(a);
+			ul.append(li);
+		}
+		$('#tab-menu > div.container').append(ul);
+	}
+}
+
+function fn_toggleBookmark(menuSn){
+	const checkbox = $('#bookmark');
+	$.ajax({
+		url: "/v3/web/toggleBookmark.json",
+		contentType: "application/x-www-form-urlencoded;charset=UTF-8",
+		type: "POST",
+		dataType: "JSON",
+		async: false,
+		data: {menuSn}, 
+		success:function(res){
+			if(res.status == 'success'){
+				location.reload(true); //성공시, 즐겨찾기 목록 갱신을 위해 새로고침.
+				if(res.result == 'created'){				
+					checkbox.prop('checked', true);
+				}else{					
+					checkbox.prop('checked', false);
+				}				
+			}else{
+				//실패로직
+				alert('오류가 발생하였습니다. 관리자에게 문의해주세요.');
+			}
+		},
+		error: function(res){
+			alert('오류가 발생하였습니다. 관리자에게 문의해주세요.');
+		}
+	});	
+}
+</script>
+
+<section class="subheader">
+	<div class="container">
+		<h2>
+			주간 계란 수급 정보
+			
+		</h2>
+		
+		<ul class="breadcrumb">
+			<li class="home"><a href="/v3/web/main.do"><img src="/basic_img/basic/kape_breadcrumb_home.png" alt="메인으로" title="메인으로"></a></li>
+			
+			<li class="has-menu">
+				<a href="#">수급동향</a>
+				
+				<ul>
+				
+					<li><a href="javascript:void(0)" onclick="fn_menu_go(&#034;&#034;,&#034;2&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;,&#034;/v3/price/auction/realTime/realTimePrice.do&#034;,&#034;&#034;);">가격정보</a></li>
+				
+					<li><a href="javascript:void(0)" onclick="fn_menu_go(&#034;&#034;,&#034;3&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;,&#034;/v3/hereMeat/livestockPriceMap.do&#034;,&#034;&#034;);">여기고기</a></li>
+				
+					<li><a href="javascript:void(0)" onclick="fn_menu_go(&#034;&#034;,&#034;4&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;,&#034;/v3/supplyStatus/supplyStatusDashboard.do&#034;,&#034;&#034;);">수급현황</a></li>
+				
+					<li><a href="javascript:void(0)" onclick="fn_menu_go(&#034;&#034;,&#034;6&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;,&#034;/v3/board/bbsList.do&#034;,&#034;7&#034;);">소통정보</a></li>
+				
+				</ul>
+																
+			</li>
+			
+			
+			<li class="has-menu">
+				<a href="#">축산수급보고서</a>
+				
+				<ul>
+				
+					<li><a href="javascript:void(0)" onclick="fn_menu_go(&#034;&#034;,&#034;20&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;,&#034;/v3/supplyTrend/productTrend/breedingCount/cow.do&#034;,&#034;&#034;);">생산동향</a></li>
+				
+					<li><a href="javascript:void(0)" onclick="fn_menu_go(&#034;&#034;,&#034;22&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;,&#034;/v3/supplyTrend/globalEcoOutlook/globalEcoStatus.do&#034;,&#034;&#034;);">글로벌 경기 전망</a></li>
+				
+					<li><a href="javascript:void(0)" onclick="fn_menu_go(&#034;&#034;,&#034;23&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;,&#034;/v3/supplyTrend/statistics/gradeCount/cow.do&#034;,&#034;&#034;);">통계</a></li>
+				
+					<li><a href="javascript:void(0)" onclick="fn_menu_go(&#034;&#034;,&#034;24&#034;,&#034;&#034;,&#034;MENU_LINK&#034;,&#034;_SELF&#034;,&#034;/v3/supplyTrend/consumeTrend/consumerPanelData.do&#034;,&#034;&#034;);">소비동향</a></li>
+				
+				</ul>			
+													
+			</li>
+			
+			
+			<li class="has-menu">
+				<a href="#">주간 계란 수급 정보</a>
+				
+				<ul>
+				
+					<li><a href="javascript:void(0)" onclick="fn_menu_go(&#034;/v3/supplyTrend/livestockSupplyReport/daily.do&#034;,&#034;48&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;,&#034;/v3/supplyTrend/livestockSupplyReport/daily.do&#034;,&#034;&#034;);">일간보고서</a></li>
+				
+					<li><a href="javascript:void(0)" onclick="fn_menu_go(&#034;/v3/supplyTrend/livestockSupplyReport/productPriceTrend.do&#034;,&#034;52&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;,&#034;/v3/supplyTrend/livestockSupplyReport/productPriceTrend.do&#034;,&#034;&#034;);">축산물가격추이</a></li>
+				
+					<li><a href="javascript:void(0)" onclick="fn_menu_go(&#034;/v3/board/list.do&#034;,&#034;53&#034;,&#034;0152&#034;,&#034;BOARD&#034;,&#034;_SELF&#034;,&#034;/v3/board/list.do&#034;,&#034;0152&#034;);">국내 축산물 시장 동향</a></li>
+				
+					<li><a href="javascript:void(0)" onclick="fn_menu_go(&#034;/v3/supplyTrend/livestockSupplyReport/poultryPriceTrend.do&#034;,&#034;54&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;,&#034;/v3/supplyTrend/livestockSupplyReport/poultryPriceTrend.do&#034;,&#034;&#034;);">가금산물가격동향</a></li>
+				
+					<li><a href="javascript:void(0)" onclick="fn_menu_go(&#034;/v3/supplyTrend/livestockSupplyReport/poultryTrend.do&#034;,&#034;55&#034;,&#034;&#034;,&#034;CONTENT&#034;,&#034;_SELF&#034;,&#034;/v3/supplyTrend/livestockSupplyReport/poultryTrend.do&#034;,&#034;&#034;);">한눈에보는 가금산물 동향</a></li>
+				
+				</ul>
+				
+			</li>
+			
+						
+		</ul>
+		
+	</div>
+</section>
+
+<section id="tab-menu">
+	<div class="container">
+		
+	</div>
+</section>
+		<section>
+			<div class="container">
+				<div class="sub-cont">
+					<div class="board-view-table-wrap">
+						<table class="board-view-table">
+							<colgroup>
+								<col style="width: 10%;">
+								<col style="width: 23.3%;">
+								<col style="width: 10%;">
+								<col style="width: 23.3%;">
+								<col style="width: 10%;">
+								<col style="width: 23.3%;">
+							</colgroup>
+							<tbody>
+								<tr>
+									<th>제목</th>
+									<td colspan="5">7월 20일 주간 계란 수급 정보(51차)</td>
+								</tr>
+								<tr>
+									<th>작성자</th>
+									<td>서지원(22)</td>
+									<th class="bd-l">등록일</th>
+									<td>2026-07-28</td>
+									<th class="bd-l">조회</th>
+									<td>19</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+
+			<div class="container">
+				<div class="sub-cont">
+					<div class="board-iframe-wrap">
+						<ul id="selectContent">
+							<li onclick="showContent()" class="on">상세내용</a></li>
+							
+								
+									<li onclick="javasrcipt:loadPage(&#034;/common/attachfile/attachfileDownload.do?attachNo=00089200&#034;,&#034;pdf&#034;)" data-index="0" data-value="7월 20일 주간 계란 수급 정보(51차).pdf">7월 20일 주간 계란 수급 정보(51차).pdf <a href="/common/attachfile/attachfileDownload.do?attachNo=00089200" onclick="javasrcipt:attachfileDownload(&#034;/common/attachfile/attachfileDownload.do&#034;,&#034;00089200&#034;)"> <span><img src="/basic_img/basic/kape_board_download.png" alt="다운로드"></span></a></li>
+								
+							
+							
+							
+						</ul>
+						<div class="board-iframe">
+							<!--상세내용일떄-->
+							<div id="boardContent" class="board-iframe-text">
+								
+									
+										
+											
+												7월 20일 주간 계란 수급 정보(51차)입니다.
+											
+											
+										
+									
+									
+								
+								
+								
+									<style>
+										.detail-frame {display: flex; gap:20px; flex-direction: column; margin-top: 30px;}
+										.detail-frame .container {padding: 0;}
+										.detail-frame .container .sub-box-wrap {box-shadow: none; border-radius: 0;}
+									</style>
+									<div class="detail-frame">
+									</div>
+								
+							</div>
+							
+							<div id="file-area" style="display: none;">
+								<div class="pdf-ctrl">
+									<button id="prev" class="btn">이전</button>
+									<button id="next" class="btn">다음</button>
+									<span id="page-num">-</span>
+									/
+									<span id="page-count">-</span>	
+								</div>
+								<canvas id="canvas" style="width: 100%; height: 100%"></canvas>
+							</div>
+
+							<!--미리보기 iframe일떄-->
+							<!-- 
+							
+								<iframe id="preview_0" class="preview_iframe" src="/common/attachfile/attachfileView.do?attachNo=00089200" frameborder="0" style="display:none;"></iframe>
+							
+							 -->
+
+							<!--미리보기 지원안될떄-->
+							<p id="noPreview" class="no-prve" style="display:none;">해당 파일은 미리보기가 지원되지 않습니다.<br>다운로드 후 확인해주시기 바랍니다.</p>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="container">
+				<div class="sub-cont">
+					<div class="sub-box-wrap board-prev-box">
+						
+							
+							
+								<a class="board-prev">이전글 <img src="/basic_img/basic/kape_board_prev.png" alt=""><p>이전글이 없습니다.</p></a>
+							
+						
+						
+							
+								<a href="#!" onclick="goBoardView(&#034;00041008&#034;,&#034;0159&#034;);" class="board-next"><p>7월 13일 주간 계란 수급 정보(50차)</p>다음글 <img src="/basic_img/basic/kape_board_next.png" alt=""></a>
+							
+							
+						
+						
+					</div>
+				</div>
+			</div>
+			<div class="board-list-btn">
+				<a href="/v3/board/list.do?boardInfoNo=0159">목록</a>
+			</div>
+		</section>
+
+		
+	</div>
+	
+	<div id="pdfLoadingLayer" class="pdf-loading-layer">
+	    <div class="pdf-loading-box">
+	        <div class="pdf-loading-title">PDF 불러오는 중</div>
+	
+	        <div class="pdf-progress-wrap">
+	            <div id="pdfProgressBar" class="pdf-progress-bar"></div>
+	        </div>
+	
+	        <div id="pdfProgressText" class="pdf-progress-text">0%</div>
+	        <div id="pdfProgressDetail" class="pdf-progress-detail">잠시만 기다려주세요.</div>
+	        <div id="pdfProgressSubDetail" class="pdf-progress-subdetail"></div>
+	
+	        <div class="pdf-loading-actions">
+	            <button type="button" id="pdfCancelBtn" class="pdf-btn-cancel">취소</button>
+	        </div>
+	    </div>
+	</div>
+
+	
+<footer>
+	<div class="container">
+		<div class="footer-top">
+			<a href="/v3/web/main.do?gateWay=y" title="게이트웨이 페이지 이동"><img src="/basic_img/common/kape_logo_w.png" alt="KAPE 축산유통정보 다봄"></a>
+			<div class="footer-link">
+				<a href="https://www.facebook.com/ekapepia" target="_blank" class="sns-btn" title="축산유통정보 다봄 페이스북-새창열림" ><img src="/basic_img/basic/kape_footer_facebook.png" alt="축산유통정보 다봄 페이스북-새창열림"></a>
+				<a href="http://blog.naver.com/ekapepia" target="_blank" class="sns-btn" title="축산유통정보 다봄 네이버블로그-새창열림" ><img src="/basic_img/basic/kape_footer_blog.png" alt="축산유통정보 다봄 네이버블로그-새창열림"></a>
+				<a href="https://www.ekape.or.kr" target="_blank" title="축산물품질평가원-새창열림" class="company-btn"><img src="/basic_img/basic/kape_footer_company01_2026.png" alt="축산물품질평가원-새창열림"></a>
+				<a href="https://www.mafra.go.kr" target="_blank" title="농림축산식품부-새창열림" class="company-btn"><img src="/basic_img/basic/kape_footer_company02_2026.png" alt="농림축산식품부-새창열림"></a>
+			</div>
+		</div>
+		<div class="footer-bottom">
+			<div>
+				축산유통정보 다봄 <span>30100 세종특별자치시 아름서길 21 (아름동)</span> <a href="/v3/communication/userGuide.do">이용안내</a> 대표번호 044-410-7000
+				<p>Copyright © 축산물품질평가원 All Rights Reserved</p>
+			</div>
+
+			<div class="footer-btn">
+				<a href="http://www.ekape.or.kr/contents/list.do?menuId=menu120707" target="_blank" title="기관소개-새창열림">기관소개</a>
+				<a href="javascript:void (window.open('http://www.ekape.or.kr/contents/list.do?menuId=menu171484' ,'_blank','width=700,height=600, top=50, left=50, scrollber=yes'))" title="개인정보처리방침-새창열림" class="point">개인정보처리방침</a>
+				<a href="/v3/communication/email.do">이메일무단수집거부</a>
+				<a href="/v3/communication/policy.do">저작권보호정책</a>
+			</div>
+		</div>
+	</div>
+</footer>
+
+
+
+
+
+ <!-- 로그인여부 -->
+<script>
+$(document).ready(function() {
+	let visitedPages = JSON.parse(sessionStorage.getItem('visitedPages')) || [];
+	
+	for(const page of visitedPages){
+		const menu = getMenu(page);
+		
+		if(menu){
+			
+			if(menu.dsplyYn == 'N'){
+				const parentName = menu.parentNm;
+				const menuName = menu.menuNm;
+				menu.menuNm = `${parentName} - ${menuName}`;
+			}
+			
+			const li = $('<li>').append($('<a>',{'class': 'no-icon', 
+				'onClick':`fn_menu_go('${menu.linkUrl}','${menu.menuSn}','${menu.linkPrmtr}','${menu.menuGubun}');`,
+				'href': 'javascript:void(0);',
+				'text': menu.menuNm}));
+			$('ul#visited').append(li);
+		}else{ //메뉴가 조회되지 않을경우, URI 제거
+			visitedPages = visitedPages.filter(uri => uri !== page);
+			sessionStorage.setItem('visitedPages', JSON.stringify(visitedPages)); //리스트 갱신
+		}
+	}
+	
+	
+	
+	$('#reportPage').on('click', (e) => {
+		let pathName = window.location.pathname;
+		let pageNm = '';
+		let param = {};
+		
+		if(pathName.includes('web/main')) {
+			let search = window.location.search;
+			if(search.includes("common") || search === '') pageNm = '메인페이지 > 종합';
+			if(search.includes("producer")) pageNm = '메인페이지 > 생산자';
+			if(search.includes("retailer")) pageNm = '메인페이지 > 유통인';
+			if(search.includes("consumer")) pageNm = '메인페이지 > 소비자';
+		} else if(pathName.includes('web/mobile/main')) {
+			pageNm = '메인페이지 > 모바일';
+		} else if(pathName.includes('diseaseDetail')) {
+			pageNm = '가축질병정보';
+		} else{
+			param.pathName = pathName;
+			
+			if(pathName.includes('board')) {
+				let search = new URLSearchParams(window.location.search);
+				let boardInfoNo = search.get("boardInfoNo");
+				param.boardInfoNo = boardInfoNo;
+			}
+			
+			$.ajax({
+				url			: "/v3/web/getCurrentPage.json",
+				dataType	: "text",
+				async: false,
+				data		: param
+			}).done((res) => {
+				pageNm = res;
+			})
+		}
+		
+		//TODO 팝업 경로 input 넣기, 띄우기
+		$('#reportGubun').val('0');
+		$('#pagePath').val(pageNm);
+		$('#reportContent').val('');
+		openLayer('pageReport-layer');
+	})
+});
+
+function submitReport() {
+	let pagePath = $('#pagePath').val();
+	let gubun = $('#reportGubun').val();
+	let content = $('#reportContent').val();
+	
+	let param = {pagePath, gubun, content};
+	
+	$.ajax({
+		url			: "/v3/web/saveReport.json",
+		dataType	: "text",
+		async: false,
+		data		: param
+	}).done((res) => {
+		alert('접수되었습니다');
+	}).fail(() => {
+		alert('잠시후 다시 시도해 주십시오.');
+	})
+	
+
+	closeLayer('pageReport-layer');
+}
+
+
+function getMenu(url){	
+	let result;
+	
+	let boardKey = null;
+	
+	if(url.indexOf('/board/list.do') > -1){
+		const urlParams = new URLSearchParams(window.location.search);
+		boardKey = urlParams.get('boardInfoNo');
+	}
+	
+	$.ajax({
+		url			: "/v3/web/getMenuInfo.json",
+		dataType	: "json",
+		async: false,
+		data		: {url,boardKey},
+		success: function(data){
+			result = data.menu;
+		},
+		error:function(error){
+			alert('메뉴 정보 조회 실패 관리자에게 문의해주세요.')
+		}
+	});
+	return result;
+}
+
+function fnOpenMeunalPop(){
+
+	var popWidth = 1700;
+	var popHeight = 900;
+	var popTop = "100";
+	var popLeft = "100";
+	
+	window.open('/web/main/selectMenual.do', '간단 매뉴얼', "width=" + popWidth + ", height=" + popHeight + ", top=" + popTop + ", left=" + popLeft + ", location=no, scrollbars=yes");
+}
+</script>
+
+<script>
+	$(function(){
+		$('#top-btn').click(function(){
+			$('html,body').animate({scrollTop:0},400);
+		});
+	});
+</script>
+<a id="page-back" href="#" onclick="history.back(-1);"><i class="icon-angle-left1"></i></a>
+
+<div class="kape-floating">
+	<button id="top-btn" type="button" title="맨위로 가기" ><i class="icon-angle-up"></i>TOP</button>
+	
+	<div class="open-quick">
+		<a href="#" class="open-btn"><img src="/basic_img/basic/kape_quick01.png" alt="바로가기 퀵메뉴"><span>바로가기</span></a>
+
+		<div class="floating-wrap open-wrap">
+			<h4>원하시는 메뉴로 빠르게<br>이동하세요 <span>찾는 메뉴를 빠르게 확인하고 손쉽게 접근해보세요</span></h4>
+			<ul class="shortcut-menu-list">
+				
+					<li>
+						<a href="https://mtrace.go.kr/stats" target="_blank">
+							<img src="/basic_img/basic/kape_quick01_icon01.png" alt="바로가기 퀵메뉴">
+							통계누리
+						</a>
+					</li>
+				
+					<li>
+						<a href="/entrpPrice/rtsalPriceInput.do" target="_blank">
+							<img src="/basic_img/basic/kape_quick01_icon02.png" alt="바로가기 퀵메뉴">
+							정육점 판매 가격 입력
+						</a>
+					</li>
+				
+					<li>
+						<a href="/poultryPrice/index.do" target="_blank">
+							<img src="/basic_img/basic/kape_quick01_icon03.png" alt="바로가기 퀵메뉴">
+							가금산물 조사원 입력
+						</a>
+					</li>
+				
+			</ul>
+		</div>
+	</div>
+	<div class="open-bookmark">
+		<a href="#" class="open-btn"><i class="icon-star"></i><span>즐겨찾기</span></a>
+
+		<div class="floating-wrap open-wrap" >
+			<h4>원하는 메뉴를 모아두세요</h4>
+			
+			
+			
+				<p><span>자주찾는메뉴</span></p>
+				<div class="bookmark">
+					<ul>
+						
+							
+							
+							
+							
+						
+					</ul>
+				</div>
+			
+			
+			<p class="mt-10"><span>최근 방문 페이지</span></p>
+			<ul id="visited">
+				<!-- <li><a href="" class="no-icon">소 도체별 응찰현황</a></li>
+				<li><a href="" class="no-icon">해외시장동향</a></li> -->
+			</ul>
+		</div>
+	</div>
+	<div class="open-info">
+		<a href="#" class="open-btn"><img src="/basic_img/basic/kape_quick03.png" alt="도움말 퀵메뉴"><span>도움말</span></a>
+
+		<div class="floating-wrap-slide open-wrap">
+			<div class="slide-wrap" id="floating-banner">
+				<!-- 배너 -->
+				<div class="swiper floating-banner" >
+					<div class="swiper-wrapper">
+						
+							<div class="swiper-slide">
+								<div class="floating-banner-img" style="background: #e5f4fb url(/banner/imageView.do?imgUrl=/uploads/banner/202601070439496690.png     ) no-repeat top 5px center / 100% auto;"></div>
+							</div>
+						
+					</div>
+					<div class="floating-swiper-pagination"></div>
+				</div>
+				
+				<script>
+					const floatingBanner = new Swiper('.floating-banner', {
+						loop: true,
+						slidePerView: 1,
+						autoplay: {
+							delay: 8000,
+							disableOnInteraction: false,
+						},
+						pagination: {
+							el: '.floating-swiper-pagination',
+							clickable: true,
+						}
+					})
+					floatingBanner.update()
+				</script>
+			</div>
+			<div class="floating-wrap">
+				<h4><span>도움이 필요하신가요? 안내해드릴게요</span></h4>
+				<ul>
+					<li><a href="/v3/board/bbsList.do?boardInfoNo=11"><img src="/basic_img/basic/kape_quick03_icon01.png" alt="도움말 퀵메뉴">국민 소통 창구</a></li>
+					<li><a href="/v3/communication/userGuide.do"><img src="/basic_img/basic/kape_quick03_icon02.png" alt="도움말 퀵메뉴">이용안내</a></li>
+					<!-- <li><a href="javascript:void(0);" onclick="javascript:fnOpenMeunalPop();"><img src="/basic_img/basic/kape_quick03_icon03.png" alt="도움말 퀵메뉴">매뉴얼</a></li> -->
+					<li><a href="/v3/web/manual.do"><img src="/basic_img/basic/kape_quick03_icon03.png" alt="도움말 퀵메뉴">매뉴얼</a></li>
+					<li><a href="/v3/board/bbsList.do?boardInfoNo=7"><img src="/basic_img/basic/kape_quick03_icon04.png" alt="도움말 퀵메뉴">공지사항</a></li>
+					<li><a href="javascript:void(0)" id="reportPage"><img src="/basic_img/basic/kape_quick03_icon05.png" alt="도움말 퀵메뉴">건의하기</a></li>
+				
+				</ul>
+			</div>
+		</div>
+	</div>
+</div>
+
+
+<div class="layer-modal" id="pageReport-layer" style="display: none;">
+			<div class="layer-bg" onclick="closeLayer('pageReport-layer');"></div>
+			<div class="layer-body">
+				<div class="layer-title">
+					<h5 class="pageReport-title"><i class="icon-exclamation-sign"></i>건의하기</h5>
+					<a href="javascript:closeLayer('pageReport-layer');" class="modal-close"><img src="/basic_img/basic/kape_layer_close.png" alt=""></a>
+				</div>
+				<div class="layer-cont">
+					<table class="table-type3" summary="페이지 건의 테이블">
+						<caption>페이지 건의 테이블</caption>
+						<colgroup>
+							<col width="20%">
+							<col width="80%">
+						</colgroup>
+						<tbody>
+							<tr>
+								<th>건의 페이지</th>
+								<td>
+									<div class="form-div">
+										<input id="pagePath" name="pagePath" type="text" readonly class="readonly" value="현재 페이지명 출력">
+										<label for="pagePath" class="hidden-label"></label>
+									</div>
+								</td>
+							</tr>
+	
+							<tr>
+								<th>분류</th>
+								<td>
+									<div class="form-div">
+										<div class="select">
+											<select id="reportGubun" name="gubun">
+												<option value="0">건의사항</option>
+												<option value="1">데이터 오류</option>
+											</select><label for="reportGubun" class="hidden-label"></label>
+											<img src="/basic_img/basic/kape_form_select.png" alt="">
+										</div>
+									</div>
+								</td>
+							</tr>
+							<tr>
+								<th>내용</th>
+								<td>
+									<div class="form-div">
+										<textarea id="reportContent" name="content" maxlength="300"></textarea>
+										<label for="reportContent" class="hidden-label"></label>
+										<p class="out-text">※ 최대 300자까지 작성 가능합니다.</p>
+									</div>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+					<div class="join-btn-box">
+						<a href="javascript:closeLayer('pageReport-layer');" title="취소">취소</a>
+						<a href="#" onclick="submitReport();" class="submit resign-btn" title="접수">접수</a>
+					</div>
+				</div>
+			</div>
+		</div>
+
+
+
+
+</body>
+
+</html>
+
