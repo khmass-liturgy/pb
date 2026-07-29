@@ -1307,7 +1307,7 @@ function renderEggSupplyPanel(){
 
   const r   = d.data;
   const s   = r.summary || {};
-  const secs = r.sections || [];
+  const secs = (r.sections || []).filter(s => !/생산/.test(s.title || ""));
   const updated = r.updated || "";
   const title   = r.title  || "주간 계란 수급 정보";
   const url     = r.url    || "https://www.ekapepia.com/v3/board/detail.do?boardInfoNo=0159&dmlType=SELECT";
@@ -1321,16 +1321,76 @@ function renderEggSupplyPanel(){
   }[s.supply_status] || "#555";
 
   // 섹션별 요약 카드
-  const sectionCards = secs.map(sec => `
-    <div style="margin-bottom:12px">
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+  // ── 요약문 구조화 파서 ────────────────────────────────────────────────
+  // "(기관명) 본문... 이유는 ①A, ②B, ③C 등의 영향..." → 기관 뱃지 + 문단 + 번호 목록
+  const CIRCLE_CHARS = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳";
+  const parseSummary = (raw)=>{
+    if(!raw) return {org:"", blocks:[]};
+    let t = String(raw).replace(/^[-·•\s]+/,"").replace(/\s+/g," ").trim();
+    let org = "";
+    const om = t.match(/^\(([^)]{2,25})\)\s*/);
+    if(om){ org = om[1].trim(); t = t.slice(om[0].length); }
+
+    const blocks = [];
+    const pushPara = (txt)=>{
+      // 한국어 공문 종결(음./함./됨./임.) 기준 문단 분리
+      txt.split(/(?<=[음함됨임요다]\.)\s+/).forEach(p=>{
+        p = p.trim();
+        if(p.length > 1) blocks.push({type:"p", text:p});
+      });
+    };
+
+    const segs = t.split(new RegExp("(?=["+CIRCLE_CHARS+"])")).filter(s=>s.trim());
+    segs.forEach(seg=>{
+      seg = seg.trim();
+      if(CIRCLE_CHARS.indexOf(seg[0]) >= 0){
+        const num = seg[0];
+        let body = seg.slice(1).trim(), tail = "";
+        // 마지막 항목 뒤에 붙은 "등의 영향이..." 이후는 본문으로 분리
+        const tm = body.match(/\s등(의|,|\s)/);
+        if(tm && tm.index > 4){
+          tail = body.slice(tm.index).trim();
+          body = body.slice(0, tm.index);
+        }
+        body = body.replace(/[,、·]\s*$/,"").trim();
+        if(body) blocks.push({type:"li", num, text:body});
+        if(tail) pushPara(tail);
+      } else {
+        pushPara(seg);
+      }
+    });
+    return {org, blocks};
+  };
+
+  // 시황 키워드 강조 (상승계열 빨강 / 하락·적체계열 파랑)
+  const UP_KW   = /(강세|강보합|상승|인상|증가|급증|부족|초과)/g;
+  const DOWN_KW = /(강체화|체화|약세|약보합|하락|인하|감소|급감|과잉|재고)/g;
+  const hl = (s)=> esc(s)
+      .replace(UP_KW,   '<b style="color:#C62828">$1</b>')
+      .replace(DOWN_KW, '<b style="color:#1565C0">$1</b>');
+
+  const sectionCards = secs.map(sec => {
+    const {org, blocks} = parseSummary(sec.summary);
+    const body = blocks.map(b => b.type === "li"
+      ? `<div style="display:flex;gap:7px;margin:4px 0 4px 6px;align-items:flex-start">
+           <span style="color:#E8530A;font-weight:800;flex-shrink:0;font-size:13px;line-height:1.6">${b.num}</span>
+           <span style="flex:1">${hl(b.text)}</span>
+         </div>`
+      : `<div style="margin:8px 0">${hl(b.text)}</div>`
+    ).join("");
+
+    return `
+    <div style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap">
         <span style="background:#1a2744;color:#F9C74F;font-size:10px;font-weight:700;width:18px;height:18px;border-radius:4px;display:inline-flex;align-items:center;justify-content:center">${esc(sec.no)}</span>
         <span style="font-size:13px;font-weight:700;color:#1a2744">${esc(sec.title)}</span>
+        ${org?`<span style="background:#FFF3E0;color:#E8530A;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px">${esc(org)}</span>`:""}
       </div>
-      <div style="background:#fafafa;border-left:3px solid #E8530A;border-radius:0 8px 8px 0;padding:10px 12px;font-size:12px;color:#444;line-height:1.75">
-        ${esc(sec.summary)}
+      <div style="background:#fafafa;border-left:3px solid #E8530A;border-radius:0 8px 8px 0;padding:10px 13px;font-size:12px;color:#444;line-height:1.7">
+        ${body || hl(sec.summary)}
       </div>
-    </div>`).join("");
+    </div>`;
+  }).join("");
 
   return `
   <div class="card" style="margin-bottom:16px">
@@ -1676,8 +1736,7 @@ function renderPigTab(){
     warnTail:"정확한 경락가는 아래 '다봄 실시간 시세'에서 확인하세요.",
     linkUrl:"https://www.ekapepia.com/web/main.do", linkLabel:"📊 다봄 돼지 시세", linkColor:"#E84A6F",
     refreshId:"btn-refresh-pig"})}
-  ${renderCompareTable(items,last7DayInfos(),{unitNote:"단위: 등급별 경락가(원/kg) | 비육돈 산지(원/두)"})}
-  ${renderDabomPricePanel("pig")}`;
+  ${renderCompareTable(items,last7DayInfos(),{unitNote:"단위: 등급별 경락가(원/kg) | 비육돈 산지(원/두)"})}`;
 }
 
 function renderLivestockTab(){
@@ -1688,8 +1747,7 @@ function renderLivestockTab(){
     warnTail:"정확한 경락가는 아래 '다봄 실시간 시세'에서 확인하세요.",
     linkUrl:"https://www.ekapepia.com/web/main.do", linkLabel:"📊 다봄 소 시세", linkColor:"#A0522D",
     refreshId:"btn-refresh-cattle"})}
-  ${renderCompareTable(items,last7DayInfos(),{unitNote:"단위: 지육·도매(원/kg) | 송아지(원/두)"})}
-  ${renderDabomPricePanel("cow")}`;
+  ${renderCompareTable(items,last7DayInfos(),{unitNote:"단위: 지육·도매(원/kg) | 송아지(원/두)"})}`;
 }
 
 
