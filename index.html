@@ -427,6 +427,9 @@ let state = { tab:"price", customSites:loadCustom(), customStocks:loadCustomList
 // ── 다봄 실시간 시세 (GitHub Actions → prices/prices.json) ────────────────
 const PRICES_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/prices/prices.json";
 
+// ── 주간 계란 수급 정보 (GitHub Actions → egg_report/latest.json) ───────────
+const EGG_REPORT_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/egg_report/latest.json";
+
 // ── 뉴스 게시판: 브라우저 직접 fetch (CORS 프록시 → HTML 파싱) ───────────────
 // chuksannews.co.kr: mediaOn CMS (article.html?no=) · pignpork.com: ndsoft CMS (articleView.html?idxno=)
 
@@ -633,6 +636,24 @@ async function fetchChickenPrices(){
   if(state.tab==="price") render();
 }
 let pricesCache = null;
+
+// ── 주간 계란 수급 상태 ─────────────────────────────────────────────────────
+let eggReportState = { status: "idle", data: null }; // idle|loading|done|error
+
+async function fetchEggReport(){
+  if(eggReportState.status === "loading") return;
+  eggReportState.status = "loading";
+  try {
+    const resp = await fetchWithTimeout(EGG_REPORT_JSON_URL + "?t=" + Date.now(), 8000);
+    if(!resp.ok) throw new Error("HTTP " + resp.status);
+    eggReportState.data   = await resp.json();
+    eggReportState.status = "done";
+  } catch(e) {
+    console.warn("계란 수급 정보 로딩 실패:", e);
+    eggReportState.status = "error";
+  }
+  if(state.tab === "price") render();
+}
 let pricesState = { status:"idle", data:null, updatedAt:"" };
 
 async function fetchDabomPrices(){
@@ -679,8 +700,6 @@ let weatherState = {
   lat:null, lng:null, locationName:"",
   forecast:[], // 7일 예보
   lastYear:null, // 작년 오늘 날씨
-  hourly:{},    // { "2026-07-16": [{hour,code,temp,rain,wind,humidity},...] }
-  selectedDate:null, // 클릭한 날짜 (시간대별 보기)
 };
 function saveWeatherLocation(lat,lng,name){
   try { localStorage.setItem("weather_loc", JSON.stringify({lat,lng,name})); } catch(e){}
@@ -924,7 +943,7 @@ async function fetchWeather(lat, lng, name){
     const lyStart = new Date(today); lyStart.setFullYear(today.getFullYear()-1);
     const lyEnd = new Date(lyStart); lyEnd.setDate(lyStart.getDate()+6);
     const dateFmt = (d)=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-    const fcstUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max,relative_humidity_2m_mean&hourly=temperature_2m,weathercode,precipitation,windspeed_10m,relativehumidity_2m&timezone=Asia%2FSeoul&forecast_days=7`;
+    const fcstUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max,relative_humidity_2m_mean&timezone=Asia%2FSeoul&forecast_days=7`;
     const histUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=${dateFmt(lyStart)}&end_date=${dateFmt(lyEnd)}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,relative_humidity_2m_mean&timezone=Asia%2FSeoul`;
     const [fcstResp, histResp] = await Promise.all([
       fetchWithTimeout(fcstUrl, 10000),
@@ -939,28 +958,6 @@ async function fetchWeather(lat, lng, name){
       rain:days.precipitation_sum[i], wind:days.windspeed_10m_max[i],
       hum: days.relative_humidity_2m_mean ? days.relative_humidity_2m_mean[i] : null,
     }));
-    // 시간대별 데이터 → 날짜별 그룹핑
-    const h = fcstData.hourly;
-    const hourlyByDate = {};
-    if(h && h.time){
-      h.time.forEach((dt,i)=>{
-        const date = dt.slice(0,10);
-        const hour = parseInt(dt.slice(11,13));
-        if(!hourlyByDate[date]) hourlyByDate[date]=[];
-        hourlyByDate[date].push({
-          hour,
-          code:     h.weathercode[i],
-          temp:     h.temperature_2m[i],
-          rain:     h.precipitation[i],
-          wind:     h.windspeed_10m[i],
-          humidity: h.relativehumidity_2m[i],
-        });
-      });
-    }
-    weatherState.hourly = hourlyByDate;
-    if(!weatherState.selectedDate && days.time.length>0){
-      weatherState.selectedDate = days.time[0];
-    }
     // 작년 7일치 배열로 저장
     if(histResp.ok){
       const hd = (await histResp.json()).daily;
@@ -1266,6 +1263,78 @@ function renderChickenPricePanel(){
       </table>
     </div>
     <div style="font-size:9px;color:#ccc;margin-top:8px;text-align:right">※ 육계생계: 운반비 포함 기준 · 출처: (사)한국육계협회</div>
+  </div>`;
+}
+
+function renderEggSupplyPanel(){
+  const d = eggReportState;
+  if(d.status === "loading") return `
+  <div class="card" style="margin-bottom:16px">
+    <div class="display" style="font-size:15px;margin-bottom:10px">📋 주간 계란 수급 정보</div>
+    <div style="text-align:center;padding:20px;color:#aaa">⏳ 불러오는 중...</div>
+  </div>`;
+  if(d.status === "error" || !d.data) return `
+  <div class="card" style="margin-bottom:16px">
+    <div class="display" style="font-size:15px;margin-bottom:10px">📋 주간 계란 수급 정보</div>
+    <div style="text-align:center;padding:12px;color:#aaa;font-size:12px">
+      데이터 없음 — 매주 화요일 업데이트<br>
+      <a href="https://www.ekapepia.com/v3/board/detail.do?boardInfoNo=0159&dmlType=SELECT" target="_blank"
+        style="color:#E8530A;font-size:11px">📄 다봄 계란 수급 정보 바로가기</a>
+    </div>
+  </div>`;
+
+  const r   = d.data;
+  const s   = r.summary || {};
+  const updated = r.updated || "";
+  const title   = r.title  || "주간 계란 수급 정보";
+  const url     = r.url    || "https://www.ekapepia.com/v3/board/detail.do?boardInfoNo=0159&dmlType=SELECT";
+
+  // 수급 상황 색상
+  const supplyColor = {
+    "공급 과잉":"#1565C0","공급과잉":"#1565C0",
+    "수급 안정":"#2E7D32","수급안정":"#2E7D32",
+    "공급 부족":"#C62828","공급부족":"#C62828",
+  }[s.supply_status] || "#555";
+
+  const chip = (label, val, color="#333") => val
+    ? `<div style="background:#f7f7f7;border-radius:8px;padding:8px 12px;min-width:80px;text-align:center">
+        <div style="font-size:10px;color:#aaa;margin-bottom:2px">${label}</div>
+        <div style="font-size:14px;font-weight:700;color:${color}">${val}</div>
+       </div>` : "";
+
+  return `
+  <div class="card" style="margin-bottom:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:6px">
+      <div>
+        <div class="display" style="font-size:15px">📋 주간 계란 수급 정보</div>
+        <div style="font-size:11px;color:#aaa;margin-top:2px">${esc(title)}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        ${s.supply_status ? `<span style="background:${supplyColor};color:#fff;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700">${esc(s.supply_status)}</span>` : ""}
+        <a href="${esc(url)}" target="_blank" rel="noopener"
+          style="font-size:11px;color:#E8530A;text-decoration:none;border:1px solid #E8530A;border-radius:6px;padding:3px 8px">📄 원문</a>
+      </div>
+    </div>
+
+    <!-- 핵심 지표 -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      ${chip("대상기간", s.period, "#333")}
+      ${chip("차수", s.sequence, "#555")}
+      ${chip("산란율", s.laying_rate, "#1565C0")}
+      ${chip("생산량", s.production, "#2E7D32")}
+      ${chip("특란가격", s.xl_price_won, "#C62828")}
+      ${s.vs_last_week ? `<div style="background:#f7f7f7;border-radius:8px;padding:8px 12px;min-width:80px;text-align:center">
+        <div style="font-size:10px;color:#aaa;margin-bottom:2px">전주 대비</div>
+        <div style="font-size:12px;font-weight:600;color:#555">${esc(s.vs_last_week)}</div>
+      </div>` : ""}
+    </div>
+
+    <!-- PDF 텍스트 요약 (앞 400자) -->
+    ${r.text ? `<div style="background:#fafafa;border-radius:8px;padding:10px 12px;font-size:11px;color:#555;line-height:1.6;white-space:pre-wrap;max-height:120px;overflow-y:auto">${esc(r.text.slice(0,400).trim())}...</div>` : ""}
+
+    <div style="font-size:10px;color:#aaa;margin-top:8px;text-align:right">
+      수집: ${esc(updated)} · 매주 화요일 자동 업데이트
+    </div>
   </div>`;
 }
 
@@ -1577,7 +1646,8 @@ function renderPriceTab(){
     warnTail:"정확한 시세는 각 협회 공식 사이트를 확인하세요.",
     linkUrl:"https://www.poultry.or.kr", linkLabel:"📊 양계협회 시세", linkColor:"#E8530A",
     refreshId:"btn-refresh-poultry"})}
-  ${renderCompareTable(items,days,{unitNote:"단위: 육계·토종닭·닭고기(원/kg) | 계란(원/개) | 종계병아리·육계병아리(원/마리)"})}`;
+  ${renderCompareTable(items,days,{unitNote:"단위: 육계·토종닭·닭고기(원/kg) | 계란(원/개) | 종계병아리·육계병아리(원/마리)"})}
+  ${renderEggSupplyPanel()}`;
 }
 
 function renderPigTab(){
@@ -1588,7 +1658,8 @@ function renderPigTab(){
     warnTail:"정확한 경락가는 아래 '다봄 실시간 시세'에서 확인하세요.",
     linkUrl:"https://www.ekapepia.com/web/main.do", linkLabel:"📊 다봄 돼지 시세", linkColor:"#E84A6F",
     refreshId:"btn-refresh-pig"})}
-  ${renderCompareTable(items,last7DayInfos(),{unitNote:"단위: 등급별 경락가(원/kg) | 비육돈 산지(원/두)"})}`;
+  ${renderCompareTable(items,last7DayInfos(),{unitNote:"단위: 등급별 경락가(원/kg) | 비육돈 산지(원/두)"})}
+  ${renderDabomPricePanel("pig")}`;
 }
 
 function renderLivestockTab(){
@@ -1599,7 +1670,8 @@ function renderLivestockTab(){
     warnTail:"정확한 경락가는 아래 '다봄 실시간 시세'에서 확인하세요.",
     linkUrl:"https://www.ekapepia.com/web/main.do", linkLabel:"📊 다봄 소 시세", linkColor:"#A0522D",
     refreshId:"btn-refresh-cattle"})}
-  ${renderCompareTable(items,last7DayInfos(),{unitNote:"단위: 지육·도매(원/kg) | 송아지(원/두)"})}`;
+  ${renderCompareTable(items,last7DayInfos(),{unitNote:"단위: 지육·도매(원/kg) | 송아지(원/두)"})}
+  ${renderDabomPricePanel("cow")}`;
 }
 
 
@@ -1902,18 +1974,15 @@ function renderWeatherTab(){
   const ly = Array.isArray(weatherState.lastYear) ? weatherState.lastYear : [];
   const loc = weatherState.locationName;
 
-  // 올해/작년 7일 비교 카드 (클릭하면 시간대별 상세 표시)
+  // 올해/작년 7일 비교 카드 (하나의 열에 올해·작년 나란히)
   const compCards = fc.map((d,i)=>{
     const l = ly[i]||null;
     const isToday = i===0;
-    const isSel = d.date === weatherState.selectedDate;
     return `
-    <div class="wx-day-card" data-date="${d.date}"
-      style="border-radius:14px;overflow:hidden;border:2px solid ${isSel?"#F9A825":isToday?"#1a2744":"#efefef"};cursor:pointer">
+    <div style="border-radius:14px;overflow:hidden;border:1px solid ${isToday?"#1a2744":"#efefef"}">
       <!-- 날짜 헤더 -->
       <div style="background:${isToday?"#1a2744":"#f5f5f5"};padding:8px;text-align:center">
         <div style="font-size:11px;font-weight:700;color:${isToday?"#F9C74F":"#555"}">${isToday?"오늘":fmtDay(d.date)}</div>
-        ${isSel?`<div style="font-size:9px;color:${isToday?"#F9C74F":"#F9A825"};margin-top:1px">▼ 시간대</div>`:""}
       </div>
       <!-- 올해 -->
       <div style="background:${isToday?"#f0f4ff":"#fff"};padding:12px 8px;text-align:center;border-bottom:1px dashed #efefef">
@@ -1943,46 +2012,6 @@ function renderWeatherTab(){
     </div>`;
   }).join("");
 
-  // 시간대별 상세 패널
-  const selDate = weatherState.selectedDate;
-  const selDay = fc.find(d=>d.date===selDate);
-  const hourData = (weatherState.hourly[selDate]||[]).filter(h=>[0,3,6,9,12,15,18,21].includes(h.hour));
-  const dayNames2=["일","월","화","수","목","금","토"];
-  const selLabel = selDate?(()=>{const dd=new Date(selDate);return `${selDate.slice(5).replace('-','/')}(${dayNames2[dd.getDay()]})`})():"";
-  const timeLabel={0:"자정",3:"새벽3시",6:"새벽6시",9:"오전9시",12:"정오",15:"오후3시",18:"오후6시",21:"밤9시"};
-
-  let hourlyPanel = "";
-  if(selDate && hourData.length>0){
-    const slots = hourData.map(h=>{
-      const isNight = h.hour>=21||h.hour<6;
-      const isMorn  = h.hour>=6&&h.hour<12;
-      const isAft   = h.hour>=12&&h.hour<18;
-      const bg = isNight?"#1a1a2e":isMorn?"#e3f2fd":isAft?"#fff8e1":"#ede7f6";
-      const tc = isNight?"#fff":"#1a1a1a";
-      const sub= isNight?"rgba(255,255,255,0.6)":"#555";
-      return `
-      <div style="flex:1;min-width:78px;background:${bg};border-radius:10px;padding:10px 5px;text-align:center">
-        <div style="font-size:10px;font-weight:700;color:${sub};margin-bottom:4px">${timeLabel[h.hour]||h.hour+"시"}</div>
-        <div style="font-size:22px;margin:3px 0">${icon(h.code)}</div>
-        <div style="font-size:14px;font-weight:800;color:${isNight?"#ff8a80":"#D32F2F"}">${h.temp!=null?Math.round(h.temp)+"°":"-"}</div>
-        <div style="font-size:9px;color:${isNight?"#80cbc4":"#0288D1"};margin-top:3px">💦${h.humidity!=null?Math.round(h.humidity)+"%":"-"}</div>
-        ${h.rain>0?`<div style="font-size:9px;color:${isNight?"#80cbc4":"#1565C0"}">💧${h.rain.toFixed(1)}mm</div>`:""}
-        <div style="font-size:9px;color:${sub};margin-top:2px">💨${h.wind!=null?Math.round(h.wind):"?"}km</div>
-      </div>`;
-    }).join("");
-
-    hourlyPanel = `
-    <div class="card" id="wx-hourly-panel" style="margin-bottom:16px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-        <div class="display" style="font-size:15px">🕐 ${selLabel} 시간대별 날씨</div>
-        <span style="font-size:10px;color:#aaa">3시간 간격 · 탭을 눌러 날짜 변경</span>
-      </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">${slots}</div>
-      <div style="margin-top:8px;font-size:10px;color:#aaa">💦 습도 · 💧 강수량 · 💨 풍속(km/h)</div>
-    </div>`;
-
-  }  // if(selDate && hourData.length>0) 닫기
-
   return `
   <div style="margin-bottom:16px">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
@@ -2000,10 +2029,9 @@ function renderWeatherTab(){
   <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:12px">
     ${compCards}
   </div>
-  <div style="font-size:10px;color:#aaa;text-align:right;margin-bottom:12px">
-    기온 차이: <span style="color:#D32F2F">▲ 올해가 높음</span> · <span style="color:#1565C0">▼ 올해가 낮음</span> · 날짜 카드를 누르면 시간대별 날씨
+  <div style="font-size:10px;color:#aaa;text-align:right">
+    기온 차이: <span style="color:#D32F2F">▲ 올해가 높음</span> · <span style="color:#1565C0">▼ 올해가 낮음</span>
   </div>
-  ${hourlyPanel}
 
   <div class="card" style="margin-top:16px">
     <div style="display:flex;align-items:center;gap:12px">
@@ -2251,141 +2279,18 @@ function attachEvents(){
 
   // 날씨 지역 검색 버튼
   const wxSearchBtn=document.getElementById("btn-wx-search");
-  if(wxSearchBtn) wxSearchBtn.onclick=()=>{
-    // 기존 모달 제거
-    const old=document.getElementById("wx-location-modal");
-    if(old) old.remove();
-
-    const REGIONS = [
-      { group:"수도권",  list:[
-        {name:"서울",    lat:37.5665, lng:126.9780},
-        {name:"인천",    lat:37.4563, lng:126.7052},
-        {name:"수원",    lat:37.2636, lng:127.0286},
-        {name:"고양",    lat:37.6564, lng:126.8320},
-        {name:"성남",    lat:37.4201, lng:127.1262},
-        {name:"용인",    lat:37.2411, lng:127.1775},
-      ]},
-      { group:"충청·세종", list:[
-        {name:"세종",    lat:36.4800, lng:127.2890},
-        {name:"대전",    lat:36.3504, lng:127.3845},
-        {name:"천안",    lat:36.8151, lng:127.1139},
-        {name:"청주",    lat:36.6424, lng:127.4890},
-        {name:"공주",    lat:36.4468, lng:127.1192},
-        {name:"홍성",    lat:36.6010, lng:126.6611},
-      ]},
-      { group:"전라",    list:[
-        {name:"전주",    lat:35.8242, lng:127.1480},
-        {name:"광주",    lat:35.1595, lng:126.8526},
-        {name:"익산",    lat:35.9483, lng:126.9577},
-        {name:"나주",    lat:35.0160, lng:126.7106},
-        {name:"정읍",    lat:35.5700, lng:126.8560},
-        {name:"순천",    lat:34.9506, lng:127.4872},
-      ]},
-      { group:"경상",    list:[
-        {name:"대구",    lat:35.8714, lng:128.6014},
-        {name:"부산",    lat:35.1796, lng:129.0756},
-        {name:"울산",    lat:35.5384, lng:129.3114},
-        {name:"창원",    lat:35.2280, lng:128.6811},
-        {name:"진주",    lat:35.1798, lng:128.1076},
-        {name:"안동",    lat:36.5684, lng:128.7294},
-        {name:"포항",    lat:36.0190, lng:129.3435},
-        {name:"구미",    lat:36.1195, lng:128.3445},
-      ]},
-      { group:"강원",    list:[
-        {name:"춘천",    lat:37.8747, lng:127.7342},
-        {name:"원주",    lat:37.3422, lng:127.9202},
-        {name:"강릉",    lat:37.7519, lng:128.8761},
-      ]},
-      { group:"제주",    list:[
-        {name:"제주",    lat:33.4996, lng:126.5312},
-        {name:"서귀포",  lat:33.2541, lng:126.5600},
-      ]},
-    ];
-
-    // 모달 HTML
-    const modal = document.createElement("div");
-    modal.id = "wx-location-modal";
-    modal.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px";
-    modal.innerHTML = `
-    <div style="background:#fff;border-radius:16px;width:100%;max-width:480px;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
-      <div style="padding:16px 20px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#fff;z-index:1">
-        <div>
-          <div style="font-size:16px;font-weight:700;color:#1a2744">🌤️ 지역 선택</div>
-          <div style="font-size:11px;color:#aaa;margin-top:2px">날씨를 확인할 지역을 선택하세요</div>
-        </div>
-        <button id="wx-modal-close" style="border:none;background:none;font-size:20px;color:#aaa;cursor:pointer;padding:4px">✕</button>
-      </div>
-      <div style="padding:8px 0">
-        ${REGIONS.map(g=>`
-        <div style="padding:8px 0">
-          <div style="font-size:11px;font-weight:700;color:#888;padding:4px 20px;letter-spacing:1px">${g.group}</div>
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0">
-            ${g.list.map(r=>`
-            <button class="wx-loc-btn"
-              data-name="${r.name}" data-lat="${r.lat}" data-lng="${r.lng}"
-              style="border:none;background:none;padding:11px 8px;font-size:14px;font-weight:500;color:#1a2744;cursor:pointer;text-align:center;border-radius:8px;margin:2px">
-              ${r.name}
-            </button>`).join("")}
-          </div>
-        </div>`).join("")}
-      </div>
-      <div style="padding:12px 20px 16px;border-top:1px solid #f0f0f0;position:sticky;bottom:0;background:#fff">
-        <div style="display:flex;gap:8px">
-          <input id="wx-custom-input" type="text" placeholder="직접 입력 (예: 화성, 파주, 김제...)"
-            style="flex:1;border:1px solid #ddd;border-radius:8px;padding:9px 12px;font-size:13px;outline:none">
-          <button id="wx-custom-search" style="border:none;background:#1a2744;color:#fff;border-radius:8px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer">검색</button>
-        </div>
-      </div>
-    </div>`;
-
-    document.body.appendChild(modal);
-
-    // 닫기
-    const closeModal = ()=>modal.remove();
-    document.getElementById("wx-modal-close").onclick = closeModal;
-    modal.onclick = (e)=>{ if(e.target===modal) closeModal(); };
-
-    // 지역 버튼 클릭
-    modal.querySelectorAll(".wx-loc-btn").forEach(btn=>btn.onclick=async ()=>{
-      const name=btn.dataset.name, lat=parseFloat(btn.dataset.lat), lng=parseFloat(btn.dataset.lng);
-      closeModal();
-      fetchWeather(lat, lng, name);
-    });
-
-    // 호버 효과
-    modal.querySelectorAll(".wx-loc-btn").forEach(btn=>{
-      btn.onmouseenter=()=>btn.style.background="#f0f4ff";
-      btn.onmouseleave=()=>btn.style.background="none";
-    });
-
-    // 직접 입력 검색
-    const doSearch = async ()=>{
-      const q = document.getElementById("wx-custom-input").value.trim();
-      if(!q) return;
-      try {
-        const results = await searchLocation(q);
-        if(!results||results.length===0){ alert("'"+q+"' 지역을 찾을 수 없습니다."); return; }
-        const r=results[0];
-        const name=r.name+(r.admin1?", "+r.admin1:"")+(r.country_code==="KR"?"":"("+r.country+")");
-        closeModal();
-        fetchWeather(r.latitude, r.longitude, name);
-      } catch(e){ alert("검색에 실패했습니다. 다시 시도해주세요."); }
-    };
-    document.getElementById("wx-custom-search").onclick = doSearch;
-    document.getElementById("wx-custom-input").onkeydown = (e)=>{ if(e.key==="Enter") doSearch(); };
-    // 포커스
-    setTimeout(()=>document.getElementById("wx-custom-input")?.focus(), 100);
+  if(wxSearchBtn) wxSearchBtn.onclick=async ()=>{
+    if(!query||!query.trim()) return;
+    try {
+      const results=await searchLocation(query.trim());
+      if(!results||results.length===0){ alert("'"+query+"' 지역을 찾을 수 없습니다.\n다른 이름으로 다시 시도해주세요."); return; }
+      const r=results[0];
+      const name=r.name+(r.admin1?", "+r.admin1:"")+(r.country_code==="KR"?"":"("+r.country+")");
+      fetchWeather(r.latitude, r.longitude, name);
+    } catch(e){
+      alert("지역 검색에 실패했습니다. 다시 시도해주세요.");
+    }
   };
-
-  // 날씨 요일 카드 클릭 → 시간대별 상세
-  document.querySelectorAll(".wx-day-card").forEach(b=>b.onclick=()=>{
-    weatherState.selectedDate = b.dataset.date;
-    render();
-    setTimeout(()=>{
-      const el=document.getElementById("wx-hourly-panel");
-      if(el) el.scrollIntoView({behavior:"smooth",block:"start"});
-    },80);
-  });
 
   // 관심종목 추가
   const addStockBtn=document.getElementById("btn-add-stock");
@@ -2497,6 +2402,8 @@ fetchUpbitPrices();
 fetchStockPrices();
 // 다봄 실시간 시세 자동 로드 (백그라운드)
 fetchDabomPrices().then(()=>{ if(state.tab==="price"||state.tab==="pig") render(); });
+// 주간 계란 수급 정보 (GitHub Actions 매주 화요일 업데이트)
+fetchEggReport();
 
 </script>
 </body>
