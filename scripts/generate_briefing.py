@@ -93,94 +93,130 @@ def format_prices(prices):
 
     return "\n".join(l for l in lines if l)
 
-# ── 가축질병·방역 동향 — 데일리벳 + Google 뉴스 수집 ────────────────────────
-def fetch_dailyvet_welfare():
+# ── 가축전염병 발생현황 — KAHIS 국가가축방역통합시스템 ───────────────────────
+def fetch_kahis_disease():
     """
-    데일리벳 동물복지·방역 카테고리 기사 수집
-    URL: https://www.dailyvet.co.kr/category/news/animalwelfare
+    KAHIS 법정가축전염병 발생현황 파싱
+    URL: https://home.kahis.go.kr/home/lkntscrinfo/selectLkntsOccrrncList.do
+    테이블 구조: 가축전염병명 | 농장명 | 농장소재지 | 발생일자(진단일) | 축종 | 발생두수 | 진단기관 | 종식일
     """
-    url = "https://www.dailyvet.co.kr/category/news/animalwelfare"
+    url = "https://home.kahis.go.kr/home/lkntscrinfo/selectLkntsOccrrncList.do"
     try:
-        resp = requests.get(url, headers=HEADERS, timeout=15)
+        resp = requests.get(url, headers=HEADERS, timeout=20)
         resp.encoding = resp.apparent_encoding or 'utf-8'
         html = resp.text
 
-        items = []
-        seen = set()
-        # 데일리벳 뉴스 링크: /news/ 포함 URL
-        links = re.findall(
-            r'href="(https://www\.dailyvet\.co\.kr/news/[^"]+)"[^>]*>([^<]{10,120})<',
-            html
-        )
-        dates = re.findall(r'(\d{4}\.\d{2}\.\d{2})', html)
-        date_idx = 0
+        # <td> 셀 추출
+        cells = re.findall(r'<td[^>]*>([\s\S]*?)</td>', html)
+        # 태그 제거
+        def clean_cell(s):
+            s = re.sub(r'<[^>]+>', '', s)
+            return re.sub(r'\s+', ' ', s).strip()
+        cells = [clean_cell(c) for c in cells if clean_cell(c)]
 
-        for href, title in links:
-            title = title.strip()
-            if not title or title in seen:
-                continue
-            if any(x in title for x in ['로그인','AI 기사요약','일부 결과','댓글','좋아요']):
-                continue
-            seen.add(title)
-            date = dates[date_idx] if date_idx < len(dates) else ""
-            if date:
-                date_idx += 1
-            items.append({"title": title, "link": href, "date": date})
-            if len(items) >= 8:
-                break
+        # 8개 컬럼 단위로 행 구성
+        # 컬럼: 질병명, 농장명(농장주), 농장소재지, 발생일자(진단일), 축종(품종), 발생두수(마리), 진단기관, 종식일
+        rows = []
+        i = 0
+        while i + 7 < len(cells):
+            # 첫 번째 셀이 질병명처럼 보이는 경우만 행으로 간주
+            disease = cells[i]
+            date_str = cells[i+3]
+            species  = cells[i+4]
+            count    = cells[i+5]
+            region   = cells[i+2]
+            end_date = cells[i+7]
 
-        return items
+            # 날짜 패턴 확인으로 유효 행 필터
+            if re.search(r'\d{4}-\d{2}-\d{2}', date_str):
+                rows.append({
+                    "disease": disease,
+                    "region":  region,
+                    "date":    date_str.split('(')[0].strip(),
+                    "species": species,
+                    "count":   count,
+                    "ended":   "종식" if end_date and end_date not in ('-','') else "진행중",
+                })
+                i += 8
+            else:
+                i += 1
+
+        if not rows:
+            return "KAHIS 파싱 실패 — 데이터 없음"
+
+        # 질병별 집계
+        from collections import defaultdict
+        by_disease = defaultdict(list)
+        for r in rows:
+            by_disease[r['disease']].append(r)
+
+        # 결과 텍스트 생성
+        lines = [f"[KAHIS 법정가축전염병 발생현황] 조회일: {datetime.now(KST).strftime('%Y-%m-%d')} / 총 {len(rows)}건"]
+        lines.append("")
+
+        # 종식되지 않은 건 (진행중) 우선
+        active = [r for r in rows if r['ended'] == '진행중']
+        ended  = [r for r in rows if r['ended'] == '종식']
+
+        if active:
+            lines.append(f"▶ 현재 진행중 ({len(active)}건)")
+            for r in active[:15]:
+                lines.append(f"  • {r['disease']} | {r['region']} | {r['species']} {r['count']}마리 | 발생일 {r['date']}")
+            lines.append("")
+
+        lines.append(f"▶ 최근 종식 완료 ({len(ended)}건 중 최신 10건)")
+        for r in ended[:10]:
+            lines.append(f"  • {r['disease']} | {r['region']} | {r['species']} {r['count']}마리 | 발생일 {r['date']}")
+
+        lines.append("")
+        lines.append("▶ 질병별 발생 건수 (이번 조회 기준)")
+        for disease, cases in sorted(by_disease.items(), key=lambda x: -len(x[1])):
+            total_count = sum(int(c['count']) for c in cases if c['count'].replace(',','').isdigit())
+            lines.append(f"  • {disease}: {len(cases)}건 / {total_count:,}마리")
+
+        return "\n".join(lines)
+
     except Exception as e:
-        print(f"  ⚠️ 데일리벳 수집 실패: {e}")
-        return []
+        print(f"  ⚠️ KAHIS 수집 실패: {e}")
+        return f"KAHIS 수집 실패: {e}"
 
 
 def fetch_disease_news():
-    """
-    가축질병·방역 동향 수집
-    1) 데일리벳 동물복지·방역 카테고리 (주요 소스)
-    2) Google 뉴스 RSS (AI·구제역·ASF 보완)
-    """
+    """KAHIS + 데일리벳 동물복지 기사 병행 수집"""
     results = []
 
-    # ① 데일리벳 기사
-    dv_items = fetch_dailyvet_welfare()
-    if dv_items:
-        results.append("[데일리벳 동물복지·방역 최신 기사]")
-        for item in dv_items[:6]:
-            results.append(f"  - {item['title']} ({item['date']}) {item['link']}")
-    else:
-        results.append("[데일리벳] 수집 실패 — Google 뉴스로 대체")
-
+    # ① KAHIS 법정가축전염병 발생현황 (주요 소스)
+    print("  🔍 KAHIS 가축전염병 발생현황 수집...")
+    kahis = fetch_kahis_disease()
+    results.append(kahis)
     results.append("")
 
-    # ② Google 뉴스 RSS — 가금질병·방역 실시간 동향 (농림부·검역본부·WOAH 중심)
-    keywords = [
-        ("고병원성 조류인플루엔자 가금 검역본부", "🦠 고병원성 AI(HPAI)"),
-        ("전염성기관지염 IB 가금 양계", "🐔 전염성기관지염(IB)"),
-        ("저병원성 조류인플루엔자 LPAI 가금", "🐔 저병원성 AI(LPAI)"),
-        ("아프리카돼지열병 ASF 국내", "🐷 ASF"),
-        ("구제역 FMD 국내 발생", "🐄 구제역(FMD)"),
-        ("가금 대장균 살모넬라 방역", "🦠 세균성 질병(대장균·살모넬라)"),
-    ]
-    for query, label in keywords:
-        try:
-            rss_url = f"https://news.google.com/rss/search?q={requests.utils.quote(query)}&hl=ko&gl=KR&ceid=KR:ko&when=14d"
-            resp = requests.get(rss_url, headers=HEADERS, timeout=10)
-            resp.encoding = 'utf-8'
-            titles = re.findall(r'<title><!\[CDATA\[(.*?)\]\]></title>', resp.text)
-            dates  = re.findall(r'<pubDate>(.*?)</pubDate>', resp.text)
-            items  = []
-            for i, title in enumerate(titles[1:3]):
-                date_s = dates[i].strip()[:16] if i < len(dates) else ""
-                items.append(f"  - {title.strip()} ({date_s})")
-            if items:
-                results.append(f"[{label}]")
-                results.extend(items)
-            else:
-                results.append(f"[{label}] 최근 14일 특이사항 없음")
-        except Exception as e:
-            results.append(f"[{label}] 수집 실패: {e}")
+    # ② 데일리벳 animalwelfare 기사 (방역 뉴스 보완)
+    print("  🔍 데일리벳 방역 기사 수집...")
+    try:
+        url = "https://www.dailyvet.co.kr/category/news/animalwelfare"
+        resp = requests.get(url, headers=HEADERS, timeout=15)
+        resp.encoding = resp.apparent_encoding or 'utf-8'
+        links = re.findall(
+            r'href="(https://www\.dailyvet\.co\.kr/news/[^"]+)"[^>]*>([^<]{10,120})<',
+            resp.text
+        )
+        dates = re.findall(r'(\d{4}\.\d{2}\.\d{2})', resp.text)
+        items, seen, di = [], set(), 0
+        for href, title in links:
+            title = title.strip()
+            if not title or title in seen: continue
+            if any(x in title for x in ['로그인','AI 기사요약','댓글','좋아요']): continue
+            seen.add(title)
+            date = dates[di] if di < len(dates) else ""
+            if date: di += 1
+            items.append(f"  - {title} ({date}) {href}")
+            if len(items) >= 6: break
+        if items:
+            results.append("[데일리벳 방역·동물복지 최신 기사]")
+            results.extend(items)
+    except Exception as e:
+        results.append(f"[데일리벳] 수집 실패: {e}")
 
     return "\n".join(results)
 
@@ -251,7 +287,7 @@ def main():
 {prices_text}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-【실제 수집된 가축질병·방역 동향】 (출처: 데일리벳 animalwelfare · Google 뉴스, 최근 14일)
+【실제 수집된 가축전염병 발생현황】 (출처: KAHIS 국가가축방역통합시스템 + 데일리벳)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 {disease_news}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -277,24 +313,18 @@ def main():
 - 동물약품·사료회사 동향
 - 소비 트렌드 및 수출입 현황
 
-### 4. 🦠 가축질병·방역 동향
-- 위의 【데일리벳 동물복지·방역 최신 기사】를 최우선으로 인용·요약
-- 각 기사 제목과 핵심 내용을 1~2줄로 정리 (URL은 괄호 안에 표시)
-- 고병원성 AI·구제역·ASF 관련 기사가 있으면 별도 강조
-- 농가 방역 관련 주의사항·정책 동향 포함
-- 데일리벳 기사가 없는 경우 Google 뉴스 수집 결과 활용
+### 4. 🦠 가축전염병 발생현황 및 방역 동향
+- 위의 【KAHIS 가축전염병 발생현황】을 기반으로 작성 (실제 발생 데이터 그대로 인용)
+- 현재 진행중인 발생 건 우선 정리: 질병명 / 발생지역 / 축종·두수 / 농가 주의사항
+- 뉴캐슬·마렉 등 상시 관리 질병은 별도 이슈 없으면 생략
+- 데일리벳 방역 기사 중 주목할 내용 1~2건 요약
+- 고병원성 AI·구제역·ASF·브루셀라·결핵 등 법정전염병 발생시 별도 강조
+- KAHIS 데이터 기준 "현재 진행중 0건" 이면 "현재 법정전염병 특이 발생 없음"으로 표시
 
 ### 5. 🌤️ 날씨 및 사양관리
 - 오늘·금주 날씨 전망 (서울 기준 추정)
 - {today.month}월 계절적 특성에 따른 가금류 사양관리 포인트
 - 고온다습 시 폐사 예방, 음수 관리 등 실무 조언
-
-### 6. 📌 현재 주의해야 할 가금 질병 동향
-- 위의 【실제 수집된 가축질병·방역 동향】에서 현재 발생 중이거나 위험도가 높은 질병만 선별
-- 뉴캐슬, 마렉 등 상시 관리 질병은 제외 — 현재 실제 이슈가 되는 질병만 기술
-- 데일리벳 기사·검역본부 발표·WOAH 통계에 근거하여 작성
-- 질병명 / 국내외 발생 현황 / 농가 주의사항 형식으로 정리
-- 수집된 뉴스가 없는 질병은 "현재 특이 발생 없음"으로 표시 (뇌피셜 금지)
 
 ## 출력 형식 요구사항
 - 제목: # {date_str} ({weekday}요일) 축산·수의 일일 브리핑
