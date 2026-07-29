@@ -170,7 +170,7 @@ const STOCK_DATA = [
     trend:[22100,22800,23241,24000,25000,26225,27086,27000,26800,26500,26375,26021.66],
   },
   {
-    group:"미국", key:"dow", ysym:"^DJI", name:"다우존스", en:"Dow", icon:"🇺🇸", color:"#283593", unit:"pt",
+    group:"미국", key:"dow", ysym:"^DJI", name:"다우산업지수", en:"Dow", icon:"🇺🇸", color:"#283593", unit:"pt",
     current:51492.55, prevDay:52003.10, note:"미국 대표 30종목",
     trend:[48063,48800,49526,50200,50800,51078,51200,51400,51600,51900,52003,51492.55],
   },
@@ -1327,6 +1327,13 @@ function renderEggSupplyPanel(){
   const parseSummary = (raw)=>{
     if(!raw) return {org:"", blocks:[]};
     let t = String(raw).replace(/^[-·•\s]+/,"").replace(/\s+/g," ").trim();
+
+    // 용어 설명·부가 블록 제외 (□ 로 시작하는 구간 단위로 판단)
+    const DROP = [/수급\s*강도\s*구분/];
+    t = t.replace(/[□■▣◇◆]\s*[^□■▣◇◆]*/g, m => DROP.some(re=>re.test(m)) ? " " : m);
+    // □ 마커 없이 이어 붙은 경우 보완 (뒤쪽 설명문 통째로 제거)
+    t = t.replace(/수급\s*강도\s*구분\s*[:：]?[\s\S]*$/, "").replace(/\s+/g," ").trim();
+
     let org = "";
     const om = t.match(/^\(([^)]{2,25})\)\s*/);
     if(om){ org = om[1].trim(); t = t.slice(om[0].length); }
@@ -2562,7 +2569,7 @@ function renderEconSection(){
     </div>`;
   };
 
-  const stockKeys = ["kospi","kosdaq","sp500","nasdaq"];
+  const stockKeys = ["kospi","kosdaq","dow","nasdaq"];
   const stocks = stockKeys.map(k=>STOCK_DATA.find(s=>s.key===k)).filter(Boolean);
   const fx = FX_DATA.filter(f=>f.key==="usdkrw");
   const coinKeys = ["btc","eth","xrp"];
