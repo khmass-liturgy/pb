@@ -700,6 +700,7 @@ let weatherState = {
   lat:null, lng:null, locationName:"",
   forecast:[], // 7일 예보
   lastYear:null, // 작년 오늘 날씨
+  hourly:{},   // { "2026-07-29": [{hour,code,temp,rain,wind,humidity},...] }
 };
 function saveWeatherLocation(lat,lng,name){
   try { localStorage.setItem("weather_loc", JSON.stringify({lat,lng,name})); } catch(e){}
@@ -943,7 +944,7 @@ async function fetchWeather(lat, lng, name){
     const lyStart = new Date(today); lyStart.setFullYear(today.getFullYear()-1);
     const lyEnd = new Date(lyStart); lyEnd.setDate(lyStart.getDate()+6);
     const dateFmt = (d)=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-    const fcstUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max,relative_humidity_2m_mean&timezone=Asia%2FSeoul&forecast_days=7`;
+    const fcstUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max,relative_humidity_2m_mean&hourly=temperature_2m,weathercode,precipitation,windspeed_10m,relativehumidity_2m&timezone=Asia%2FSeoul&forecast_days=7`;
     const histUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=${dateFmt(lyStart)}&end_date=${dateFmt(lyEnd)}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,relative_humidity_2m_mean&timezone=Asia%2FSeoul`;
     const [fcstResp, histResp] = await Promise.all([
       fetchWithTimeout(fcstUrl, 10000),
@@ -958,6 +959,24 @@ async function fetchWeather(lat, lng, name){
       rain:days.precipitation_sum[i], wind:days.windspeed_10m_max[i],
       hum: days.relative_humidity_2m_mean ? days.relative_humidity_2m_mean[i] : null,
     }));
+    // 시간대별 데이터 → 날짜별 그룹핑 (THI 계산용)
+    const h = fcstData.hourly;
+    const hourlyByDate = {};
+    if(h && h.time){
+      h.time.forEach((dt,i)=>{
+        const date = dt.slice(0,10);
+        if(!hourlyByDate[date]) hourlyByDate[date] = [];
+        hourlyByDate[date].push({
+          hour:     parseInt(dt.slice(11,13)),
+          code:     h.weathercode[i],
+          temp:     h.temperature_2m[i],
+          rain:     h.precipitation[i],
+          wind:     h.windspeed_10m[i],
+          humidity: h.relativehumidity_2m[i],
+        });
+      });
+    }
+    weatherState.hourly = hourlyByDate;
     // 작년 7일치 배열로 저장
     if(histResp.ok){
       const hd = (await histResp.json()).daily;
@@ -1923,6 +1942,7 @@ function renderNewsTab(){
 // ── 축산 날씨 스트레스 지표 패널 ────────────────────────────────────────────
 function renderLivestockWeatherPanel(fc, hourlyByDate){
   if(!fc || fc.length === 0) return "";
+  hourlyByDate = hourlyByDate || {};
 
   // ── 지표 계산 함수들 ──────────────────────────────────────────────────────
   // THI (온습도지수): USDA 공식 (소·돼지·가금 공통 기준)
