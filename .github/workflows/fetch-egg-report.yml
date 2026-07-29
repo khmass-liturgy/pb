@@ -1,0 +1,37 @@
+name: 주간 계란 수급 정보 수집
+
+on:
+  schedule:
+    # 매주 월요일 23:30 UTC = 화요일 08:30 KST
+    # (다봄이 월요일에 업로드하므로 화요일 아침 수집)
+    - cron: "30 23 * * 1"
+  workflow_dispatch:  # 수동 실행
+
+jobs:
+  fetch-egg-report:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Python 설정
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 패키지 설치
+        run: pip install requests pdfplumber pypdf
+
+      - name: 주간 계란 수급 정보 수집
+        run: python scripts/fetch_egg_report.py
+
+      - name: 결과 커밋
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add egg_report/
+          git diff --staged --quiet || git commit -m "🥚 주간 계란 수급 정보 업데이트 ($(date '+%Y-%m-%d'))"
+          git push
