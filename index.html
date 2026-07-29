@@ -1328,11 +1328,18 @@ function renderEggSupplyPanel(){
     if(!raw) return {org:"", blocks:[]};
     let t = String(raw).replace(/^[-·•\s]+/,"").replace(/\s+/g," ").trim();
 
-    // 용어 설명·부가 블록 제외 (□ 로 시작하는 구간 단위로 판단)
-    const DROP = [/수급\s*강도\s*구분/];
+    // 용어 설명·통계표 등 부가 블록 제외 (□ 구간 단위로 판단)
+    const DROP = [
+      /수급\s*강도\s*구분/,                 // 용어 설명
+      /선별\s*포장\s*처리\s*실적/,          // 권역별·규격별 통계표 (표가 텍스트로 뭉개짐)
+      /이력제\s*자료/,                      // 위 표의 부제
+    ];
     t = t.replace(/[□■▣◇◆]\s*[^□■▣◇◆]*/g, m => DROP.some(re=>re.test(m)) ? " " : m);
-    // □ 마커 없이 이어 붙은 경우 보완 (뒤쪽 설명문 통째로 제거)
-    t = t.replace(/수급\s*강도\s*구분\s*[:：]?[\s\S]*$/, "").replace(/\s+/g," ").trim();
+    // □ 마커 없이 이어 붙은 경우: 가장 앞선 매칭 지점부터 끝까지 제거
+    let cut = -1;
+    DROP.forEach(re => { const m = t.match(re); if(m && (cut < 0 || m.index < cut)) cut = m.index; });
+    if(cut >= 0) t = t.slice(0, cut);
+    t = t.replace(/\s+/g," ").trim();
 
     let org = "";
     const om = t.match(/^\(([^)]{2,25})\)\s*/);
