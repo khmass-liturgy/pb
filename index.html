@@ -1045,15 +1045,6 @@ function renderBriefingTab(){
   if(!briefingState.files.length && briefingState.status==="done")
     return topSections + `<div class="card" style="text-align:center;padding:40px"><div style="font-size:40px;margin-bottom:12px">📋</div><div style="color:#888;font-size:13px">아직 생성된 브리핑이 없습니다.</div></div>`;
 
-  const DOW=["일","월","화","수","목","금","토"];
-  const dateList = briefingState.files.map((date,i)=>{
-    const [,m,d]=date.split('-');
-    const dow=DOW[new Date(date).getDay()];
-    const label=`${parseInt(m)}/${parseInt(d)} (${dow})`;
-    const sel=date===briefingState.selected;
-    return `<button class="briefing-date-btn" data-date="${date}" style="width:100%;text-align:left;border:none;border-radius:10px;padding:9px 12px;font-size:12px;cursor:pointer;background:${sel?"#1a2744":"#fff"};color:${sel?"#fff":"#333"};font-weight:${sel?700:400};box-shadow:0 1px 4px rgba(0,0,0,.07);margin-bottom:4px;display:flex;align-items:center;justify-content:space-between">${label}${i===0?`<span style="font-size:9px;background:#F9C74F;color:#1a2744;padding:1px 5px;border-radius:10px;font-weight:700">최신</span>`:""}</button>`;
-  }).join('');
-
   let body="";
   if(briefingState.contentStatus==="loading")
     body=`<div style="text-align:center;padding:40px;color:#888;font-size:13px">⏳ 불러오는 중...</div>`;
@@ -1062,15 +1053,22 @@ function renderBriefingTab(){
   else if(briefingState.content)
     body=`<div id="briefing-md">${typeof marked!=="undefined"?marked.parse(briefingState.content):briefingState.content.replace(/\n/g,"<br>")}</div>`;
 
+  // 선택된 브리핑 날짜 표시
+  const DOW=["일","월","화","수","목","금","토"];
+  const selDate = briefingState.selected;
+  let dateLabel = "";
+  if(selDate){
+    const [y,m,d] = selDate.split('-');
+    const dow = DOW[new Date(selDate).getDay()];
+    dateLabel = `${y}년 ${parseInt(m)}월 ${parseInt(d)}일 (${dow})`;
+  }
+
   return topSections + `
-  <div class="display" style="font-size:16px;margin-bottom:12px">📋 일일 브리핑</div>
-  <div style="display:flex;gap:14px;align-items:flex-start">
-    <div style="width:138px;flex-shrink:0">
-      <div style="font-size:11px;color:#888;font-weight:600;letter-spacing:.08em;margin-bottom:8px;padding-left:2px">브리핑 목록</div>
-      ${dateList}
-    </div>
-    <div style="flex:1;min-width:0"><div class="card">${body}</div></div>
-  </div>`;
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+    <div class="display" style="font-size:16px">📋 일일 브리핑</div>
+    ${dateLabel?`<div style="font-size:12px;color:#888;font-weight:600">${dateLabel}</div>`:""}
+  </div>
+  <div class="card">${body}</div>`;
 }
 
 function render(){
@@ -1926,6 +1924,216 @@ function renderNewsTab(){
   </div>`;
 }
 
+// ── 축산 날씨 스트레스 지표 패널 ────────────────────────────────────────────
+function renderLivestockWeatherPanel(fc, hourlyByDate){
+  if(!fc || fc.length === 0) return "";
+
+  // ── 지표 계산 함수들 ──────────────────────────────────────────────────────
+  // THI (온습도지수): USDA 공식 (소·돼지·가금 공통 기준)
+  // THI = T - (0.55 - 0.55×RH/100) × (T - 58)  [T: °F]
+  const calcTHI = (tempC, rh) => {
+    if(tempC==null || rh==null) return null;
+    const T = tempC * 9/5 + 32; // °C → °F
+    return Math.round(T - (0.55 - 0.55*(rh/100)) * (T - 58));
+  };
+
+  // THI 단계 (가금·돼지·소 통합 기준)
+  const thiLevel = (thi) => {
+    if(thi == null) return null;
+    if(thi < 68) return {label:"정상", color:"#2E7D32", bg:"#E8F5E9", icon:"✅"};
+    if(thi < 72) return {label:"경미", color:"#F57F17", bg:"#FFFDE7", icon:"⚠️"};
+    if(thi < 80) return {label:"중등도", color:"#E65100", bg:"#FFF3E0", icon:"🔶"};
+    if(thi < 90) return {label:"심각", color:"#B71C1C", bg:"#FFEBEE", icon:"🔴"};
+    return {label:"위험", color:"#880000", bg:"#FCE4EC", icon:"🚨"};
+  };
+
+  // 일교차 위험도 (호흡기·면역 저하 기준: 10°C 이상시 경보)
+  const dtLevel = (dt) => {
+    if(dt == null) return null;
+    if(dt < 8)  return {label:"안전", color:"#2E7D32", icon:"✅"};
+    if(dt < 12) return {label:"주의", color:"#F57F17", icon:"⚠️"};
+    return {label:"경보", color:"#B71C1C", icon:"🔴"};
+  };
+
+  // 육계 일령별 목표 사육온도 (Aviagen 기준)
+  const broilerTargetTemp = [
+    {day:"1~3일", t:33}, {day:"4~7일", t:31}, {day:"8~14일", t:29},
+    {day:"15~21일", t:27}, {day:"22~28일", t:25}, {day:"29~35일", t:22},
+    {day:"36일~", t:20},
+  ];
+
+  // 오늘 날씨 기본값 (일별 예보에서)
+  const today = fc[0];
+  const todayDate = today?.date;
+
+  // 오늘 시간대별 데이터에서 THI 계산 (정오~15시 최악 조건 기준)
+  const todayHourly = (hourlyByDate[todayDate] || []);
+  const peakHours = todayHourly.filter(h => h.hour >= 11 && h.hour <= 15);
+  let peakTHI = null, peakTemp = null, peakHumidity = null;
+  if(peakHours.length > 0){
+    // 가장 더운 시간대
+    const worst = peakHours.reduce((a,b)=>
+      (calcTHI(b.temp,b.humidity)||0) > (calcTHI(a.temp,a.humidity)||0) ? b : a
+    );
+    peakTemp     = worst.temp;
+    peakHumidity = worst.humidity;
+    peakTHI      = calcTHI(peakTemp, peakHumidity);
+  } else if(today) {
+    // 시간대별 없으면 최고기온 + 평균습도 추정
+    peakTemp = today.tMax;
+    peakHumidity = today.hum || 70;
+    peakTHI = calcTHI(peakTemp, peakHumidity);
+  }
+
+  const thiLv = thiLevel(peakTHI);
+  const dt = (today?.tMax != null && today?.tMin != null)
+    ? Math.round(today.tMax - today.tMin) : null;
+  const dtLv = dtLevel(dt);
+
+  // 7일 THI 추이 (일별 최고기온 + 평균습도)
+  const weekTHI = fc.map(d => ({
+    date: d.date,
+    thi:  calcTHI(d.tMax, d.hum || 70),
+    rain: d.rain,
+    tMax: d.tMax, tMin: d.tMin,
+    dt:   (d.tMax!=null && d.tMin!=null) ? Math.round(d.tMax-d.tMin) : null,
+  }));
+
+  // 이번 주 강수 위험일 수
+  const rainDays = fc.filter(d => (d.rain||0) >= 5).length;
+
+  // 오늘 야간 최저(새벽 3~5시) THI - 고온다습 야간 위험 체크
+  const nightHours = todayHourly.filter(h => h.hour >= 3 && h.hour <= 5);
+  let nightTHI = null;
+  if(nightHours.length > 0){
+    const worst = nightHours.reduce((a,b)=>
+      (calcTHI(b.temp,b.humidity)||0) > (calcTHI(a.temp,a.humidity)||0) ? b : a
+    );
+    nightTHI = calcTHI(worst.temp, worst.humidity);
+  }
+
+  // ── 렌더링 ───────────────────────────────────────────────────────────────
+  const fmtDay2 = (dateStr) => {
+    const d=new Date(dateStr), dn=["일","월","화","수","목","금","토"];
+    return `${d.getMonth()+1}/${d.getDate()}(${dn[d.getDay()]})`;
+  };
+
+  // THI 게이지 바
+  const thiGauge = (thi) => {
+    if(thi==null) return "";
+    const pct = Math.min(100, Math.max(0, ((thi-55)/45)*100));
+    const lv = thiLevel(thi);
+    return `<div style="background:#eee;border-radius:4px;height:6px;margin-top:4px">
+      <div style="background:${lv.color};width:${pct}%;height:6px;border-radius:4px;transition:width 0.5s"></div>
+    </div>`;
+  };
+
+  // 7일 THI 바 차트
+  const thiBars = weekTHI.map(d => {
+    const lv = thiLevel(d.thi);
+    const pct = d.thi ? Math.min(100, Math.max(0, ((d.thi-55)/45)*100)) : 0;
+    const isToday = d.date === todayDate;
+    return `<div style="flex:1;text-align:center">
+      <div style="font-size:9px;color:${isToday?"#1a2744":"#888"};font-weight:${isToday?"700":"400"};margin-bottom:2px">
+        ${fmtDay2(d.date)}
+      </div>
+      <div style="height:48px;display:flex;align-items:flex-end;justify-content:center">
+        <div style="background:${lv?lv.color:"#ccc"};width:22px;height:${pct}%;border-radius:3px 3px 0 0;min-height:3px;position:relative">
+          ${d.thi ? `<div style="position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:8px;font-weight:700;color:${lv.color};white-space:nowrap">${d.thi}</div>` : ""}
+        </div>
+      </div>
+      ${d.rain >= 5 ? `<div style="font-size:9px;color:#1565C0">💧</div>` : `<div style="font-size:9px;color:transparent">·</div>`}
+    </div>`;
+  }).join("");
+
+  return `
+  <div class="card" style="margin-top:16px;margin-bottom:16px">
+    <div class="display" style="font-size:15px;margin-bottom:14px">🌡️ 축산 날씨 스트레스 지표</div>
+
+    <!-- 핵심 지표 3종 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
+
+      <!-- THI 오늘 -->
+      <div style="background:${thiLv ? thiLv.bg : "#f5f5f5"};border-radius:12px;padding:12px;text-align:center">
+        <div style="font-size:10px;color:#888;font-weight:600;margin-bottom:4px">온습도지수 (THI)</div>
+        <div style="font-size:28px;font-weight:800;color:${thiLv ? thiLv.color : "#333"}">${peakTHI ?? "-"}</div>
+        <div style="font-size:11px;font-weight:700;color:${thiLv ? thiLv.color : "#aaa"}">${thiLv ? thiLv.icon+" "+thiLv.label : "-"}</div>
+        ${thiGauge(peakTHI)}
+        <div style="font-size:9px;color:#aaa;margin-top:4px">오후 최고 기준 · 68↑경미 72↑중등 80↑심각</div>
+      </div>
+
+      <!-- 일교차 -->
+      <div style="background:${dtLv ? (dt>=12?"#FFEBEE":dt>=8?"#FFFDE7":"#E8F5E9") : "#f5f5f5"};border-radius:12px;padding:12px;text-align:center">
+        <div style="font-size:10px;color:#888;font-weight:600;margin-bottom:4px">일교차</div>
+        <div style="font-size:28px;font-weight:800;color:${dtLv ? dtLv.color : "#333"}">${dt != null ? dt+"°" : "-"}</div>
+        <div style="font-size:11px;font-weight:700;color:${dtLv ? dtLv.color : "#aaa"}">${dtLv ? dtLv.icon+" "+dtLv.label : "-"}</div>
+        <div style="font-size:9px;color:#aaa;margin-top:8px">호흡기·면역 저하 위험<br>10°↑주의 / 12°↑경보</div>
+      </div>
+
+      <!-- 야간 THI -->
+      <div style="background:${nightTHI!=null&&nightTHI>=72?"#FFEBEE":nightTHI!=null&&nightTHI>=68?"#FFF3E0":"#f5f5f5"};border-radius:12px;padding:12px;text-align:center">
+        <div style="font-size:10px;color:#888;font-weight:600;margin-bottom:4px">야간 THI (새벽3~5시)</div>
+        <div style="font-size:28px;font-weight:800;color:${nightTHI!=null&&nightTHI>=72?"#B71C1C":nightTHI!=null&&nightTHI>=68?"#E65100":"#2E7D32"}">${nightTHI ?? "-"}</div>
+        <div style="font-size:11px;font-weight:700;color:${nightTHI!=null&&nightTHI>=68?"#B71C1C":"#2E7D32"}">
+          ${nightTHI!=null?(nightTHI>=72?"🔴 야간 고온주의":nightTHI>=68?"⚠️ 주의":"✅ 안전"):"-"}
+        </div>
+        <div style="font-size:9px;color:#aaa;margin-top:8px">야간 폐사 위험 구간<br>(가금 새벽 2~5시 취약)</div>
+      </div>
+    </div>
+
+    <!-- 7일 THI 추이 -->
+    <div style="margin-bottom:14px">
+      <div style="font-size:11px;font-weight:600;color:#555;margin-bottom:6px">📊 7일 THI 추이 (일 최고 기준) · 💧=강수 5mm↑</div>
+      <div style="display:flex;gap:4px;align-items:flex-end">${thiBars}</div>
+      <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap">
+        <span style="font-size:9px;color:#2E7D32">■ <68 정상</span>
+        <span style="font-size:9px;color:#F57F17">■ 68~72 경미</span>
+        <span style="font-size:9px;color:#E65100">■ 72~80 중등도</span>
+        <span style="font-size:9px;color:#B71C1C">■ 80~90 심각</span>
+        <span style="font-size:9px;color:#880000">■ 90↑ 위험</span>
+      </div>
+    </div>
+
+    <!-- 육계 일령별 목표온도 vs 오늘 최고기온 -->
+    <div style="margin-bottom:14px">
+      <div style="font-size:11px;font-weight:600;color:#555;margin-bottom:6px">🐔 육계 일령별 목표온도 vs 오늘 최고기온 (${today?.tMax!=null?Math.round(today.tMax)+"°C":"-"})</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${broilerTargetTemp.map(b => {
+          const diff = today?.tMax != null ? Math.round(today.tMax) - b.t : null;
+          const over = diff != null && diff > 0;
+          const under = diff != null && diff < 0;
+          return `<div style="background:${over?"#FFEBEE":under?"#E3F2FD":"#E8F5E9"};border-radius:8px;padding:6px 8px;text-align:center;min-width:60px">
+            <div style="font-size:9px;color:#888">${b.day}</div>
+            <div style="font-size:12px;font-weight:700;color:#555">목표 ${b.t}°</div>
+            <div style="font-size:10px;font-weight:700;color:${over?"#B71C1C":under?"#1565C0":"#2E7D32"}">
+              ${diff!=null?(over?"▲+"+diff:under?"▼"+Math.abs(diff):"±0"):""}
+            </div>
+          </div>`;
+        }).join("")}
+      </div>
+      <div style="font-size:9px;color:#aaa;margin-top:4px">▲ 빨강=목표 초과(과열 주의) · ▼ 파랑=목표 미달(보온 필요) · 출처: Aviagen 브로일러 가이드라인</div>
+    </div>
+
+    <!-- 강수 위험 & 관리 조언 -->
+    <div style="background:#f7f7f7;border-radius:10px;padding:10px 12px;font-size:11px;color:#555;line-height:1.8">
+      <div style="font-weight:700;color:#333;margin-bottom:4px">📋 오늘의 축산 관리 포인트</div>
+      ${peakTHI != null && peakTHI >= 80 ? `<div>🔴 <b>심각한 열스트레스(THI ${peakTHI})</b> — 터널환기 최대 가동, 쿨링패드·미스터 점검, 음수량 30~50% 증가, 전해질(KCl·NaHCO₃) 공급, 오후 2~6시 집중 관찰</div>` :
+       peakTHI != null && peakTHI >= 72 ? `<div>🔶 <b>중등도 열스트레스(THI ${peakTHI})</b> — 환기 강화, 음수 충분 공급(수온 20°C 이하 유지), 사료 섭취 저하 예상(야간 급이 비중 확대)</div>` :
+       peakTHI != null && peakTHI >= 68 ? `<div>⚠️ <b>경미한 열스트레스(THI ${peakTHI})</b> — 환기 상태 점검, 음수 공급 확인, 과밀 사육 여부 체크</div>` :
+       `<div>✅ <b>열스트레스 없음(THI ${peakTHI ?? "-"})</b> — 정상 관리 유지</div>`}
+      ${dt != null && dt >= 12 ? `<div>🔴 <b>일교차 ${dt}°C 경보</b> — 호흡기·CRD 위험, 새벽 환기 조절, 백신·예방약 점검</div>` :
+       dt != null && dt >= 8  ? `<div>⚠️ <b>일교차 ${dt}°C 주의</b> — 온도 변화 완충, 환기 급변 억제</div>` : ""}
+      ${nightTHI != null && nightTHI >= 72 ? `<div>🌙 <b>야간 고온 경보(THI ${nightTHI})</b> — 새벽 2~5시 폐사 집중 모니터링, 야간 환기 유지</div>` : ""}
+      ${rainDays >= 3 ? `<div>💧 <b>이번 주 강수 ${rainDays}일 예상</b> — 축사 침수·누수 점검, 깔집 습도 관리, 대장균·살모넬라 감염 위험 ↑</div>` :
+       rainDays >= 1 ? `<div>🌧 <b>강수 예보 ${rainDays}일</b> — 배수로 점검, 입하리터 건조 유지</div>` : ""}
+    </div>
+
+    <div style="font-size:9px;color:#aaa;margin-top:8px;text-align:right">
+      THI 공식: USDA/Clemson Univ. · 육계 목표온도: Aviagen Broiler Guide · 지표 기준: 세계축산기상학회(ISES)
+    </div>
+  </div>`;
+}
+
 function renderWeatherTab(){
   const today = new Date();
   const dayNames = ["일","월","화","수","목","금","토"];
@@ -2032,6 +2240,8 @@ function renderWeatherTab(){
   <div style="font-size:10px;color:#aaa;text-align:right">
     기온 차이: <span style="color:#D32F2F">▲ 올해가 높음</span> · <span style="color:#1565C0">▼ 올해가 낮음</span>
   </div>
+
+  ${renderLivestockWeatherPanel(fc, weatherState.hourly)}
 
   <div class="card" style="margin-top:16px">
     <div style="display:flex;align-items:center;gap:12px">
@@ -2227,7 +2437,6 @@ function attachEvents(){
     }
     if(state.tab==="price" && chPriceState.status==="idle") fetchChickenPrices();
   });
-  document.querySelectorAll(".briefing-date-btn").forEach(b=>b.onclick=()=>loadBriefingContent(b.dataset.date));
 
   // 공지 갱신 버튼
   const noticesRefreshBtn=document.getElementById("btn-notices-refresh");
