@@ -122,7 +122,7 @@ def load_egg_report():
                 lines.append("")
 
         # ★ 섹션별 <요약> 블록 (핵심 데이터)
-        sections = data.get("sections", [])
+        sections = [s for s in data.get("sections", []) if "생산" not in s.get("title","")]
         if sections:
             lines.append("▶ 섹션별 요약 (PDF <요약> 원문)")
             for sec in sections:
