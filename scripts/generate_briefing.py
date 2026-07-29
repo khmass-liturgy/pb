@@ -93,6 +93,71 @@ def format_prices(prices):
 
     return "\n".join(l for l in lines if l)
 
+# ── 해외 조류인플루엔자 발생동향 — KAHIS 국외현황 + Google 뉴스 ──────────────
+def fetch_kahis_overseas_ai():
+    """
+    해외 AI 발생동향 수집
+    1) KAHIS 해외위생정보 동향 (게시판 목록에서 AI 관련 글 필터)
+    2) Google 뉴스 RSS 보완 (HPAI 해외 최신)
+    """
+    results = []
+
+    # ① KAHIS 국외현황 게시판 (조류인플루엔자 관련만 필터)
+    try:
+        url = "https://home.kahis.go.kr/home/lkdissinfo/lkdissinfoBbsList.do?type=1_5hwwsdx"
+        resp = requests.get(url, headers=HEADERS, timeout=20)
+        resp.encoding = resp.apparent_encoding or "utf-8"
+        html = resp.text
+
+        # 게시글 제목·날짜 추출 (제목: <a ...>제목</a> 패턴)
+        title_pats = re.findall(r'javascript:fn_select\([^)]+\)[^>]*>([^<]+)<', html)
+        date_pats  = re.findall(r'(\d{4}-\d{2}-\d{2})', html)
+        rows = list(zip(date_pats, title_pats))
+        # 조류인플루엔자 관련만 필터 (가금 포함)
+        ai_keywords = ["조류인플루엔자", "AI", "HPAI", "LPAI", "고병원성", "가금"]
+        ai_rows = []
+        for no, title, date in rows:
+            title = re.sub(r"\s+", " ", title).strip()
+            if any(k in title for k in ai_keywords):
+                ai_rows.append((date, title))
+
+        if ai_rows:
+            # 최신순 정렬
+            ai_rows.sort(key=lambda x: x[0], reverse=True)
+            results.append(f"[KAHIS 해외 조류인플루엔자 발생동향] (최신 {min(len(ai_rows),10)}건)")
+            for date, title in ai_rows[:10]:
+                results.append(f"  • {date} | {title}")
+            results.append(f"  ※ 총 {len(ai_rows)}건 (게시판 1페이지 기준) · 상세: https://home.kahis.go.kr/home/lkdissinfo/lkdissinfoBbsList.do?type=1_5hwwsdx")
+        else:
+            results.append("[KAHIS 해외 AI] 1페이지 내 AI 관련 게시글 없음 (2025.01 이후 검역본부로 이관)")
+
+    except Exception as e:
+        results.append(f"[KAHIS 해외 AI] 수집 실패: {e}")
+
+    results.append("")
+
+    # ② Google 뉴스 RSS — 해외 HPAI 최신 동향 보완
+    try:
+        queries = [
+            ("고병원성 조류인플루엔자 해외 발생 2026", "해외 HPAI"),
+            ("avian influenza HPAI outbreak 2026", "HPAI (영문)"),
+        ]
+        results.append("[Google 뉴스 — 해외 HPAI 최신 동향]")
+        for query, label in queries:
+            rss_url = f"https://news.google.com/rss/search?q={requests.utils.quote(query)}&hl=ko&gl=KR&ceid=KR:ko&when=14d"
+            resp = requests.get(rss_url, headers=HEADERS, timeout=10)
+            resp.encoding = "utf-8"
+            titles = re.findall(r"<title><!\[CDATA\[(.*?)\]\]></title>", resp.text)
+            dates  = re.findall(r"<pubDate>(.*?)</pubDate>", resp.text)
+            for i, title in enumerate(titles[1:4]):
+                date_s = dates[i].strip()[:16] if i < len(dates) else ""
+                results.append(f"  • [{label}] {title.strip()} ({date_s})")
+    except Exception as e:
+        results.append(f"  수집 실패: {e}")
+
+    return "\n".join(results)
+
+
 # ── 가축전염병 발생현황 — KAHIS 국가가축방역통합시스템 ───────────────────────
 def fetch_kahis_disease():
     """
@@ -182,13 +247,19 @@ def fetch_kahis_disease():
 
 
 def fetch_disease_news():
-    """KAHIS + 데일리벳 동물복지 기사 병행 수집"""
+    """KAHIS 국내 + 해외 AI + 데일리벳 병행 수집"""
     results = []
 
     # ① KAHIS 법정가축전염병 발생현황 (주요 소스)
     print("  🔍 KAHIS 가축전염병 발생현황 수집...")
     kahis = fetch_kahis_disease()
     results.append(kahis)
+    results.append("")
+
+    # ② 해외 조류인플루엔자 발생동향
+    print("  🔍 해외 조류인플루엔자 동향 수집...")
+    overseas_ai = fetch_kahis_overseas_ai()
+    results.append(overseas_ai)
     results.append("")
 
     # ② 데일리벳 animalwelfare 기사 (방역 뉴스 보완)
@@ -287,7 +358,7 @@ def main():
 {prices_text}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-【실제 수집된 가축전염병 발생현황】 (출처: KAHIS 국가가축방역통합시스템 + 데일리벳)
+【실제 수집된 가축전염병 발생현황 + 해외 AI 동향】 (출처: KAHIS 국내·국외현황 + 데일리벳)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 {disease_news}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -314,12 +385,19 @@ def main():
 - 소비 트렌드 및 수출입 현황
 
 ### 4. 🦠 가축전염병 발생현황 및 방역 동향
+
+**[국내 발생현황]**
 - 위의 【KAHIS 가축전염병 발생현황】을 기반으로 작성 (실제 발생 데이터 그대로 인용)
 - 현재 진행중인 발생 건 우선 정리: 질병명 / 발생지역 / 축종·두수 / 농가 주의사항
 - 뉴캐슬·마렉 등 상시 관리 질병은 별도 이슈 없으면 생략
-- 데일리벳 방역 기사 중 주목할 내용 1~2건 요약
 - 고병원성 AI·구제역·ASF·브루셀라·결핵 등 법정전염병 발생시 별도 강조
 - KAHIS 데이터 기준 "현재 진행중 0건" 이면 "현재 법정전염병 특이 발생 없음"으로 표시
+
+**[해외 조류인플루엔자(HPAI) 동향]**
+- 위의 【해외 조류인플루엔자 발생동향】 데이터를 그대로 인용
+- 국가별 발생 현황 요약 (가금 발생 우선, 야생조류 발생 별도 표시)
+- 주요 수입국(미국·유럽·동남아 등) AI 발생시 국내 닭고기·종란 수입 영향 언급
+- 데일리벳 방역 기사 중 주목할 내용 1~2건 요약
 
 ### 5. 🌤️ 날씨 및 사양관리
 - 오늘·금주 날씨 전망 (서울 기준 추정)
