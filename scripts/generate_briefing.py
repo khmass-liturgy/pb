@@ -124,16 +124,26 @@ def load_egg_report():
         # ★ 섹션별 <요약> 블록 (핵심 데이터)
         sections = [s for s in data.get("sections", []) if "생산" not in s.get("title","")]
 
-        # 용어 설명·부가 블록 제외 (□ 수급 강도 구분 등)
+        # 용어 설명·통계표 등 부가 블록 제외
+        DROP_PATS = [
+            r"수급\s*강도\s*구분",           # 용어 설명
+            r"선별\s*포장\s*처리\s*실적",   # 권역별·규격별 통계표
+            r"이력제\s*자료",                 # 위 표의 부제
+        ]
+
         def _clean(txt):
             if not txt:
                 return txt
             t = re.sub(r"\s+", " ", str(txt)).strip()
             # □ 구간 단위로 잘라 제외 대상 블록 제거
-            t = re.sub(r"[□■▣◇◆]\s*[^□■▣◇◆]*",
-                       lambda m: " " if re.search(r"수급\s*강도\s*구분", m.group(0)) else m.group(0), t)
-            # 마커 없이 이어진 경우 뒤쪽 통째로 제거
-            t = re.sub(r"수급\s*강도\s*구분\s*[:：]?[\s\S]*$", "", t)
+            def _drop(m):
+                seg = m.group(0)
+                return " " if any(re.search(p, seg) for p in DROP_PATS) else seg
+            t = re.sub(r"[□■▣◇◆]\s*[^□■▣◇◆]*", _drop, t)
+            # 마커 없이 이어진 경우: 가장 앞선 매칭 지점부터 끝까지 제거
+            idxs = [m.start() for p in DROP_PATS for m in [re.search(p, t)] if m]
+            if idxs:
+                t = t[:min(idxs)]
             return re.sub(r"\s+", " ", t).strip()
 
         sections = [{**s, "summary": _clean(s.get("summary",""))} for s in sections]
