@@ -1283,55 +1283,51 @@ function renderEggSupplyPanel(){
 
   const r   = d.data;
   const s   = r.summary || {};
+  const secs = r.sections || [];
   const updated = r.updated || "";
   const title   = r.title  || "주간 계란 수급 정보";
   const url     = r.url    || "https://www.ekapepia.com/v3/board/detail.do?boardInfoNo=0159&dmlType=SELECT";
 
   // 수급 상황 색상
   const supplyColor = {
-    "공급 과잉":"#1565C0","공급과잉":"#1565C0",
+    "강세":"#C62828","강보합":"#E65100","보합":"#555","약보합":"#1565C0","약세":"#1565C0",
+    "체화":"#1565C0","공급 과잉":"#1565C0","공급과잉":"#1565C0",
     "수급 안정":"#2E7D32","수급안정":"#2E7D32",
     "공급 부족":"#C62828","공급부족":"#C62828",
   }[s.supply_status] || "#555";
 
-  const chip = (label, val, color="#333") => val
-    ? `<div style="background:#f7f7f7;border-radius:8px;padding:8px 12px;min-width:80px;text-align:center">
-        <div style="font-size:10px;color:#aaa;margin-bottom:2px">${label}</div>
-        <div style="font-size:14px;font-weight:700;color:${color}">${val}</div>
-       </div>` : "";
+  // 섹션별 요약 카드
+  const sectionCards = secs.map(sec => `
+    <div style="margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+        <span style="background:#1a2744;color:#F9C74F;font-size:10px;font-weight:700;width:18px;height:18px;border-radius:4px;display:inline-flex;align-items:center;justify-content:center">${esc(sec.no)}</span>
+        <span style="font-size:13px;font-weight:700;color:#1a2744">${esc(sec.title)}</span>
+      </div>
+      <div style="background:#fafafa;border-left:3px solid #E8530A;border-radius:0 8px 8px 0;padding:10px 12px;font-size:12px;color:#444;line-height:1.75">
+        ${esc(sec.summary)}
+      </div>
+    </div>`).join("");
 
   return `
   <div class="card" style="margin-bottom:16px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:6px">
       <div>
         <div class="display" style="font-size:15px">📋 주간 계란 수급 정보</div>
-        <div style="font-size:11px;color:#aaa;margin-top:2px">${esc(title)}</div>
+        <div style="font-size:11px;color:#aaa;margin-top:2px">
+          ${esc(title)}${s.period?` · ${esc(s.period)}`:""}
+        </div>
       </div>
       <div style="display:flex;align-items:center;gap:8px">
         ${s.supply_status ? `<span style="background:${supplyColor};color:#fff;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700">${esc(s.supply_status)}</span>` : ""}
         <a href="${esc(url)}" target="_blank" rel="noopener"
-          style="font-size:11px;color:#E8530A;text-decoration:none;border:1px solid #E8530A;border-radius:6px;padding:3px 8px">📄 원문</a>
+          style="font-size:11px;color:#E8530A;text-decoration:none;border:1px solid #E8530A;border-radius:6px;padding:3px 8px">📄 원문 PDF</a>
       </div>
     </div>
 
-    <!-- 핵심 지표 -->
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
-      ${chip("대상기간", s.period, "#333")}
-      ${chip("차수", s.sequence, "#555")}
-      ${chip("산란율", s.laying_rate, "#1565C0")}
-      ${chip("생산량", s.production, "#2E7D32")}
-      ${chip("특란가격", s.xl_price_won, "#C62828")}
-      ${s.vs_last_week ? `<div style="background:#f7f7f7;border-radius:8px;padding:8px 12px;min-width:80px;text-align:center">
-        <div style="font-size:10px;color:#aaa;margin-bottom:2px">전주 대비</div>
-        <div style="font-size:12px;font-weight:600;color:#555">${esc(s.vs_last_week)}</div>
-      </div>` : ""}
-    </div>
+    ${sectionCards || `<div style="text-align:center;padding:16px;color:#aaa;font-size:12px">요약 정보를 추출하지 못했습니다. 원문 PDF를 확인해주세요.</div>`}
 
-    <!-- PDF 텍스트 요약 (앞 400자) -->
-    ${r.text ? `<div style="background:#fafafa;border-radius:8px;padding:10px 12px;font-size:11px;color:#555;line-height:1.6;white-space:pre-wrap;max-height:120px;overflow-y:auto">${esc(r.text.slice(0,400).trim())}...</div>` : ""}
-
-    <div style="font-size:10px;color:#aaa;margin-top:8px;text-align:right">
-      수집: ${esc(updated)} · 매주 화요일 자동 업데이트
+    <div style="font-size:10px;color:#aaa;margin-top:4px;text-align:right">
+      출처: 축산물품질평가원 다봄 · 수집 ${esc(updated)}
     </div>
   </div>`;
 }
