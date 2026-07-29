@@ -123,6 +123,21 @@ def load_egg_report():
 
         # ★ 섹션별 <요약> 블록 (핵심 데이터)
         sections = [s for s in data.get("sections", []) if "생산" not in s.get("title","")]
+
+        # 용어 설명·부가 블록 제외 (□ 수급 강도 구분 등)
+        def _clean(txt):
+            if not txt:
+                return txt
+            t = re.sub(r"\s+", " ", str(txt)).strip()
+            # □ 구간 단위로 잘라 제외 대상 블록 제거
+            t = re.sub(r"[□■▣◇◆]\s*[^□■▣◇◆]*",
+                       lambda m: " " if re.search(r"수급\s*강도\s*구분", m.group(0)) else m.group(0), t)
+            # 마커 없이 이어진 경우 뒤쪽 통째로 제거
+            t = re.sub(r"수급\s*강도\s*구분\s*[:：]?[\s\S]*$", "", t)
+            return re.sub(r"\s+", " ", t).strip()
+
+        sections = [{**s, "summary": _clean(s.get("summary",""))} for s in sections]
+        sections = [s for s in sections if len(s.get("summary","")) > 20]
         if sections:
             lines.append("▶ 섹션별 요약 (PDF <요약> 원문)")
             for sec in sections:
