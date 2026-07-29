@@ -503,7 +503,50 @@ function parseHandonHTML(html){
   });
   return out.slice(0,5);
 }
-// 한국경제 경제뉴스 (공식 RSS 2.0): item > title / link / pubDate / author
+// 한국경제 경제뉴스 — rss2json(CORS 허용 API)으로 직접 수집
+// CORS 프록시를 쓰지 않으므로 프록시 호출 제한과 무관하다.
+const HANKYUNG_RSS = "https://www.hankyung.com/feed/economy";
+
+function fmtKST(dateStr){
+  if(!dateStr) return "";
+  const s = String(dateStr).trim();
+  let d;
+  if(/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/.test(s) && !/([Zz]|[+-]\d{2}:?\d{2})$/.test(s)){
+    // rss2json 형식("2026-07-20 07:00:42")은 시간대 표기가 없고 UTC 기준.
+    // 그냥 new Date()에 넣으면 브라우저 로컬시각으로 해석돼 어긋나므로 Z를 명시한다.
+    d = new Date(s.replace(" ","T") + "Z");
+  } else {
+    d = new Date(s); // RFC822("Mon, 20 Jul 2026 16:00:42 +0900") 등 시간대 포함 형식
+  }
+  if(isNaN(d)) return "";
+  const k = new Date(d.getTime() + 9*3600*1000); // 브라우저 시간대와 무관하게 KST 표기
+  return `${String(k.getUTCMonth()+1).padStart(2,"0")}.${String(k.getUTCDate()).padStart(2,"0")} `
+       + `${String(k.getUTCHours()).padStart(2,"0")}:${String(k.getUTCMinutes()).padStart(2,"0")}`;
+}
+
+async function fetchEconNews(){
+  // ① rss2json (CORS 허용) → ② 프록시 + XML 직접 파싱
+  try {
+    const url = RSS2JSON + "?rss_url=" + encodeURIComponent(HANKYUNG_RSS) + "&count=8";
+    const resp = await fetchWithTimeout(url, 10000);
+    if(!resp.ok) throw new Error("HTTP "+resp.status);
+    const data = await resp.json();
+    if(data.status!=="ok" || !Array.isArray(data.items)) throw new Error(data.message||"RSS 오류");
+    const items = data.items.slice(0,5).map(it=>({
+      title: (it.title||"").replace(/<[^>]+>/g,"").replace(/\s+/g," ").trim(),
+      url:   it.link || "",
+      date:  fmtKST(it.pubDate),
+    })).filter(x=>x.title && x.url);
+    if(items.length>=2) return {items, fallback:false};
+    throw new Error("항목 부족");
+  } catch(e){
+    console.warn("한국경제 rss2json 실패:", e.message);
+  }
+  // 폴백: 프록시 경유 XML 파싱
+  return await fetchOneSite(HANKYUNG_RSS, parseHankyungRSS, "한국경제");
+}
+
+// RSS 2.0 XML 파서 (폴백 경로용)
 function parseHankyungRSS(xml){
   const doc = new DOMParser().parseFromString(xml, "text/xml");
   const out = [], seen = new Set();
@@ -511,30 +554,35 @@ function parseHankyungRSS(xml){
     const title = (it.querySelector("title")?.textContent || "").replace(/\s+/g," ").trim();
     const url   = (it.querySelector("link")?.textContent || "").trim();
     if(!title || title.length<6 || !url || seen.has(url)) return;
-    // pubDate: "Mon, 20 Jul 2026 16:00:42 +0900" → "07.20 16:00" (KST 고정)
-    let date = "";
-    const pd = (it.querySelector("pubDate")?.textContent || "").trim();
-    if(pd){
-      const d = new Date(pd);
-      if(!isNaN(d)){
-        // 브라우저 시간대와 무관하게 한국시각으로 표기
-        const k = new Date(d.getTime() + 9*3600*1000);
-        date = `${String(k.getUTCMonth()+1).padStart(2,"0")}.${String(k.getUTCDate()).padStart(2,"0")} `
-             + `${String(k.getUTCHours()).padStart(2,"0")}:${String(k.getUTCMinutes()).padStart(2,"0")}`;
-      }
-    }
     seen.add(url);
-    out.push({title, date, url});
+    out.push({title, date: fmtKST(it.querySelector("pubDate")?.textContent||""), url});
   });
   return out.slice(0,5);
 }
 
 
+// ── 공용 CORS 프록시 풀 ─────────────────────────────────────────────────────
+// 무료 프록시는 각각 분당/초당 호출 제한이 있음 (AllOrigins 20/분, CodeTabs 5/초 등).
+// 매 호출마다 시작 프록시를 회전시켜 한 곳에 부하가 몰리지 않게 분산한다.
+const CORS_PROXIES = [
+  (u)=>"https://api.codetabs.com/v1/proxy/?quest="+encodeURIComponent(u),
+  (u)=>"https://api.allorigins.win/raw?url="+encodeURIComponent(u),
+  (u)=>"https://api.cors.lol/?url="+encodeURIComponent(u),
+  (u)=>"https://corsproxy.io/?url="+encodeURIComponent(u),
+];
+let _proxyCursor = 0;
+function proxyRoutes(targetUrl, includeDirect){
+  const n = CORS_PROXIES.length;
+  const start = _proxyCursor++ % n;
+  const out = [];
+  for(let i=0;i<n;i++) out.push(CORS_PROXIES[(start+i)%n](targetUrl));
+  if(includeDirect) out.push(targetUrl);
+  return out;
+}
+const sleep = (ms)=> new Promise(r=>setTimeout(r, ms));
+
 async function fetchOneSite(targetUrl, parseFn, label){
-  const proxies=[
-    "https://api.allorigins.win/raw?url="+encodeURIComponent(targetUrl),
-    "https://corsproxy.io/?url="+encodeURIComponent(targetUrl),
-  ];
+  const proxies = proxyRoutes(targetUrl);
   for(let i=0;i<proxies.length;i++){
     try{
       const r=await fetchWithTimeout(proxies[i],9000);
@@ -553,7 +601,7 @@ async function fetchNotices(){
   const [pr,cr,er]=await Promise.allSettled([
     fetchOneSite("https://www.chuksannews.co.kr/news/section_list_all.html?sec_no=2", parseChuksanHTML, "축산신문"),
     fetchOneSite("https://www.pignpork.com/news/articleList.html?sc_section_code=S1N1&view_type=sm", parseHandonHTML, "한돈뉴스"),
-    fetchOneSite("https://www.hankyung.com/feed/economy", parseHankyungRSS, "한국경제"),
+    fetchEconNews(),
   ]);
   const pv=pr.status==="fulfilled"?pr.value:{items:null,fallback:true};
   const cv=cr.status==="fulfilled"?cr.value:{items:null,fallback:true};
@@ -642,10 +690,7 @@ function parseChickenPriceHTML(html){
 async function fetchChickenPrices(){
   chPriceState.status="loading";
   if(state.tab==="price") render();
-  const proxies=[
-    "https://api.allorigins.win/raw?url="+encodeURIComponent(CHPRICE_URL),
-    "https://corsproxy.io/?url="+encodeURIComponent(CHPRICE_URL),
-  ];
+  const proxies = proxyRoutes(CHPRICE_URL);
   for(let i=0;i<proxies.length;i++){
     try{
       const r=await fetchWithTimeout(proxies[i],10000);
@@ -808,11 +853,7 @@ function fetchWithTimeout(url, ms){
 // 여러 경로를 순차 시도 (직접 → CORS 프록시들)
 async function fetchUpbitData(markets){
   const apiUrl = "https://api.upbit.com/v1/ticker?markets=" + encodeURIComponent(markets);
-  const routes = [
-    apiUrl,
-    "https://corsproxy.io/?url=" + encodeURIComponent(apiUrl),
-    "https://api.allorigins.win/raw?url=" + encodeURIComponent(apiUrl),
-  ];
+  const routes = [apiUrl].concat(proxyRoutes(apiUrl));
   for(let i=0;i<routes.length;i++){
     try {
       const resp = await fetchWithTimeout(routes[i], 8000);
@@ -873,11 +914,7 @@ async function fetchYahooQuote(symbol){
   // range=1mo: 추세 스파크라인용 일봉 확보 (previousClose는 range와 무관하게 정확)
   const yurl = "https://query1.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(symbol) + "?interval=1d&range=1mo&includePrePost=false";
   const headers = { "Accept":"application/json", "User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" };
-  const routes = [
-    "https://corsproxy.io/?url=" + encodeURIComponent(yurl),
-    "https://api.allorigins.win/raw?url=" + encodeURIComponent(yurl),
-    yurl,
-  ];
+  const routes = proxyRoutes(yurl, true);
   for(let i=0;i<routes.length;i++){
     try {
       const resp = await fetchWithTimeout(routes[i], 8000);
@@ -929,40 +966,80 @@ async function fetchYahooQuote(symbol){
   return null;
 }
 
+// 마지막 성공 시세 캐시 (프록시 실패 시 하드코딩 초기값으로 되돌아가지 않게)
+function loadQuoteCache(){
+  try { return JSON.parse(localStorage.getItem("quote_cache")||"{}"); } catch(e){ return {}; }
+}
+function saveQuoteCache(c){
+  try { localStorage.setItem("quote_cache", JSON.stringify(c)); } catch(e){}
+}
+
 async function fetchStockPrices(){
   // 주가지수 + 사용자 관심종목 + 곡물 + 유가 (야후 심볼 있는 것만)
-  const targets = STOCK_DATA.filter(s=>s.ysym)
+  const all = STOCK_DATA.filter(s=>s.ysym)
     .concat(state.customStocks.filter(s=>s.ysym))
     .concat(GRAIN_DATA.filter(s=>s.ysym))
     .concat(OIL_DATA.filter(s=>s.ysym))
     .concat(FX_DATA.filter(s=>s.ysym));
-  if(targets.length===0){ stockFetchStatus="done"; return; }
+  if(all.length===0){ stockFetchStatus="done"; return; }
+
+  // 브리핑 경제동향에 쓰이는 핵심 종목을 먼저 갱신 (프록시 제한에 걸려도 우선 확보)
+  const PRIORITY = ["kospi","kosdaq","dow","nasdaq","usdkrw"];
+  const targets = all.slice().sort((a,b)=>{
+    const ai = PRIORITY.indexOf(a.key), bi = PRIORITY.indexOf(b.key);
+    return (ai<0?99:ai) - (bi<0?99:bi);
+  });
+
   stockFetchStatus = "loading";
   if(state.tab==="stock"||state.tab==="briefing") render();
-  let okCount = 0;
-  for(const s of targets){
+
+  const cache = loadQuoteCache();
+  const now   = Date.now();
+  let okCount = 0, cacheCount = 0;
+
+  for(let i=0;i<targets.length;i++){
+    const s = targets[i];
+    // 프록시 초당 제한(CodeTabs 5/초 등) 회피용 시차
+    if(i>0) await sleep(180);
+
     const q = await fetchYahooQuote(s.ysym);
+    // CBOT 곡물(옥수수·대두·소맥)은 야후가 센트/부셸로 제공 → 100으로 나눠 달러 변환
+    const scale = s.yahooCents ? 100 : 1;
+
     if(q){
-      // CBOT 곡물(옥수수·대두·소맥)은 야후가 센트/부셸로 제공 → 100으로 나눠 달러로 변환
-      const scale = s.yahooCents ? 100 : 1;
       s.current = Math.round((q.cur / scale) * 100) / 100;
       s.prevDay = Math.round((q.prev / scale) * 100) / 100;
-      // 추세: 실제 일봉 종가 최근 12개로 교체 (부족하면 기존값과 이어붙임)
+
+      // 추세: 실제 일봉 종가 최근 12개로 교체
       const live = q.closes.map(v=>Math.round((v/scale)*100)/100);
-      if(live.length>=12){
-        s.trend = live.slice(-12);
-      } else if(live.length>=2){
-        s.trend = s.trend.slice(0, 12-live.length).concat(live);
-      } else {
-        s.trend = s.trend.slice(0,11).concat([s.current]);
-      }
+      if(live.length>=12)     s.trend = live.slice(-12);
+      else if(live.length>=2) s.trend = s.trend.slice(0, 12-live.length).concat(live);
+      else                    s.trend = s.trend.slice(0,11).concat([s.current]);
+
       s.note = "야후 실시간";
       s._live = true;
+      cache[s.ysym] = { cur:s.current, prev:s.prevDay, trend:s.trend, ts:now };
       okCount++;
+    } else {
+      // 실패 시 24시간 내 캐시로 대체 (하드코딩 초기값보다 정확)
+      const c = cache[s.ysym];
+      if(c && (now - c.ts) < 24*3600*1000){
+        s.current = c.cur; s.prevDay = c.prev;
+        if(Array.isArray(c.trend)) s.trend = c.trend;
+        const mins = Math.round((now - c.ts)/60000);
+        s.note = mins<60 ? `캐시 ${mins}분 전` : `캐시 ${Math.round(mins/60)}시간 전`;
+        s._live = false;
+        cacheCount++;
+      }
     }
   }
+
+  saveQuoteCache(cache);
   if(okCount>0){ saveCustomStocks(); stockFetchStatus="done"; }
+  else if(cacheCount>0) stockFetchStatus="cached";
   else stockFetchStatus="error";
+  console.log(`주가 갱신: 실시간 ${okCount} / 캐시 ${cacheCount} / 전체 ${targets.length}`);
+
   if(state.tab==="stock"||state.tab==="briefing") render();
   // 양계 탭도 곡물·유가 갱신됐으면 재렌더
   if(state.tab==="price") render();
@@ -2645,6 +2722,7 @@ function renderEconSection(){
   const sStat = stockFetchStatus, cStat = coinFetchStatus;
   const statBadge = (st)=> st==="loading"?`<span style="font-size:10px;color:#aaa">⏳ 갱신중</span>`
     : st==="done"?`<span style="font-size:10px;color:#1B7A3E">🟢 실시간</span>`
+    : st==="cached"?`<span style="font-size:10px;color:#0288D1">🔵 최근 캐시</span>`
     : st==="error"?`<span style="font-size:10px;color:#e67700">⚡ 저장값</span>`:"";
 
   return `
