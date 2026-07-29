@@ -88,7 +88,7 @@ def download_pdf(attach_no):
 
 
 def parse_pdf(pdf_bytes):
-    result = {"text": "", "tables": [], "summary": {}}
+    result = {"text": "", "tables": [], "summary": {}, "sections": []}
     try:
         with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
             full_text = ""
@@ -112,28 +112,53 @@ def parse_pdf(pdf_bytes):
     text = result["text"]
     s    = result["summary"]
 
+    # ── 섹션별 <요약> 블록 추출 ─────────────────────────────────────────────
+    # PDF 구조: "1 생산 동향" ... "<요약>" ... 내용 ... "2 유통 동향" ... "<요약>" ...
+    sections = []
+    # 섹션 헤더 위치 찾기 (숫자 + 한글 제목)
+    header_pat = re.compile(r"(?:^|\n)\s*([1-9])\s+([가-힣][가-힣\s·]{1,15}동향|[가-힣][가-힣\s·]{1,15}현황|[가-힣][가-힣\s·]{1,15}전망)")
+    headers = [(m.start(), m.group(1), m.group(2).strip()) for m in header_pat.finditer(text)]
+
+    for i, (pos, num, title) in enumerate(headers):
+        end = headers[i+1][0] if i+1 < len(headers) else len(text)
+        block = text[pos:end]
+
+        # 이 섹션 안의 <요약> 내용 추출
+        m = re.search(r"<\s*요\s*약\s*>([\s\S]*?)(?=\n\s*[1-9]\s+[가-힣]|$)", block)
+        if m:
+            body = m.group(1).strip()
+            # 줄바꿈 정리 (PDF 줄바꿈 → 공백, 불릿은 유지)
+            body = re.sub(r"\n\s*", " ", body)
+            body = re.sub(r"\s{2,}", " ", body).strip()
+            if len(body) > 20:
+                sections.append({"no": num, "title": title, "summary": body})
+
+    # <요약> 헤더 없이 전체에서 찾기 (fallback)
+    if not sections:
+        for m in re.finditer(r"<\s*요\s*약\s*>([\s\S]{30,1200}?)(?=<\s*요\s*약\s*>|\n\s*[1-9]\s+[가-힣]|$)", text):
+            body = re.sub(r"\n\s*", " ", m.group(1).strip())
+            body = re.sub(r"\s{2,}", " ", body).strip()
+            sections.append({"no": str(len(sections)+1), "title": "요약", "summary": body})
+
+    result["sections"] = sections
+    print(f"  요약 섹션 {len(sections)}개 추출")
+    for sec in sections:
+        print(f"    [{sec['no']}] {sec['title']}: {sec['summary'][:60]}...")
+
+    # ── 메타 정보 ─────────────────────────────────────────────────────────
     period = re.search(r"(\d+월\s*\d+일\s*[~∼～]\s*\d+월?\s*\d+일)", text)
     if period: s["period"] = period.group(1).strip()
 
     seq = re.search(r"(\d+)\s*차", text)
     if seq: s["sequence"] = seq.group(1) + "차"
 
-    lay = re.search(r"산란율[^\d]*([\d.]+)\s*%", text)
-    if lay: s["laying_rate"] = lay.group(1) + "%"
-
-    prod = re.search(r"생산량[^\d]*([\d,]+)\s*(백만개|천개)", text)
-    if prod: s["production"] = prod.group(1) + prod.group(2)
-
-    price = re.search(r"특란[^\d]*([\d,]+)\s*원", text)
-    if price: s["xl_price_won"] = price.group(1) + "원"
-
-    for kw in ["공급 과잉","공급과잉","수급 안정","수급안정","공급 부족","공급부족"]:
-        if kw in text:
+    # 수급 상황 키워드 (요약문 안에서 우선 탐색)
+    summary_text = " ".join(sec["summary"] for sec in sections) or text
+    for kw in ["강보합","약보합","보합","강세","약세","체화","공급 과잉","공급과잉",
+               "수급 안정","수급안정","공급 부족","공급부족"]:
+        if kw in summary_text:
             s["supply_status"] = kw
             break
-
-    chg = re.search(r"전주\s*대비\s*([^\n,。]{2,20})", text)
-    if chg: s["vs_last_week"] = chg.group(1).strip()
 
     return result
 
@@ -148,8 +173,9 @@ def save(board_no, attach_no, title, parsed, pdf_bytes):
         "attach_no": attach_no,
         "url":       f"{BASE}/v3/board/detail.do?boardInfoNo=0159&boardNo={board_no}&dmlType=SELECT",
         "summary":   parsed["summary"],
-        "text":      parsed["text"][:5000],
-        "tables":    parsed["tables"][:5],
+        "sections":  parsed.get("sections", []),
+        "text":      parsed["text"][:3000],
+        "tables":    parsed["tables"][:3],
     }
     with open("egg_report/latest.json", "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=2)

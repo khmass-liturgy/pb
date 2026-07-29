@@ -113,31 +113,25 @@ def load_egg_report():
         lines.append("")
 
         if summary:
-            lines.append("▶ 요약 지표")
+            meta = []
             for k, v in summary.items():
-                label = {
-                    "period":"대상기간","sequence":"차수","laying_rate":"산란율",
-                    "production":"생산량","xl_price":"특란가격","stock":"재고",
-                    "supply_status":"수급상황","vs_last_week":"전주대비",
-                }.get(k, k)
-                lines.append(f"  • {label}: {v}")
-            lines.append("")
+                label = {"period":"대상기간","sequence":"차수","supply_status":"수급상황"}.get(k, k)
+                meta.append(f"{label}: {v}")
+            if meta:
+                lines.append("▶ " + " / ".join(meta))
+                lines.append("")
 
-        # 표 데이터 (최대 3개)
-        if tables:
-            lines.append("▶ 주요 표 데이터")
-            for i, tbl in enumerate(tables[:3]):
-                lines.append(f"  [표 {i+1}]")
-                for row in tbl[:6]:  # 행 최대 6개
-                    row_str = " | ".join(str(c).strip() for c in row if c)
-                    if row_str.strip():
-                        lines.append(f"    {row_str}")
-            lines.append("")
-
-        # 전문 텍스트 앞부분
-        if text:
-            lines.append("▶ PDF 전문 (앞부분)")
-            lines.append(text[:2000])
+        # ★ 섹션별 <요약> 블록 (핵심 데이터)
+        sections = data.get("sections", [])
+        if sections:
+            lines.append("▶ 섹션별 요약 (PDF <요약> 원문)")
+            for sec in sections:
+                lines.append(f"  [{sec.get('no','')}] {sec.get('title','')}")
+                lines.append(f"    {sec.get('summary','')}")
+                lines.append("")
+        elif text:
+            lines.append("▶ PDF 전문 (요약 추출 실패)")
+            lines.append(text[:1500])
 
         return "\n".join(lines), updated
     except Exception as e:
@@ -419,11 +413,10 @@ def main():
 위 데이터를 바탕으로 아래 3개 섹션으로 브리핑을 작성하세요.
 
 ### 1. 🥚 주간 계란 수급 동향
-- 위의 【주간 계란 수급 정보】 PDF 데이터를 기반으로 작성 (실제 수치 그대로 인용)
-- 대상 기간 / 차수 명시
-- 산란율·생산량·재고 현황 → 수급 판단 (과잉/안정/부족)
-- 계란 가격 동향 (특란 기준, 전주 대비 등락)
-- 향후 수급 전망 및 농가 시사점
+- 위의 【주간 계란 수급 정보】 ▶섹션별 요약 내용을 그대로 인용·정리
+- 각 섹션(생산 동향 / 유통 동향 / 가격 동향 등)별로 소제목을 달고 핵심만 3~5줄
+- PDF 요약문에 없는 내용은 절대 추가하지 말 것 (추정·창작 금지)
+- 마지막에 "농가 시사점" 2~3줄만 추가
 - 계란 수급 정보가 없으면 "이번 주 미발행"으로 표시하고 섹션 생략
 
 ### 2. 🦠 가축전염병 발생현황 및 방역 동향
