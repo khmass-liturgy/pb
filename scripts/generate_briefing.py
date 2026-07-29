@@ -93,6 +93,57 @@ def format_prices(prices):
 
     return "\n".join(l for l in lines if l)
 
+# ── 주간 계란 수급 정보 로드 ────────────────────────────────────────────────────
+def load_egg_report():
+    """egg_report/latest.json 로드 (fetch_egg_report.py가 매주 저장)"""
+    path = "egg_report/latest.json"
+    if not os.path.exists(path):
+        return None, None
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        title   = data.get("title", "")
+        updated = data.get("updated", "")
+        summary = data.get("summary", {})
+        text    = data.get("text", "")
+        tables  = data.get("tables", [])
+
+        lines = [f"[주간 계란 수급 정보] {title} (수집: {updated})"]
+        lines.append(f"원본 URL: {data.get('url','')}")
+        lines.append("")
+
+        if summary:
+            lines.append("▶ 요약 지표")
+            for k, v in summary.items():
+                label = {
+                    "period":"대상기간","sequence":"차수","laying_rate":"산란율",
+                    "production":"생산량","xl_price":"특란가격","stock":"재고",
+                    "supply_status":"수급상황","vs_last_week":"전주대비",
+                }.get(k, k)
+                lines.append(f"  • {label}: {v}")
+            lines.append("")
+
+        # 표 데이터 (최대 3개)
+        if tables:
+            lines.append("▶ 주요 표 데이터")
+            for i, tbl in enumerate(tables[:3]):
+                lines.append(f"  [표 {i+1}]")
+                for row in tbl[:6]:  # 행 최대 6개
+                    row_str = " | ".join(str(c).strip() for c in row if c)
+                    if row_str.strip():
+                        lines.append(f"    {row_str}")
+            lines.append("")
+
+        # 전문 텍스트 앞부분
+        if text:
+            lines.append("▶ PDF 전문 (앞부분)")
+            lines.append(text[:2000])
+
+        return "\n".join(lines), updated
+    except Exception as e:
+        return f"계란 수급 정보 로드 실패: {e}", None
+
+
 # ── 해외 조류인플루엔자 발생동향 — KAHIS 국외현황 + Google 뉴스 ──────────────
 def fetch_kahis_overseas_ai():
     """
@@ -338,6 +389,12 @@ def main():
     print("  💰 시세 데이터 로드 중...")
     # 시세 섹션 제거됨 (데이터 정확도 문제)
 
+    # 주간 계란 수급 정보 로드
+    print("  🥚 주간 계란 수급 정보 로드 중...")
+    egg_report, egg_updated = load_egg_report()
+    egg_section = egg_report or "이번 주 계란 수급 정보 없음 (매주 화요일 업데이트)"
+    print(f"  {'✅' if egg_report else '⚠️'} 계란 수급 정보: {egg_updated or '없음'}")
+
     # 가축질병 방역 뉴스 수집
     print("  🦠 방역 뉴스 수집 중...")
     disease_news = fetch_disease_news()
@@ -350,14 +407,26 @@ def main():
 아래에 제공된 【실제 수집 데이터】를 반드시 사용하여 오늘의 일일 브리핑을 작성하세요.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【주간 계란 수급 정보】 (출처: KAPE 다봄, 매주 업데이트)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+{egg_section}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 【실제 수집된 가축전염병 발생현황 + 해외 AI 동향】 (출처: KAHIS 국내·국외현황 + 데일리벳)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 {disease_news}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-위 데이터를 바탕으로 아래 2개 섹션으로 브리핑을 작성하세요.
+위 데이터를 바탕으로 아래 3개 섹션으로 브리핑을 작성하세요.
 
-### 1. 🦠 가축전염병 발생현황 및 방역 동향
+### 1. 🥚 주간 계란 수급 동향
+- 위의 【주간 계란 수급 정보】 PDF 데이터를 기반으로 작성 (실제 수치 그대로 인용)
+- 대상 기간 / 차수 명시
+- 산란율·생산량·재고 현황 → 수급 판단 (과잉/안정/부족)
+- 계란 가격 동향 (특란 기준, 전주 대비 등락)
+- 향후 수급 전망 및 농가 시사점
+- 계란 수급 정보가 없으면 "이번 주 미발행"으로 표시하고 섹션 생략
+
+### 2. 🦠 가축전염병 발생현황 및 방역 동향
 
 **[국내 발생현황]**
 - 위의 【KAHIS 가축전염병 발생현황】을 기반으로 작성 (실제 발생 데이터 그대로 인용)
@@ -372,7 +441,7 @@ def main():
 - 주요 수입국(미국·유럽·동남아 등) AI 발생시 국내 닭고기·종란 수입 영향 언급
 - 데일리벳 방역 기사 중 주목할 내용 1~2건 요약
 
-### 2. 🌤️ 날씨 및 축산농가 사양관리
+### 3. 🌤️ 날씨 및 축산농가 사양관리
 
 **[오늘·금주 날씨 요약]**
 - {today.month}월 {today.day}일 기준 날씨 전망 (기온·강수·풍속 등 핵심 수치 포함)
