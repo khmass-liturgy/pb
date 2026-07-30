@@ -430,6 +430,11 @@ const PRICES_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/mai
 // ── 주간 계란 수급 정보 (GitHub Actions → egg_report/latest.json) ───────────
 const EGG_REPORT_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/egg_report/latest.json";
 
+// ── 주가·환율·곡물 시세 (GitHub Actions → market/quotes.json) ────────────────
+// 서버에서 야후를 직접 호출해 저장한 파일. raw.githubusercontent.com 은 CORS 허용이라
+// 프록시가 전혀 필요 없다 → 앱을 여러 번 열어도 프록시 한도가 차감되지 않는다.
+const MARKET_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/market/quotes.json";
+
 // ── 뉴스 게시판: 브라우저 직접 fetch (CORS 프록시 → HTML 파싱) ───────────────
 // chuksannews.co.kr: mediaOn CMS (article.html?no=) · pignpork.com: ndsoft CMS (articleView.html?idxno=)
 
@@ -595,7 +600,31 @@ async function fetchOneSite(targetUrl, parseFn, label){
   return {items:null, fallback:true};
 }
 
-async function fetchNotices(){
+// 뉴스 결과 캐시 (짧은 시간 내 재방문 시 프록시 재호출 방지)
+const NOTICE_TTL = 20*60*1000;   // 20분
+function loadNoticeCache(){
+  try { return JSON.parse(localStorage.getItem("notice_cache")||"null"); } catch(e){ return null; }
+}
+function saveNoticeCache(o){
+  try { localStorage.setItem("notice_cache", JSON.stringify(o)); } catch(e){}
+}
+
+async function fetchNotices(force){
+  // TTL 내 캐시가 있으면 네트워크 호출 없이 재사용
+  if(!force){
+    const c = loadNoticeCache();
+    if(c && (Date.now() - c.ts) < NOTICE_TTL){
+      noticesState.chuksan = c.chuksan || NOTICE_FALLBACK.chuksan;
+      noticesState.handon  = c.handon  || NOTICE_FALLBACK.handon;
+      noticesState.econ    = c.econ    || [];
+      noticesState.fallback = c.fallback || {chuksan:false,handon:false,econ:false};
+      noticesState.updatedAt = c.updatedAt || "";
+      noticesState.status = "done";
+      console.log("뉴스: 캐시 사용 (프록시 호출 0회)");
+      if(state.tab==="briefing") render();
+      return;
+    }
+  }
   noticesState.status="loading";
   if(state.tab==="briefing") render();
   const [pr,cr,er]=await Promise.allSettled([
@@ -614,6 +643,11 @@ async function fetchNotices(){
   noticesState.fallback.econ = ev.fallback;
   noticesState.updatedAt= new Date().toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"});
   noticesState.status   = "done";
+  saveNoticeCache({
+    ts: Date.now(),
+    chuksan: noticesState.chuksan, handon: noticesState.handon, econ: noticesState.econ,
+    fallback: noticesState.fallback, updatedAt: noticesState.updatedAt,
+  });
   if(state.tab==="briefing") render();
 }
 
@@ -975,7 +1009,6 @@ function saveQuoteCache(c){
 }
 
 async function fetchStockPrices(){
-  // 주가지수 + 사용자 관심종목 + 곡물 + 유가 (야후 심볼 있는 것만)
   const all = STOCK_DATA.filter(s=>s.ysym)
     .concat(state.customStocks.filter(s=>s.ysym))
     .concat(GRAIN_DATA.filter(s=>s.ysym))
@@ -983,39 +1016,61 @@ async function fetchStockPrices(){
     .concat(FX_DATA.filter(s=>s.ysym));
   if(all.length===0){ stockFetchStatus="done"; return; }
 
-  // 브리핑 경제동향에 쓰이는 핵심 종목을 먼저 갱신 (프록시 제한에 걸려도 우선 확보)
-  const PRIORITY = ["kospi","kosdaq","dow","nasdaq","usdkrw"];
-  const targets = all.slice().sort((a,b)=>{
-    const ai = PRIORITY.indexOf(a.key), bi = PRIORITY.indexOf(b.key);
-    return (ai<0?99:ai) - (bi<0?99:bi);
-  });
-
   stockFetchStatus = "loading";
   if(state.tab==="stock"||state.tab==="briefing") render();
 
   const cache = loadQuoteCache();
   const now   = Date.now();
-  let okCount = 0, cacheCount = 0;
+  let srvCount = 0, okCount = 0, cacheCount = 0;
 
-  for(let i=0;i<targets.length;i++){
-    const s = targets[i];
-    // 프록시 초당 제한(CodeTabs 5/초 등) 회피용 시차
-    if(i>0) await sleep(180);
+  // ── ① 서버 수집 JSON (프록시 불필요, 호출 1회) ──────────────────────────
+  let market = null;
+  try {
+    const resp = await fetchWithTimeout(MARKET_JSON_URL + "?t=" + Math.floor(now/60000), 8000);
+    if(resp.ok) market = await resp.json();
+  } catch(e){ console.warn("market/quotes.json 로딩 실패:", e.message); }
+
+  const applied = new Set();
+  if(market && market.quotes){
+    const srvTs = (market.updatedTs ? market.updatedTs*1000 : now);
+    all.forEach(s=>{
+      const q = market.quotes[s.key];
+      if(!q || typeof q.current!=="number") return;
+      s.current = q.current;
+      s.prevDay = q.prev;
+      if(Array.isArray(q.trend) && q.trend.length>=2){
+        s.trend = q.trend.length>=12 ? q.trend.slice(-12)
+                : s.trend.slice(0, 12-q.trend.length).concat(q.trend);
+      }
+      const mins = Math.round((now - srvTs)/60000);
+      s.note = q.stale ? "서버 저장값"
+             : mins<90 ? `서버 수집 ${mins<1?"방금":mins+"분 전"}`
+             : `서버 수집 ${Math.round(mins/60)}시간 전`;
+      s._live = !q.stale;
+      cache[s.ysym] = { cur:s.current, prev:s.prevDay, trend:s.trend, ts:srvTs };
+      applied.add(s.ysym);
+      srvCount++;
+    });
+    saveQuoteCache(cache);
+    stockFetchStatus = srvCount>0 ? "done" : "error";
+    if(state.tab==="stock"||state.tab==="briefing"||state.tab==="price") render();
+  }
+
+  // ── ② 서버에 없는 항목만 프록시로 보충 (주로 사용자 관심종목) ─────────────
+  const missing = all.filter(s=>!applied.has(s.ysym));
+  for(let i=0;i<missing.length;i++){
+    const s = missing[i];
+    if(i>0) await sleep(180);   // 프록시 초당 제한 회피
 
     const q = await fetchYahooQuote(s.ysym);
-    // CBOT 곡물(옥수수·대두·소맥)은 야후가 센트/부셸로 제공 → 100으로 나눠 달러 변환
-    const scale = s.yahooCents ? 100 : 1;
+    const scale = s.yahooCents ? 100 : 1;   // CBOT 곡물은 센트/부셸
 
     if(q){
       s.current = Math.round((q.cur / scale) * 100) / 100;
       s.prevDay = Math.round((q.prev / scale) * 100) / 100;
-
-      // 추세: 실제 일봉 종가 최근 12개로 교체
       const live = q.closes.map(v=>Math.round((v/scale)*100)/100);
       if(live.length>=12)     s.trend = live.slice(-12);
       else if(live.length>=2) s.trend = s.trend.slice(0, 12-live.length).concat(live);
-      else                    s.trend = s.trend.slice(0,11).concat([s.current]);
-
       s.note = "야후 실시간";
       s._live = true;
       cache[s.ysym] = { cur:s.current, prev:s.prevDay, trend:s.trend, ts:now };
@@ -1035,14 +1090,15 @@ async function fetchStockPrices(){
   }
 
   saveQuoteCache(cache);
-  if(okCount>0){ saveCustomStocks(); stockFetchStatus="done"; }
-  else if(cacheCount>0) stockFetchStatus="cached";
-  else stockFetchStatus="error";
-  console.log(`주가 갱신: 실시간 ${okCount} / 캐시 ${cacheCount} / 전체 ${targets.length}`);
+  if(okCount>0) saveCustomStocks();
+  if(srvCount+okCount>0)   stockFetchStatus="done";
+  else if(cacheCount>0)    stockFetchStatus="cached";
+  else                     stockFetchStatus="error";
 
-  if(state.tab==="stock"||state.tab==="briefing") render();
-  // 양계 탭도 곡물·유가 갱신됐으면 재렌더
-  if(state.tab==="price") render();
+  console.log(`주가 갱신: 서버 ${srvCount} / 프록시 ${okCount} / 캐시 ${cacheCount} / 전체 ${all.length}`
+            + ` · 프록시 호출 ${missing.length}회`);
+
+  if(state.tab==="stock"||state.tab==="briefing"||state.tab==="price") render();
 }
 
 // ── 국내 뉴스 RSS fetch ───────────────────────────────────────────────────
@@ -2891,7 +2947,7 @@ function attachEvents(){
 
   // 공지 갱신 버튼
   const noticesRefreshBtn=document.getElementById("btn-notices-refresh");
-  if(noticesRefreshBtn) noticesRefreshBtn.onclick=()=>{ noticesState.status="loading"; render(); fetchNotices(); };
+  if(noticesRefreshBtn) noticesRefreshBtn.onclick=()=>{ noticesState.status="loading"; render(); fetchNotices(true); };
 
   // 경제동향 갱신 버튼 (주가+코인 동시 갱신)
   const econRefreshBtn=document.getElementById("btn-econ-refresh");
