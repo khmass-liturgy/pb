@@ -1,0 +1,51 @@
+name: 주가·환율·곡물 시세 수집
+
+on:
+  schedule:
+    # 국내장(09:00~15:30 KST) + 미국장(22:30~05:00 KST) 커버
+    # 평일 00~09 UTC(=09~18 KST), 13~21 UTC(=22~06 KST) 매시 5·35분
+    - cron: "5,35 0-9,13-21 * * 1-5"
+    # 주말은 하루 1회만 (선물·환율 참고용)
+    - cron: "5 0 * * 6,0"
+  workflow_dispatch:
+
+# 동시 실행 방지 (커밋 충돌 예방)
+concurrency:
+  group: fetch-market
+  cancel-in-progress: false
+
+jobs:
+  fetch-market:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Python 설정
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: 패키지 설치
+        run: pip install requests
+
+      - name: 시세 수집
+        run: python scripts/fetch_market.py
+
+      - name: 결과 커밋
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add market/
+          git diff --staged --quiet && echo "변경 없음" && exit 0
+          git commit -m "📈 시세 갱신 ($(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M KST'))"
+          # 다른 워크플로우가 먼저 푸시했을 수 있으므로 리베이스 후 재시도
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin ${GITHUB_REF_NAME} && git push && exit 0
+            echo "푸시 재시도 $i"
+            sleep 5
+          done
+          exit 1
