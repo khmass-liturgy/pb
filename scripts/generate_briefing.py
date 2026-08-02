@@ -16,7 +16,6 @@ import re
 import requests
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
-from openai import OpenAI
 
 # ── 날짜 설정 (KST) ─────────────────────────────────────────────────────────
 KST = timezone(timedelta(hours=9))
@@ -396,10 +395,142 @@ def update_readme(file_date, date_str, weekday):
         f.write(content)
     print("✅ README 업데이트 완료")
 
+
+# ── AI 제공자 어댑터 ────────────────────────────────────────────────────────
+# GitHub Models 가 2026-07-30 자로 완전 종료되어(플레이그라운드·추론 API·BYOK 모두)
+# 다른 제공자로 옮겼다. 한 곳이 막혀도 시크릿만 바꿔 끼울 수 있도록 어댑터로 분리한다.
+#
+# 사용법: 저장소 Secrets 에 아래 중 하나만 등록하면 자동 선택된다.
+#   GEMINI_API_KEY  → Google AI Studio (무료 일 1,500회, 한국어 우수) · 권장
+#   GROQ_API_KEY    → Groq (무료 일 14,400회, 응답 빠름)
+#   OPENAI_API_KEY  → OpenAI (유료)
+# AI_PROVIDER 환경변수로 강제 지정도 가능: gemini | groq | openai
+
+PROVIDERS = [
+    ("gemini", "GEMINI_API_KEY", "gemini-3-flash"),
+    ("groq",   "GROQ_API_KEY",   "llama-3.3-70b-versatile"),
+    ("openai", "OPENAI_API_KEY", "gpt-4o"),
+]
+
+# 모델명이 바뀌거나 특정 모델이 내려갔을 때 순서대로 재시도할 후보.
+# 2026-04 부터 Gemini 무료 티어는 Flash·Flash-Lite 계열만 제공된다(Pro 는 유료).
+MODEL_FALLBACKS = {
+    "gemini": ["gemini-3-flash", "gemini-2.5-flash",
+               "gemini-3.1-flash-lite", "gemini-2.5-flash-lite", "gemini-2.0-flash"],
+    "groq":   ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"],
+    "openai": ["gpt-4o", "gpt-4o-mini"],
+}
+
+
+def resolve_provider():
+    """(provider, api_key, model) 반환. 키가 없으면 api_key=None"""
+    forced = (os.environ.get("AI_PROVIDER") or "").strip().lower()
+    model_override = (os.environ.get("AI_MODEL") or "").strip()
+
+    for name, env_key, default_model in PROVIDERS:
+        if forced and forced != name:
+            continue
+        key = os.environ.get(env_key)
+        if key:
+            return name, key, (model_override or default_model)
+
+    return (forced or "none"), None, model_override
+
+
+def _post_json(url, payload, headers, timeout=180):
+    r = requests.post(url, json=payload, headers=headers, timeout=timeout)
+    if r.status_code != 200:
+        raise Exception("HTTP %d — %s" % (r.status_code, r.text[:300]))
+    return r.json()
+
+
+def _gen_gemini(api_key, model, prompt):
+    """Google AI Studio (Gemini) — OpenAI SDK 없이 REST 직접 호출"""
+    url = ("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent"
+           % model)
+    data = _post_json(url, {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {"temperature": 0.5, "maxOutputTokens": 8192},
+    }, {"Content-Type": "application/json", "x-goog-api-key": api_key})
+
+    cands = data.get("candidates") or []
+    if not cands:
+        fb = (data.get("promptFeedback") or {}).get("blockReason")
+        raise Exception("응답 없음%s" % (" (차단: %s)" % fb if fb else ""))
+    parts = (cands[0].get("content") or {}).get("parts") or []
+    return "".join(p.get("text", "") for p in parts).strip()
+
+
+def _gen_openai_compatible(base_url, api_key, model, prompt):
+    """OpenAI 호환 chat/completions (Groq·OpenAI 공통)"""
+    data = _post_json(base_url.rstrip("/") + "/chat/completions", {
+        "model": model,
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.5,
+        "max_tokens": 8192,
+    }, {"Content-Type": "application/json",
+        "Authorization": "Bearer " + api_key})
+
+    choices = data.get("choices") or []
+    if not choices:
+        raise Exception("choices 없음 — %s" % str(data)[:200])
+    return (choices[0].get("message") or {}).get("content", "").strip()
+
+
+def _call_model(provider, api_key, model, prompt):
+    if provider == "gemini":
+        return _gen_gemini(api_key, model, prompt)
+    if provider == "groq":
+        return _gen_openai_compatible("https://api.groq.com/openai/v1",
+                                      api_key, model, prompt)
+    if provider == "openai":
+        return _gen_openai_compatible("https://api.openai.com/v1",
+                                      api_key, model, prompt)
+    raise Exception("알 수 없는 제공자: %s" % provider)
+
+
+def generate_with_provider(provider, api_key, model, prompt):
+    """모델 폴백 + 재시도. 모델명이 바뀌어도 후보를 순서대로 시도한다."""
+    import time as _t
+
+    # 지정 모델을 맨 앞에 두고 후보 목록 구성 (중복 제거)
+    candidates, seen = [], set()
+    for m in [model] + MODEL_FALLBACKS.get(provider, []):
+        if m and m not in seen:
+            seen.add(m)
+            candidates.append(m)
+
+    last = None
+    for m in candidates:
+        for attempt in range(1, 4):
+            try:
+                text = _call_model(provider, api_key, m, prompt)
+                if text:
+                    if m != model:
+                        print("    ℹ️ 대체 모델 사용: %s" % m)
+                    return text
+                last = Exception("빈 응답")
+            except Exception as e:
+                last = e
+                msg = str(e)
+                print("    ⚠️ [%s] 시도 %d/3 실패: %s" % (m, attempt, msg[:160]))
+                # 모델이 없거나 권한 문제면 재시도 없이 다음 모델로
+                if any(k in msg for k in ("HTTP 404", "HTTP 400", "HTTP 403",
+                                          "not found", "does not exist",
+                                          "decommissioned")):
+                    break
+            if attempt < 3:
+                _t.sleep(5 * attempt)
+
+    print("❌ 브리핑 생성 실패: %s" % last)
+    return ""
+
+
 def main():
-    github_token = os.environ.get("GITHUB_TOKEN")
-    if not github_token:
-        print("❌ 오류: GITHUB_TOKEN이 없습니다.")
+    provider, api_key, model = resolve_provider()
+    if not api_key:
+        print("❌ 오류: AI 제공자 API 키가 없습니다.")
+        print("   저장소 Secrets 에 GEMINI_API_KEY 또는 GROQ_API_KEY 를 등록하세요.")
         sys.exit(1)
 
     print(f"📋 브리핑 생성 시작: {date_str} ({weekday}요일)")
@@ -489,20 +620,8 @@ def main():
 - 분량: A4 2~3페이지 (마크다운 기준 약 1,000~1,800단어)
 """
 
-    client = OpenAI(
-        base_url="https://models.inference.ai.azure.com",
-        api_key=github_token,
-    )
-
-    print("  🤖 AI 브리핑 생성 중...")
-    response = client.chat.completions.create(
-        model="gpt-4o",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.5,   # 낮춰서 실제 데이터에 충실하게
-        max_tokens=8192,
-    )
-
-    briefing_text = response.choices[0].message.content.strip()
+    print(f"  🤖 AI 브리핑 생성 중... ({provider} / {model})")
+    briefing_text = generate_with_provider(provider, api_key, model, prompt)
     if not briefing_text:
         print("❌ 오류: 응답이 비어있습니다.")
         sys.exit(1)
