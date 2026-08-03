@@ -500,9 +500,13 @@ function parseHandonHTML(html){
   });
   return out.slice(0,5);
 }
-// 한국경제 경제뉴스 — rss2json(CORS 허용 API)으로 직접 수집
-// CORS 프록시를 쓰지 않으므로 프록시 호출 제한과 무관하다.
-const HANKYUNG_RSS = "https://www.hankyung.com/feed/economy";
+// 경제뉴스 — 연합인포맥스(연합뉴스 계열 경제전문매체)
+// rss2json(CORS 허용 API)으로 직접 수집 — 프록시 호출 제한과 무관하다.
+// 한국경제(hankyung.com)는 접속 지연이 잦고 기사 페이지 광고가 많아 교체함.
+// 연합인포맥스는 금융기관 단말 이용자가 주 독자층이라 광고가 적고, 공식 RSS가 안정적이다.
+const ECON_RSS = "https://www.yonhapnewseconomytv.com/rss/allArticle.xml";
+const ECON_NAME = "연합인포맥스";
+const ECON_HOME = "https://www.yonhapnewseconomytv.com/news/articleList.html?view_type=sm";
 
 function fmtKST(dateStr){
   if(!dateStr) return "";
@@ -524,7 +528,7 @@ function fmtKST(dateStr){
 async function fetchEconNews(){
   // ① rss2json (CORS 허용) → ② 프록시 + XML 직접 파싱
   try {
-    const url = RSS2JSON + "?rss_url=" + encodeURIComponent(HANKYUNG_RSS) + "&count=8";
+    const url = RSS2JSON + "?rss_url=" + encodeURIComponent(ECON_RSS) + "&count=8";
     const resp = await fetchWithTimeout(url, 10000);
     if(!resp.ok) throw new Error("HTTP "+resp.status);
     const data = await resp.json();
@@ -537,14 +541,14 @@ async function fetchEconNews(){
     if(items.length>=2) return {items, fallback:false};
     throw new Error("항목 부족");
   } catch(e){
-    console.warn("한국경제 rss2json 실패:", e.message);
+    console.warn(ECON_NAME+" rss2json 실패:", e.message);
   }
-  // 폴백: 프록시 경유 XML 파싱
-  return await fetchOneSite(HANKYUNG_RSS, parseHankyungRSS, "한국경제");
+  // 폴백: 프록시 경유 XML 파싱 (범용 RSS 파서 재사용)
+  return await fetchOneSite(ECON_RSS, parseGenericRSS, ECON_NAME);
 }
 
 // RSS 2.0 XML 파서 (폴백 경로용)
-function parseHankyungRSS(xml){
+function parseGenericRSS(xml){
   const doc = new DOMParser().parseFromString(xml, "text/xml");
   const out = [], seen = new Set();
   doc.querySelectorAll("item").forEach(it=>{
@@ -2883,7 +2887,7 @@ function renderNoticesSection(){
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
     <div>
       <div class="display" style="font-size:16px">📰 축산 뉴스 · 경제동향</div>
-      <div style="font-size:10px;color:#aaa;margin-top:3px">축산신문 · 한돈뉴스 · 한국경제 최신 5건</div>
+      <div style="font-size:10px;color:#aaa;margin-top:3px">축산신문 · 한돈뉴스 · 연합인포맥스 최신 5건</div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
       <span style="font-size:10px;color:#888">${timeLabel}</span>
@@ -2932,17 +2936,17 @@ function renderNoticesSection(){
       ${noticeList(ns.handon,"#AD1457",ns.fallback?.handon,loading)}
     </div>
 
-    <!-- 경제동향 뉴스 (한국경제) -->
+    <!-- 경제동향 뉴스 (연합인포맥스) -->
     <div class="card" style="border-top:4px solid #0047A0">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div style="display:flex;align-items:center;gap:7px">
           <span style="font-size:20px">💹</span>
           <div>
             <div class="display" style="font-size:14px;color:#0047A0">경제동향</div>
-            <div style="font-size:10px;color:#aaa">hankyung.com · 한국경제</div>
+            <div style="font-size:10px;color:#aaa">연합인포맥스 · 연합뉴스 경제전문</div>
           </div>
         </div>
-        <a href="https://www.hankyung.com/economy" target="_blank" rel="noopener"
+        <a href="https://www.yonhapnewseconomytv.com/news/articleList.html?view_type=sm" target="_blank" rel="noopener"
            style="font-size:11px;color:#0047A0;border:1px solid #0047A0;border-radius:6px;padding:4px 9px;text-decoration:none">
           전체 ↗
         </a>
