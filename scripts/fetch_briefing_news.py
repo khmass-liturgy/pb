@@ -138,25 +138,31 @@ SOURCES = [
      "kind": "html", "parser": parse_handon,
      "urls": ["https://www.pignpork.com/news/articleList.html?sc_section_code=S1N1&view_type=sm"]},
 
-    # 한국경제(hankyung.com)는 접속 지연이 잦고 기사 페이지 광고가 많아
-    # 연합인포맥스(연합뉴스 계열, 금융기관 단말 이용자 대상이라 광고가 적음)로 교체.
-    {"id": "econ", "name": "연합인포맥스", "icon": "💹", "color": "#0047A0",
-     "home": "https://www.yonhapnewseconomytv.com/news/articleList.html?view_type=sm",
-     "kind": "rss", "urls": ["https://www.yonhapnewseconomytv.com/rss/allArticle.xml"]},
+    # 경제뉴스: 한국경제(광고 과다) → 연합인포맥스(증권방송 편성표 위주,
+    # 실제 기사가 아님) → 아시아경제(개방형 경제 전문 언론사, 공식 RSS 제공)
+    {"id": "econ", "name": "아시아경제", "icon": "💹", "color": "#0047A0",
+     "home": "https://www.asiae.co.kr/list/economy",
+     "kind": "rss", "urls": ["https://view.asiae.co.kr/rss/economy.htm"]},
 
-    # 농식품부 정책: mafra.go.kr · korea.kr 은 robots.txt 로 자동 접근을 막고 있어
-    # 배포용 공개 피드인 구글 뉴스 RSS 로 정책 보도를 모은다. 질의 2개를 합쳐 중복 제거.
+    # 농식품부 보도자료 공식 RSS. mafra.go.kr 은 검색엔진 크롤러를 막아두지만
+    # (robots.txt), RSS는 애초에 기계가 읽도록 만든 공개 피드이므로
+    # requests로 직접 요청하면 정상 수집된다 — 구글 뉴스 검색 대체.
     {"id": "policy", "name": "농식품부 축산정책", "icon": "🏛️", "color": "#1B5E20",
      "home": "https://www.mafra.go.kr/home/5109/subview.do",
-     "kind": "rss", "strip_source": True,
-     "urls": [gnews("농림축산식품부 축산 정책"),
-              gnews("농식품부 한우 양돈 양계 대책")]},
+     "kind": "rss",
+     "urls": ["https://www.mafra.go.kr/bbs/home/792/rssList.do?row=50"]},
 ]
 
 
 def fetch_source(src, session):
     """소스 하나 수집 → items (URL 여러 개면 합쳐 중복 제거)"""
     merged, seen = [], set()
+    base = src.get("home", "")
+    origin = ""
+    if base.startswith("http"):
+        parts = base.split("/", 3)
+        origin = "/".join(parts[:3])  # https://도메인
+
     for url in src["urls"]:
         try:
             r = session.get(url, timeout=20)
@@ -166,6 +172,9 @@ def fetch_source(src, session):
             got = (parse_rss(r.text, PER_SOURCE * 2, src.get("strip_source", False))
                    if src["kind"] == "rss" else src["parser"](r.text))
             for it in got:
+                # 정부 사이트 등 일부 RSS는 <link>가 절대경로가 아닌 경우가 있어 보정
+                if origin and it.get("url") and not it["url"].startswith("http"):
+                    it["url"] = origin + ("" if it["url"].startswith("/") else "/") + it["url"]
                 key = it["title"][:40]
                 if key in seen:
                     continue

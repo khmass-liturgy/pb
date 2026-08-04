@@ -29,43 +29,99 @@ DETAIL_URL  = f"{BASE}/v3/board/detail.do"
 DL_URL      = f"{BASE}/common/attachfile/attachfileDownload.do"
 
 
-def get_latest():
-    """상세 페이지에서 boardNo / attachNo / 제목 추출"""
+LIST_URL = f"{BASE}/v3/board/list.do"
+
+
+def fetch_detail(board_no):
+    """지정한 boardNo의 상세 페이지에서 attachNo / 제목 추출 (없으면 attach_no="")"""
     r = requests.get(DETAIL_URL, headers=HEADERS, params={
-        "boardInfoNo": "0159", "boardNo": "00041017",
+        "boardInfoNo": "0159", "boardNo": board_no,
         "boardSkin": "default", "dmlType": "SELECT",
         "pageIndex": "1", "pageUnit": "9",
     }, timeout=20)
     r.encoding = "utf-8"
     html = r.text
-    print(f"  상세 HTTP {r.status_code} / {len(html)}bytes")
 
-    # boardNo
-    board_no = ""
-    m = re.search(r'name="boardNo"[^>]*value="(\d+)"', html)
-    if m: board_no = m.group(1)
-
-    # attachNo (8자리, 다운로드 href에서)
     attach_no = ""
-    m = re.search(r'attachfileDownload\.do\?attachNo=(\d{8})"', html)
+    m = re.search(r'attachfileDownload\.do\?attachNo=(\d{8})(?:&#034;|")', html)
     if m:
         attach_no = m.group(1)
-    else:
-        # &#034; 엔티티 버전
-        m = re.search(r'attachfileDownload\.do\?attachNo=(\d{8})&#034;', html)
-        if m: attach_no = m.group(1)
 
-    # 제목 (data-value="7월 20일 주간 계란 수급 정보(51차).pdf")
     title = ""
     m = re.search(r'data-value="([^"]*주간\s*계란[^"]*\.pdf)"', html)
     if m:
         title = m.group(1).replace(".pdf", "").strip()
-    else:
-        # fallback: <title> 태그
-        m = re.search(r'<title>([^<]*주간[^<]*계란[^<]*)</title>', html)
-        if m: title = m.group(1).strip()
+    elif re.search(r'<title>([^<]*주간[^<]*계란[^<]*)</title>', html):
+        title = re.search(r'<title>([^<]*주간[^<]*계란[^<]*)</title>', html).group(1).strip()
 
-    print(f"  boardNo={board_no}, attachNo={attach_no}, 제목={title}")
+    return attach_no, title, html
+
+
+def find_latest_board_no_from_list():
+    """
+    목록 페이지(boardInfoNo=0159)에서 실제 최신 게시글 번호를 추출.
+    상세 페이지가 boardNo 파라미터를 무시하고 항상 최신글을 보여주는 것으로
+    보였던 적이 있으나(과거 확인 시점), 그 동작에 계속 의존하면 사이트 쪽
+    동작이 바뀌었을 때 같은 옛 게시글만 계속 받아오면서도 실패로 표시되지
+    않는 문제가 있다. 목록에서 직접 번호를 뽑아 이 문제를 없앤다.
+    """
+    try:
+        r = requests.get(LIST_URL, headers=HEADERS, params={
+            "boardInfoNo": "0159", "pageIndex": "1", "pageUnit": "9",
+            "searchCondition": "SUBJECT", "searchKeyword": "",
+        }, timeout=20)
+        r.encoding = "utf-8"
+        html = r.text
+    except Exception as e:
+        print(f"  ⚠️ 목록 페이지 요청 실패: {e}")
+        return []
+
+    # 여러 CMS 렌더링 패턴을 폭넓게 시도 (사이트 구조 변경에 대비)
+    patterns = [
+        r'boardNo["\'=:\s]+(\d{8})',
+        r"fn_view\(['\"]?(\d{8})",
+        r"fn_select\(['\"]?(\d{8})",
+        r'data-board-?no=["\']?(\d{8})',
+        r'boardNo=(\d{8})',
+    ]
+    found = []
+    for pat in patterns:
+        found += re.findall(pat, html)
+
+    # 중복 제거, 숫자 큰 순(최신순) 정렬
+    uniq = sorted(set(found), key=lambda x: int(x), reverse=True)
+    if uniq:
+        print(f"  목록에서 후보 {len(uniq)}개 발견 (최신순 상위 5개): {uniq[:5]}")
+    else:
+        print("  ⚠️ 목록 페이지에서 게시글 번호를 찾지 못함 (사이트 구조 확인 필요)")
+    return uniq
+
+
+def get_latest():
+    """
+    최신 게시글의 boardNo / attachNo / 제목을 반환.
+    ① 목록 페이지에서 후보 번호를 뽑아 실제로 첨부파일이 걸린 것을 검증
+    ② 실패 시 detail.do 에 존재할 수 없는 번호("00000000")를 보내본다.
+       예전에 이 사이트는 boardNo 값과 무관하게 최신 글을 보여줬는데, 그 동작이
+       아직 유효하면 이 방법으로도 최신 글을 받아온다. 다만 실제 게시글 번호를
+       하드코딩해두면(과거의 00041017처럼) 그 가정이 깨졌을 때도 조용히 같은
+       옛날 글을 계속 돌려주므로, 일부러 존재할 수 없는 번호를 써서 가정이
+       깨졌을 경우 눈에 띄게 실패하도록 한다.
+    """
+    for board_no in find_latest_board_no_from_list()[:5]:
+        attach_no, title, _ = fetch_detail(board_no)
+        if attach_no:
+            print(f"  ✅ 목록 기반 확인: boardNo={board_no}, attachNo={attach_no}, 제목={title}")
+            return board_no, attach_no, title
+        print(f"  boardNo={board_no}: 첨부파일 없음 → 다음 후보")
+
+    print("  ⚠️ 목록 기반 탐색 실패 → 폴백(boardNo 무시 동작 가정) 시도")
+    attach_no, title, html = fetch_detail("00000000")
+    board_no = ""
+    m = re.search(r'name="boardNo"[^>]*value="(\d+)"', html)
+    if m:
+        board_no = m.group(1)
+    print(f"  boardNo={board_no or '(추출 실패)'}, attachNo={attach_no or '(없음)'}, 제목={title}")
     return board_no, attach_no, title
 
 
@@ -163,19 +219,31 @@ def parse_pdf(pdf_bytes):
     return result
 
 
-def save(board_no, attach_no, title, parsed, pdf_bytes):
+def load_previous():
+    """이전 latest.json 로드 (없으면 None)"""
+    p = Path("egg_report/latest.json")
+    if not p.exists():
+        return None
+    try:
+        return json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+def save(board_no, attach_no, title, parsed, pdf_bytes, stale_weeks):
     Path("egg_report").mkdir(exist_ok=True)
     now = datetime.now(KST)
     out = {
-        "updated":   now.strftime("%Y-%m-%d %H:%M KST"),
-        "title":     title,
-        "board_no":  board_no,
-        "attach_no": attach_no,
-        "url":       f"{BASE}/v3/board/detail.do?boardInfoNo=0159&boardNo={board_no}&dmlType=SELECT",
-        "summary":   parsed["summary"],
-        "sections":  parsed.get("sections", []),
-        "text":      parsed["text"][:3000],
-        "tables":    parsed["tables"][:3],
+        "updated":     now.strftime("%Y-%m-%d %H:%M KST"),
+        "title":       title,
+        "board_no":    board_no,
+        "attach_no":   attach_no,
+        "url":         f"{BASE}/v3/board/detail.do?boardInfoNo=0159&boardNo={board_no}&dmlType=SELECT",
+        "summary":     parsed["summary"],
+        "sections":    parsed.get("sections", []),
+        "text":        parsed["text"][:3000],
+        "tables":      parsed["tables"][:3],
+        "stale_weeks": stale_weeks,  # 직전 실행과 board_no 가 같았던 연속 횟수
     }
     with open("egg_report/latest.json", "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=2)
@@ -188,12 +256,25 @@ def save(board_no, attach_no, title, parsed, pdf_bytes):
 def main():
     print("🥚 주간 계란 수급 정보 수집 시작\n")
 
+    prev = load_previous()
+    prev_board_no = (prev or {}).get("board_no", "")
+
     print("📋 게시글 정보 조회...")
     board_no, attach_no, title = get_latest()
 
     if not attach_no:
-        print("❌ attachNo 미발견")
+        print("❌ attachNo 미발견 — 사이트 구조가 바뀌었을 수 있습니다.")
         sys.exit(1)
+
+    # 직전 실행과 같은 글이 계속 나오면(=새 글 감지 실패 가능성) 연속 횟수를 누적해
+    # 경고로 남긴다. 매주 새 글이 올라오므로 정상이라면 이 값은 계속 0이어야 한다.
+    if board_no and board_no == prev_board_no:
+        stale_weeks = (prev or {}).get("stale_weeks", 0) + 1
+        print(f"  ⚠️ 직전 실행과 동일한 게시글(boardNo={board_no})이 {stale_weeks}회 연속 감지됨")
+        if stale_weeks >= 2:
+            print("  ⚠️ 새 게시글 감지 로직을 점검해야 할 수 있습니다 (사이트에 새 글이 없는지 직접 확인 권장).")
+    else:
+        stale_weeks = 0
 
     print(f"\n📥 PDF 다운로드 (attachNo={attach_no})...")
     pdf_bytes = download_pdf(attach_no)
@@ -203,7 +284,7 @@ def main():
     print(f"  텍스트 앞부분:\n{parsed['text'][:400]}")
 
     print("\n💾 저장...")
-    save(board_no, attach_no, title, parsed, pdf_bytes)
+    save(board_no, attach_no, title, parsed, pdf_bytes, stale_weeks)
     print(f"\n✅ 완료 — {title}")
 
 
