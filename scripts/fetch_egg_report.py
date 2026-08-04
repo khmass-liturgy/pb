@@ -57,6 +57,24 @@ def fetch_detail(board_no):
     return attach_no, title, html
 
 
+def _diag_dump(label, html):
+    """진단용: 실패 시 로그에서 바로 구조를 알 수 있도록 핵심 단서를 찍는다."""
+    print(f"  ── [{label}] 진단 정보 ──")
+    print(f"     길이: {len(html)}bytes")
+    print(f"     '계란' 포함: {'계란' in html} / '수급' 포함: {'수급' in html}")
+    print(f"     'attachfileDownload' 포함: {'attachfileDownload' in html}")
+    print(f"     'boardNo' 포함: {'boardNo' in html} (등장 {html.count('boardNo')}회)")
+    for kw in ["nttSn", "bbsSn", "pstSn", "seq=", "postId", "artclView", "fn_view", "fn_select", "goDetail"]:
+        if kw in html:
+            print(f"     '{kw}' 등장 {html.count(kw)}회 — 예시: {html[html.find(kw):html.find(kw)+80]!r}")
+    # <title> 태그
+    m = re.search(r"<title>([^<]*)</title>", html)
+    if m:
+        print(f"     <title>: {m.group(1).strip()[:80]}")
+    print(f"     앞부분 500자: {html[:500]!r}")
+    print(f"     뒷부분 500자: {html[-500:]!r}")
+
+
 def find_latest_board_no_from_list():
     """
     목록 페이지(boardInfoNo=0159)에서 실제 최신 게시글 번호를 추출.
@@ -72,6 +90,7 @@ def find_latest_board_no_from_list():
         }, timeout=20)
         r.encoding = "utf-8"
         html = r.text
+        print(f"  목록 페이지 HTTP {r.status_code} / {len(html)}bytes")
     except Exception as e:
         print(f"  ⚠️ 목록 페이지 요청 실패: {e}")
         return []
@@ -83,6 +102,10 @@ def find_latest_board_no_from_list():
         r"fn_select\(['\"]?(\d{8})",
         r'data-board-?no=["\']?(\d{8})',
         r'boardNo=(\d{8})',
+        r"goDetail\(['\"]?(\d+)",
+        r"nttSn=(\d+)",
+        r"bbsSn=(\d+)",
+        r"pstSn=(\d+)",
     ]
     found = []
     for pat in patterns:
@@ -94,6 +117,7 @@ def find_latest_board_no_from_list():
         print(f"  목록에서 후보 {len(uniq)}개 발견 (최신순 상위 5개): {uniq[:5]}")
     else:
         print("  ⚠️ 목록 페이지에서 게시글 번호를 찾지 못함 (사이트 구조 확인 필요)")
+        _diag_dump("목록 페이지", html)
     return uniq
 
 
@@ -122,6 +146,17 @@ def get_latest():
     if m:
         board_no = m.group(1)
     print(f"  boardNo={board_no or '(추출 실패)'}, attachNo={attach_no or '(없음)'}, 제목={title}")
+
+    if not attach_no:
+        _diag_dump("상세 페이지(boardNo=00000000)", html)
+        # 마지막 시도: 예전에 실제로 통했던 특정 번호로도 한 번 확인
+        # (이 번호가 여전히 통하면 "게시글이 그대로"라는 뜻, 이것마저 실패하면
+        #  detail.do 자체 구조가 바뀐 것)
+        attach_no2, title2, html2 = fetch_detail("00041017")
+        print(f"  참고용 재확인(boardNo=00041017): attachNo={attach_no2 or '(없음)'}, 제목={title2}")
+        if not attach_no2:
+            _diag_dump("상세 페이지(boardNo=00041017, 참고용)", html2)
+
     return board_no, attach_no, title
 
 
