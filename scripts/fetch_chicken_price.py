@@ -22,6 +22,14 @@ from urllib.parse import quote
 
 import requests
 
+# Playwright는 requests+프록시로도 못 뚫는 사이트(TLS 지문·JS 챌린지 등)를 위한
+# 최후 수단이라 선택적으로 불러온다 (설치 안 돼 있어도 나머지는 동작해야 함).
+try:
+    from playwright.sync_api import sync_playwright
+    HAS_PLAYWRIGHT = True
+except ImportError:
+    HAS_PLAYWRIGHT = False
+
 KST = timezone(timedelta(hours=9))
 
 HEADERS = {
@@ -76,6 +84,31 @@ def get_with_proxy_fallback(session, url, timeout=20):
     if last:
         raise last
     raise Exception("모든 경로 실패")
+
+
+def fetch_via_browser(url):
+    """
+    requests(+프록시)로도 접근이 안 될 때의 최후 수단.
+    SSLError·521·408·403이 뒤섞여 나오는 건 단순 IP 차단이 아니라 TLS
+    지문이나 자바스크립트 챌린지로 봇을 거르는 방화벽일 가능성이 커서,
+    실제 브라우저(headless Chromium)로 접근해 최종 렌더링된 HTML을 받아온다.
+    """
+    if not HAS_PLAYWRIGHT:
+        print("  ⚠️ playwright 미설치 — 브라우저 폴백 건너뜀")
+        return None
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page(user_agent=HEADERS["User-Agent"])
+            page.goto(url, wait_until="networkidle", timeout=30000)
+            page.wait_for_timeout(1000)
+            html = page.content()
+            browser.close()
+        print("  ✅ 브라우저 접근 성공 (%dbytes)" % len(html))
+        return html
+    except Exception as e:
+        print("  ⚠️ 브라우저 접근도 실패: %s" % e)
+        return None
 
 
 # ── HTML 표 파싱 ──────────────────────────────────────────────────────────────
@@ -184,34 +217,52 @@ def main():
     session.headers.update(HEADERS)
 
     prev = load_previous()
+    rows = []
+    last_err = None
 
+    # ① requests + 프록시 체인
     try:
         r = get_with_proxy_fallback(session, CHPRICE_URL, timeout=20)
         print("  응답: HTTP %d / %dbytes / %s" % (
             r.status_code, len(r.content), r.headers.get("Content-Type", "")))
         r.encoding = r.apparent_encoding or "utf-8"
-
         if r.status_code != 200:
             raise Exception("최종 응답도 HTTP %d" % r.status_code)
-
         rows = parse_chicken_price_html(r.text)
         print("  파싱된 행 수: %d" % len(rows))
-
         if len(rows) < 3:
             print("  응답 본문 앞부분(진단용): %r" % r.text[:500])
-            raise Exception("파싱 결과 부족 (%d건) — 사이트 표 구조가 바뀌었을 수 있음" % len(rows))
+            raise Exception("파싱 결과 부족 (%d건)" % len(rows))
+    except Exception as e:
+        last_err = e
+        print("  ⚠️ requests+프록시 경로 실패: %s" % e)
 
+    # ② requests 계열이 전부 실패하면 실제 브라우저로 마지막 시도
+    #    (SSLError·521·408·403이 뒤섞여 나오는 경우가 대표적 신호)
+    if len(rows) < 3:
+        print("\n  → 브라우저(headless Chromium) 경로로 전환")
+        html = fetch_via_browser(CHPRICE_URL)
+        if html:
+            rows = parse_chicken_price_html(html)
+            print("  파싱된 행 수: %d" % len(rows))
+            if len(rows) < 3:
+                print("  렌더링된 HTML 앞부분(진단용): %r" % html[:500])
+                last_err = Exception("브라우저 경로도 파싱 결과 부족 (%d건)" % len(rows))
+        else:
+            last_err = last_err or Exception("브라우저 경로 실패")
+
+    if len(rows) >= 3:
         save(rows, stale=False)
         print("\n✅ 완료")
+        return
 
-    except Exception as e:
-        print("\n❌ 수집 실패: %s" % e)
-        if prev and prev.get("rows"):
-            print("  ⚡ 이전 데이터 유지 (stale 표시)")
-            save(prev["rows"], stale=True)
-        else:
-            print("  이전 데이터도 없어 저장하지 않음")
-            sys.exit(1)
+    print("\n❌ 수집 실패: %s" % last_err)
+    if prev and prev.get("rows"):
+        print("  ⚡ 이전 데이터 유지 (stale 표시)")
+        save(prev["rows"], stale=True)
+    else:
+        print("  이전 데이터도 없어 저장하지 않음")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
