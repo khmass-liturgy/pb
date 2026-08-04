@@ -1,0 +1,139 @@
+{
+  "updated": "2026-08-04 12:29 KST",
+  "updatedTs": 1785814146,
+  "ok": 3,
+  "total": 4,
+  "order": [
+    "chuksan",
+    "handon",
+    "econ",
+    "policy"
+  ],
+  "sources": {
+    "chuksan": {
+      "name": "축산신문",
+      "icon": "📰",
+      "color": "#C62828",
+      "home": "https://www.chuksannews.co.kr/news/section_list_all.html?sec_no=2",
+      "items": [
+        {
+          "title": "한우 사육기간 줄여도 품질·생산성 ‘우수’",
+          "url": "https://www.chuksannews.co.kr/news/article.html?no=272845",
+          "date": "",
+          "source": ""
+        },
+        {
+          "title": "충북도, 염소농가 FTA 직불금 신청 접수",
+          "url": "https://www.chuksannews.co.kr/news/article.html?no=272729",
+          "date": "",
+          "source": ""
+        },
+        {
+          "title": "진천축협, 수해 피해 축산농가 긴급 지원",
+          "url": "https://www.chuksannews.co.kr/news/article.html?no=272721",
+          "date": "",
+          "source": ""
+        },
+        {
+          "title": "규제에 막힌 가축사육, ‘숨통’ 트이나",
+          "url": "https://www.chuksannews.co.kr/news/article.html?no=272754",
+          "date": "",
+          "source": ""
+        },
+        {
+          "title": ">어린 가축 건강, 생산성의 시작 >>어린 가축 건강, 생산성의 시작 << “자돈 때깔부터 달라진다”",
+          "url": "https://www.chuksannews.co.kr/news/article.html?no=272702",
+          "date": "",
+          "source": ""
+        }
+      ],
+      "stale": false
+    },
+    "handon": {
+      "name": "한돈뉴스",
+      "icon": "🐷",
+      "color": "#AD1457",
+      "home": "https://www.pignpork.com/news/articleList.html?sc_section_code=S1N1&view_type=sm",
+      "items": [
+        {
+          "title": "여름철 비육돈과 모돈이 갑자기 폐사한 이유는?",
+          "url": "https://www.pignpork.com/news/articleView.html?idxno=19172",
+          "date": "",
+          "source": ""
+        },
+        {
+          "title": "‘집념의 결실’ ASF 백신 상용화 눈앞… 코미팜, 글로벌 시장 정조준",
+          "url": "https://www.pignpork.com/news/articleView.html?idxno=19219",
+          "date": "",
+          "source": ""
+        },
+        {
+          "title": "\"전국 한돈 맛집을 찾습니다\"... 당신의 원픽 한돈 맛집은?",
+          "url": "https://www.pignpork.com/news/articleView.html?idxno=19221",
+          "date": "",
+          "source": ""
+        },
+        {
+          "title": "우성 베트남법인, 창립 23주년 맞아 ‘첫 흑자전환’ 달성",
+          "url": "https://www.pignpork.com/news/articleView.html?idxno=19217",
+          "date": "",
+          "source": ""
+        },
+        {
+          "title": "유로하우징, 한돈산업발전기금 누적 5,000만원 기탁",
+          "url": "https://www.pignpork.com/news/articleView.html?idxno=19222",
+          "date": "",
+          "source": ""
+        }
+      ],
+      "stale": false
+    },
+    "econ": {
+      "name": "아시아경제",
+      "icon": "💹",
+      "color": "#0047A0",
+      "home": "https://www.asiae.co.kr/list/economy",
+      "items": [
+        {
+          "title": "8월 중간예납 대상법인 54.5만개…31일까지 신고·납부해야",
+          "url": "https://view.asiae.co.kr/article/2026080410085896812",
+          "date": "08.04 12:00",
+          "source": ""
+        },
+        {
+          "title": "\"5000만원에 산 코인, 1.5억원에 팔아도 세금은 950만원\"…내년부터 코인 과세",
+          "url": "https://view.asiae.co.kr/article/2026080409084396425",
+          "date": "08.04 11:28",
+          "source": ""
+        },
+        {
+          "title": "부동산 대책, 세제 채찍 다음은…그린벨트·집단대출 규제 풀어 당근책(종합)",
+          "url": "https://view.asiae.co.kr/article/2026080411134239206",
+          "date": "08.04 11:16",
+          "source": ""
+        },
+        {
+          "title": "'신한 슈퍼쏠' MAU 1113만명 기록…\"성장 가능성 확인\"",
+          "url": "https://view.asiae.co.kr/article/2026080411044090239",
+          "date": "08.04 11:04",
+          "source": ""
+        },
+        {
+          "title": "공정위, '방문판매법' 신고포상금 한도 삭제…위반행위 관여 직원도 지급한다",
+          "url": "https://view.asiae.co.kr/article/2026080410535793218",
+          "date": "08.04 10:53",
+          "source": ""
+        }
+      ],
+      "stale": false
+    },
+    "policy": {
+      "name": "농식품부 축산정책",
+      "icon": "🏛️",
+      "color": "#1B5E20",
+      "home": "https://www.mafra.go.kr/home/5109/subview.do",
+      "items": [],
+      "stale": true
+    }
+  }
+}
