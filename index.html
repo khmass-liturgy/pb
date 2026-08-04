@@ -2732,6 +2732,22 @@ function determineVentStage(diff){
   return 2;                    // 터널/최대환기
 }
 
+// ── 습도 기준 환기 판정 (Munters Rotem Trio 이중제어 로직 + PIC 습도 규칙) ─────
+// 글로벌 기후제어 1위 업체 Munters의 상업용 계사 컨트롤러(Rotem Trio)는
+// "온도요구 환기량(VT)"과 "습도요구 환기량(VH)" 두 값을 각각 계산해 그중
+// 더 큰 쪽을 따르는 이중제어 방식을 쓴다 — 온도상 최소환기 단계라도 습도가
+// 높으면 그보다 높은 단계로 자동 상향된다. 임계치(65%)는 PIC 2019 Wean to
+// Finish Guidelines의 "습도는 항상 65% 이하로 유지" 규정을 따른다.
+const VENT_HUMIDITY_THRESHOLD = 65; // % — 이 이상이면 환기 단계를 상향
+const VENT_HUMIDITY_SEVERE = 80;    // % — 이 이상이면 무조건 최대(터널)단계
+
+function determineHumidityStage(hum){
+  if(hum == null) return 0;
+  if(hum > VENT_HUMIDITY_SEVERE) return 2;
+  if(hum > VENT_HUMIDITY_THRESHOLD) return 1;
+  return 0;
+}
+
 function renderVentTab(){
   const speciesInfo = {
     broiler: {label:"육계", icon:"🐔", table:BROILER_TARGET_TEMP, stages:POULTRY_VENT_STAGES, unit:"day"},
@@ -2749,8 +2765,17 @@ function renderVentTab(){
   const fc = wx.forecast || [];
   const today = fc[0];
   const todayHigh = today?.tMax != null ? Math.round(today.tMax) : null;
+  const todayHum  = today?.hum != null ? Math.round(today.hum) : null;
   const diff = todayHigh != null ? todayHigh - targetT : null;
-  const recIdx = diff != null ? determineVentStage(diff) : null;
+  const tempStageIdx = diff != null ? determineVentStage(diff) : null;
+  const humStageIdx  = determineHumidityStage(todayHum);
+  // Munters Rotem Trio 이중제어 로직: 온도요구·습도요구 중 더 큰 쪽을 따른다
+  const recIdx = tempStageIdx != null ? Math.max(tempStageIdx, humStageIdx) : null;
+  const humDrivenUp = tempStageIdx != null && humStageIdx > tempStageIdx;
+  // PIC 규칙: 외기온이 이미 목표온도를 넘어선 상태에서 습도까지 높으면
+  // 환기를 더 늘려도 습도가 안 떨어진다(밖 공기 자체가 덥고 습하므로) — 별도 경고
+  const humVentIneffective = todayHum != null && todayHum > VENT_HUMIDITY_THRESHOLD
+    && diff != null && diff > 0;
 
   // 유창(커튼형) 돈사는 단열이 약해 목표온도를 1~2°C 높여 잡는 것이 PIC 권장사항
   const barnNote = ventState.species==="pig" && ventState.barn==="curtain"
