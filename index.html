@@ -1289,7 +1289,7 @@ function render(){
   document.getElementById("app").innerHTML = `
     ${renderHeader()}
     <main>
-      ${state.tab==="price" ? renderPriceTab() : state.tab==="pig" ? renderPigTab() : state.tab==="livestock" ? renderLivestockTab() : state.tab==="weather" ? renderWeatherTab() : state.tab==="briefing" ? renderBriefingTab() : renderPriceTab()}
+      ${state.tab==="price" ? renderPriceTab() : state.tab==="pig" ? renderPigTab() : state.tab==="livestock" ? renderLivestockTab() : state.tab==="weather" ? renderWeatherTab() : state.tab==="vent" ? renderVentTab() : state.tab==="briefing" ? renderBriefingTab() : renderPriceTab()}
       ${renderFooter()}
     </main>`;
   attachEvents();
@@ -1314,6 +1314,7 @@ function renderHeader(){
       <button class="tab ${state.tab==="pig"?"active":""}" data-tab="pig">🐷 양돈</button>
       <button class="tab ${state.tab==="livestock"?"active":""}" data-tab="livestock">🐂 한우</button>
       <button class="tab ${state.tab==="weather"?"active":""}" data-tab="weather">🌤️ 날씨</button>
+      <button class="tab ${state.tab==="vent"?"active":""}" data-tab="vent">🌬️ 환기가이드</button>
       <button class="tab ${state.tab==="briefing"?"active":""}" data-tab="briefing">📋 뉴스정보</button>
     </div>
   </div></header>`;
@@ -2307,6 +2308,139 @@ function openTHIInfoModal(){
 }
 
 // ── 축산 날씨 스트레스 지표 패널 ────────────────────────────────────────────
+// 육계 일령별 목표 사육온도 (Aviagen 기준)
+const BROILER_TARGET_TEMP = [
+  {day:"1~3일", t:33}, {day:"4~7일", t:31}, {day:"8~14일", t:29},
+  {day:"15~21일", t:27}, {day:"22~28일", t:25}, {day:"29~35일", t:22},
+  {day:"36일~", t:20},
+];
+
+// 산란계 주령별 목표 사육온도 (Hy-Line Commercial Layer Management Guide 기준)
+// 입추 33~36°C → 1주 후부터 매주 2~3°C 하향 → 21°C 도달 → 산란기 21~27°C
+const LAYER_TARGET_TEMP = [
+  {wk:"1주령",     t:34, range:"33~35", stage:"육추"},
+  {wk:"2주령",     t:32, range:"31~33", stage:"육추"},
+  {wk:"3주령",     t:30, range:"29~31", stage:"육추"},
+  {wk:"4주령",     t:28, range:"27~29", stage:"육추"},
+  {wk:"5주령",     t:26, range:"25~27", stage:"육추"},
+  {wk:"6주령",     t:24, range:"23~25", stage:"육추"},
+  {wk:"7주령",     t:22, range:"21~23", stage:"육추"},
+  {wk:"8~17주",    t:21, range:"20~22", stage:"육성"},
+  {wk:"18주~ 산란", t:24, range:"21~27", stage:"산란"},
+];
+
+// 양돈 구간별 목표 돈사온도 (PIC 2019 Wean to Finish Guidelines, Appendix A 기준)
+// 밀폐형(무창) 돈사·톱밥깔짚+보온등 조합 기준. 이유 직후 23°C → 출하 시점까지 지속 하향.
+const PIG_TARGET_TEMP = [
+  {stage:"입식(이유)",     t:23, wk:"0주",  weight:"5kg"},
+  {stage:"자돈 전기",      t:21, wk:"2주",  weight:"9kg"},
+  {stage:"자돈 후기",      t:25, wk:"4주",  weight:"14kg"},
+  {stage:"육성 전기",      t:21, wk:"6주",  weight:"23kg"},
+  {stage:"육성 중기",      t:19, wk:"8주",  weight:"33kg"},
+  {stage:"육성 후기",      t:18, wk:"10주", weight:"45kg"},
+  {stage:"비육 전기",      t:16, wk:"14주", weight:"71kg"},
+  {stage:"비육 후기(출하)", t:14, wk:"17주", weight:"91kg"},
+];
+
+// ── 환기 컨설팅 구조: 가금 (Aviagen 3단계 모델) ───────────────────────────────
+// 세계 최대 육종회사 Aviagen이 전 세계 계열사·컨설턴트에게 배포하는
+// "Environmental Management in the Broiler House" 지침의 3단계 환기 체계.
+// 무창(밀폐형) 음압 계사를 전제로 하며, 온도계 수치보다 계군의 행동(헐떡임·웅크림)을
+// 최종 판단 기준으로 삼는 것이 이 지침의 핵심이다.
+const POULTRY_VENT_STAGES = [
+  {
+    id:"minimum", name:"최소환기", nameEn:"Minimum Ventilation", icon:"🌬️", color:"#1565C0",
+    when:"계사 내부온도가 목표(사육)온도 이하이거나 근접 — 사실상 상시 가동되는 기본 단계",
+    method:"타이머로 팬을 짧게 반복 가동. 측벬 상단·천장 인렛으로 소량만 유입시켜 병아리에 직접 바람이 닿지 않게 한다.",
+    purpose:"온도 조절이 아니라 습도·암모니아 등 유해가스 제거가 목적. 육추 초기 전 기간 필수이며 이 이하로 낮추면 안 된다.",
+    checks:[
+      "정압 0.05~0.08 inch WC(약 12~20Pa) 유지",
+      "인렛 속도 800~1,000 FPM",
+      "외기온 20~40°F(−7~4°C) 구간 0.2 CFM/수, 40~60°F(4~16°C) 구간 0.3 CFM/수",
+    ],
+  },
+  {
+    id:"transitional", name:"전이환기", nameEn:"Transitional Ventilation", icon:"🔄", color:"#EF6C00",
+    when:"외기온이 계사 설정온도를 넘어서 최소환기 팬만으로 열을 다 못 뺄 때 — 봄·가을 등 일교차 큰 시기",
+    method:"터널팬 일부를 최소환기 인렛과 함께 가동. 공기를 계사 위쪽으로 유입시켜 계군에 직접 닿지 않게 한다(터널모드처럼 관통시키지 않음).",
+    purpose:"일교차가 큰 환절기에 온도 급변을 막는 중간 단계. 히터는 꺼둔다.",
+    checks:[
+      "환기량 증가는 단계별로 완만하게(급격한 증가 지양)",
+      "계사 내 온도 균일도 유지",
+      "터널 인렛은 닫아둔 채로 진행",
+    ],
+  },
+  {
+    id:"tunnel", name:"터널환기", nameEn:"Tunnel Ventilation", icon:"🌀", color:"#C62828",
+    when:"전이환기로도 계사 온도·닭 컨디션을 유지 못 할 때만 — 온도계보다 계군 행동을 우선 판단 기준으로",
+    method:"터널팬 전체 가동. 공기가 계사 길이 방향을 관통해 흐르며 체감온도(윈드칠) 효과로 냉각시킨다.",
+    purpose:"고온기 열 스트레스 방지를 위한 최대 냉각 단계.",
+    checks:[
+      "헐떡임(panting) 20% 초과 시 쿨링패드 가동",
+      "패드 가동 중 습도 70~80% 초과하면 냉각 중단",
+      "팬 50~60%만 가동 중인데 닭이 추워 보이면 전이환기로 복귀",
+    ],
+  },
+];
+
+// ── 환기 컨설팅 구조: 양돈 (PIC / 미네소타대 확장연구소 3단계 모델) ──────────────
+// 세계 최대 돈육 육종회사 PIC와 미네소타대 축산공학 컨설팅(L. Jacobson)이 공통으로
+// 쓰는 동절기/중간/하절기 3단계 CFM 체계. 이유자돈·육성돈·비육돈 두당 CFM 기준.
+const SWINE_VENT_STAGES = [
+  {
+    id:"cold", name:"동절기(최소)환기", nameEn:"Cold/Minimum Rate", icon:"🌬️", color:"#1565C0",
+    when:"외기온이 낮아 열손실 최소화가 우선 — 겨울철 상시 기준선",
+    method:"피트팬(바닥환기팬) 중심의 연속 기저환기. 이 이하로는 절대 낮추지 않는다.",
+    purpose:"습도·가스(암모니아·CO₂) 제거를 위한 최소 기준. 온도 조절 목적이 아니다.",
+    rateTable:[
+      {stage:"이유자돈(12~30lb)", cfm:"2 CFM/두"},
+      {stage:"육성돈(75~150lb)", cfm:"7 CFM/두"},
+      {stage:"비육돈(150~220lb)", cfm:"10 CFM/두"},
+    ],
+    checks:[
+      "정압 최소 0.02 inch WC(수주) 이상 — 이보다 낮으면 환기량·공기질 관리 불가",
+      "유창(커튼형)은 겨울철 커튼을 최대한 밀착·밀폐",
+      "결로·응축 여부 점검 — 젖은 슬랫은 같은 기온에서도 체감온도를 5°C가량 낮춘다",
+    ],
+  },
+  {
+    id:"mild", name:"중간환기", nameEn:"Mild/Transitional Rate", icon:"🔄", color:"#EF6C00",
+    when:"봄·가을 등 완만한 외기온 구간, 돈군 성장에 따라 발열량이 늘어날 때",
+    method:"측벽 인렛 개방을 늘리며 팬 단수를 순차적으로 증가시킨다.",
+    purpose:"동절기 최소환기로는 부족한 열 제거를 보완.",
+    rateTable:[
+      {stage:"이유자돈", cfm:"10 CFM/두"},
+      {stage:"육성돈", cfm:"24 CFM/두"},
+      {stage:"비육돈", cfm:"35 CFM/두"},
+    ],
+    checks:[
+      "팬 단계 전환 시 급격한 증가 지양 — 단계별로 순차 가동",
+      "인렛 개방 폭을 정압 기준으로 자동 조절(고정식이면 수시 점검)",
+      "습도 65% 초과 시 다음 단계로 조기 전환 검토",
+    ],
+  },
+  {
+    id:"hot", name:"하절기(최대)환기", nameEn:"Hot/Tunnel Rate", icon:"🌀", color:"#C62828",
+    when:"고온기 체온 상승 방지가 최우선일 때",
+    method:"터널환기 설비가 있으면 최대 가동, 없어도 표준 120~150 CFM/비육돈두를 목표로 팬을 전량 가동.",
+    purpose:"돈사 내 온도 상승 최소화 + 인렛 속도 800~1,000 FPM 유지.",
+    rateTable:[
+      {stage:"이유자돈", cfm:"25 CFM/두"},
+      {stage:"육성돈", cfm:"75 CFM/두"},
+      {stage:"비육돈(터널無)", cfm:"120~150 CFM/두"},
+    ],
+    extra:"100lb(45kg) 이상 돈에는 살수냉각(스프링클러) 병행 가능 — 세트포인트 대비 9~10°C 높을 때 가동, 슬랫은 다음 살수 전 거의 말라 있어야 함",
+    checks:[
+      "인렛 속도 800~1,000 FPM 유지 여부 점검",
+      "살수 시 슬랫이 완전히 마른 뒤 재살수(과습 방지)",
+      "돈군 30~35두당 스프링클러 1개 비율 유지",
+      "습도 65% 초과 시 환기량을 더 늘려도 효과가 제한적임을 인지",
+    ],
+  },
+];
+
+let ventState = { species:"broiler", barn:"solid" };
+
 function renderLivestockWeatherPanel(fc, hourlyByDate){
   if(!fc || fc.length === 0) return "";
   hourlyByDate = hourlyByDate || {};
@@ -2338,39 +2472,9 @@ function renderLivestockWeatherPanel(fc, hourlyByDate){
     return {label:"경보", color:"#B71C1C", icon:"🔴"};
   };
 
-  // 육계 일령별 목표 사육온도 (Aviagen 기준)
-  const broilerTargetTemp = [
-    {day:"1~3일", t:33}, {day:"4~7일", t:31}, {day:"8~14일", t:29},
-    {day:"15~21일", t:27}, {day:"22~28일", t:25}, {day:"29~35일", t:22},
-    {day:"36일~", t:20},
-  ];
-
-  // 산란계 주령별 목표 사육온도 (Hy-Line Commercial Layer Management Guide 기준)
-  // 입추 33~36°C → 1주 후부터 매주 2~3°C 하향 → 21°C 도달 → 산란기 21~27°C
-  const layerTargetTemp = [
-    {wk:"1주령",     t:34, range:"33~35", stage:"육추"},
-    {wk:"2주령",     t:32, range:"31~33", stage:"육추"},
-    {wk:"3주령",     t:30, range:"29~31", stage:"육추"},
-    {wk:"4주령",     t:28, range:"27~29", stage:"육추"},
-    {wk:"5주령",     t:26, range:"25~27", stage:"육추"},
-    {wk:"6주령",     t:24, range:"23~25", stage:"육추"},
-    {wk:"7주령",     t:22, range:"21~23", stage:"육추"},
-    {wk:"8~17주",    t:21, range:"20~22", stage:"육성"},
-    {wk:"18주~ 산란", t:24, range:"21~27", stage:"산란"},
-  ];
-
-  // 양돈 구간별 목표 돈사온도 (PIC 2019 Wean to Finish Guidelines, Appendix A 기준)
-  // 밀폐형(무창) 돈사·톱밥깔짚+보온등 조합 기준. 이유 직후 23°C → 출하 시점까지 지속 하향.
-  const pigTargetTemp = [
-    {stage:"입식(이유)",     t:23, wk:"0주",  weight:"5kg"},
-    {stage:"자돈 전기",      t:21, wk:"2주",  weight:"9kg"},
-    {stage:"자돈 후기",      t:25, wk:"4주",  weight:"14kg"},
-    {stage:"육성 전기",      t:21, wk:"6주",  weight:"23kg"},
-    {stage:"육성 중기",      t:19, wk:"8주",  weight:"33kg"},
-    {stage:"육성 후기",      t:18, wk:"10주", weight:"45kg"},
-    {stage:"비육 전기",      t:16, wk:"14주", weight:"71kg"},
-    {stage:"비육 후기(출하)", t:14, wk:"17주", weight:"91kg"},
-  ];
+  const broilerTargetTemp = BROILER_TARGET_TEMP;
+  const layerTargetTemp = LAYER_TARGET_TEMP;
+  const pigTargetTemp = PIG_TARGET_TEMP;
 
   // 오늘 날씨 기본값 (일별 예보에서)
   const today = fc[0];
@@ -2614,6 +2718,175 @@ function renderLivestockWeatherPanel(fc, hourlyByDate){
     <div style="font-size:10px;color:#aaa;margin-top:8px;text-align:right">
       THI 공식: USDA/Clemson Univ. · 육계: Aviagen Broiler Guide · 산란계: Hy-Line Layer Management Guide · 양돈: PIC Wean to Finish Guidelines
     </div>
+  </div>`;
+}
+
+// ── 🌬️ 환기가이드 탭 ──────────────────────────────────────────────────────
+function determineVentStage(diff){
+  // diff = 오늘 최고기온 - 목표(사육/돈사)온도.
+  // 업계 지침(Aviagen·PIC)은 온도계 숫자 하나로 딱 자르지 않고 계군 행동을
+  // 최종 판단 기준으로 삼으므로, 아래 구간은 "오늘 어느 단계부터 점검을
+  // 시작하면 좋을지" 가늠하는 실무 참고 기준이며 확정 수치가 아니다.
+  if(diff <= 0) return 0;      // 최소환기
+  if(diff <= 5) return 1;      // 전이환기
+  return 2;                    // 터널/최대환기
+}
+
+function renderVentTab(){
+  const speciesInfo = {
+    broiler: {label:"육계", icon:"🐔", table:BROILER_TARGET_TEMP, stages:POULTRY_VENT_STAGES, unit:"day"},
+    layer:   {label:"산란계", icon:"🥚", table:LAYER_TARGET_TEMP,   stages:POULTRY_VENT_STAGES, unit:"wk"},
+    pig:     {label:"양돈", icon:"🐷", table:PIG_TARGET_TEMP,     stages:SWINE_VENT_STAGES,   unit:"pig"},
+  };
+  const sp = speciesInfo[ventState.species] || speciesInfo.broiler;
+
+  // 성장단계 기본 선택값 (없으면 첫 단계)
+  if(ventState.stageIdx == null || ventState.stageIdx >= sp.table.length) ventState.stageIdx = 0;
+  const curStage = sp.table[ventState.stageIdx];
+  const targetT = curStage.t;
+
+  const wx = weatherState;
+  const fc = wx.forecast || [];
+  const today = fc[0];
+  const todayHigh = today?.tMax != null ? Math.round(today.tMax) : null;
+  const diff = todayHigh != null ? todayHigh - targetT : null;
+  const recIdx = diff != null ? determineVentStage(diff) : null;
+
+  // 유창(커튼형) 돈사는 단열이 약해 목표온도를 1~2°C 높여 잡는 것이 PIC 권장사항
+  const barnNote = ventState.species==="pig" && ventState.barn==="curtain"
+    ? " · 유창(커튼형) 돈사는 단열이 약해 목표온도를 1~2°C 높여 판단하는 것이 PIC 권장사항입니다."
+    : ventState.barn==="curtain"
+    ? " · 자연환기(유창) 계사는 바람·일사 영향이 커 아래 3단계 체계를 참고용으로만 활용하세요."
+    : "";
+
+  // 날씨 데이터 없을 때 안내
+  const noWeather = fc.length===0;
+
+  const speciesBtns = Object.entries(speciesInfo).map(([key,v])=>`
+    <button class="vent-species-btn" data-species="${key}"
+      style="flex:1;border:2px solid ${ventState.species===key?"#1a2744":"#eee"};background:${ventState.species===key?"#1a2744":"#fff"};color:${ventState.species===key?"#F9C74F":"#333"};border-radius:10px;padding:10px 6px;font-size:13px;font-weight:700;cursor:pointer">
+      ${v.icon} ${v.label}
+    </button>`).join("");
+
+  const barnBtns = `
+    <button class="vent-barn-btn" data-barn="solid"
+      style="flex:1;border:2px solid ${ventState.barn==="solid"?"#1a2744":"#eee"};background:${ventState.barn==="solid"?"#1a2744":"#fff"};color:${ventState.barn==="solid"?"#F9C74F":"#333"};border-radius:10px;padding:9px 6px;font-size:12px;font-weight:700;cursor:pointer">
+      🏭 무창(밀폐형)
+    </button>
+    <button class="vent-barn-btn" data-barn="curtain"
+      style="flex:1;border:2px solid ${ventState.barn==="curtain"?"#1a2744":"#eee"};background:${ventState.barn==="curtain"?"#1a2744":"#fff"};color:${ventState.barn==="curtain"?"#F9C74F":"#333"};border-radius:10px;padding:9px 6px;font-size:12px;font-weight:700;cursor:pointer">
+      🏚️ 유창(커튼형·자연환기)
+    </button>`;
+
+  const stageBtns = sp.table.map((s,i)=>{
+    const label = s.day || s.wk || s.stage;
+    const sel = i===ventState.stageIdx;
+    return `<button class="vent-stage-btn" data-idx="${i}"
+      style="border:1.5px solid ${sel?"#1a2744":"#e0e0e0"};background:${sel?"#1a2744":"#fafafa"};color:${sel?"#F9C74F":"#555"};border-radius:8px;padding:6px 9px;font-size:11px;font-weight:${sel?700:500};cursor:pointer;white-space:nowrap">
+      ${label}${s.weight?" · "+s.weight:""}
+    </button>`;
+  }).join("");
+
+  const recommendCard = (() => {
+    if(noWeather) return `
+      <div class="card" style="text-align:center;padding:28px 16px;margin-bottom:16px">
+        <div style="font-size:28px;margin-bottom:8px">🌤️</div>
+        <div style="font-size:13px;color:#888;margin-bottom:10px">날씨 데이터가 필요합니다. 날씨 탭에서 지역을 먼저 설정해주세요.</div>
+      </div>`;
+
+    const st = sp.stages[recIdx];
+    const diffLabel = diff>0 ? `목표 대비 <b style="color:#C62828">+${diff}°C</b> 높음` :
+                       diff<0 ? `목표 대비 <b style="color:#1565C0">${diff}°C</b> 낮음` : `목표와 동일`;
+    return `
+    <div class="card" style="border-top:5px solid ${st.color};margin-bottom:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+        <div>
+          <div style="font-size:11px;color:#aaa;font-weight:600">오늘의 추천 환기 단계</div>
+          <div style="font-size:19px;font-weight:800;color:${st.color};margin-top:2px">${st.icon} ${st.name}</div>
+          <div style="font-size:10px;color:#999;margin-top:1px">${st.nameEn}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;color:#aaa">오늘 최고기온</div>
+          <div style="font-size:22px;font-weight:800;color:#333">${todayHigh}°C</div>
+          <div style="font-size:11px;color:#666;margin-top:1px">목표 ${targetT}°C · ${diffLabel}</div>
+        </div>
+      </div>
+
+      <div style="background:#fafafa;border-radius:10px;padding:12px;margin-bottom:10px">
+        <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:4px">📍 발동 기준</div>
+        <div style="font-size:12px;color:#555;line-height:1.6">${st.when}</div>
+      </div>
+      <div style="background:#fafafa;border-radius:10px;padding:12px;margin-bottom:10px">
+        <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:4px">🔧 환기 방법</div>
+        <div style="font-size:12px;color:#555;line-height:1.6">${st.method}</div>
+      </div>
+      <div style="background:#fafafa;border-radius:10px;padding:12px;margin-bottom:10px">
+        <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:4px">🎯 목적</div>
+        <div style="font-size:12px;color:#555;line-height:1.6">${st.purpose}</div>
+      </div>
+
+      ${st.rateTable ? `
+      <div style="background:#fff8e8;border-radius:10px;padding:12px;margin-bottom:10px">
+        <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:6px">💨 두당 환기량 기준</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          ${st.rateTable.map(r=>`
+            <div style="background:#fff;border-radius:8px;padding:7px 10px;text-align:center;flex:1;min-width:90px">
+              <div style="font-size:10px;color:#888">${r.stage}</div>
+              <div style="font-size:13px;font-weight:700;color:#E65100">${r.cfm}</div>
+            </div>`).join("")}
+        </div>
+        ${st.extra?`<div style="font-size:10px;color:#888;margin-top:6px">${st.extra}</div>`:""}
+      </div>` : ""}
+
+      <div style="background:#eef4ff;border-radius:10px;padding:12px">
+        <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:5px">✅ 현장 점검 체크리스트</div>
+        ${st.checks.map(c=>`<div style="font-size:11px;color:#555;line-height:1.9">· ${c}</div>`).join("")}
+      </div>
+    </div>`;
+  })();
+
+  // 7일 예보 기준 단계 변화 미리보기
+  const weekPreview = !noWeather ? `
+  <div class="card" style="margin-bottom:16px">
+    <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:10px">📅 7일 환기단계 예보</div>
+    <div style="display:flex;gap:5px;overflow-x:auto;padding-bottom:2px">
+      ${fc.slice(0,7).map((d,i)=>{
+        const dn=["일","월","화","수","목","금","토"];
+        const dd=new Date(d.date);
+        const hi = d.tMax!=null ? Math.round(d.tMax) : null;
+        const dfi = hi!=null ? hi - targetT : null;
+        const si = dfi!=null ? determineVentStage(dfi) : null;
+        const stg = si!=null ? sp.stages[si] : null;
+        return `<div style="flex:1;min-width:58px;text-align:center;background:${stg?stg.color+"14":"#f5f5f5"};border-radius:8px;padding:7px 3px">
+          <div style="font-size:9px;color:#888;font-weight:600">${i===0?"오늘":dn[dd.getDay()]+" "+(dd.getMonth()+1)+"/"+dd.getDate()}</div>
+          <div style="font-size:14px;font-weight:800;margin:3px 0;color:#333">${hi!=null?hi+"°":"-"}</div>
+          <div style="font-size:9px;font-weight:700;color:${stg?stg.color:"#aaa"}">${stg?stg.icon+" "+stg.name.replace(/\(.*?\)/,""):"-"}</div>
+        </div>`;
+      }).join("")}
+    </div>
+  </div>` : "";
+
+  return `
+  <div style="margin-bottom:14px">
+    <div class="display" style="font-size:16px;margin-bottom:3px">🌬️ 환기가이드</div>
+    <div style="font-size:11px;color:#aaa">Aviagen(가금) · PIC(양돈) 컨설팅 3단계 환기 체계 기반 — 오늘 날씨·계사구조·사육단계에 맞는 환기방법 추천${barnNote}</div>
+  </div>
+
+  <div style="display:flex;gap:8px;margin-bottom:10px">${speciesBtns}</div>
+  <div style="display:flex;gap:8px;margin-bottom:12px">${barnBtns}</div>
+
+  <div style="margin-bottom:14px">
+    <div style="font-size:11px;color:#888;font-weight:600;margin-bottom:6px">사육단계 선택 (${sp.label})</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">${stageBtns}</div>
+  </div>
+
+  ${recommendCard}
+  ${weekPreview}
+
+  <div style="font-size:10px;color:#aaa;line-height:1.7">
+    ※ 위 3단계 환기 체계는 Aviagen「Environmental Management in the Broiler House」,
+    PIC「Wean to Finish Guidelines Appendix A」, 미네소타대 확장연구소(L. Jacobson) 자료를 재구성한 것입니다.
+    실제 전환 시점은 온도계 수치뿐 아니라 계군·돈군의 행동(헐떡임, 웅크림, 피딩 활동 등)을 함께 관찰해 판단하는 것이 원 지침의 핵심입니다.
   </div>`;
 }
 
@@ -3022,6 +3295,10 @@ function attachEvents(){
       const saved=loadWeatherLocation();
       if(saved) fetchWeather(saved.lat, saved.lng, saved.name);
     }
+    if(state.tab==="vent" && weatherState.status==="idle"){
+      const saved=loadWeatherLocation();
+      if(saved) fetchWeather(saved.lat, saved.lng, saved.name);
+    }
     if(state.tab==="news" && newsState.status==="idle") fetchNews(newsState.activeChannel);
     if(state.tab==="briefing"){
       if(noticesState.status==="idle") fetchNotices();
@@ -3034,6 +3311,21 @@ function attachEvents(){
   // 공지 갱신 버튼
   const noticesRefreshBtn=document.getElementById("btn-notices-refresh");
   if(noticesRefreshBtn) noticesRefreshBtn.onclick=()=>{ noticesState.status="loading"; render(); fetchNotices(true); };
+
+  // 환기가이드: 축종/계사구조/사육단계 선택
+  document.querySelectorAll(".vent-species-btn").forEach(b=>b.onclick=()=>{
+    ventState.species = b.dataset.species;
+    ventState.stageIdx = 0;
+    render();
+  });
+  document.querySelectorAll(".vent-barn-btn").forEach(b=>b.onclick=()=>{
+    ventState.barn = b.dataset.barn;
+    render();
+  });
+  document.querySelectorAll(".vent-stage-btn").forEach(b=>b.onclick=()=>{
+    ventState.stageIdx = parseInt(b.dataset.idx,10);
+    render();
+  });
 
   // 경제동향 갱신 버튼 (주가+코인 동시 갱신)
   const econRefreshBtn=document.getElementById("btn-econ-refresh");
