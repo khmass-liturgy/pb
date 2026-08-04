@@ -2831,11 +2831,22 @@ function renderVentTab(){
           <div style="font-size:10px;color:#999;margin-top:1px">${st.nameEn}</div>
         </div>
         <div style="text-align:right">
-          <div style="font-size:11px;color:#aaa">오늘 최고기온</div>
-          <div style="font-size:22px;font-weight:800;color:#333">${todayHigh}°C</div>
+          <div style="font-size:11px;color:#aaa">오늘 최고기온 · 습도</div>
+          <div style="font-size:22px;font-weight:800;color:#333">${todayHigh}°C <span style="font-size:14px;color:${todayHum!=null&&todayHum>VENT_HUMIDITY_THRESHOLD?"#0288D1":"#999"};font-weight:700">💧${todayHum!=null?todayHum+"%":"-"}</span></div>
           <div style="font-size:11px;color:#666;margin-top:1px">목표 ${targetT}°C · ${diffLabel}</div>
+          ${humDrivenUp?`<div style="font-size:10px;color:#0288D1;font-weight:700;margin-top:2px">💧 습도 기준으로 단계 상향됨</div>`:""}
         </div>
       </div>
+
+      ${humDrivenUp || humVentIneffective ? `
+      <div style="background:#E3F2FD;border-left:4px solid #0288D1;border-radius:8px;padding:11px 13px;margin-bottom:10px">
+        <div style="font-size:12px;font-weight:700;color:#01579B;margin-bottom:4px">💧 습도 기준 판정 (Munters 이중제어 로직)</div>
+        <div style="font-size:11px;color:#333;line-height:1.7">
+          ${humDrivenUp?`오늘 습도 ${todayHum}%는 기준치(${VENT_HUMIDITY_THRESHOLD}%)를 초과해, 온도만 보면 ${sp.stages[tempStageIdx].name}이지만 습도 요구량이 더 커서 <b>${st.name}</b>으로 상향했습니다.`:""}
+          ${humVentIneffective?`<br>⚠️ 외기온이 이미 목표온도를 초과한 상태에서 습도까지 높으므로, 환기를 더 늘려도 습도가 잘 안 떨어질 수 있습니다(바깥 공기 자체가 덥고 습함). 제습·쿨링패드 등 별도 조치를 함께 검토하세요.`:""}
+        </div>
+        <div style="font-size:9px;color:#0277BD;margin-top:6px">출처: Munters Rotem Trio 환기컨트롤러(온도·습도·CO₂ 복합 제어) · PIC "습도 65% 이하 유지" 규정</div>
+      </div>` : ""}
 
       <div style="background:#fafafa;border-radius:10px;padding:12px;margin-bottom:10px">
         <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:4px">📍 발동 기준</div>
@@ -2873,19 +2884,23 @@ function renderVentTab(){
   // 7일 예보 기준 단계 변화 미리보기
   const weekPreview = !noWeather ? `
   <div class="card" style="margin-bottom:16px">
-    <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:10px">📅 7일 환기단계 예보</div>
+    <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:10px">📅 7일 환기단계 예보 <span style="font-size:9px;color:#0288D1;font-weight:500">· 💧는 습도(${VENT_HUMIDITY_THRESHOLD}%↑)로 단계가 상향된 날</span></div>
     <div style="display:flex;gap:5px;overflow-x:auto;padding-bottom:2px">
       ${fc.slice(0,7).map((d,i)=>{
         const dn=["일","월","화","수","목","금","토"];
         const dd=new Date(d.date);
         const hi = d.tMax!=null ? Math.round(d.tMax) : null;
+        const dh = d.hum!=null ? Math.round(d.hum) : null;
         const dfi = hi!=null ? hi - targetT : null;
-        const si = dfi!=null ? determineVentStage(dfi) : null;
+        const tsi = dfi!=null ? determineVentStage(dfi) : null;
+        const hsi = determineHumidityStage(dh);
+        const si = tsi!=null ? Math.max(tsi, hsi) : null;
         const stg = si!=null ? sp.stages[si] : null;
+        const humUp = tsi!=null && hsi>tsi;
         return `<div style="flex:1;min-width:58px;text-align:center;background:${stg?stg.color+"14":"#f5f5f5"};border-radius:8px;padding:7px 3px">
           <div style="font-size:9px;color:#888;font-weight:600">${i===0?"오늘":dn[dd.getDay()]+" "+(dd.getMonth()+1)+"/"+dd.getDate()}</div>
           <div style="font-size:14px;font-weight:800;margin:3px 0;color:#333">${hi!=null?hi+"°":"-"}</div>
-          <div style="font-size:9px;font-weight:700;color:${stg?stg.color:"#aaa"}">${stg?stg.icon+" "+stg.name.replace(/\(.*?\)/,""):"-"}</div>
+          <div style="font-size:9px;font-weight:700;color:${stg?stg.color:"#aaa"}">${stg?stg.icon+" "+stg.name.replace(/\(.*?\)/,""):"-"}${humUp?" 💧":""}</div>
         </div>`;
       }).join("")}
     </div>
@@ -2894,7 +2909,7 @@ function renderVentTab(){
   return `
   <div style="margin-bottom:14px">
     <div class="display" style="font-size:16px;margin-bottom:3px">🌬️ 환기가이드</div>
-    <div style="font-size:11px;color:#aaa">Aviagen(가금) · PIC(양돈) 컨설팅 3단계 환기 체계 기반 — 오늘 날씨·계사구조·사육단계에 맞는 환기방법 추천${barnNote}</div>
+    <div style="font-size:11px;color:#aaa">Aviagen(가금) · PIC(양돈) 3단계 체계 + Munters 습도 이중제어 로직 — 오늘 날씨·계사구조·사육단계에 맞는 환기방법 추천${barnNote}</div>
   </div>
 
   <div style="display:flex;gap:8px;margin-bottom:10px">${speciesBtns}</div>
@@ -2909,9 +2924,11 @@ function renderVentTab(){
   ${weekPreview}
 
   <div style="font-size:10px;color:#aaa;line-height:1.7">
-    ※ 위 3단계 환기 체계는 Aviagen「Environmental Management in the Broiler House」,
-    PIC「Wean to Finish Guidelines Appendix A」, 미네소타대 확장연구소(L. Jacobson) 자료를 재구성한 것입니다.
-    실제 전환 시점은 온도계 수치뿐 아니라 계군·돈군의 행동(헐떡임, 웅크림, 피딩 활동 등)을 함께 관찰해 판단하는 것이 원 지침의 핵심입니다.
+    ※ 온도 기준 3단계 체계는 Aviagen「Environmental Management in the Broiler House」,
+    PIC「Wean to Finish Guidelines Appendix A」, 미네소타대 확장연구소(L. Jacobson) 자료를 재구성했습니다.
+    습도 기준 판정은 글로벌 계사환경제어 1위 업체 Munters의 상업용 컨트롤러(Rotem Trio)가 쓰는
+    "온도요구·습도요구 환기량 중 더 큰 값을 따르는" 이중제어 로직과 PIC의 습도 65% 관리 기준을 결합해 구성했습니다.
+    실제 전환 시점은 수치뿐 아니라 계군·돈군의 행동(헐떡임, 웅크림, 피딩 활동 등)을 함께 관찰해 판단하는 것이 원 지침의 핵심입니다.
   </div>`;
 }
 
