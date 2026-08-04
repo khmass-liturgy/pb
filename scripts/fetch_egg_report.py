@@ -15,6 +15,14 @@ from pathlib import Path
 import requests
 import pdfplumber
 
+# Playwright는 목록 페이지가 자바스크립트로 렌더링되는 경우에만 필요한
+# 최후 수단이라 선택적으로 불러온다 (설치 안 돼 있어도 나머지는 동작해야 함).
+try:
+    from playwright.sync_api import sync_playwright
+    HAS_PLAYWRIGHT = True
+except ImportError:
+    HAS_PLAYWRIGHT = False
+
 KST = timezone(timedelta(hours=9))
 
 HEADERS = {
@@ -89,28 +97,8 @@ def _diag_dump(label, html):
     print(f"     뒷부분 500자: {html[-500:]!r}")
 
 
-def find_latest_board_no_from_list():
-    """
-    목록 페이지(boardInfoNo=0159)에서 실제 최신 게시글 번호를 추출.
-    상세 페이지가 boardNo 파라미터를 무시하고 항상 최신글을 보여주는 것으로
-    보였던 적이 있으나(과거 확인 시점), 그 동작에 계속 의존하면 사이트 쪽
-    동작이 바뀌었을 때 같은 옛 게시글만 계속 받아오면서도 실패로 표시되지
-    않는 문제가 있다. 목록에서 직접 번호를 뽑아 이 문제를 없앤다.
-    """
-    try:
-        r = requests.get(LIST_URL, headers=HEADERS, params={
-            "boardInfoNo": "0159", "pageIndex": "1", "pageUnit": "9",
-            "searchCondition": "SUBJECT", "searchKeyword": "",
-        }, timeout=20)
-        r.encoding = "utf-8"
-        html = r.text
-        print(f"  목록 페이지 HTTP {r.status_code} / {len(html)}bytes")
-    except Exception as e:
-        print(f"  ⚠️ 목록 페이지 요청 실패: {e}")
-        return []
-
-    # 여러 CMS 렌더링 패턴을 폭넓게 시도 (사이트 구조 변경에 대비)
-    # 0-패딩 없는 형태("boardNo":41038)도 있을 수 있어 자릿수를 4~8로 넓힌다
+def _extract_board_nos(html):
+    """HTML/JSON 텍스트에서 게시글 번호 후보를 폭넓게 추출 (8자리로 0-패딩 통일)"""
     patterns = [
         r'boardNo["\'=:\s]+0*(\d{4,8})',
         r"fn_view\(['\"]?0*(\d{4,8})",
@@ -118,6 +106,7 @@ def find_latest_board_no_from_list():
         r'data-board-?no=["\']?0*(\d{4,8})',
         r'boardNo=0*(\d{4,8})',
         r"goDetail\(['\"]?0*(\d{4,8})",
+        r"goBoardView\(['\"]?0*(\d{4,8})",
         r"nttSn=0*(\d{4,8})",
         r"bbsSn=0*(\d{4,8})",
         r"pstSn=0*(\d{4,8})",
@@ -125,39 +114,142 @@ def find_latest_board_no_from_list():
     found = []
     for pat in patterns:
         found += re.findall(pat, html)
-
-    # 8자리로 0-패딩 통일 (요청 파라미터는 항상 8자리 형태를 씀)
     found = [f.zfill(8) for f in found if f.isdigit()]
+    return sorted(set(found), key=lambda x: int(x), reverse=True)
 
-    # 중복 제거, 숫자 큰 순(최신순) 정렬
-    uniq = sorted(set(found), key=lambda x: int(x), reverse=True)
-    if uniq:
-        print(f"  목록에서 후보 {len(uniq)}개 발견 (최신순 상위 5개): {uniq[:5]}")
-    else:
-        print("  ⚠️ 목록 페이지에서 게시글 번호를 찾지 못함 (사이트 구조 확인 필요)")
-        _diag_dump("목록 페이지", html)
-    return uniq
+
+def find_latest_board_no_from_list():
+    """
+    목록 페이지(boardInfoNo=0159)에서 실제 최신 게시글 번호를 추출.
+
+    확인 결과 이 목록은 처음 응답에 목록 항목이 없고(자바스크립트가 별도
+    데이터를 받아와 화면에 채워 넣는 방식), goBoardView(boardNo) 같은 범용
+    함수 정의만 있다. 실제 항목 데이터는 같은 URL을 AJAX로(XHR 헤더 또는
+    POST, dmlType=LIST 등) 호출했을 때 반환되는 것으로 추정 — egovframe류
+    게시판에서 흔한 구조. 여러 호출 방식을 순서대로 시도한다.
+    """
+    base_params = {
+        "boardInfoNo": "0159", "pageIndex": "1", "pageUnit": "9",
+        "searchCondition": "SUBJECT", "searchKeyword": "",
+    }
+    attempts = [
+        ("GET 기본",            "GET",  base_params, {}),
+        ("GET + XHR 헤더",       "GET",  base_params, {"X-Requested-With": "XMLHttpRequest"}),
+        ("GET + dmlType=LIST",   "GET",  {**base_params, "dmlType": "LIST"}, {"X-Requested-With": "XMLHttpRequest"}),
+        ("POST + dmlType=LIST",  "POST", {**base_params, "dmlType": "LIST"}, {"X-Requested-With": "XMLHttpRequest"}),
+        ("POST 기본",            "POST", base_params, {"X-Requested-With": "XMLHttpRequest"}),
+    ]
+
+    last_html = ""
+    for label, method, params, extra_headers in attempts:
+        try:
+            hdrs = {**HEADERS, **extra_headers}
+            if method == "GET":
+                r = requests.get(LIST_URL, headers=hdrs, params=params, timeout=20)
+            else:
+                r = requests.post(LIST_URL, headers=hdrs, data=params, timeout=20)
+            r.encoding = "utf-8"
+            html = r.text
+            last_html = html
+            uniq = _extract_board_nos(html)
+            print(f"  [{label}] HTTP {r.status_code} / {len(html)}bytes / 후보 {len(uniq)}개")
+            if uniq:
+                print(f"    → 최신순 상위 5개: {uniq[:5]}")
+                return uniq
+        except Exception as e:
+            print(f"  [{label}] 요청 실패: {e}")
+
+    print("  ⚠️ 모든 방식에서 게시글 번호를 찾지 못함 (사이트 구조 확인 필요)")
+    if last_html:
+        _diag_dump("목록 페이지(마지막 시도)", last_html)
+    return []
+
+
+def find_latest_board_no_via_browser():
+    """
+    목록 페이지는 처음 HTML에 항목이 없고 자바스크립트가 별도 데이터를 받아와
+    채워 넣는 방식으로 확인됐다(정적 요청 여러 방식을 다 시도해도 항목별
+    게시글 번호가 아예 존재하지 않았음). requests는 자바스크립트를 실행하지
+    못하므로 근본적으로 이 방식으로는 얻을 수 없는 데이터다.
+
+    실제 브라우저(headless Chromium)로 페이지를 열어 자바스크립트를 실행시킨 뒤,
+    ① 페이지가 내부적으로 호출하는 데이터 응답(XHR/fetch)을 가로채서 우선 확인하고
+    ② 그래도 없으면 자바스크립트 실행이 끝난 최종 DOM에서 추출한다.
+    """
+    if not HAS_PLAYWRIGHT:
+        print("  ⚠️ playwright 미설치 — 브라우저 탐색 건너뜀")
+        return []
+
+    captured_texts = []
+
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page(user_agent=HEADERS["User-Agent"])
+
+            def on_response(resp):
+                try:
+                    if resp.status != 200:
+                        return
+                    ctype = resp.headers.get("content-type", "")
+                    if "json" in ctype or "xml" in ctype or "text" in ctype:
+                        body = resp.text()
+                        if "boardNo" in body or "계란" in body:
+                            captured_texts.append((resp.url, body))
+                except Exception:
+                    pass  # 응답 스트림이 이미 소비된 경우 등, 진단용이라 무시
+
+            page.on("response", on_response)
+            page.goto(LIST_URL + "?boardInfoNo=0159", wait_until="networkidle", timeout=30000)
+            page.wait_for_timeout(1500)  # 지연 렌더링 대비 여유
+            dom_html = page.content()
+            browser.close()
+    except Exception as e:
+        print(f"  ⚠️ 브라우저 탐색 실패: {e}")
+        return []
+
+    print(f"  브라우저: 가로챈 응답 {len(captured_texts)}개, 최종 DOM {len(dom_html)}bytes")
+
+    # ① 페이지가 자체적으로 호출한 데이터 응답에서 우선 추출
+    for url, body in captured_texts:
+        nos = _extract_board_nos(body)
+        if nos:
+            print(f"  ✅ 네트워크 응답에서 발견 ({url[:70]}): {nos[:5]}")
+            return nos
+
+    # ② 최종 렌더링된 DOM에서 추출 (버튼 onclick, data 속성 등)
+    nos = _extract_board_nos(dom_html)
+    if nos:
+        print(f"  ✅ 렌더링된 DOM에서 발견: {nos[:5]}")
+        return nos
+
+    print("  ⚠️ 브라우저로도 게시글 번호를 찾지 못함")
+    _diag_dump("브라우저 렌더링 결과", dom_html)
+    return []
 
 
 def get_latest():
     """
     최신 게시글의 boardNo / attachNo / 제목을 반환.
-    ① 목록 페이지에서 후보 번호를 뽑아 실제로 첨부파일이 걸린 것을 검증
-    ② 실패 시 detail.do 에 존재할 수 없는 번호("00000000")를 보내본다.
-       예전에 이 사이트는 boardNo 값과 무관하게 최신 글을 보여줬는데, 그 동작이
-       아직 유효하면 이 방법으로도 최신 글을 받아온다. 다만 실제 게시글 번호를
-       하드코딩해두면(과거의 00041017처럼) 그 가정이 깨졌을 때도 조용히 같은
-       옛날 글을 계속 돌려주므로, 일부러 존재할 수 없는 번호를 써서 가정이
-       깨졌을 경우 눈에 띄게 실패하도록 한다.
+    ① 정적 요청(여러 방식)으로 목록에서 후보를 찾아본다 — 가장 빠름
+    ② 실패하면 실제 브라우저로 자바스크립트를 실행해 찾는다 — 근본 해결책
+    ③ 그래도 실패하면 예전 방식(존재 불가능한 번호로 질의)까지 시도하되,
+       모두 실패하면 예외로 죽이지 않고 빈 값을 반환해 main()에서
+       "이전 데이터 유지 + stale 표시"로 안전하게 처리되게 한다.
     """
-    for board_no in find_latest_board_no_from_list()[:5]:
+    candidates = find_latest_board_no_from_list()
+    if not candidates:
+        print("  → 정적 탐색 실패, 브라우저 탐색으로 전환")
+        candidates = find_latest_board_no_via_browser()
+
+    for board_no in candidates[:5]:
         attach_no, title, _ = fetch_detail(board_no)
         if attach_no:
-            print(f"  ✅ 목록 기반 확인: boardNo={board_no}, attachNo={attach_no}, 제목={title}")
+            print(f"  ✅ boardNo={board_no}, attachNo={attach_no}, 제목={title}")
             return board_no, attach_no, title
         print(f"  boardNo={board_no}: 첨부파일 없음 → 다음 후보")
 
-    print("  ⚠️ 목록 기반 탐색 실패 → 폴백(boardNo 무시 동작 가정) 시도")
+    print("  ⚠️ 목록 기반 탐색 전부 실패 → 마지막 폴백(boardNo 무시 동작 가정) 시도")
     attach_no, title, html = fetch_detail("00000000")
     board_no = ""
     m = re.search(r'name="boardNo"[^>]*value="(\d+)"', html)
@@ -167,13 +259,6 @@ def get_latest():
 
     if not attach_no:
         _diag_dump("상세 페이지(boardNo=00000000)", html)
-        # 마지막 시도: 예전에 실제로 통했던 특정 번호로도 한 번 확인
-        # (이 번호가 여전히 통하면 "게시글이 그대로"라는 뜻, 이것마저 실패하면
-        #  detail.do 자체 구조가 바뀐 것)
-        attach_no2, title2, html2 = fetch_detail("00041017")
-        print(f"  참고용 재확인(boardNo=00041017): attachNo={attach_no2 or '(없음)'}, 제목={title2}")
-        if not attach_no2:
-            _diag_dump("상세 페이지(boardNo=00041017, 참고용)", html2)
 
     return board_no, attach_no, title
 
@@ -317,6 +402,16 @@ def main():
 
     if not attach_no:
         print("❌ attachNo 미발견 — 사이트 구조가 바뀌었을 수 있습니다.")
+        # 완전히 빈 손으로 끝내지 않는다: 이전에 성공한 데이터가 있으면
+        # 그대로 유지해 화면에는 계속 최신(구) 데이터가 뜨게 하고,
+        # stale 표시를 남겨서 문제가 있다는 건 알 수 있게 한다.
+        if prev:
+            print("  ⚡ 이전 데이터 유지 (Actions 실패로는 표시되지만 화면은 정상 노출)")
+            prev["stale_weeks"] = (prev or {}).get("stale_weeks", 0) + 1
+            prev["updated"] = datetime.now(KST).strftime("%Y-%m-%d %H:%M KST") + " (수집 실패, 이전 데이터)"
+            Path("egg_report").mkdir(exist_ok=True)
+            with open("egg_report/latest.json", "w", encoding="utf-8") as f:
+                json.dump(prev, f, ensure_ascii=False, indent=2)
         sys.exit(1)
 
     # 직전 실행과 같은 글이 계속 나오면(=새 글 감지 실패 가능성) 연속 횟수를 누적해
