@@ -26,7 +26,11 @@ jobs:
           python-version: "3.12"
 
       - name: 패키지 설치
-        run: pip install requests
+        run: |
+          pip install requests playwright
+          # requests+프록시로도 접근이 안 될 때(SSLError·TLS 지문 차단 등)의
+          # 최후 수단. 평소엔 안 쓰이지만 이 사이트가 그런 경우로 확인돼 추가.
+          playwright install --with-deps chromium
 
       - name: 육계 시세 수집
         run: python scripts/fetch_chicken_price.py
@@ -36,7 +40,14 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add chicken_price/
+          # chicken_price/ 폴더가 아예 없을 수도 있으므로(수집·이전값 모두 없어
+          # 저장 자체를 안 한 경우) add 실패로 워크플로우 전체가 죽지 않게 방어
+          if [ -d chicken_price ]; then
+            git add chicken_price/
+          else
+            echo "chicken_price/ 폴더 없음 — 커밋할 결과 없이 종료"
+            exit 0
+          fi
           git diff --staged --quiet && echo "변경 없음" && exit 0
           git commit -m "🐔 육계협회 시세 업데이트 ($(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M KST'))"
           for i in 1 2 3; do
