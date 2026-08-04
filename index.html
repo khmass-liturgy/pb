@@ -431,6 +431,13 @@ const MARKET_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/mai
 // 이 한 파일만 읽으면 되므로 뉴스 4종을 봐도 프록시 호출은 0회.
 const BRIEFING_NEWS_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/news/briefing.json";
 
+// ── 육계협회 시세 (GitHub Actions → chicken_price/latest.json) ──────────────
+// 브라우저에서 chicken.or.kr을 CORS 프록시로 직접 긁으면 이 사이트가 자동화
+// 요청에 403을 자주 돌려주는 탓에 매번 실패 → 코드에 박힌 옛 폴백값만 계속
+// 표시되는 문제가 있었다. 서버(Actions)가 주기적으로 수집해 커밋해두면
+// 브라우저는 정적 JSON만 읽으면 되므로 이 문제에서 완전히 벗어난다.
+const CHICKEN_PRICE_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/chicken_price/latest.json";
+
 // ── 뉴스 게시판: 브라우저 직접 fetch (CORS 프록시 → HTML 파싱) ───────────────
 // chuksannews.co.kr: mediaOn CMS (article.html?no=) · pignpork.com: ndsoft CMS (articleView.html?idxno=)
 
@@ -801,9 +808,31 @@ function parseChickenPriceHTML(html){
   return rows.slice(0,10);
 }
 
-async function fetchChickenPrices(){
+async function fetchChickenPrices(force){
   chPriceState.status="loading";
   if(state.tab==="price") render();
+
+  // ① 서버 수집 JSON (프록시 불필요, 호출 1회) — 강제 새로고침이 아니면 우선 시도
+  if(!force){
+    try {
+      const resp = await fetchWithTimeout(CHICKEN_PRICE_JSON_URL + "?t=" + Math.floor(Date.now()/600000), 8000);
+      if(resp.ok){
+        const d = await resp.json();
+        if(Array.isArray(d.rows) && d.rows.length>=3){
+          chPriceState.data = {rows:d.rows};
+          chPriceState.updatedAt = (d.stale ? "⚡ " : "") + (d.updated || "");
+          chPriceState.status = "done";
+          chPriceState.isFallback = !!d.stale;
+          console.log("육계 시세: 서버 수집 사용 (프록시 0회)"+(d.stale?" · 서버측도 stale":""));
+          if(state.tab==="price") render();
+          return;
+        }
+      }
+    } catch(e){ console.warn("chicken_price/latest.json 로딩 실패:", e.message); }
+  }
+
+  // ② 폴백: 브라우저에서 직접 프록시 경유 스크래핑 (서버 JSON이 아직 없거나 강제 새로고침 시)
+  console.log("육계 시세: 서버 파일 없음 → 브라우저 직접 수집으로 전환");
   const proxies = proxyRoutes(CHPRICE_URL);
   for(let i=0;i<proxies.length;i++){
     try{
@@ -819,6 +848,8 @@ async function fetchChickenPrices(){
       throw new Error("파싱 결과 부족 ("+parsed.length+"건)");
     } catch(e){ console.warn("닭시세 경로"+(i+1)+" 실패:",e.message); }
   }
+
+  // ③ 최후 폴백: 코드에 저장된 예전 값
   chPriceState.data=CHPRICE_FALLBACK;
   chPriceState.updatedAt=CHPRICE_FALLBACK.updatedAt+" (저장값)";
   chPriceState.status="done"; chPriceState.isFallback=true;
