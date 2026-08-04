@@ -29,6 +29,48 @@ HEADERS = {
     "Accept-Language": "ko-KR,ko;q=0.9",
 }
 
+# ── 프록시 경유 폴백 ──────────────────────────────────────────────────────────
+# 일부 정부(.go.kr) 사이트는 GitHub Actions 러너의 클라우드 IP 대역 자체를
+# 막아둬서 응답이 아예 없이(ConnectTimeout) 연결이 끊긴다. WAF가 요청 내용을
+# 걸러내는 게 아니라 IP 단위 차단이라 헤더를 바꿔도 소용없다 — 다른 IP를 거쳐
+# 그대로 중계하는 공개 프록시로 우회한다. (브라우저 쪽 CORS_PROXIES와 동일한 목록)
+PROXY_TEMPLATES = [
+    lambda u: "https://api.codetabs.com/v1/proxy/?quest=" + quote(u, safe=""),
+    lambda u: "https://api.allorigins.win/raw?url=" + quote(u, safe=""),
+    lambda u: "https://corsproxy.io/?url=" + quote(u, safe=""),
+]
+
+NETWORK_ERRORS = (
+    requests.exceptions.ConnectTimeout,
+    requests.exceptions.ConnectionError,
+    requests.exceptions.ReadTimeout,
+)
+
+
+def get_with_proxy_fallback(session, url, timeout=20):
+    """
+    직접 연결이 네트워크 단계에서 막히면(타임아웃·연결거부) 공개 프록시를
+    순서대로 거쳐 원문을 그대로 중계받는다. 프록시는 내용을 가공하지 않고
+    그대로 전달하므로 RSS XML 파싱 로직은 그대로 쓸 수 있다.
+    """
+    try:
+        return session.get(url, timeout=timeout)
+    except NETWORK_ERRORS as e:
+        print("        ⚠️ 직접 연결 실패(%s) → 프록시 경유 재시도" % type(e).__name__)
+
+    last_err = None
+    for i, tmpl in enumerate(PROXY_TEMPLATES, 1):
+        try:
+            r = session.get(tmpl(url), timeout=timeout + 10)
+            if r.status_code == 200 and len(r.content) > 200:
+                print("        ✅ 프록시 %d 성공 (%dbytes)" % (i, len(r.content)))
+                return r
+            print("        프록시 %d 실패: HTTP %d / %dbytes" % (i, r.status_code, len(r.content)))
+        except Exception as e:
+            last_err = e
+            print("        프록시 %d 실패: %s" % (i, e))
+    raise last_err or Exception("모든 프록시 실패")
+
 PER_SOURCE = 5   # 소스별 노출 건수
 
 
@@ -165,7 +207,7 @@ def fetch_source(src, session):
 
     for url in src["urls"]:
         try:
-            r = session.get(url, timeout=20)
+            r = get_with_proxy_fallback(session, url, timeout=20)
             ctype = r.headers.get("Content-Type", "")
             print("      → HTTP %d / %dbytes / %s" % (r.status_code, len(r.content), ctype))
             if r.status_code != 200:
