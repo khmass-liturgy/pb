@@ -1,7 +1,7 @@
 {
-  "updated": "2026-08-04 12:29 KST",
-  "updatedTs": 1785814146,
-  "ok": 3,
+  "updated": "2026-08-04 12:34 KST",
+  "updatedTs": 1785814486,
+  "ok": 4,
   "total": 4,
   "order": [
     "chuksan",
@@ -95,6 +95,12 @@
       "home": "https://www.asiae.co.kr/list/economy",
       "items": [
         {
+          "title": "JB금융, 하반기 경영전략회의 개최…\"질적성장·AX 실행 강화\"",
+          "url": "https://view.asiae.co.kr/article/2026080412242936233",
+          "date": "08.04 12:24",
+          "source": ""
+        },
+        {
           "title": "8월 중간예납 대상법인 54.5만개…31일까지 신고·납부해야",
           "url": "https://view.asiae.co.kr/article/2026080410085896812",
           "date": "08.04 12:00",
@@ -117,12 +123,6 @@
           "url": "https://view.asiae.co.kr/article/2026080411044090239",
           "date": "08.04 11:04",
           "source": ""
-        },
-        {
-          "title": "공정위, '방문판매법' 신고포상금 한도 삭제…위반행위 관여 직원도 지급한다",
-          "url": "https://view.asiae.co.kr/article/2026080410535793218",
-          "date": "08.04 10:53",
-          "source": ""
         }
       ],
       "stale": false
@@ -132,8 +132,39 @@
       "icon": "🏛️",
       "color": "#1B5E20",
       "home": "https://www.mafra.go.kr/home/5109/subview.do",
-      "items": [],
-      "stale": true
+      "items": [
+        {
+          "title": "농식품부, 폭염·가뭄 관련 지방정부의 농업인 안전 및 농업시설 특별점검 추진",
+          "url": "http://www.mafra.go.kr/bbs/home/792/578630/artclView.do",
+          "date": "",
+          "source": ""
+        },
+        {
+          "title": "7월 농축산물 소비자물가 전년대비 0.5% 상승, 안정적 물가 관리 지속",
+          "url": "http://www.mafra.go.kr/bbs/home/792/578634/artclView.do",
+          "date": "",
+          "source": ""
+        },
+        {
+          "title": "여름철 주요 과채류 수급 동향 및 대응",
+          "url": "http://www.mafra.go.kr/bbs/home/792/578633/artclView.do",
+          "date": "",
+          "source": ""
+        },
+        {
+          "title": "농식품부 장관, 농업·농촌 미래 성장을 위한 농특세 활용방안 논의",
+          "url": "http://www.mafra.go.kr/bbs/home/792/578615/artclView.do",
+          "date": "",
+          "source": ""
+        },
+        {
+          "title": "축산물 동물용의약품 잔류검사, 국제기준에 맞춰 위해도 기반으로 체계화",
+          "url": "http://www.mafra.go.kr/bbs/home/792/578606/artclView.do",
+          "date": "",
+          "source": ""
+        }
+      ],
+      "stale": false
     }
   }
 }
