@@ -64,9 +64,23 @@ def _diag_dump(label, html):
     print(f"     '계란' 포함: {'계란' in html} / '수급' 포함: {'수급' in html}")
     print(f"     'attachfileDownload' 포함: {'attachfileDownload' in html}")
     print(f"     'boardNo' 포함: {'boardNo' in html} (등장 {html.count('boardNo')}회)")
+
+    # boardNo가 있는데도 정규식이 못 잡았을 경우를 위해 등장 지점 주변을 그대로 출력
+    if "boardNo" in html:
+        idx = 0
+        n = 0
+        while True:
+            idx = html.find("boardNo", idx)
+            if idx < 0 or n >= 8:
+                break
+            print(f"     boardNo 주변[{n}]: {html[max(0,idx-20):idx+60]!r}")
+            idx += 7
+            n += 1
+
     for kw in ["nttSn", "bbsSn", "pstSn", "seq=", "postId", "artclView", "fn_view", "fn_select", "goDetail"]:
         if kw in html:
             print(f"     '{kw}' 등장 {html.count(kw)}회 — 예시: {html[html.find(kw):html.find(kw)+80]!r}")
+
     # <title> 태그
     m = re.search(r"<title>([^<]*)</title>", html)
     if m:
@@ -96,20 +110,24 @@ def find_latest_board_no_from_list():
         return []
 
     # 여러 CMS 렌더링 패턴을 폭넓게 시도 (사이트 구조 변경에 대비)
+    # 0-패딩 없는 형태("boardNo":41038)도 있을 수 있어 자릿수를 4~8로 넓힌다
     patterns = [
-        r'boardNo["\'=:\s]+(\d{8})',
-        r"fn_view\(['\"]?(\d{8})",
-        r"fn_select\(['\"]?(\d{8})",
-        r'data-board-?no=["\']?(\d{8})',
-        r'boardNo=(\d{8})',
-        r"goDetail\(['\"]?(\d+)",
-        r"nttSn=(\d+)",
-        r"bbsSn=(\d+)",
-        r"pstSn=(\d+)",
+        r'boardNo["\'=:\s]+0*(\d{4,8})',
+        r"fn_view\(['\"]?0*(\d{4,8})",
+        r"fn_select\(['\"]?0*(\d{4,8})",
+        r'data-board-?no=["\']?0*(\d{4,8})',
+        r'boardNo=0*(\d{4,8})',
+        r"goDetail\(['\"]?0*(\d{4,8})",
+        r"nttSn=0*(\d{4,8})",
+        r"bbsSn=0*(\d{4,8})",
+        r"pstSn=0*(\d{4,8})",
     ]
     found = []
     for pat in patterns:
         found += re.findall(pat, html)
+
+    # 8자리로 0-패딩 통일 (요청 파라미터는 항상 8자리 형태를 씀)
+    found = [f.zfill(8) for f in found if f.isdigit()]
 
     # 중복 제거, 숫자 큰 순(최신순) 정렬
     uniq = sorted(set(found), key=lambda x: int(x), reverse=True)
