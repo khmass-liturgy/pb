@@ -166,11 +166,22 @@ def fetch_source(src, session):
     for url in src["urls"]:
         try:
             r = session.get(url, timeout=20)
+            ctype = r.headers.get("Content-Type", "")
+            print("      → HTTP %d / %dbytes / %s" % (r.status_code, len(r.content), ctype))
             if r.status_code != 200:
+                print("        응답 본문 앞부분: %r" % r.text[:300])
                 raise Exception("HTTP %d" % r.status_code)
             r.encoding = r.apparent_encoding or "utf-8"
+
+            # RSS인데 <item> 이 하나도 없으면 WAF 차단 페이지 등을 받았을 가능성이 큼
+            if src["kind"] == "rss" and "<item" not in r.text:
+                print("        ⚠️ <item> 태그 없음 — RSS가 아닌 다른 응답을 받은 것으로 보임")
+                print("        응답 본문 앞부분: %r" % r.text[:500])
+
             got = (parse_rss(r.text, PER_SOURCE * 2, src.get("strip_source", False))
                    if src["kind"] == "rss" else src["parser"](r.text))
+            print("        파싱된 항목: %d개" % len(got))
+
             for it in got:
                 # 정부 사이트 등 일부 RSS는 <link>가 절대경로가 아닌 경우가 있어 보정
                 if origin and it.get("url") and not it["url"].startswith("http"):
