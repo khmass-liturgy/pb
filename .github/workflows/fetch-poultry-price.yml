@@ -1,4 +1,4 @@
-name: 계란·육계 시세 수집
+name: 축산산지시세 수집
 
 on:
   schedule:
@@ -18,7 +18,7 @@ jobs:
           python-version: "3.12"
       - name: 기본 라이브러리 테스트
         run: python -m unittest discover -s tests -p "test_fetch_poultry_price.py" -v
-      - name: 계란·육계 시세 수집
+      - name: 계란·육계·양돈·한우 시세 수집
         run: python scripts/fetch_poultry_price.py
       - name: 결과 검증
         run: |
@@ -29,8 +29,14 @@ jobs:
           assert data["egg"]["rows"] and isinstance(data["egg"]["latest"], int)
           assert data["chicken"]["rows"] and isinstance(data["chicken"]["latest"], int)
           assert data["pig"]["rows"] and isinstance(data["pig"]["latest"], int)
+          assert data["cow"]["items"]
           assert data["chicken"]["label"] == "생계유통(대)"
           assert data["pig"]["label"] == "농가수취 평균"
+          assert data["cow"]["items"]["female_calf"]["label"] == "암송아지(6~7개월)"
+          assert data["cow"]["items"]["male_calf"]["label"] == "수송아지(6~7개월)"
+          assert data["cow"]["items"]["farm_receipt_600kg"]["label"] == "농가수취가격(600kg)"
+          for key in ("female_calf", "male_calf", "farm_receipt_600kg"):
+              assert isinstance(data["cow"]["items"][key]["value"], int)
           PY
       - name: 결과 커밋
         run: |
@@ -38,5 +44,5 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add poultry_price/latest.json
           git diff --staged --quiet && exit 0
-          git commit -m "🥚🐔 계란·육계 시세 갱신"
+          git commit -m "📊 축산산지시세 갱신"
           git push
