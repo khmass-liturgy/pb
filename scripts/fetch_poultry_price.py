@@ -20,6 +20,7 @@ from urllib.request import Request, urlopen
 KST = timezone(timedelta(hours=9))
 EGG_URL = "https://www.ekapepia.com/v3/price/livestock/egg/distrPrice.do?menuSn=36&boardInfoNo="
 CHICKEN_URL = "https://www.ekapepia.com/v3/price/livestock/chicken/distrPrice.do?menuSn=35&boardInfoNo="
+PIG_URL = "https://www.ekapepia.com/v3/price/livestock/pig/producer.do?searchCondition=&searchCondition1=&searchCondition2=&searchCondition3=&searchGubn=&searchStartDate=&searchEndDate=&ctdt=&typeCd=&searchType="
 OUTPUT_PATH = Path("poultry_price/latest.json")
 HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; pb-poultry-price/1.0)", "Accept-Language": "ko-KR,ko;q=0.9"}
 PROXY_FACTORIES = (
@@ -109,6 +110,20 @@ def parse_chicken(html_text: str) -> list[dict[str, int | str]]:
     return sorted(values.values(), key=lambda item: str(item["date"]), reverse=True)[:30]
 
 
+def parse_pig(html_text: str) -> list[dict[str, int | str]]:
+    parser = RowParser()
+    parser.feed(html_text)
+    values: dict[str, dict[str, int | str]] = {}
+    for row in parser.rows:
+        first = row[0] if row else ""
+        date = normalize_date(first)
+        numbers = row_numbers(row) if date else []
+        if date and numbers and ("금일" in first or "전일" in first):
+            # 농가수취 평균 열(첫 번째 숫자), 원/kg
+            values.setdefault(date, {"date": date, "value": numbers[0]})
+    return sorted(values.values(), key=lambda item: str(item["date"]), reverse=True)[:30]
+
+
 def fetch_page(url: str, parser) -> list[dict[str, int | str]]:
     for candidate in (url, *(factory(url) for factory in PROXY_FACTORIES)):
         try:
@@ -127,8 +142,9 @@ def fetch_page(url: str, parser) -> list[dict[str, int | str]]:
 def main() -> int:
     egg_rows = fetch_page(EGG_URL, parse_egg)
     chicken_rows = fetch_page(CHICKEN_URL, parse_chicken)
-    if not egg_rows or not chicken_rows:
-        print("계란 또는 육계 시세를 찾지 못했습니다.")
+    pig_rows = fetch_page(PIG_URL, parse_pig)
+    if not egg_rows or not chicken_rows or not pig_rows:
+        print("계란·육계·양돈 시세를 찾지 못했습니다.")
         return 1
     now = datetime.now(KST)
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -136,9 +152,10 @@ def main() -> int:
         "updated": now.strftime("%Y-%m-%d %H:%M KST"),
         "egg": {"label": "계란 산지가격", "grade": "특란 (XL)", "unit": "원/10개", "latest": egg_rows[0]["value"], "rows": egg_rows},
         "chicken": {"label": "생계유통(대)", "unit": "원/kg", "latest": chicken_rows[0]["value"], "rows": chicken_rows},
-        "source_urls": {"egg": EGG_URL, "chicken": CHICKEN_URL},
+        "pig": {"label": "농가수취 평균", "unit": "원/kg", "latest": pig_rows[0]["value"], "rows": pig_rows},
+        "source_urls": {"egg": EGG_URL, "chicken": CHICKEN_URL, "pig": PIG_URL},
     }, ensure_ascii=False, indent=2), encoding="utf-8")
-    print("수집 성공:", {"egg": egg_rows[0], "chicken": chicken_rows[0]})
+    print("수집 성공:", {"egg": egg_rows[0], "chicken": chicken_rows[0], "pig": pig_rows[0]})
     return 0
 
 
