@@ -1,5 +1,5 @@
 {
-  "updated": "2026-08-04 12:23 KST",
+  "updated": "2026-08-05 09:00 KST",
   "channels": {
     "livestock": {
       "label": "축산·농업",
@@ -10,19 +10,13 @@
       "label": "수의·방역",
       "items": [
         {
-          "title": "동물보건사를 가축방역사로, 퇴직공무원을 가축방역관으로 - 데일리벳",
-          "link": "https://news.google.com/rss/articles/CBMiWEFVX3lxTFBNVXYxcjB5OWFkSEpWQXB6eVgzMW1oNTVDOTlydzhYSEZDcjVXRkd0YWZkVTU1Q1Rma3NGMENQVFk5eEJXT0tRZ2FXd0ljNFNqOGpYUExfSHM?oc=5",
-          "date": "07/29 08:00",
-          "source": "데일리벳"
-        },
-        {
           "title": "충북도, 폭염·폭우 피해 축산농가에 ‘긴급의료지원’…30명 현장 대응 - 공뉴스",
           "link": "https://news.google.com/rss/articles/CBMibEFVX3lxTE9icjk2Qk1zVDZMTHN6dzV2eWtoM2FjQVUzS1FpMkw2YUo4cWdmMWdYc0xLS0VGV19XUWpfM1FSRHJWOUtzeTYzWjZheXl6VV9qQ3E2WEc2dnRsa0pBcHlpajlJcXFCS2FVQVNIMA?oc=5",
           "date": "07/31 15:09",
           "source": "공뉴스"
         }
       ],
-      "count": 2
+      "count": 1
     },
     "disease": {
       "label": "가축질병",
@@ -31,8 +25,15 @@
     },
     "feed": {
       "label": "사료·약품",
-      "items": [],
-      "count": 0
+      "items": [
+        {
+          "title": "고려산업, 배합사료 매출 확대… 곡물가 하향 안정화 수혜 마중물 - 핀포인트뉴스",
+          "link": "https://news.google.com/rss/articles/CBMic0FVX3lxTE5faXN2NkdQeDNoTkVrYkZQOUFUbFAxczVLU01PMW5DanE4QURfSzhuOVp2Z2dWNkRpZEMzWXJRV3IxaTRKMmVhX1g0V0dEc2xGdnQ0Y3pUSURFaTBhZ2FDTTV6N2FtSWJIUmNMdWhXUUFOZlHSAXdBVV95cUxObHNxRk5ZMktiZUhBWS1NSG5YTmE5U2hDOEY5dG5pTXByUEtqMk9ONDFDUHdxaE9DT1ZCaUZyaDAzYmZKSGhsc2pJX1lhUHA2WG1IWTVxb1dGc1lWUmE1d0hBVWh4b1dONW4tb3duejZvZ1VDQ2oySQ?oc=5",
+          "date": "07/29 10:37",
+          "source": "핀포인트뉴스"
+        }
+      ],
+      "count": 1
     },
     "economy": {
       "label": "경제",
@@ -54,15 +55,9 @@
           "link": "https://news.google.com/rss/articles/CBMiVkFVX3lxTE9vRkFSRkl0dDBjMlhOejUxYkg1NGZBNGNnTmJoTjRqRUMzZHY1bmxZWjhpUHA5YWNyLUFlUElucGJrVjg1N1d5R0hrdTZFLWQxaUpraEpB?oc=5",
           "date": "07/31 20:06",
           "source": "인터내셔널포커스"
-        },
-        {
-          "title": "춘천, 세계 대학과 'Great Books 글로벌 포럼' 개최 - 네이트",
-          "link": "https://news.google.com/rss/articles/CBMiU0FVX3lxTE1RUkwzX3NfVXhkYkhzUGRNbDAzTzBlUGVZWThIR1RZUzJ6ME91NnBpM203NVRKRkZPZGFnS1d0TFF4aTdMX0ppaGRKbVFrTzRlb2p3?oc=5",
-          "date": "07/31 14:17",
-          "source": "네이트"
         }
       ],
-      "count": 2
+      "count": 1
     }
   }
 }
