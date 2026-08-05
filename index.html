@@ -360,7 +360,7 @@ async function fetchPoultryPrices(){
     const resp=await fetchWithTimeout(POULTRY_PRICE_JSON_URL+"?t="+Math.floor(Date.now()/600000),8000);
     if(!resp.ok) throw new Error("HTTP "+resp.status);
     const data=await resp.json();
-    if(!data.egg?.rows?.length || !data.chicken?.rows?.length) throw new Error("계란·육계 시세 자료 없음");
+    if(!data.egg?.rows?.length || !data.chicken?.rows?.length || !data.pig?.rows?.length) throw new Error("계란·육계·양돈 시세 자료 없음");
     poultryPriceState={status:"done",data};
   } catch(e) {
     console.warn("계란·육계 시세 로딩 실패:",e.message);
@@ -1341,7 +1341,7 @@ function render(){
   document.getElementById("app").innerHTML = `
     ${renderHeader()}
     <main>
-      ${state.tab==="price" ? renderPriceTab() : state.tab==="pig" ? renderPigTab() : state.tab==="livestock" ? renderLivestockTab() : state.tab==="weather" ? renderWeatherTab() : state.tab==="vent" ? renderVentTab() : state.tab==="briefing" ? renderBriefingTab() : renderPriceTab()}
+      ${state.tab==="price" || state.tab==="pig" ? renderPriceTab() : state.tab==="livestock" ? renderLivestockTab() : state.tab==="weather" ? renderWeatherTab() : state.tab==="vent" ? renderVentTab() : state.tab==="briefing" ? renderBriefingTab() : renderPriceTab()}
       ${renderFooter()}
     </main>`;
   attachEvents();
@@ -1362,8 +1362,7 @@ function renderHeader(){
       <div style="text-align:right"><div style="font-size:13px;font-weight:700;color:#F9C74F">${fmtDate(now)}</div></div>
     </div>
     <div class="tabs">
-      <button class="tab ${state.tab==="price"?"active":""}" data-tab="price">📊 양계</button>
-      <button class="tab ${state.tab==="pig"?"active":""}" data-tab="pig">🐷 양돈</button>
+      <button class="tab ${state.tab==="price"||state.tab==="pig"?"active":""}" data-tab="price">📊 축산시세</button>
       <button class="tab ${state.tab==="livestock"?"active":""}" data-tab="livestock">🐂 한우</button>
       <button class="tab ${state.tab==="weather"?"active":""}" data-tab="weather">🌤️ 날씨</button>
       <button class="tab ${state.tab==="vent"?"active":""}" data-tab="vent">🌬️ 환기가이드</button>
@@ -1984,19 +1983,20 @@ function last7DayInfos(){
 
 function renderPoultryPriceLine(){
   const st=poultryPriceState;
-  if(st.status==="idle"||st.status==="loading") return `<div class="card" style="margin-bottom:20px;text-align:center;padding:20px;color:#aaa">⏳ 계란·육계 시세 조회 중...</div>`;
-  if(st.status==="error"||!st.data) return `<div class="card" style="margin-bottom:20px;text-align:center;padding:20px;color:#aaa">⚠️ 계란·육계 시세를 불러오지 못했습니다.</div>`;
+  if(st.status==="idle"||st.status==="loading") return `<div class="card" style="margin-bottom:20px;text-align:center;padding:20px;color:#aaa">⏳ 계란·육계·양돈 시세 조회 중...</div>`;
+  if(st.status==="error"||!st.data) return `<div class="card" style="margin-bottom:20px;text-align:center;padding:20px;color:#aaa">⚠️ 계란·육계·양돈 시세를 불러오지 못했습니다.</div>`;
 
-  const egg=st.data.egg, chicken=st.data.chicken;
+  const egg=st.data.egg, chicken=st.data.chicken, pig=st.data.pig;
   const cards=[
     {icon:"🥚",label:"계란 산지가격",sub:"특란 (XL)",value:egg.latest,unit:"원/10개",color:"#D4A012",date:egg.rows[0]?.date},
     {icon:"🐔",label:"육계 생계유통",sub:"대",value:chicken.latest,unit:"원/kg",color:"#E8530A",date:chicken.rows[0]?.date},
+    {icon:"🐷",label:"양돈",sub:"농가수취 평균",value:pig.latest,unit:"원/kg",color:"#E84A6F",date:pig.rows[0]?.date},
   ].map(item=>`
     <div style="min-width:0;background:#fff;border:1px solid #eee;border-radius:12px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between">
       <div style="display:flex;align-items:center;gap:10px"><span style="font-size:25px">${item.icon}</span><div><div style="font-size:12px;color:#777;font-weight:700">${item.label} <span style="font-weight:400">${item.sub}</span></div><div style="font-size:22px;color:${item.color};font-weight:800">${Number.isInteger(item.value)?item.value.toLocaleString():"-"}<span style="font-size:11px;color:#888;font-weight:400;margin-left:3px">${item.unit}</span></div></div></div>
       <div style="font-size:10px;color:#aaa;text-align:right">${item.date||""}<br>발표전일 기준</div>
     </div>`).join("");
-  return `<div class="card" style="margin-bottom:20px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div class="display" style="font-size:15px">📊 계란·육계 시세</div><button id="btn-refresh-poultry" style="border:1px solid #1B7A3E;border-radius:8px;background:#fff;padding:6px 10px;font-size:11px;color:#1B7A3E">🔄 갱신</button></div><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">${cards}</div><div style="font-size:9px;color:#bbb;margin-top:8px;text-align:right">출처: 축산물품질평가원 다봄</div></div>`;
+  return `<div class="card" style="margin-bottom:20px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div class="display" style="font-size:15px">📊 계란·육계·양돈 시세</div><button id="btn-refresh-poultry" style="border:1px solid #1B7A3E;border-radius:8px;background:#fff;padding:6px 10px;font-size:11px;color:#1B7A3E">🔄 갱신</button></div><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">${cards}</div><div style="font-size:9px;color:#bbb;margin-top:8px;text-align:right">출처: 축산물품질평가원 다봄</div></div>`;
 }
 
 function renderPriceTab(){
