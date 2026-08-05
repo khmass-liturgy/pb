@@ -82,9 +82,8 @@ function genWeekData(){
   return getLast7Days().map((d,i)=>{
     const r=seedRand(d.getDate()*100+i); const wk=d.getDay()===0||d.getDay()===6;
     return { date:d, label:fmtDate(d), fullDate:fmtFull(d), isWeekend:wk,
-      broiler:wk?null:Math.round((1750+r()*400)/10)*10, egg:wk?null:Math.round((135+r()*40)),
-      native:wk?null:Math.round((3800+r()*600)/10)*10, breeder:wk?null:Math.round((800+r()*400)/10)*10,
-      wholesale:wk?null:Math.round((3200+r()*500)/10)*10, chick:wk?null:Math.round((700+r()*500)/10)*10 };
+      // 계란 산지가격은 KAPE 다봄 Actions JSON으로 교체된다.
+      egg:wk?null:Math.round((2200+r()*180)), };
   });
 }
 const WEEK_DATA = genWeekData();
@@ -349,11 +348,26 @@ function renderCostPanel(costKey){
 }
 
 const PRICE_CATEGORIES = [
-  { key:"egg",       label:"계란",      sub:"특란",   unit:"원/개",   icon:"🥚", color:"#D4A012", bg:"#FFFBEE" },
-  { key:"native",    label:"토종닭",    sub:"산지가", unit:"원/kg",   icon:"🐓", color:"#1B7A3E", bg:"#EEF7F1" },
-  { key:"breeder",   label:"종계",      sub:"병아리", unit:"원/마리", icon:"🐣", color:"#7B1FA2", bg:"#F5EEF9" },
-  { key:"wholesale", label:"닭고기",    sub:"도매가", unit:"원/kg",   icon:"🍗", color:"#1565C0", bg:"#EEF2FB" },
+  { key:"egg", label:"계란 산지가격", sub:"특란 (XL)", unit:"원/10개", icon:"🥚", color:"#D4A012", bg:"#FFFBEE" },
 ];
+
+const EGG_PRICE_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/egg_price/latest.json";
+let eggPriceState = { status:"idle", rows:[], updated:"" };
+
+async function fetchEggPrice(){
+  eggPriceState.status="loading";
+  try {
+    const resp=await fetchWithTimeout(EGG_PRICE_JSON_URL+"?t="+Math.floor(Date.now()/600000),8000);
+    if(!resp.ok) throw new Error("HTTP "+resp.status);
+    const data=await resp.json();
+    if(!Array.isArray(data.rows)||!data.rows.length) throw new Error("계란 산지가격 자료 없음");
+    eggPriceState={status:"done",rows:data.rows,updated:data.updated||""};
+  } catch(e) {
+    console.warn("계란 산지가격 로딩 실패:",e.message);
+    eggPriceState={status:"error",rows:[],updated:""};
+  }
+  if(state.tab==="price") render();
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 협회별 공지사항 게시판 바로가기 (실제 게시판 주소)
@@ -1973,16 +1987,21 @@ function last7DayInfos(){
 }
 
 function renderPriceTab(){
-  const items=PRICE_CATEGORIES.map(c=>({icon:c.icon,label:c.label,sub:c.sub,unit:c.unit,color:c.color,week:WEEK_DATA.map(d=>d[c.key])}));
-  const days=WEEK_DATA.map(d=>({label:d.label,isWeekend:d.isWeekend}));
+  const eggRows=eggPriceState.rows;
+  const fallback=WEEK_DATA.map(d=>d.egg);
+  const eggWeek=eggRows.length ? eggRows.slice().reverse().map(r=>r.farm_per_10) : fallback;
+  const items=[{icon:"🥚",label:"계란 산지가격",sub:"특란 (XL)",unit:"원/10개",color:"#D4A012",week:eggWeek}];
+  const days=eggRows.length
+    ? eggRows.slice().reverse().map(r=>({label:r.date,isWeekend:false}))
+    : WEEK_DATA.map(d=>({label:d.label,isWeekend:d.isWeekend}));
   return `
   ${renderCostPanel("poultry")}
   ${renderChickenPricePanel()}
   ${renderSummarySection(items,{
-    warnTail:"정확한 계란·토종닭·종계·닭고기 시세는 각 협회 공식 사이트를 확인하세요. (육계 실시간 시세는 위 카드 참고)",
-    linkUrl:"https://chicken.or.kr/ch_price/price_2025.php", linkLabel:"📊 육계협회(한국육계협회) 시세 원문", linkColor:"#E8530A",
+    warnTail:"축산물품질평가원 다봄의 발표전일 계란 산지가격입니다.",
+    linkUrl:"https://www.ekapepia.com/v3/price/livestock/egg/distrPrice.do?menuSn=36&boardInfoNo=", linkLabel:"📊 다봄 계란 산지가격 원문", linkColor:"#D4A012",
     refreshId:"btn-refresh-poultry"})}
-  ${renderCompareTable(items,days,{unitNote:"단위: 토종닭·닭고기(원/kg) | 계란(원/개) | 종계병아리(원/마리)"})}
+  ${renderCompareTable(items,days,{unitNote:"단위: 원/10개 · 품목: 특란(XL) 산지가격"})}
   ${renderEggSupplyPanel()}`;
 }
 
@@ -3605,6 +3624,7 @@ fetchUpbitPrices();
 fetchStockPrices();
 // 다봄 실시간 시세 자동 로드 (백그라운드)
 fetchDabomPrices().then(()=>{ if(state.tab==="price"||state.tab==="pig") render(); });
+fetchEggPrice();
 // 주간 계란 수급 정보 (GitHub Actions 매주 화요일 업데이트)
 fetchEggReport();
 
