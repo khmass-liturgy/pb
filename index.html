@@ -739,70 +739,75 @@ async function fetchNotices(force){
 }
 
 // ── 육계 시세: chicken.or.kr/ch_price/price_2025.php ─────────────────────
-// 3개 항목: 육계생계(운반비포함, 원/kg) · 병아리(원/수) · 종계노계(원/kg)
+// 5개 항목: 육계 대·중·소(원/kg) · 병아리(원/수) · 종계노계(원/kg)
 const CHPRICE_URL = "https://chicken.or.kr/ch_price/price_2025.php";
 const CHPRICE_FALLBACK = {
   updatedAt:"2026-07-02",
   rows:[
-    {date:"2026-07-02", broiler:1640, chick:870, breeding:460},
-    {date:"2026-07-01", broiler:1650, chick:870, breeding:455},
-    {date:"2026-06-30", broiler:1660, chick:870, breeding:460},
-    {date:"2026-06-27", broiler:1660, chick:865, breeding:460},
-    {date:"2026-06-26", broiler:1650, chick:860, breeding:455},
-    {date:"2026-06-25", broiler:1640, chick:855, breeding:450},
-    {date:"2026-06-24", broiler:1630, chick:855, breeding:450},
-    {date:"2026-06-23", broiler:1620, chick:855, breeding:445},
-    {date:"2026-06-20", broiler:1610, chick:850, breeding:445},
-    {date:"2026-06-19", broiler:1600, chick:845, breeding:440},
+    {date:"2026-07-02", large:1640, medium:null, small:null, chick:870, breeding:460},
+    {date:"2026-07-01", large:1650, medium:null, small:null, chick:870, breeding:455},
+    {date:"2026-06-30", large:1660, medium:null, small:null, chick:870, breeding:460},
   ],
 };
 let chPriceState={status:"idle", data:null, updatedAt:"", isFallback:false};
 
+// rowspan/colspan 2단 헤더를 실제 열로 펼쳐 이름으로 매핑한다.
+// 같은 이름이 없거나 둘 이상이면 위치를 추측하지 않고 해당 표를 거부한다.
 function parseChickenPriceHTML(html){
-  const doc=new DOMParser().parseFromString(html,"text/html");
-  // 컬럼 인덱스를 헤더 텍스트로 동적 탐지
-  let dateIdx=-1, broilerIdx=-1, chickIdx=-1, breedingIdx=-1;
-  const rows=[];
-
+  const doc=new DOMParser().parseFromString(html,"text/html"), rows=[];
   doc.querySelectorAll("table").forEach(tbl=>{
-    const allTrs=[...tbl.querySelectorAll("tr")];
-    // 헤더 행 찾기
-    let hdrIdx=-1;
-    allTrs.forEach((tr,i)=>{
-      const txt=tr.textContent;
-      if(/생계/.test(txt)&&/병아리/.test(txt)){hdrIdx=i;}
+    const grid=[];
+    [...tbl.rows].forEach((tr,r)=>{
+      grid[r] ||= [];
+      let c=0;
+      [...tr.cells].forEach(cell=>{
+        while(grid[r][c]!==undefined) c++;
+        const rs=Math.max(1,Number(cell.rowSpan)||1), cs=Math.max(1,Number(cell.colSpan)||1);
+        for(let dr=0;dr<rs;dr++){
+          grid[r+dr] ||= [];
+          for(let dc=0;dc<cs;dc++) grid[r+dr][c+dc]=cell;
+        }
+        c+=cs;
+      });
     });
-    if(hdrIdx<0) return;
-
-    const hdrCells=[...allTrs[hdrIdx].querySelectorAll("th,td")];
-    hdrCells.forEach((c,i)=>{
-      const t=c.textContent.replace(/\s/g,"");
-      if(/날짜|일자|연월|기준일/.test(t)) dateIdx=i;
-      else if(/생계/.test(t)&&broilerIdx<0) broilerIdx=i;
-      else if(/병아리/.test(t)) chickIdx=i;
-      else if(/종계/.test(t)) breedingIdx=i;
+    const dateRx=/(?:(\d{4})[.\/-])?(\d{1,2})[.\/-](\d{1,2})/;
+    const firstData=grid.findIndex(row=>row.some(cell=>dateRx.test(cell?.textContent||"")));
+    if(firstData<0) return;
+    const width=Math.max(...grid.map(row=>row.length));
+    const labels=Array.from({length:width},(_,c)=>{
+      const parts=[];
+      grid.slice(0,firstData).forEach(row=>{
+        const t=(row[c]?.textContent||"").trim();
+        if(t&&!parts.includes(t)) parts.push(t);
+      });
+      return parts.join(" ").replace(/[\s·ㆍ()\[\]\/ _-]+/g,"");
     });
-
-    // 데이터 행
-    allTrs.slice(hdrIdx+1).forEach(tr=>{
-      const cells=[...tr.querySelectorAll("td")];
-      if(cells.length<3) return;
-      const rawDate=(cells[dateIdx>=0?dateIdx:0]?.textContent||"").trim();
-      if(!/\d{4}|^\d{2}[\.\/]\d{2}/.test(rawDate)) return;
-      // 날짜 정규화
-      let date=rawDate.replace(/\./g,"-").replace(/\//g,"-").slice(0,10);
-      if(date.length===5) date="2026-"+date; // MM-DD
-
-      const getN=idx=>{
-        if(idx<0||idx>=cells.length) return null;
-        const n=parseInt(cells[idx].textContent.replace(/[^0-9]/g,""),10);
-        return isNaN(n)||n===0?null:n;
+    const one=(name,match)=>{
+      const found=labels.map((label,i)=>match(label)?i:-1).filter(i=>i>=0);
+      if(found.length!==1) throw new Error(`${name} 열 식별 실패: ${labels.join(" | ")}`);
+      return found[0];
+    };
+    let col;
+    try{
+      col={
+        date:one("기준일",h=>/기준일|날짜|일자|연월일/.test(h)),
+        large:one("육계 대",h=>/육계|생계/.test(h)&&h.includes("대")),
+        medium:one("육계 중",h=>/육계|생계/.test(h)&&h.includes("중")),
+        small:one("육계 소",h=>/육계|생계/.test(h)&&h.includes("소")),
+        chick:one("병아리",h=>h.includes("병아리")),
+        breeding:one("종계노계",h=>h.includes("종계노계")||(h.includes("종계")&&h.includes("노계"))),
       };
-      // 인덱스 미탐지 시 위치 기반 폴백
-      const b=getN(broilerIdx>=0?broilerIdx:1);
-      const c2=getN(chickIdx>=0?chickIdx:2);
-      const br=getN(breedingIdx>=0?breedingIdx:3);
-      if(b||c2||br) rows.push({date,broiler:b,chick:c2,breeding:br});
+    }catch(e){ console.warn(e.message); return; }
+    grid.slice(firstData).forEach(row=>{
+      const dm=(row[col.date]?.textContent||"").match(dateRx);
+      if(!dm) return;
+      const date=`${dm[1]||new Date().getFullYear()}-${String(dm[2]).padStart(2,"0")}-${String(dm[3]).padStart(2,"0")}`;
+      const number=key=>{
+        const m=(row[col[key]]?.textContent||"").replace(/,/g,"").match(/\d+/);
+        return m?parseInt(m[0],10):null;
+      };
+      const parsed={date,large:number("large"),medium:number("medium"),small:number("small"),chick:number("chick"),breeding:number("breeding")};
+      if(Object.values(parsed).slice(1).every(Number.isInteger)) rows.push(parsed);
     });
   });
   return rows.slice(0,10);
@@ -819,7 +824,7 @@ async function fetchChickenPrices(force){
       if(resp.ok){
         const d = await resp.json();
         if(Array.isArray(d.rows) && d.rows.length>=3){
-          chPriceState.data = {rows:d.rows};
+          chPriceState.data = {rows:d.rows.map(r=>({date:r.date,large:r.large,medium:r.medium,small:r.small,chick:r.chick,breeding:r.breeding}))};
           chPriceState.updatedAt = (d.stale ? "⚡ " : "") + (d.updated || "");
           chPriceState.status = "done";
           chPriceState.isFallback = !!d.stale;
@@ -1447,11 +1452,13 @@ function renderChickenPricePanel(){
     return `<div class="card" style="margin-bottom:20px;text-align:center;padding:24px;color:#aaa;font-size:13px">⏳ 육계 시세 조회 중...</div>`;
   }
 
-  // 최신 3항목 하이라이트 카드
+  // 원본 표와 동일한 5항목 하이라이트 카드
   const summaryCards = latest ? [
     { label:"육계 대", val:latest.large, prev:prev?.large, unit:"원/kg",  color:"#E8530A", bg:"#FFF4EE" },
-    { label:"육계 중",               val:latest.medium,   prev:prev?.medium,   unit:"원/kg",  color:"#1B7A3E", bg:"#F0FAF4" },
-    { label:"육계 소",             val:latest.small,prev:prev?.small, unit:"원/kg",  color:"#4527A0", bg:"#F3F0FF" },
+    { label:"육계 중", val:latest.medium, prev:prev?.medium, unit:"원/kg", color:"#1B7A3E", bg:"#F0FAF4" },
+    { label:"육계 소", val:latest.small, prev:prev?.small, unit:"원/kg", color:"#4527A0", bg:"#F3F0FF" },
+    { label:"병아리", val:latest.chick, prev:prev?.chick, unit:"원/수", color:"#1565C0", bg:"#EEF5FF" },
+    { label:"종계노계", val:latest.breeding, prev:prev?.breeding, unit:"원/kg", color:"#AD1457", bg:"#FFF0F6" },
   ].map(c=>`
     <div style="flex:1;min-width:130px;background:${c.bg};border-radius:12px;padding:14px;border-top:3px solid ${c.color}">
       <div style="font-size:10px;color:#888;font-weight:700;margin-bottom:6px">${c.label}</div>
@@ -1471,6 +1478,10 @@ function renderChickenPricePanel(){
       <td style="padding:7px 4px;font-size:10px">${arrow(r.medium,prow?.medium)}</td>
       <td style="padding:7px 10px;text-align:right;font-size:12px;font-weight:${isTd?700:400};color:${isTd?"#4527A0":"#333"}">${r.small!=null?r.small.toLocaleString():"-"}</td>
       <td style="padding:7px 4px;font-size:10px">${arrow(r.small,prow?.small)}</td>
+      <td style="padding:7px 10px;text-align:right;font-size:12px;font-weight:${isTd?700:400};color:${isTd?"#1565C0":"#333"}">${r.chick!=null?r.chick.toLocaleString():"-"}</td>
+      <td style="padding:7px 4px;font-size:10px">${arrow(r.chick,prow?.chick)}</td>
+      <td style="padding:7px 10px;text-align:right;font-size:12px;font-weight:${isTd?700:400};color:${isTd?"#AD1457":"#333"}">${r.breeding!=null?r.breeding.toLocaleString():"-"}</td>
+      <td style="padding:7px 4px;font-size:10px">${arrow(r.breeding,prow?.breeding)}</td>
     </tr>`;
   }).join("");
 
@@ -1499,20 +1510,24 @@ function renderChickenPricePanel(){
     <!-- 날짜별 테이블 -->
     <div style="font-size:11px;font-weight:700;color:#888;margin-bottom:6px">📅 최근 일별 시세</div>
     <div style="overflow-x:auto">
-      <table style="width:100%;border-collapse:collapse;min-width:340px">
+      <table style="width:100%;border-collapse:collapse;min-width:720px">
         <thead><tr style="border-bottom:2px solid #f0f0f0">
           <th style="padding:5px 8px;text-align:left;font-size:10px;color:#aaa;font-weight:600">날짜</th>
-          <th style="padding:5px 10px;text-align:right;font-size:10px;color:#E8530A;font-weight:700">생계 (원/kg)</th>
+          <th style="padding:5px 10px;text-align:right;font-size:10px;color:#E8530A;font-weight:700">육계 대 (원/kg)</th>
           <th></th>
-          <th style="padding:5px 10px;text-align:right;font-size:10px;color:#1B7A3E;font-weight:700">병아리 (원/수)</th>
+          <th style="padding:5px 10px;text-align:right;font-size:10px;color:#1B7A3E;font-weight:700">육계 중 (원/kg)</th>
           <th></th>
-          <th style="padding:5px 10px;text-align:right;font-size:10px;color:#4527A0;font-weight:700">종계노계 (원/kg)</th>
+          <th style="padding:5px 10px;text-align:right;font-size:10px;color:#4527A0;font-weight:700">육계 소 (원/kg)</th>
+          <th></th>
+          <th style="padding:5px 10px;text-align:right;font-size:10px;color:#1565C0;font-weight:700">병아리 (원/수)</th>
+          <th></th>
+          <th style="padding:5px 10px;text-align:right;font-size:10px;color:#AD1457;font-weight:700">종계노계 (원/kg)</th>
           <th></th>
         </tr></thead>
         <tbody>${tableRows}</tbody>
       </table>
     </div>
-    <div style="font-size:9px;color:#ccc;margin-top:8px;text-align:right">※ 육계생계: 운반비 포함 기준 · 출처: (사)한국육계협회</div>
+    <div style="font-size:9px;color:#ccc;margin-top:8px;text-align:right">※ 육계 대·중·소: 운반비 포함 기준 · 출처: (사)한국육계협회</div>
   </div>`;
 }
 
