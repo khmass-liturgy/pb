@@ -1,5 +1,5 @@
 {
-  "updated": "2026-08-05 23:59 KST",
+  "updated": "2026-08-06 00:14 KST",
   "egg": {
     "label": "계란 산지가격",
     "grade": "특란 (XL)",
@@ -191,8 +191,24 @@
       }
     ]
   },
+  "pig": {
+    "label": "농가수취 평균",
+    "unit": "원/kg",
+    "latest": 6777,
+    "rows": [
+      {
+        "date": "2026-08-04",
+        "value": 6777
+      },
+      {
+        "date": "2026-08-03",
+        "value": 6793
+      }
+    ]
+  },
   "source_urls": {
     "egg": "https://www.ekapepia.com/v3/price/livestock/egg/distrPrice.do?menuSn=36&boardInfoNo=",
-    "chicken": "https://www.ekapepia.com/v3/price/livestock/chicken/distrPrice.do?menuSn=35&boardInfoNo="
+    "chicken": "https://www.ekapepia.com/v3/price/livestock/chicken/distrPrice.do?menuSn=35&boardInfoNo=",
+    "pig": "https://www.ekapepia.com/v3/price/livestock/pig/producer.do?searchCondition=&searchCondition1=&searchCondition2=&searchCondition3=&searchGubn=&searchStartDate=&searchEndDate=&ctdt=&typeCd=&searchType="
   }
 }
