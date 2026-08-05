@@ -18,6 +18,7 @@ import sys
 from datetime import datetime, timedelta, timezone
 from html.parser import HTMLParser
 from pathlib import Path
+from dataclasses import dataclass
 from typing import Any
 from urllib.parse import quote
 
@@ -62,16 +63,25 @@ ERROR_MARKERS = (
 )
 
 
+@dataclass(frozen=True)
+class Cell:
+    text: str
+    rowspan: int = 1
+    colspan: int = 1
+    header: bool = False
+
+
 class TableParser(HTMLParser):
-    """HTML table을 표/행/셀 문자열 구조로 변환하는 표준 라이브러리 파서."""
+    """HTML 표의 셀 텍스트와 rowspan/colspan을 보존한다."""
 
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
-        self.tables: list[list[list[str]]] = []
+        self.tables: list[list[list[Cell]]] = []
         self._table_depth = 0
-        self._current_table: list[list[str]] | None = None
-        self._current_row: list[str] | None = None
+        self._current_table: list[list[Cell]] | None = None
+        self._current_row: list[Cell] | None = None
         self._current_cell: list[str] | None = None
+        self._current_cell_meta: tuple[int, int, bool] = (1, 1, False)
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         tag = tag.lower()
@@ -83,6 +93,13 @@ class TableParser(HTMLParser):
             self._current_row = []
         elif self._table_depth == 1 and tag in ("th", "td"):
             self._current_cell = []
+            attributes = {key.lower(): value for key, value in attrs}
+            try:
+                rowspan = max(1, int(attributes.get("rowspan") or 1))
+                colspan = max(1, int(attributes.get("colspan") or 1))
+            except ValueError:
+                rowspan, colspan = 1, 1
+            self._current_cell_meta = (rowspan, colspan, tag == "th")
 
     def handle_data(self, data: str) -> None:
         if self._current_cell is not None:
@@ -94,7 +111,10 @@ class TableParser(HTMLParser):
         if self._table_depth == 1 and tag in ("th", "td"):
             if self._current_row is not None and self._current_cell is not None:
                 value = " ".join("".join(self._current_cell).split())
-                self._current_row.append(html_lib.unescape(value))
+                rowspan, colspan, header = self._current_cell_meta
+                self._current_row.append(Cell(
+                    html_lib.unescape(value), rowspan, colspan, header
+                ))
             self._current_cell = None
 
         elif self._table_depth == 1 and tag == "tr":
@@ -107,6 +127,72 @@ class TableParser(HTMLParser):
                 self.tables.append(self._current_table)
                 self._current_table = None
             self._table_depth = max(0, self._table_depth - 1)
+
+
+def expand_table(table: list[list[Cell]]) -> list[list[Cell | None]]:
+    """rowspan/colspan을 실제 열 좌표로 펼친 직사각형 그리드를 만든다."""
+    grid: list[list[Cell | None]] = []
+
+    for row_index, source_row in enumerate(table):
+        while len(grid) <= row_index:
+            grid.append([])
+        column = 0
+
+        for cell in source_row:
+            while column < len(grid[row_index]) and grid[row_index][column] is not None:
+                column += 1
+
+            for row_offset in range(cell.rowspan):
+                target_row = row_index + row_offset
+                while len(grid) <= target_row:
+                    grid.append([])
+                required = column + cell.colspan
+                if len(grid[target_row]) < required:
+                    grid[target_row].extend([None] * (required - len(grid[target_row])))
+                for column_offset in range(cell.colspan):
+                    target_column = column + column_offset
+                    if grid[target_row][target_column] is not None:
+                        raise ValueError("겹치는 rowspan/colspan 셀이 있습니다.")
+                    grid[target_row][target_column] = cell
+            column += cell.colspan
+
+    width = max((len(row) for row in grid), default=0)
+    for row in grid:
+        row.extend([None] * (width - len(row)))
+    return grid
+
+
+def normalize_header(value: str) -> str:
+    return re.sub(r"[\s·ㆍ()\[\]/_-]+", "", value).lower()
+
+
+def column_map(grid: list[list[Cell | None]], first_data_row: int) -> dict[str, int]:
+    """여러 헤더 행의 상위/하위 이름을 합쳐 각 의미 열을 찾는다."""
+    labels: list[str] = []
+    width = len(grid[0]) if grid else 0
+    for column in range(width):
+        parts: list[str] = []
+        for row in grid[:first_data_row]:
+            cell = row[column]
+            if cell and cell.text and cell.text not in parts:
+                parts.append(cell.text)
+        labels.append(normalize_header(" ".join(parts)))
+
+    aliases = {
+        "date": lambda h: any(word in h for word in ("기준일", "날짜", "일자", "연월일")),
+        "large": lambda h: ("육계" in h or "생계" in h) and "대" in h,
+        "medium": lambda h: ("육계" in h or "생계" in h) and "중" in h,
+        "small": lambda h: ("육계" in h or "생계" in h) and "소" in h,
+        "chick": lambda h: "병아리" in h,
+        "breeding": lambda h: "종계노계" in h or ("종계" in h and "노계" in h),
+    }
+    result: dict[str, int] = {}
+    for key, matches in aliases.items():
+        candidates = [i for i, label in enumerate(labels) if matches(label)]
+        if len(candidates) != 1:
+            raise ValueError(f"{key} 열을 하나로 특정할 수 없습니다: {labels}")
+        result[key] = candidates[0]
+    return result
 
 
 def is_real_source_html(page_html: str) -> bool:
@@ -163,9 +249,8 @@ def parse_price_html(page_html: str) -> list[dict[str, Any]]:
     원본 표는 다단 헤더 구조다.
       기준일 | 육계(대 | 중 | 소) | 병아리 | 종계노계 ...
 
-    기존 코드는 첫 헤더 행의 colspan을 펼치지 않아 데이터열 1·2·3을
-    broiler/chick/breeding으로 잘못 이름 붙였다. 양계 탭에서는 필요한
-    육계 대·중·소만 데이터 행의 첫 세 가격 열로 명확하게 추출한다.
+    셀 위치가 아니라 펼친 헤더 이름으로 육계 대·중·소, 병아리,
+    종계노계를 각각 찾는다. 열이 빠지거나 중복되면 잘못 저장하지 않고 실패한다.
     """
     parser = TableParser()
     parser.feed(page_html)
@@ -173,33 +258,28 @@ def parse_price_html(page_html: str) -> list[dict[str, Any]]:
     results: list[dict[str, Any]] = []
 
     for table in parser.tables:
-        # 날짜가 들어 있는 데이터 행을 직접 찾는다.
-        for row in table:
-            if len(row) < 4:
-                continue
+        try:
+            grid = expand_table(table)
+            first_data_row = next(
+                i for i, row in enumerate(grid)
+                if any(cell and normalize_date(cell.text) for cell in row)
+            )
+            columns = column_map(grid, first_data_row)
+        except (StopIteration, ValueError):
+            continue
 
-            date = normalize_date(row[0])
+        for row in grid[first_data_row:]:
+            date_cell = row[columns["date"]]
+            date = normalize_date(date_cell.text) if date_cell else None
             if not date:
                 continue
-
-            # 날짜 다음 세 개의 유효 숫자는 원본 표의 육계 대·중·소다.
-            prices: list[int] = []
-            for cell in row[1:]:
-                number = parse_number(cell)
-                if number is not None:
-                    prices.append(number)
-                if len(prices) == 3:
-                    break
-
-            if len(prices) < 3:
+            parsed = {
+                key: parse_number(row[index].text) if row[index] else None
+                for key, index in columns.items() if key != "date"
+            }
+            if not all(parsed.values()):
                 continue
-
-            results.append({
-                "date": date,
-                "large": prices[0],
-                "medium": prices[1],
-                "small": prices[2],
-            })
+            results.append({"date": date, **parsed})
 
         if results:
             break
