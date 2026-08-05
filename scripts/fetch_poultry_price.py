@@ -21,6 +21,7 @@ KST = timezone(timedelta(hours=9))
 EGG_URL = "https://www.ekapepia.com/v3/price/livestock/egg/distrPrice.do?menuSn=36&boardInfoNo="
 CHICKEN_URL = "https://www.ekapepia.com/v3/price/livestock/chicken/distrPrice.do?menuSn=35&boardInfoNo="
 PIG_URL = "https://www.ekapepia.com/v3/price/livestock/pig/producer.do?searchCondition=&searchCondition1=&searchCondition2=&searchCondition3=&searchGubn=&searchStartDate=&searchEndDate=&ctdt=&typeCd=&searchType="
+COW_URL = "https://www.ekapepia.com/v3/price/livestock/cow/distrPrice.do?menuSn=33&boardInfoNo="
 OUTPUT_PATH = Path("poultry_price/latest.json")
 HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; pb-poultry-price/1.0)", "Accept-Language": "ko-KR,ko;q=0.9"}
 PROXY_FACTORIES = (
@@ -84,6 +85,11 @@ def row_numbers(row: list[str]) -> list[int]:
     return numbers
 
 
+def cell_number(value: str) -> int | None:
+    match = re.search(r"(?<!\d)(\d[\d,]*)(?!\d)", value)
+    return int(match.group(1).replace(",", "")) if match else None
+
+
 def parse_egg(html_text: str) -> list[dict[str, int | str]]:
     parser = RowParser()
     parser.feed(html_text)
@@ -124,6 +130,35 @@ def parse_pig(html_text: str) -> list[dict[str, int | str]]:
     return sorted(values.values(), key=lambda item: str(item["date"]), reverse=True)[:30]
 
 
+def parse_cow(html_text: str) -> list[dict[str, int | str | None]]:
+    """소 표의 첫 세 가격 열(암송아지·수송아지·농가수취가격)을 명시적으로 읽는다."""
+    parser = RowParser()
+    parser.feed(html_text)
+    values: dict[str, dict[str, int | str | None]] = {}
+    for row in parser.rows:
+        date = normalize_date(row[0]) if row else None
+        if not date or len(row) < 4:
+            continue
+        item = {
+            "date": date,
+            "female_calf": cell_number(row[1]),
+            "male_calf": cell_number(row[2]),
+            "farm_receipt_600kg": cell_number(row[3]),
+        }
+        # 최신일에 거래가 없어도 날짜 행은 보존한다. 각 카드의 최신 유효값은
+        # latest_metric()이 이후 날짜부터 거꾸로 찾아 선택한다.
+        values.setdefault(date, item)
+    return sorted(values.values(), key=lambda item: str(item["date"]), reverse=True)[:30]
+
+
+def latest_metric(rows: list[dict[str, int | str | None]], key: str) -> dict[str, int | str] | None:
+    for row in rows:
+        value = row.get(key)
+        if isinstance(value, int):
+            return {"value": value, "date": str(row["date"])}
+    return None
+
+
 def fetch_page(url: str, parser) -> list[dict[str, int | str]]:
     for candidate in (url, *(factory(url) for factory in PROXY_FACTORIES)):
         try:
@@ -143,9 +178,15 @@ def main() -> int:
     egg_rows = fetch_page(EGG_URL, parse_egg)
     chicken_rows = fetch_page(CHICKEN_URL, parse_chicken)
     pig_rows = fetch_page(PIG_URL, parse_pig)
-    if not egg_rows or not chicken_rows or not pig_rows:
-        print("계란·육계·양돈 시세를 찾지 못했습니다.")
+    cow_rows = fetch_page(COW_URL, parse_cow)
+    if not egg_rows or not chicken_rows or not pig_rows or not cow_rows:
+        print("계란·육계·양돈·한우 시세를 찾지 못했습니다.")
         return 1
+    cow_items = {
+        "female_calf": {"label": "암송아지(6~7개월)", "unit": "천원/마리", **(latest_metric(cow_rows, "female_calf") or {"value": None, "date": ""})},
+        "male_calf": {"label": "수송아지(6~7개월)", "unit": "천원/마리", **(latest_metric(cow_rows, "male_calf") or {"value": None, "date": ""})},
+        "farm_receipt_600kg": {"label": "농가수취가격(600kg)", "unit": "천원/마리", **(latest_metric(cow_rows, "farm_receipt_600kg") or {"value": None, "date": ""})},
+    }
     now = datetime.now(KST)
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT_PATH.write_text(json.dumps({
@@ -153,9 +194,10 @@ def main() -> int:
         "egg": {"label": "계란 산지가격", "grade": "특란 (XL)", "unit": "원/10개", "latest": egg_rows[0]["value"], "rows": egg_rows},
         "chicken": {"label": "생계유통(대)", "unit": "원/kg", "latest": chicken_rows[0]["value"], "rows": chicken_rows},
         "pig": {"label": "농가수취 평균", "unit": "원/kg", "latest": pig_rows[0]["value"], "rows": pig_rows},
-        "source_urls": {"egg": EGG_URL, "chicken": CHICKEN_URL, "pig": PIG_URL},
+        "cow": {"items": cow_items, "rows": cow_rows},
+        "source_urls": {"egg": EGG_URL, "chicken": CHICKEN_URL, "pig": PIG_URL, "cow": COW_URL},
     }, ensure_ascii=False, indent=2), encoding="utf-8")
-    print("수집 성공:", {"egg": egg_rows[0], "chicken": chicken_rows[0], "pig": pig_rows[0]})
+    print("수집 성공:", {"egg": egg_rows[0], "chicken": chicken_rows[0], "pig": pig_rows[0], "cow": cow_items})
     return 0
 
 
