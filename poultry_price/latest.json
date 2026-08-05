@@ -1,5 +1,5 @@
 {
-  "updated": "2026-08-06 00:14 KST",
+  "updated": "2026-08-06 00:22 KST",
   "egg": {
     "label": "계란 산지가격",
     "grade": "특란 (XL)",
@@ -206,9 +206,172 @@
       }
     ]
   },
+  "cow": {
+    "items": {
+      "female_calf": {
+        "label": "암송아지(6~7개월)",
+        "unit": "천원/마리",
+        "value": 3803,
+        "date": "2026-07-30"
+      },
+      "male_calf": {
+        "label": "수송아지(6~7개월)",
+        "unit": "천원/마리",
+        "value": 5103,
+        "date": "2026-07-30"
+      },
+      "farm_receipt_600kg": {
+        "label": "농가수취가격(600kg)",
+        "unit": "천원/마리",
+        "value": 7756,
+        "date": "2026-08-04"
+      }
+    },
+    "rows": [
+      {
+        "date": "2026-08-05",
+        "female_calf": null,
+        "male_calf": null,
+        "farm_receipt_600kg": null
+      },
+      {
+        "date": "2026-08-04",
+        "female_calf": null,
+        "male_calf": null,
+        "farm_receipt_600kg": 7756
+      },
+      {
+        "date": "2026-08-03",
+        "female_calf": null,
+        "male_calf": null,
+        "farm_receipt_600kg": 6506
+      },
+      {
+        "date": "2026-07-31",
+        "female_calf": null,
+        "male_calf": null,
+        "farm_receipt_600kg": 7686
+      },
+      {
+        "date": "2026-07-30",
+        "female_calf": 3803,
+        "male_calf": 5103,
+        "farm_receipt_600kg": 7514
+      },
+      {
+        "date": "2026-07-29",
+        "female_calf": 3798,
+        "male_calf": 5110,
+        "farm_receipt_600kg": 7732
+      },
+      {
+        "date": "2026-07-28",
+        "female_calf": 3820,
+        "male_calf": 5134,
+        "farm_receipt_600kg": 7739
+      },
+      {
+        "date": "2026-07-27",
+        "female_calf": 3765,
+        "male_calf": 5094,
+        "farm_receipt_600kg": 6155
+      },
+      {
+        "date": "2026-07-24",
+        "female_calf": null,
+        "male_calf": null,
+        "farm_receipt_600kg": 7584
+      },
+      {
+        "date": "2026-07-23",
+        "female_calf": null,
+        "male_calf": null,
+        "farm_receipt_600kg": 7750
+      },
+      {
+        "date": "2026-07-22",
+        "female_calf": 3636,
+        "male_calf": 5059,
+        "farm_receipt_600kg": 7817
+      },
+      {
+        "date": "2026-07-21",
+        "female_calf": 3642,
+        "male_calf": 5069,
+        "farm_receipt_600kg": 7764
+      },
+      {
+        "date": "2026-07-20",
+        "female_calf": 3706,
+        "male_calf": 5086,
+        "farm_receipt_600kg": 6371
+      },
+      {
+        "date": "2026-07-17",
+        "female_calf": 3716,
+        "male_calf": 5091,
+        "farm_receipt_600kg": 6038
+      },
+      {
+        "date": "2026-07-16",
+        "female_calf": null,
+        "male_calf": null,
+        "farm_receipt_600kg": 7602
+      },
+      {
+        "date": "2026-07-15",
+        "female_calf": 3744,
+        "male_calf": 5109,
+        "farm_receipt_600kg": 7886
+      },
+      {
+        "date": "2026-07-14",
+        "female_calf": 3768,
+        "male_calf": 5109,
+        "farm_receipt_600kg": 7893
+      },
+      {
+        "date": "2026-07-13",
+        "female_calf": 3773,
+        "male_calf": 5134,
+        "farm_receipt_600kg": 6376
+      },
+      {
+        "date": "2026-07-10",
+        "female_calf": 3736,
+        "male_calf": 5080,
+        "farm_receipt_600kg": 7905
+      },
+      {
+        "date": "2026-07-09",
+        "female_calf": 3732,
+        "male_calf": 5064,
+        "farm_receipt_600kg": 7948
+      },
+      {
+        "date": "2026-07-08",
+        "female_calf": 3702,
+        "male_calf": 5035,
+        "farm_receipt_600kg": 7921
+      },
+      {
+        "date": "2026-07-07",
+        "female_calf": 3679,
+        "male_calf": 5072,
+        "farm_receipt_600kg": 7923
+      },
+      {
+        "date": "2026-07-06",
+        "female_calf": 3724,
+        "male_calf": 5080,
+        "farm_receipt_600kg": 6639
+      }
+    ]
+  },
   "source_urls": {
     "egg": "https://www.ekapepia.com/v3/price/livestock/egg/distrPrice.do?menuSn=36&boardInfoNo=",
     "chicken": "https://www.ekapepia.com/v3/price/livestock/chicken/distrPrice.do?menuSn=35&boardInfoNo=",
-    "pig": "https://www.ekapepia.com/v3/price/livestock/pig/producer.do?searchCondition=&searchCondition1=&searchCondition2=&searchCondition3=&searchGubn=&searchStartDate=&searchEndDate=&ctdt=&typeCd=&searchType="
+    "pig": "https://www.ekapepia.com/v3/price/livestock/pig/producer.do?searchCondition=&searchCondition1=&searchCondition2=&searchCondition3=&searchGubn=&searchStartDate=&searchEndDate=&ctdt=&typeCd=&searchType=",
+    "cow": "https://www.ekapepia.com/v3/price/livestock/cow/distrPrice.do?menuSn=33&boardInfoNo="
   }
 }
