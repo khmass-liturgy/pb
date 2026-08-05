@@ -1,24 +1,27 @@
 #!/usr/bin/env python3
 """
 한국육계협회 육계 시세 수집기
-- 직접 요청 → 공개 프록시 → Playwright 순서로 시도
-- HTTP 200이어도 Cloudflare/프록시 오류 페이지면 실패 처리
-- 최신 유효 시세가 1행만 있어도 정상 저장
-- 기존 JSON이 있으면 실패 시 stale=true로 유지
+외부 HTML 파서 의존성 없이 실행됩니다.
+
+필수 패키지:
+- requests
+선택 패키지:
+- playwright (requests 경로 실패 시 브라우저 폴백)
 """
 
 from __future__ import annotations
 
+import html as html_lib
 import json
 import re
 import sys
 from datetime import datetime, timedelta, timezone
+from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
 import requests
-from bs4 import BeautifulSoup
 
 try:
     from playwright.sync_api import sync_playwright
@@ -59,36 +62,89 @@ ERROR_MARKERS = (
 )
 
 
-def is_real_source_html(html: str) -> bool:
-    """프록시/Cloudflare 오류 페이지를 정상 HTML로 오인하지 않는다."""
-    if not html or len(html) < 1000:
+class TableParser(HTMLParser):
+    """HTML table을 표/행/셀 문자열 구조로 변환하는 표준 라이브러리 파서."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.tables: list[list[list[str]]] = []
+        self._table_depth = 0
+        self._current_table: list[list[str]] | None = None
+        self._current_row: list[str] | None = None
+        self._current_cell: list[str] | None = None
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        tag = tag.lower()
+        if tag == "table":
+            self._table_depth += 1
+            if self._table_depth == 1:
+                self._current_table = []
+        elif self._table_depth == 1 and tag == "tr":
+            self._current_row = []
+        elif self._table_depth == 1 and tag in ("th", "td"):
+            self._current_cell = []
+
+    def handle_data(self, data: str) -> None:
+        if self._current_cell is not None:
+            self._current_cell.append(data)
+
+    def handle_endtag(self, tag: str) -> None:
+        tag = tag.lower()
+
+        if self._table_depth == 1 and tag in ("th", "td"):
+            if self._current_row is not None and self._current_cell is not None:
+                value = " ".join("".join(self._current_cell).split())
+                self._current_row.append(html_lib.unescape(value))
+            self._current_cell = None
+
+        elif self._table_depth == 1 and tag == "tr":
+            if self._current_table is not None and self._current_row:
+                self._current_table.append(self._current_row)
+            self._current_row = None
+
+        elif tag == "table":
+            if self._table_depth == 1 and self._current_table is not None:
+                self.tables.append(self._current_table)
+                self._current_table = None
+            self._table_depth = max(0, self._table_depth - 1)
+
+
+def is_real_source_html(page_html: str) -> bool:
+    """HTTP 200 오류 페이지를 원본 페이지로 오인하지 않는다."""
+    if not page_html or len(page_html) < 1000:
         return False
-    low = html.lower()
-    if any(marker in low for marker in ERROR_MARKERS):
+
+    lower = page_html.lower()
+    if any(marker in lower for marker in ERROR_MARKERS):
         return False
-    return "육계" in html or "생계" in html or "병아리" in html
+
+    return any(keyword in page_html for keyword in ("육계", "생계", "병아리"))
 
 
 def normalize_date(value: str) -> str | None:
     text = re.sub(r"\s+", "", value)
     now = datetime.now(KST)
 
-    patterns = [
-        (r"(?P<y>\d{4})[./-](?P<m>\d{1,2})[./-](?P<d>\d{1,2})", True),
-        (r"(?P<m>\d{1,2})[./-](?P<d>\d{1,2})", False),
-    ]
-    for pattern, has_year in patterns:
-        match = re.search(pattern, text)
-        if not match:
-            continue
-        year = int(match.group("y")) if has_year else now.year
+    match = re.search(
+        r"(?P<y>\d{4})[./-](?P<m>\d{1,2})[./-](?P<d>\d{1,2})",
+        text,
+    )
+    if match:
+        year = int(match.group("y"))
         month = int(match.group("m"))
         day = int(match.group("d"))
-        try:
-            return datetime(year, month, day, tzinfo=KST).strftime("%Y-%m-%d")
-        except ValueError:
+    else:
+        match = re.search(r"(?P<m>\d{1,2})[./-](?P<d>\d{1,2})", text)
+        if not match:
             return None
-    return None
+        year = now.year
+        month = int(match.group("m"))
+        day = int(match.group("d"))
+
+    try:
+        return datetime(year, month, day, tzinfo=KST).strftime("%Y-%m-%d")
+    except ValueError:
+        return None
 
 
 def parse_number(value: str) -> int | None:
@@ -100,76 +156,92 @@ def parse_number(value: str) -> int | None:
     return number if number > 0 else None
 
 
-def parse_price_html(html: str) -> list[dict[str, Any]]:
-    soup = BeautifulSoup(html, "html.parser")
+def parse_price_html(page_html: str) -> list[dict[str, Any]]:
+    parser = TableParser()
+    parser.feed(page_html)
+
     results: list[dict[str, Any]] = []
 
-    for table in soup.find_all("table"):
-        rows = table.find_all("tr")
-        if not rows:
-            continue
-
-        header_index = None
+    for table in parser.tables:
+        header_index: int | None = None
         headers: list[str] = []
 
-        for i, row in enumerate(rows):
-            cells = row.find_all(["th", "td"])
-            texts = [re.sub(r"\s+", "", c.get_text(" ", strip=True)) for c in cells]
-            joined = "|".join(texts)
+        for index, row in enumerate(table):
+            normalized = [re.sub(r"\s+", "", cell) for cell in row]
+            joined = "|".join(normalized)
             if ("생계" in joined or "육계" in joined) and "병아리" in joined:
-                header_index = i
-                headers = texts
+                header_index = index
+                headers = normalized
                 break
 
         if header_index is None:
             continue
 
         date_idx = next(
-            (i for i, h in enumerate(headers) if any(k in h for k in ("일자", "날짜", "기준일", "연월일"))),
+            (
+                i for i, header in enumerate(headers)
+                if any(key in header for key in ("일자", "날짜", "기준일", "연월일"))
+            ),
             0,
         )
         broiler_idx = next(
-            (i for i, h in enumerate(headers) if "생계" in h or "육계" in h),
+            (
+                i for i, header in enumerate(headers)
+                if "생계" in header or "육계" in header
+            ),
             None,
         )
-        chick_idx = next((i for i, h in enumerate(headers) if "병아리" in h), None)
+        chick_idx = next(
+            (i for i, header in enumerate(headers) if "병아리" in header),
+            None,
+        )
         breeding_idx = next(
-            (i for i, h in enumerate(headers) if "종계" in h and "노계" in h),
-            next((i for i, h in enumerate(headers) if "종계" in h), None),
+            (
+                i for i, header in enumerate(headers)
+                if "종계" in header and "노계" in header
+            ),
+            next(
+                (i for i, header in enumerate(headers) if "종계" in header),
+                None,
+            ),
         )
 
-        for row in rows[header_index + 1:]:
-            cells = row.find_all("td")
-            values = [c.get_text(" ", strip=True) for c in cells]
-            if len(values) < 2:
+        for row in table[header_index + 1:]:
+            if len(row) < 2:
                 continue
 
-            date = normalize_date(values[date_idx] if date_idx < len(values) else "")
+            date_value = row[date_idx] if date_idx < len(row) else ""
+            date = normalize_date(date_value)
             if not date:
                 continue
 
-            def at(index: int | None) -> int | None:
-                if index is None or index >= len(values):
+            def cell_number(index: int | None) -> int | None:
+                if index is None or index >= len(row):
                     return None
-                return parse_number(values[index])
+                return parse_number(row[index])
 
             item = {
                 "date": date,
-                "broiler": at(broiler_idx),
-                "chick": at(chick_idx),
-                "breeding": at(breeding_idx),
+                "broiler": cell_number(broiler_idx),
+                "chick": cell_number(chick_idx),
+                "breeding": cell_number(breeding_idx),
             }
-            if any(item[k] is not None for k in ("broiler", "chick", "breeding")):
+
+            if any(item[key] is not None for key in ("broiler", "chick", "breeding")):
                 results.append(item)
 
         if results:
             break
 
-    # 중복 날짜 제거 후 최신순
-    deduped: dict[str, dict[str, Any]] = {}
+    deduplicated: dict[str, dict[str, Any]] = {}
     for row in results:
-        deduped.setdefault(row["date"], row)
-    return sorted(deduped.values(), key=lambda x: x["date"], reverse=True)[:10]
+        deduplicated.setdefault(row["date"], row)
+
+    return sorted(
+        deduplicated.values(),
+        key=lambda item: item["date"],
+        reverse=True,
+    )[:10]
 
 
 def fetch_with_requests() -> str | None:
@@ -177,18 +249,24 @@ def fetch_with_requests() -> str | None:
     session.headers.update(HEADERS)
 
     urls = [SOURCE_URL] + [factory(SOURCE_URL) for factory in PROXY_URLS]
+
     for index, url in enumerate(urls):
         label = "direct" if index == 0 else f"proxy-{index}"
         try:
             response = session.get(url, timeout=30)
             response.encoding = response.apparent_encoding or "utf-8"
-            html = response.text
-            print(f"[{label}] HTTP {response.status_code}, {len(html)} chars")
-            if response.status_code == 200 and is_real_source_html(html):
-                return html
+            page_html = response.text
+
+            print(f"[{label}] HTTP {response.status_code}, {len(page_html)} chars")
+
+            if response.status_code == 200 and is_real_source_html(page_html):
+                return page_html
+
             print(f"[{label}] rejected: block/error/non-source page")
+
         except requests.RequestException as exc:
             print(f"[{label}] request failed: {type(exc).__name__}: {exc}")
+
     return None
 
 
@@ -198,8 +276,8 @@ def fetch_with_browser() -> str | None:
         return None
 
     try:
-        with sync_playwright() as p:
-            browser = p.chromium.launch(
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.launch(
                 headless=True,
                 args=["--no-sandbox", "--disable-dev-shm-usage"],
             )
@@ -208,13 +286,19 @@ def fetch_with_browser() -> str | None:
                 locale="ko-KR",
             )
             page = context.new_page()
-            response = page.goto(SOURCE_URL, wait_until="domcontentloaded", timeout=45000)
+            response = page.goto(
+                SOURCE_URL,
+                wait_until="domcontentloaded",
+                timeout=45000,
+            )
             page.wait_for_timeout(2500)
-            html = page.content()
+            page_html = page.content()
             status = response.status if response else "unknown"
-            print(f"[browser] HTTP {status}, {len(html)} chars")
+            print(f"[browser] HTTP {status}, {len(page_html)} chars")
             browser.close()
-            return html if is_real_source_html(html) else None
+
+            return page_html if is_real_source_html(page_html) else None
+
     except Exception as exc:
         print(f"[browser] failed: {type(exc).__name__}: {exc}")
         return None
@@ -227,8 +311,13 @@ def load_previous() -> dict[str, Any] | None:
         return None
 
 
-def save(rows: list[dict[str, Any]], stale: bool, error: str | None = None) -> None:
+def save(
+    rows: list[dict[str, Any]],
+    stale: bool,
+    error: str | None = None,
+) -> None:
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+
     now = datetime.now(KST)
     payload: dict[str, Any] = {
         "updated": now.strftime("%Y-%m-%d %H:%M KST"),
@@ -237,8 +326,10 @@ def save(rows: list[dict[str, Any]], stale: bool, error: str | None = None) -> N
         "rows": rows,
         "stale": stale,
     }
+
     if error:
         payload["error"] = error
+
     OUTPUT_PATH.write_text(
         json.dumps(payload, ensure_ascii=False, indent=2),
         encoding="utf-8",
@@ -249,13 +340,13 @@ def save(rows: list[dict[str, Any]], stale: bool, error: str | None = None) -> N
 def main() -> int:
     print(f"육계 시세 수집 시작: {datetime.now(KST):%Y-%m-%d %H:%M KST}")
 
-    html = fetch_with_requests()
-    if html is None:
-        html = fetch_with_browser()
+    page_html = fetch_with_requests()
+    if page_html is None:
+        page_html = fetch_with_browser()
 
-    rows = parse_price_html(html) if html else []
+    rows = parse_price_html(page_html) if page_html else []
 
-    # 핵심 수정: 원본이 최신 1행만 제공해도 정상 데이터다.
+    # 최신 데이터가 1행만 있어도 정상이다.
     if rows:
         save(rows, stale=False)
         print("수집 성공:", rows[0])
@@ -263,6 +354,7 @@ def main() -> int:
 
     message = "유효한 육계 시세 행을 찾지 못했습니다."
     previous = load_previous()
+
     if previous and previous.get("rows"):
         save(previous["rows"], stale=True, error=message)
         print("이전 데이터 유지(stale=true)")
