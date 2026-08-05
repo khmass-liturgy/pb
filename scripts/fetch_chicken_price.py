@@ -1,29 +1,25 @@
 #!/usr/bin/env python3
 """
-한국육계협회(chicken.or.kr) 육계 시세 수집 (서버측) → chicken_price/latest.json
-
-왜 서버에서 모으는가:
-  브라우저에서 chicken.or.kr을 CORS 프록시로 직접 긁는 방식을 오래 써왔는데,
-  대시보드에 "저장값(2026-07-02)"만 계속 뜨는 문제가 있었다. 확인해보니
-  이 사이트는 예전부터 자동화된 요청(봇 UA·클라우드 IP 등)에 403을 자주
-  돌려주는 것으로 파악됐고, 브라우저 쪽에서 매번 라이브 스크래핑을 시도하다
-  실패하면 조용히 코드에 박아둔 옛날 폴백 데이터로 넘어가 버리니, 사이트가
-  실제로 갱신돼도 화면은 계속 예전 날짜에 머물러 있었던 것이다.
-
-  이 프로젝트의 다른 데이터(주가·뉴스·계란 수급)와 같은 구조로 통일한다:
-  서버(GitHub Actions)가 주기적으로 긁어 결과를 JSON으로 커밋해두고,
-  브라우저는 그 정적 JSON 하나만 읽는다 — 프록시도, 반복 스크래핑도 필요 없다.
+한국육계협회 육계 시세 수집기
+- 직접 요청 → 공개 프록시 → Playwright 순서로 시도
+- HTTP 200이어도 Cloudflare/프록시 오류 페이지면 실패 처리
+- 최신 유효 시세가 1행만 있어도 정상 저장
+- 기존 JSON이 있으면 실패 시 stale=true로 유지
 """
 
-import re, sys, json, time
-from datetime import datetime, timezone, timedelta
+from __future__ import annotations
+
+import json
+import re
+import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from typing import Any
 from urllib.parse import quote
 
 import requests
+from bs4 import BeautifulSoup
 
-# Playwright는 requests+프록시로도 못 뚫는 사이트(TLS 지문·JS 챌린지 등)를 위한
-# 최후 수단이라 선택적으로 불러온다 (설치 안 돼 있어도 나머지는 동작해야 함).
 try:
     from playwright.sync_api import sync_playwright
     HAS_PLAYWRIGHT = True
@@ -31,239 +27,250 @@ except ImportError:
     HAS_PLAYWRIGHT = False
 
 KST = timezone(timedelta(hours=9))
+SOURCE_URL = "https://chicken.or.kr/ch_price/price_2025.php"
+OUTPUT_PATH = Path("chicken_price/latest.json")
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                  "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/125.0.0.0 Safari/537.36"
+    ),
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    "Accept-Language": "ko-KR,ko;q=0.9",
+    "Accept-Language": "ko-KR,ko;q=0.9,en;q=0.7",
+    "Cache-Control": "no-cache",
 }
 
-CHPRICE_URL = "https://chicken.or.kr/ch_price/price_2025.php"
-
-# ── 프록시 경유 폴백 ──────────────────────────────────────────────────────────
-# chicken.or.kr은 네트워크 자체가 막히는 게 아니라 403을 "정상 응답"으로 돌려주는
-# 경우가 있어(WAF/봇 차단), 네트워크 예외뿐 아니라 403/429/503 응답도 폴백 대상에
-# 포함시킨다 — 그래야 실제로 막힌 상황에서 프록시로 넘어간다.
-PROXY_TEMPLATES = [
-    lambda u: "https://api.codetabs.com/v1/proxy/?quest=" + quote(u, safe=""),
+PROXY_URLS = [
     lambda u: "https://api.allorigins.win/raw?url=" + quote(u, safe=""),
+    lambda u: "https://api.codetabs.com/v1/proxy/?quest=" + quote(u, safe=""),
     lambda u: "https://corsproxy.io/?url=" + quote(u, safe=""),
 ]
-NETWORK_ERRORS = (
-    requests.exceptions.ConnectTimeout,
-    requests.exceptions.ConnectionError,
-    requests.exceptions.ReadTimeout,
+
+ERROR_MARKERS = (
+    "invalid ssl certificate",
+    "cloudflare",
+    "error 526",
+    "error 521",
+    "access denied",
+    "attention required",
+    "just a moment",
+    "ray id",
 )
-BLOCK_STATUS = (403, 429, 503)
 
 
-def get_with_proxy_fallback(session, url, timeout=20):
-    """직접 연결이 네트워크 예외로 막히거나 403/429/503을 반환하면 공개 프록시로 재시도."""
-    try:
-        r = session.get(url, timeout=timeout)
-        if r.status_code == 200:
-            return r
-        print("      직접 연결 HTTP %d → 프록시 경유 재시도" % r.status_code)
-        if r.status_code not in BLOCK_STATUS:
-            return r  # 200도, 알려진 차단 코드도 아니면 그대로 반환(원인 파악용)
-    except NETWORK_ERRORS as e:
-        print("      직접 연결 실패(%s) → 프록시 경유 재시도" % type(e).__name__)
-
-    last = None
-    for i, tmpl in enumerate(PROXY_TEMPLATES, 1):
-        try:
-            r = session.get(tmpl(url), timeout=timeout + 10)
-            if r.status_code == 200 and len(r.content) > 500:
-                print("      ✅ 프록시 %d 성공 (%dbytes)" % (i, len(r.content)))
-                return r
-            print("      프록시 %d 실패: HTTP %d / %dbytes" % (i, r.status_code, len(r.content)))
-        except Exception as e:
-            last = e
-            print("      프록시 %d 실패: %s" % (i, e))
-    if last:
-        raise last
-    raise Exception("모든 경로 실패")
+def is_real_source_html(html: str) -> bool:
+    """프록시/Cloudflare 오류 페이지를 정상 HTML로 오인하지 않는다."""
+    if not html or len(html) < 1000:
+        return False
+    low = html.lower()
+    if any(marker in low for marker in ERROR_MARKERS):
+        return False
+    return "육계" in html or "생계" in html or "병아리" in html
 
 
-def fetch_via_browser(url):
-    """
-    requests(+프록시)로도 접근이 안 될 때의 최후 수단.
-    SSLError·521·408·403이 뒤섞여 나오는 건 단순 IP 차단이 아니라 TLS
-    지문이나 자바스크립트 챌린지로 봇을 거르는 방화벽일 가능성이 커서,
-    실제 브라우저(headless Chromium)로 접근해 최종 렌더링된 HTML을 받아온다.
-    """
-    if not HAS_PLAYWRIGHT:
-        print("  ⚠️ playwright 미설치 — 브라우저 폴백 건너뜀")
-        return None
-    try:
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            page = browser.new_page(user_agent=HEADERS["User-Agent"])
-            page.goto(url, wait_until="networkidle", timeout=30000)
-            page.wait_for_timeout(1000)
-            html = page.content()
-            browser.close()
-        print("  ✅ 브라우저 접근 성공 (%dbytes)" % len(html))
-        return html
-    except Exception as e:
-        print("  ⚠️ 브라우저 접근도 실패: %s" % e)
-        return None
-
-
-# ── HTML 표 파싱 ──────────────────────────────────────────────────────────────
-def _cell_text(cell_html):
-    return re.sub(r"<[^>]+>", "", cell_html)
-
-
-def parse_chicken_price_html(html):
-    """
-    '생계'·'병아리'가 같이 있는 헤더 행을 찾아 컬럼 위치를 동적으로 파악한 뒤
-    이후 행에서 날짜/생계/병아리/종계노계 값을 추출한다.
-    """
-    rows_out = []
-
-    for table_m in re.finditer(r"<table\b[^>]*>([\s\S]*?)</table>", html, re.I):
-        table_html = table_m.group(1)
-        trs = [m.group(1) for m in re.finditer(r"<tr\b[^>]*>([\s\S]*?)</tr>", table_html, re.I)]
-        if not trs:
-            continue
-
-        hdr_idx = -1
-        for i, tr in enumerate(trs):
-            txt = _cell_text(tr)
-            if "생계" in txt and "병아리" in txt:
-                hdr_idx = i
-                break
-        if hdr_idx < 0:
-            continue
-
-        hdr_cells = re.findall(r"<t[hd][^>]*>([\s\S]*?)</t[hd]>", trs[hdr_idx], re.I)
-        date_idx = broiler_idx = chick_idx = breeding_idx = -1
-        for i, cell in enumerate(hdr_cells):
-            t = re.sub(r"\s+", "", _cell_text(cell))
-            if re.search(r"날짜|일자|연월|기준일", t):
-                date_idx = i
-            elif "생계" in t and broiler_idx < 0:
-                broiler_idx = i
-            elif "병아리" in t:
-                chick_idx = i
-            elif "종계" in t:
-                breeding_idx = i
-
-        def get_num(cells, idx, fallback_idx):
-            i = idx if idx >= 0 else fallback_idx
-            if i < 0 or i >= len(cells):
-                return None
-            n = re.sub(r"[^0-9]", "", _cell_text(cells[i]))
-            if not n or int(n) == 0:
-                return None
-            return int(n)
-
-        for tr in trs[hdr_idx + 1:]:
-            cells = re.findall(r"<td[^>]*>([\s\S]*?)</td>", tr, re.I)
-            if len(cells) < 3:
-                continue
-            raw_date = _cell_text(cells[date_idx if date_idx >= 0 else 0]).strip()
-            if not re.search(r"\d{4}|^\d{2}[./]\d{2}", raw_date):
-                continue
-            date = raw_date.replace(".", "-").replace("/", "-")[:10]
-            if len(date) == 5:
-                date = str(datetime.now(KST).year) + "-" + date
-
-            b = get_num(cells, broiler_idx, 1)
-            c = get_num(cells, chick_idx, 2)
-            br = get_num(cells, breeding_idx, 3)
-            if b or c or br:
-                rows_out.append({"date": date, "broiler": b, "chick": c, "breeding": br})
-
-        if rows_out:
-            break  # 헤더를 찾은 표에서만 추출하면 충분
-
-    return rows_out[:10]
-
-
-def load_previous():
-    p = Path("chicken_price/latest.json")
-    if not p.exists():
-        return None
-    try:
-        return json.loads(p.read_text(encoding="utf-8"))
-    except Exception:
-        return None
-
-
-def save(rows, stale):
-    Path("chicken_price").mkdir(exist_ok=True)
+def normalize_date(value: str) -> str | None:
+    text = re.sub(r"\s+", "", value)
     now = datetime.now(KST)
-    out = {
-        "updated": now.strftime("%Y-%m-%d %H:%M KST"),
-        "updatedTs": int(now.timestamp()),
-        "source_url": CHPRICE_URL,
-        "rows": rows,
-        "stale": stale,
-    }
-    Path("chicken_price/latest.json").write_text(
-        json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
-    print("  ✅ chicken_price/latest.json 저장 (%d건, stale=%s)" % (len(rows), stale))
-    if rows:
-        print("  최신: %s" % rows[0])
+
+    patterns = [
+        (r"(?P<y>\d{4})[./-](?P<m>\d{1,2})[./-](?P<d>\d{1,2})", True),
+        (r"(?P<m>\d{1,2})[./-](?P<d>\d{1,2})", False),
+    ]
+    for pattern, has_year in patterns:
+        match = re.search(pattern, text)
+        if not match:
+            continue
+        year = int(match.group("y")) if has_year else now.year
+        month = int(match.group("m"))
+        day = int(match.group("d"))
+        try:
+            return datetime(year, month, day, tzinfo=KST).strftime("%Y-%m-%d")
+        except ValueError:
+            return None
+    return None
 
 
-def main():
-    print("🐔 한국육계협회 시세 수집 시작 (%s)\n" % datetime.now(KST).strftime("%Y-%m-%d %H:%M KST"))
+def parse_number(value: str) -> int | None:
+    cleaned = value.replace(",", "")
+    match = re.search(r"\d+", cleaned)
+    if not match:
+        return None
+    number = int(match.group())
+    return number if number > 0 else None
+
+
+def parse_price_html(html: str) -> list[dict[str, Any]]:
+    soup = BeautifulSoup(html, "html.parser")
+    results: list[dict[str, Any]] = []
+
+    for table in soup.find_all("table"):
+        rows = table.find_all("tr")
+        if not rows:
+            continue
+
+        header_index = None
+        headers: list[str] = []
+
+        for i, row in enumerate(rows):
+            cells = row.find_all(["th", "td"])
+            texts = [re.sub(r"\s+", "", c.get_text(" ", strip=True)) for c in cells]
+            joined = "|".join(texts)
+            if ("생계" in joined or "육계" in joined) and "병아리" in joined:
+                header_index = i
+                headers = texts
+                break
+
+        if header_index is None:
+            continue
+
+        date_idx = next(
+            (i for i, h in enumerate(headers) if any(k in h for k in ("일자", "날짜", "기준일", "연월일"))),
+            0,
+        )
+        broiler_idx = next(
+            (i for i, h in enumerate(headers) if "생계" in h or "육계" in h),
+            None,
+        )
+        chick_idx = next((i for i, h in enumerate(headers) if "병아리" in h), None)
+        breeding_idx = next(
+            (i for i, h in enumerate(headers) if "종계" in h and "노계" in h),
+            next((i for i, h in enumerate(headers) if "종계" in h), None),
+        )
+
+        for row in rows[header_index + 1:]:
+            cells = row.find_all("td")
+            values = [c.get_text(" ", strip=True) for c in cells]
+            if len(values) < 2:
+                continue
+
+            date = normalize_date(values[date_idx] if date_idx < len(values) else "")
+            if not date:
+                continue
+
+            def at(index: int | None) -> int | None:
+                if index is None or index >= len(values):
+                    return None
+                return parse_number(values[index])
+
+            item = {
+                "date": date,
+                "broiler": at(broiler_idx),
+                "chick": at(chick_idx),
+                "breeding": at(breeding_idx),
+            }
+            if any(item[k] is not None for k in ("broiler", "chick", "breeding")):
+                results.append(item)
+
+        if results:
+            break
+
+    # 중복 날짜 제거 후 최신순
+    deduped: dict[str, dict[str, Any]] = {}
+    for row in results:
+        deduped.setdefault(row["date"], row)
+    return sorted(deduped.values(), key=lambda x: x["date"], reverse=True)[:10]
+
+
+def fetch_with_requests() -> str | None:
     session = requests.Session()
     session.headers.update(HEADERS)
 
-    prev = load_previous()
-    rows = []
-    last_err = None
+    urls = [SOURCE_URL] + [factory(SOURCE_URL) for factory in PROXY_URLS]
+    for index, url in enumerate(urls):
+        label = "direct" if index == 0 else f"proxy-{index}"
+        try:
+            response = session.get(url, timeout=30)
+            response.encoding = response.apparent_encoding or "utf-8"
+            html = response.text
+            print(f"[{label}] HTTP {response.status_code}, {len(html)} chars")
+            if response.status_code == 200 and is_real_source_html(html):
+                return html
+            print(f"[{label}] rejected: block/error/non-source page")
+        except requests.RequestException as exc:
+            print(f"[{label}] request failed: {type(exc).__name__}: {exc}")
+    return None
 
-    # ① requests + 프록시 체인
+
+def fetch_with_browser() -> str | None:
+    if not HAS_PLAYWRIGHT:
+        print("[browser] playwright unavailable")
+        return None
+
     try:
-        r = get_with_proxy_fallback(session, CHPRICE_URL, timeout=20)
-        print("  응답: HTTP %d / %dbytes / %s" % (
-            r.status_code, len(r.content), r.headers.get("Content-Type", "")))
-        r.encoding = r.apparent_encoding or "utf-8"
-        if r.status_code != 200:
-            raise Exception("최종 응답도 HTTP %d" % r.status_code)
-        rows = parse_chicken_price_html(r.text)
-        print("  파싱된 행 수: %d" % len(rows))
-        if len(rows) < 3:
-            print("  응답 본문 앞부분(진단용): %r" % r.text[:500])
-            raise Exception("파싱 결과 부족 (%d건)" % len(rows))
-    except Exception as e:
-        last_err = e
-        print("  ⚠️ requests+프록시 경로 실패: %s" % e)
+        with sync_playwright() as p:
+            browser = p.chromium.launch(
+                headless=True,
+                args=["--no-sandbox", "--disable-dev-shm-usage"],
+            )
+            context = browser.new_context(
+                user_agent=HEADERS["User-Agent"],
+                locale="ko-KR",
+            )
+            page = context.new_page()
+            response = page.goto(SOURCE_URL, wait_until="domcontentloaded", timeout=45000)
+            page.wait_for_timeout(2500)
+            html = page.content()
+            status = response.status if response else "unknown"
+            print(f"[browser] HTTP {status}, {len(html)} chars")
+            browser.close()
+            return html if is_real_source_html(html) else None
+    except Exception as exc:
+        print(f"[browser] failed: {type(exc).__name__}: {exc}")
+        return None
 
-    # ② requests 계열이 전부 실패하면 실제 브라우저로 마지막 시도
-    #    (SSLError·521·408·403이 뒤섞여 나오는 경우가 대표적 신호)
-    if len(rows) < 3:
-        print("\n  → 브라우저(headless Chromium) 경로로 전환")
-        html = fetch_via_browser(CHPRICE_URL)
-        if html:
-            rows = parse_chicken_price_html(html)
-            print("  파싱된 행 수: %d" % len(rows))
-            if len(rows) < 3:
-                print("  렌더링된 HTML 앞부분(진단용): %r" % html[:500])
-                last_err = Exception("브라우저 경로도 파싱 결과 부족 (%d건)" % len(rows))
-        else:
-            last_err = last_err or Exception("브라우저 경로 실패")
 
-    if len(rows) >= 3:
+def load_previous() -> dict[str, Any] | None:
+    try:
+        return json.loads(OUTPUT_PATH.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        return None
+
+
+def save(rows: list[dict[str, Any]], stale: bool, error: str | None = None) -> None:
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    now = datetime.now(KST)
+    payload: dict[str, Any] = {
+        "updated": now.strftime("%Y-%m-%d %H:%M KST"),
+        "updatedTs": int(now.timestamp()),
+        "source_url": SOURCE_URL,
+        "rows": rows,
+        "stale": stale,
+    }
+    if error:
+        payload["error"] = error
+    OUTPUT_PATH.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    print(f"saved {OUTPUT_PATH}: rows={len(rows)}, stale={stale}")
+
+
+def main() -> int:
+    print(f"육계 시세 수집 시작: {datetime.now(KST):%Y-%m-%d %H:%M KST}")
+
+    html = fetch_with_requests()
+    if html is None:
+        html = fetch_with_browser()
+
+    rows = parse_price_html(html) if html else []
+
+    # 핵심 수정: 원본이 최신 1행만 제공해도 정상 데이터다.
+    if rows:
         save(rows, stale=False)
-        print("\n✅ 완료")
-        return
+        print("수집 성공:", rows[0])
+        return 0
 
-    print("\n❌ 수집 실패: %s" % last_err)
-    if prev and prev.get("rows"):
-        print("  ⚡ 이전 데이터 유지 (stale 표시)")
-        save(prev["rows"], stale=True)
-    else:
-        print("  이전 데이터도 없어 저장하지 않음")
-        sys.exit(1)
+    message = "유효한 육계 시세 행을 찾지 못했습니다."
+    previous = load_previous()
+    if previous and previous.get("rows"):
+        save(previous["rows"], stale=True, error=message)
+        print("이전 데이터 유지(stale=true)")
+        return 0
+
+    print(message, file=sys.stderr)
+    return 1
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
