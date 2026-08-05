@@ -351,20 +351,20 @@ const PRICE_CATEGORIES = [
   { key:"egg", label:"계란 산지가격", sub:"특란 (XL)", unit:"원/10개", icon:"🥚", color:"#D4A012", bg:"#FFFBEE" },
 ];
 
-const EGG_PRICE_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/egg_price/latest.json";
-let eggPriceState = { status:"idle", rows:[], updated:"" };
+const POULTRY_PRICE_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/poultry_price/latest.json";
+let poultryPriceState = { status:"idle", data:null };
 
-async function fetchEggPrice(){
-  eggPriceState.status="loading";
+async function fetchPoultryPrices(){
+  poultryPriceState.status="loading";
   try {
-    const resp=await fetchWithTimeout(EGG_PRICE_JSON_URL+"?t="+Math.floor(Date.now()/600000),8000);
+    const resp=await fetchWithTimeout(POULTRY_PRICE_JSON_URL+"?t="+Math.floor(Date.now()/600000),8000);
     if(!resp.ok) throw new Error("HTTP "+resp.status);
     const data=await resp.json();
-    if(!Array.isArray(data.rows)||!data.rows.length) throw new Error("계란 산지가격 자료 없음");
-    eggPriceState={status:"done",rows:data.rows,updated:data.updated||""};
+    if(!data.egg?.rows?.length || !data.chicken?.rows?.length) throw new Error("계란·육계 시세 자료 없음");
+    poultryPriceState={status:"done",data};
   } catch(e) {
-    console.warn("계란 산지가격 로딩 실패:",e.message);
-    eggPriceState={status:"error",rows:[],updated:""};
+    console.warn("계란·육계 시세 로딩 실패:",e.message);
+    poultryPriceState={status:"error",data:null};
   }
   if(state.tab==="price") render();
 }
@@ -445,12 +445,8 @@ const MARKET_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/mai
 // 이 한 파일만 읽으면 되므로 뉴스 4종을 봐도 프록시 호출은 0회.
 const BRIEFING_NEWS_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/news/briefing.json";
 
-// ── 육계협회 시세 (GitHub Actions → chicken_price/latest.json) ──────────────
-// 브라우저에서 chicken.or.kr을 CORS 프록시로 직접 긁으면 이 사이트가 자동화
-// 요청에 403을 자주 돌려주는 탓에 매번 실패 → 코드에 박힌 옛 폴백값만 계속
-// 표시되는 문제가 있었다. 서버(Actions)가 주기적으로 수집해 커밋해두면
-// 브라우저는 정적 JSON만 읽으면 되므로 이 문제에서 완전히 벗어난다.
-const CHICKEN_PRICE_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/chicken_price/latest.json";
+// ── 계란·육계 시세 (GitHub Actions → poultry_price/latest.json) ─────────────
+// 두 품목을 하나의 정적 JSON으로 읽어 브라우저와 Actions 구조를 단순화한다.
 
 // ── 뉴스 게시판: 브라우저 직접 fetch (CORS 프록시 → HTML 파싱) ───────────────
 // chuksannews.co.kr: mediaOn CMS (article.html?no=) · pignpork.com: ndsoft CMS (articleView.html?idxno=)
@@ -834,7 +830,7 @@ async function fetchChickenPrices(force){
   // ① 서버 수집 JSON (프록시 불필요, 호출 1회) — 강제 새로고침이 아니면 우선 시도
   if(!force){
     try {
-      const resp = await fetchWithTimeout(CHICKEN_PRICE_JSON_URL + "?t=" + Math.floor(Date.now()/600000), 8000);
+      const resp = await fetchWithTimeout(POULTRY_PRICE_JSON_URL + "?t=" + Math.floor(Date.now()/600000), 8000);
       if(resp.ok){
         const d = await resp.json();
         if(Array.isArray(d.rows) && d.rows.length>=3){
@@ -1986,22 +1982,26 @@ function last7DayInfos(){
   return getLast7Days().map(d=>({label:fmtDate(d), isWeekend:d.getDay()===0||d.getDay()===6}));
 }
 
+function renderPoultryPriceLine(){
+  const st=poultryPriceState;
+  if(st.status==="idle"||st.status==="loading") return `<div class="card" style="margin-bottom:20px;text-align:center;padding:20px;color:#aaa">⏳ 계란·육계 시세 조회 중...</div>`;
+  if(st.status==="error"||!st.data) return `<div class="card" style="margin-bottom:20px;text-align:center;padding:20px;color:#aaa">⚠️ 계란·육계 시세를 불러오지 못했습니다.</div>`;
+
+  const egg=st.data.egg, chicken=st.data.chicken;
+  const cards=[
+    {icon:"🥚",label:"계란 산지가격",sub:"특란 (XL)",value:egg.latest,unit:"원/10개",color:"#D4A012",date:egg.rows[0]?.date},
+    {icon:"🐔",label:"육계 생계유통",sub:"대",value:chicken.latest,unit:"원/kg",color:"#E8530A",date:chicken.rows[0]?.date},
+  ].map(item=>`
+    <div style="min-width:0;background:#fff;border:1px solid #eee;border-radius:12px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:10px"><span style="font-size:25px">${item.icon}</span><div><div style="font-size:12px;color:#777;font-weight:700">${item.label} <span style="font-weight:400">${item.sub}</span></div><div style="font-size:22px;color:${item.color};font-weight:800">${Number.isInteger(item.value)?item.value.toLocaleString():"-"}<span style="font-size:11px;color:#888;font-weight:400;margin-left:3px">${item.unit}</span></div></div></div>
+      <div style="font-size:10px;color:#aaa;text-align:right">${item.date||""}<br>발표전일 기준</div>
+    </div>`).join("");
+  return `<div class="card" style="margin-bottom:20px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div class="display" style="font-size:15px">📊 계란·육계 시세</div><button id="btn-refresh-poultry" style="border:1px solid #1B7A3E;border-radius:8px;background:#fff;padding:6px 10px;font-size:11px;color:#1B7A3E">🔄 갱신</button></div><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">${cards}</div><div style="font-size:9px;color:#bbb;margin-top:8px;text-align:right">출처: 축산물품질평가원 다봄</div></div>`;
+}
+
 function renderPriceTab(){
-  const eggRows=eggPriceState.rows;
-  const fallback=WEEK_DATA.map(d=>d.egg);
-  const eggWeek=eggRows.length ? eggRows.slice().reverse().map(r=>r.farm_per_10) : fallback;
-  const items=[{icon:"🥚",label:"계란 산지가격",sub:"특란 (XL)",unit:"원/10개",color:"#D4A012",week:eggWeek}];
-  const days=eggRows.length
-    ? eggRows.slice().reverse().map(r=>({label:r.date,isWeekend:false}))
-    : WEEK_DATA.map(d=>({label:d.label,isWeekend:d.isWeekend}));
   return `
-  ${renderCostPanel("poultry")}
-  ${renderChickenPricePanel()}
-  ${renderSummarySection(items,{
-    warnTail:"축산물품질평가원 다봄의 발표전일 계란 산지가격입니다.",
-    linkUrl:"https://www.ekapepia.com/v3/price/livestock/egg/distrPrice.do?menuSn=36&boardInfoNo=", linkLabel:"📊 다봄 계란 산지가격 원문", linkColor:"#D4A012",
-    refreshId:"btn-refresh-poultry"})}
-  ${renderCompareTable(items,days,{unitNote:"단위: 원/10개 · 품목: 특란(XL) 산지가격"})}
+  ${renderPoultryPriceLine()}
   ${renderEggSupplyPanel()}`;
 }
 
@@ -3419,7 +3419,7 @@ function attachEvents(){
       if(stockFetchStatus!=="done" && stockFetchStatus!=="loading") fetchStockPrices();
       if(coinFetchStatus!=="done" && coinFetchStatus!=="loading") fetchUpbitPrices();
     }
-    if(state.tab==="price" && chPriceState.status==="idle") fetchChickenPrices();
+    if(state.tab==="price" && poultryPriceState.status==="idle") fetchPoultryPrices();
   });
 
   // 공지 갱신 버튼
@@ -3447,7 +3447,7 @@ function attachEvents(){
 
   // 육계 시세 갱신 버튼
   const chPriceRefreshBtn=document.getElementById("btn-ch-price-refresh");
-  if(chPriceRefreshBtn) chPriceRefreshBtn.onclick=()=>{ chPriceState.status="loading"; render(); fetchChickenPrices(); };
+  if(chPriceRefreshBtn) chPriceRefreshBtn.onclick=()=>{ fetchPoultryPrices(); };
 
   // 뉴스 채널 버튼
   document.querySelectorAll(".news-ch-btn").forEach(b=>b.onclick=()=>{
@@ -3582,11 +3582,7 @@ function attachEvents(){
   // 축평원 인증키 설정/갱신
   // 양계 시세 갱신 (날짜 기준 데이터 재생성)
   const poultryRefreshBtn=document.getElementById("btn-refresh-poultry");
-  if(poultryRefreshBtn) poultryRefreshBtn.onclick=()=>{
-    const fresh=genWeekData();
-    for(let i=0;i<WEEK_DATA.length;i++){ Object.assign(WEEK_DATA[i], fresh[i]); }
-    render();
-  };
+  if(poultryRefreshBtn) poultryRefreshBtn.onclick=()=>{ fetchPoultryPrices(); };
   // 양돈/한우 시세 갱신 (다봄 실시간 재조회)
   const pigRefreshBtn=document.getElementById("btn-refresh-pig");
   if(pigRefreshBtn) pigRefreshBtn.onclick=()=>{ fetchDabomPrices().then(()=>render()); };
@@ -3624,7 +3620,7 @@ fetchUpbitPrices();
 fetchStockPrices();
 // 다봄 실시간 시세 자동 로드 (백그라운드)
 fetchDabomPrices().then(()=>{ if(state.tab==="price"||state.tab==="pig") render(); });
-fetchEggPrice();
+fetchPoultryPrices();
 // 주간 계란 수급 정보 (GitHub Actions 매주 화요일 업데이트)
 fetchEggReport();
 
