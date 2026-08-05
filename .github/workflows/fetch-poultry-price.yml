@@ -17,7 +17,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: 기본 라이브러리 테스트
-        run: python -m unittest discover -s tests -p "test_fetch_poultry_price.py" -v
+        run: python -m unittest tests/test_fetch_poultry_price.py -v
       - name: 계란·육계·양돈·한우 시세 수집
         run: python scripts/fetch_poultry_price.py
       - name: 결과 검증
