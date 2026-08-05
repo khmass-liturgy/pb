@@ -64,6 +64,126 @@
   .board-link:hover { filter: brightness(0.96); }
   .hidden { display: none !important; }
   /* ── 브리핑 마크다운 스타일 ── */
+
+  /* ── 모바일 축산시세 레이아웃 보정 ───────────────────────────── */
+  html, body { max-width: 100%; overflow-x: hidden; }
+  .livestock-price-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .livestock-price-card {
+    min-width: 0;
+    background: #fff;
+    border: 1px solid #eee;
+    border-radius: 12px;
+    padding: 14px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    overflow: hidden;
+  }
+  .livestock-price-main {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+  .livestock-price-copy {
+    min-width: 0;
+  }
+  .livestock-price-label {
+    font-size: 12px;
+    color: #777;
+    font-weight: 700;
+    line-height: 1.35;
+    word-break: keep-all;
+  }
+  .livestock-price-value {
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+  .livestock-price-date {
+    flex: 0 0 auto;
+    font-size: 10px;
+    color: #aaa;
+    text-align: right;
+    line-height: 1.35;
+    white-space: nowrap;
+  }
+  .livestock-history-scroll {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  @media (max-width: 720px) {
+    header { padding: 0 10px; }
+    .header-top { padding: 10px 0 7px; }
+    .tabs { width: 100%; gap: 0; }
+    .tab {
+      flex: 1 1 0;
+      min-width: 0;
+      padding: 8px 4px;
+      font-size: 12px;
+      text-align: center;
+    }
+    main { padding: 14px 10px 30px; }
+    .card { padding: 14px; border-radius: 14px; }
+
+    .livestock-price-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 9px;
+    }
+    .livestock-price-card {
+      min-height: 154px;
+      padding: 12px 8px;
+      flex-direction: column;
+      justify-content: center;
+      text-align: center;
+    }
+    .livestock-price-main {
+      width: 100%;
+      flex-direction: column;
+      justify-content: center;
+      gap: 5px;
+    }
+    .livestock-price-copy {
+      width: 100%;
+    }
+    .livestock-price-label {
+      font-size: 11px;
+      min-height: 30px;
+    }
+    .livestock-price-value {
+      font-size: clamp(21px, 6.4vw, 28px);
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+    .livestock-price-date {
+      width: 100%;
+      margin-top: 4px;
+      text-align: center;
+      white-space: normal;
+      font-size: 9px;
+    }
+    .livestock-history-scroll table {
+      min-width: 900px !important;
+    }
+  }
+
+  @media (max-width: 380px) {
+    .livestock-price-grid { gap: 7px; }
+    .livestock-price-card { min-height: 146px; padding: 10px 6px; }
+    .livestock-price-value { font-size: 22px; }
+    .livestock-price-label { font-size: 10px; }
+  }
+
 </style>
 </head>
 <body>
@@ -2021,7 +2141,7 @@ function renderLivestockPriceHistory(data){
   };
   const header=series.map(s=>`<th style="padding:8px 7px;text-align:right;color:${s.color};font-size:10px;white-space:nowrap">${s.label}<br><span style="font-weight:400;color:#aaa">${s.unit}</span></th>`).join("");
   const body=dates.map(date=>`<tr><td style="padding:8px 9px;border-bottom:1px solid #f0f0f0;white-space:nowrap;font-weight:700;color:#555">${date.slice(5).replace("-","/")}</td>${series.map(s=>cell(s,date)).join("")}</tr>`).join("");
-  return `<div style="margin-top:14px;border-top:1px solid #eee;padding-top:12px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px"><div style="font-size:12px;font-weight:700;color:#666">📅 최근 7일 일자별 축산시세</div><div style="font-size:9px;color:#aaa">등락: 전일 대비</div></div><div style="overflow-x:auto"><table style="width:100%;min-width:900px;border-collapse:collapse;font-size:11px"><thead><tr style="background:#fafafa;border-bottom:2px solid #eee"><th style="padding:8px 9px;text-align:left;color:#888;font-size:10px">일자</th>${header}</tr></thead><tbody>${body}</tbody></table></div></div>`;
+  return `<div style="margin-top:14px;border-top:1px solid #eee;padding-top:12px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px"><div style="font-size:12px;font-weight:700;color:#666">📅 최근 7일 일자별 축산시세</div><div style="font-size:9px;color:#aaa">등락: 전일 대비</div></div><div class="livestock-history-scroll"><table style="width:100%;min-width:900px;border-collapse:collapse;font-size:11px"><thead><tr style="background:#fafafa;border-bottom:2px solid #eee"><th style="padding:8px 9px;text-align:left;color:#888;font-size:10px">일자</th>${header}</tr></thead><tbody>${body}</tbody></table></div></div>`;
 }
 
 function renderPoultryPriceLine(){
@@ -2038,11 +2158,17 @@ function renderPoultryPriceLine(){
     {icon:"🐮",label:cow.male_calf.label,sub:"",value:cow.male_calf.value,unit:cow.male_calf.unit,color:"#8B4513",date:cow.male_calf.date},
     {icon:"🐂",label:cow.farm_receipt_600kg.label,sub:"",value:cow.farm_receipt_600kg.value,unit:cow.farm_receipt_600kg.unit,color:"#6B4423",date:cow.farm_receipt_600kg.date},
   ].map(item=>`
-    <div style="min-width:0;background:#fff;border:1px solid #eee;border-radius:12px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between">
-      <div style="display:flex;align-items:center;gap:10px"><span style="font-size:25px">${item.icon}</span><div><div style="font-size:12px;color:#777;font-weight:700">${item.label} <span style="font-weight:400">${item.sub}</span></div><div style="font-size:22px;color:${item.color};font-weight:800">${Number.isInteger(item.value)?item.value.toLocaleString():"-"}<span style="font-size:11px;color:#888;font-weight:400;margin-left:3px">${item.unit}</span></div></div></div>
-      <div style="font-size:10px;color:#aaa;text-align:right">${item.date||""}<br>발표전일 기준</div>
+    <div class="livestock-price-card">
+      <div class="livestock-price-main">
+        <span style="font-size:25px;line-height:1">${item.icon}</span>
+        <div class="livestock-price-copy">
+          <div class="livestock-price-label">${item.label} <span style="font-weight:400">${item.sub}</span></div>
+          <div class="livestock-price-value" style="color:${item.color}">${Number.isInteger(item.value)?item.value.toLocaleString():"-"}<span style="font-size:11px;color:#888;font-weight:400;margin-left:3px">${item.unit}</span></div>
+        </div>
+      </div>
+      <div class="livestock-price-date">${item.date||""}<br>발표전일 기준</div>
     </div>`).join("");
-  return `<div class="card" style="margin-bottom:20px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div class="display" style="font-size:15px">📊 축산산지시세</div><button id="btn-refresh-poultry" style="border:1px solid #1B7A3E;border-radius:8px;background:#fff;padding:6px 10px;font-size:11px;color:#1B7A3E">🔄 갱신</button></div><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">${cards}</div>${renderLivestockPriceHistory(st.data)}<div style="font-size:9px;color:#bbb;margin-top:8px;text-align:right">출처: 축산물품질평가원 다봄</div></div>`;
+  return `<div class="card" style="margin-bottom:20px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div class="display" style="font-size:15px">📊 축산산지시세</div><button id="btn-refresh-poultry" style="border:1px solid #1B7A3E;border-radius:8px;background:#fff;padding:6px 10px;font-size:11px;color:#1B7A3E">🔄 갱신</button></div><div class="livestock-price-grid">${cards}</div>${renderLivestockPriceHistory(st.data)}<div style="font-size:9px;color:#bbb;margin-top:8px;text-align:right">출처: 축산물품질평가원 다봄</div></div>`;
 }
 
 function renderPriceTab(){
