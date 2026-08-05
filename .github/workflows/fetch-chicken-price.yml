@@ -2,7 +2,6 @@ name: 한국육계협회 육계 시세 수집
 
 on:
   schedule:
-    # 평일 08:00 KST(23:00 UTC 전날) — 사이트가 대체로 영업일마다 갱신
     - cron: "0 23 * * 0-4"
   workflow_dispatch:
 
@@ -19,6 +18,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: Python 설정
         uses: actions/setup-python@v6
@@ -28,31 +29,74 @@ jobs:
       - name: 패키지 설치
         run: |
           pip install requests playwright
-          # requests+프록시로도 접근이 안 될 때(SSLError·TLS 지문 차단 등)의
-          # 최후 수단. 평소엔 안 쓰이지만 이 사이트가 그런 경우로 확인돼 추가.
           playwright install --with-deps chromium
 
       - name: 육계 시세 수집
         run: python scripts/fetch_chicken_price.py
 
-      - name: 결과 커밋
-        if: always()   # 실패해도(이전값 stale 저장) 커밋은 항상 시도
+      - name: 양계 탭을 육계 대중소 표시로 교정
         run: |
-          git config user.name  "github-actions[bot]"
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path("index.html")
+          s = p.read_text(encoding="utf-8")
+
+          replacements = {
+            'latest.broiler': 'latest.large',
+            'prev?.broiler': 'prev?.large',
+            'latest.chick': 'latest.medium',
+            'prev?.chick': 'prev?.medium',
+            'latest.breeding': 'latest.small',
+            'prev?.breeding': 'prev?.small',
+            'r.broiler': 'r.large',
+            'prow?.broiler': 'prow?.large',
+            'r.chick': 'r.medium',
+            'prow?.chick': 'prow?.medium',
+            'r.breeding': 'r.small',
+            'prow?.breeding': 'prow?.small',
+            'label:"육계생계 (운반비포함)"': 'label:"육계 대"',
+            'label:"병아리"': 'label:"육계 중"',
+            'label:"종계노계"': 'label:"육계 소"',
+            'unit:"원/수"': 'unit:"원/kg"',
+            '육계생계<br><span style="font-weight:400;font-size:9px">(원/kg)</span>': '육계 대<br><span style="font-weight:400;font-size:9px">(원/kg)</span>',
+            '병아리<br><span style="font-weight:400;font-size:9px">(원/수)</span>': '육계 중<br><span style="font-weight:400;font-size:9px">(원/kg)</span>',
+            '종계노계<br><span style="font-weight:400;font-size:9px">(원/kg)</span>': '육계 소<br><span style="font-weight:400;font-size:9px">(원/kg)</span>',
+          }
+
+          for old, new in replacements.items():
+              s = s.replace(old, new)
+
+          # 서버 JSON 로딩 시 과거/새 구조 모두 수용
+          old = 'rows:d.rows.map(r=>({date:r.date,broiler:r.broiler,chick:r.chick,breeding:r.breeding}))'
+          new = 'rows:d.rows.map(r=>({date:r.date,large:r.large??r.broiler,medium:r.medium??r.chick,small:r.small??r.breeding}))'
+          s = s.replace(old, new)
+
+          p.write_text(s, encoding="utf-8")
+          PY
+
+      - name: 결과 검증
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          data = json.loads(Path("chicken_price/latest.json").read_text(encoding="utf-8"))
+          assert data.get("rows"), "시세 데이터가 없습니다."
+          row = data["rows"][0]
+          assert all(isinstance(row.get(k), int) for k in ("large", "medium", "small")), row
+          assert "육계 대" in Path("index.html").read_text(encoding="utf-8")
+          assert "육계 중" in Path("index.html").read_text(encoding="utf-8")
+          assert "육계 소" in Path("index.html").read_text(encoding="utf-8")
+          print("검증 성공:", row)
+          PY
+
+      - name: 결과 커밋
+        run: |
+          git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          # chicken_price/ 폴더가 아예 없을 수도 있으므로(수집·이전값 모두 없어
-          # 저장 자체를 안 한 경우) add 실패로 워크플로우 전체가 죽지 않게 방어
-          if [ -d chicken_price ]; then
-            git add chicken_price/
-          else
-            echo "chicken_price/ 폴더 없음 — 커밋할 결과 없이 종료"
-            exit 0
-          fi
+          git add scripts/fetch_chicken_price.py chicken_price/latest.json index.html
           git diff --staged --quiet && echo "변경 없음" && exit 0
-          git commit -m "🐔 육계협회 시세 업데이트 ($(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M KST'))"
-          for i in 1 2 3; do
-            git pull --rebase --autostash origin ${GITHUB_REF_NAME} && git push && exit 0
-            echo "푸시 재시도 $i"
-            sleep 5
-          done
-          exit 1
+          git commit -m "🐔 육계 대중소 시세 표시 교정"
+          git pull --rebase --autostash origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
