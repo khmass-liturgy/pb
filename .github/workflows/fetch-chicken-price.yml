@@ -28,52 +28,14 @@ jobs:
 
       - name: 패키지 설치
         run: |
-          pip install requests playwright
+          pip install requests playwright pytest
           playwright install --with-deps chromium
+
+      - name: 파서 회귀 테스트
+        run: pytest -q tests/test_fetch_chicken_price.py
 
       - name: 육계 시세 수집
         run: python scripts/fetch_chicken_price.py
-
-      - name: 양계 탭을 육계 대중소 표시로 교정
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          p = Path("index.html")
-          s = p.read_text(encoding="utf-8")
-
-          replacements = {
-            'latest.broiler': 'latest.large',
-            'prev?.broiler': 'prev?.large',
-            'latest.chick': 'latest.medium',
-            'prev?.chick': 'prev?.medium',
-            'latest.breeding': 'latest.small',
-            'prev?.breeding': 'prev?.small',
-            'r.broiler': 'r.large',
-            'prow?.broiler': 'prow?.large',
-            'r.chick': 'r.medium',
-            'prow?.chick': 'prow?.medium',
-            'r.breeding': 'r.small',
-            'prow?.breeding': 'prow?.small',
-            'label:"육계생계 (운반비포함)"': 'label:"육계 대"',
-            'label:"병아리"': 'label:"육계 중"',
-            'label:"종계노계"': 'label:"육계 소"',
-            'unit:"원/수"': 'unit:"원/kg"',
-            '육계생계<br><span style="font-weight:400;font-size:9px">(원/kg)</span>': '육계 대<br><span style="font-weight:400;font-size:9px">(원/kg)</span>',
-            '병아리<br><span style="font-weight:400;font-size:9px">(원/수)</span>': '육계 중<br><span style="font-weight:400;font-size:9px">(원/kg)</span>',
-            '종계노계<br><span style="font-weight:400;font-size:9px">(원/kg)</span>': '육계 소<br><span style="font-weight:400;font-size:9px">(원/kg)</span>',
-          }
-
-          for old, new in replacements.items():
-              s = s.replace(old, new)
-
-          # 서버 JSON 로딩 시 과거/새 구조 모두 수용
-          old = 'rows:d.rows.map(r=>({date:r.date,broiler:r.broiler,chick:r.chick,breeding:r.breeding}))'
-          new = 'rows:d.rows.map(r=>({date:r.date,large:r.large??r.broiler,medium:r.medium??r.chick,small:r.small??r.breeding}))'
-          s = s.replace(old, new)
-
-          p.write_text(s, encoding="utf-8")
-          PY
 
       - name: 결과 검증
         run: |
@@ -84,10 +46,11 @@ jobs:
           data = json.loads(Path("chicken_price/latest.json").read_text(encoding="utf-8"))
           assert data.get("rows"), "시세 데이터가 없습니다."
           row = data["rows"][0]
-          assert all(isinstance(row.get(k), int) for k in ("large", "medium", "small")), row
-          assert "육계 대" in Path("index.html").read_text(encoding="utf-8")
-          assert "육계 중" in Path("index.html").read_text(encoding="utf-8")
-          assert "육계 소" in Path("index.html").read_text(encoding="utf-8")
+          keys = ("large", "medium", "small", "chick", "breeding")
+          assert all(isinstance(row.get(k), int) for k in keys), row
+          page = Path("index.html").read_text(encoding="utf-8")
+          for label in ("육계 대", "육계 중", "육계 소", "병아리", "종계노계"):
+              assert label in page, label
           print("검증 성공:", row)
           PY
 
@@ -95,8 +58,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add scripts/fetch_chicken_price.py chicken_price/latest.json index.html
+          git add chicken_price/latest.json
           git diff --staged --quiet && echo "변경 없음" && exit 0
-          git commit -m "🐔 육계 대중소 시세 표시 교정"
+          git commit -m "🐔 육계 시세 갱신"
           git pull --rebase --autostash origin "${GITHUB_REF_NAME}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
