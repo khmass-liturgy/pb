@@ -157,78 +157,49 @@ def parse_number(value: str) -> int | None:
 
 
 def parse_price_html(page_html: str) -> list[dict[str, Any]]:
+    """
+    한국육계협회 가격표의 실제 데이터 열을 읽는다.
+
+    원본 표는 다단 헤더 구조다.
+      기준일 | 육계(대 | 중 | 소) | 병아리 | 종계노계 ...
+
+    기존 코드는 첫 헤더 행의 colspan을 펼치지 않아 데이터열 1·2·3을
+    broiler/chick/breeding으로 잘못 이름 붙였다. 양계 탭에서는 필요한
+    육계 대·중·소만 데이터 행의 첫 세 가격 열로 명확하게 추출한다.
+    """
     parser = TableParser()
     parser.feed(page_html)
 
     results: list[dict[str, Any]] = []
 
     for table in parser.tables:
-        header_index: int | None = None
-        headers: list[str] = []
-
-        for index, row in enumerate(table):
-            normalized = [re.sub(r"\s+", "", cell) for cell in row]
-            joined = "|".join(normalized)
-            if ("생계" in joined or "육계" in joined) and "병아리" in joined:
-                header_index = index
-                headers = normalized
-                break
-
-        if header_index is None:
-            continue
-
-        date_idx = next(
-            (
-                i for i, header in enumerate(headers)
-                if any(key in header for key in ("일자", "날짜", "기준일", "연월일"))
-            ),
-            0,
-        )
-        broiler_idx = next(
-            (
-                i for i, header in enumerate(headers)
-                if "생계" in header or "육계" in header
-            ),
-            None,
-        )
-        chick_idx = next(
-            (i for i, header in enumerate(headers) if "병아리" in header),
-            None,
-        )
-        breeding_idx = next(
-            (
-                i for i, header in enumerate(headers)
-                if "종계" in header and "노계" in header
-            ),
-            next(
-                (i for i, header in enumerate(headers) if "종계" in header),
-                None,
-            ),
-        )
-
-        for row in table[header_index + 1:]:
-            if len(row) < 2:
+        # 날짜가 들어 있는 데이터 행을 직접 찾는다.
+        for row in table:
+            if len(row) < 4:
                 continue
 
-            date_value = row[date_idx] if date_idx < len(row) else ""
-            date = normalize_date(date_value)
+            date = normalize_date(row[0])
             if not date:
                 continue
 
-            def cell_number(index: int | None) -> int | None:
-                if index is None or index >= len(row):
-                    return None
-                return parse_number(row[index])
+            # 날짜 다음 세 개의 유효 숫자는 원본 표의 육계 대·중·소다.
+            prices: list[int] = []
+            for cell in row[1:]:
+                number = parse_number(cell)
+                if number is not None:
+                    prices.append(number)
+                if len(prices) == 3:
+                    break
 
-            item = {
+            if len(prices) < 3:
+                continue
+
+            results.append({
                 "date": date,
-                "broiler": cell_number(broiler_idx),
-                "chick": cell_number(chick_idx),
-                "breeding": cell_number(breeding_idx),
-            }
-
-            if any(item[key] is not None for key in ("broiler", "chick", "breeding")):
-                results.append(item)
+                "large": prices[0],
+                "medium": prices[1],
+                "small": prices[2],
+            })
 
         if results:
             break
