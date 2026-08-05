@@ -1,0 +1,139 @@
+{
+  "updated": "2026-08-06 08:15 KST",
+  "updatedTs": 1785971741,
+  "ok": 3,
+  "total": 4,
+  "order": [
+    "chuksan",
+    "handon",
+    "econ",
+    "policy"
+  ],
+  "sources": {
+    "chuksan": {
+      "name": "축산신문",
+      "icon": "📰",
+      "color": "#C62828",
+      "home": "https://www.chuksannews.co.kr/news/section_list_all.html?sec_no=2",
+      "items": [],
+      "stale": true
+    },
+    "handon": {
+      "name": "한돈뉴스",
+      "icon": "🐷",
+      "color": "#AD1457",
+      "home": "https://www.pignpork.com/news/articleList.html?sc_section_code=S1N1&view_type=sm",
+      "items": [
+        {
+          "title": "사료 형태에도 변화가 필요하다!! 펠렛사료의 영양학적·물리적 장점",
+          "url": "https://www.pignpork.com/news/articleView.html?idxno=19173",
+          "date": "",
+          "source": ""
+        },
+        {
+          "title": "폭염 장기화에 축산현장 비상… 농식품부·지자체 대응체계 강화",
+          "url": "https://www.pignpork.com/news/articleView.html?idxno=19242",
+          "date": "",
+          "source": ""
+        },
+        {
+          "title": "강승규 의원, '스마트축사 규제 합리화 2법' 대표발의",
+          "url": "https://www.pignpork.com/news/articleView.html?idxno=19243",
+          "date": "",
+          "source": ""
+        },
+        {
+          "title": "공공기관 사칭 신종 사기 기승… 축산업계도 노린다",
+          "url": "https://www.pignpork.com/news/articleView.html?idxno=19212",
+          "date": "",
+          "source": ""
+        },
+        {
+          "title": "효돈GP, 다비육종 'G.P. 30' 첫 주인공… 명품 F1 생산 비결은?",
+          "url": "https://www.pignpork.com/news/articleView.html?idxno=19240",
+          "date": "",
+          "source": ""
+        }
+      ],
+      "stale": false
+    },
+    "econ": {
+      "name": "아시아경제",
+      "icon": "💹",
+      "color": "#0047A0",
+      "home": "https://www.asiae.co.kr/list/economy",
+      "items": [
+        {
+          "title": "한화손보, 고려대병원에 환아 보호자용 '웰니스 키트' 전달",
+          "url": "https://view.asiae.co.kr/article/2026080608005276421",
+          "date": "08.06 08:00",
+          "source": ""
+        },
+        {
+          "title": "[속보]6월 경상흑자 497.3억달러…5월 넘어 또 '역대 최대'",
+          "url": "https://view.asiae.co.kr/article/2026080607571434152",
+          "date": "08.06 08:00",
+          "source": ""
+        },
+        {
+          "title": "\"1만피 간다면서\"…코스피 전망치 뒤늦게 낮추는 증권가 [1분 브리프]",
+          "url": "https://view.asiae.co.kr/article/2026080607184072698",
+          "date": "08.06 08:00",
+          "source": ""
+        },
+        {
+          "title": "\"임대주택 공급 위축 우려\" \"재분배인지 집값안정인지 불분명\"…학계 쓴소리",
+          "url": "https://view.asiae.co.kr/article/2026080607331949263",
+          "date": "08.06 07:33",
+          "source": ""
+        },
+        {
+          "title": "금융사는 뒤로, 플랫폼은 앞으로…엑스가 쏘아올린 '플랫폼 금융'",
+          "url": "https://view.asiae.co.kr/article/2026080515543088034",
+          "date": "08.06 06:10",
+          "source": ""
+        }
+      ],
+      "stale": false
+    },
+    "policy": {
+      "name": "농식품부 축산정책",
+      "icon": "🏛️",
+      "color": "#1B5E20",
+      "home": "https://www.mafra.go.kr/home/5109/subview.do",
+      "items": [
+        {
+          "title": "김종구 농식품부 차관, 폭염 대비 산란계·젖소 농장 점검",
+          "url": "http://www.mafra.go.kr/bbs/home/792/578647/artclView.do",
+          "date": "",
+          "source": ""
+        },
+        {
+          "title": "농식품부 장관, 임산부 친환경농산물 꾸러미 참여자들과 현장소통",
+          "url": "http://www.mafra.go.kr/bbs/home/792/578646/artclView.do",
+          "date": "",
+          "source": ""
+        },
+        {
+          "title": "“쌀의 유전자지문을 찾아라” 경북도 미래인력 ‘종자전쟁 속 CSI 수사’ 펼쳤다",
+          "url": "http://www.mafra.go.kr/bbs/home/792/578645/artclView.do",
+          "date": "",
+          "source": ""
+        },
+        {
+          "title": "부처 장벽 허물고 현장 유공자 포상, 3개 부처 합동 수여식 개최",
+          "url": "http://www.mafra.go.kr/bbs/home/792/578632/artclView.do",
+          "date": "",
+          "source": ""
+        },
+        {
+          "title": "축산분야 폭염 대응 추진상황 집중점검",
+          "url": "http://www.mafra.go.kr/bbs/home/792/578631/artclView.do",
+          "date": "",
+          "source": ""
+        }
+      ],
+      "stale": false
+    }
+  }
+}
