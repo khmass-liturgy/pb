@@ -434,6 +434,7 @@ const PRICES_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/mai
 
 // ── 주간 계란 수급 정보 (GitHub Actions → egg_report/latest.json) ───────────
 const EGG_REPORT_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/egg_report/latest.json";
+const EGG_REPORT_SOURCE_URL = "https://www.ekapepia.com/v3/board/list.do?menuSn=51&boardInfoNo=0159";
 
 // ── 주가·환율·곡물 시세 (GitHub Actions → market/quotes.json) ────────────────
 // 서버에서 야후를 직접 호출해 저장한 파일. raw.githubusercontent.com 은 CORS 허용이라
@@ -1551,8 +1552,8 @@ function renderEggSupplyPanel(){
     <div class="display" style="font-size:15px;margin-bottom:10px">📋 주간 계란 수급 정보</div>
     <div style="text-align:center;padding:12px;color:#aaa;font-size:12px">
       데이터 없음 — 매주 화요일 업데이트<br>
-      <a href="https://www.ekapepia.com/v3/board/detail.do?boardInfoNo=0159&dmlType=SELECT" target="_blank"
-        style="color:#E8530A;font-size:11px">📄 다봄 계란 수급 정보 바로가기</a>
+      <a href="${EGG_REPORT_SOURCE_URL}" target="_blank"
+        style="color:#E8530A;font-size:11px">📋 다봄 주간 계란 수급 정보 바로가기</a>
     </div>
   </div>`;
 
@@ -1561,7 +1562,7 @@ function renderEggSupplyPanel(){
   const secs = (r.sections || []).filter(s => !/생산/.test(s.title || ""));
   const updated = r.updated || "";
   const title   = r.title  || "주간 계란 수급 정보";
-  const url     = r.url    || "https://www.ekapepia.com/v3/board/detail.do?boardInfoNo=0159&dmlType=SELECT";
+  const url     = EGG_REPORT_SOURCE_URL;
 
   // 수급 상황 색상
   const supplyColor = {
@@ -1669,7 +1670,7 @@ function renderEggSupplyPanel(){
       <div style="display:flex;align-items:center;gap:8px">
         ${s.supply_status ? `<span style="background:${supplyColor};color:#fff;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700">${esc(s.supply_status)}</span>` : ""}
         <a href="${esc(url)}" target="_blank" rel="noopener"
-          style="font-size:11px;color:#E8530A;text-decoration:none;border:1px solid #E8530A;border-radius:6px;padding:3px 8px">📄 원문 PDF</a>
+          style="font-size:11px;color:#E8530A;text-decoration:none;border:1px solid #E8530A;border-radius:6px;padding:3px 8px">📋 원문 게시판</a>
       </div>
     </div>
 
@@ -2043,7 +2044,7 @@ function renderPoultryPriceLine(){
       <div style="font-size:10px;color:#aaa;text-align:right">${item.date||""}<br>발표전일 기준</div>
     </div>`).join("");
   const collectedAt=st.data.updated||"";
-  return `<div class="card" style="margin-bottom:20px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div class="display" style="font-size:15px">📊 축산산지시세 <span style="font-size:10px;color:#aaa;font-weight:400">수집 ${esc(collectedAt)}</span></div><button id="btn-refresh-poultry" style="border:1px solid #1B7A3E;border-radius:8px;background:#fff;padding:6px 10px;font-size:11px;color:#1B7A3E">🔄 갱신</button></div><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">${cards}</div>${renderLivestockPriceHistory(st.data)}<div style="font-size:9px;color:#bbb;margin-top:8px;text-align:right">카드 날짜=원본 발표일 · 수집 시각=${esc(collectedAt)} · 출처: 축산물품질평가원 다봄</div></div>`;
+  return `<div class="card" style="margin-bottom:20px"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:7px;margin-bottom:10px"><div class="display" style="font-size:15px">📊 축산산지시세 <span style="font-size:10px;color:#aaa;font-weight:400">수집 ${esc(collectedAt)}</span></div><div style="display:flex;align-items:center;gap:6px"><a href="https://www.ekapepia.com/v3/web/main.do?userGroup=producer" target="_blank" rel="noopener" style="border:1px solid #1B7A3E;border-radius:8px;background:#fff;padding:6px 10px;font-size:11px;color:#1B7A3E;text-decoration:none">생산자 시세 ↗</a><button id="btn-refresh-poultry" style="border:1px solid #1B7A3E;border-radius:8px;background:#fff;padding:6px 10px;font-size:11px;color:#1B7A3E">🔄 갱신</button></div></div><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">${cards}</div>${renderLivestockPriceHistory(st.data)}<div style="font-size:9px;color:#bbb;margin-top:8px;text-align:right">카드 날짜=원본 발표일 · 수집 시각=${esc(collectedAt)} · 출처: 축산물품질평가원 다봄</div></div>`;
 }
 
 function renderPriceTab(){
