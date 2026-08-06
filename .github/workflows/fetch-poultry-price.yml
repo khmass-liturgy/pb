@@ -2,7 +2,8 @@ name: 축산산지시세 수집
 
 on:
   schedule:
-    - cron: "30 23 * * 1-5"
+    # GitHub Actions cron is UTC: 00:00 UTC = 매일 한국시간 09:00
+    - cron: "0 0 * * *"
   workflow_dispatch:
 
 permissions:
