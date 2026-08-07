@@ -1420,7 +1420,7 @@ function render(){
   document.getElementById("app").innerHTML = `
     ${renderHeader()}
     <main>
-      ${state.tab==="price" || state.tab==="pig" || state.tab==="livestock" ? renderPriceTab() : state.tab==="weather" ? renderWeatherTab() : state.tab==="vent" ? renderVentTab() : state.tab==="briefing" ? renderBriefingTab() : renderPriceTab()}
+      ${state.tab==="price" || state.tab==="pig" || state.tab==="livestock" ? renderPriceTab() : state.tab==="weather" ? renderWeatherTab() : state.tab==="vent" ? renderVentTab() : state.tab==="consult" ? renderConsultTab() : state.tab==="briefing" ? renderBriefingTab() : renderPriceTab()}
       ${renderFooter()}
     </main>`;
   attachEvents();
@@ -1444,6 +1444,7 @@ function renderHeader(){
       <button class="tab ${state.tab==="price"||state.tab==="pig"||state.tab==="livestock"?"active":""}" data-tab="price">📊 축산산지시세</button>
       <button class="tab ${state.tab==="weather"?"active":""}" data-tab="weather">🌤️ 날씨</button>
       <button class="tab ${state.tab==="vent"?"active":""}" data-tab="vent">🌬️ 환기가이드</button>
+      <button class="tab ${state.tab==="consult"?"active":""}" data-tab="consult">🐔🥚 육계/산란계 컨설팅</button>
       <button class="tab ${state.tab==="briefing"?"active":""}" data-tab="briefing">📋 뉴스정보</button>
     </div>
   </div></header>`;
@@ -2877,6 +2878,229 @@ function renderLivestockWeatherPanel(fc, hourlyByDate){
 }
 
 // ── 🌬️ 환기가이드 탭 ──────────────────────────────────────────────────────
+
+// ── 육계 표준 사양매뉴얼 데이터 ─────────────────────────────────────────────
+// [일령, 목표체중(g), 일당증체(g), 누적사료섭취(g), 누적FCR]
+// 출처: Aviagen 「Ross 308/308 FF Broiler Performance Objectives 2022」As-Hatched
+const ROSS308_DATA = [[0,44,null,null,null],[1,62,18,12,0.196],[2,81,19,28,0.352],[3,102,21,48,0.476],[4,125,23,72,0.577],[5,151,26,100,0.658],[6,181,29,131,0.724],[7,213,32,166,0.78],[8,249,36,206,0.826],[9,288,39,249,0.865],[10,330,42,297,0.9],[11,376,46,349,0.93],[12,425,49,406,0.957],[13,477,52,468,0.982],[14,533,56,535,1.005],[15,592,59,608,1.026],[16,655,62,685,1.047],[17,720,66,768,1.066],[18,789,69,856,1.086],[19,860,72,950,1.105],[20,935,74,1050,1.123],[21,1012,77,1155,1.142],[22,1092,80,1266,1.16],[23,1174,82,1383,1.178],[24,1258,85,1505,1.196],[25,1345,87,1633,1.214],[26,1434,89,1767,1.233],[27,1524,91,1907,1.251],[28,1616,92,2051,1.269],[29,1710,94,2202,1.288],[30,1805,95,2357,1.306],[31,1901,96,2518,1.325],[32,1999,97,2684,1.343],[33,2097,98,2855,1.362],[34,2196,99,3031,1.381],[35,2296,100,3211,1.399],[36,2396,100,3396,1.418],[37,2496,100,3584,1.437],[38,2597,101,3777,1.456],[39,2697,101,3974,1.474],[40,2798,100,4175,1.493],[41,2898,100,4379,1.512],[42,2998,100,4586,1.531],[43,3097,100,4797,1.55],[44,3197,99,5010,1.569],[45,3295,98,5226,1.587],[46,3393,98,5445,1.606],[47,3490,97,5666,1.625],[48,3586,96,5890,1.644],[49,3681,95,6115,1.663],[50,3776,94,6342,1.681],[51,3869,93,6571,1.7],[52,3961,92,6801,1.719],[53,4052,91,7032,1.738],[54,4142,90,7265,1.756],[55,4230,89,7498,1.775],[56,4318,87,7733,1.793]];
+// 출처: Cobb-Vantress 「Cobb500 Broiler Performance & Nutrition Supplement」As-Hatched
+const COBB500_DATA = [[0,42,0,null,null],[1,56,14,13,0.232],[2,72,16,30,0.417],[3,89,17,51,0.573],[4,109,20,74,0.679],[5,131,22,101,0.773],[6,157,26,132,0.841],[7,185,28,167,0.902],[8,215,30,206,0.958],[9,247,32,250,1.012],[10,283,36,298,1.053],[11,321,38,352,1.097],[12,364,43,410,1.126],[13,412,48,474,1.15],[14,465,53,542,1.165],[15,524,59,617,1.177],[16,586,62,698,1.191],[17,651,65,785,1.206],[18,719,68,878,1.221],[19,790,71,976,1.235],[20,865,75,1081,1.25],[21,943,78,1192,1.264],[22,1023,80,1309,1.284],[23,1104,81,1432,1.303],[24,1186,82,1562,1.321],[25,1269,83,1696,1.337],[26,1353,84,1837,1.356],[27,1438,85,1985,1.373],[28,1524,86,2137,1.402],[29,1613,89,2295,1.423],[30,1705,92,2458,1.442],[31,1799,94,2627,1.46],[32,1895,96,2801,1.478],[33,1993,98,2981,1.496],[34,2092,99,3163,1.512],[35,2191,99,3352,1.53],[36,2289,98,3545,1.549],[37,2386,97,3742,1.568],[38,2482,96,3943,1.589],[39,2577,95,4148,1.61],[40,2671,94,4357,1.631],[41,2764,93,4570,1.653],[42,2857,93,4786,1.675],[43,2950,93,5006,1.697],[44,3043,93,5228,1.718],[45,3136,93,5453,1.739],[46,3229,93,5680,1.759],[47,3322,93,5911,1.779],[48,3414,92,6144,1.8],[49,3506,92,6379,1.819],[50,3596,90,6616,1.84],[51,3685,89,6855,1.86],[52,3773,88,7095,1.88],[53,3859,86,7337,1.901],[54,3944,85,7580,1.922],[55,4028,84,7825,1.943],[56,4111,83,8070,1.963],[57,4192,81,8315,1.984],[58,4272,80,8560,2.004],[59,4350,78,8805,2.024],[60,4427,77,9050,2.044],[61,4502,75,9295,2.065],[62,4576,74,9540,2.085],[63,4649,73,9785,2.105]];
+
+// ── 산란계 표준 사양매뉴얼 데이터 ────────────────────────────────────────────
+// 육성기: [주령, 목표체중(g), 사료섭취(g/일), 음수섭취(ml/일), 누적폐사율(%)]
+// 산란기: [주령, 산란율(%), 목표체중(g), 사료섭취(g/일), 음수섭취(ml/일), 평균난중(g), 누적폐사율(%)]
+// 출처: Hy-Line International 「Hy-Line Brown Commercial Layers Performance Standards」 2025.12
+const HYLINE_BROWN_DATA = { rearing:[[1,71,16,28,0.4],[2,122,18,32,0.55],[3,192,22,38,0.65],[4,274,27,46,0.75],[5,367,32,57,0.85],[6,469,38,68,0.95],[7,577,44,78,1.05],[8,687,50,88,1.15],[9,794,55,97,1.25],[10,896,59,104,1.35],[11,990,63,110,1.45],[12,1076,66,115,1.55],[13,1152,68,120,1.63],[14,1220,70,124,1.7],[15,1282,72,127,1.78],[16,1340,76,132,1.85],[17,1396,80,139,2.0]], production:[[18,6.8,1452,84,147,44.1,0.24],[19,24.6,1509,89,158,46.6,0.28],[20,53.8,1568,94,167,49.0,0.32],[21,77.8,1627,100,175,50.7,0.36],[22,89.1,1685,104,184,52.2,0.4],[23,93.0,1740,108,190,53.5,0.44],[24,94.7,1788,110,194,54.8,0.49],[25,95.8,1830,112,197,55.9,0.53],[26,96.0,1862,113,199,56.9,0.58],[27,96.0,1884,114,200,57.9,0.62],[28,96.0,1900,114,200,58.6,0.67],[29,95.8,1910,114,200,59.2,0.72],[30,95.8,1918,114,200,59.8,0.77],[31,95.7,1924,114,200,60.3,0.82],[32,95.6,1930,114,200,60.8,0.87],[33,95.5,1937,114,200,61.1,0.92],[34,95.3,1944,114,200,61.4,0.97],[35,95.2,1950,114,200,61.5,1.03],[36,95.1,1958,114,200,61.8,1.09],[37,95.0,1964,114,200,61.9,1.14],[38,94.9,1968,114,200,62.0,1.2],[39,94.7,1972,114,200,62.0,1.26],[40,94.6,1976,114,200,62.0,1.32],[41,94.4,1978,114,200,62.1,1.38],[42,94.2,1981,114,200,62.1,1.44],[43,94.1,1984,114,200,62.1,1.51],[44,93.9,1986,114,200,62.2,1.57],[45,93.8,1988,114,200,62.2,1.64],[46,93.6,1989,114,200,62.2,1.71],[47,93.4,1990,114,200,62.3,1.78],[48,93.2,1992,114,200,62.4,1.85],[49,93.0,1992,114,200,62.4,1.92],[50,92.8,1994,114,200,62.4,1.99],[55,91.7,1998,114,200,62.6,2.39],[60,90.3,2002,114,200,62.8,2.83],[65,88.5,2006,114,200,62.9,3.32],[70,86.7,2010,114,200,63.1,3.86],[75,84.9,2013,114,200,63.3,4.46],[80,82.9,2016,114,200,63.5,5.13],[85,80.8,2018,114,200,63.6,5.87],[90,78.7,2020,114,200,63.8,6.69],[95,76.4,2021,114,200,64.0,7.6],[100,74.2,2022,114,200,64.2,8.6]] };
+// 출처: Hy-Line International 「W-36 Commercial Layers Management Guide」 North America 2020.01
+const HYLINE_W36_DATA = { rearing:[[1,66,14,26,0.75],[2,109,18,33,1.3],[3,166,24,43,1.55],[4,230,32,55,1.66],[5,320,36,64,1.77],[6,406,41,72,1.88],[7,502,45,78,1.99],[8,585,48,86,2.1],[9,685,52,93,2.15],[10,776,56,98,2.2],[11,862,58,101,2.25],[12,946,58,104,2.3],[13,1010,61,108,2.35],[14,1075,62,110,2.4],[15,1132,64,113,2.45],[16,1182,66,116,2.5],[17,1220,70,122,2.55]], production:[[18,2.5,1265,68,122,44.2,0.1],[19,18.5,1320,72,128,45.0,0.1],[20,42.5,1375,76,135,45.9,0.1],[21,63.5,1425,80,142,48.0,0.2],[22,82.0,1450,84,148,49.8,0.2],[23,90.0,1465,89,157,51.3,0.3],[24,92.5,1480,92,163,52.6,0.4],[25,94.0,1500,96,168,53.7,0.5],[26,95.0,1510,98,172,54.7,0.5],[27,95.5,1515,99,174,55.5,0.6],[28,95.5,1520,100,174,56.3,0.6],[29,96.0,1530,100,176,57.0,0.7],[30,96.0,1530,100,176,57.6,0.7],[35,94.5,1560,101,178,59.7,1.0],[40,93.5,1570,102,178,60.9,1.3],[45,92.0,1580,102,178,61.8,1.7],[50,90.0,1580,102,178,62.3,2.1],[55,89.0,1580,102,178,62.7,2.5],[60,87.0,1580,102,178,63.0,2.9],[65,85.0,1580,102,178,63.2,3.4],[70,83.0,1580,102,178,63.3,3.9],[75,81.0,1580,102,178,63.4,4.3],[80,78.5,1580,102,178,63.5,4.7],[85,76.5,1580,102,178,63.6,5.5],[90,73.5,1580,102,178,63.7,6.3],[95,71.5,1580,102,178,63.7,7.2],[100,68.5,1580,102,178,63.8,8.0]] };
+
+// ── 조회/보간 함수 ───────────────────────────────────────────────────────────
+function lookupBroiler(breedData, day){
+  day = Math.max(0, Math.min(day, breedData[breedData.length-1][0]));
+  // 육계 데이터는 매일 있으므로 정확히 일치하는 행을 그대로 찾는다
+  return breedData.find(r=>r[0]===day) || breedData[breedData.length-1];
+}
+
+function lookupLayerPhase(breedData, week){
+  const maxWk = 17;
+  if(week <= maxWk){
+    const rows = breedData.rearing;
+    const exact = rows.find(r=>r[0]===week);
+    if(exact) return {phase:"rearing", row:exact, interpolated:false};
+    return {phase:"rearing", row: interpolateRow(rows, week), interpolated:true};
+  }
+  const rows = breedData.production;
+  const exact = rows.find(r=>r[0]===week);
+  if(exact) return {phase:"production", row:exact, interpolated:false};
+  return {phase:"production", row: interpolateRow(rows, week), interpolated:true};
+}
+
+// 축약 데이터표에 없는 주령은 앞뒤로 가장 가까운 두 값을 선형보간
+function interpolateRow(rows, week){
+  let lo=null, hi=null;
+  for(const r of rows){
+    if(r[0]<=week && (!lo || r[0]>lo[0])) lo=r;
+    if(r[0]>=week && (!hi || r[0]<hi[0])) hi=r;
+  }
+  if(!lo) return hi;
+  if(!hi) return lo;
+  if(lo[0]===hi[0]) return lo;
+  const t = (week-lo[0])/(hi[0]-lo[0]);
+  const out = [week];
+  for(let i=1;i<lo.length;i++){
+    const a=lo[i], b=hi[i];
+    out.push((a==null||b==null) ? null : Math.round((a+(b-a)*t)*10)/10);
+  }
+  return out;
+}
+
+// ── 축종/품종 메타 ───────────────────────────────────────────────────────────
+const CONSULT_BREEDS = {
+  broiler: {
+    label:"육계", icon:"🐔", unit:"일령", maxAge:63,
+    breeds:{
+      ross308: {name:"Ross 308", data:ROSS308_DATA, maxDay:56, source:"Aviagen Ross 308/308 FF Performance Objectives 2022"},
+      cobb500: {name:"Cobb 500", data:COBB500_DATA, maxDay:63, source:"Cobb-Vantress Cobb500 Broiler Performance & Nutrition Supplement"},
+    },
+  },
+  layer: {
+    label:"산란계", icon:"🥚", unit:"주령", maxAge:100,
+    breeds:{
+      hylineBrown: {name:"Hy-Line Brown", data:HYLINE_BROWN_DATA, maxWeek:100, source:"Hy-Line International Brown Commercial Layers Performance Standards 2025.12"},
+      hylineW36:  {name:"Hy-Line W-36",  data:HYLINE_W36_DATA,  maxWeek:100, source:"Hy-Line International W-36 Commercial Layers Management Guide 2020.01"},
+    },
+  },
+};
+
+let consultState = { species:"broiler", breed:"ross308", age:7 };
+
+function renderConsultTab(){
+  const sp = CONSULT_BREEDS[consultState.species];
+  if(consultState.breed && !sp.breeds[consultState.breed]) consultState.breed = Object.keys(sp.breeds)[0];
+  const breedKey = consultState.breed || Object.keys(sp.breeds)[0];
+  const breed = sp.breeds[breedKey];
+
+  const speciesBtns = Object.entries(CONSULT_BREEDS).map(([key,v])=>`
+    <button class="consult-species-btn" data-species="${key}"
+      style="flex:1;border:2px solid ${consultState.species===key?"#1a2744":"#eee"};background:${consultState.species===key?"#1a2744":"#fff"};color:${consultState.species===key?"#F9C74F":"#333"};border-radius:10px;padding:10px 6px;font-size:13px;font-weight:700;cursor:pointer">
+      ${v.icon} ${v.label}
+    </button>`).join("");
+
+  const breedBtns = Object.entries(sp.breeds).map(([key,b])=>`
+    <button class="consult-breed-btn" data-breed="${key}"
+      style="flex:1;border:2px solid ${breedKey===key?"#1a2744":"#eee"};background:${breedKey===key?"#1a2744":"#fff"};color:${breedKey===key?"#F9C74F":"#333"};border-radius:10px;padding:9px 6px;font-size:12px;font-weight:700;cursor:pointer">
+      ${b.name}
+    </button>`).join("");
+
+  const maxAge = consultState.species==="broiler" ? breed.maxDay : breed.maxWeek;
+  const age = Math.max(consultState.species==="broiler"?0:1, Math.min(consultState.age, maxAge));
+
+  let card;
+  if(consultState.species==="broiler"){
+    const row = lookupBroiler(breed.data, age);
+    const [d,w,gain,cumIntake,fcr] = row;
+    card = `
+    <div class="card" style="border-top:5px solid #E8530A;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+        <div>
+          <div style="font-size:11px;color:#aaa;font-weight:600">${breed.name} · ${d}일령</div>
+          <div style="font-size:26px;font-weight:800;color:#333;margin-top:2px">${w!=null?w.toLocaleString():"-"}<span style="font-size:14px;color:#888;font-weight:500"> g</span></div>
+          <div style="font-size:11px;color:#999;margin-top:1px">목표체중</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;color:#aaa">누적 FCR</div>
+          <div style="font-size:20px;font-weight:800;color:#E8530A">${fcr!=null?fcr.toFixed(3):"-"}</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div style="background:#FFF3EE;border-radius:10px;padding:10px 12px">
+          <div style="font-size:10px;color:#888">일당증체</div>
+          <div style="font-size:16px;font-weight:700;color:#333">${gain!=null?gain+" g":"-"}</div>
+        </div>
+        <div style="background:#FFF3EE;border-radius:10px;padding:10px 12px">
+          <div style="font-size:10px;color:#888">누적 사료섭취</div>
+          <div style="font-size:16px;font-weight:700;color:#333">${cumIntake!=null?cumIntake.toLocaleString()+" g":"-"}</div>
+        </div>
+      </div>
+    </div>`;
+  } else {
+    const {phase, row, interpolated} = lookupLayerPhase(breed.data, age);
+    if(phase==="rearing"){
+      const [wk,bw,fi,wtr,mort] = row;
+      card = `
+      <div class="card" style="border-top:5px solid #7B1FA2;margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+          <div>
+            <div style="font-size:11px;color:#aaa;font-weight:600">${breed.name} · ${wk}주령 <span style="color:#7B1FA2">(육성기)</span>${interpolated?' · 보간값':''}</div>
+            <div style="font-size:26px;font-weight:800;color:#333;margin-top:2px">${bw!=null?Math.round(bw).toLocaleString():"-"}<span style="font-size:14px;color:#888;font-weight:500"> g</span></div>
+            <div style="font-size:11px;color:#999;margin-top:1px">목표체중</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:11px;color:#aaa">누적 폐사율</div>
+            <div style="font-size:20px;font-weight:800;color:#7B1FA2">${mort!=null?mort+"%":"-"}</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div style="background:#F5EEF9;border-radius:10px;padding:10px 12px">
+            <div style="font-size:10px;color:#888">일일 사료섭취</div>
+            <div style="font-size:16px;font-weight:700;color:#333">${fi!=null?fi+" g":"-"}</div>
+          </div>
+          <div style="background:#F5EEF9;border-radius:10px;padding:10px 12px">
+            <div style="font-size:10px;color:#888">일일 음수섭취</div>
+            <div style="font-size:16px;font-weight:700;color:#333">${wtr!=null?wtr+" ml":"-"}</div>
+          </div>
+        </div>
+      </div>`;
+    } else {
+      const [wk,hd,bw,fi,wtr,ew,mort] = row;
+      card = `
+      <div class="card" style="border-top:5px solid #D4A012;margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+          <div>
+            <div style="font-size:11px;color:#aaa;font-weight:600">${breed.name} · ${wk}주령 <span style="color:#D4A012">(산란기)</span>${interpolated?' · 보간값':''}</div>
+            <div style="font-size:26px;font-weight:800;color:#333;margin-top:2px">${hd!=null?hd+"%":"-"}</div>
+            <div style="font-size:11px;color:#999;margin-top:1px">산란율(Hen-Day)</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:11px;color:#aaa">누적 폐사율</div>
+            <div style="font-size:20px;font-weight:800;color:#D4A012">${mort!=null?mort+"%":"-"}</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <div style="background:#FFFBEE;border-radius:10px;padding:10px 12px">
+            <div style="font-size:10px;color:#888">목표체중</div>
+            <div style="font-size:16px;font-weight:700;color:#333">${bw!=null?Math.round(bw).toLocaleString()+" g":"-"}</div>
+          </div>
+          <div style="background:#FFFBEE;border-radius:10px;padding:10px 12px">
+            <div style="font-size:10px;color:#888">평균 난중</div>
+            <div style="font-size:16px;font-weight:700;color:#333">${ew!=null?ew+" g":"-"}</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div style="background:#FFFBEE;border-radius:10px;padding:10px 12px">
+            <div style="font-size:10px;color:#888">일일 사료섭취</div>
+            <div style="font-size:16px;font-weight:700;color:#333">${fi!=null?fi+" g":"-"}</div>
+          </div>
+          <div style="background:#FFFBEE;border-radius:10px;padding:10px 12px">
+            <div style="font-size:10px;color:#888">일일 음수섭취</div>
+            <div style="font-size:16px;font-weight:700;color:#333">${wtr!=null?wtr+" ml":"-"}</div>
+          </div>
+        </div>
+      </div>`;
+    }
+  }
+
+  const ageLabel = consultState.species==="broiler" ? "일령" : "주령";
+  const ageInput = `
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;background:#fafafa;border-radius:12px;padding:12px 14px">
+    <div style="font-size:12px;color:#666;font-weight:600;white-space:nowrap">${ageLabel} 입력</div>
+    <input type="range" id="consult-age-slider" min="${consultState.species==="broiler"?0:1}" max="${maxAge}" value="${age}"
+      style="flex:1" />
+    <input type="number" id="consult-age-number" min="${consultState.species==="broiler"?0:1}" max="${maxAge}" value="${age}"
+      style="width:64px;border:1px solid #ddd;border-radius:8px;padding:6px 8px;font-size:14px;text-align:center" />
+    <div style="font-size:12px;color:#888">${ageLabel}</div>
+  </div>`;
+
+  return `
+  <div style="margin-bottom:14px">
+    <div class="display" style="font-size:16px;margin-bottom:3px">🐔🥚 육계/산란계 컨설팅</div>
+    <div style="font-size:11px;color:#aaa">품종·일령(주령)을 선택하면 세계 표준 사양매뉴얼 수치를 바로 보여줍니다</div>
+  </div>
+
+  <div style="display:flex;gap:8px;margin-bottom:10px">${speciesBtns}</div>
+  <div style="display:flex;gap:8px;margin-bottom:14px">${breedBtns}</div>
+
+  ${ageInput}
+  ${card}
+
+  <div style="font-size:10px;color:#aaa;line-height:1.7">
+    ※ 출처: ${breed.source}. 사양매뉴얼 표는 국가·환경에 따라 실제 성적과 차이가 날 수 있는 "목표치"이며,
+    축약 표에 없는 주령은 인접한 두 시점 사이를 선형보간한 값입니다(표시 시 "보간값"으로 별도 안내).
+    실제 현장 컨설팅 시에는 반드시 해당 육종회사의 최신 원문 매뉴얼을 함께 확인하세요.
+  </div>`;
+}
+
+
 function determineVentStage(diff){
   // diff = 오늘 최고기온 - 목표(사육/돈사)온도.
   // 업계 지침(Aviagen·PIC)은 온도계 숫자 하나로 딱 자르지 않고 계군 행동을
@@ -3523,6 +3747,30 @@ function attachEvents(){
     ventState.stageIdx = parseInt(b.dataset.idx,10);
     render();
   });
+
+  // 육계/산란계 컨설팅: 축종/품종/일령 선택
+  document.querySelectorAll(".consult-species-btn").forEach(b=>b.onclick=()=>{
+    consultState.species = b.dataset.species;
+    consultState.breed = null; // 축종 바뀌면 해당 축종의 첫 품종으로 자동 전환
+    consultState.age = consultState.species==="broiler" ? 7 : 25;
+    render();
+  });
+  document.querySelectorAll(".consult-breed-btn").forEach(b=>b.onclick=()=>{
+    consultState.breed = b.dataset.breed;
+    render();
+  });
+  const consultSlider = document.getElementById("consult-age-slider");
+  const consultNumber = document.getElementById("consult-age-number");
+  // render()가 매번 전체 DOM을 다시 그리므로, 슬라이더는 드래그 중(input)이 아니라
+  // 놓았을 때(change) 한 번만 반영해야 드래그가 중간에 끊기지 않는다.
+  if(consultSlider) consultSlider.onchange = (e)=>{
+    consultState.age = parseInt(e.target.value,10);
+    render();
+  };
+  if(consultNumber) consultNumber.onchange = (e)=>{
+    const v = parseInt(e.target.value,10);
+    if(!isNaN(v)){ consultState.age = v; render(); }
+  };
 
   // 경제동향 갱신 버튼 (주가+코인 동시 갱신)
   const econRefreshBtn=document.getElementById("btn-econ-refresh");
