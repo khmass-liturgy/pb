@@ -1,5 +1,5 @@
 {
-  "updated": "2026-08-06 08:58 KST",
+  "updated": "2026-08-07 10:41 KST",
   "channels": {
     "livestock": {
       "label": "축산·농업",
@@ -30,20 +30,20 @@
     },
     "economy": {
       "label": "경제",
-      "items": [
-        {
-          "title": "유가가 밀어 올린 美 금리…환율·물가·이자 부담 다시 커진다 [Pick코노미] - 서울경제",
-          "link": "https://news.google.com/rss/articles/CBMiUkFVX3lxTE9rMTE0Wlp6RE9FNUJRVHg3NkY4dFpob2xoczlhWXkzdmItUlNwdkw3dkVnUkJPRVZDNlR2NVpTcERuSkltSkl5aGFvTWZNTG5sV3fSAVNBVV95cUxPN0VVN1NQVnFNcDJxMjUtT19lZGo5Vk16RlJVQjhHV05lMFF1MmtidTNseXRGbzVJZXpGeTZOUFdFdXpDWnI5a2w4ZVFCMFlDRllhRQ?oc=5",
-          "date": "07/31 06:00",
-          "source": "서울경제"
-        }
-      ],
-      "count": 1
+      "items": [],
+      "count": 0
     },
     "world": {
       "label": "국제",
-      "items": [],
-      "count": 0
+      "items": [
+        {
+          "title": "'스트롱맨' 시대… 우리만의 시각으로 세계 볼 준비 돼있나 - 한국기자협회",
+          "link": "https://news.google.com/rss/articles/CBMiYkFVX3lxTE1hRnJPNGxqTG5YdmVUS19lTDJOamRBUXdlYjB3bm04TlF3UTZQQ1RrYWZ0Ql9VZElVNkMwaUE1LVZQRzNPblJRTFMtaVM3QmktTkFWaF9NQmc1Wkw4dW02NUdn?oc=5",
+          "date": "08/07 09:11",
+          "source": "한국기자협회"
+        }
+      ],
+      "count": 1
     }
   }
 }
