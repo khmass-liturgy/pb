@@ -99,11 +99,11 @@
     .livestock-price-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
     .livestock-price-card { display: block !important; padding: 11px !important; border-radius: 10px !important; }
     .livestock-price-card__content, .livestock-price-card__body { display: block !important; }
-    .livestock-price-card__icon { font-size: 21px !important; }
-    .livestock-price-card__label { font-size: 11px !important; line-height: 1.35; }
-    .livestock-price-card__value { font-size: 19px !important; margin-top: 3px; }
+    .livestock-price-card__icon { display: block !important; font-size: 21px !important; }
+    .livestock-price-card__label { display: block !important; font-size: 11px !important; line-height: 1.35; }
+    .livestock-price-card__value { display: block !important; font-size: 19px !important; margin-top: 3px; }
     .livestock-price-card__value span { font-size: 10px !important; }
-    .livestock-price-card__date { margin-top: 7px; text-align: left !important; font-size: 9px !important; line-height: 1.35; }
+    .livestock-price-card__date { display: block !important; margin-top: 7px; text-align: left !important; font-size: 9px !important; line-height: 1.35; }
     .livestock-price-heading { align-items: flex-start !important; }
     .livestock-price-heading .livestock-price-actions { width: 100%; justify-content: flex-end; }
     .livestock-price-heading .livestock-price-actions a,
@@ -424,10 +424,18 @@ const PRICE_CATEGORIES = [
 const POULTRY_PRICE_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/poultry_price/latest.json";
 let poultryPriceState = { status:"idle", data:null };
 
-async function fetchPoultryPrices(){
+async function fetchPoultryPrices(force){
   poultryPriceState.status="loading";
+  if(state.tab==="price" || state.tab==="pig" || state.tab==="livestock") render();
   try {
-    const resp=await fetchWithTimeout(POULTRY_PRICE_JSON_URL+"?t="+Math.floor(Date.now()/600000),8000);
+    // 자동 로드 시엔 10분 단위로 묶어 GitHub raw 요청을 아끼지만, 사용자가
+    // "갱신" 버튼을 직접 눌렀을 땐 그 10분 창 안에서 눌러도 반드시 새
+    // 네트워크 요청이 나가야 한다 — 밀리초 단위 캐시버스터로 강제한다.
+    // (기존엔 버튼을 눌러도 같은 10분 버킷 안이면 브라우저가 직전과 동일한
+    // URL로 판단해 캐시된 옛 응답을 그대로 돌려줘 "갱신을 눌러도 그대로"
+    // 였던 버그가 있었다.)
+    const bust = force ? Date.now() : Math.floor(Date.now()/600000);
+    const resp=await fetchWithTimeout(POULTRY_PRICE_JSON_URL+"?t="+bust,8000);
     if(!resp.ok) throw new Error("HTTP "+resp.status);
     const data=await resp.json();
     if(!data.egg?.rows?.length || !data.chicken?.rows?.length || !data.pig?.rows?.length || !data.cow?.items) throw new Error("계란·육계·양돈·한우 시세 자료 없음");
@@ -3575,7 +3583,7 @@ function attachEvents(){
 
   // 육계 시세 갱신 버튼
   const chPriceRefreshBtn=document.getElementById("btn-ch-price-refresh");
-  if(chPriceRefreshBtn) chPriceRefreshBtn.onclick=()=>{ fetchPoultryPrices(); };
+  if(chPriceRefreshBtn) chPriceRefreshBtn.onclick=()=>{ fetchPoultryPrices(true); };
 
   // 뉴스 채널 버튼
   document.querySelectorAll(".news-ch-btn").forEach(b=>b.onclick=()=>{
@@ -3710,7 +3718,7 @@ function attachEvents(){
   // 축평원 인증키 설정/갱신
   // 양계 시세 갱신 (날짜 기준 데이터 재생성)
   const poultryRefreshBtn=document.getElementById("btn-refresh-poultry");
-  if(poultryRefreshBtn) poultryRefreshBtn.onclick=()=>{ fetchPoultryPrices(); };
+  if(poultryRefreshBtn) poultryRefreshBtn.onclick=()=>{ fetchPoultryPrices(true); };
   // 양돈/한우 시세 갱신 (다봄 실시간 재조회)
   const pigRefreshBtn=document.getElementById("btn-refresh-pig");
   if(pigRefreshBtn) pigRefreshBtn.onclick=()=>{ fetchDabomPrices().then(()=>render()); };
