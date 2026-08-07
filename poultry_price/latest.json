@@ -1,5 +1,6 @@
 {
-  "updated": "2026-08-07 09:46 KST",
+  "updated": "2026-08-07 11:02 KST",
+  "stale": {},
   "egg": {
     "label": "계란 산지가격",
     "grade": "특란 (XL)",
@@ -228,6 +229,12 @@
       }
     },
     "rows": [
+      {
+        "date": "2026-08-07",
+        "female_calf": null,
+        "male_calf": null,
+        "farm_receipt_600kg": null
+      },
       {
         "date": "2026-08-06",
         "female_calf": null,
