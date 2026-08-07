@@ -97,8 +97,12 @@ def parse_egg(html_text: str) -> list[dict[str, int | str]]:
     for row in parser.rows:
         date = normalize_date(row[0]) if row else None
         numbers = row_numbers(row) if date else []
-        if date and len(numbers) >= 4:
-            # 산지 XL의 원/30개 다음 열이 산지 XL 원/10개다.
+        # 실제로 쓰는 값은 numbers[1](XL 원/10개)뿐이라 최소 2개만 있으면 된다.
+        # 예전엔 4개를 요구했는데, 갓 올라온 최신일자 행은 "전일대비" 등
+        # 뒤쪽 칸이 아직 안 채워져 숫자가 2~3개뿐인 경우가 있어 그 조건 때문에
+        # 최신 행이 통째로 걸러지고 그 앞의 "숫자 4개짜리" 옛날 행이 최신으로
+        # 잘못 채택되는 문제가 있었다(진단 로그로 실제 확인됨).
+        if date and len(numbers) >= 2:
             values.setdefault(date, {"date": date, "value": numbers[1]})
     return sorted(values.values(), key=lambda item: str(item["date"]), reverse=True)[:30]
 
@@ -110,8 +114,9 @@ def parse_chicken(html_text: str) -> list[dict[str, int | str]]:
     for row in parser.rows:
         date = normalize_date(row[0]) if row else None
         numbers = row_numbers(row) if date else []
-        if date and len(numbers) >= 4:
-            # 육계 표의 첫 번째 가격 열이 생계유통(대), 단위는 원/kg이다.
+        # 실제로 쓰는 값은 numbers[0](생계유통 대)뿐이라 최소 1개만 있으면 된다.
+        # (egg와 동일한 이유로 4→1로 완화)
+        if date and len(numbers) >= 1:
             values.setdefault(date, {"date": date, "value": numbers[0]})
     return sorted(values.values(), key=lambda item: str(item["date"]), reverse=True)[:30]
 
@@ -159,29 +164,90 @@ def latest_metric(rows: list[dict[str, int | str | None]], key: str) -> dict[str
     return None
 
 
-def fetch_page(url: str, parser) -> list[dict[str, int | str]]:
-    for candidate in (url, *(factory(url) for factory in PROXY_FACTORIES)):
+def fetch_page(url: str, parser, label: str = "") -> list[dict[str, int | str]]:
+    for i, candidate in enumerate((url, *(factory(url) for factory in PROXY_FACTORIES))):
+        route = "직접" if i == 0 else f"프록시{i}"
         try:
             request = Request(candidate, headers=HEADERS)
             with urlopen(request, timeout=30, context=SSL_CONTEXT) as response:
                 charset = response.headers.get_content_charset() or "utf-8"
                 page = response.read().decode(charset, errors="replace")
+            print(f"  [{label}] {route} 응답 {len(page)}bytes")
+
+            # 진단용: HTMLParser가 실제로 뽑아낸 원본 행(파싱 전)을 먼저 확인.
+            # 최신 날짜 행이 애초에 존재하는지, 존재한다면 숫자 칸이 몇 개인지
+            # 여기서 바로 눈으로 확인할 수 있다.
+            raw = RowParser()
+            raw.feed(page)
+            dated_raw = []
+            for row in raw.rows:
+                d = normalize_date(row[0]) if row else None
+                if d:
+                    dated_raw.append((d, len(row_numbers(row)), row[:6]))
+            if dated_raw:
+                dates_found = sorted({d for d, _, _ in dated_raw}, reverse=True)
+                print(f"  [{label}] 날짜행 {len(dated_raw)}개, 발견된 날짜(최신 5개): {dates_found[:5]}")
+                today_str = datetime.now(KST).strftime("%Y-%m-%d")
+                print(f"  [{label}] 오늘({today_str}) 행 존재 여부: {any(d==today_str for d,_,_ in dated_raw)}")
+                for d, n, sample in dated_raw[:3]:
+                    print(f"  [{label}] 샘플 — 날짜={d} 숫자칸수={n} 원본행={sample}")
+            else:
+                print(f"  [{label}] 날짜로 인식된 행이 하나도 없음 (표 구조 확인 필요)")
+                print(f"  [{label}] 응답 앞부분: {page[:300]!r}")
+
             rows = parser(page)
+            print(f"  [{label}] 최종 파싱 결과: {len(rows)}건" + (f", 최신={rows[0]}" if rows else ""))
             if rows:
                 return rows
         except (OSError, URLError) as exc:
-            print(f"request failed: {type(exc).__name__}: {exc}")
+            print(f"  [{label}] {route} 실패: {type(exc).__name__}: {exc}")
     return []
 
 
+def load_previous() -> dict | None:
+    if not OUTPUT_PATH.exists():
+        return None
+    try:
+        return json.loads(OUTPUT_PATH.read_text(encoding="utf-8"))
+    except Exception as exc:
+        print(f"이전 파일 로드 실패: {exc}")
+        return None
+
+
 def main() -> int:
-    egg_rows = fetch_page(EGG_URL, parse_egg)
-    chicken_rows = fetch_page(CHICKEN_URL, parse_chicken)
-    pig_rows = fetch_page(PIG_URL, parse_pig)
-    cow_rows = fetch_page(COW_URL, parse_cow)
+    egg_rows = fetch_page(EGG_URL, parse_egg, "계란")
+    chicken_rows = fetch_page(CHICKEN_URL, parse_chicken, "육계")
+    pig_rows = fetch_page(PIG_URL, parse_pig, "양돈")
+    cow_rows = fetch_page(COW_URL, parse_cow, "한우")
+
+    prev = load_previous()
+    stale: dict[str, bool] = {}
+
+    # 넷 중 하나라도 실패했다고 전체를 통째로 안 바꾸면, 실제로는 잘 가져온
+    # 나머지 항목까지 덩달아 안 갱신된다. 실패한 항목만 이전 값으로 채우고
+    # 성공한 항목은 그대로 갱신한다 — 다른 수집 스크립트(fetch_egg_report,
+    # fetch_market 등)와 동일한 "부분 실패해도 나머지는 살린다" 원칙.
+    if not egg_rows:
+        stale["egg"] = True
+        egg_rows = (prev or {}).get("egg", {}).get("rows") or []
+        print("  [계란] 이번 수집 실패 → 이전 데이터 유지")
+    if not chicken_rows:
+        stale["chicken"] = True
+        chicken_rows = (prev or {}).get("chicken", {}).get("rows") or []
+        print("  [육계] 이번 수집 실패 → 이전 데이터 유지")
+    if not pig_rows:
+        stale["pig"] = True
+        pig_rows = (prev or {}).get("pig", {}).get("rows") or []
+        print("  [양돈] 이번 수집 실패 → 이전 데이터 유지")
+    if not cow_rows:
+        stale["cow"] = True
+        cow_rows = (prev or {}).get("cow", {}).get("rows") or []
+        print("  [한우] 이번 수집 실패 → 이전 데이터 유지")
+
     if not egg_rows or not chicken_rows or not pig_rows or not cow_rows:
-        print("계란·육계·양돈·한우 시세를 찾지 못했습니다.")
+        print("계란·육계·양돈·한우 시세를 찾지 못했고, 이전 데이터도 없습니다.")
         return 1
+
     cow_items = {
         "female_calf": {"label": "암송아지(6~7개월)", "unit": "천원/마리", **(latest_metric(cow_rows, "female_calf") or {"value": None, "date": ""})},
         "male_calf": {"label": "수송아지(6~7개월)", "unit": "천원/마리", **(latest_metric(cow_rows, "male_calf") or {"value": None, "date": ""})},
@@ -191,6 +257,7 @@ def main() -> int:
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT_PATH.write_text(json.dumps({
         "updated": now.strftime("%Y-%m-%d %H:%M KST"),
+        "stale": stale,  # 이번 수집에 실패해 이전 데이터를 그대로 유지한 항목 표시
         "egg": {"label": "계란 산지가격", "grade": "특란 (XL)", "unit": "원/10개", "latest": egg_rows[0]["value"], "rows": egg_rows},
         "chicken": {"label": "생계유통(대)", "unit": "원/kg", "latest": chicken_rows[0]["value"], "rows": chicken_rows},
         "pig": {"label": "농가수취 평균", "unit": "원/kg", "latest": pig_rows[0]["value"], "rows": pig_rows},
@@ -198,6 +265,8 @@ def main() -> int:
         "source_urls": {"egg": EGG_URL, "chicken": CHICKEN_URL, "pig": PIG_URL, "cow": COW_URL},
     }, ensure_ascii=False, indent=2), encoding="utf-8")
     print("수집 성공:", {"egg": egg_rows[0], "chicken": chicken_rows[0], "pig": pig_rows[0], "cow": cow_items})
+    if stale:
+        print("stale 표시된 항목:", list(stale.keys()))
     return 0
 
 
