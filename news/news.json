@@ -1,5 +1,5 @@
 {
-  "updated": "2026-08-07 10:41 KST",
+  "updated": "2026-08-08 08:31 KST",
   "channels": {
     "livestock": {
       "label": "축산·농업",
@@ -8,15 +8,8 @@
     },
     "vet": {
       "label": "수의·방역",
-      "items": [
-        {
-          "title": "충북도, 폭염·폭우 피해 축산농가에 ‘긴급의료지원’…30명 현장 대응 - 공뉴스",
-          "link": "https://news.google.com/rss/articles/CBMibEFVX3lxTE9icjk2Qk1zVDZMTHN6dzV2eWtoM2FjQVUzS1FpMkw2YUo4cWdmMWdYc0xLS0VGV19XUWpfM1FSRHJWOUtzeTYzWjZheXl6VV9qQ3E2WEc2dnRsa0pBcHlpajlJcXFCS2FVQVNIMA?oc=5",
-          "date": "07/31 15:09",
-          "source": "공뉴스"
-        }
-      ],
-      "count": 1
+      "items": [],
+      "count": 0
     },
     "disease": {
       "label": "가축질병",
@@ -30,17 +23,24 @@
     },
     "economy": {
       "label": "경제",
-      "items": [],
-      "count": 0
+      "items": [
+        {
+          "title": "환율·물가 잡혔지만 불씨 여전...한은 8월 금리 '딜레마' - v.daum.net",
+          "link": "https://news.google.com/rss/articles/CBMiT0FVX3lxTE5XLThIdS1aekdtazNBZTJEOUxJc3B0eGRMZjRVeGs1OXB1SGpQbXdwR19TLXlvQ0JGenl6Z19FOWhQQ3VCbjFXVG9vam1BMGM?oc=5",
+          "date": "08/07 15:37",
+          "source": "v.daum.net"
+        }
+      ],
+      "count": 1
     },
     "world": {
       "label": "국제",
       "items": [
         {
-          "title": "'스트롱맨' 시대… 우리만의 시각으로 세계 볼 준비 돼있나 - 한국기자협회",
-          "link": "https://news.google.com/rss/articles/CBMiYkFVX3lxTE1hRnJPNGxqTG5YdmVUS19lTDJOamRBUXdlYjB3bm04TlF3UTZQQ1RrYWZ0Ql9VZElVNkMwaUE1LVZQRzNPblJRTFMtaVM3QmktTkFWaF9NQmc1Wkw4dW02NUdn?oc=5",
-          "date": "08/07 09:11",
-          "source": "한국기자협회"
+          "title": "'미국 언론이 선정한 세계 5대 위인' 사실일까…순위보다 중요한 것은 역사를 바꾼 영향력 - 인터내셔널포커스",
+          "link": "https://news.google.com/rss/articles/CBMiVkFVX3lxTE9Ic2RXdldwVWVGVzRXMjgweVlxS2tUTHRjR21VWTV1SkNpM0R0OWdQX3Y1d0xZdzluS2prbkVwc1ItY0IzTHU3SEJYLVhCaV9NcTR6Z1NR?oc=5",
+          "date": "08/05 19:21",
+          "source": "인터내셔널포커스"
         }
       ],
       "count": 1
