@@ -1,13 +1,14 @@
 {
-  "updated": "2026-08-08 08:45 KST",
-  "updatedTs": 1786146335,
-  "ok": 3,
-  "total": 4,
+  "updated": "2026-08-09 07:13 KST",
+  "updatedTs": 1786227228,
+  "ok": 4,
+  "total": 5,
   "order": [
     "chuksan",
     "handon",
     "econ",
-    "policy"
+    "policy",
+    "global"
   ],
   "sources": {
     "chuksan": {
@@ -35,14 +36,14 @@
           "source": ""
         },
         {
-          "title": "규제에 막힌 가축사육, ‘숨통’ 트이나",
-          "url": "https://www.chuksannews.co.kr/news/article.html?no=272754",
+          "title": "우유 따로 붓지 않아도 진한 풍미…‘서울우유 우유빙수’ 출시\"> 우유 따로 붓지 않아도 진한 풍미…‘서울우유 우유빙수’ 출시",
+          "url": "https://www.chuksannews.co.kr/news/article.html?no=272923",
           "date": "",
           "source": ""
         },
         {
-          "title": "우유 따로 붓지 않아도 진한 풍미…‘서울우유 우유빙수’ 출시\"> 우유 따로 붓지 않아도 진한 풍미…‘서울우유 우유빙수’ 출시",
-          "url": "https://www.chuksannews.co.kr/news/article.html?no=272923",
+          "title": "고양축협, 양봉조합원 사양관리 교육 실시",
+          "url": "https://www.chuksannews.co.kr/news/article.html?no=272766",
           "date": "",
           "source": ""
         }
@@ -95,33 +96,33 @@
       "home": "https://www.asiae.co.kr/list/economy",
       "items": [
         {
+          "title": "김용석 군인공제회 건설부문 CIO 연임…\"사업이익 224% 성과\"",
+          "url": "https://view.asiae.co.kr/article/2026080818301118607",
+          "date": "08.08 18:30",
+          "source": ""
+        },
+        {
+          "title": "전세계 폭염에 밀·설탕·기름 가격 '일제히 상승'…쌀 가격은 안정세",
+          "url": "https://view.asiae.co.kr/article/2026080814450240576",
+          "date": "08.08 14:45",
+          "source": ""
+        },
+        {
+          "title": "황종우, 해수부 30주년 맞아 \"초격차 해양강국·대체불가 해양부국\" 비전 제시",
+          "url": "https://view.asiae.co.kr/article/2026080813101181107",
+          "date": "08.08 13:10",
+          "source": ""
+        },
+        {
+          "title": "'특허 8000개' 한전기술지주 출범…김성환 \"전력 유니콘 육성 전초기지 될 것\"",
+          "url": "https://view.asiae.co.kr/article/2026080812524262353",
+          "date": "08.08 12:52",
+          "source": ""
+        },
+        {
           "title": "美·中 AI 2차전, 이젠 성능 아닌 가격…반도체 운명은? [테크토크]",
           "url": "https://view.asiae.co.kr/article/2026080415241448376",
           "date": "08.08 07:55",
-          "source": ""
-        },
-        {
-          "title": "\"이 옷 사려고 비행기 탑니다\" 우르르…제주에서만 파는 티셔츠 뭐길래[지금사는방식]",
-          "url": "https://view.asiae.co.kr/article/2026080516025924878",
-          "date": "08.08 07:38",
-          "source": ""
-        },
-        {
-          "title": "\"다 계획이 있었구나\"…깜짝 美·日 환율 공동개입, 5월부터 준비했다는데 [뭔日있슈]",
-          "url": "https://view.asiae.co.kr/article/2026080714564176694",
-          "date": "08.08 07:30",
-          "source": ""
-        },
-        {
-          "title": "6년새 84% 뛴 달걀…2분기 소비자 가격 1만원 '터치'",
-          "url": "https://view.asiae.co.kr/article/2026080711251764646",
-          "date": "08.08 07:07",
-          "source": ""
-        },
-        {
-          "title": "환율 하락에…5대 은행 달러예금 폭증",
-          "url": "https://view.asiae.co.kr/article/2026080710292814318",
-          "date": "08.07 19:47",
           "source": ""
         }
       ],
@@ -165,6 +166,50 @@
         }
       ],
       "stale": true
+    },
+    "global": {
+      "name": "해외축산",
+      "icon": "🌍",
+      "color": "#00695C",
+      "home": "https://news.google.com/search?q=%28site%3Awattagnet.com%20OR%20site%3Apigprogress.net%20OR%20site%3Athepoultrysite.com%20OR%20site%3Athepigsite.com%20OR%20site%3Abeefmagazine.com%20OR%20site%3Afeedstrategy.com%20OR%20site%3Adairyherd.com%29%20when%3A10d&hl=en-US&gl=US&ceid=US:en",
+      "items": [
+        {
+          "title": "SNAP에 대한 상원 농업 위원회에서 농장 법안이 정체 상태입니다. 이제 무엇을?",
+          "url": "https://news.google.com/rss/articles/CBMimAFBVV95cUxNOTlBSVZoY1VILTVJai00RVJNR2dWcGFPbWZSQ0kxdkFCeTBMNldQVjgwRWVkbS04aGhuVnA3eXgtLVN2WjNhWnlTVzR2M3Z2ZVVrUmlaQ09HVFNtYU5UaW12dXY2NEV1Z1FqZFRzRUEzWGZObWE4TTgySjBLaktXQlZIZHhYamJidzZyeXVRYmQ3VG9sNkhpeQ?oc=5",
+          "date": "08.07 21:03",
+          "source": "Dairy Herd",
+          "titleEn": "Farm Bill Stalls in Senate Ag Committee Over SNAP. Now What?"
+        },
+        {
+          "title": "20,000개의 낙농장 미래: 통합이 미국 농업을 변화시킬 이유",
+          "url": "https://news.google.com/rss/articles/CBMipAFBVV95cUxOWXJzendyZjlVdkg5YWMxUE5RRndBVDFLdDRvczZ4MzJHbTBUYUhnOElfbTBPbFg3OEtiNW4taThGcndGRXNScjJCdy10Q3JDU2gwOW5fdDA2QlNVZkhEMmthck5IN0VJNG9HRVd5LWNpMFN6ZU4xaVVoUTFKakJ5cUtKcU1kRzlwc3dRalBkOU9uNTJQWGdQV3E3SC1VUG1rczY3cg?oc=5",
+          "date": "08.05 22:24",
+          "source": "Dairy Herd",
+          "titleEn": "The 20,000-Dairy Farm Future: Why Consolidation Will Reshape U.S. Agriculture"
+        },
+        {
+          "title": "젖소가 반추할 시간을 더 많이 찾을 수 있도록 돕기",
+          "url": "https://news.google.com/rss/articles/CBMidkFVX3lxTE04Q25TYnR6X3ROZHpRZWhKRWJkVXBNVHdhZ2xpMmpfX0YxWWJnWV9fMGRLNlVQZ1ZScV8xdTVXRXltZ2NHN0NtT05jMnhQN2lfXzZRYUVaZUVPY2Yta2tsM2pOaE80R2RpVktWeGRDRjJwYzIxTVE?oc=5",
+          "date": "08.06 02:15",
+          "source": "Dairy Herd",
+          "titleEn": "Helping Cows Find More Time to Ruminate"
+        },
+        {
+          "title": "바이러스성 비디오에서 워싱턴까지: 태양광 개발에 반대하는 한 농부의 투쟁이 백악관에 도달한 방법",
+          "url": "https://news.google.com/rss/articles/CBMiwAFBVV95cUxPbG1Qa1FpRUx4bHI4c0p6dm42WWlTQTdJdXBYRUw5Tk5tcGo2TFJjMlIzN2tUQmVuY2FzTVl4SlE2bk9HWTVXLVFXNXlRQXZ6ZnZxRmhPRWVGZ3c5QUZxVzZYcGxkaHo2UWtybnkySjR4eUN5dVVYSkg5UTBkQkQxdzRIdkRMWXhtcGFzaFFRNUVobHVZUnQta3BmaTZsbVZOZ055UG42SjBLUEIyc1pBZVdFdDNReElTTllVWURQejk?oc=5",
+          "date": "08.04 01:15",
+          "source": "Dairy Herd",
+          "titleEn": "From Viral Video to Washington: How One Farmer's Fight Against Solar Development Reached the White House"
+        },
+        {
+          "title": "스페인 페루의 가금류 무리에서 뉴캐슬병이 발견됨",
+          "url": "https://news.google.com/rss/articles/CBMiywFBVV95cUxNN2JZbk1sZWcxV2tzRkJ5cF91ekxFNG5yZmxCaHpjV09sNE1ZYVZXMUg4YXMzQTg5S3V1a2gxRWNNdmNrX2tsZW5sMF9JWEU3OVZTYi1yRExpM2xuNlRVMy1FYUUzYnNwcE55ZlltUmI2cGdndlY3anBta0FQS2hmWjN5MzVpSElCN0hFQUJ4SENrc2hPSi1RM0ptNXN1SHZhY2lodGZkaFRiT0JzQ3F0VUp5UDllSERYOHYtcUpwcFNYRHdlLUZXR19NSQ?oc=5",
+          "date": "08.05 03:14",
+          "source": "WATTPoultry.com",
+          "titleEn": "Newcastle disease detected in poultry flocks in Peru, Spain"
+        }
+      ],
+      "stale": false
     }
   }
 }
