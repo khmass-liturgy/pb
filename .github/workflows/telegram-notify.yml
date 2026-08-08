@@ -1,0 +1,61 @@
+name: 텔레그램 알림
+
+# main 브랜치에 새 커밋이 반영되거나, 데이터 수집 워크플로가 실패했을 때
+# 텔레그램으로 알림을 보낸다. 봇 토큰/채팅 ID는 저장소 Secret으로만 참조하고
+# 워크플로 파일에는 절대 값을 직접 적지 않는다.
+#
+# 커밋 메시지·워크플로 이름처럼 외부에서 들어오는 값은 run: 스크립트 문자열에
+# 직접 끼워 넣지 않고 env로만 전달한다 (스크립트 인젝션 방지).
+on:
+  push:
+    branches: [main]
+  workflow_run:
+    workflows:
+      - "축산산지시세 수집"
+      - "🐄 다봄 시세 수집"
+      - "주가·환율·곡물 시세 수집"
+      - "브리핑 뉴스 수집"
+      - "📰 뉴스 수집"
+      - "📋 공지사항 수집"
+    types: [completed]
+
+jobs:
+  notify-push:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: 커밋 알림 전송
+        env:
+          BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+          COMMIT_URL: ${{ github.event.head_commit.url }}
+        run: |
+          if [ -z "$BOT_TOKEN" ] || [ -z "$CHAT_ID" ]; then
+            echo "TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID Secret이 아직 설정되지 않았습니다. 건너뜁니다."
+            exit 0
+          fi
+          MSG=$(printf '📦 [pb] main 새 커밋\n%s\n%s' "$COMMIT_MSG" "$COMMIT_URL")
+          curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${CHAT_ID}" \
+            --data-urlencode "text=${MSG}"
+
+  notify-failure:
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+    steps:
+      - name: 실패 알림 전송
+        env:
+          BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          WF_NAME: ${{ github.event.workflow_run.name }}
+          WF_URL: ${{ github.event.workflow_run.html_url }}
+        run: |
+          if [ -z "$BOT_TOKEN" ] || [ -z "$CHAT_ID" ]; then
+            echo "TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID Secret이 아직 설정되지 않았습니다. 건너뜁니다."
+            exit 0
+          fi
+          MSG=$(printf '⚠️ [pb] %s 워크플로 실패\n%s' "$WF_NAME" "$WF_URL")
+          curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${CHAT_ID}" \
+            --data-urlencode "text=${MSG}"
