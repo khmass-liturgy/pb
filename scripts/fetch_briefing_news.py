@@ -168,6 +168,41 @@ def gnews(q):
     return "https://news.google.com/rss/search?q=" + quote(q) + "&hl=ko&gl=KR&ceid=KR:ko&when=14d"
 
 
+# ── 해외 축산 뉴스: 구글 뉴스(영문) site: 검색 → 제목 한글 번역 ────────────────
+# 해외 축산 전문지(WATT Poultry, Pig Progress, The Pig/Poultry Site, Beef
+# Magazine, Feed Strategy, Dairy Herd 등) 직접 RSS는 Cloudflare 차단·404가
+# 흔해 서버(Actions) IP에서도 신뢰할 수 없다. 대신 구글 뉴스 검색을
+# site: 연산자로 해당 매체에 한정해 우회하면 검색엔진이 이미 각 매체를
+# 크롤링해둔 결과를 그대로 받아올 수 있다 (국내 뉴스에도 이미 쓰는 방식).
+GLOBAL_NEWS_SITES = [
+    "wattagnet.com", "pigprogress.net", "thepoultrysite.com", "thepigsite.com",
+    "beefmagazine.com", "feedstrategy.com", "dairyherd.com",
+]
+GLOBAL_NEWS_QUERY = "(" + " OR ".join("site:%s" % d for d in GLOBAL_NEWS_SITES) + ") when:10d"
+
+
+def gnews_en(q):
+    return "https://news.google.com/rss/search?q=" + quote(q) + "&hl=en-US&gl=US&ceid=US:en"
+
+
+def translate_en_to_ko(text, session):
+    """구글 번역 비공식 엔드포인트(API 키 불필요)로 영→한 단문 번역.
+    실패하면 None을 돌려주고, 호출부는 원문(영어 제목)을 그대로 쓴다."""
+    try:
+        r = session.get(
+            "https://translate.googleapis.com/translate_a/single",
+            params={"client": "gtx", "sl": "en", "tl": "ko", "dt": "t", "q": text},
+            timeout=10,
+        )
+        if r.status_code != 200:
+            return None
+        data = r.json()
+        return "".join(seg[0] for seg in data[0] if seg[0]).strip() or None
+    except Exception as e:
+        print("        번역 실패: %s" % e)
+        return None
+
+
 # ── 소스 정의 (여기만 고치면 소스 추가/변경 완료) ─────────────────────────────
 SOURCES = [
     {"id": "chuksan", "name": "축산신문", "icon": "📰", "color": "#C62828",
@@ -193,6 +228,11 @@ SOURCES = [
      "home": "https://www.mafra.go.kr/home/5109/subview.do",
      "kind": "rss",
      "urls": ["https://www.mafra.go.kr/bbs/home/792/rssList.do?row=50"]},
+
+    # 해외 축산 뉴스: 구글 뉴스(영문, site: 한정) → 제목 한글 번역
+    {"id": "global", "name": "해외축산", "icon": "🌍", "color": "#00695C",
+     "home": "https://news.google.com/search?q=" + quote(GLOBAL_NEWS_QUERY) + "&hl=en-US&gl=US&ceid=US:en",
+     "kind": "rss_en", "urls": [gnews_en(GLOBAL_NEWS_QUERY)]},
 ]
 
 
@@ -216,12 +256,22 @@ def fetch_source(src, session):
             r.encoding = r.apparent_encoding or "utf-8"
 
             # RSS인데 <item> 이 하나도 없으면 WAF 차단 페이지 등을 받았을 가능성이 큼
-            if src["kind"] == "rss" and "<item" not in r.text:
+            if src["kind"] in ("rss", "rss_en") and "<item" not in r.text:
                 print("        ⚠️ <item> 태그 없음 — RSS가 아닌 다른 응답을 받은 것으로 보임")
                 print("        응답 본문 앞부분: %r" % r.text[:500])
 
-            got = (parse_rss(r.text, PER_SOURCE * 2, src.get("strip_source", False))
-                   if src["kind"] == "rss" else src["parser"](r.text))
+            if src["kind"] == "rss_en":
+                # 영문 제목이라 " - 매체명" 접미사를 항상 출처로 분리(strip_source)한다.
+                got = parse_rss(r.text, PER_SOURCE, strip_source=True)
+                for it in got:
+                    it["titleEn"] = it["title"]
+                    ko = translate_en_to_ko(it["title"], session)
+                    if ko:
+                        it["title"] = ko
+                    time.sleep(0.4)  # 무료 번역 엔드포인트 과호출 방지
+            else:
+                got = (parse_rss(r.text, PER_SOURCE * 2, src.get("strip_source", False))
+                       if src["kind"] == "rss" else src["parser"](r.text))
             print("        파싱된 항목: %d개" % len(got))
 
             for it in got:
