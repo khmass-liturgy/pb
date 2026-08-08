@@ -3018,45 +3018,292 @@ function renderWetBulbPanel(){
   const padOutTemp = T - (T - tw) * EFF;
   const padOutRH = Math.min(95, RH + (T - padOutTemp) * 4.5); // 1°C 냉각당 습도 약 4.5%p 상승(UGA 환산)
 
+  // 터널풍속 체감냉각효과(Wind-Chill Effect) — UGA·오번대(Auburn)가 실제로 쓰는
+  // 계산 방식은 "패드냉방 + 풍속체감"을 더한 값이다. 예: "기온 95°F에서 패드로
+  // 12°F 낮추고, 터널풍속(설계기준 500ft/min)에서 체감 10°F가 추가로 낮아지면
+  // 닭은 73°F로 느낀다"(UGA/Auburn 실사례). 500ft/min은 터널환기 설계 표준
+  // 풍속이며, 이 조건에서의 체감냉각효과가 약 5.6°C(10°F)로 보고된다.
+  const WIND_CHILL_C = 5.6; // 500ft/min 설계기준 풍속에서의 체감냉각효과(UGA/Auburn)
+  const effectiveTemp = padOutTemp - WIND_CHILL_C;
+
   const targetT = getTargetTempForAge(consultState.species, consultState.age);
-  const stillHot = targetT!=null && padOutTemp > targetT;
+  const stillHot = targetT!=null && effectiveTemp > targetT;
 
   return `
   <div class="card" style="border-top:5px solid #0288D1;margin-top:16px">
-    <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:3px">💧 습구온도 기반 쿨링패드 효과 예측</div>
-    <div style="font-size:10px;color:#aaa;margin-bottom:12px">오늘 날씨(${T}°C · 습도${RH}%) 기준 — 조지아대(UGA)·일리노이대 등 익스텐션 컨설턴트가 쓰는 방식</div>
+    <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:3px">💧 습구온도 기반 쿨링패드+풍속 체감냉각 예측</div>
+    <div style="font-size:10px;color:#aaa;margin-bottom:12px">오늘 날씨(${T}°C · 습도${RH}%) 기준 — 조지아대(UGA)·오번대(Auburn) 익스텐션 컨설턴트가 쓰는 방식</div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
       <div style="background:#E3F2FD;border-radius:10px;padding:10px 12px">
         <div style="font-size:10px;color:#0277BD">오늘 습구온도</div>
         <div style="font-size:18px;font-weight:800;color:#01579B">${tw.toFixed(1)}°C</div>
         <div style="font-size:9px;color:#888;margin-top:2px">쿨링패드로도 이 온도 밑으로는 못 내려감</div>
       </div>
       <div style="background:#E8F5E9;border-radius:10px;padding:10px 12px">
-        <div style="font-size:10px;color:#2E7D32">패드 통과 후 예상온도</div>
+        <div style="font-size:10px;color:#2E7D32">① 패드 통과 후 예상온도</div>
         <div style="font-size:18px;font-weight:800;color:#1B5E20">${padOutTemp.toFixed(1)}°C</div>
         <div style="font-size:9px;color:#888;margin-top:2px">효율 75% 가정 · 습도 약 ${Math.round(padOutRH)}%로 상승</div>
+      </div>
+    </div>
+
+    <div style="background:#EDE7F6;border-radius:10px;padding:10px 12px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:10px;color:#4527A0">② + 터널풍속(500ft/min) 체감냉각 적용 시</div>
+          <div style="font-size:9px;color:#888;margin-top:2px">①에서 풍속 체감냉각 5.6°C 추가 반영 — 닭이 실제로 느끼는 온도</div>
+        </div>
+        <div style="font-size:22px;font-weight:800;color:#311B92">${effectiveTemp.toFixed(1)}°C</div>
       </div>
     </div>
 
     ${targetT!=null ? `
     <div style="background:${stillHot?"#FFEBEE":"#E8F5E9"};border-left:4px solid ${stillHot?"#C62828":"#2E7D32"};border-radius:8px;padding:11px 13px">
       <div style="font-size:12px;font-weight:700;color:${stillHot?"#B71C1C":"#1B5E20"};margin-bottom:3px">
-        ${stillHot ? "⚠️ 패드 냉방으로도 목표온도 도달 어려움" : "✅ 패드 냉방으로 목표온도 도달 가능"}
+        ${stillHot ? "⚠️ 패드+풍속 냉각으로도 목표온도 도달 어려움" : "✅ 패드+풍속 냉각으로 목표온도 도달 가능"}
       </div>
       <div style="font-size:11px;color:#333;line-height:1.6">
-        현재 사양단계 목표온도는 <b>${targetT}°C</b>인데, 패드 통과 후 예상온도는 <b>${padOutTemp.toFixed(1)}°C</b>입니다.
+        현재 사양단계 목표온도는 <b>${targetT}°C</b>인데, 패드+풍속 적용 후 체감온도는 <b>${effectiveTemp.toFixed(1)}°C</b>입니다.
         ${stillHot
-          ? "습구온도 자체가 이미 높아 패드만으로는 한계가 있습니다 — 사육밀도 완화, 살수, 야간 집중관리 등 보조 수단을 함께 검토하세요."
-          : "오늘 조건에서는 패드+터널환기 조합으로 목표온도 달성이 가능할 것으로 보입니다."}
+          ? "습구온도 자체가 이미 높아 패드+풍속 조합으로도 한계가 있습니다 — 사육밀도 완화, 살수, 야간 집중관리 등 보조 수단을 함께 검토하세요."
+          : "오늘 조건에서는 패드+터널풍속 조합으로 목표온도 달성이 가능할 것으로 보입니다."}
       </div>
     </div>` : ""}
 
     <div style="font-size:9px;color:#aaa;margin-top:8px;line-height:1.6">
       ※ 습구온도는 Stull(2011) 근사식으로 계산했습니다(미국기상학회지 게재, 평균오차 0.3°C 이내).
-      패드 효율 75%·냉각당 습도 상승 4.5%p/°C는 UGA Poultry Housing Tips의 실무 환산값을 따랐습니다.
-      실제 패드 성능은 설비 상태·풍속·오염도에 따라 달라질 수 있습니다.
+      패드 효율 75%·냉각당 습도 상승 4.5%p/°C, 터널풍속 체감냉각 5.6°C(500ft/min 설계기준)는
+      UGA·오번대 Poultry Housing Tips의 실무 환산값을 따랐습니다. 실제 효과는 설비 상태·풍속·계사 밀폐도에 따라 달라질 수 있습니다.
     </div>
+  </div>`;
+}
+
+// ── 이슬점(Dew Point) 기반 결로·깔짚 습윤 위험 예측 ───────────────────────────
+// 습구온도가 "더운 날 패드냉방"용이라면, 이슬점은 그 반대 — 미국 조지아대(UGA)
+// 익스텐션(Czarick·Fairchild)이 "추운 날 최소환기·결로·깔짚 습윤 관리"를 조언할
+// 때 쓰는 지표다. 실내 공기가 커튼·급수라인·천장 같은 찬 표면에 닿았을 때
+// 그 표면 온도가 이슬점보다 낮으면 결로(물맺힘)가 생긴다 — 이게 깔짚을 적시고
+// 암모니아·풋패드 문제로 이어지는 가장 흔한 원인 중 하나다.
+function calcDewPointC(tempC, rh){
+  if(tempC==null || rh==null) return null;
+  rh = Math.max(1, Math.min(100, rh));
+  const a=17.27, b=237.7; // Magnus-Tetens 근사식 계수
+  const alpha = (a*tempC)/(b+tempC) + Math.log(rh/100);
+  return (b*alpha)/(a-alpha);
+}
+
+function renderDewPointPanel(){
+  const fc = weatherState.forecast || [];
+  if(fc.length===0) return "";
+  const today = fc[0];
+  const T = today.tMax, RH = today.hum;
+  if(T==null || RH==null) return "";
+
+  const dp = calcDewPointC(T, RH);
+  const depression = T - dp; // 이슬점 강하— 작을수록 결로 위험 큼
+
+  // UGA 자료: 습도 70%일 때 표면온도가 기온보다 약 5.6°C(10°F)만 낮아도 결로 발생
+  // → 이슬점 강하가 대략 그 이하로 좁으면 "결로 주의권"으로 판단
+  let riskLevel, riskColor, riskBg, riskMsg;
+  if(depression <= 3){
+    riskLevel="🔴 결로 위험 높음"; riskColor="#B71C1C"; riskBg="#FFEBEE";
+    riskMsg="공기 중 수분이 거의 포화 상태입니다. 커튼·급수라인·천장 등 찬 표면에 물맺힘이 매우 쉽게 생깁니다. 최소환기량을 평소보다 늘려 습기를 밖으로 빼내세요(UGA 권장: 저온다습 시 최소 20%↑).";
+  } else if(depression <= 6){
+    riskLevel="🔶 결로 주의"; riskColor="#E65100"; riskBg="#FFF3E0";
+    riskMsg="표면온도가 기온보다 조금만 낮아도(약 5~6°C) 결로가 생길 수 있는 구간입니다. 특히 야간·새벽 찬 표면(급수라인·환기구 주변)을 확인하세요.";
+  } else {
+    riskLevel="✅ 결로 위험 낮음"; riskColor="#2E7D32"; riskBg="#E8F5E9";
+    riskMsg="오늘 조건에서는 결로로 인한 깔짚 습윤 위험이 낮습니다.";
+  }
+
+  // UGA/Auburn 권장 계사 적정 습도 범위(깔짚 수분 균형): 50~70%
+  const rhInBand = RH>=50 && RH<=70;
+  const rhNote = RH>70
+    ? "습도가 권장 상한(70%)을 넘었습니다 — 환기를 늘려 깔짚이 눅눅해지지 않게 관리하세요."
+    : RH<50
+    ? "습도가 권장 하한(50%) 아래입니다 — 과도한 환기는 깔짚을 지나치게 건조시켜 분진·난방비 증가로 이어질 수 있습니다."
+    : "권장 습도 범위(50~70%) 안에 있습니다.";
+
+  return `
+  <div class="card" style="border-top:5px solid #6D4C41;margin-top:16px">
+    <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:3px">🌫️ 이슬점 기반 결로·깔짚 습윤 위험 예측</div>
+    <div style="font-size:10px;color:#aaa;margin-bottom:12px">오늘 날씨(${T}°C · 습도${RH}%) 기준 — UGA(조지아대) 익스텐션의 저온기 결로·깔짚 관리 방식</div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+      <div style="background:#EFEBE9;border-radius:10px;padding:10px 12px">
+        <div style="font-size:10px;color:#6D4C41">오늘 이슬점</div>
+        <div style="font-size:18px;font-weight:800;color:#4E342E">${dp.toFixed(1)}°C</div>
+        <div style="font-size:9px;color:#888;margin-top:2px">이 온도보다 차가운 표면엔 물이 맺힘</div>
+      </div>
+      <div style="background:#EFEBE9;border-radius:10px;padding:10px 12px">
+        <div style="font-size:10px;color:#6D4C41">이슬점 강하(여유폭)</div>
+        <div style="font-size:18px;font-weight:800;color:#4E342E">${depression.toFixed(1)}°C</div>
+        <div style="font-size:9px;color:#888;margin-top:2px">좁을수록 결로 위험 큼</div>
+      </div>
+    </div>
+
+    <div style="background:${riskBg};border-left:4px solid ${riskColor};border-radius:8px;padding:11px 13px;margin-bottom:10px">
+      <div style="font-size:12px;font-weight:700;color:${riskColor};margin-bottom:3px">${riskLevel}</div>
+      <div style="font-size:11px;color:#333;line-height:1.6">${riskMsg}</div>
+    </div>
+
+    <div style="background:${rhInBand?"#E8F5E9":"#FFF8E1"};border-radius:8px;padding:9px 12px">
+      <div style="font-size:11px;color:#333;line-height:1.6">💧 <b>깔짚 적정습도(50~70%) 기준:</b> ${rhNote}</div>
+    </div>
+
+    <div style="font-size:9px;color:#aaa;margin-top:8px;line-height:1.6">
+      ※ 이슬점은 Magnus-Tetens 근사식으로 계산했습니다. 결로 판단 기준과 깔짚 적정습도(50~70%) 범위는
+      UGA Poultry Housing Tips("A Dozen Cold Weather Poultry House Moisture Control Facts", Czarick·Fairchild)를 따랐습니다.
+      실제 표면온도는 위치·단열 상태에 따라 달라 참고용입니다.
+    </div>
+  </div>`;
+}
+
+// ── 환기량 계산 (습도수지 방식, UGA Czarick 방식) ─────────────────────────────
+// "간단한 CFM/마리 공식은 100% 이상 틀릴 수 있다"— UGA 익스텐션 엔지니어
+// Michael Czarick 본인이 직접 경고한 부분이다. 그래서 그가 실제로 쓰는(그리고
+// UGA가 계산기 앱으로도 배포하는) 방식은 "습도수지(moisture balance)" 계산이다:
+// 오늘 새·돼지가 사료를 통해 마시는 물의 양 → 그중 깔짚·공기 중에 남는 양(80%)을
+// → 실내외 공기의 습도함량(humidity ratio) 차이로 나눠 필요한 환기량을 역산한다.
+function calcHumidityRatio(tempC, rh){
+  // 습도함량(g 수증기/kg 건조공기). 이슬점 계산과 같은 Magnus 포화수증기압 식을 재사용.
+  if(tempC==null || rh==null) return null;
+  const es = 6.112*Math.exp(17.67*tempC/(tempC+243.5)); // hPa
+  const e = es*Math.max(0,Math.min(100,rh))/100;
+  const P = 1013.25; // 표준 해면기압(hPa)
+  return 622*e/(P-e); // g/kg
+}
+
+function calcVentilationRate(feedIntakeG, targetTempC, outTempC, outRH){
+  // targetTempC: 계사 내부 목표온도(사양단계별) / 내부 목표습도는 UGA 권장 60%로 가정
+  if(feedIntakeG==null || targetTempC==null || outTempC==null || outRH==null) return null;
+  const WATER_FEED_RATIO = 2.1; // UGA: 사료 1파운드당 물 약 1쿼트 ≈ 사료 무게의 2.1배
+  const MOISTURE_TO_AIR_FRACTION = 0.8; // UGA: 마신 물의 약 80%가 깔짚·공기 중 수분으로 남음
+  const AIR_DENSITY = 1.2; // kg 건조공기/m³ (표준 근사치)
+
+  const waterG = feedIntakeG * WATER_FEED_RATIO;
+  const moistureG = waterG * MOISTURE_TO_AIR_FRACTION;
+
+  const wIn = calcHumidityRatio(targetTempC, 60);
+  const wOut = calcHumidityRatio(outTempC, outRH);
+  const diff = wIn - wOut; // g/kg
+
+  if(diff <= 0){
+    return { ineffective:true, waterG, moistureG };
+  }
+  const volumeM3PerDay = moistureG / (diff*AIR_DENSITY); // m³/일/마리
+  const cfmPerBird = (volumeM3PerDay*35.3147)/(24*60);
+  const m3hrPerBird = volumeM3PerDay/24;
+  return { ineffective:false, waterG, moistureG, cfmPerBird, m3hrPerBird, wIn, wOut };
+}
+
+// 현재 선택된 종/품종/일령 기준 "오늘의 사료섭취량(g/일/마리)"을 구한다.
+// 육계 데이터는 누적사료만 저장돼 있어 전날과의 차이로 일일 섭취량을 역산한다.
+function getFeedIntakeForCurrent(){
+  const sp = CONSULT_BREEDS[consultState.species];
+  const breedKey = consultState.breed || Object.keys(sp.breeds)[0];
+  const breed = sp.breeds[breedKey];
+  const age = consultState.age;
+
+  if(consultState.species==="broiler"){
+    const rows = breed.data;
+    const today = rows.find(r=>r[0]===age);
+    const yest = rows.find(r=>r[0]===age-1);
+    if(!today || today[3]==null) return null;
+    if(!yest || yest[3]==null) return today[3]; // day0처럼 전날이 없으면 누적값 그대로
+    return today[3]-yest[3];
+  } else {
+    const {row} = lookupLayerPhase(breed.data, age);
+    // 육성기 row:[wk,bw,fi,wtr,mort] / 산란기 row:[wk,hd,bw,fi,wtr,ew,mort]
+    const fi = row.length===5 ? row[2] : row[3];
+    return fi ?? null;
+  }
+}
+
+function renderVentCalcPanel(){
+  const fc = weatherState.forecast || [];
+  if(fc.length===0) return "";
+  const today = fc[0];
+  const outT = today.tMax, outRH = today.hum;
+  if(outT==null || outRH==null) return "";
+
+  const targetT = getTargetTempForAge(consultState.species, consultState.age);
+  const feedG = getFeedIntakeForCurrent();
+  if(targetT==null || feedG==null) return "";
+
+  const r = calcVentilationRate(feedG, targetT, outT, outRH);
+  if(!r) return "";
+
+  return `
+  <div class="card" style="border-top:5px solid #00838F;margin-top:16px">
+    <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:3px">🌀 환기량 계산 (습도수지 방식)</div>
+    <div style="font-size:10px;color:#aaa;margin-bottom:12px">오늘 섭취 사료 ${Math.round(feedG)}g/일·마리 기준 — UGA 익스텐션(Czarick·Fairchild)의 습도수지 계산법</div>
+
+    ${r.ineffective ? `
+    <div style="background:#FFEBEE;border-left:4px solid #C62828;border-radius:8px;padding:11px 13px">
+      <div style="font-size:12px;font-weight:700;color:#B71C1C;margin-bottom:3px">⚠️ 환기로는 수분 제거 불가한 조건</div>
+      <div style="font-size:11px;color:#333;line-height:1.6">오늘 바깥 공기가 목표 실내 조건보다 절대습도 기준으로 더 습합니다.
+      환기를 늘려도 수분이 빠지지 않고 오히려 들어올 수 있습니다 — 제습·난방 병행을 검토하세요.</div>
+    </div>` : `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+      <div style="background:#E0F7FA;border-radius:10px;padding:10px 12px">
+        <div style="font-size:10px;color:#00695C">필요 환기량(마리당)</div>
+        <div style="font-size:18px;font-weight:800;color:#004D40">${r.cfmPerBird.toFixed(2)} <span style="font-size:11px;font-weight:600">CFM</span></div>
+        <div style="font-size:9px;color:#888;margin-top:2px">= ${r.m3hrPerBird.toFixed(3)} m³/시간·마리</div>
+      </div>
+      <div style="background:#E0F7FA;border-radius:10px;padding:10px 12px">
+        <div style="font-size:10px;color:#00695C">제거해야 할 수분</div>
+        <div style="font-size:18px;font-weight:800;color:#004D40">${Math.round(r.moistureG)} g</div>
+        <div style="font-size:9px;color:#888;margin-top:2px">일일 음수량의 80% (마리당)</div>
+      </div>
+    </div>
+    <div style="background:#fafafa;border-radius:8px;padding:9px 12px;font-size:10px;color:#666;line-height:1.7">
+      실내 목표: ${targetT}°C·습도60%(가정) → 습도함량 ${r.wIn.toFixed(2)}g/kg &nbsp;|&nbsp;
+      바깥 현재: ${outT}°C·습도${outRH}% → 습도함량 ${r.wOut.toFixed(2)}g/kg
+    </div>`}
+
+    <div style="font-size:9px;color:#aaa;margin-top:8px;line-height:1.6">
+      ※ UGA 자료(Czarick·Fairchild)의 "사료 1파운드당 물 1쿼트(≈사료의 2.1배), 그중 80%가 깔짚·공기 중 수분으로 남음" 기준과
+      표준 습도함량(humidity ratio) 계산을 결합했습니다. 실내 목표습도는 UGA 권장 적정범위의 중간값인 60%로 가정했습니다.
+      실제 필요 환기량은 계사 밀폐도·사육밀도·설비에 따라 달라질 수 있는 참고치입니다.
+    </div>
+  </div>`;
+}
+
+// ── 사양관리 컨설팅 포인트 ───────────────────────────────────────────────────
+// 육종회사 매뉴얼의 "핵심 관리 포인트"를 그대로 옮기지 않고 우리말로 요약 정리.
+// 육계: Aviagen Key Management Points / 산란계: Hy-Line 육성기 체중관리 포인트
+const BROILER_MGMT_POINTS = [
+  "입식 초기 병아리 품질이 전체 성적을 좌우함 — 부화·운송·농장 도착 과정의 온습도 관리가 핵심",
+  "초기엔 보조 급이·급수기에서 자동 급이·급수기로 전환하는 시점을 신중히 관리",
+  "소화 잘 되는 고영양 초생추 사료(Starter)를 반드시 급여",
+  "상대습도 50% 미만으로 떨어지지 않도록 주의 — 너무 건조하면 오히려 문제",
+  "모이주머니(소낭) 충만도·비담(급이·음수) 행동·7일령 체중으로 육추 상태를 매일 점검",
+  "21일령부터는 개체 체중을 주기적으로 측정해 균일도 확인",
+  "생육 후반기(특히 21일 이후)엔 사육온도를 21°C 이하로 유지하는 것이 증체에 유리",
+  "위생·소독 기준을 철저히 지켜 질병 유입을 최소화",
+];
+const LAYER_MGMT_POINTS = [
+  "6·12·18·24·30주령 체중 목표 달성 여부를 반드시 확인 — 골격·소화기 발달의 핵심 시점",
+  "0~12주는 체중을 표준범위 상단으로 관리 — 골격·소화기관 발달에 유리",
+  "12주 이후엔 체중 급증을 피할 것 — 복부지방 과다 축적 위험",
+  "산란 개시 시점 체중이 표준범위이고 균일도 90% 이상일 때 이후 산란 성적이 가장 좋음",
+  "저체중이거나 균일도가 낮으면 사료 단계 전환을 늦춰 보정",
+  "이행기(육성→산란) 체중 증가가 25%를 넘지 않도록 관리 — 과도한 증체는 대사 문제로 이어짐",
+];
+
+function renderMgmtPointsPanel(){
+  const points = consultState.species==="broiler" ? BROILER_MGMT_POINTS : LAYER_MGMT_POINTS;
+  const source = consultState.species==="broiler"
+    ? "Aviagen Broiler Performance Objectives — Key Management Points"
+    : "Hy-Line International Commercial Layers Management Guide — Growth & Development";
+  return `
+  <div class="card" style="border-top:5px solid #7B1FA2;margin-top:16px">
+    <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:10px">📋 사양관리 컨설팅 포인트</div>
+    ${points.map(p=>`<div style="font-size:11px;color:#333;line-height:1.9;padding-left:14px;position:relative">
+      <span style="position:absolute;left:0;color:#7B1FA2">·</span>${p}
+    </div>`).join("")}
+    <div style="font-size:9px;color:#aaa;margin-top:10px">※ 출처: ${source}</div>
   </div>`;
 }
 
@@ -3199,6 +3446,9 @@ function renderConsultTab(){
   ${ageInput}
   ${card}
   ${renderWetBulbPanel()}
+  ${renderDewPointPanel()}
+  ${renderVentCalcPanel()}
+  ${renderMgmtPointsPanel()}
 
   <div style="font-size:10px;color:#aaa;line-height:1.7">
     ※ 출처: ${breed.source}. 사양매뉴얼 표는 국가·환경에 따라 실제 성적과 차이가 날 수 있는 "목표치"이며,
