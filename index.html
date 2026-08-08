@@ -2966,6 +2966,100 @@ const CONSULT_BREEDS = {
 
 let consultState = { species:"broiler", breed:"ross308", age:7 };
 
+// ── 습구온도(Wet-Bulb Temperature) 기반 쿨링패드 효과 예측 ────────────────────
+// 미국 조지아대(UGA)·일리노이대 등 가금산업 선진국의 익스텐션(농가 기술지도)
+// 컨설턴트들이 쿨링패드 효과를 사전에 판단할 때 쓰는 핵심 지표. 쿨링패드는
+// 물을 증발시켜 냉각하므로, 아무리 효율이 좋아도 "습구온도" 밑으로는 절대
+// 못 내려간다 — 건구온도(보통의 기온)만 보고는 오늘 패드가 얼마나 도움이
+//될지 알 수 없고, 습구온도를 반드시 같이 봐야 한다는 것이 핵심이다.
+function calcWetBulbC(tempC, rh){
+  if(tempC==null || rh==null) return null;
+  rh = Math.max(5, Math.min(99, rh)); // Stull(2011) 공식 유효범위
+  const t = tempC;
+  return t*Math.atan(0.151977*Math.sqrt(rh+8.313659))
+    + Math.atan(t+rh)
+    - Math.atan(rh-1.676331)
+    + 0.00391838*Math.pow(rh,1.5)*Math.atan(0.023101*rh)
+    - 4.686035;
+}
+
+// 사양단계 라벨("1~3일","36일~","8~17주","18주~ 산란" 등)에서 적용 구간을 추출
+function parseAgeRangeLabel(label){
+  const s = String(label);
+  const nums = (s.match(/\d+/g)||[]).map(Number);
+  if(nums.length>=2) return [nums[0], nums[1]];
+  if(nums.length===1){
+    // "36일~"처럼 숫자 뒤에 물결표가 있으면 그 이상 전부(개방구간),
+    // "1주령"처럼 물결표가 없으면 그 값 하나만 정확히 가리킨다.
+    return s.includes("~") ? [nums[0], Infinity] : [nums[0], nums[0]];
+  }
+  return [0, Infinity];
+}
+function getTargetTempForAge(species, age){
+  const table = species==="broiler" ? BROILER_TARGET_TEMP : species==="layer" ? LAYER_TARGET_TEMP : null;
+  if(!table) return null;
+  for(const row of table){
+    const label = row.day || row.wk;
+    const [lo,hi] = parseAgeRangeLabel(label);
+    if(age>=lo && age<=hi) return row.t;
+  }
+  return table[table.length-1].t;
+}
+
+function renderWetBulbPanel(){
+  const fc = weatherState.forecast || [];
+  if(fc.length===0) return "";
+  const today = fc[0];
+  const T = today.tMax, RH = today.hum;
+  if(T==null || RH==null) return "";
+
+  const tw = calcWetBulbC(T, RH);
+  const EFF = 0.75; // UGA 권장 실무 효율(70~80% 구간의 중간값)
+  const padOutTemp = T - (T - tw) * EFF;
+  const padOutRH = Math.min(95, RH + (T - padOutTemp) * 4.5); // 1°C 냉각당 습도 약 4.5%p 상승(UGA 환산)
+
+  const targetT = getTargetTempForAge(consultState.species, consultState.age);
+  const stillHot = targetT!=null && padOutTemp > targetT;
+
+  return `
+  <div class="card" style="border-top:5px solid #0288D1;margin-top:16px">
+    <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:3px">💧 습구온도 기반 쿨링패드 효과 예측</div>
+    <div style="font-size:10px;color:#aaa;margin-bottom:12px">오늘 날씨(${T}°C · 습도${RH}%) 기준 — 조지아대(UGA)·일리노이대 등 익스텐션 컨설턴트가 쓰는 방식</div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+      <div style="background:#E3F2FD;border-radius:10px;padding:10px 12px">
+        <div style="font-size:10px;color:#0277BD">오늘 습구온도</div>
+        <div style="font-size:18px;font-weight:800;color:#01579B">${tw.toFixed(1)}°C</div>
+        <div style="font-size:9px;color:#888;margin-top:2px">쿨링패드로도 이 온도 밑으로는 못 내려감</div>
+      </div>
+      <div style="background:#E8F5E9;border-radius:10px;padding:10px 12px">
+        <div style="font-size:10px;color:#2E7D32">패드 통과 후 예상온도</div>
+        <div style="font-size:18px;font-weight:800;color:#1B5E20">${padOutTemp.toFixed(1)}°C</div>
+        <div style="font-size:9px;color:#888;margin-top:2px">효율 75% 가정 · 습도 약 ${Math.round(padOutRH)}%로 상승</div>
+      </div>
+    </div>
+
+    ${targetT!=null ? `
+    <div style="background:${stillHot?"#FFEBEE":"#E8F5E9"};border-left:4px solid ${stillHot?"#C62828":"#2E7D32"};border-radius:8px;padding:11px 13px">
+      <div style="font-size:12px;font-weight:700;color:${stillHot?"#B71C1C":"#1B5E20"};margin-bottom:3px">
+        ${stillHot ? "⚠️ 패드 냉방으로도 목표온도 도달 어려움" : "✅ 패드 냉방으로 목표온도 도달 가능"}
+      </div>
+      <div style="font-size:11px;color:#333;line-height:1.6">
+        현재 사양단계 목표온도는 <b>${targetT}°C</b>인데, 패드 통과 후 예상온도는 <b>${padOutTemp.toFixed(1)}°C</b>입니다.
+        ${stillHot
+          ? "습구온도 자체가 이미 높아 패드만으로는 한계가 있습니다 — 사육밀도 완화, 살수, 야간 집중관리 등 보조 수단을 함께 검토하세요."
+          : "오늘 조건에서는 패드+터널환기 조합으로 목표온도 달성이 가능할 것으로 보입니다."}
+      </div>
+    </div>` : ""}
+
+    <div style="font-size:9px;color:#aaa;margin-top:8px;line-height:1.6">
+      ※ 습구온도는 Stull(2011) 근사식으로 계산했습니다(미국기상학회지 게재, 평균오차 0.3°C 이내).
+      패드 효율 75%·냉각당 습도 상승 4.5%p/°C는 UGA Poultry Housing Tips의 실무 환산값을 따랐습니다.
+      실제 패드 성능은 설비 상태·풍속·오염도에 따라 달라질 수 있습니다.
+    </div>
+  </div>`;
+}
+
 function renderConsultTab(){
   const sp = CONSULT_BREEDS[consultState.species];
   if(consultState.breed && !sp.breeds[consultState.breed]) consultState.breed = Object.keys(sp.breeds)[0];
@@ -3104,6 +3198,7 @@ function renderConsultTab(){
 
   ${ageInput}
   ${card}
+  ${renderWetBulbPanel()}
 
   <div style="font-size:10px;color:#aaa;line-height:1.7">
     ※ 출처: ${breed.source}. 사양매뉴얼 표는 국가·환경에 따라 실제 성적과 차이가 날 수 있는 "목표치"이며,
