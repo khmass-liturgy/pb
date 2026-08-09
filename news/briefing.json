@@ -1,7 +1,7 @@
 {
-  "updated": "2026-08-09 08:41 KST",
-  "updatedTs": 1786232488,
-  "ok": 5,
+  "updated": "2026-08-09 11:24 KST",
+  "updatedTs": 1786242296,
+  "ok": 4,
   "total": 5,
   "order": [
     "chuksan",
@@ -48,7 +48,7 @@
           "source": ""
         }
       ],
-      "stale": false
+      "stale": true
     },
     "handon": {
       "name": "한돈뉴스",
@@ -96,6 +96,18 @@
       "home": "https://www.asiae.co.kr/list/economy",
       "items": [
         {
+          "title": "청년·고령층에 '빚투' 경고등…5대 은행 마통 연체율 0.22%",
+          "url": "https://view.asiae.co.kr/article/2026080911075867350",
+          "date": "08.09 11:17",
+          "source": ""
+        },
+        {
+          "title": "'점심 회식 성지' 텍사스로드하우스 잠실본점…개장 100일 누적 5.5만명 방문",
+          "url": "https://view.asiae.co.kr/article/2026080910175869472",
+          "date": "08.09 10:17",
+          "source": ""
+        },
+        {
           "title": "\"얇아진 지갑, 그래도 휴가는 포기 못해\"…숙박·음식 할인에 지원금 20만원 받는 법 [혜택의 정석]",
           "url": "https://view.asiae.co.kr/article/2026080714104928350",
           "date": "08.09 07:41",
@@ -112,18 +124,6 @@
           "url": "https://view.asiae.co.kr/article/2026080814450240576",
           "date": "08.08 14:45",
           "source": ""
-        },
-        {
-          "title": "황종우, 해수부 30주년 맞아 \"초격차 해양강국·대체불가 해양부국\" 비전 제시",
-          "url": "https://view.asiae.co.kr/article/2026080813101181107",
-          "date": "08.08 13:10",
-          "source": ""
-        },
-        {
-          "title": "'특허 8000개' 한전기술지주 출범…김성환 \"전력 유니콘 육성 전초기지 될 것\"",
-          "url": "https://view.asiae.co.kr/article/2026080812524262353",
-          "date": "08.08 12:52",
-          "source": ""
         }
       ],
       "stale": false
@@ -135,32 +135,32 @@
       "home": "https://www.mafra.go.kr/home/5109/subview.do",
       "items": [
         {
+          "title": "농관원, 휴가철 축산물 원산지 위반 106개소 적발",
+          "url": "http://www.mafra.go.kr/bbs/home/792/578682/artclView.do",
+          "date": "",
+          "source": ""
+        },
+        {
+          "title": "농식품부, ’26년산 보리 수급안정을 위해 주정회사·농협과 함께 특별 매입 추진",
+          "url": "http://www.mafra.go.kr/bbs/home/792/578681/artclView.do",
+          "date": "",
+          "source": ""
+        },
+        {
+          "title": "음식점업 부가가치세 의제매입세액공제 우대 공제율 적용기한 2년 연장",
+          "url": "http://www.mafra.go.kr/bbs/home/792/578680/artclView.do",
+          "date": "",
+          "source": ""
+        },
+        {
+          "title": "“농업법인 과세특례 상시화·면세유 일몰 연장”",
+          "url": "http://www.mafra.go.kr/bbs/home/792/578679/artclView.do",
+          "date": "",
+          "source": ""
+        },
+        {
           "title": "식량농업기구(FAO) 7월 세계식량가격지수 전월 대비 0.6% 상승",
           "url": "http://www.mafra.go.kr/bbs/home/792/578687/artclView.do",
-          "date": "",
-          "source": ""
-        },
-        {
-          "title": "농식품부 장관, 폭염 대비 육계농장, 시설하우스 현장점검 및 농업인 안전 특별 당부",
-          "url": "http://www.mafra.go.kr/bbs/home/792/578691/artclView.do",
-          "date": "",
-          "source": ""
-        },
-        {
-          "title": "농식품부, 폭염 장기화에 따른 특별관리 강화기간 운영",
-          "url": "http://www.mafra.go.kr/bbs/home/792/578677/artclView.do",
-          "date": "",
-          "source": ""
-        },
-        {
-          "title": "농식품부, 지속되는 폭염·가뭄에 따라 피해 예방을 위한 총력 대응",
-          "url": "http://www.mafra.go.kr/bbs/home/792/578662/artclView.do",
-          "date": "",
-          "source": ""
-        },
-        {
-          "title": "농촌창업 우수기업 민관 협력으로 한 단계 더 도약",
-          "url": "http://www.mafra.go.kr/bbs/home/792/578661/artclView.do",
           "date": "",
           "source": ""
         }
@@ -174,31 +174,31 @@
       "home": "https://news.google.com/search?q=%28site%3Awattagnet.com%20OR%20site%3Apigprogress.net%20OR%20site%3Athepoultrysite.com%20OR%20site%3Athepigsite.com%20OR%20site%3Abeefmagazine.com%20OR%20site%3Afeedstrategy.com%20OR%20site%3Adairyherd.com%29%20when%3A10d&hl=en-US&gl=US&ceid=US:en",
       "items": [
         {
-          "title": "SNAP에 대한 상원 농업 위원회에서 농장 법안이 교착 상태에 빠졌습니다. 이제 무엇을?",
+          "title": "SNAP에 대한 상원 농업 위원회에서 농장 법안이 정체 상태입니다. 이제 무엇을?",
           "url": "https://news.google.com/rss/articles/CBMimAFBVV95cUxNOTlBSVZoY1VILTVJai00RVJNR2dWcGFPbWZSQ0kxdkFCeTBMNldQVjgwRWVkbS04aGhuVnA3eXgtLVN2WjNhWnlTVzR2M3Z2ZVVrUmlaQ09HVFNtYU5UaW12dXY2NEV1Z1FqZFRzRUEzWGZObWE4TTgySjBLaktXQlZIZHhYamJidzZyeXVRYmQ3VG9sNkhpeQ?oc=5",
           "date": "08.07 21:03",
-          "source": "Dairy Herd",
+          "source": "dairyherd.com",
           "titleEn": "Farm Bill Stalls in Senate Ag Committee Over SNAP. Now What?"
         },
         {
           "title": "20,000개의 낙농장 미래: 통합이 미국 농업을 변화시킬 이유",
           "url": "https://news.google.com/rss/articles/CBMipAFBVV95cUxOWXJzendyZjlVdkg5YWMxUE5RRndBVDFLdDRvczZ4MzJHbTBUYUhnOElfbTBPbFg3OEtiNW4taThGcndGRXNScjJCdy10Q3JDU2gwOW5fdDA2QlNVZkhEMmthck5IN0VJNG9HRVd5LWNpMFN6ZU4xaVVoUTFKakJ5cUtKcU1kRzlwc3dRalBkOU9uNTJQWGdQV3E3SC1VUG1rczY3cg?oc=5",
           "date": "08.05 22:24",
-          "source": "Dairy Herd",
+          "source": "dairyherd.com",
           "titleEn": "The 20,000-Dairy Farm Future: Why Consolidation Will Reshape U.S. Agriculture"
         },
         {
           "title": "젖소가 반추할 시간을 더 많이 찾을 수 있도록 돕기",
           "url": "https://news.google.com/rss/articles/CBMidkFVX3lxTE04Q25TYnR6X3ROZHpRZWhKRWJkVXBNVHdhZ2xpMmpfX0YxWWJnWV9fMGRLNlVQZ1ZScV8xdTVXRXltZ2NHN0NtT05jMnhQN2lfXzZRYUVaZUVPY2Yta2tsM2pOaE80R2RpVktWeGRDRjJwYzIxTVE?oc=5",
           "date": "08.06 02:15",
-          "source": "Dairy Herd",
+          "source": "dairyherd.com",
           "titleEn": "Helping Cows Find More Time to Ruminate"
         },
         {
           "title": "바이러스성 비디오에서 워싱턴까지: 태양광 개발에 반대하는 한 농부의 투쟁이 백악관에 도달한 방법",
           "url": "https://news.google.com/rss/articles/CBMiwAFBVV95cUxPbG1Qa1FpRUx4bHI4c0p6dm42WWlTQTdJdXBYRUw5Tk5tcGo2TFJjMlIzN2tUQmVuY2FzTVl4SlE2bk9HWTVXLVFXNXlRQXZ6ZnZxRmhPRWVGZ3c5QUZxVzZYcGxkaHo2UWtybnkySjR4eUN5dVVYSkg5UTBkQkQxdzRIdkRMWXhtcGFzaFFRNUVobHVZUnQta3BmaTZsbVZOZ055UG42SjBLUEIyc1pBZVdFdDNReElTTllVWURQejk?oc=5",
           "date": "08.04 01:15",
-          "source": "Dairy Herd",
+          "source": "dairyherd.com",
           "titleEn": "From Viral Video to Washington: How One Farmer's Fight Against Solar Development Reached the White House"
         },
         {
