@@ -1,12 +1,16 @@
 {
-  "updated": "2026-08-10 10:08 KST",
+  "updated": "2026-08-11 10:07 KST",
   "stale": {},
   "egg": {
     "label": "계란 산지가격",
     "grade": "특란 (XL)",
     "unit": "원/10개",
-    "latest": 2243,
+    "latest": 2260,
     "rows": [
+      {
+        "date": "2026-08-10",
+        "value": 2260
+      },
       {
         "date": "2026-08-07",
         "value": 2243
@@ -82,18 +86,18 @@
       {
         "date": "2026-07-13",
         "value": 2288
-      },
-      {
-        "date": "2026-07-10",
-        "value": 2243
       }
     ]
   },
   "chicken": {
     "label": "생계유통(대)",
     "unit": "원/kg",
-    "latest": 2000,
+    "latest": 2100,
     "rows": [
+      {
+        "date": "2026-08-10",
+        "value": 2100
+      },
       {
         "date": "2026-08-07",
         "value": 2000
@@ -169,25 +173,21 @@
       {
         "date": "2026-07-13",
         "value": 1800
-      },
-      {
-        "date": "2026-07-10",
-        "value": 1800
       }
     ]
   },
   "pig": {
     "label": "농가수취 평균",
     "unit": "원/kg",
-    "latest": 6973,
+    "latest": 6902,
     "rows": [
+      {
+        "date": "2026-08-10",
+        "value": 6902
+      },
       {
         "date": "2026-08-07",
         "value": 6973
-      },
-      {
-        "date": "2026-08-06",
-        "value": 6887
       }
     ]
   },
@@ -196,27 +196,33 @@
       "female_calf": {
         "label": "암송아지(6~7개월)",
         "unit": "천원/마리",
-        "value": 3695,
-        "date": "2026-08-05"
+        "value": 3720,
+        "date": "2026-08-07"
       },
       "male_calf": {
         "label": "수송아지(6~7개월)",
         "unit": "천원/마리",
-        "value": 4922,
-        "date": "2026-08-05"
+        "value": 5020,
+        "date": "2026-08-07"
       },
       "farm_receipt_600kg": {
         "label": "농가수취가격(600kg)",
         "unit": "천원/마리",
-        "value": 7841,
-        "date": "2026-08-07"
+        "value": 6291,
+        "date": "2026-08-10"
       }
     },
     "rows": [
       {
-        "date": "2026-08-07",
+        "date": "2026-08-10",
         "female_calf": null,
         "male_calf": null,
+        "farm_receipt_600kg": 6291
+      },
+      {
+        "date": "2026-08-07",
+        "female_calf": 3720,
+        "male_calf": 5020,
         "farm_receipt_600kg": 7841
       },
       {
@@ -332,12 +338,6 @@
         "female_calf": 3773,
         "male_calf": 5134,
         "farm_receipt_600kg": 6376
-      },
-      {
-        "date": "2026-07-10",
-        "female_calf": 3736,
-        "male_calf": 5080,
-        "farm_receipt_600kg": 7905
       }
     ]
   },
