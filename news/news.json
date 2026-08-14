@@ -1,5 +1,5 @@
 {
-  "updated": "2026-08-14 08:39 KST",
+  "updated": "2026-08-15 08:19 KST",
   "channels": {
     "livestock": {
       "label": "축산·농업",
@@ -30,24 +30,35 @@
     },
     "economy": {
       "label": "경제",
-      "items": [
-        {
-          "title": "환율·물가 잡혔지만 불씨 여전...한은 8월 금리 딜레마 - 아주경제",
-          "link": "https://news.google.com/rss/articles/CBMiWkFVX3lxTE5RRkR6TjR1UDNoVy1qVXpTeTFZS1c2UXNhTmdlbmhYSjdhd1N2QmtXNTY1SzZXeGVYOG1NRUdZWXFDS0ZWT0tYb0hfZkwzR2hlTjJmNk5RdlBnZ9IBWEFVX3lxTE1GaXdFbjFtc2xlZkVOUTRzb1F2ZF9RYk50b1l4X1RzWmNTWW8wTXN5MC1icEdGSndPb1pteTk0UmIxTkNibGpYYUttT28xblpIVnhjT0pmN0U?oc=5",
-          "date": "08/07 15:37",
-          "source": "아주경제"
-        }
-      ],
-      "count": 1
+      "items": [],
+      "count": 0
     },
     "world": {
       "label": "국제",
       "items": [
         {
-          "title": "\"석유가 아닌 수소를 지배하라\"... 블루수소 특허전쟁, 미국·중국 추격 속 한국도 국제표준으로 승부 건다 - 특허뉴스",
+          "title": "미국보다 중국에 더 호감…세계 여론 지형에 나타난 ‘역전’ - 인터내셔널포커스",
+          "link": "https://news.google.com/rss/articles/CBMiVkFVX3lxTFBPUG9NZFY2YUFVWjQ4ZFhneU9iWVJlRFhkM3BacVFZTUZkZl9yWWx5d1FMeURvVExiY2c0bVlsbDd6ZlAyc2JlbC1iN1lzSjh5QVRHY1pB?oc=5",
+          "date": "08/13 05:22",
+          "source": "인터내셔널포커스"
+        },
+        {
+          "title": "\"석유가 아닌 수소를 지배하라\"... 블루수소 특허전쟁, 미국·중국 추격 속 한국도 국제표준으로 승부 건다 - e-patentnews.com",
           "link": "https://news.google.com/rss/articles/CBMiSEFVX3lxTE8zRGxDTmp1YU1KSnRlQm90S2hMOXFGeTdDalIzMVlQM1VPY211akI0YmUwamFwZncwaEJaR2VCeDA5X2ZyVUdPcg?oc=5",
           "date": "08/10 19:01",
-          "source": "특허뉴스"
+          "source": "e-patentnews.com"
+        },
+        {
+          "title": "중국 독자개발 여객기, 국제 노선에 본격 투입…\"첫 비행지는 몽골\" - 네이트",
+          "link": "https://news.google.com/rss/articles/CBMiU0FVX3lxTE16ckJCSHhVdEk1RUtjd1FpYlo1UUFMb2ZrRDJQVGVmaHhWNE0xM0hOVVFUMThNam5RbkhFVExpQ191Z0dnbXc2SmxTY1JCSEFhQ2Vz?oc=5",
+          "date": "08/14 06:01",
+          "source": "네이트"
+        },
+        {
+          "title": "[데일뉴스 칼럼] AI는 일자리를 어떻게 빼앗고, 인간은 어떻게 대처해야할까? - 데일리뉴스",
+          "link": "https://news.google.com/rss/articles/CBMib0FVX3lxTE1kTGp5ZWlRaVBTWnY2ZHJyaTM0TW00VUN5WEJTa2xtLW5vMTlSWGYxQmVCQTBrRGdkR08zUDZ5TWhnVWR6NnpGRXJRd000R1J2RWVEclVVVzRyaE5ieWR1RTFDaXRQaXBLbnlGZHAyNNIBc0FVX3lxTE1ZNDA2RkFJN0t0Z3FEdDRiWXJ2TXl0ams2RXZXc3Z4Qnp4WFBudVVBWjJkRkdFS2VUYXVyQjBFandSTDR4TjBkbWJxRFJJbjdnd0FLdXJVSjVYdXlqRlZxOUxOODhqazFQckJNbHZmMWpWZU0?oc=5",
+          "date": "08/08 12:42",
+          "source": "데일리뉴스"
         },
         {
           "title": "중국 독자 개발 여객기, 국제노선 첫 운항…해외 시장 진출은 과제 - 네이트",
@@ -62,7 +73,7 @@
           "source": "네이트"
         }
       ],
-      "count": 3
+      "count": 6
     }
   }
 }
