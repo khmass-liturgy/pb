@@ -549,8 +549,8 @@ const NOTICE_FALLBACK = {
 
 let noticesState = {
   status:"idle",
-  chuksan:[], aflnews:[], handon:[], econ:[], policy:[], global:[],
-  fallback:{ chuksan:false, aflnews:false, handon:false, econ:false, policy:false, global:false },
+  chuksan:[], aflnews:[], handon:[], dailyvet:[], econ:[], policy:[], global:[],
+  fallback:{ chuksan:false, aflnews:false, handon:false, dailyvet:false, econ:false, policy:false, global:false },
   meta:{},          // 서버 수집 파일의 소스별 메타(name/home/stale)
   srcUpdated:"",    // 서버 수집 시각
   updatedAt:"",
@@ -686,6 +686,14 @@ function parseAflRSS(xml){
   return out.slice(0,5);
 }
 
+// 데일리벳(수의사 전문 매체, 워드프레스) 뉴스 카테고리 피드.
+// pubDate가 RFC822(+0000)라 범용 RSS 파서를 그대로 쓴다.
+// 서버 수집 쪽은 이 사이트 WAF가 특정 UA를 405로 막아 UA를 따로 지정하지만,
+// 브라우저 폴백은 CORS 프록시가 자기 UA로 요청하므로 그 문제와 무관하다.
+const DAILYVET_RSS  = "https://www.dailyvet.co.kr/category/news/feed/";
+const DAILYVET_NAME = "데일리벳";
+const DAILYVET_HOME = "https://www.dailyvet.co.kr/category/news";
+
 // ── 공용 CORS 프록시 풀 ─────────────────────────────────────────────────────
 // 무료 프록시는 각각 분당/초당 호출 제한이 있음 (AllOrigins 20/분, CodeTabs 5/초 등).
 // 매 호출마다 시작 프록시를 회전시켜 한 곳에 부하가 몰리지 않게 분산한다.
@@ -769,11 +777,12 @@ async function fetchNotices(force){
       noticesState.chuksan = c.chuksan || NOTICE_FALLBACK.chuksan;
       noticesState.aflnews = c.aflnews || [];
       noticesState.handon  = c.handon  || NOTICE_FALLBACK.handon;
+      noticesState.dailyvet= c.dailyvet|| [];
       noticesState.econ    = c.econ    || [];
       noticesState.policy  = c.policy  || [];
       noticesState.global  = c.global  || [];
       noticesState.meta    = c.meta    || {};
-      noticesState.fallback = c.fallback || {chuksan:false,aflnews:false,handon:false,econ:false,policy:false,global:false};
+      noticesState.fallback = c.fallback || {chuksan:false,aflnews:false,handon:false,dailyvet:false,econ:false,policy:false,global:false};
       noticesState.updatedAt = c.updatedAt || "";
       noticesState.status = "done";
       console.log("뉴스: 캐시 사용 (프록시 호출 0회)");
@@ -791,11 +800,12 @@ async function fetchNotices(force){
       const d = await resp.json();
       const S = d.sources || {};
       const pick = (id)=> (S[id] && Array.isArray(S[id].items)) ? S[id].items : null;
-      const ch = pick("chuksan"), af = pick("aflnews"), hd = pick("handon"), ec = pick("econ"), po = pick("policy"), gl = pick("global");
-      if((ch&&ch.length) || (af&&af.length) || (hd&&hd.length) || (ec&&ec.length) || (po&&po.length) || (gl&&gl.length)){
+      const ch = pick("chuksan"), af = pick("aflnews"), hd = pick("handon"), dv = pick("dailyvet"), ec = pick("econ"), po = pick("policy"), gl = pick("global");
+      if((ch&&ch.length) || (af&&af.length) || (hd&&hd.length) || (dv&&dv.length) || (ec&&ec.length) || (po&&po.length) || (gl&&gl.length)){
         noticesState.chuksan = ch && ch.length ? ch : NOTICE_FALLBACK.chuksan;
         noticesState.aflnews = af || [];
         noticesState.handon  = hd && hd.length ? hd : NOTICE_FALLBACK.handon;
+        noticesState.dailyvet= dv || [];
         noticesState.econ    = ec || [];
         noticesState.policy  = po || [];
         noticesState.global  = gl || [];
@@ -803,6 +813,7 @@ async function fetchNotices(force){
           chuksan: !(ch&&ch.length) || !!(S.chuksan&&S.chuksan.stale),
           aflnews: !(af&&af.length) || !!(S.aflnews&&S.aflnews.stale),
           handon:  !(hd&&hd.length) || !!(S.handon &&S.handon.stale),
+          dailyvet:!(dv&&dv.length) || !!(S.dailyvet&&S.dailyvet.stale),
           econ:    !!(S.econ  &&S.econ.stale),
           policy:  !!(S.policy&&S.policy.stale),
           global:  !(gl&&gl.length) || !!(S.global &&S.global.stale),
@@ -813,7 +824,7 @@ async function fetchNotices(force){
         noticesState.status = "done";
         saveNoticeCache({
           ts: Date.now(), chuksan:noticesState.chuksan, aflnews:noticesState.aflnews,
-          handon:noticesState.handon,
+          handon:noticesState.handon, dailyvet:noticesState.dailyvet,
           econ:noticesState.econ, policy:noticesState.policy, global:noticesState.global,
           fallback:noticesState.fallback, meta:S, updatedAt:noticesState.updatedAt,
         });
@@ -827,16 +838,18 @@ async function fetchNotices(force){
   // ── ② 폴백: 브라우저에서 직접 수집 (프록시 사용) ────────────────────────
   console.log("뉴스: 서버 파일 없음 → 브라우저 직접 수집으로 전환");
   if(state.tab==="briefing") render();
-  const [pr,ar,cr,er,or_]=await Promise.allSettled([
+  const [pr,ar,cr,dr,er,or_]=await Promise.allSettled([
     fetchOneSite("https://www.chuksannews.co.kr/news/section_list_all.html?sec_no=2", parseChuksanHTML, "축산신문"),
     fetchOneSite(AFL_RSS, parseAflRSS, AFL_NAME),
     fetchOneSite("https://www.pignpork.com/news/articleList.html?sc_section_code=S1N1&view_type=sm", parseHandonHTML, "한돈뉴스"),
+    fetchOneSite(DAILYVET_RSS, parseGenericRSS, DAILYVET_NAME),
     fetchEconNews(),
     fetchPolicyNews(),
   ]);
   const pv=pr.status==="fulfilled"?pr.value:{items:null,fallback:true};
   const av=ar.status==="fulfilled"?ar.value:{items:null,fallback:true};
   const cv=cr.status==="fulfilled"?cr.value:{items:null,fallback:true};
+  const dv=dr.status==="fulfilled"?dr.value:{items:null,fallback:true};
   const ev=er.status==="fulfilled"?er.value:{items:null,fallback:true};
   const ov=or_.status==="fulfilled"?or_.value:{items:null,fallback:true};
   noticesState.chuksan  = pv.items||NOTICE_FALLBACK.chuksan;
@@ -845,6 +858,8 @@ async function fetchNotices(force){
   noticesState.fallback.aflnews = av.fallback;
   noticesState.handon   = cv.items||NOTICE_FALLBACK.handon;
   noticesState.fallback.handon = cv.fallback;
+  noticesState.dailyvet = dv.items||[];
+  noticesState.fallback.dailyvet = dv.fallback;
   noticesState.econ     = ev.items||[];
   noticesState.fallback.econ = ev.fallback;
   noticesState.policy   = ov.items||[];
@@ -857,6 +872,7 @@ async function fetchNotices(force){
   saveNoticeCache({
     ts: Date.now(),
     chuksan: noticesState.chuksan, aflnews: noticesState.aflnews, handon: noticesState.handon,
+    dailyvet: noticesState.dailyvet,
     econ: noticesState.econ, policy: noticesState.policy, global: noticesState.global,
     fallback: noticesState.fallback, updatedAt: noticesState.updatedAt,
   });
@@ -4039,7 +4055,7 @@ function renderNoticesSection(){
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
     <div>
       <div class="display" style="font-size:16px">📰 축산 뉴스 · 경제동향</div>
-      <div style="font-size:10px;color:#aaa;margin-top:3px">축산신문 · 농수축산신문 · 한돈뉴스 · 해외축산 · 아시아경제 최신 5건</div>
+      <div style="font-size:10px;color:#aaa;margin-top:3px">축산신문 · 농수축산신문 · 한돈뉴스 · 데일리벳 · 해외축산 · 아시아경제 최신 5건</div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
       <span style="font-size:10px;color:#888">${timeLabel}</span>
@@ -4104,6 +4120,24 @@ function renderNoticesSection(){
         </a>
       </div>
       ${noticeList(ns.handon,"#AD1457",ns.fallback?.handon,loading)}
+    </div>
+
+    <!-- 데일리벳 -->
+    <div class="card" style="border-top:4px solid #5E35B1">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:7px">
+          <span style="font-size:20px">🩺</span>
+          <div>
+            <div class="display" style="font-size:14px;color:#5E35B1">데일리벳</div>
+            <div style="font-size:10px;color:#aaa">dailyvet.co.kr · 수의</div>
+          </div>
+        </div>
+        <a href="${esc(DAILYVET_HOME)}" target="_blank" rel="noopener"
+           style="font-size:11px;color:#5E35B1;border:1px solid #5E35B1;border-radius:6px;padding:4px 9px;text-decoration:none">
+          전체 ↗
+        </a>
+      </div>
+      ${noticeList(ns.dailyvet,"#5E35B1",ns.fallback?.dailyvet,loading)}
     </div>
 
     <!-- 해외축산 (WATT Poultry · Pig Progress 등 → 한글 번역) -->

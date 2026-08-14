@@ -1,12 +1,13 @@
 {
-  "updated": "2026-08-14 18:13 KST",
-  "updatedTs": 1786698834,
-  "ok": 6,
-  "total": 6,
+  "updated": "2026-08-14 18:34 KST",
+  "updatedTs": 1786700072,
+  "ok": 7,
+  "total": 7,
   "order": [
     "chuksan",
     "aflnews",
     "handon",
+    "dailyvet",
     "econ",
     "policy",
     "global"
@@ -129,12 +130,57 @@
       ],
       "stale": false
     },
+    "dailyvet": {
+      "name": "데일리벳",
+      "icon": "🩺",
+      "color": "#5E35B1",
+      "home": "https://www.dailyvet.co.kr/category/news",
+      "items": [
+        {
+          "title": "‘중남미 최대 시장’ 브라질에 동물약품 시장개척단 파견…총 300억원 규모 상담",
+          "url": "https://www.dailyvet.co.kr/news/industry/293312",
+          "date": "08.14 14:32",
+          "source": ""
+        },
+        {
+          "title": "대만 FASAVA 2026 단체참가자 모집..8월 31일까지 신청",
+          "url": "https://www.dailyvet.co.kr/news/academy/293280",
+          "date": "08.14 13:45",
+          "source": ""
+        },
+        {
+          "title": "건국대 동물병원, 분당리더스동물의료원·벳스템솔루션과 반려동물 첨단재생의료 연구 협력",
+          "url": "https://www.dailyvet.co.kr/news/college/293306",
+          "date": "08.14 13:16",
+          "source": ""
+        },
+        {
+          "title": "개·고양이 만성신장질환 최신 관리법은? 27일 송우진 원장 무료 웨비나 진행",
+          "url": "https://www.dailyvet.co.kr/news/academy/293296",
+          "date": "08.14 11:47",
+          "source": ""
+        },
+        {
+          "title": "[성명] 동물진료비 전수 공개? 협의 없는 강행은 제도를 만들지 못한다",
+          "url": "https://www.dailyvet.co.kr/news/policy/293274",
+          "date": "08.14 09:37",
+          "source": ""
+        }
+      ],
+      "stale": false
+    },
     "econ": {
       "name": "아시아경제",
       "icon": "💹",
       "color": "#0047A0",
       "home": "https://www.asiae.co.kr/list/economy",
       "items": [
+        {
+          "title": "두나무, 올해 2분기 영업익 235억…전년比 84.6%↓",
+          "url": "https://view.asiae.co.kr/article/2026081418152436781",
+          "date": "08.14 18:15",
+          "source": ""
+        },
         {
           "title": "교보생명, 상반기 연결 순이익 7048억원…전년비 21%↑",
           "url": "https://view.asiae.co.kr/article/2026081418022596437",
@@ -157,12 +203,6 @@
           "title": "롯데손보, 2분기 순이익 13억원…흑자전환",
           "url": "https://view.asiae.co.kr/article/2026081417180761840",
           "date": "08.14 17:18",
-          "source": ""
-        },
-        {
-          "title": "SC제일은행, 상반기 순익 '역대 최대' 4244억원…전년比 103%↑",
-          "url": "https://view.asiae.co.kr/article/2026081417063333373",
-          "date": "08.14 17:06",
           "source": ""
         }
       ],

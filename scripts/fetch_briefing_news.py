@@ -47,21 +47,24 @@ NETWORK_ERRORS = (
 )
 
 
-def get_with_proxy_fallback(session, url, timeout=20):
+def get_with_proxy_fallback(session, url, timeout=20, headers=None):
     """
     직접 연결이 네트워크 단계에서 막히면(타임아웃·연결거부) 공개 프록시를
     순서대로 거쳐 원문을 그대로 중계받는다. 프록시는 내용을 가공하지 않고
     그대로 전달하므로 RSS XML 파싱 로직은 그대로 쓸 수 있다.
+
+    headers: 소스별 헤더 덮어쓰기. 일부 사이트는 특정 UA만 골라 차단하므로
+             (SOURCES의 "headers" 참고) 그 소스에서만 다른 값을 쓴다.
     """
     try:
-        return session.get(url, timeout=timeout)
+        return session.get(url, timeout=timeout, headers=headers)
     except NETWORK_ERRORS as e:
         print("        ⚠️ 직접 연결 실패(%s) → 프록시 경유 재시도" % type(e).__name__)
 
     last_err = None
     for i, tmpl in enumerate(PROXY_TEMPLATES, 1):
         try:
-            r = session.get(tmpl(url), timeout=timeout + 10)
+            r = session.get(tmpl(url), timeout=timeout + 10, headers=headers)
             if r.status_code == 200 and len(r.content) > 200:
                 print("        ✅ 프록시 %d 성공 (%dbytes)" % (i, len(r.content)))
                 return r
@@ -229,6 +232,16 @@ SOURCES = [
      "kind": "html", "parser": parse_handon,
      "urls": ["https://www.pignpork.com/news/articleList.html?sc_section_code=S1N1&view_type=sm"]},
 
+    # 데일리벳(수의사 전문 매체, 워드프레스) — 뉴스 카테고리 피드.
+    # 이 사이트 WAF는 위 공용 HEADERS의 UA("...(KHTML, like Gecko) Chrome/125.0.0.0...")를
+    # 골라서 405로 막는다(재현 확인). UA만 짧은 형태로 바꾸면 정상 200이라 이 소스에만
+    # 덮어쓴다 — 공용 HEADERS를 건드리면 지금 잘 되는 다른 소스에 영향이 갈 수 있다.
+    {"id": "dailyvet", "name": "데일리벳", "icon": "🩺", "color": "#5E35B1",
+     "home": "https://www.dailyvet.co.kr/category/news",
+     "kind": "rss", "urls": ["https://www.dailyvet.co.kr/category/news/feed/"],
+     "headers": {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                               "AppleWebKit/537.36 Chrome/125.0 Safari/537.36"}},
+
     # 경제뉴스: 한국경제(광고 과다) → 연합인포맥스(증권방송 편성표 위주,
     # 실제 기사가 아님) → 아시아경제(개방형 경제 전문 언론사, 공식 RSS 제공)
     {"id": "econ", "name": "아시아경제", "icon": "💹", "color": "#0047A0",
@@ -261,7 +274,7 @@ def fetch_source(src, session):
 
     for url in src["urls"]:
         try:
-            r = get_with_proxy_fallback(session, url, timeout=20)
+            r = get_with_proxy_fallback(session, url, timeout=20, headers=src.get("headers"))
             ctype = r.headers.get("Content-Type", "")
             print("      → HTTP %d / %dbytes / %s" % (r.status_code, len(r.content), ctype))
             if r.status_code != 200:
