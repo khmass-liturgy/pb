@@ -1,10 +1,11 @@
 {
-  "updated": "2026-08-14 07:57 KST",
-  "updatedTs": 1786661872,
-  "ok": 4,
-  "total": 5,
+  "updated": "2026-08-14 18:13 KST",
+  "updatedTs": 1786698834,
+  "ok": 6,
+  "total": 6,
   "order": [
     "chuksan",
+    "aflnews",
     "handon",
     "econ",
     "policy",
@@ -24,14 +25,8 @@
           "source": ""
         },
         {
-          "title": "밤꿀 수매가 사상 최고…1+등급 드럼당 450만원 돌파",
-          "url": "https://www.chuksannews.co.kr/news/article.html?no=272888",
-          "date": "",
-          "source": ""
-        },
-        {
-          "title": "우유 따로 붓지 않아도 진한 풍미…‘서울우유 우유빙수’ 출시\"> 우유 따로 붓지 않아도 진한 풍미…‘서울우유 우유빙수’ 출시",
-          "url": "https://www.chuksannews.co.kr/news/article.html?no=272923",
+          "title": "한우 단기비육 정책 가속도…현장은 ‘온도차’",
+          "url": "https://www.chuksannews.co.kr/news/article.html?no=273063",
           "date": "",
           "source": ""
         },
@@ -42,9 +37,54 @@
           "source": ""
         },
         {
-          "title": "한우 단기비육 정책 가속도…현장은 ‘온도차’",
-          "url": "https://www.chuksannews.co.kr/news/article.html?no=273063",
+          "title": "우유 따로 붓지 않아도 진한 풍미…‘서울우유 우유빙수’ 출시\"> 우유 따로 붓지 않아도 진한 풍미…‘서울우유 우유빙수’ 출시",
+          "url": "https://www.chuksannews.co.kr/news/article.html?no=272923",
           "date": "",
+          "source": ""
+        },
+        {
+          "title": "대구·경북 한우 고급육 경쟁력 입증",
+          "url": "https://www.chuksannews.co.kr/news/article.html?no=273061",
+          "date": "",
+          "source": ""
+        }
+      ],
+      "stale": false
+    },
+    "aflnews": {
+      "name": "농수축산신문",
+      "icon": "🌾",
+      "color": "#EF6C00",
+      "home": "https://www.aflnews.co.kr/news/articleList.html?sc_section_code=S1N2&view_type=sm",
+      "items": [
+        {
+          "title": "동약협, 브라질에 동물용의약품 시장개척단 파견",
+          "url": "https://www.aflnews.co.kr/news/articleView.html?idxno=326388",
+          "date": "08.14 16:40",
+          "source": ""
+        },
+        {
+          "title": "한우협회, 한우농가 생산비 절감...‘자가 TMR 제조·이용 교육’",
+          "url": "https://www.aflnews.co.kr/news/articleView.html?idxno=326386",
+          "date": "08.14 16:37",
+          "source": ""
+        },
+        {
+          "title": "축과원, ‘AI·스마트 축산 기술 점검’",
+          "url": "https://www.aflnews.co.kr/news/articleView.html?idxno=326332",
+          "date": "08.14 16:01",
+          "source": ""
+        },
+        {
+          "title": "마사회, 경마유사행위 집중단속기간 운영",
+          "url": "https://www.aflnews.co.kr/news/articleView.html?idxno=326333",
+          "date": "08.14 16:00",
+          "source": ""
+        },
+        {
+          "title": "농협 고령축산물공판장, 생명 나눔 동참",
+          "url": "https://www.aflnews.co.kr/news/articleView.html?idxno=326138",
+          "date": "08.14 16:00",
           "source": ""
         }
       ],
@@ -56,6 +96,18 @@
       "color": "#AD1457",
       "home": "https://www.pignpork.com/news/articleList.html?sc_section_code=S1N1&view_type=sm",
       "items": [
+        {
+          "title": "'‘맛있는 돼지고기’의 일관된 구현... '종돈 독립'이 선진의 40년 경쟁력",
+          "url": "https://www.pignpork.com/news/articleView.html?idxno=19350",
+          "date": "",
+          "source": ""
+        },
+        {
+          "title": "자돈의 효율적인 성장을 위한 장 건강 관리, 수이셍 디에이 적용 사례",
+          "url": "https://www.pignpork.com/news/articleView.html?idxno=19337",
+          "date": "",
+          "source": ""
+        },
         {
           "title": "신생자돈 설사 예방의 넓은 방어력, 고품질 자돈 생산 솔루션 ‘엔테로포크 콜라이 AC’",
           "url": "https://www.pignpork.com/news/articleView.html?idxno=19272",
@@ -73,18 +125,6 @@
           "url": "https://www.pignpork.com/news/articleView.html?idxno=19328",
           "date": "",
           "source": ""
-        },
-        {
-          "title": "자연재해 피해 농가 보험료 부담 던다…국가책임 강화",
-          "url": "https://www.pignpork.com/news/articleView.html?idxno=19330",
-          "date": "",
-          "source": ""
-        },
-        {
-          "title": "“성과 미달 시 선납금 100% 환불”… 초기 비용 확 낮춘 ‘포토니아’ 프로모션 전개",
-          "url": "https://www.pignpork.com/news/articleView.html?idxno=19283",
-          "date": "",
-          "source": ""
         }
       ],
       "stale": false
@@ -96,33 +136,33 @@
       "home": "https://www.asiae.co.kr/list/economy",
       "items": [
         {
-          "title": "국민 쌈짓돈 200조 불투명한 운용…주택기금, 외부견제 받나",
-          "url": "https://view.asiae.co.kr/article/2026081312533149505",
-          "date": "08.14 07:00",
+          "title": "교보생명, 상반기 연결 순이익 7048억원…전년비 21%↑",
+          "url": "https://view.asiae.co.kr/article/2026081418022596437",
+          "date": "08.14 18:02",
           "source": ""
         },
         {
-          "title": "\"휴가철 위험 콕 집어\"…광복절 연휴 '여름보험' 눈길",
-          "url": "https://view.asiae.co.kr/article/2026081316104564400",
-          "date": "08.14 06:10",
+          "title": "롯데카드, 상반기 당기순이익 647억…전년比 55.5%↑",
+          "url": "https://view.asiae.co.kr/article/2026081417535877794",
+          "date": "08.14 17:53",
           "source": ""
         },
         {
-          "title": "수입물가, 2개월째 하락…순상품 교역조건, 역대 최대폭 개선",
-          "url": "https://view.asiae.co.kr/article/2026081318432002672",
-          "date": "08.14 06:00",
+          "title": "집단 잔금대출 혼란가중…은행권 '가이드라인' 요청에 정부 \"문제없다\"",
+          "url": "https://view.asiae.co.kr/article/2026081417302809320",
+          "date": "08.14 17:30",
           "source": ""
         },
         {
-          "title": "\"올해 여름 이 정도였다고?\" 24조원 날리게 생겼다…역성장까지 걱정하는 '이 나라'",
-          "url": "https://view.asiae.co.kr/article/2026081319134848061",
-          "date": "08.13 19:22",
+          "title": "롯데손보, 2분기 순이익 13억원…흑자전환",
+          "url": "https://view.asiae.co.kr/article/2026081417180761840",
+          "date": "08.14 17:18",
           "source": ""
         },
         {
-          "title": "이찬진 금감원장 취임 1년…하반기에도 '소비자보호' 고삐, ETF·GA 집중점검",
-          "url": "https://view.asiae.co.kr/article/2026081318051451627",
-          "date": "08.13 18:05",
+          "title": "SC제일은행, 상반기 순익 '역대 최대' 4244억원…전년比 103%↑",
+          "url": "https://view.asiae.co.kr/article/2026081417063333373",
+          "date": "08.14 17:06",
           "source": ""
         }
       ],
@@ -137,35 +177,35 @@
         {
           "title": "농식품 공공데이터와 인공지능(AI)으로 농업‧농촌의 현안을 해결한다",
           "url": "http://www.mafra.go.kr/bbs/home/792/578744/artclView.do",
-          "date": "",
+          "date": "08.13 14:44",
           "source": ""
         },
         {
           "title": "농업·농촌 에너지 대전환 로드맵 수립 막바지, 마지막 퍼즐 찾아 현장으로 잰걸음",
           "url": "http://www.mafra.go.kr/bbs/home/792/578745/artclView.do",
-          "date": "",
+          "date": "08.13 14:46",
           "source": ""
         },
         {
           "title": "농관원, 전담인력 1,100여 명 투입 농지 55만여 필지 심층조사 착수",
           "url": "http://www.mafra.go.kr/bbs/home/792/578743/artclView.do",
-          "date": "",
+          "date": "08.13 14:41",
           "source": ""
         },
         {
           "title": "기후위기 대응 국가책임 강화를 위한 재해2법 개정법률 8월 15일부터 시행",
           "url": "http://www.mafra.go.kr/bbs/home/792/578742/artclView.do",
-          "date": "",
+          "date": "08.13 14:39",
           "source": ""
         },
         {
           "title": "농림관계기관·전문가 한뜻... ‘꽃의 광복’으로 우리 풀꽃나무 확산 첫걸음",
           "url": "http://www.mafra.go.kr/bbs/home/792/578722/artclView.do",
-          "date": "",
+          "date": "08.12 16:12",
           "source": ""
         }
       ],
-      "stale": true
+      "stale": false
     },
     "global": {
       "name": "해외축산",
@@ -177,14 +217,14 @@
           "title": "농장을 함께 유지하려면 의지 이상의 것이 필요합니다",
           "url": "https://news.google.com/rss/articles/CBMihAFBVV95cUxOVmN5QnNWdlllSFhHUnZvZnFZaEtfVV9ieFBpaFpsS1NPOW9MTzlicjFwUXVPdXBHTHFlcmN5em9CM2JCeFcyVlFkQ1BxX0YxQlNxX2ZOX19rMFFCTkJsQko5a1hDbFZrMXRkVmQ0MzFxRzRZdzVxcWx0UGd6bm04bjZVMkc?oc=5",
           "date": "08.13 03:44",
-          "source": "Dairy Herd",
+          "source": "dairyherd.com",
           "titleEn": "Keeping the Farm Together Takes More Than a Will"
         },
         {
           "title": "Bongards의 대규모 투자: 1억 3,500만 달러 규모의 확장으로 가공 치즈의 미래에 대한 신뢰를 나타냄",
           "url": "https://news.google.com/rss/articles/CBMisAFBVV95cUxOVUhvbjhQcGl4VDYxZHJ4OUxSLUFTTlBmQm1jYUpiN19aMkwyYklHN281VmphcVhSVEcwclpOdFNqazhMRzRJc2JXYTJTdWpZc1gxaXdsckZ3RXdzUVpsV0h4YkU2bnZwMWV3aWxSVEo3eUp1TUtCMDVGd013SFhoZllPaVlDNTJTTEFCaEF3SDJQMHV5VWxGZmNEYXlCRFFrdXFyX3ZJMFlVd29lMlFHSw?oc=5",
           "date": "08.12 01:23",
-          "source": "Dairy Herd",
+          "source": "dairyherd.com",
           "titleEn": "Bongards Bets Big: $135 Million Expansion Signals Confidence in Process Cheese Future"
         },
         {
@@ -195,17 +235,17 @@
           "titleEn": "Cattle prices haven’t hit the ceiling yet"
         },
         {
-          "title": "SNAP에 대한 상원 농업 위원회에서 농장 법안이 정체 상태입니다. 이제 무엇을?",
+          "title": "SNAP에 대한 상원 농업 위원회에서 농장 법안이 교착 상태에 빠졌습니다. 이제 무엇을?",
           "url": "https://news.google.com/rss/articles/CBMimAFBVV95cUxNOTlBSVZoY1VILTVJai00RVJNR2dWcGFPbWZSQ0kxdkFCeTBMNldQVjgwRWVkbS04aGhuVnA3eXgtLVN2WjNhWnlTVzR2M3Z2ZVVrUmlaQ09HVFNtYU5UaW12dXY2NEV1Z1FqZFRzRUEzWGZObWE4TTgySjBLaktXQlZIZHhYamJidzZyeXVRYmQ3VG9sNkhpeQ?oc=5",
           "date": "08.07 21:03",
-          "source": "Dairy Herd",
+          "source": "dairyherd.com",
           "titleEn": "Farm Bill Stalls in Senate Ag Committee Over SNAP. Now What?"
         },
         {
           "title": "미국 데어리 아이즈 아프리카 성장: 케냐와 세네갈이 차세대 수출 개척국인 이유",
           "url": "https://news.google.com/rss/articles/CBMipgFBVV95cUxPcDBfSzVkR0o3U3lPWm1Ub29pQmtfZmpXbUFZVWFLSTVnN2FKME1rY1gzd1pqQXRXaEllWGNXb1VibXpOTWM2MDQ3ajNSLUYtSTNZZXV0UGdNNGVmbkhoQ2RucG91U2JXTzd4UzFHRVZHLUhTY1VkRnlDT2ZmSF9SbFZ0NEZaT2NlSXBrRDRPM0owZHprRUNJbGszeElNVk5QNWlHV3p3?oc=5",
           "date": "08.07 21:25",
-          "source": "Dairy Herd",
+          "source": "dairyherd.com",
           "titleEn": "U.S. Dairy Eyes Africa Growth: Why Kenya, Senegal Are Next Export Frontiers"
         }
       ],

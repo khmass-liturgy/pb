@@ -88,11 +88,19 @@ def kst_label(dt):
     return dt.astimezone(KST).strftime("%m.%d %H:%M")
 
 
-def rfc822(s):
+def parse_pubdate(s):
+    s = (s or "").strip()
     try:
-        return parsedate_to_datetime(s.strip())
+        return parsedate_to_datetime(s)
     except Exception:
-        return None
+        pass
+    # 농수축산신문 등 일부 국내 RSS는 시간대 없는 "2026-08-14 16:40:56" 형식이다.
+    # 발행사가 한국이므로 KST로 못박아야 kst_label()이 UTC로 오인해 9시간 밀리지 않는다.
+    m = re.match(r"(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?", s)
+    if m:
+        y, mo, d, hh, mi, ss = m.groups()
+        return datetime(int(y), int(mo), int(d), int(hh), int(mi), int(ss or 0), tzinfo=KST)
+    return None
 
 
 # ── 파서: RSS 2.0 ────────────────────────────────────────────────────────────
@@ -118,7 +126,7 @@ def parse_rss(xml, limit, strip_source=False):
 
         seen.add(link)
         items.append({"title": title, "url": link,
-                      "date": kst_label(rfc822(pick("pubDate"))), "source": source})
+                      "date": kst_label(parse_pubdate(pick("pubDate"))), "source": source})
         if len(items) >= limit:
             break
     return items
@@ -209,6 +217,12 @@ SOURCES = [
      "home": "https://www.chuksannews.co.kr/news/section_list_all.html?sec_no=2",
      "kind": "html", "parser": parse_chuksan,
      "urls": ["https://www.chuksannews.co.kr/news/section_list_all.html?sec_no=2"]},
+
+    # 농수축산신문: 농업·수산·축산을 함께 다뤄 전체기사에는 축산 외 기사가 많이 섞인다.
+    # 축산 섹션(S1N2) 전용 RSS를 쓰면 이 대시보드에 맞는 기사만 들어온다.
+    {"id": "aflnews", "name": "농수축산신문", "icon": "🌾", "color": "#EF6C00",
+     "home": "https://www.aflnews.co.kr/news/articleList.html?sc_section_code=S1N2&view_type=sm",
+     "kind": "rss", "urls": ["https://www.aflnews.co.kr/rss/S1N2.xml"]},
 
     {"id": "handon", "name": "한돈뉴스", "icon": "🐷", "color": "#AD1457",
      "home": "https://www.pignpork.com/news/articleList.html?sc_section_code=S1N1&view_type=sm",

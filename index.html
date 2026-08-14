@@ -549,8 +549,8 @@ const NOTICE_FALLBACK = {
 
 let noticesState = {
   status:"idle",
-  chuksan:[], handon:[], econ:[], policy:[], global:[],
-  fallback:{ chuksan:false, handon:false, econ:false, policy:false, global:false },
+  chuksan:[], aflnews:[], handon:[], econ:[], policy:[], global:[],
+  fallback:{ chuksan:false, aflnews:false, handon:false, econ:false, policy:false, global:false },
   meta:{},          // 서버 수집 파일의 소스별 메타(name/home/stale)
   srcUpdated:"",    // 서버 수집 시각
   updatedAt:"",
@@ -664,6 +664,28 @@ function parseGenericRSS(xml){
 }
 
 
+// 농수축산신문(ndsoft CMS) 축산 섹션 RSS.
+// pubDate가 시간대 표기 없는 KST("2026-08-14 16:40:56")라 fmtKST에 넘기면
+// UTC로 해석돼 9시간 밀린다 → 문자열을 그대로 잘라 쓴다.
+const AFL_RSS  = "https://www.aflnews.co.kr/rss/S1N2.xml";
+const AFL_NAME = "농수축산신문";
+const AFL_HOME = "https://www.aflnews.co.kr/news/articleList.html?sc_section_code=S1N2&view_type=sm";
+
+function parseAflRSS(xml){
+  const doc = new DOMParser().parseFromString(xml, "text/xml");
+  const out = [], seen = new Set();
+  doc.querySelectorAll("item").forEach(it=>{
+    const title = (it.querySelector("title")?.textContent || "").replace(/\s+/g," ").trim();
+    const url   = (it.querySelector("link")?.textContent || "").trim();
+    if(!title || title.length<6 || !url || seen.has(url)) return;
+    seen.add(url);
+    const raw = (it.querySelector("pubDate")?.textContent || "").trim();
+    const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/);
+    out.push({title, date: m ? `${m[2]}.${m[3]} ${m[4]}:${m[5]}` : fmtKST(raw), url});
+  });
+  return out.slice(0,5);
+}
+
 // ── 공용 CORS 프록시 풀 ─────────────────────────────────────────────────────
 // 무료 프록시는 각각 분당/초당 호출 제한이 있음 (AllOrigins 20/분, CodeTabs 5/초 등).
 // 매 호출마다 시작 프록시를 회전시켜 한 곳에 부하가 몰리지 않게 분산한다.
@@ -745,12 +767,13 @@ async function fetchNotices(force){
     const c = loadNoticeCache();
     if(c && (Date.now() - c.ts) < NOTICE_TTL){
       noticesState.chuksan = c.chuksan || NOTICE_FALLBACK.chuksan;
+      noticesState.aflnews = c.aflnews || [];
       noticesState.handon  = c.handon  || NOTICE_FALLBACK.handon;
       noticesState.econ    = c.econ    || [];
       noticesState.policy  = c.policy  || [];
       noticesState.global  = c.global  || [];
       noticesState.meta    = c.meta    || {};
-      noticesState.fallback = c.fallback || {chuksan:false,handon:false,econ:false,policy:false,global:false};
+      noticesState.fallback = c.fallback || {chuksan:false,aflnews:false,handon:false,econ:false,policy:false,global:false};
       noticesState.updatedAt = c.updatedAt || "";
       noticesState.status = "done";
       console.log("뉴스: 캐시 사용 (프록시 호출 0회)");
@@ -768,15 +791,17 @@ async function fetchNotices(force){
       const d = await resp.json();
       const S = d.sources || {};
       const pick = (id)=> (S[id] && Array.isArray(S[id].items)) ? S[id].items : null;
-      const ch = pick("chuksan"), hd = pick("handon"), ec = pick("econ"), po = pick("policy"), gl = pick("global");
-      if((ch&&ch.length) || (hd&&hd.length) || (ec&&ec.length) || (po&&po.length) || (gl&&gl.length)){
+      const ch = pick("chuksan"), af = pick("aflnews"), hd = pick("handon"), ec = pick("econ"), po = pick("policy"), gl = pick("global");
+      if((ch&&ch.length) || (af&&af.length) || (hd&&hd.length) || (ec&&ec.length) || (po&&po.length) || (gl&&gl.length)){
         noticesState.chuksan = ch && ch.length ? ch : NOTICE_FALLBACK.chuksan;
+        noticesState.aflnews = af || [];
         noticesState.handon  = hd && hd.length ? hd : NOTICE_FALLBACK.handon;
         noticesState.econ    = ec || [];
         noticesState.policy  = po || [];
         noticesState.global  = gl || [];
         noticesState.fallback = {
           chuksan: !(ch&&ch.length) || !!(S.chuksan&&S.chuksan.stale),
+          aflnews: !(af&&af.length) || !!(S.aflnews&&S.aflnews.stale),
           handon:  !(hd&&hd.length) || !!(S.handon &&S.handon.stale),
           econ:    !!(S.econ  &&S.econ.stale),
           policy:  !!(S.policy&&S.policy.stale),
@@ -787,7 +812,8 @@ async function fetchNotices(force){
         noticesState.updatedAt  = (d.updated||"").replace(/^\d{4}-/,"").replace(" KST","");
         noticesState.status = "done";
         saveNoticeCache({
-          ts: Date.now(), chuksan:noticesState.chuksan, handon:noticesState.handon,
+          ts: Date.now(), chuksan:noticesState.chuksan, aflnews:noticesState.aflnews,
+          handon:noticesState.handon,
           econ:noticesState.econ, policy:noticesState.policy, global:noticesState.global,
           fallback:noticesState.fallback, meta:S, updatedAt:noticesState.updatedAt,
         });
@@ -801,18 +827,22 @@ async function fetchNotices(force){
   // ── ② 폴백: 브라우저에서 직접 수집 (프록시 사용) ────────────────────────
   console.log("뉴스: 서버 파일 없음 → 브라우저 직접 수집으로 전환");
   if(state.tab==="briefing") render();
-  const [pr,cr,er,or_]=await Promise.allSettled([
+  const [pr,ar,cr,er,or_]=await Promise.allSettled([
     fetchOneSite("https://www.chuksannews.co.kr/news/section_list_all.html?sec_no=2", parseChuksanHTML, "축산신문"),
+    fetchOneSite(AFL_RSS, parseAflRSS, AFL_NAME),
     fetchOneSite("https://www.pignpork.com/news/articleList.html?sc_section_code=S1N1&view_type=sm", parseHandonHTML, "한돈뉴스"),
     fetchEconNews(),
     fetchPolicyNews(),
   ]);
   const pv=pr.status==="fulfilled"?pr.value:{items:null,fallback:true};
+  const av=ar.status==="fulfilled"?ar.value:{items:null,fallback:true};
   const cv=cr.status==="fulfilled"?cr.value:{items:null,fallback:true};
   const ev=er.status==="fulfilled"?er.value:{items:null,fallback:true};
   const ov=or_.status==="fulfilled"?or_.value:{items:null,fallback:true};
   noticesState.chuksan  = pv.items||NOTICE_FALLBACK.chuksan;
   noticesState.fallback.chuksan = pv.fallback;
+  noticesState.aflnews  = av.items||[];
+  noticesState.fallback.aflnews = av.fallback;
   noticesState.handon   = cv.items||NOTICE_FALLBACK.handon;
   noticesState.fallback.handon = cv.fallback;
   noticesState.econ     = ev.items||[];
@@ -826,7 +856,7 @@ async function fetchNotices(force){
   noticesState.status   = "done";
   saveNoticeCache({
     ts: Date.now(),
-    chuksan: noticesState.chuksan, handon: noticesState.handon,
+    chuksan: noticesState.chuksan, aflnews: noticesState.aflnews, handon: noticesState.handon,
     econ: noticesState.econ, policy: noticesState.policy, global: noticesState.global,
     fallback: noticesState.fallback, updatedAt: noticesState.updatedAt,
   });
@@ -4009,7 +4039,7 @@ function renderNoticesSection(){
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
     <div>
       <div class="display" style="font-size:16px">📰 축산 뉴스 · 경제동향</div>
-      <div style="font-size:10px;color:#aaa;margin-top:3px">축산신문 · 한돈뉴스 · 해외축산 · 아시아경제 최신 5건</div>
+      <div style="font-size:10px;color:#aaa;margin-top:3px">축산신문 · 농수축산신문 · 한돈뉴스 · 해외축산 · 아시아경제 최신 5건</div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
       <span style="font-size:10px;color:#888">${timeLabel}</span>
@@ -4038,6 +4068,24 @@ function renderNoticesSection(){
         </a>
       </div>
       ${noticeList(ns.chuksan,"#C62828",ns.fallback?.chuksan,loading)}
+    </div>
+
+    <!-- 농수축산신문 -->
+    <div class="card" style="border-top:4px solid #EF6C00">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:7px">
+          <span style="font-size:20px">🌾</span>
+          <div>
+            <div class="display" style="font-size:14px;color:#EF6C00">농수축산신문</div>
+            <div style="font-size:10px;color:#aaa">aflnews.co.kr · 축산</div>
+          </div>
+        </div>
+        <a href="${esc(AFL_HOME)}" target="_blank" rel="noopener"
+           style="font-size:11px;color:#EF6C00;border:1px solid #EF6C00;border-radius:6px;padding:4px 9px;text-decoration:none">
+          전체 ↗
+        </a>
+      </div>
+      ${noticeList(ns.aflnews,"#EF6C00",ns.fallback?.aflnews,loading)}
     </div>
 
     <!-- 한돈뉴스 -->
