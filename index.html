@@ -686,13 +686,15 @@ function parseAflRSS(xml){
   return out.slice(0,5);
 }
 
-// 데일리벳(수의사 전문 매체, 워드프레스) 뉴스 카테고리 피드.
+// 데일리벳(수의사 전문 매체, 워드프레스) — 축산 관련 3개 카테고리만 받는다:
+// 검역/방역/위생 · 산업 · 동물복지 (반려동물 임상·수의대 소식 등은 제외).
+// 워드프레스 category_name의 쉼표는 OR라서 한 번의 요청으로 세 카테고리가 나온다.
 // pubDate가 RFC822(+0000)라 범용 RSS 파서를 그대로 쓴다.
 // 서버 수집 쪽은 이 사이트 WAF가 특정 UA를 405로 막아 UA를 따로 지정하지만,
 // 브라우저 폴백은 CORS 프록시가 자기 UA로 요청하므로 그 문제와 무관하다.
-const DAILYVET_RSS  = "https://www.dailyvet.co.kr/category/news/feed/";
+const DAILYVET_RSS  = "https://www.dailyvet.co.kr/feed/?category_name=prevention-hygiene,industry,animalwelfare";
 const DAILYVET_NAME = "데일리벳";
-const DAILYVET_HOME = "https://www.dailyvet.co.kr/category/news";
+const DAILYVET_HOME = "https://www.dailyvet.co.kr/category/news/prevention-hygiene";
 
 // ── 공용 CORS 프록시 풀 ─────────────────────────────────────────────────────
 // 무료 프록시는 각각 분당/초당 호출 제한이 있음 (AllOrigins 20/분, CodeTabs 5/초 등).
@@ -4129,7 +4131,7 @@ function renderNoticesSection(){
           <span style="font-size:20px">🩺</span>
           <div>
             <div class="display" style="font-size:14px;color:#5E35B1">데일리벳</div>
-            <div style="font-size:10px;color:#aaa">dailyvet.co.kr · 수의</div>
+            <div style="font-size:10px;color:#aaa">방역·산업·동물복지</div>
           </div>
         </div>
         <a href="${esc(DAILYVET_HOME)}" target="_blank" rel="noopener"

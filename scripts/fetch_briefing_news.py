@@ -232,13 +232,22 @@ SOURCES = [
      "kind": "html", "parser": parse_handon,
      "urls": ["https://www.pignpork.com/news/articleList.html?sc_section_code=S1N1&view_type=sm"]},
 
-    # 데일리벳(수의사 전문 매체, 워드프레스) — 뉴스 카테고리 피드.
+    # 데일리벳(수의사 전문 매체, 워드프레스) — 뉴스 중 축산과 직접 관련된
+    # 3개 카테고리만: 검역/방역/위생(prevention-hygiene) · 산업(industry) ·
+    # 동물복지(animalwelfare). 반려동물 임상·수의대 소식 등은 제외된다.
+    #
+    # 워드프레스 category_name은 쉼표가 OR라 한 번의 요청으로 세 카테고리를 받는다.
+    # 숫자 ID(?cat=5,8,10)도 결과가 같지만, ID는 사이트 재구축 시 조용히 바뀔 수
+    # 있어 슬러그 방식을 쓴다.
+    # 주의: 기사 URL의 /news/<슬러그>/ 는 "대표" 카테고리라서 policy 등으로 보일 수
+    # 있는데, 그런 기사도 위 3개 중 하나에 교차 등록된 것이라 정상이다(확인함).
     # 이 사이트 WAF는 위 공용 HEADERS의 UA("...(KHTML, like Gecko) Chrome/125.0.0.0...")를
     # 골라서 405로 막는다(재현 확인). UA만 짧은 형태로 바꾸면 정상 200이라 이 소스에만
     # 덮어쓴다 — 공용 HEADERS를 건드리면 지금 잘 되는 다른 소스에 영향이 갈 수 있다.
     {"id": "dailyvet", "name": "데일리벳", "icon": "🩺", "color": "#5E35B1",
-     "home": "https://www.dailyvet.co.kr/category/news",
-     "kind": "rss", "urls": ["https://www.dailyvet.co.kr/category/news/feed/"],
+     "home": "https://www.dailyvet.co.kr/category/news/prevention-hygiene",
+     "kind": "rss", "urls": ["https://www.dailyvet.co.kr/feed/"
+                             "?category_name=prevention-hygiene,industry,animalwelfare"],
      "headers": {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
                                "AppleWebKit/537.36 Chrome/125.0 Safari/537.36"}},
 
