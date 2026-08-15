@@ -1,7 +1,7 @@
 {
-  "updated": "2026-08-15 08:33 KST",
-  "updatedTs": 1786750415,
-  "ok": 5,
+  "updated": "2026-08-16 08:32 KST",
+  "updatedTs": 1786836721,
+  "ok": 6,
   "total": 7,
   "order": [
     "chuksan",
@@ -20,12 +20,6 @@
       "home": "https://www.chuksannews.co.kr/news/section_list_all.html?sec_no=2",
       "items": [
         {
-          "title": "한우농가, 1년 새 약 3천700호 감소",
-          "url": "https://www.chuksannews.co.kr/news/article.html?no=272924",
-          "date": "",
-          "source": ""
-        },
-        {
           "title": "한우 단기비육 정책 가속도…현장은 ‘온도차’",
           "url": "https://www.chuksannews.co.kr/news/article.html?no=273063",
           "date": "",
@@ -38,14 +32,20 @@
           "source": ""
         },
         {
-          "title": "우유 따로 붓지 않아도 진한 풍미…‘서울우유 우유빙수’ 출시\"> 우유 따로 붓지 않아도 진한 풍미…‘서울우유 우유빙수’ 출시",
-          "url": "https://www.chuksannews.co.kr/news/article.html?no=272923",
+          "title": "대구·경북 한우 고급육 경쟁력 입증",
+          "url": "https://www.chuksannews.co.kr/news/article.html?no=273061",
           "date": "",
           "source": ""
         },
         {
-          "title": "대구·경북 한우 고급육 경쟁력 입증",
-          "url": "https://www.chuksannews.co.kr/news/article.html?no=273061",
+          "title": "제주서 미경산 도체중 751kg 출현… 역대 최고 기록 경신",
+          "url": "https://www.chuksannews.co.kr/news/article.html?no=272971",
+          "date": "",
+          "source": ""
+        },
+        {
+          "title": "ASF 방역대 대폭 축소 현실화",
+          "url": "https://www.chuksannews.co.kr/news/article.html?no=272960",
           "date": "",
           "source": ""
         }
@@ -176,33 +176,33 @@
       "home": "https://www.asiae.co.kr/list/economy",
       "items": [
         {
-          "title": "\"유럽에서도 1조달러 빅테크 나온다\"…혜성처럼 등장한 이 회사 정체 [테크토크]",
-          "url": "https://view.asiae.co.kr/article/2026081315375059036",
-          "date": "08.15 07:10",
+          "title": "\"심리상담 받고 싶은데 돈 많이 드나?\"…최대 64만원 지원받는 법 [혜택의 정석]",
+          "url": "https://view.asiae.co.kr/article/2026081410392125856",
+          "date": "08.16 07:34",
           "source": ""
         },
         {
-          "title": "부산서 맞붙는 장보기 배송전…롯데마트 '물류센터' vs SSG닷컴 '점포망'",
-          "url": "https://view.asiae.co.kr/article/2026081416271533105",
-          "date": "08.15 07:00",
+          "title": "\"반년 월급 모으면 청담동 펜트하우스 산다\"…227억 받은 직장인 정체",
+          "url": "https://view.asiae.co.kr/article/2026081514174818617",
+          "date": "08.15 14:26",
           "source": ""
         },
         {
-          "title": "\"하루아침에 14조원 생겼다\" 환호…美기업들 관세 환급 '잭팟'",
-          "url": "https://view.asiae.co.kr/article/2026081421180530158",
-          "date": "08.14 22:00",
+          "title": "\"초고액체납자는 특별 세무조사\"…국세청, 전담팀 신설해 전방위 압박 나선 국세청",
+          "url": "https://view.asiae.co.kr/article/2026081511360381668",
+          "date": "08.15 11:36",
           "source": ""
         },
         {
-          "title": "美주식 대체 뭘 샀길래…국민연금 석 달 만에 33조원 불렸다",
-          "url": "https://view.asiae.co.kr/article/2026081419000314715",
-          "date": "08.14 20:18",
+          "title": "주유소 기름값 13주째 하락…휘발유 1864.1원·경유 1847원",
+          "url": "https://view.asiae.co.kr/article/2026081510483639532",
+          "date": "08.15 10:48",
           "source": ""
         },
         {
-          "title": "\"진짜 국민주였네\" 대한민국 성인 5명 중 1명은 삼성전자 소액주주",
-          "url": "https://view.asiae.co.kr/article/2026081418243154860",
-          "date": "08.14 19:30",
+          "title": "과거에도 이러다 폭등했는데…이번 놓치면 후회? 전문가들 \"금 아직 싸다\"[주末머니]",
+          "url": "https://view.asiae.co.kr/article/2026081409181024339",
+          "date": "08.15 10:09",
           "source": ""
         }
       ],
@@ -245,7 +245,7 @@
           "source": ""
         }
       ],
-      "stale": true
+      "stale": false
     },
     "global": {
       "name": "해외축산",
@@ -253,6 +253,13 @@
       "color": "#00695C",
       "home": "https://news.google.com/search?q=%28site%3Awattagnet.com%20OR%20site%3Apigprogress.net%20OR%20site%3Athepoultrysite.com%20OR%20site%3Athepigsite.com%20OR%20site%3Abeefmagazine.com%20OR%20site%3Afeedstrategy.com%20OR%20site%3Adairyherd.com%29%20when%3A10d&hl=en-US&gl=US&ceid=US:en",
       "items": [
+        {
+          "title": "타이슨은 더블 다운",
+          "url": "https://news.google.com/rss/articles/CBMia0FVX3lxTE44dVpiZTBLaVRLUkxsQ1gybVltQjJCaC0zUG90VTVPbnJJT2RtUnVaTHNvbWh4a0tyMU1RaGZzV3JJSVVXbElmZ3BFQVdaanhqNm51YTNORmJ3d28yZHJoZGc2UjZ4S0xVanAw?oc=5",
+          "date": "08.15 00:22",
+          "source": "Beef Magazine",
+          "titleEn": "Tyson doubles down"
+        },
         {
           "title": "Bongards의 대규모 투자: 1억 3,500만 달러 규모의 확장으로 가공 치즈의 미래에 대한 신뢰를 나타냄",
           "url": "https://news.google.com/rss/articles/CBMisAFBVV95cUxOVUhvbjhQcGl4VDYxZHJ4OUxSLUFTTlBmQm1jYUpiN19aMkwyYklHN281VmphcVhSVEcwclpOdFNqazhMRzRJc2JXYTJTdWpZc1gxaXdsckZ3RXdzUVpsV0h4YkU2bnZwMWV3aWxSVEo3eUp1TUtCMDVGd013SFhoZllPaVlDNTJTTEFCaEF3SDJQMHV5VWxGZmNEYXlCRFFrdXFyX3ZJMFlVd29lMlFHSw?oc=5",
@@ -268,18 +275,11 @@
           "titleEn": "Cattle prices haven’t hit the ceiling yet"
         },
         {
-          "title": "SNAP에 대한 상원 농업 위원회에서 농장 법안이 교착 상태에 빠졌습니다. 이제 무엇을?",
-          "url": "https://news.google.com/rss/articles/CBMimAFBVV95cUxNOTlBSVZoY1VILTVJai00RVJNR2dWcGFPbWZSQ0kxdkFCeTBMNldQVjgwRWVkbS04aGhuVnA3eXgtLVN2WjNhWnlTVzR2M3Z2ZVVrUmlaQ09HVFNtYU5UaW12dXY2NEV1Z1FqZFRzRUEzWGZObWE4TTgySjBLaktXQlZIZHhYamJidzZyeXVRYmQ3VG9sNkhpeQ?oc=5",
-          "date": "08.07 21:03",
-          "source": "Dairy Herd",
-          "titleEn": "Farm Bill Stalls in Senate Ag Committee Over SNAP. Now What?"
-        },
-        {
-          "title": "Herbruck's Poultry Ranch는 창업 68주년을 기념합니다.",
-          "url": "https://news.google.com/rss/articles/CBMioAFBVV95cUxOS19yeG5FTmUta29oczVYdnJFMVZyMThIU1dxRXprb2t2alJUZVB5WEdwSmpZM2ZLcGp0YTA2ZHlsX0U1eFVpLUt6RG9jaTJzd2dCUXoya245RUFrbnhxem1TWGdjLW15TGVHNjdaS0xKaDExY3Q5YTU0ODRRdmxGMDhlVnNBeVZDaDViWjJHR05RckV4SXJBbmJ1T0VNTE81?oc=5",
-          "date": "08.11 10:31",
+          "title": "Tyson Foods, 쇠고기 공장 2곳 폐쇄, 소 부족으로 3분의 1 매각",
+          "url": "https://news.google.com/rss/articles/CBMi4gFBVV95cUxQRVZpNDdkeE50YWdMM2xTWnF4NWVMTXFsWjZvaTlfakRHTU5ZV1h0T2hfQ0dtX0wwREJxcUUtOV84bTZjRXV1YjgzT3JJYTNXU1NhbjNBd3dOZjRyYnRhaUY3MGxpVUJ2MUVDbnBZU3BKSW9DeHVaQm1RbHp0QWEyM08xSDBzU0otc0NIc0ZIaC01YXBTODAxLW1wQXJLeHU0ZmdiUmI4RThvVUZuTzBCQzRSa1ZaTjl6VFdHbkp1UFktVTRKZm16LUcwa1REbDdydF9wakFucHFvV21nLWhKa3hn?oc=5",
+          "date": "08.15 03:32",
           "source": "WATTPoultry.com",
-          "titleEn": "Herbruck's Poultry Ranch celebrates 68 years in business"
+          "titleEn": "Tyson Foods to close two beef plants, sell a third amid cattle shortage"
         },
         {
           "title": "2026년 식품 안전 리콜이 가금류 산업에 주는 교훈",
