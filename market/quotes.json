@@ -1,6 +1,6 @@
 {
-  "updated": "2026-08-18 05:55 KST",
-  "updatedTs": 1787000114,
+  "updated": "2026-08-18 06:28 KST",
+  "updatedTs": 1787002102,
   "ok": 17,
   "total": 17,
   "quotes": {
@@ -215,7 +215,7 @@
     },
     "brent": {
       "symbol": "BZ=F",
-      "current": 91.05,
+      "current": 91.1,
       "prev": 88.52,
       "trend": [
         90.12,
@@ -229,12 +229,12 @@
         88.98,
         87.07,
         88.52,
-        91.05
+        91.1
       ]
     },
     "wti": {
       "symbol": "CL=F",
-      "current": 84.91,
+      "current": 84.95,
       "prev": 82.4,
       "trend": [
         84.67,
@@ -248,12 +248,12 @@
         83.27,
         81.25,
         82.4,
-        84.91
+        84.95
       ]
     },
     "usdkrw": {
       "symbol": "USDKRW=X",
-      "current": 1415.77,
+      "current": 1414.92,
       "prev": 1416.85,
       "trend": [
         1435.7,
@@ -267,12 +267,12 @@
         1416.46,
         1416.85,
         1415.37,
-        1415.77
+        1414.92
       ]
     },
     "jpykrw": {
       "symbol": "JPYKRW=X",
-      "current": 8.86,
+      "current": 8.85,
       "prev": 8.89,
       "trend": [
         9.11,
@@ -291,7 +291,7 @@
     },
     "eurkrw": {
       "symbol": "EURKRW=X",
-      "current": 1638.4,
+      "current": 1637.6,
       "prev": 1634.19,
       "trend": [
         1663.51,
@@ -305,15 +305,15 @@
         1632.86,
         1634.19,
         1582.09,
-        1638.4
+        1637.6
       ]
     },
     "cnykrw": {
       "symbol": "CNYKRW=X",
-      "current": 210.1,
+      "current": 210.0,
       "prev": 210.03,
       "trend": [
-        210.1
+        210.0
       ]
     }
   }
