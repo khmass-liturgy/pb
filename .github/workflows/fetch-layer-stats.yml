@@ -1,0 +1,65 @@
+name: 산란계 사육수 수집
+
+on:
+  schedule:
+    # 원본(mtrace 통계누리 DT_1EO415)은 분기 통계다. 정확히 3개월에 한 번만 돌리면
+    # 그날 아직 공표 전이면 다음 실행까지 3개월을 통째로 놓치므로, 매월 5일에 확인만
+    # 하고 내용이 그대로면 커밋하지 않는다. 결과적으로 갱신은 분기마다 일어난다.
+    # 01:00 UTC = 매월 5일 한국시간 10:00
+    - cron: "0 1 5 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-layer-stats:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Python 설정
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: 패키지 설치
+        run: pip install requests
+
+      - name: 산란계 사육수 수집
+        run: python scripts/fetch_layer_stats.py
+
+      - name: 결과 검증
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d = json.loads(Path("layer_stats/latest.json").read_text(encoding="utf-8"))
+          n = d["national"]
+          assert isinstance(n["total"], int) and n["total"] > 0
+          # 전국 산란계는 6천만~1억 마리 규모다. 이 범위를 벗어나면 표 구조가
+          # 바뀌어 엉뚱한 열을 읽었을 가능성이 크므로 커밋 전에 막는다.
+          assert 60_000_000 < n["total"] < 100_000_000, n["total"]
+          # 월령 3구간 합이 합계와 맞아야 열 정렬이 어긋나지 않은 것
+          parts = [n["under3m"], n["m3to6"], n["over6m"]]
+          if all(p is not None for p in parts):
+              assert sum(parts) == n["total"], (parts, n["total"])
+          assert d["regions"], "시도별 데이터 없음"
+          assert all(r["total"] > 0 for r in d["regions"])
+          print("검증 통과:", d["period"], format(n["total"], ","))
+          PY
+
+      - name: 결과 커밋
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add layer_stats/
+          git diff --staged --quiet && echo "변경 없음 (새 분기 미공표)" && exit 0
+          git commit -m "🐔 산란계 사육수 갱신 ($(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M KST'))"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin ${GITHUB_REF_NAME} && git push && exit 0
+            echo "푸시 재시도 $i"
+            sleep 5
+          done
+          exit 1

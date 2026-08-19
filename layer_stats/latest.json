@@ -1,0 +1,114 @@
+{
+  "updated": "2026-08-19 22:58 KST",
+  "period": "2026 2/4",
+  "period_code": "202602",
+  "prev_period": "2026 1/4",
+  "source": "축산물품질평가원 축산유통 통계누리",
+  "table": "(산란계)닭 시도, 월령별 마리수",
+  "url": "https://mtrace.go.kr/stats/stp/dtl/stl/xtlStatsList.do",
+  "national": {
+    "total": 78985355,
+    "prev": 77747119,
+    "diff": 1238236,
+    "pct": 1.6,
+    "under3m": 13202111,
+    "m3to6": 9607574,
+    "over6m": 56175670,
+    "listed_sum": 77810647,
+    "etc": 1174708
+  },
+  "regions": [
+    {
+      "name": "경기",
+      "total": 19228319,
+      "prev": 17719209,
+      "pct": 8.5,
+      "share": 24.3
+    },
+    {
+      "name": "경북",
+      "total": 15674990,
+      "prev": 15532131,
+      "pct": 0.9,
+      "share": 19.8
+    },
+    {
+      "name": "충남",
+      "total": 11337546,
+      "prev": 10817883,
+      "pct": 4.8,
+      "share": 14.4
+    },
+    {
+      "name": "경남",
+      "total": 7610028,
+      "prev": 8459544,
+      "pct": -10.0,
+      "share": 9.6
+    },
+    {
+      "name": "충북",
+      "total": 6225953,
+      "prev": 5681833,
+      "pct": 9.6,
+      "share": 7.9
+    },
+    {
+      "name": "전남",
+      "total": 5770429,
+      "prev": 5241655,
+      "pct": 10.1,
+      "share": 7.3
+    },
+    {
+      "name": "강원",
+      "total": 4205313,
+      "prev": 4153914,
+      "pct": 1.2,
+      "share": 5.3
+    },
+    {
+      "name": "전북",
+      "total": 3307361,
+      "prev": 4712779,
+      "pct": -29.8,
+      "share": 4.2
+    },
+    {
+      "name": "세종",
+      "total": 2394161,
+      "prev": 2375513,
+      "pct": 0.8,
+      "share": 3.0
+    },
+    {
+      "name": "대구",
+      "total": 1293700,
+      "prev": 1244200,
+      "pct": 4.0,
+      "share": 1.6
+    },
+    {
+      "name": "울산",
+      "total": 361625,
+      "prev": 382600,
+      "pct": -5.5,
+      "share": 0.5
+    },
+    {
+      "name": "인천",
+      "total": 317722,
+      "prev": 322315,
+      "pct": -1.4,
+      "share": 0.4
+    },
+    {
+      "name": "광주",
+      "total": 83500,
+      "prev": 83500,
+      "pct": 0.0,
+      "share": 0.1
+    }
+  ],
+  "stale": false
+}

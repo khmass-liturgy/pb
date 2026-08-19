@@ -512,6 +512,8 @@ const PRICES_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/mai
 
 // ── 주간 계란 수급 정보 (GitHub Actions → egg_report/latest.json) ───────────
 const EGG_REPORT_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/egg_report/latest.json";
+// 산란계 사육 마리수(분기) — mtrace 통계누리 DT_1EO415를 scripts/fetch_layer_stats.py가 모아둔 파일
+const LAYER_STATS_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/layer_stats/latest.json";
 const EGG_REPORT_SOURCE_URL = "https://www.ekapepia.com/v3/board/list.do?menuSn=51&boardInfoNo=0159";
 
 // ── 주가·환율·곡물 시세 (GitHub Actions → market/quotes.json) ────────────────
@@ -1022,6 +1024,23 @@ async function fetchEggReport(){
   }
   if(state.tab === "price") render();
 }
+let layerStatsState = { status: "idle", data: null }; // idle|loading|done|error
+
+async function fetchLayerStats(){
+  if(layerStatsState.status === "loading") return;
+  layerStatsState.status = "loading";
+  try {
+    const resp = await fetchWithTimeout(LAYER_STATS_JSON_URL + "?t=" + Date.now(), 8000);
+    if(!resp.ok) throw new Error("HTTP " + resp.status);
+    layerStatsState.data   = await resp.json();
+    layerStatsState.status = "done";
+  } catch(e) {
+    console.warn("산란계 사육수 로딩 실패:", e);
+    layerStatsState.status = "error";
+  }
+  if(state.tab === "price") render();
+}
+
 let pricesState = { status:"idle", data:null, updatedAt:"" };
 
 async function fetchDabomPrices(){
@@ -1673,6 +1692,108 @@ function renderChickenPricePanel(){
   </div>`;
 }
 
+// 산란계 사육 마리수(분기 통계) 요약 — 축산시세 바로 아래에 붙는다.
+function renderLayerStatsPanel(){
+  const TITLE = "🐔 산란계 사육수";
+  const d = layerStatsState;
+  const shell = inner => `
+  <div class="card" style="margin-bottom:16px;border-top:4px solid #C2185B">
+    <div class="display" style="font-size:15px;margin-bottom:10px">${TITLE}</div>
+    ${inner}
+  </div>`;
+
+  if(d.status === "loading" || d.status === "idle")
+    return shell(`<div style="text-align:center;padding:18px;color:#aaa">⏳ 불러오는 중...</div>`);
+  if(d.status === "error" || !d.data || !d.data.national)
+    return shell(`<div style="text-align:center;padding:12px;color:#aaa;font-size:12px">
+      데이터 없음 — 분기마다 갱신<br>
+      <a href="https://mtrace.go.kr/stats/stp/dtl/stl/xtlStatsList.do" target="_blank" rel="noopener"
+         style="color:#C2185B;font-size:11px">📊 축산유통 통계누리 바로가기</a></div>`);
+
+  const r = d.data, n = r.national;
+  const regions = r.regions || [];
+  const man = v => (v == null ? "-" : (v/10000).toFixed(0) + "만");
+  // 증감은 부호를 색으로도 구분한다(증가=붉은색, 감소=파란색 — 국내 시세 표기 관행)
+  const delta = pct => {
+    if(pct == null) return "";
+    const up = pct > 0, flat = Math.abs(pct) < 0.05;
+    const c = flat ? "#888" : up ? "#D32F2F" : "#1565C0";
+    return `<span style="color:${c};font-weight:600">${flat?"─":up?"▲":"▼"}${Math.abs(pct).toFixed(1)}%</span>`;
+  };
+
+  const ages = [
+    ["6개월이상(산란중)", n.over6m, "#C2185B"],
+    ["3~6개월(입식대기)", n.m3to6,  "#EC407A"],
+    ["3개월미만(육성중)", n.under3m,"#F8BBD0"],
+  ].filter(a => a[1] != null);
+  const ageBar = ages.map(([lb,v,c]) =>
+    `<div style="flex:${v};background:${c};height:100%" title="${esc(lb)} ${v.toLocaleString()}마리"></div>`).join("");
+  const ageLegend = ages.map(([lb,v,c]) =>
+    `<div style="display:flex;align-items:center;gap:4px;font-size:10px;color:#666">
+       <span style="width:8px;height:8px;border-radius:2px;background:${c};display:inline-block"></span>
+       ${esc(lb)} <b style="color:#333">${man(v)}</b>
+     </div>`).join("");
+
+  const maxTotal = regions.length ? regions[0].total : 1;
+  const rows = regions.map(g => `
+    <tr>
+      <td style="padding:5px 6px;font-size:12px;white-space:nowrap">${esc(g.name)}</td>
+      <td style="padding:5px 6px;text-align:right;font-size:12px;font-variant-numeric:tabular-nums">${g.total.toLocaleString()}</td>
+      <td style="padding:5px 6px;width:36%">
+        <div style="background:#F3E5EC;border-radius:3px;height:9px;overflow:hidden">
+          <div style="width:${(g.total/maxTotal*100).toFixed(1)}%;background:#C2185B;height:100%"></div>
+        </div>
+      </td>
+      <td style="padding:5px 6px;text-align:right;font-size:11px;color:#888;font-variant-numeric:tabular-nums">${g.share == null ? "-" : g.share.toFixed(1)+"%"}</td>
+      <td style="padding:5px 6px;text-align:right;font-size:11px;font-variant-numeric:tabular-nums">${delta(g.pct)}</td>
+    </tr>`).join("");
+
+  // 산란계 실적이 없는 시도(서울·부산 등)는 원본 표에서 빠져 시도 합이 전국보다 작다.
+  const etcNote = (n.etc && n.etc > 0)
+    ? `<div style="font-size:10px;color:#aaa;margin-top:6px">※ 위 시도 합계 ${n.listed_sum.toLocaleString()}마리 + 미표시 시도 ${n.etc.toLocaleString()}마리 = 전국 ${n.total.toLocaleString()}마리</div>`
+    : "";
+
+  return shell(`
+    <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+      <span style="font-size:11px;background:#FCE4EC;color:#C2185B;border-radius:10px;padding:2px 9px;font-weight:600">${esc(r.period || "")} 기준</span>
+      ${r.stale ? `<span style="font-size:10px;color:#E65100;background:#FFF3E0;border-radius:9px;padding:2px 7px">수집 실패 · 이전 자료</span>` : ""}
+    </div>
+
+    <div style="display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;margin-bottom:4px">
+      <span style="font-size:12px;color:#666">전국</span>
+      <span class="display" style="font-size:26px;color:#C2185B;font-variant-numeric:tabular-nums">${n.total.toLocaleString()}</span>
+      <span style="font-size:12px;color:#666">마리</span>
+      ${n.pct != null ? `<span style="font-size:12px">${delta(n.pct)}</span>` : ""}
+      ${n.diff != null ? `<span style="font-size:11px;color:#888">전분기 대비 ${n.diff>0?"+":""}${n.diff.toLocaleString()}</span>` : ""}
+    </div>
+
+    ${ages.length ? `
+    <div style="display:flex;height:10px;border-radius:5px;overflow:hidden;margin:10px 0 6px">${ageBar}</div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px">${ageLegend}</div>` : ""}
+
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;min-width:340px">
+        <thead>
+          <tr style="border-bottom:1px solid #eee">
+            <th style="padding:5px 6px;text-align:left;font-size:10px;color:#999;font-weight:500">시도</th>
+            <th style="padding:5px 6px;text-align:right;font-size:10px;color:#999;font-weight:500">마리수</th>
+            <th style="padding:5px 6px"></th>
+            <th style="padding:5px 6px;text-align:right;font-size:10px;color:#999;font-weight:500">비중</th>
+            <th style="padding:5px 6px;text-align:right;font-size:10px;color:#999;font-weight:500">전분기</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    ${etcNote}
+
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-top:10px">
+      <div style="font-size:9px;color:#bbb">출처: ${esc(r.source || "")} · ${esc(r.table || "")} · 수집 ${esc(r.updated || "")}</div>
+      <a href="${esc(r.url || "https://mtrace.go.kr/stats/stp/dtl/stl/xtlStatsList.do")}" target="_blank" rel="noopener"
+         style="font-size:11px;color:#C2185B;border:1px solid #C2185B;border-radius:6px;padding:4px 9px;text-decoration:none">원문 ↗</a>
+    </div>`);
+}
+
 function renderEggSupplyPanel(){
   const d = eggReportState;
   if(d.status === "loading") return `
@@ -2140,6 +2261,7 @@ function renderPoultryPriceLine(){
 function renderPriceTab(){
   return `
   ${renderPoultryPriceLine()}
+  ${renderLayerStatsPanel()}
   ${renderEggSupplyPanel()}`;
 }
 
@@ -4440,6 +4562,7 @@ fetchDabomPrices().then(()=>{ if(state.tab==="price"||state.tab==="pig") render(
 fetchPoultryPrices();
 // 주간 계란 수급 정보 (GitHub Actions 매주 화요일 업데이트)
 fetchEggReport();
+fetchLayerStats();
 
 </script>
 </body>
