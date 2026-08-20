@@ -1,6 +1,6 @@
 {
-  "updated": "2026-08-20 13:49 KST",
-  "updatedTs": 1787201341,
+  "updated": "2026-08-20 16:02 KST",
+  "updatedTs": 1787209343,
   "ok": 5,
   "total": 7,
   "order": [
@@ -50,7 +50,7 @@
           "source": ""
         }
       ],
-      "stale": false
+      "stale": true
     },
     "aflnews": {
       "name": "농수축산신문",
@@ -98,6 +98,12 @@
       "home": "https://www.pignpork.com/news/articleList.html?sc_section_code=S1N1&view_type=sm",
       "items": [
         {
+          "title": "[포토] 국내 최초의 주사용 회장염 백신이 출시됐다!!",
+          "url": "https://www.pignpork.com/news/articleView.html?idxno=19393",
+          "date": "",
+          "source": ""
+        },
+        {
           "title": "[기획] 비용 압박의 시대, 버티는 것을 넘어 살아남고 성장하는 농장 만들기",
           "url": "https://www.pignpork.com/news/articleView.html?idxno=19294",
           "date": "",
@@ -118,12 +124,6 @@
         {
           "title": "초유가 자돈의 첫 번째 방패다",
           "url": "https://www.pignpork.com/news/articleView.html?idxno=19301",
-          "date": "",
-          "source": ""
-        },
-        {
-          "title": "한국돼지수의사회, 9월 3일 '2026년 연례 세미나' 개최",
-          "url": "https://www.pignpork.com/news/articleView.html?idxno=19358",
           "date": "",
           "source": ""
         }
@@ -176,33 +176,33 @@
       "home": "https://www.asiae.co.kr/list/economy",
       "items": [
         {
-          "title": "'대왕고래' 굶어도 동해가스전은 투자 순항",
-          "url": "https://view.asiae.co.kr/article/2026082013372068929",
-          "date": "08.20 13:37",
+          "title": "'NH농심천심 예금', 출시 8일만에 3000억원 완판",
+          "url": "https://view.asiae.co.kr/article/2026082015002181809",
+          "date": "08.20 15:00",
           "source": ""
         },
         {
-          "title": "AI·반도체에 전력수요 38GW 급증…\"전력, 국가 전략자산으로\"",
-          "url": "https://view.asiae.co.kr/article/2026082011322600517",
-          "date": "08.20 13:24",
+          "title": "사서 쓰면 1800억, 빌리면 6000억…뉴욕·런던 등 14곳 '통합청사' 짓는다",
+          "url": "https://view.asiae.co.kr/article/2026082008171701940",
+          "date": "08.20 15:00",
           "source": ""
         },
         {
-          "title": "밤에도 체육·문화 즐긴다…오세훈 \"야간경제로 5兆 소비 창출\"(종합)",
-          "url": "https://view.asiae.co.kr/article/2026082012414969691",
-          "date": "08.20 12:41",
+          "title": "정부, 남부지방 수해 피해자 긴급 금융지원…대출 만기연장·상환유예",
+          "url": "https://view.asiae.co.kr/article/2026082014332747004",
+          "date": "08.20 14:33",
           "source": ""
         },
         {
-          "title": "공정위, 석화 재편 '대산 1호 프로젝트' 조건부 승인…업계 구조조정 본격화",
-          "url": "https://view.asiae.co.kr/article/2026082011392491327",
-          "date": "08.20 12:00",
+          "title": "韓 최고령자는 116세…100세 이상 인구 8600명 돌파",
+          "url": "https://view.asiae.co.kr/article/2026082014310288342",
+          "date": "08.20 14:31",
           "source": ""
         },
         {
-          "title": "근거 없는 '세금 환급 1위' 광고 못한다…국세청, 세무사 금지광고 세부기준 마련",
-          "url": "https://view.asiae.co.kr/article/2026082010492826617",
-          "date": "08.20 12:00",
+          "title": "산은, 1000억원 규모 세컨더리펀드 운용사에 컴퍼니케이 선정",
+          "url": "https://view.asiae.co.kr/article/2026082014233205132",
+          "date": "08.20 14:23",
           "source": ""
         }
       ],
@@ -245,7 +245,7 @@
           "source": ""
         }
       ],
-      "stale": true
+      "stale": false
     },
     "global": {
       "name": "해외축산",
