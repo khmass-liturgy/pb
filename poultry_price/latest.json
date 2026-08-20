@@ -1,12 +1,16 @@
 {
-  "updated": "2026-08-19 09:47 KST",
+  "updated": "2026-08-20 09:47 KST",
   "stale": {},
   "egg": {
     "label": "계란 산지가격",
     "grade": "특란 (XL)",
     "unit": "원/10개",
-    "latest": 2166,
+    "latest": 2201,
     "rows": [
+      {
+        "date": "2026-08-19",
+        "value": 2201
+      },
       {
         "date": "2026-08-18",
         "value": 2166
@@ -99,6 +103,10 @@
     "latest": 2400,
     "rows": [
       {
+        "date": "2026-08-19",
+        "value": 2400
+      },
+      {
         "date": "2026-08-18",
         "value": 2400
       },
@@ -187,15 +195,15 @@
   "pig": {
     "label": "농가수취 평균",
     "unit": "원/kg",
-    "latest": 6889,
+    "latest": 6728,
     "rows": [
+      {
+        "date": "2026-08-19",
+        "value": 6728
+      },
       {
         "date": "2026-08-18",
         "value": 6889
-      },
-      {
-        "date": "2026-08-17",
-        "value": 6328
       }
     ]
   },
@@ -204,23 +212,29 @@
       "female_calf": {
         "label": "암송아지(6~7개월)",
         "unit": "천원/마리",
-        "value": 3732,
-        "date": "2026-08-12"
+        "value": 3694,
+        "date": "2026-08-17"
       },
       "male_calf": {
         "label": "수송아지(6~7개월)",
         "unit": "천원/마리",
-        "value": 5120,
-        "date": "2026-08-12"
+        "value": 5199,
+        "date": "2026-08-17"
       },
       "farm_receipt_600kg": {
         "label": "농가수취가격(600kg)",
         "unit": "천원/마리",
-        "value": 8081,
-        "date": "2026-08-18"
+        "value": 8099,
+        "date": "2026-08-19"
       }
     },
     "rows": [
+      {
+        "date": "2026-08-19",
+        "female_calf": null,
+        "male_calf": null,
+        "farm_receipt_600kg": 8099
+      },
       {
         "date": "2026-08-18",
         "female_calf": null,
@@ -229,20 +243,20 @@
       },
       {
         "date": "2026-08-17",
-        "female_calf": null,
-        "male_calf": null,
+        "female_calf": 3694,
+        "male_calf": 5199,
         "farm_receipt_600kg": 5406
       },
       {
         "date": "2026-08-14",
-        "female_calf": null,
-        "male_calf": null,
+        "female_calf": 3765,
+        "male_calf": 5160,
         "farm_receipt_600kg": 7790
       },
       {
         "date": "2026-08-13",
-        "female_calf": null,
-        "male_calf": null,
+        "female_calf": 3756,
+        "male_calf": 5160,
         "farm_receipt_600kg": 7946
       },
       {
@@ -271,8 +285,8 @@
       },
       {
         "date": "2026-08-06",
-        "female_calf": null,
-        "male_calf": null,
+        "female_calf": 3690,
+        "male_calf": 4923,
         "farm_receipt_600kg": 7893
       },
       {
@@ -325,20 +339,20 @@
       },
       {
         "date": "2026-07-24",
-        "female_calf": null,
-        "male_calf": null,
+        "female_calf": 3732,
+        "male_calf": 5112,
         "farm_receipt_600kg": 7584
       },
       {
         "date": "2026-07-23",
-        "female_calf": null,
-        "male_calf": null,
+        "female_calf": 3730,
+        "male_calf": 5091,
         "farm_receipt_600kg": 7750
       },
       {
         "date": "2026-07-22",
         "female_calf": 3636,
-        "male_calf": 5059,
+        "male_calf": 5058,
         "farm_receipt_600kg": 7817
       },
       {
