@@ -1,12 +1,16 @@
 {
-  "updated": "2026-08-24 09:50 KST",
+  "updated": "2026-08-25 09:49 KST",
   "stale": {},
   "egg": {
     "label": "계란 산지가격",
     "grade": "특란 (XL)",
     "unit": "원/10개",
-    "latest": 2157,
+    "latest": 2154,
     "rows": [
+      {
+        "date": "2026-08-24",
+        "value": 2154
+      },
       {
         "date": "2026-08-21",
         "value": 2157
@@ -82,18 +86,18 @@
       {
         "date": "2026-07-27",
         "value": 2267
-      },
-      {
-        "date": "2026-07-24",
-        "value": 2260
       }
     ]
   },
   "chicken": {
     "label": "생계유통(대)",
     "unit": "원/kg",
-    "latest": 2334,
+    "latest": 2200,
     "rows": [
+      {
+        "date": "2026-08-24",
+        "value": 2200
+      },
       {
         "date": "2026-08-21",
         "value": 2334
@@ -169,25 +173,21 @@
       {
         "date": "2026-07-27",
         "value": 1800
-      },
-      {
-        "date": "2026-07-24",
-        "value": 1700
       }
     ]
   },
   "pig": {
     "label": "농가수취 평균",
     "unit": "원/kg",
-    "latest": 7454,
+    "latest": 7111,
     "rows": [
+      {
+        "date": "2026-08-24",
+        "value": 7111
+      },
       {
         "date": "2026-08-21",
         "value": 7454
-      },
-      {
-        "date": "2026-08-20",
-        "value": 6933
       }
     ]
   },
@@ -208,11 +208,17 @@
       "farm_receipt_600kg": {
         "label": "농가수취가격(600kg)",
         "unit": "천원/마리",
-        "value": 8146,
-        "date": "2026-08-21"
+        "value": 5861,
+        "date": "2026-08-24"
       }
     },
     "rows": [
+      {
+        "date": "2026-08-24",
+        "female_calf": null,
+        "male_calf": null,
+        "farm_receipt_600kg": 5861
+      },
       {
         "date": "2026-08-21",
         "female_calf": null,
@@ -332,12 +338,6 @@
         "female_calf": 3765,
         "male_calf": 5094,
         "farm_receipt_600kg": 6155
-      },
-      {
-        "date": "2026-07-24",
-        "female_calf": 3732,
-        "male_calf": 5112,
-        "farm_receipt_600kg": 7584
       }
     ]
   },
