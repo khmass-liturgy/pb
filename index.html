@@ -868,7 +868,7 @@ async function fetchNotices(force){
   noticesState.fallback.econ = ev.fallback;
   noticesState.policy   = ov.items||[];
   noticesState.fallback.policy = ov.fallback;
-  // 해외축산은 서버(Actions)에서 번역까지 마친 결과만 쓴다 — 브라우저 폴백 경로에는 없음
+  // 해외 양계질병은 서버(Actions)에서 번역까지 마친 결과만 쓴다 — 브라우저 폴백 경로에는 없음
   noticesState.global   = [];
   noticesState.fallback.global = true;
   noticesState.updatedAt= new Date().toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"});
@@ -4151,7 +4151,7 @@ function renderNoticesSection(){
     return rows + (isFallback ? `<div style="margin-top:8px;font-size:10px;color:#e67700;background:#fff8e8;border-radius:6px;padding:5px 8px">⚡ 저장된 데이터 (실시간 수집 실패)</div>` : "");
   }
 
-  // 해외축산: 여러 해외 매체가 섞이므로 매체명(source)을 함께 표시하고,
+  // 해외 양계질병: 여러 해외 매체가 섞이므로 매체명(source)을 함께 표시하고,
   // title 속성에 번역 전 원문 제목을 담아 마우스 오버로 확인할 수 있게 한다.
   function noticeListGlobal(items, color, isFallback, loading){
     if(loading) return `<div style="text-align:center;padding:24px;color:#aaa;font-size:12px">⏳ 불러오는 중...</div>`;
@@ -4179,7 +4179,7 @@ function renderNoticesSection(){
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
     <div>
       <div class="display" style="font-size:16px">📰 축산 뉴스 · 경제동향</div>
-      <div style="font-size:10px;color:#aaa;margin-top:3px">축산신문 · 농수축산신문 · 한돈뉴스 · 데일리벳 · 해외축산 · 아시아경제 최신 5건</div>
+      <div style="font-size:10px;color:#aaa;margin-top:3px">축산신문 · 농수축산신문 · 한돈뉴스 · 데일리벳 · 해외 양계질병 · 아시아경제 최신 5건</div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
       <span style="font-size:10px;color:#888">${timeLabel}</span>
@@ -4264,17 +4264,17 @@ function renderNoticesSection(){
       ${noticeList(ns.dailyvet,"#5E35B1",ns.fallback?.dailyvet,loading)}
     </div>
 
-    <!-- 해외축산 (WATT Poultry · Pig Progress 등 → 한글 번역) -->
+    <!-- 해외 양계질병 (조류인플루엔자 등 해외 소식 → 한글 번역) -->
     <div class="card" style="border-top:4px solid #00695C">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div style="display:flex;align-items:center;gap:7px">
-          <span style="font-size:20px">🌍</span>
+          <span style="font-size:20px">🦠</span>
           <div>
-            <div class="display" style="font-size:14px;color:#00695C">해외축산</div>
-            <div style="font-size:10px;color:#aaa">WATT Poultry · Pig Progress 등 · 한글 번역</div>
+            <div class="display" style="font-size:14px;color:#00695C">해외 양계질병</div>
+            <div style="font-size:10px;color:#aaa">조류인플루엔자 등 · 한글 번역</div>
           </div>
         </div>
-        <a href="${esc((ns.meta&&ns.meta.global&&ns.meta.global.home)||"https://news.google.com/search?q=livestock&hl=en-US&gl=US&ceid=US:en")}" target="_blank" rel="noopener"
+        <a href="${esc((ns.meta&&ns.meta.global&&ns.meta.global.home)||"https://news.google.com/search?q=%22bird+flu%22+poultry&hl=en-US&gl=US&ceid=US:en")}" target="_blank" rel="noopener"
            style="font-size:11px;color:#00695C;border:1px solid #00695C;border-radius:6px;padding:4px 9px;text-decoration:none">
           전체 ↗
         </a>

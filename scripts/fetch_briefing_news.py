@@ -179,39 +179,64 @@ def gnews(q):
     return "https://news.google.com/rss/search?q=" + quote(q) + "&hl=ko&gl=KR&ceid=KR:ko&when=14d"
 
 
-# ── 해외 축산 뉴스: 구글 뉴스(영문) site: 검색 → 제목 한글 번역 ────────────────
-# 해외 축산 전문지(WATT Poultry, Pig Progress, The Pig/Poultry Site, Beef
-# Magazine, Feed Strategy, Dairy Herd 등) 직접 RSS는 Cloudflare 차단·404가
-# 흔해 서버(Actions) IP에서도 신뢰할 수 없다. 대신 구글 뉴스 검색을
-# site: 연산자로 해당 매체에 한정해 우회하면 검색엔진이 이미 각 매체를
-# 크롤링해둔 결과를 그대로 받아올 수 있다 (국내 뉴스에도 이미 쓰는 방식).
-GLOBAL_NEWS_SITES = [
-    "wattagnet.com", "pigprogress.net", "thepoultrysite.com", "thepigsite.com",
-    "beefmagazine.com", "feedstrategy.com", "dairyherd.com",
+# ── 해외 양계질병 뉴스: 구글 뉴스(영문) 검색 → 제목 한글 번역 ──────────────────
+# 양계 질병 전문 매체(The Poultry Site, WATT Poultry, Poultry World,
+# Poultry Health Today 등)는 직접 RSS가 404/403(Cloudflare)이라 서버에서
+# 신뢰할 수 없다. 실제로 확인한 결과:
+#   thepoultrysite.com/rss/news → 404, poultryworld.net/rss → 404,
+#   wattagnet.com/rss/articles → 403, cidrap.umn.edu/rss.xml → 200이지만
+#   2019~2022년 글만 반환(사실상 죽은 피드)
+# 그래서 국내 뉴스와 같은 방식으로 구글 뉴스 검색을 거쳐 받는다.
+#
+# 쿼리를 짧게 유지하는 것이 중요하다. site: 를 여러 개 넣거나 질병명을 OR로
+# 길게 늘어놓으면 구글이 when: 연산자를 무시하고 관련도 순으로 과거 기사까지
+# 섞어 준다(2015·2017·2020년 기사와 섹션 랜딩 페이지가 실제로 딸려 나왔다).
+# 아래 두 쿼리는 짧게 유지해 검증했을 때 받은 항목이 전부 7일 이내였다.
+#
+# urls는 폴백이 아니라 병합 목록이라 첫 쿼리가 앞자리를 차지한다. 그래서
+# 관련성이 가장 높은 쿼리를 앞에 두고, 구글이 간헐적으로 0건을 주는 경우를
+# 대비해 두 번째 쿼리를 예비로 둔다(0건이면 두 번째 결과가 자리를 채운다).
+POULTRY_DISEASE_QUERIES = [
+    '"bird flu" poultry when:7d',        # 주 쿼리 — 검증 시 10/10 가금 관련, 이탈 0
+    'poultry biosecurity disease when:7d',  # 예비 — 주 쿼리가 0건일 때만 사실상 노출
 ]
-GLOBAL_NEWS_QUERY = "(" + " OR ".join("site:%s" % d for d in GLOBAL_NEWS_SITES) + ") when:10d"
+# '전체 ↗' 링크가 가리킬 사람이 볼 검색 화면
+GLOBAL_NEWS_QUERY = POULTRY_DISEASE_QUERIES[0]
 
 
 def gnews_en(q):
     return "https://news.google.com/rss/search?q=" + quote(q) + "&hl=en-US&gl=US&ceid=US:en"
 
 
-def translate_en_to_ko(text, session):
+def translate_en_to_ko(text, session, attempts=3):
     """구글 번역 비공식 엔드포인트(API 키 불필요)로 영→한 단문 번역.
-    실패하면 None을 돌려주고, 호출부는 원문(영어 제목)을 그대로 쓴다."""
-    try:
-        r = session.get(
-            "https://translate.googleapis.com/translate_a/single",
-            params={"client": "gtx", "sl": "en", "tl": "ko", "dt": "t", "q": text},
-            timeout=10,
-        )
-        if r.status_code != 200:
+    실패하면 None을 돌려주고, 호출부는 원문(영어 제목)을 그대로 쓴다.
+
+    이 엔드포인트는 짧은 시간에 많이 부르면 IP 단위로 429를 준다. 그때는
+    본문이 JSON이 아닌 HTML이라 파싱도 실패한다. 한 번 실패했다고 바로
+    포기하면 제목이 통째로 영어로 남아버리므로 잠깐 쉬었다 다시 시도한다.
+    """
+    for i in range(attempts):
+        try:
+            r = session.get(
+                "https://translate.googleapis.com/translate_a/single",
+                params={"client": "gtx", "sl": "en", "tl": "ko", "dt": "t", "q": text},
+                timeout=10,
+            )
+            if r.status_code == 200:
+                data = r.json()
+                return "".join(seg[0] for seg in data[0] if seg[0]).strip() or None
+            if r.status_code == 429 and i < attempts - 1:
+                time.sleep(2 * (i + 1))  # 429는 잠깐 쉬면 풀리는 경우가 많다
+                continue
+            print("        번역 실패: HTTP %d" % r.status_code)
             return None
-        data = r.json()
-        return "".join(seg[0] for seg in data[0] if seg[0]).strip() or None
-    except Exception as e:
-        print("        번역 실패: %s" % e)
-        return None
+        except Exception as e:
+            if i < attempts - 1:
+                time.sleep(1)
+                continue
+            print("        번역 실패: %s" % e)
+    return None
 
 
 # ── 소스 정의 (여기만 고치면 소스 추가/변경 완료) ─────────────────────────────
@@ -265,10 +290,12 @@ SOURCES = [
      "kind": "rss",
      "urls": ["https://www.mafra.go.kr/bbs/home/792/rssList.do?row=50"]},
 
-    # 해외 축산 뉴스: 구글 뉴스(영문, site: 한정) → 제목 한글 번역
-    {"id": "global", "name": "해외축산", "icon": "🌍", "color": "#00695C",
+    # 해외 양계질병 뉴스: 구글 뉴스(영문) → 제목 한글 번역
+    # id는 'global' 그대로 둔다. 화면 상태키·브라우저 캐시(notice_cache)가 이
+    # 이름을 쓰고 있어, 바꾸면 배포 직후 캐시가 남은 사용자에게 빈 카드가 뜬다.
+    {"id": "global", "name": "해외 양계질병", "icon": "🦠", "color": "#00695C",
      "home": "https://news.google.com/search?q=" + quote(GLOBAL_NEWS_QUERY) + "&hl=en-US&gl=US&ceid=US:en",
-     "kind": "rss_en", "urls": [gnews_en(GLOBAL_NEWS_QUERY)]},
+     "kind": "rss_en", "urls": [gnews_en(q) for q in POULTRY_DISEASE_QUERIES]},
 ]
 
 
