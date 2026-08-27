@@ -514,7 +514,7 @@ const PRICES_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/mai
 const EGG_REPORT_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/egg_report/latest.json";
 // 산란계 사육 마리수(분기) — mtrace 통계누리 DT_1EO415를 scripts/fetch_layer_stats.py가 모아둔 파일
 const LAYER_STATS_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/layer_stats/latest.json";
-// 고병원성 AI 발생현황 — WOAH WAHIS 공식 신고를 scripts/fetch_hpai_risk.py가 모아둔 파일
+// 고병원성 AI 발생예측통계 — WOAH WAHIS 공식 신고를 scripts/fetch_hpai_risk.py가 모아둔 파일
 const HPAI_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/hpai_risk/latest.json";
 const EGG_REPORT_SOURCE_URL = "https://www.ekapepia.com/v3/board/list.do?menuSn=51&boardInfoNo=0159";
 
@@ -1037,7 +1037,7 @@ async function fetchHpaiRisk(){
     hpaiState.data   = await resp.json();
     hpaiState.status = "done";
   } catch(e) {
-    console.warn("HPAI 발생현황 로딩 실패:", e);
+    console.warn("HPAI 발생예측통계 로딩 실패:", e);
     hpaiState.status = "error";
   }
   if(state.tab === "hpai") render();
@@ -1504,7 +1504,10 @@ async function searchLocation(query){
 
 // ── 뉴스정보 탭 ────────────────────────────────────────────────────────────
 // (AI 일일 브리핑은 GitHub Models 종료로 2026-08 제거. 뉴스·경제·정책만 표시)
-// ── 고병원성 AI(HPAI) 발생현황 탭 ──────────────────────────────────────────
+// ── 고병원성 AI(HPAI) 발생예측통계 탭 ──────────────────────────────────────
+// 탭 이름에 '예측'이 들어가지만, 담고 있는 값은 전부 WOAH에 신고된 관측 기록이고
+// 예측 연산은 하지 않는다. 카드 안의 안내문이 그 점을 분명히 밝히고 있으므로
+// 문구를 지울 때는 이름과 내용이 어긋나지 않는지 함께 확인할 것.
 // 검증된 "위험도 점수" 모델을 그대로 쓸 수 있는 형태로 공개한 곳이 없어서
 // (실제 존재하는 전세계 모델은 480MB 스크립트 묶음으로만 배포된다)
 // 여기서는 점수를 지어내지 않고 WOAH에 신고된 관측값을 축별로 보여준다.
@@ -1634,7 +1637,7 @@ function renderHpaiTab(){
   return `
   <div class="card" style="margin-bottom:14px;border-top:4px solid #C62828">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
-      <div class="display" style="font-size:16px">🦠 고병원성 AI(HPAI) 발생현황</div>
+      <div class="display" style="font-size:16px">🦠 고병원성 AI(HPAI) 발생예측통계</div>
       ${r.stale?`<span style="font-size:10px;color:#E65100;background:#FFF3E0;border-radius:9px;padding:2px 8px">수집 실패 · 이전 자료</span>`:""}
     </div>
     <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:13px;margin-bottom:8px">
@@ -1713,7 +1716,7 @@ function renderHeader(){
       <button class="tab ${state.tab==="weather"?"active":""}" data-tab="weather">🌤️ 날씨</button>
       <button class="tab ${state.tab==="vent"?"active":""}" data-tab="vent">🌬️ 환기가이드</button>
       <button class="tab ${state.tab==="consult"?"active":""}" data-tab="consult">🐔🥚 육계/산란계 컨설팅</button>
-      <button class="tab ${state.tab==="hpai"?"active":""}" data-tab="hpai">🦠 AI 발생현황</button>
+      <button class="tab ${state.tab==="hpai"?"active":""}" data-tab="hpai">🦠 AI 발생예측통계</button>
       <button class="tab ${state.tab==="briefing"?"active":""}" data-tab="briefing">📋 뉴스정보</button>
     </div>
   </div></header>`;

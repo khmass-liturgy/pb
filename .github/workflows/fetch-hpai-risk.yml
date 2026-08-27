@@ -1,4 +1,4 @@
-name: HPAI 발생현황 수집
+name: HPAI 발생예측통계 수집
 
 on:
   schedule:
@@ -25,7 +25,7 @@ jobs:
       - name: 패키지 설치
         run: pip install requests
 
-      - name: HPAI 발생현황 수집
+      - name: HPAI 발생예측통계 수집
         run: python scripts/fetch_hpai_risk.py
 
       - name: 결과 검증
@@ -54,7 +54,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add hpai_risk/
           git diff --staged --quiet && echo "변경 없음" && exit 0
-          git commit -m "🦠 HPAI 발생현황 갱신 ($(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M KST'))"
+          git commit -m "🦠 HPAI 발생예측통계 갱신 ($(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M KST'))"
           for i in 1 2 3; do
             git pull --rebase --autostash origin ${GITHUB_REF_NAME} && git push && exit 0
             echo "푸시 재시도 $i"
