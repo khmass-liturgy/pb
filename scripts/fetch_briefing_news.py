@@ -208,34 +208,63 @@ def gnews_en(q):
     return "https://news.google.com/rss/search?q=" + quote(q) + "&hl=en-US&gl=US&ceid=US:en"
 
 
-def translate_en_to_ko(text, session, attempts=3):
-    """구글 번역 비공식 엔드포인트(API 키 불필요)로 영→한 단문 번역.
-    실패하면 None을 돌려주고, 호출부는 원문(영어 제목)을 그대로 쓴다.
+def _translate_google(text, session):
+    """구글 번역 비공식 엔드포인트(API 키 불필요). 되면 품질이 가장 낫다.
 
-    이 엔드포인트는 짧은 시간에 많이 부르면 IP 단위로 429를 준다. 그때는
-    본문이 JSON이 아닌 HTML이라 파싱도 실패한다. 한 번 실패했다고 바로
-    포기하면 제목이 통째로 영어로 남아버리므로 잠깐 쉬었다 다시 시도한다.
+    다만 Actions 러너처럼 데이터센터 IP에서 부르면 429 "Sorry..." HTML을 돌려주며
+    장시간 막히는 일이 잦다. 그 상태에서는 재시도해도 계속 429라서, 여기서는
+    짧게만 재시도하고 실패로 넘겨 다음 제공자가 받게 한다.
     """
-    for i in range(attempts):
+    for i in range(2):
+        r = session.get(
+            "https://translate.googleapis.com/translate_a/single",
+            params={"client": "gtx", "sl": "en", "tl": "ko", "dt": "t", "q": text},
+            timeout=10,
+        )
+        if r.status_code == 200:
+            data = r.json()
+            return "".join(seg[0] for seg in data[0] if seg[0]).strip() or None
+        if r.status_code == 429 and i == 0:
+            time.sleep(2)
+            continue
+        raise Exception("HTTP %d" % r.status_code)
+    return None
+
+
+def _translate_mymemory(text, session):
+    """MyMemory 공개 API(키 불필요). 구글이 막혔을 때의 대체 경로.
+
+    익명 호출은 하루 사용량 제한이 있고, 초과하면 200을 주면서 본문에
+    "MYMEMORY WARNING: YOU USED ALL AVAILABLE FREE TRANSLATIONS" 같은 안내를
+    담아 보낸다. 그 문자열을 제목으로 쓰면 안 되므로 걸러낸다.
+    """
+    r = session.get(
+        "https://api.mymemory.translated.net/get",
+        params={"q": text, "langpair": "en|ko"},
+        timeout=15,
+    )
+    if r.status_code != 200:
+        raise Exception("HTTP %d" % r.status_code)
+    out = ((r.json().get("responseData") or {}).get("translatedText") or "").strip()
+    if not out or "MYMEMORY WARNING" in out.upper() or "QUERY LENGTH LIMIT" in out.upper():
+        return None
+    return out
+
+
+# 위에서부터 차례로 시도한다. 하나가 막혀도 다음 제공자가 받아 번역이 통째로
+# 영어로 남는 일을 막는다.
+TRANSLATORS = [("google", _translate_google), ("mymemory", _translate_mymemory)]
+
+
+def translate_en_to_ko(text, session):
+    """영문 제목을 한글로. 모든 제공자가 실패하면 None(호출부가 원문을 그대로 쓴다)."""
+    for name, fn in TRANSLATORS:
         try:
-            r = session.get(
-                "https://translate.googleapis.com/translate_a/single",
-                params={"client": "gtx", "sl": "en", "tl": "ko", "dt": "t", "q": text},
-                timeout=10,
-            )
-            if r.status_code == 200:
-                data = r.json()
-                return "".join(seg[0] for seg in data[0] if seg[0]).strip() or None
-            if r.status_code == 429 and i < attempts - 1:
-                time.sleep(2 * (i + 1))  # 429는 잠깐 쉬면 풀리는 경우가 많다
-                continue
-            print("        번역 실패: HTTP %d" % r.status_code)
-            return None
+            ko = fn(text, session)
+            if ko:
+                return ko
         except Exception as e:
-            if i < attempts - 1:
-                time.sleep(1)
-                continue
-            print("        번역 실패: %s" % e)
+            print("        번역 실패(%s): %s" % (name, e))
     return None
 
 
