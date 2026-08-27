@@ -1,0 +1,63 @@
+name: HPAI 발생현황 수집
+
+on:
+  schedule:
+    # WOAH 신고는 수시로 올라오므로 매일 확인한다.
+    # 23:30 UTC = 매일 한국시간 08:30
+    - cron: "30 23 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-hpai-risk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Python 설정
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: 패키지 설치
+        run: pip install requests
+
+      - name: HPAI 발생현황 수집
+        run: python scripts/fetch_hpai_risk.py
+
+      - name: 결과 검증
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d = json.loads(Path("hpai_risk/latest.json").read_text(encoding="utf-8"))
+          o = d["overall"]
+          assert o["total"] > 0 and o["countries"] > 0, o
+          # 가금 + 야생 = 전체 여야 분류가 어긋나지 않은 것
+          assert o["poultry"] + o["wild"] == o["total"], o
+          # HPAI는 전 세계에서 상시 신고된다. 한 자리로 떨어지면 페이지 구조가
+          # 바뀌어 대부분을 놓쳤을 가능성이 크므로 커밋 전에 막는다.
+          assert o["total"] >= 20, o["total"]
+          assert d["regions"], "지역 집계 없음"
+          # 나라별 합이 전체와 맞는지
+          assert sum(c["total"] for c in d["countries"]) == o["total"]
+          assert d["level_rule"], "분류 규칙 문구 누락"
+          print("검증 통과:", o["countries"], "개국", o["total"], "건")
+          PY
+
+      - name: 결과 커밋
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add hpai_risk/
+          git diff --staged --quiet && echo "변경 없음" && exit 0
+          git commit -m "🦠 HPAI 발생현황 갱신 ($(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M KST'))"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin ${GITHUB_REF_NAME} && git push && exit 0
+            echo "푸시 재시도 $i"
+            sleep 5
+          done
+          exit 1

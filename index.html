@@ -514,6 +514,8 @@ const PRICES_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/mai
 const EGG_REPORT_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/egg_report/latest.json";
 // 산란계 사육 마리수(분기) — mtrace 통계누리 DT_1EO415를 scripts/fetch_layer_stats.py가 모아둔 파일
 const LAYER_STATS_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/layer_stats/latest.json";
+// 고병원성 AI 발생현황 — WOAH WAHIS 공식 신고를 scripts/fetch_hpai_risk.py가 모아둔 파일
+const HPAI_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/hpai_risk/latest.json";
 const EGG_REPORT_SOURCE_URL = "https://www.ekapepia.com/v3/board/list.do?menuSn=51&boardInfoNo=0159";
 
 // ── 주가·환율·곡물 시세 (GitHub Actions → market/quotes.json) ────────────────
@@ -1024,6 +1026,23 @@ async function fetchEggReport(){
   }
   if(state.tab === "price") render();
 }
+let hpaiState = { status: "idle", data: null }; // idle|loading|done|error
+
+async function fetchHpaiRisk(){
+  if(hpaiState.status === "loading") return;
+  hpaiState.status = "loading";
+  try {
+    const resp = await fetchWithTimeout(HPAI_JSON_URL + "?t=" + Date.now(), 8000);
+    if(!resp.ok) throw new Error("HTTP " + resp.status);
+    hpaiState.data   = await resp.json();
+    hpaiState.status = "done";
+  } catch(e) {
+    console.warn("HPAI 발생현황 로딩 실패:", e);
+    hpaiState.status = "error";
+  }
+  if(state.tab === "hpai") render();
+}
+
 let layerStatsState = { status: "idle", data: null }; // idle|loading|done|error
 
 async function fetchLayerStats(){
@@ -1485,6 +1504,182 @@ async function searchLocation(query){
 
 // ── 뉴스정보 탭 ────────────────────────────────────────────────────────────
 // (AI 일일 브리핑은 GitHub Models 종료로 2026-08 제거. 뉴스·경제·정책만 표시)
+// ── 고병원성 AI(HPAI) 발생현황 탭 ──────────────────────────────────────────
+// 검증된 "위험도 점수" 모델을 그대로 쓸 수 있는 형태로 공개한 곳이 없어서
+// (실제 존재하는 전세계 모델은 480MB 스크립트 묶음으로만 배포된다)
+// 여기서는 점수를 지어내지 않고 WOAH에 신고된 관측값을 축별로 보여준다.
+// 분류 규칙은 데이터에 담겨 오는 level_rule 문자열을 그대로 화면에 노출한다.
+const HPAI_LEVEL = {
+  ongoing: { label:"진행중", color:"#C62828", bg:"#FFEBEE" },
+  recent:  { label:"최근신고", color:"#EF6C00", bg:"#FFF3E0" },
+  quiet:   { label:"소강",   color:"#2E7D32", bg:"#E8F5E9" },
+};
+const HPAI_REGION_KO = {
+  "Europe":"유럽", "Asia":"아시아", "Americas":"아메리카", "Africa":"아프리카",
+  "Oceania":"오세아니아", "Middle East":"중동",
+};
+
+function hpaiBadge(level){
+  const s = HPAI_LEVEL[level] || HPAI_LEVEL.quiet;
+  return `<span style="font-size:10px;font-weight:700;color:${s.color};background:${s.bg};border-radius:9px;padding:2px 8px;white-space:nowrap">${s.label}</span>`;
+}
+
+// 가금 vs 야생조류 비율 막대. EFSA 분기보고서가 가금 발생의 90% 이상이
+// 야생조류로부터의 1차 유입이라고 보고하므로 야생조류 검출을 선행지표로 함께 본다.
+function hpaiSplitBar(poultry, wild, w){
+  const t = (poultry||0) + (wild||0);
+  if(!t) return `<div style="height:8px;background:#eee;border-radius:4px;width:${w||100}%"></div>`;
+  return `<div style="display:flex;height:8px;border-radius:4px;overflow:hidden;width:${w||100}%" title="가금 ${poultry} · 야생조류 ${wild}">
+    <div style="flex:${poultry};background:#C62828"></div><div style="flex:${wild};background:#5E9BD6"></div></div>`;
+}
+
+function renderHpaiTab(){
+  const d = hpaiState;
+  const shell = inner => `<div class="card" style="margin-bottom:16px">${inner}</div>`;
+  if(d.status === "loading" || d.status === "idle")
+    return shell(`<div style="text-align:center;padding:28px;color:#aaa">⏳ 불러오는 중...</div>`);
+  if(d.status === "error" || !d.data || !d.data.overall)
+    return shell(`<div style="text-align:center;padding:20px;color:#aaa;font-size:12px">
+      데이터를 불러오지 못했습니다.<br>
+      <a href="https://wahis.woah.org/#/event-management" target="_blank" rel="noopener"
+         style="color:#C62828;font-size:11px">🌐 WOAH WAHIS 바로가기</a></div>`);
+
+  const r = d.data, o = r.overall, fw = r.flyway || {}, kr = r.korea;
+
+  // ── 국내 현황 ──
+  const krCard = `
+    <div class="card" style="margin-bottom:14px;border-top:4px solid ${kr?HPAI_LEVEL[kr.level].color:"#2E7D32"}">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+        <div class="display" style="font-size:15px">🇰🇷 국내 현황</div>
+        ${kr ? hpaiBadge(kr.level) : hpaiBadge("quiet")}
+      </div>
+      ${kr ? `
+        <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
+          <span class="display" style="font-size:28px;color:${HPAI_LEVEL[kr.level].color}">${kr.total}</span>
+          <span style="font-size:12px;color:#666">건 신고 (최근 ${r.window_days}일)</span>
+          ${kr.ongoing?`<span style="font-size:12px;color:#C62828;font-weight:700">진행중 ${kr.ongoing}건</span>`:""}
+        </div>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;margin:8px 0 6px;font-size:12px">
+          <span>🐔 가금 <b style="color:#C62828">${kr.poultry}</b></span>
+          <span>🦆 야생조류 <b style="color:#5E9BD6">${kr.wild}</b></span>
+          <span style="color:#888">최근 신고 ${esc(kr.latest||"-")}</span>
+        </div>
+        ${hpaiSplitBar(kr.poultry, kr.wild)}
+      ` : `<div style="padding:10px 0;font-size:13px;color:#2E7D32">최근 ${r.window_days}일간 WOAH 신고 없음</div>`}
+    </div>`;
+
+  // ── 철새 이동경로(EAAF) ──
+  const fwRows = (fw.countries_list||[]).map(c => `
+    <tr>
+      <td style="padding:6px 6px;font-size:12px;white-space:nowrap">
+        ${c.iso==="KOR"?"<b>":""}${esc(c.name)}${c.iso==="KOR"?"</b> 🇰🇷":""}
+      </td>
+      <td style="padding:6px 6px;text-align:right;font-size:12px;font-variant-numeric:tabular-nums">${c.total}</td>
+      <td style="padding:6px 6px;width:30%">${hpaiSplitBar(c.poultry,c.wild)}</td>
+      <td style="padding:6px 6px;text-align:right;font-size:11px;color:#888;white-space:nowrap">${esc(c.latest||"-")}</td>
+      <td style="padding:6px 6px;text-align:right">${hpaiBadge(c.level)}</td>
+    </tr>`).join("");
+
+  const fwCard = `
+    <div class="card" style="margin-bottom:14px;border-top:4px solid #6A1B9A">
+      <div class="display" style="font-size:15px;margin-bottom:4px">🦆 ${esc(fw.name||"철새 이동경로")}</div>
+      <div style="font-size:11px;color:#888;line-height:1.5;margin-bottom:10px">${esc(fw.note||"")}</div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px;font-size:12px">
+        <span>경로상 <b>${fw.countries||0}</b>개국</span>
+        <span>신고 <b>${fw.total||0}</b>건</span>
+        <span>가금 <b style="color:#C62828">${fw.poultry||0}</b> · 야생조류 <b style="color:#5E9BD6">${fw.wild||0}</b></span>
+        <span>진행중 <b style="color:#C62828">${fw.ongoing||0}</b></span>
+      </div>
+      <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:400px">
+        <thead><tr style="border-bottom:1px solid #eee">
+          <th style="padding:5px 6px;text-align:left;font-size:10px;color:#999;font-weight:500">국가</th>
+          <th style="padding:5px 6px;text-align:right;font-size:10px;color:#999;font-weight:500">신고</th>
+          <th style="padding:5px 6px;text-align:left;font-size:10px;color:#999;font-weight:500">가금/야생</th>
+          <th style="padding:5px 6px;text-align:right;font-size:10px;color:#999;font-weight:500">최근</th>
+          <th style="padding:5px 6px;text-align:right;font-size:10px;color:#999;font-weight:500">상태</th>
+        </tr></thead><tbody>${fwRows || `<tr><td colspan="5" style="padding:14px;text-align:center;color:#ccc;font-size:11px">신고 없음</td></tr>`}</tbody>
+      </table></div>
+    </div>`;
+
+  // ── 대륙별 ──
+  const maxReg = Math.max(1, ...(r.regions||[]).map(x=>x.total));
+  const regRows = (r.regions||[]).map(g => `
+    <div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px;margin-bottom:3px">
+        <span><b>${esc(HPAI_REGION_KO[g.name]||g.name)}</b> <span style="color:#aaa;font-size:10px">${g.countries}개국</span></span>
+        <span style="font-variant-numeric:tabular-nums">${g.total}건
+          ${g.ongoing?`<span style="color:#C62828;font-size:11px">· 진행중 ${g.ongoing}</span>`:""}</span>
+      </div>
+      ${hpaiSplitBar(g.poultry, g.wild, (g.total/maxReg*100))}
+      <div style="font-size:10px;color:#bbb;margin-top:3px">${(g.top||[]).map(esc).join(" · ")}</div>
+    </div>`).join("");
+
+  const regCard = `
+    <div class="card" style="margin-bottom:14px;border-top:4px solid #00695C">
+      <div class="display" style="font-size:15px;margin-bottom:10px">🌍 대륙별 신고 현황</div>
+      ${regRows || `<div style="color:#ccc;font-size:11px;text-align:center;padding:14px">데이터 없음</div>`}
+    </div>`;
+
+  // ── 발생 상위국 ──
+  const topRows = (r.countries||[]).slice(0,15).map((c,i) => `
+    <tr>
+      <td style="padding:5px 6px;font-size:10px;color:#bbb;width:20px">${i+1}</td>
+      <td style="padding:5px 6px;font-size:12px;white-space:nowrap">${esc(c.name)}${c.eaaf?` <span title="한반도와 같은 철새 이동경로" style="font-size:9px;color:#6A1B9A">●철새경로</span>`:""}</td>
+      <td style="padding:5px 6px;font-size:10px;color:#999;white-space:nowrap">${esc(HPAI_REGION_KO[c.region]||c.region)}</td>
+      <td style="padding:5px 6px;text-align:right;font-size:12px;font-variant-numeric:tabular-nums">${c.total}</td>
+      <td style="padding:5px 6px;width:22%">${hpaiSplitBar(c.poultry,c.wild)}</td>
+      <td style="padding:5px 6px;text-align:right">${hpaiBadge(c.level)}</td>
+    </tr>`).join("");
+
+  return `
+  <div class="card" style="margin-bottom:14px;border-top:4px solid #C62828">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+      <div class="display" style="font-size:16px">🦠 고병원성 AI(HPAI) 발생현황</div>
+      ${r.stale?`<span style="font-size:10px;color:#E65100;background:#FFF3E0;border-radius:9px;padding:2px 8px">수집 실패 · 이전 자료</span>`:""}
+    </div>
+    <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:13px;margin-bottom:8px">
+      <span>최근 ${r.window_days}일 <b>${o.countries}</b>개국 <b style="font-size:17px;color:#C62828">${o.total}</b>건</span>
+      <span>🐔 가금 <b style="color:#C62828">${o.poultry}</b></span>
+      <span>🦆 야생조류 <b style="color:#5E9BD6">${o.wild}</b></span>
+      <span>진행중 <b style="color:#C62828">${o.ongoing}</b></span>
+    </div>
+    ${hpaiSplitBar(o.poultry, o.wild)}
+    <div style="margin-top:10px;font-size:11px;color:#777;background:#FAFAFA;border-left:3px solid #ddd;padding:8px 10px;line-height:1.6">
+      <b>이 화면은 위험도 점수가 아니라 관측된 신고 기록입니다.</b><br>
+      ${esc(r.level_rule||"")}<br>
+      가금 발생의 90% 이상이 야생조류로부터의 1차 유입이라는 EFSA 분기보고 결과에 따라,
+      야생조류 검출을 가금 발생의 선행 관찰 지표로 함께 표시합니다.
+    </div>
+  </div>
+
+  ${krCard}
+  ${fwCard}
+  ${regCard}
+
+  <div class="card" style="margin-bottom:14px;border-top:4px solid #455A64">
+    <div class="display" style="font-size:15px;margin-bottom:10px">📊 신고 상위국 (최근 ${r.window_days}일)</div>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:430px">
+      <thead><tr style="border-bottom:1px solid #eee">
+        <th></th>
+        <th style="padding:5px 6px;text-align:left;font-size:10px;color:#999;font-weight:500">국가</th>
+        <th style="padding:5px 6px;text-align:left;font-size:10px;color:#999;font-weight:500">지역</th>
+        <th style="padding:5px 6px;text-align:right;font-size:10px;color:#999;font-weight:500">신고</th>
+        <th style="padding:5px 6px;text-align:left;font-size:10px;color:#999;font-weight:500">가금/야생</th>
+        <th style="padding:5px 6px;text-align:right;font-size:10px;color:#999;font-weight:500">상태</th>
+      </tr></thead><tbody>${topRows}</tbody>
+    </table></div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;font-size:10px;color:#888">
+      <span><span style="display:inline-block;width:9px;height:9px;background:#C62828;border-radius:2px"></span> 가금</span>
+      <span><span style="display:inline-block;width:9px;height:9px;background:#5E9BD6;border-radius:2px"></span> 야생조류·비가금</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-top:10px">
+      <div style="font-size:9px;color:#bbb">출처: ${esc(r.source||"")} · 수집 ${esc(r.updated||"")}</div>
+      <a href="${esc(r.url||"https://wahis.woah.org/#/event-management")}" target="_blank" rel="noopener"
+         style="font-size:11px;color:#C62828;border:1px solid #C62828;border-radius:6px;padding:4px 9px;text-decoration:none">WAHIS 원문 ↗</a>
+    </div>
+  </div>`;
+}
+
 function renderBriefingTab(){
   return renderNoticesSection() + renderEconSection() + renderPolicySection();
 }
@@ -1493,7 +1688,7 @@ function render(){
   document.getElementById("app").innerHTML = `
     ${renderHeader()}
     <main>
-      ${state.tab==="price" || state.tab==="pig" || state.tab==="livestock" ? renderPriceTab() : state.tab==="weather" ? renderWeatherTab() : state.tab==="vent" ? renderVentTab() : state.tab==="consult" ? renderConsultTab() : state.tab==="briefing" ? renderBriefingTab() : renderPriceTab()}
+      ${state.tab==="price" || state.tab==="pig" || state.tab==="livestock" ? renderPriceTab() : state.tab==="weather" ? renderWeatherTab() : state.tab==="vent" ? renderVentTab() : state.tab==="consult" ? renderConsultTab() : state.tab==="hpai" ? renderHpaiTab() : state.tab==="briefing" ? renderBriefingTab() : renderPriceTab()}
       ${renderFooter()}
     </main>`;
   attachEvents();
@@ -1518,6 +1713,7 @@ function renderHeader(){
       <button class="tab ${state.tab==="weather"?"active":""}" data-tab="weather">🌤️ 날씨</button>
       <button class="tab ${state.tab==="vent"?"active":""}" data-tab="vent">🌬️ 환기가이드</button>
       <button class="tab ${state.tab==="consult"?"active":""}" data-tab="consult">🐔🥚 육계/산란계 컨설팅</button>
+      <button class="tab ${state.tab==="hpai"?"active":""}" data-tab="hpai">🦠 AI 발생현황</button>
       <button class="tab ${state.tab==="briefing"?"active":""}" data-tab="briefing">📋 뉴스정보</button>
     </div>
   </div></header>`;
@@ -4563,6 +4759,7 @@ fetchPoultryPrices();
 // 주간 계란 수급 정보 (GitHub Actions 매주 화요일 업데이트)
 fetchEggReport();
 fetchLayerStats();
+fetchHpaiRisk();
 
 </script>
 </body>
