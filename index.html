@@ -516,6 +516,8 @@ const EGG_REPORT_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb
 const LAYER_STATS_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/layer_stats/latest.json";
 // 고병원성 AI 발생예측통계 — WOAH WAHIS 공식 신고를 scripts/fetch_hpai_risk.py가 모아둔 파일
 const HPAI_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/hpai_risk/latest.json";
+// 양계질병 자료 — The Poultry Site 원문을 scripts/fetch_poultry_diseases.py가 한글 번역까지 마쳐둔 파일
+const DISEASE_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/poultry_disease/diseases.json";
 const EGG_REPORT_SOURCE_URL = "https://www.ekapepia.com/v3/board/list.do?menuSn=51&boardInfoNo=0159";
 
 // ── 주가·환율·곡물 시세 (GitHub Actions → market/quotes.json) ────────────────
@@ -1026,6 +1028,25 @@ async function fetchEggReport(){
   }
   if(state.tab === "price") render();
 }
+// 양계질병: 검색어(query)와 펼친 항목(openSlug)은 화면 상태라 여기 함께 둔다.
+let diseaseState = { status: "idle", data: null, query: "", openSlug: null, showEn: {} };
+
+async function fetchDiseases(){
+  if(diseaseState.status === "loading") return;
+  diseaseState.status = "loading";
+  try {
+    const resp = await fetchWithTimeout(DISEASE_JSON_URL + "?t=" + Date.now(), 12000);
+    if(!resp.ok) throw new Error("HTTP " + resp.status);
+    diseaseState.data   = await resp.json();
+    buildDiseaseSearch(diseaseState.data);
+    diseaseState.status = "done";
+  } catch(e) {
+    console.warn("양계질병 자료 로딩 실패:", e);
+    diseaseState.status = "error";
+  }
+  if(state.tab === "disease") render();
+}
+
 let hpaiState = { status: "idle", data: null }; // idle|loading|done|error
 
 async function fetchHpaiRisk(){
@@ -1504,6 +1525,147 @@ async function searchLocation(query){
 
 // ── 뉴스정보 탭 ────────────────────────────────────────────────────────────
 // (AI 일일 브리핑은 GitHub Models 종료로 2026-08 제거. 뉴스·경제·정책만 표시)
+// ── 양계질병 탭 ────────────────────────────────────────────────────────────
+// 자료는 수집 시점에 한글 번역까지 끝난 상태로 내려온다(브라우저에서 번역하지
+// 않는다 — 구글 번역 무료 엔드포인트가 IP 단위 429를 주기 때문). 여기서는
+// 받아둔 한글 텍스트를 검색·표시만 한다.
+
+// 검색 대상 문자열을 불러올 때 한 번 만들어 붙인다. 수집 JSON에 넣어두면
+// 한글 본문을 통째로 복제하는 셈이라 파일이 두 배(279KB→415KB)가 된다.
+function buildDiseaseSearch(data){
+  (data && data.diseases || []).forEach(d => {
+    d.search = [d.title_ko, d.title_en, (d.slug||"").replace(/-/g," ")]
+      .concat(d.aliases||[], d.paras_ko||[])
+      .join(" ").toLowerCase();
+  });
+}
+
+// 검색어를 여러 토큰으로 쪼개 모두 포함하는 항목만 남긴다(순서 무관).
+// 본문까지 검색하므로 "콕시듐"으로 콕시듐증 말고 그것을 언급한 다른 질병도 걸린다.
+// 그건 의도한 동작이지만 정작 찾던 병이 뒤로 밀리면 안 되므로, 병명이 맞은 항목을
+// 본문만 맞은 항목보다 앞에 둔다.
+function diseaseMatches(list, q){
+  const terms = (q||"").trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if(!terms.length) return list;
+  const hit = list.filter(d => terms.every(t => (d.search||"").includes(t)));
+  const score = d => {
+    const name = [d.title_ko, d.title_en].concat(d.aliases||[]).join(" ").toLowerCase();
+    if(terms.every(t => name === t)) return 0;              // 병명이 정확히 일치
+    if(terms.every(t => name.includes(t))) return 1;        // 병명에 포함
+    if(terms.some(t => name.includes(t))) return 2;         // 병명에 일부 포함
+    return 3;                                              // 본문에만 등장
+  };
+  return hit.map((d,i)=>({d,i,s:score(d)}))
+            .sort((a,b)=> a.s-b.s || a.i-b.i)
+            .map(x=>x.d);
+}
+
+// 검색어가 본문 어디에 걸렸는지 보여주는 짧은 발췌
+function diseaseSnippet(d, q){
+  const terms = (q||"").trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const body = (d.paras_ko||[]).join(" ");
+  if(!terms.length) return body.slice(0,110);
+  for(const t of terms){
+    const i = body.toLowerCase().indexOf(t);
+    if(i >= 0) return (i>40?"…":"") + body.slice(Math.max(0,i-40), i+90);
+  }
+  return body.slice(0,110);
+}
+
+function hlDisease(text, q){
+  const terms = (q||"").trim().split(/\s+/).filter(Boolean);
+  let out = esc(text);
+  terms.forEach(t=>{
+    if(t.length < 1) return;
+    // esc를 거친 문자열 위에서 치환하므로 검색어도 같은 방식으로 이스케이프
+    const e = esc(t).replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+    out = out.replace(new RegExp("("+e+")","gi"),
+      '<mark style="background:#FFF3B0;padding:0 1px;border-radius:2px">$1</mark>');
+  });
+  return out;
+}
+
+function renderDiseaseTab(){
+  const d = diseaseState;
+  const shell = inner => `<div class="card" style="margin-bottom:16px">${inner}</div>`;
+  if(d.status === "loading" || d.status === "idle")
+    return shell(`<div style="text-align:center;padding:28px;color:#aaa">⏳ 질병 자료를 불러오는 중...</div>`);
+  if(d.status === "error" || !d.data || !d.data.diseases)
+    return shell(`<div style="text-align:center;padding:20px;color:#aaa;font-size:12px">
+      자료를 불러오지 못했습니다.<br>
+      <a href="https://www.thepoultrysite.com/publications/diseases-of-poultry" target="_blank" rel="noopener"
+         style="color:#00695C;font-size:11px">🌐 The Poultry Site 원문 바로가기</a></div>`);
+
+  const data = d.data, q = d.query || "";
+  const hits = diseaseMatches(data.diseases, q);
+
+  const rows = hits.map(x => {
+    const open = d.openSlug === x.slug;
+    const showEn = !!d.showEn[x.slug];
+    const paras = showEn ? (x.paras_en||[]) : (x.paras_ko||[]);
+    const body = open ? `
+      <div style="padding:10px 0 4px;border-top:1px dashed #e5e5e5;margin-top:8px">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+          <button class="dz-lang" data-slug="${esc(x.slug)}"
+            style="font-size:11px;border:1px solid #00695C;border-radius:6px;padding:3px 9px;
+                   background:${showEn?"#00695C":"#fff"};color:${showEn?"#fff":"#00695C"}">
+            ${showEn?"영문 원문 보는 중 · 한글로":"한글 보는 중 · 영문 원문"}
+          </button>
+          <a href="${esc(x.url)}" target="_blank" rel="noopener"
+             style="font-size:11px;border:1px solid #bbb;border-radius:6px;padding:3px 9px;color:#666;text-decoration:none">
+            원문 페이지 ↗</a>
+        </div>
+        ${paras.length ? paras.map(p=>`<p style="font-size:12.5px;line-height:1.75;color:#333;margin:0 0 9px">${showEn?esc(p):hlDisease(p,q)}</p>`).join("")
+                       : `<div style="font-size:12px;color:#bbb">본문 없음</div>`}
+      </div>` : "";
+    return `
+    <div class="card" style="margin-bottom:8px;padding:12px 14px">
+      <div class="dz-head" data-slug="${esc(x.slug)}" style="cursor:pointer;display:flex;align-items:flex-start;gap:8px">
+        <span style="font-size:15px;flex-shrink:0">🦠</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13.5px;font-weight:700;color:#1a1a1a;line-height:1.4">${hlDisease(x.title_ko||x.title_en, q)}</div>
+          <div style="font-size:10px;color:#aaa;margin-top:2px">${esc(x.title_en)}</div>
+          ${(x.aliases&&x.aliases.length)?`<div style="font-size:10px;color:#00695C;margin-top:3px">${x.aliases.map(a=>hlDisease(a,q)).join(" · ")}</div>`:""}
+          ${!open?`<div style="font-size:11px;color:#777;margin-top:5px;line-height:1.6">${hlDisease(diseaseSnippet(x,q), q)}…</div>`:""}
+        </div>
+        <span style="font-size:12px;color:#ccc;flex-shrink:0">${open?"▲":"▼"}</span>
+      </div>
+      ${body}
+    </div>`;
+  }).join("");
+
+  return `
+  <div class="card" style="margin-bottom:12px;border-top:4px solid #00695C">
+    <div class="display" style="font-size:16px;margin-bottom:4px">🩺 양계질병 사전</div>
+    <div style="font-size:11px;color:#888;margin-bottom:10px">
+      한글 병명으로 검색하세요 — 뉴캐슬병, 콕시듐, 마렉, 감보로, 대장균증 …
+    </div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <input id="dz-search" type="search" value="${esc(q)}" placeholder="예: 뉴캐슬병 / 호흡기 / 설사"
+        style="flex:1;min-width:0;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px" />
+      ${q?`<button id="dz-clear" style="border:1px solid #ddd;border-radius:8px;background:#fff;padding:9px 11px;font-size:12px;color:#666">지우기</button>`:""}
+    </div>
+    <div style="font-size:11px;color:#888;margin-top:8px">
+      ${q ? `‘${esc(q)}’ 검색결과 <b style="color:#00695C">${hits.length}</b>종` : `전체 <b style="color:#00695C">${data.count}</b>종`}
+      · 병명뿐 아니라 <b>증상 본문</b>도 함께 검색됩니다
+    </div>
+  </div>
+
+  ${hits.length ? rows : `
+    <div class="card" style="text-align:center;padding:26px;color:#aaa;font-size:12.5px">
+      ‘${esc(q)}’ 에 해당하는 질병을 찾지 못했습니다.<br>
+      <span style="font-size:11px">다른 이름으로 검색해 보세요 (예: 기관지염, 장염, 백혈병)</span>
+    </div>`}
+
+  <div class="card" style="margin-top:4px">
+    <div style="font-size:11px;color:#777;line-height:1.7">
+      <b>${esc(data.note||"")}</b><br>
+      출처: ${esc(data.source||"")} · ${data.count}종 · 수집 ${esc(data.updated||"")}
+      <a href="${esc(data.url||"")}" target="_blank" rel="noopener" style="color:#00695C;margin-left:4px">원문 ↗</a>
+    </div>
+  </div>`;
+}
+
 // ── 고병원성 AI(HPAI) 발생예측통계 탭 ──────────────────────────────────────
 // 탭 이름에 '예측'이 들어가지만, 담고 있는 값은 전부 WOAH에 신고된 관측 기록이고
 // 예측 연산은 하지 않는다. 카드 안의 안내문이 그 점을 분명히 밝히고 있으므로
@@ -1691,7 +1853,7 @@ function render(){
   document.getElementById("app").innerHTML = `
     ${renderHeader()}
     <main>
-      ${state.tab==="price" || state.tab==="pig" || state.tab==="livestock" ? renderPriceTab() : state.tab==="weather" ? renderWeatherTab() : state.tab==="vent" ? renderVentTab() : state.tab==="consult" ? renderConsultTab() : state.tab==="hpai" ? renderHpaiTab() : state.tab==="briefing" ? renderBriefingTab() : renderPriceTab()}
+      ${state.tab==="price" || state.tab==="pig" || state.tab==="livestock" ? renderPriceTab() : state.tab==="weather" ? renderWeatherTab() : state.tab==="vent" ? renderVentTab() : state.tab==="consult" ? renderConsultTab() : state.tab==="disease" ? renderDiseaseTab() : state.tab==="hpai" ? renderHpaiTab() : state.tab==="briefing" ? renderBriefingTab() : renderPriceTab()}
       ${renderFooter()}
     </main>`;
   attachEvents();
@@ -1716,6 +1878,7 @@ function renderHeader(){
       <button class="tab ${state.tab==="weather"?"active":""}" data-tab="weather">🌤️ 날씨</button>
       <button class="tab ${state.tab==="vent"?"active":""}" data-tab="vent">🌬️ 환기가이드</button>
       <button class="tab ${state.tab==="consult"?"active":""}" data-tab="consult">🐔🥚 육계/산란계 컨설팅</button>
+      <button class="tab ${state.tab==="disease"?"active":""}" data-tab="disease">🩺 양계질병</button>
       <button class="tab ${state.tab==="hpai"?"active":""}" data-tab="hpai">🦠 AI 발생예측통계</button>
       <button class="tab ${state.tab==="briefing"?"active":""}" data-tab="briefing">📋 뉴스정보</button>
     </div>
@@ -4753,9 +4916,40 @@ function renderFooter(){
 // ═══════════════════════════════════════════════════════════════════════════
 // 이벤트
 // ═══════════════════════════════════════════════════════════════════════════
+// 양계질병 탭 이벤트. 검색 입력은 매 글자마다 render()가 DOM을 새로 그리므로
+// 포커스와 캐럿 위치를 직접 복원해 줘야 한글 입력이 끊기지 않는다.
+function attachDiseaseEvents(){
+  const box = document.getElementById("dz-search");
+  if(box){
+    box.oninput = e => {
+      const pos = e.target.selectionStart;
+      diseaseState.query = e.target.value;
+      render();
+      const nb = document.getElementById("dz-search");
+      if(nb){ nb.focus(); try{ nb.setSelectionRange(pos,pos); }catch(_){} }
+    };
+  }
+  const clr = document.getElementById("dz-clear");
+  if(clr) clr.onclick = () => { diseaseState.query=""; render();
+    const nb=document.getElementById("dz-search"); if(nb) nb.focus(); };
+
+  document.querySelectorAll(".dz-head").forEach(el => el.onclick = () => {
+    const s = el.dataset.slug;
+    diseaseState.openSlug = (diseaseState.openSlug === s) ? null : s;
+    render();
+  });
+  document.querySelectorAll(".dz-lang").forEach(el => el.onclick = ev => {
+    ev.stopPropagation();
+    const s = el.dataset.slug;
+    diseaseState.showEn[s] = !diseaseState.showEn[s];
+    render();
+  });
+}
+
 function attachEvents(){
   document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
     state.tab=b.dataset.tab; render();
+    if(state.tab==="disease" && diseaseState.status==="idle") fetchDiseases();
     if(state.tab==="coin" && coinFetchStatus!=="done" && coinFetchStatus!=="loading") fetchUpbitPrices();
     if(state.tab==="stock" && stockFetchStatus!=="done" && stockFetchStatus!=="loading") fetchStockPrices();
     if(state.tab==="weather" && weatherState.status==="idle"){
@@ -4997,6 +5191,8 @@ function attachEvents(){
     const i=parseInt(b.dataset.idx,10);
     if(confirm("이 사이트를 삭제할까요?")){ state.customSites.splice(i,1); saveCustom(); render(); }
   });
+
+  attachDiseaseEvents();
 }
 
 render();

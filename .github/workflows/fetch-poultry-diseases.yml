@@ -1,0 +1,70 @@
+name: 양계질병 자료 수집
+
+on:
+  schedule:
+    # 원문(The Poultry Site 질병 도감)은 거의 바뀌지 않는 참고자료라 자주 돌 필요가 없다.
+    # 매주 확인하는 이유는 두 가지다: 원문이 갱신됐을 때 반영, 그리고 지난 실행에서
+    # 번역 실패(429)로 영문으로 남은 문단을 다시 시도해 채우기 위해서다.
+    # 20:00 UTC 일요일 = 매주 월요일 한국시간 05:00
+    - cron: "0 20 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-poultry-diseases:
+    runs-on: ubuntu-latest
+    # 질병 61종 × 문단별 번역이라 기본 타임아웃(6시간)보다 훨씬 짧게 잡아둔다.
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Python 설정
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: 패키지 설치
+        run: pip install requests
+
+      - name: 질병 자료 수집·번역
+        run: python scripts/fetch_poultry_diseases.py
+
+      - name: 결과 검증
+        run: |
+          python - <<'PY'
+          import json, re
+          from pathlib import Path
+          d = json.loads(Path("poultry_disease/diseases.json").read_text(encoding="utf-8"))
+          ds = d["diseases"]
+          assert d["count"] == len(ds)
+          # 사이트에 61종이 실려 있다. 크게 줄면 목록 파싱이 깨진 것이므로 막는다.
+          assert len(ds) >= 50, len(ds)
+          for x in ds:
+              assert x["slug"] and x["url"].startswith("https://")
+              assert len(x["paras_en"]) == len(x["paras_ko"]), x["slug"]
+              assert x["title_ko"] and x["title_en"], x["slug"]
+          # 한글 검색이 실제로 되는지 — 대표 병명 몇 개로 확인
+          for kw in ["뉴캐슬", "콕시듐", "마렉"]:
+              assert any(kw in (x["title_ko"]+" "+" ".join(x["aliases"])+" "+" ".join(x["paras_ko"])) for x in ds), kw
+          # 번역이 통째로 실패해 전부 영문으로 남지 않았는지 (한글 포함 항목 비율)
+          ko = sum(1 for x in ds if re.search(r"[가-힣]", " ".join(x["paras_ko"])))
+          assert ko >= len(ds) * 0.6, "한글 번역된 질병이 %d/%d 뿐" % (ko, len(ds))
+          print("검증 통과: %d종 / 한글 본문 %d종" % (len(ds), ko))
+          PY
+
+      - name: 결과 커밋
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add poultry_disease/
+          git diff --staged --quiet && echo "변경 없음" && exit 0
+          git commit -m "🩺 양계질병 자료 갱신 ($(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M KST'))"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin ${GITHUB_REF_NAME} && git push && exit 0
+            echo "푸시 재시도 $i"
+            sleep 5
+          done
+          exit 1
