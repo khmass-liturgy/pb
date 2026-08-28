@@ -51,7 +51,9 @@ HEADERS = {
 }
 
 # 본문이 아닌 공통 문구 — 문단 추출에서 제외한다.
-BOILER = re.compile(r"Global Ag Media provides|Sign up to our newsletter|"
+# 61종 전부에 붙어 있던 "Sign up to our regular newsletter…"를 놓쳤던 적이 있어
+# 뉴스레터 문구는 넓게 잡는다.
+BOILER = re.compile(r"Global Ag Media provides|Sign up to our|newsletter|"
                     r"^©|cookie|privacy policy", re.I)
 
 # 현장에서 쓰는 한글 병명. 기계번역 제목만으로는 검색이 안 걸리는 걸 보완한다.
@@ -118,19 +120,59 @@ def parse_index(html):
 
 
 def parse_detail(html):
-    """상세 페이지 → 본문 문단 리스트"""
+    """상세 페이지 → (문단 리스트, 문단별 그림번호, 이미지 목록)
+
+    원문은 문단 앞에 그림번호를 붙여 두고("255.256.257. The Newcastle disease…"),
+    같은 번호를 사진의 alt에 넣어 둔다. 그래서 번호를 버리지 않고 들고 있으면
+    어느 사진이 어느 설명에 붙는지 그대로 복원할 수 있다.
+    """
     i = html.find("<h1")
     seg = html[i if i > 0 else 0:]
     seg = re.sub(r"<script[\s\S]*?</script>|<style[\s\S]*?</style>", "", seg)
-    out = []
-    for p in re.findall(r"<p[^>]*>([\s\S]*?)</p>", seg):
-        s = htmlmod.unescape(re.sub(r"<[^>]+>", "", p))
+
+    def clean(raw):
+        s = htmlmod.unescape(re.sub(r"<[^>]+>", "", raw))
         s = re.sub(r"\s+", " ", s).strip()
-        # 본문 앞에 붙는 그림번호("255.256.257." / "100. 101. ")를 떼어낸다
-        s = re.sub(r"^(?:\d{1,4}\.\s*)+", "", s).strip()
-        if len(s) > 40 and not BOILER.search(s):
-            out.append(s)
-    return out
+        m = re.match(r"^((?:\d{1,4}\.\s*)+)", s)   # 앞머리 그림번호
+        nums = re.findall(r"\d{1,4}", m.group(1)) if m else []
+        return (s[m.end():].strip() if m else s), nums
+
+    def pic(block):
+        """블록 안 첫 본문 사진의 URL (없으면 '')"""
+        for tag in re.findall(r"<img[^>]+>", block):
+            src = ((re.search(r'src="([^"]+)"', tag) or [None, ""])[1]
+                   or (re.search(r'data-src="([^"]+)"', tag) or [None, ""])[1])
+            if not src.startswith("http") or "globalagmedia.com" not in src:
+                continue
+            # 같은 CDN에 로고(svg)도 올라와 있어 본문 사진과 섞인다
+            if src.lower().endswith(".svg") or "logo" in src.lower():
+                continue
+            return src
+        return ""
+
+    paras, figs, images = [], [], []
+    blocks = re.findall(r'<div class="fig">([\s\S]*?)<div class="break">', seg)
+    if blocks:
+        # 원문은 사진 한 장과 그 설명을 <div class="fig"> 한 덩어리로 묶어 둔다.
+        # 이 구조를 그대로 따라가면 어느 사진이 어느 설명의 것인지 정확히 맞는다.
+        # (그림번호로 짝지으려 했더니 61종 중 44종은 번호가 아예 없었다)
+        for b in blocks:
+            body = " ".join(re.findall(r"<p[^>]*>([\s\S]*?)</p>", b))
+            s, nums = clean(body)
+            if len(s) < 25 or BOILER.search(s):
+                continue
+            paras.append(s)
+            figs.append(nums)
+            images.append(pic(b))
+    else:
+        # fig 블록이 없는 페이지 — 문단만 뽑고 사진은 붙이지 않는다
+        for p in re.findall(r"<p[^>]*>([\s\S]*?)</p>", seg):
+            s, nums = clean(p)
+            if len(s) > 40 and not BOILER.search(s):
+                paras.append(s)
+                figs.append(nums)
+                images.append("")
+    return paras, figs, images
 
 
 # ── 번역 엔드포인트 ─────────────────────────────────────────────────────────
@@ -239,7 +281,7 @@ def main():
         slug = item["slug"]
         old = prev.get(slug, {})
         try:
-            paras_en = parse_detail(get(session, item["url"]))
+            paras_en, figs, images = parse_detail(get(session, item["url"]))
         except Exception as e:
             print("  [%2d/%d] %-38s ⚠️ 본문 실패(%s) → 이전 값 유지"
                   % (n, len(index), slug[:36], type(e).__name__))
@@ -250,6 +292,8 @@ def main():
 
         if not paras_en and old.get("paras_en"):
             paras_en = old["paras_en"]
+            figs = old.get("figs") or [[] for _ in paras_en]
+            images = old.get("images") or ["" for _ in paras_en]
 
         # 제목 번역 (영문이 같으면 재사용)
         if old.get("title_en") == item["title_en"] and old.get("title_ko"):
@@ -289,9 +333,10 @@ def main():
             "title_en": item["title_en"], "title_ko": title_ko,
             "aliases": aliases,
             "paras_en": paras_en, "paras_ko": paras_ko,
+            "figs": figs, "images": images,
         })
-        print("  [%2d/%d] %-38s 문단 %d  %s"
-              % (n, len(index), slug[:36], len(paras_en), title_ko[:22]), flush=True)
+        print("  [%2d/%d] %-38s 문단 %d 사진 %d  %s"
+              % (n, len(index), slug[:36], len(paras_en), len(images), title_ko[:22]), flush=True)
         save(diseases)          # 한 종 끝날 때마다 저장 — 중단돼도 여기까지는 남는다
         time.sleep(0.3)
 

@@ -1029,7 +1029,7 @@ async function fetchEggReport(){
   if(state.tab === "price") render();
 }
 // 양계질병: 검색어(query)와 펼친 항목(openSlug)은 화면 상태라 여기 함께 둔다.
-let diseaseState = { status: "idle", data: null, query: "", openSlug: null, showEn: {} };
+let diseaseState = { status: "idle", data: null, query: "", openSlug: null, showEn: {}, showHist: false };
 
 async function fetchDiseases(){
   if(diseaseState.status === "loading") return;
@@ -1585,85 +1585,196 @@ function hlDisease(text, q){
   return out;
 }
 
-function renderDiseaseTab(){
-  const d = diseaseState;
-  const shell = inner => `<div class="card" style="margin-bottom:16px">${inner}</div>`;
-  if(d.status === "loading" || d.status === "idle")
-    return shell(`<div style="text-align:center;padding:28px;color:#aaa">⏳ 질병 자료를 불러오는 중...</div>`);
-  if(d.status === "error" || !d.data || !d.data.diseases)
-    return shell(`<div style="text-align:center;padding:20px;color:#aaa;font-size:12px">
-      자료를 불러오지 못했습니다.<br>
-      <a href="https://www.thepoultrysite.com/publications/diseases-of-poultry" target="_blank" rel="noopener"
-         style="color:#00695C;font-size:11px">🌐 The Poultry Site 원문 바로가기</a></div>`);
+// ── 이달의 질병 (수의사가 고르는 그달의 주의 질병) ────────────────────────
+// 정적 사이트라 서버가 없어 선택 이력은 이 브라우저의 localStorage에 쌓인다.
+// 다른 기기·다른 사람에게는 공유되지 않는다는 점을 화면에도 밝혀 둔다.
+const PICK_KEY = "poultry_monthly_pick";
+const PICK_BY  = "최동명 수의사";
 
-  const data = d.data, q = d.query || "";
+function loadPicks(){
+  try { return JSON.parse(localStorage.getItem(PICK_KEY) || "{}") || {}; }
+  catch(_) { return {}; }
+}
+function savePicks(o){
+  try { localStorage.setItem(PICK_KEY, JSON.stringify(o)); } catch(_){}
+}
+function monthKey(dt){
+  const d = dt || new Date();
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0");
+}
+function monthLabel(k){
+  const parts = (k||"").split("-");
+  return parts[0] ? parts[0] + "년 " + parseInt(parts[1],10) + "월" : k;
+}
+
+function renderMonthlyPick(list){
+  const picks = loadPicks();
+  const cur = monthKey();
+  const mine = picks[cur];
+  const chosen = mine ? list.find(x => x.slug === mine.slug) : null;
+  const hist = Object.keys(picks).sort().reverse();
+
+  // 누적 통계: 어떤 질병이 몇 번 지목됐는지
+  const tally = {};
+  hist.forEach(k => { const s = picks[k].slug; tally[s] = (tally[s]||0) + 1; });
+  const ranked = Object.entries(tally).sort((a,b)=> b[1]-a[1]);
+
+  const options = list.map(x =>
+    '<option value="'+esc(x.slug)+'"'+(mine&&mine.slug===x.slug?" selected":"")+'>'+esc(x.title_ko)+'</option>').join("");
+
+  const histRows = hist.map(k => {
+    const p = picks[k];
+    const dz = list.find(x => x.slug === p.slug);
+    return '<tr>'
+      + '<td style="padding:5px 6px;font-size:11px;color:#666;white-space:nowrap">'+esc(monthLabel(k))+'</td>'
+      + '<td style="padding:5px 6px">'
+      +   '<a href="#" class="dz-goto" data-slug="'+esc(p.slug)+'" style="font-size:12px;color:#00695C;font-weight:600;text-decoration:none">'
+      +     esc(dz ? dz.title_ko : p.slug) + '</a>'
+      +   (p.note?'<div style="font-size:10px;color:#999;margin-top:2px">'+esc(p.note)+'</div>':"")
+      + '</td>'
+      + '<td style="padding:5px 6px;text-align:right">'
+      +   '<button class="dz-pick-del" data-month="'+esc(k)+'" style="font-size:10px;border:1px solid #eee;border-radius:5px;background:#fff;color:#bbb;padding:2px 6px">삭제</button>'
+      + '</td></tr>';
+  }).join("");
+
+  const bars = ranked.slice(0,6).map(function(e){
+    const dz = list.find(x=>x.slug===e[0]);
+    const w = (e[1]/ranked[0][1]*100).toFixed(0);
+    return '<div style="display:flex;align-items:center;gap:7px;margin-bottom:4px">'
+      + '<span style="font-size:11px;color:#555;min-width:96px">'+esc(dz?dz.title_ko:e[0])+'</span>'
+      + '<div style="flex:1;background:#F3EFE0;border-radius:3px;height:8px;overflow:hidden">'
+      +   '<div style="width:'+w+'%;background:#B8860B;height:100%"></div></div>'
+      + '<span style="font-size:10px;color:#999;min-width:22px;text-align:right">'+e[1]+'회</span></div>';
+  }).join("");
+
+  const pickCard = chosen
+    ? '<a href="#" class="dz-goto" data-slug="'+esc(chosen.slug)+'" style="display:block;text-decoration:none;background:#FFFBEA;border:1px solid #F0E0A0;border-radius:9px;padding:12px 14px">'
+      + '<div style="font-size:10px;color:#B8860B;font-weight:700;letter-spacing:.5px">이달의 주의 질병</div>'
+      + '<div style="font-size:17px;font-weight:800;color:#7A5C00;margin-top:3px">'+esc(chosen.title_ko)+'</div>'
+      + '<div style="font-size:10px;color:#A08A50;margin-top:2px">'+esc(chosen.title_en)+'</div>'
+      + (mine.note?'<div style="font-size:12px;color:#6B5A20;margin-top:7px;line-height:1.6">'+esc(mine.note)+'</div>':"")
+      + '<div style="font-size:11px;color:#B8860B;margin-top:8px">눌러서 질병 내용 보기 →</div></a>'
+    : '<div style="background:#FAFAFA;border:1px dashed #ddd;border-radius:9px;padding:14px;text-align:center;font-size:12px;color:#999">이달의 질병이 아직 선택되지 않았습니다</div>';
+
+  const histBlock = hist.length
+    ? '<div style="margin-top:12px;border-top:1px solid #f0f0f0;padding-top:10px">'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">'
+      +   '<div style="font-size:12px;font-weight:700;color:#555">지난 선택 '+hist.length+'건</div>'
+      +   '<button id="dz-hist-toggle" style="font-size:11px;border:1px solid #ddd;border-radius:6px;background:#fff;padding:3px 9px;color:#666">'
+      +     (diseaseState.showHist?"접기":"펼치기")+'</button></div>'
+      + (diseaseState.showHist
+          ? '<div style="overflow-x:auto;margin-top:8px"><table style="width:100%;border-collapse:collapse"><tbody>'+histRows+'</tbody></table></div>'
+            + (ranked.length ? '<div style="margin-top:10px"><div style="font-size:11px;font-weight:700;color:#555;margin-bottom:5px">누적 통계 — 많이 지목된 질병</div>'+bars+'</div>' : "")
+          : "")
+      + '</div>'
+    : "";
+
+  return '<div class="card" style="margin-bottom:12px;border-top:4px solid #B8860B">'
+    + '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:8px">'
+    +   '<div class="display" style="font-size:15px">📌 '+esc(PICK_BY)+'가 짚어주는 이달의 질병</div>'
+    +   '<span style="font-size:11px;color:#888">'+esc(monthLabel(cur))+'</span></div>'
+    + pickCard
+    + '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:10px">'
+    +   '<select id="dz-pick-sel" style="flex:1;min-width:150px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px">'
+    +     '<option value="">— 질병 선택 —</option>'+options+'</select>'
+    +   '<input id="dz-pick-note" type="text" placeholder="한줄 코멘트(선택)" value="'+esc(mine&&mine.note||"")+'" style="flex:1;min-width:150px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />'
+    +   '<button id="dz-pick-save" style="border:1px solid #B8860B;background:#B8860B;color:#fff;border-radius:7px;padding:7px 13px;font-size:12px;font-weight:600">저장</button></div>'
+    + histBlock
+    + '<div style="font-size:9px;color:#c0c0c0;margin-top:9px">선택 이력은 이 브라우저에만 저장됩니다 (다른 기기와 공유되지 않음)</div>'
+    + '</div>';
+}
+
+// 검색 결과만 따로 그린다. 검색창까지 다시 그리면 한글 조합(IME)이 끊겨
+// 글자가 안 쳐지므로, 입력 중에는 이 부분만 교체한다.
+function renderDiseaseResults(){
+  const d = diseaseState, data = d.data, q = d.query || "";
   const hits = diseaseMatches(data.diseases, q);
 
   const rows = hits.map(x => {
     const open = d.openSlug === x.slug;
     const showEn = !!d.showEn[x.slug];
     const paras = showEn ? (x.paras_en||[]) : (x.paras_ko||[]);
-    const body = open ? `
-      <div style="padding:10px 0 4px;border-top:1px dashed #e5e5e5;margin-top:8px">
-        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
-          <button class="dz-lang" data-slug="${esc(x.slug)}"
-            style="font-size:11px;border:1px solid #00695C;border-radius:6px;padding:3px 9px;
-                   background:${showEn?"#00695C":"#fff"};color:${showEn?"#fff":"#00695C"}">
-            ${showEn?"영문 원문 보는 중 · 한글로":"한글 보는 중 · 영문 원문"}
-          </button>
-          <a href="${esc(x.url)}" target="_blank" rel="noopener"
-             style="font-size:11px;border:1px solid #bbb;border-radius:6px;padding:3px 9px;color:#666;text-decoration:none">
-            원문 페이지 ↗</a>
-        </div>
-        ${paras.length ? paras.map(p=>`<p style="font-size:12.5px;line-height:1.75;color:#333;margin:0 0 9px">${showEn?esc(p):hlDisease(p,q)}</p>`).join("")
-                       : `<div style="font-size:12px;color:#bbb">본문 없음</div>`}
-      </div>` : "";
-    return `
-    <div class="card" style="margin-bottom:8px;padding:12px 14px">
-      <div class="dz-head" data-slug="${esc(x.slug)}" style="cursor:pointer;display:flex;align-items:flex-start;gap:8px">
-        <span style="font-size:15px;flex-shrink:0">🦠</span>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:13.5px;font-weight:700;color:#1a1a1a;line-height:1.4">${hlDisease(x.title_ko||x.title_en, q)}</div>
-          <div style="font-size:10px;color:#aaa;margin-top:2px">${esc(x.title_en)}</div>
-          ${(x.aliases&&x.aliases.length)?`<div style="font-size:10px;color:#00695C;margin-top:3px">${x.aliases.map(a=>hlDisease(a,q)).join(" · ")}</div>`:""}
-          ${!open?`<div style="font-size:11px;color:#777;margin-top:5px;line-height:1.6">${hlDisease(diseaseSnippet(x,q), q)}…</div>`:""}
-        </div>
-        <span style="font-size:12px;color:#ccc;flex-shrink:0">${open?"▲":"▼"}</span>
-      </div>
-      ${body}
-    </div>`;
+    const imgs = x.images || [];
+    const firstImg = imgs.find(Boolean);
+
+    // 펼친 카드의 사진은 loading=lazy를 쓰지 않는다 — 사용자가 직접 연 내용이라
+    // 스크롤을 기다릴 이유가 없고, 지연 로딩이 안 걸리는 환경에서 빈칸이 남는다.
+    const paraBlocks = paras.map((p,i) => {
+      const im = imgs[i]
+        ? '<a href="'+esc(imgs[i])+'" target="_blank" rel="noopener" style="flex-shrink:0">'
+          + '<img src="'+esc(imgs[i])+'" alt="'+esc(x.title_ko)+' '+(i+1)+'" '
+          + 'style="width:118px;height:88px;object-fit:cover;border-radius:7px;border:1px solid #eee;background:#fafafa" '
+          + 'onerror="this.style.display=\'none\'" /></a>'
+        : "";
+      return '<div style="display:flex;gap:11px;align-items:flex-start;margin:0 0 13px">'
+        + im
+        + '<p style="flex:1;min-width:0;font-size:12.5px;line-height:1.75;color:#333;margin:0">'
+        + (showEn?esc(p):hlDisease(p,q)) + '</p></div>';
+    }).join("");
+
+    const body = open
+      ? '<div style="padding:10px 0 4px;border-top:1px dashed #e5e5e5;margin-top:8px">'
+        + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'
+        +   '<button class="dz-lang" data-slug="'+esc(x.slug)+'" style="font-size:11px;border:1px solid #00695C;border-radius:6px;padding:3px 9px;background:'
+        +     (showEn?"#00695C":"#fff")+';color:'+(showEn?"#fff":"#00695C")+'">'
+        +     (showEn?"영문 원문 보는 중 · 한글로":"한글 보는 중 · 영문 원문")+'</button>'
+        +   '<a href="'+esc(x.url)+'" target="_blank" rel="noopener" style="font-size:11px;border:1px solid #bbb;border-radius:6px;padding:3px 9px;color:#666;text-decoration:none">원문 페이지 ↗</a></div>'
+        + (paras.length ? paraBlocks : '<div style="font-size:12px;color:#bbb">본문 없음</div>')
+        + '</div>'
+      : "";
+
+    const thumb = (!open && firstImg)
+      ? '<img src="'+esc(firstImg)+'" alt="" loading="lazy" style="width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid #eee;flex-shrink:0" onerror="this.style.display=\'none\'" />'
+      : '<span style="font-size:15px;flex-shrink:0">🦠</span>';
+
+    return '<div class="card" style="margin-bottom:8px;padding:12px 14px" id="dz-card-'+esc(x.slug)+'">'
+      + '<div class="dz-head" data-slug="'+esc(x.slug)+'" style="cursor:pointer;display:flex;align-items:flex-start;gap:9px">'
+      +   thumb
+      +   '<div style="flex:1;min-width:0">'
+      +     '<div style="font-size:13.5px;font-weight:700;color:#1a1a1a;line-height:1.4">'+hlDisease(x.title_ko||x.title_en, q)+'</div>'
+      +     '<div style="font-size:10px;color:#aaa;margin-top:2px">'+esc(x.title_en)+'</div>'
+      +     ((x.aliases&&x.aliases.length)?'<div style="font-size:10px;color:#00695C;margin-top:3px">'+x.aliases.map(a=>hlDisease(a,q)).join(" · ")+'</div>':"")
+      +     (!open?'<div style="font-size:11px;color:#777;margin-top:5px;line-height:1.6">'+hlDisease(diseaseSnippet(x,q), q)+'…</div>':"")
+      +   '</div>'
+      +   '<span style="font-size:12px;color:#ccc;flex-shrink:0">'+(open?"▲":"▼")+'</span></div>'
+      + body + '</div>';
   }).join("");
 
-  return `
-  <div class="card" style="margin-bottom:12px;border-top:4px solid #00695C">
-    <div class="display" style="font-size:16px;margin-bottom:4px">🩺 양계질병 사전</div>
-    <div style="font-size:11px;color:#888;margin-bottom:10px">
-      한글 병명으로 검색하세요 — 뉴캐슬병, 콕시듐, 마렉, 감보로, 대장균증 …
-    </div>
-    <div style="display:flex;gap:6px;align-items:center">
-      <input id="dz-search" type="search" value="${esc(q)}" placeholder="예: 뉴캐슬병 / 호흡기 / 설사"
-        style="flex:1;min-width:0;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px" />
-      ${q?`<button id="dz-clear" style="border:1px solid #ddd;border-radius:8px;background:#fff;padding:9px 11px;font-size:12px;color:#666">지우기</button>`:""}
-    </div>
-    <div style="font-size:11px;color:#888;margin-top:8px">
-      ${q ? `‘${esc(q)}’ 검색결과 <b style="color:#00695C">${hits.length}</b>종` : `전체 <b style="color:#00695C">${data.count}</b>종`}
-      · 병명뿐 아니라 <b>증상 본문</b>도 함께 검색됩니다
-    </div>
-  </div>
+  const countLine = '<div style="font-size:11px;color:#888;margin:0 0 10px 2px">'
+    + (q ? '‘'+esc(q)+'’ 검색결과 <b style="color:#00695C">'+hits.length+'</b>종'
+         : '전체 <b style="color:#00695C">'+data.count+'</b>종')
+    + ' · 병명뿐 아니라 <b>증상 본문</b>도 함께 검색됩니다</div>';
 
-  ${hits.length ? rows : `
-    <div class="card" style="text-align:center;padding:26px;color:#aaa;font-size:12.5px">
-      ‘${esc(q)}’ 에 해당하는 질병을 찾지 못했습니다.<br>
-      <span style="font-size:11px">다른 이름으로 검색해 보세요 (예: 기관지염, 장염, 백혈병)</span>
-    </div>`}
+  const empty = '<div class="card" style="text-align:center;padding:26px;color:#aaa;font-size:12.5px">'
+    + '‘'+esc(q)+'’ 에 해당하는 질병을 찾지 못했습니다.<br>'
+    + '<span style="font-size:11px">다른 이름으로 검색해 보세요 (예: 기관지염, 장염, 백혈병)</span></div>';
 
-  <div class="card" style="margin-top:4px">
-    <div style="font-size:11px;color:#777;line-height:1.7">
-      <b>${esc(data.note||"")}</b><br>
-      출처: ${esc(data.source||"")} · ${data.count}종 · 수집 ${esc(data.updated||"")}
-      <a href="${esc(data.url||"")}" target="_blank" rel="noopener" style="color:#00695C;margin-left:4px">원문 ↗</a>
-    </div>
-  </div>`;
+  return countLine + (hits.length ? rows : empty);
+}
+
+function renderDiseaseTab(){
+  const d = diseaseState;
+  const shell = inner => '<div class="card" style="margin-bottom:16px">'+inner+'</div>';
+  if(d.status === "loading" || d.status === "idle")
+    return shell('<div style="text-align:center;padding:28px;color:#aaa">⏳ 질병 자료를 불러오는 중...</div>');
+  if(d.status === "error" || !d.data || !d.data.diseases)
+    return shell('<div style="text-align:center;padding:20px;color:#aaa;font-size:12px">자료를 불러오지 못했습니다.<br>'
+      + '<a href="https://www.thepoultrysite.com/publications/diseases-of-poultry" target="_blank" rel="noopener" style="color:#00695C;font-size:11px">🌐 The Poultry Site 원문 바로가기</a></div>');
+
+  const data = d.data, q = d.query || "";
+  return renderMonthlyPick(data.diseases)
+    + '<div class="card" style="margin-bottom:12px;border-top:4px solid #00695C">'
+    +   '<div class="display" style="font-size:16px;margin-bottom:4px">🩺 양계질병 사전</div>'
+    +   '<div style="font-size:11px;color:#888;margin-bottom:10px">한글 병명으로 검색하세요 — 뉴캐슬병, 콕시듐, 마렉, 감보로, 대장균증 …</div>'
+    +   '<div style="display:flex;gap:6px;align-items:center">'
+    +     '<input id="dz-search" type="search" value="'+esc(q)+'" placeholder="예: 뉴캐슬병 / 호흡기 / 설사" style="flex:1;min-width:0;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px" />'
+    +     '<button id="dz-clear" style="border:1px solid #ddd;border-radius:8px;background:#fff;padding:9px 11px;font-size:12px;color:#666">지우기</button>'
+    +   '</div></div>'
+    + '<div id="dz-results">' + renderDiseaseResults() + '</div>'
+    + '<div class="card" style="margin-top:4px"><div style="font-size:11px;color:#777;line-height:1.7">'
+    +   '<b>'+esc(data.note||"")+'</b><br>출처: '+esc(data.source||"")+' · '+data.count+'종 · 수집 '+esc(data.updated||"")
+    +   ' <a href="'+esc(data.url||"")+'" target="_blank" rel="noopener" style="color:#00695C;margin-left:4px">원문 ↗</a>'
+    + '</div></div>';
 }
 
 // ── 고병원성 AI(HPAI) 발생예측통계 탭 ──────────────────────────────────────
@@ -4916,32 +5027,92 @@ function renderFooter(){
 // ═══════════════════════════════════════════════════════════════════════════
 // 이벤트
 // ═══════════════════════════════════════════════════════════════════════════
-// 양계질병 탭 이벤트. 검색 입력은 매 글자마다 render()가 DOM을 새로 그리므로
-// 포커스와 캐럿 위치를 직접 복원해 줘야 한글 입력이 끊기지 않는다.
-function attachDiseaseEvents(){
-  const box = document.getElementById("dz-search");
-  if(box){
-    box.oninput = e => {
-      const pos = e.target.selectionStart;
-      diseaseState.query = e.target.value;
-      render();
-      const nb = document.getElementById("dz-search");
-      if(nb){ nb.focus(); try{ nb.setSelectionRange(pos,pos); }catch(_){} }
-    };
-  }
-  const clr = document.getElementById("dz-clear");
-  if(clr) clr.onclick = () => { diseaseState.query=""; render();
-    const nb=document.getElementById("dz-search"); if(nb) nb.focus(); };
+// 검색 결과 영역만 다시 그린다.
+//
+// 예전에는 글자를 칠 때마다 render()로 화면 전체를 다시 그렸는데, 그러면 검색창
+// <input> 자체가 새 노드로 교체된다. 한글은 여러 키 입력이 하나의 글자로 조합되는
+// 중간 상태(IME composition)를 입력 요소가 들고 있어서, 그 요소가 교체되면 조합이
+// 끊겨 글자가 아예 입력되지 않았다. 그래서 입력 중에는 결과 영역만 갈아끼우고
+// 검색창은 건드리지 않는다.
+function updateDiseaseResults(){
+  const box = document.getElementById("dz-results");
+  if(!box) return;
+  box.innerHTML = renderDiseaseResults();
+  attachDiseaseResultEvents();
+}
 
+// 결과 카드 안의 이벤트 (결과를 다시 그릴 때마다 새로 걸어줘야 한다)
+function attachDiseaseResultEvents(){
   document.querySelectorAll(".dz-head").forEach(el => el.onclick = () => {
     const s = el.dataset.slug;
     diseaseState.openSlug = (diseaseState.openSlug === s) ? null : s;
-    render();
+    updateDiseaseResults();
   });
   document.querySelectorAll(".dz-lang").forEach(el => el.onclick = ev => {
     ev.stopPropagation();
     const s = el.dataset.slug;
     diseaseState.showEn[s] = !diseaseState.showEn[s];
+    updateDiseaseResults();
+  });
+}
+
+// 특정 질병을 펼치고 그 위치로 이동 (이달의 질병·지난 선택에서 눌렀을 때)
+function gotoDisease(slug){
+  diseaseState.query = "";
+  diseaseState.openSlug = slug;
+  render();
+  const el = document.getElementById("dz-card-" + slug);
+  if(el) el.scrollIntoView({behavior:"smooth", block:"center"});
+}
+
+function attachDiseaseEvents(){
+  const box = document.getElementById("dz-search");
+  if(box){
+    // input 이벤트는 한글 조합 중에도 발생한다. 조합이 끝나기 전에 결과를
+    // 갈아끼워도 검색창은 그대로 두므로 입력은 끊기지 않는다.
+    box.oninput = e => {
+      diseaseState.query = e.target.value;
+      updateDiseaseResults();
+    };
+  }
+  const clr = document.getElementById("dz-clear");
+  if(clr) clr.onclick = () => {
+    diseaseState.query = "";
+    const nb = document.getElementById("dz-search");
+    if(nb){ nb.value = ""; nb.focus(); }
+    updateDiseaseResults();
+  };
+
+  attachDiseaseResultEvents();
+
+  // ── 이달의 질병 ──
+  const save = document.getElementById("dz-pick-save");
+  if(save) save.onclick = () => {
+    const sel = document.getElementById("dz-pick-sel");
+    const note = document.getElementById("dz-pick-note");
+    const slug = sel && sel.value;
+    if(!slug){ alert("질병을 먼저 선택하세요."); return; }
+    const picks = loadPicks();
+    picks[monthKey()] = { slug, note: (note && note.value || "").trim(), by: PICK_BY,
+                          ts: new Date().toISOString() };
+    savePicks(picks);
+    render();
+  };
+
+  const ht = document.getElementById("dz-hist-toggle");
+  if(ht) ht.onclick = () => { diseaseState.showHist = !diseaseState.showHist; render(); };
+
+  document.querySelectorAll(".dz-goto").forEach(el => el.onclick = ev => {
+    ev.preventDefault();
+    gotoDisease(el.dataset.slug);
+  });
+
+  document.querySelectorAll(".dz-pick-del").forEach(el => el.onclick = () => {
+    const m = el.dataset.month;
+    if(!confirm(monthLabel(m) + " 선택을 삭제할까요?")) return;
+    const picks = loadPicks();
+    delete picks[m];
+    savePicks(picks);
     render();
   });
 }
