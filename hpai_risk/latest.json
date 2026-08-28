@@ -1,15 +1,15 @@
 {
-  "updated": "2026-08-28 00:30 KST",
+  "updated": "2026-08-28 15:59 KST",
   "window_days": 180,
   "source": "WOAH WAHIS (세계동물보건기구 공식 신고)",
   "url": "https://wahis.woah.org/#/event-management",
   "level_rule": "최근 180일 신고를 기준으로 분류 — 진행중: WOAH에 '진행중(On-going)'으로 신고된 발생이 있음 · 최근신고: 진행중은 없으나 90일 내 신고가 있음 · 소강: 90일 넘게 신고 없음",
   "overall": {
     "countries": 68,
-    "total": 206,
-    "poultry": 89,
-    "wild": 117,
-    "ongoing": 72
+    "total": 211,
+    "poultry": 92,
+    "wild": 119,
+    "ongoing": 77
   },
   "regions": [
     {
@@ -26,6 +26,19 @@
       ]
     },
     {
+      "countries": 13,
+      "total": 37,
+      "poultry": 10,
+      "wild": 27,
+      "ongoing": 26,
+      "name": "Americas",
+      "top": [
+        "Chile",
+        "Canada",
+        "United States of America"
+      ]
+    },
+    {
       "countries": 11,
       "total": 34,
       "poultry": 22,
@@ -36,19 +49,6 @@
         "India",
         "Korea (Rep. of)",
         "Philippines"
-      ]
-    },
-    {
-      "countries": 13,
-      "total": 32,
-      "poultry": 7,
-      "wild": 25,
-      "ongoing": 21,
-      "name": "Americas",
-      "top": [
-        "Chile",
-        "Canada",
-        "Mexico"
       ]
     },
     {
@@ -92,10 +92,10 @@
     "name": "동아시아-대양주 철새경로 (EAAF)",
     "note": "한반도가 속한 철새 이동경로. 경로상 국가의 발생은 국내 유입 위험을 살피는 선행 관찰 대상이다.",
     "countries": 11,
-    "total": 33,
-    "poultry": 19,
-    "wild": 14,
-    "ongoing": 12,
+    "total": 36,
+    "poultry": 21,
+    "wild": 15,
+    "ongoing": 15,
     "countries_list": [
       {
         "name": "India",
@@ -137,6 +137,20 @@
         "first": "2022-01-06",
         "total": 5,
         "days_since": 49,
+        "level": "ongoing"
+      },
+      {
+        "name": "United States of America",
+        "iso": "USA",
+        "region": "Americas",
+        "eaaf": true,
+        "poultry": 3,
+        "wild": 2,
+        "ongoing": 5,
+        "latest": "2026-08-20",
+        "first": "2021-12-30",
+        "total": 5,
+        "days_since": 8,
         "level": "ongoing"
       },
       {
@@ -194,20 +208,6 @@
         "total": 2,
         "days_since": 133,
         "level": "quiet"
-      },
-      {
-        "name": "United States of America",
-        "iso": "USA",
-        "region": "Americas",
-        "eaaf": true,
-        "poultry": 1,
-        "wild": 1,
-        "ongoing": 2,
-        "latest": "2026-08-07",
-        "first": "2022-09-12",
-        "total": 2,
-        "days_since": 21,
-        "level": "ongoing"
       },
       {
         "name": "Australia",
@@ -302,12 +302,12 @@
       "region": "Americas",
       "eaaf": false,
       "poultry": 3,
-      "wild": 8,
-      "ongoing": 7,
-      "latest": "2026-08-13",
+      "wild": 9,
+      "ongoing": 8,
+      "latest": "2026-08-17",
       "first": "2026-03-04",
-      "total": 11,
-      "days_since": 15,
+      "total": 12,
+      "days_since": 11,
       "level": "ongoing"
     },
     {
@@ -367,6 +367,20 @@
       "level": "quiet"
     },
     {
+      "name": "Canada",
+      "iso": "CAN",
+      "region": "Americas",
+      "eaaf": false,
+      "poultry": 1,
+      "wild": 4,
+      "ongoing": 5,
+      "latest": "2026-08-19",
+      "first": "2022-04-06",
+      "total": 5,
+      "days_since": 9,
+      "level": "ongoing"
+    },
+    {
       "name": "Finland",
       "iso": "FIN",
       "region": "Europe",
@@ -395,6 +409,20 @@
       "level": "ongoing"
     },
     {
+      "name": "United States of America",
+      "iso": "USA",
+      "region": "Americas",
+      "eaaf": true,
+      "poultry": 3,
+      "wild": 2,
+      "ongoing": 5,
+      "latest": "2026-08-20",
+      "first": "2021-12-30",
+      "total": 5,
+      "days_since": 8,
+      "level": "ongoing"
+    },
+    {
       "name": "Belgium",
       "iso": "BEL",
       "region": "Europe",
@@ -406,20 +434,6 @@
       "first": "2025-02-26",
       "total": 4,
       "days_since": 60,
-      "level": "ongoing"
-    },
-    {
-      "name": "Canada",
-      "iso": "CAN",
-      "region": "Americas",
-      "eaaf": false,
-      "poultry": 0,
-      "wild": 4,
-      "ongoing": 4,
-      "latest": "2026-07-30",
-      "first": "2022-04-06",
-      "total": 4,
-      "days_since": 29,
       "level": "ongoing"
     },
     {
@@ -812,20 +826,6 @@
       "first": "2026-01-15",
       "total": 2,
       "days_since": 38,
-      "level": "ongoing"
-    },
-    {
-      "name": "United States of America",
-      "iso": "USA",
-      "region": "Americas",
-      "eaaf": true,
-      "poultry": 1,
-      "wild": 1,
-      "ongoing": 2,
-      "latest": "2026-08-07",
-      "first": "2022-09-12",
-      "total": 2,
-      "days_since": 21,
       "level": "ongoing"
     },
     {
