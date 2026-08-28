@@ -3341,6 +3341,83 @@ const CONSULT_BREEDS = {
 
 let consultState = { species:"broiler", breed:"ross308", age:7 };
 
+// ── 일령별 음수량 기준 ───────────────────────────────────────────────────────
+// 육종회사 사육표준 매뉴얼은 "일령별 음수량(ml)" 표를 그대로 싣지 않는다. 대신
+// 음수량을 "물:사료 비율(water:feed ratio)"로 제시하고, 온도에 따른 보정규칙을
+// 함께 준다 — 현장에서 급수미터로 매일 확인하는 방식 그대로다.
+//  · 육계: Aviagen Brief 「Water Utilization in Broilers」(2025.1)
+//      "21°C에서 물:사료가 1.6~1.8 : 1이면 음수량이 충분한 것으로 본다"
+//  · 산란계: Lohmann LSL-Lite Management Guide 「Water Supply」
+//      "쾌적온도에서 물:사료는 약 1.8~2 : 1, 30°C 이상에서는 5 : 1까지 올라간다"
+//      Hy-Line 매뉴얼도 "건강한 성계는 사료의 약 2배를 마신다"로 같은 기준.
+// 산란계 Hy-Line 품종은 매뉴얼에 주령별 음수량(ml/일)이 실제로 실려 있으므로
+// 그 값을 그대로 쓰고, 실리지 않은 품종만 위 비율로 환산한 추정치를 쓴다.
+const WF_RATIO = {
+  broiler: {low:1.6, high:1.8, refTemp:21,
+            source:"Aviagen Brief 「Water Utilization in Broilers」 2025.1"},
+  layer:   {low:1.8, high:2.0, refTemp:20,
+            source:"Lohmann LSL-Lite Management Guide 「Water Supply」 · Hy-Line Management Guide"},
+};
+
+// 온도별 물:사료 비율 — Cobb Broiler Management Guide 수록표(원전 Singleton 2004)
+const WF_RATIO_BY_TEMP = [[4,1.7],[20,2.0],[26,2.5],[37,5.0]];
+
+// Cobb 매뉴얼 온도보정 규칙: 20~32°C는 1°C당 음수량 +6%, 32~38°C는 1°C당 +5%.
+// (같은 문단에서 사료섭취량은 20°C 초과 1°C당 -1.23%로 줄어든다고 명시한다)
+const WF_TEMP_BASE = 20;
+function waterTempFactor(tempC){
+  if(tempC == null || tempC <= WF_TEMP_BASE) return 1;
+  if(tempC <= 32) return 1 + 0.06*(tempC - WF_TEMP_BASE);
+  return (1 + 0.06*12) * (1 + 0.05*Math.min(tempC-32, 6));
+}
+
+// 니플급수기 권장 유량 — 일령이 오르면 유량을 같이 올려주지 않으면
+// 표준 음수량을 마시고 싶어도 못 마신다(음수 부족 → 사료섭취 저하로 직결).
+// 출처: Aviagen Brief 「Water Utilization in Broilers」 Table 2
+const DRINKER_FLOW_BROILER = [
+  ["0~7일",   "20~29 ml/분"],
+  ["8~14일",  "30~39 ml/분"],
+  ["15~21일", "40~49 ml/분"],
+  ["22~28일", "50~69 ml/분"],
+  ["29일~",   "70~100 ml/분"],
+];
+
+// 특정 일령(주령)의 일일 사료섭취량·음수량을 구한다.
+// 육계 데이터는 누적사료만 있어 전날 누적과의 차이로 일일 섭취량을 역산한다.
+function getIntakeAt(species, breed, age){
+  if(species === "broiler"){
+    const rows = breed.data;
+    const today = rows.find(r=>r[0]===age);
+    if(!today || today[3]==null) return null;
+    const yest = rows.find(r=>r[0]===age-1);
+    const feed = (yest && yest[3]!=null) ? today[3]-yest[3] : today[3];
+    return {feed, water:null, cum:today[3]};
+  }
+  const {row} = lookupLayerPhase(breed.data, age);
+  if(!row) return null;
+  const isRearing = row.length===5;              // [wk,bw,fi,wtr,mort]
+  const feed  = isRearing ? row[2] : row[3];     // 산란기는 [wk,hd,bw,fi,wtr,ew,mort]
+  const water = isRearing ? row[3] : row[4];
+  if(feed==null && water==null) return null;
+  return {feed, water, cum:null};
+}
+
+// 사료섭취량 → 음수량 환산(매뉴얼에 음수량이 없는 품종용). tempC를 주면 온도보정.
+function waterRangeFromFeed(species, feedG, tempC){
+  const r = WF_RATIO[species];
+  if(!r || feedG==null) return null;
+  const f = waterTempFactor(tempC);
+  return {lo:feedG*r.low*f, hi:feedG*r.high*f, factor:f};
+}
+
+// 카드용 음수량 셀 — 매뉴얼 실측값이 있으면 그대로, 없으면 환산 추정치.
+function fmtWaterCell(species, feedG, waterMl){
+  if(waterMl != null) return `${Math.round(waterMl)} ml`;
+  const r = waterRangeFromFeed(species, feedG, null);
+  if(!r) return "-";
+  return `${Math.round(r.lo)}~${Math.round(r.hi)} ml<span style="font-size:9px;color:#aaa;font-weight:500"> 환산</span>`;
+}
+
 // ── 습구온도(Wet-Bulb Temperature) 기반 쿨링패드 효과 예측 ────────────────────
 // 미국 조지아대(UGA)·일리노이대 등 가금산업 선진국의 익스텐션(농가 기술지도)
 // 컨설턴트들이 쿨링패드 효과를 사전에 판단할 때 쓰는 핵심 지표. 쿨링패드는
@@ -3645,6 +3722,157 @@ function renderVentCalcPanel(){
   </div>`;
 }
 
+// ── 일령(주령)별 음수량·사료섭취량 표 ────────────────────────────────────────
+// 육계는 매뉴얼이 "누적 사료섭취"만 주므로 전날 누적과의 차이로 일일 섭취량을
+// 역산하고, 음수량은 매뉴얼의 물:사료 비율(1.6~1.8:1 @21°C)로 환산한다.
+// 산란계 Hy-Line은 매뉴얼에 주령별 음수량(ml/일)이 직접 실려 있어 그 값을 쓴다.
+function renderIntakePanel(){
+  const isBroiler = consultState.species === "broiler";
+  const sp = CONSULT_BREEDS[consultState.species];
+  const breedKey = consultState.breed || Object.keys(sp.breeds)[0];
+  const breed = sp.breeds[breedKey];
+  const maxAge = isBroiler ? breed.maxDay : breed.maxWeek;
+  const age = Math.max(isBroiler?0:1, Math.min(consultState.age, maxAge));
+  const unit = isBroiler ? "일령" : "주령";
+  const ratio = WF_RATIO[consultState.species];
+
+  // 표로 뽑을 시점 목록. 육계는 매일 데이터가 있고, 산란계 축약표는 55·60주처럼
+  // 띄엄띄엄 있으므로 표에 실린 주령만 쓰되 현재 선택 주령은 항상 끼워 넣는다.
+  let ages = [];
+  if(isBroiler){
+    for(let d=1; d<=maxAge; d++) ages.push(d);
+  } else {
+    const set = new Set();
+    breed.data.rearing.forEach(r=>{ if(r[0]<=maxAge) set.add(r[0]); });
+    breed.data.production.forEach(r=>{ if(r[0]<=maxAge) set.add(r[0]); });
+    set.add(age);
+    ages = [...set].sort((a,b)=>a-b);
+  }
+
+  let hasManualWater = false, hasAnyData = false;
+  const bodyRows = ages.map(a=>{
+    const it = getIntakeAt(consultState.species, breed, a);
+    const cur = (a === age);
+    const rowId = cur ? ' id="consult-intake-current"' : "";
+    const bg = cur ? "#FFF8E1" : "transparent";
+    const fw = cur ? 700 : 500;
+    if(!it || (it.feed==null && it.water==null)){
+      return `<tr${rowId} style="background:${bg}"><td style="padding:6px 8px;font-weight:${fw}">${a}</td>
+        <td colspan="3" style="padding:6px 8px;text-align:center;color:#ccc">매뉴얼 미공개</td></tr>`;
+    }
+    hasAnyData = true;
+    if(it.water != null) hasManualWater = true;
+    const wr = waterRangeFromFeed(consultState.species, it.feed, null);
+    const waterTxt = it.water != null
+      ? `${Math.round(it.water)}`
+      : (wr ? `${Math.round(wr.lo)}~${Math.round(wr.hi)}<span style="color:#bbb">*</span>` : "-");
+    // 마지막 열: 육계는 누적사료, 산란계는 매뉴얼 수치로 계산한 실제 물:사료 비율
+    const lastCol = isBroiler
+      ? (it.cum!=null ? it.cum.toLocaleString() : "-")
+      : (it.water!=null && it.feed ? (it.water/it.feed).toFixed(2) : "-");
+    return `<tr${rowId} style="background:${bg}">
+      <td style="padding:6px 8px;font-weight:${fw}">${a}</td>
+      <td style="padding:6px 8px;text-align:right;font-weight:${fw}">${it.feed!=null?Math.round(it.feed):"-"}</td>
+      <td style="padding:6px 8px;text-align:right;font-weight:${fw};color:#0D47A1">${waterTxt}</td>
+      <td style="padding:6px 8px;text-align:right;color:#888">${lastCol}</td>
+    </tr>`;
+  }).join("");
+
+  if(!hasAnyData){
+    return `
+    <div class="card" style="border-top:5px solid #1565C0;margin-top:16px">
+      <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:6px">💧 ${unit}별 음수량 · 사료섭취량</div>
+      <div style="font-size:11px;color:#888;line-height:1.7">${breed.name} 매뉴얼은 ${unit}별 사료섭취량·음수량 표를
+      공개하지 않습니다. 음수량 관리는 아래 물:사료 비율 기준(${ratio.low}~${ratio.high} : 1 @${ratio.refTemp}°C)으로
+      급수미터 실측값을 판정하세요.</div>
+      <div style="font-size:9px;color:#aaa;margin-top:8px">※ 출처: ${ratio.source}</div>
+    </div>`;
+  }
+
+  const lastHead = isBroiler ? "누적사료(g)" : "물:사료";
+  // 온도보정표 — 매뉴얼 기준온도(20°C) 대비 음수량이 몇 배로 늘어나는지.
+  const tempCols = [20,25,30,35].map(t=>{
+    const f = waterTempFactor(t);
+    return `<div style="flex:1;background:${t>=30?"#FFEBEE":"#E3F2FD"};border-radius:8px;padding:7px 4px;text-align:center">
+      <div style="font-size:10px;color:#666">${t}°C</div>
+      <div style="font-size:13px;font-weight:800;color:${t>=30?"#C62828":"#0D47A1"}">×${f.toFixed(2)}</div>
+    </div>`;
+  }).join("");
+
+  const ratioTable = WF_RATIO_BY_TEMP.map(([t,r])=>
+    `<div style="flex:1;text-align:center;padding:6px 2px;background:#fafafa;border-radius:7px">
+      <div style="font-size:10px;color:#888">${t}°C</div>
+      <div style="font-size:12px;font-weight:700;color:#333">${r.toFixed(1)}:1</div>
+    </div>`).join("");
+
+  const flowBlock = isBroiler ? `
+    <div style="margin-top:14px">
+      <div style="font-size:11px;font-weight:700;color:#333;margin-bottom:6px">🚿 일령별 니플급수기 권장 유량</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">
+        ${DRINKER_FLOW_BROILER.map(([a,f])=>`
+        <div style="flex:1 1 88px;background:#F1F8E9;border-radius:8px;padding:7px 5px;text-align:center">
+          <div style="font-size:9px;color:#558B2F">${a}</div>
+          <div style="font-size:11px;font-weight:700;color:#33691E">${f}</div>
+        </div>`).join("")}
+      </div>
+      <div style="font-size:9px;color:#aaa;margin-top:6px;line-height:1.6">
+        유량을 일령에 맞춰 올려주지 않으면 닭이 표준 음수량을 마시고 싶어도 못 마시고,
+        음수 부족은 곧 사료섭취 저하로 이어집니다. 출처: Aviagen Brief Table 2.
+      </div>
+    </div>` : "";
+
+  return `
+  <div class="card" style="border-top:5px solid #1565C0;margin-top:16px">
+    <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:3px">💧 ${unit}별 음수량 · 사료섭취량</div>
+    <div style="font-size:10px;color:#aaa;margin-bottom:12px">${breed.name} 사육표준 매뉴얼 기준 · 현재 선택 ${age}${unit} 강조</div>
+
+    <div class="intake-scroll" style="max-height:300px;overflow-y:auto;border:1px solid #eee;border-radius:10px">
+      <table style="width:100%;border-collapse:collapse;font-size:11px">
+        <thead><tr style="position:sticky;top:0;background:#fff;box-shadow:0 1px 0 #eee">
+          <th style="padding:7px 8px;text-align:left;font-size:10px;color:#888;font-weight:600">${unit}</th>
+          <th style="padding:7px 8px;text-align:right;font-size:10px;color:#888;font-weight:600">사료(g/일)</th>
+          <th style="padding:7px 8px;text-align:right;font-size:10px;color:#1565C0;font-weight:600">음수(ml/일)</th>
+          <th style="padding:7px 8px;text-align:right;font-size:10px;color:#888;font-weight:600">${lastHead}</th>
+        </tr></thead>
+        <tbody>${bodyRows}</tbody>
+      </table>
+    </div>
+
+    <div style="font-size:10px;color:#888;margin-top:8px;line-height:1.7;background:#F5F9FF;border-radius:8px;padding:9px 11px">
+      ${hasManualWater
+        ? `음수량은 매뉴얼에 실린 ${unit}별 기준값입니다.`
+        : `<b>*</b> 표시된 음수량은 매뉴얼의 물:사료 비율 <b>${ratio.low}~${ratio.high} : 1</b>(${ratio.refTemp}°C 기준)로
+           일일 사료섭취량에서 환산한 값입니다 — 매뉴얼이 ${unit}별 음수량 표를 직접 싣지 않기 때문입니다.`}
+      실제 음수량은 급수미터로 매일 기록해 이 범위와 대조하세요. 갑작스러운 음수량 변화는
+      질병·급수설비 이상의 가장 빠른 신호입니다.
+    </div>
+
+    <div style="margin-top:14px">
+      <div style="font-size:11px;font-weight:700;color:#333;margin-bottom:6px">🌡️ 계사온도별 음수량 보정계수 (20°C 기준)</div>
+      <div style="display:flex;gap:5px">${tempCols}</div>
+      <div style="font-size:9px;color:#aaa;margin-top:6px;line-height:1.6">
+        Cobb 매뉴얼 규칙: 20~32°C는 1°C당 음수량 +6%, 32~38°C는 1°C당 +5%.
+        같은 문단에서 사료섭취량은 20°C 초과 1°C당 -1.23%로 줄어든다고 명시합니다 —
+        더위에 사료는 덜 먹고 물은 더 먹으므로 위 표의 g·ml을 같이 보정해야 합니다.
+      </div>
+    </div>
+
+    <div style="margin-top:14px">
+      <div style="font-size:11px;font-weight:700;color:#333;margin-bottom:6px">📊 온도별 물:사료 비율 기준</div>
+      <div style="display:flex;gap:5px">${ratioTable}</div>
+      <div style="font-size:9px;color:#aaa;margin-top:6px">
+        출처: Cobb Broiler Management Guide 수록표(원전 Singleton 2004).
+      </div>
+    </div>
+    ${flowBlock}
+
+    <div style="font-size:9px;color:#aaa;margin-top:12px;line-height:1.6">
+      ※ 음수량 기준 출처: ${ratio.source}.
+      ${isBroiler ? "육계 일일 사료섭취량은 매뉴얼의 누적 사료섭취량을 전날과 차감해 역산한 값입니다." : ""}
+    </div>
+  </div>`;
+}
+
 // ── 사양관리 컨설팅 포인트 ───────────────────────────────────────────────────
 // 육종회사 매뉴얼의 "핵심 관리 포인트"를 그대로 옮기지 않고 우리말로 요약 정리.
 // 육계: Aviagen Key Management Points / 산란계: Hy-Line 육성기 체중관리 포인트
@@ -3707,6 +3935,7 @@ function renderConsultTab(){
   if(consultState.species==="broiler"){
     const row = lookupBroiler(breed.data, age);
     const [d,w,gain,cumIntake,fcr] = row;
+    const intake = getIntakeAt("broiler", breed, age);
     card = `
     <div class="card" style="border-top:5px solid #E8530A;margin-bottom:16px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:14px">
@@ -3720,7 +3949,7 @@ function renderConsultTab(){
           <div style="font-size:20px;font-weight:800;color:#E8530A">${fcr!=null?fcr.toFixed(3):"-"}</div>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
         <div style="background:#FFF3EE;border-radius:10px;padding:10px 12px">
           <div style="font-size:10px;color:#888">일당증체</div>
           <div style="font-size:16px;font-weight:700;color:#333">${gain!=null?gain+" g":"-"}</div>
@@ -3728,6 +3957,16 @@ function renderConsultTab(){
         <div style="background:#FFF3EE;border-radius:10px;padding:10px 12px">
           <div style="font-size:10px;color:#888">누적 사료섭취</div>
           <div style="font-size:16px;font-weight:700;color:#333">${cumIntake!=null?cumIntake.toLocaleString()+" g":"-"}</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div style="background:#FFF3EE;border-radius:10px;padding:10px 12px">
+          <div style="font-size:10px;color:#888">일일 사료섭취</div>
+          <div style="font-size:16px;font-weight:700;color:#333">${intake?Math.round(intake.feed)+" g":"-"}</div>
+        </div>
+        <div style="background:#E3F2FD;border-radius:10px;padding:10px 12px">
+          <div style="font-size:10px;color:#1565C0">💧 일일 음수량</div>
+          <div style="font-size:16px;font-weight:700;color:#0D47A1">${intake?fmtWaterCell("broiler", intake.feed, null):"-"}</div>
         </div>
       </div>
     </div>`;
@@ -3753,9 +3992,9 @@ function renderConsultTab(){
             <div style="font-size:10px;color:#888">일일 사료섭취</div>
             <div style="font-size:16px;font-weight:700;color:#333">${fi!=null?fi+" g":"-"}</div>
           </div>
-          <div style="background:#F5EEF9;border-radius:10px;padding:10px 12px">
-            <div style="font-size:10px;color:#888">일일 음수섭취</div>
-            <div style="font-size:16px;font-weight:700;color:#333">${wtr!=null?wtr+" ml":"-"}</div>
+          <div style="background:#E3F2FD;border-radius:10px;padding:10px 12px">
+            <div style="font-size:10px;color:#1565C0">💧 일일 음수량</div>
+            <div style="font-size:16px;font-weight:700;color:#0D47A1">${fmtWaterCell("layer", fi, wtr)}</div>
           </div>
         </div>
       </div>`;
@@ -3789,9 +4028,9 @@ function renderConsultTab(){
             <div style="font-size:10px;color:#888">일일 사료섭취</div>
             <div style="font-size:16px;font-weight:700;color:#333">${fi!=null?fi+" g":"-"}</div>
           </div>
-          <div style="background:#FFFBEE;border-radius:10px;padding:10px 12px">
-            <div style="font-size:10px;color:#888">일일 음수섭취</div>
-            <div style="font-size:16px;font-weight:700;color:#333">${wtr!=null?wtr+" ml":"-"}</div>
+          <div style="background:#E3F2FD;border-radius:10px;padding:10px 12px">
+            <div style="font-size:10px;color:#1565C0">💧 일일 음수량</div>
+            <div style="font-size:16px;font-weight:700;color:#0D47A1">${fmtWaterCell("layer", fi, wtr)}</div>
           </div>
         </div>
       </div>`;
@@ -3820,6 +4059,7 @@ function renderConsultTab(){
 
   ${ageInput}
   ${card}
+  ${renderIntakePanel()}
   ${renderWetBulbPanel()}
   ${renderDewPointPanel()}
   ${renderVentCalcPanel()}
@@ -4578,6 +4818,14 @@ function attachEvents(){
     const v = parseInt(e.target.value,10);
     if(!isNaN(v)){ consultState.age = v; render(); }
   };
+
+  // 일령별 음수량·사료섭취량 표는 40행(육계)이 넘으므로, 다시 그릴 때마다
+  // 현재 선택된 일령 행이 스크롤 영역 가운데로 오도록 맞춰준다.
+  const intakeCurRow = document.getElementById("consult-intake-current");
+  if(intakeCurRow){
+    const box = intakeCurRow.closest(".intake-scroll");
+    if(box) box.scrollTop = Math.max(0, intakeCurRow.offsetTop - box.clientHeight/2);
+  }
 
   // 경제동향 갱신 버튼 (주가+코인 동시 갱신)
   const econRefreshBtn=document.getElementById("btn-econ-refresh");
