@@ -1029,7 +1029,7 @@ async function fetchEggReport(){
   if(state.tab === "price") render();
 }
 // 양계질병: 검색어(query)와 펼친 항목(openSlug)은 화면 상태라 여기 함께 둔다.
-let diseaseState = { status: "idle", data: null, query: "", openSlug: null, showEn: {}, showHist: false };
+let diseaseState = { status: "idle", data: null, query: "", openSlug: null, showEn: {}, editMonth: null };
 
 async function fetchDiseases(){
   if(diseaseState.status === "loading") return;
@@ -1610,6 +1610,9 @@ function monthLabel(k){
 function renderMonthlyPick(list){
   const picks = loadPicks();
   const cur = monthKey();
+  // 편집 중인 달이 있으면 그 달을, 없으면 이번 달을 입력폼에 채운다.
+  const editing = diseaseState.editMonth || cur;
+  const form = picks[editing] || {};
   const mine = picks[cur];
   const chosen = mine ? list.find(x => x.slug === mine.slug) : null;
   const hist = Object.keys(picks).sort().reverse();
@@ -1620,28 +1623,34 @@ function renderMonthlyPick(list){
   const ranked = Object.entries(tally).sort((a,b)=> b[1]-a[1]);
 
   const options = list.map(x =>
-    '<option value="'+esc(x.slug)+'"'+(mine&&mine.slug===x.slug?" selected":"")+'>'+esc(x.title_ko)+'</option>').join("");
+    '<option value="'+esc(x.slug)+'"'+(form.slug===x.slug?" selected":"")+'>'+esc(x.title_ko)+'</option>').join("");
 
   const histRows = hist.map(k => {
     const p = picks[k];
     const dz = list.find(x => x.slug === p.slug);
-    return '<tr>'
-      + '<td style="padding:5px 6px;font-size:11px;color:#666;white-space:nowrap">'+esc(monthLabel(k))+'</td>'
-      + '<td style="padding:5px 6px">'
+    const isEd = (diseaseState.editMonth === k);
+    return '<tr style="border-bottom:1px solid #f5f5f5'+(isEd?';background:#FFFBEA':'')+'">'
+      + '<td style="padding:6px;font-size:11px;color:#666;white-space:nowrap;vertical-align:top">'
+      +   esc(monthLabel(k)) + (k===cur?' <span style="color:#B8860B;font-weight:700">이번달</span>':'')
+      + '</td>'
+      + '<td style="padding:6px">'
       +   '<a href="#" class="dz-goto" data-slug="'+esc(p.slug)+'" style="font-size:12px;color:#00695C;font-weight:600;text-decoration:none">'
       +     esc(dz ? dz.title_ko : p.slug) + '</a>'
       +   (p.note?'<div style="font-size:10px;color:#999;margin-top:2px">'+esc(p.note)+'</div>':"")
       + '</td>'
-      + '<td style="padding:5px 6px;text-align:right">'
-      +   '<button class="dz-pick-del" data-month="'+esc(k)+'" style="font-size:10px;border:1px solid #eee;border-radius:5px;background:#fff;color:#bbb;padding:2px 6px">삭제</button>'
+      + '<td style="padding:6px;text-align:right;white-space:nowrap;vertical-align:top">'
+      +   '<button class="dz-pick-edit" data-month="'+esc(k)+'" style="font-size:10px;border:1px solid #B8860B;border-radius:5px;background:'
+      +     (isEd?'#B8860B':'#fff')+';color:'+(isEd?'#fff':'#B8860B')+';padding:3px 8px;margin-right:4px">'
+      +     (isEd?'편집중':'편집')+'</button>'
+      +   '<button class="dz-pick-del" data-month="'+esc(k)+'" style="font-size:10px;border:1px solid #eee;border-radius:5px;background:#fff;color:#bbb;padding:3px 8px">삭제</button>'
       + '</td></tr>';
   }).join("");
 
-  const bars = ranked.slice(0,6).map(function(e){
+  const bars = ranked.slice(0,8).map(function(e){
     const dz = list.find(x=>x.slug===e[0]);
     const w = (e[1]/ranked[0][1]*100).toFixed(0);
     return '<div style="display:flex;align-items:center;gap:7px;margin-bottom:4px">'
-      + '<span style="font-size:11px;color:#555;min-width:96px">'+esc(dz?dz.title_ko:e[0])+'</span>'
+      + '<span style="font-size:11px;color:#555;min-width:100px">'+esc(dz?dz.title_ko:e[0])+'</span>'
       + '<div style="flex:1;background:#F3EFE0;border-radius:3px;height:8px;overflow:hidden">'
       +   '<div style="width:'+w+'%;background:#B8860B;height:100%"></div></div>'
       + '<span style="font-size:10px;color:#999;min-width:22px;text-align:right">'+e[1]+'회</span></div>';
@@ -1656,29 +1665,43 @@ function renderMonthlyPick(list){
       + '<div style="font-size:11px;color:#B8860B;margin-top:8px">눌러서 질병 내용 보기 →</div></a>'
     : '<div style="background:#FAFAFA;border:1px dashed #ddd;border-radius:9px;padding:14px;text-align:center;font-size:12px;color:#999">이달의 질병이 아직 선택되지 않았습니다</div>';
 
+  // 입력폼 — 달을 직접 고를 수 있어야 지난 달을 채워 넣거나 고칠 수 있다.
+  const formBox = '<div style="margin-top:10px;background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">'
+    + '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:7px">'
+    +   '<div style="font-size:11px;font-weight:700;color:#7A5C00">'
+    +     (diseaseState.editMonth ? esc(monthLabel(diseaseState.editMonth))+' 수정' : '질병 지정')+'</div>'
+    +   (diseaseState.editMonth?'<button id="dz-pick-cancel" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:2px 8px">편집 취소</button>':'')
+    + '</div>'
+    + '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'
+    +   '<input id="dz-pick-month" type="month" value="'+esc(editing)+'" '
+    +     'style="width:140px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />'
+    +   '<select id="dz-pick-sel" style="flex:1;min-width:140px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px">'
+    +     '<option value="">— 질병 선택 —</option>'+options+'</select>'
+    + '</div>'
+    + '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px">'
+    +   '<input id="dz-pick-note" type="text" placeholder="한줄 코멘트(선택)" value="'+esc(form.note||"")+'" '
+    +     'style="flex:1;min-width:150px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />'
+    +   '<button id="dz-pick-save" style="border:1px solid #B8860B;background:#B8860B;color:#fff;border-radius:7px;padding:7px 15px;font-size:12px;font-weight:600">저장</button>'
+    + '</div></div>';
+
+  // 지난 선택은 항상 보이게 둔다. 예전에는 '펼치기' 뒤에 숨겨 두어 저장한 것이
+  // 사라진 것처럼 보였다.
   const histBlock = hist.length
     ? '<div style="margin-top:12px;border-top:1px solid #f0f0f0;padding-top:10px">'
-      + '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">'
-      +   '<div style="font-size:12px;font-weight:700;color:#555">지난 선택 '+hist.length+'건</div>'
-      +   '<button id="dz-hist-toggle" style="font-size:11px;border:1px solid #ddd;border-radius:6px;background:#fff;padding:3px 9px;color:#666">'
-      +     (diseaseState.showHist?"접기":"펼치기")+'</button></div>'
-      + (diseaseState.showHist
-          ? '<div style="overflow-x:auto;margin-top:8px"><table style="width:100%;border-collapse:collapse"><tbody>'+histRows+'</tbody></table></div>'
-            + (ranked.length ? '<div style="margin-top:10px"><div style="font-size:11px;font-weight:700;color:#555;margin-bottom:5px">누적 통계 — 많이 지목된 질병</div>'+bars+'</div>' : "")
+      + '<div style="font-size:12px;font-weight:700;color:#555;margin-bottom:6px">지난 선택 '+hist.length+'건</div>'
+      + '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse"><tbody>'+histRows+'</tbody></table></div>'
+      + (ranked.length>1
+          ? '<div style="margin-top:12px"><div style="font-size:11px;font-weight:700;color:#555;margin-bottom:5px">누적 통계 — 많이 지목된 질병</div>'+bars+'</div>'
           : "")
       + '</div>'
-    : "";
+    : '<div style="margin-top:12px;border-top:1px solid #f0f0f0;padding-top:10px;font-size:11px;color:#bbb;text-align:center">아직 저장된 선택이 없습니다</div>';
 
   return '<div class="card" style="margin-bottom:12px;border-top:4px solid #B8860B">'
     + '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:8px">'
     +   '<div class="display" style="font-size:15px">📌 '+esc(PICK_BY)+'가 짚어주는 이달의 질병</div>'
     +   '<span style="font-size:11px;color:#888">'+esc(monthLabel(cur))+'</span></div>'
     + pickCard
-    + '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:10px">'
-    +   '<select id="dz-pick-sel" style="flex:1;min-width:150px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px">'
-    +     '<option value="">— 질병 선택 —</option>'+options+'</select>'
-    +   '<input id="dz-pick-note" type="text" placeholder="한줄 코멘트(선택)" value="'+esc(mine&&mine.note||"")+'" style="flex:1;min-width:150px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />'
-    +   '<button id="dz-pick-save" style="border:1px solid #B8860B;background:#B8860B;color:#fff;border-radius:7px;padding:7px 13px;font-size:12px;font-weight:600">저장</button></div>'
+    + formBox
     + histBlock
     + '<div style="font-size:9px;color:#c0c0c0;margin-top:9px">선택 이력은 이 브라우저에만 저장됩니다 (다른 기기와 공유되지 않음)</div>'
     + '</div>';
@@ -5088,19 +5111,34 @@ function attachDiseaseEvents(){
   // ── 이달의 질병 ──
   const save = document.getElementById("dz-pick-save");
   if(save) save.onclick = () => {
-    const sel = document.getElementById("dz-pick-sel");
+    const sel  = document.getElementById("dz-pick-sel");
     const note = document.getElementById("dz-pick-note");
+    const mon  = document.getElementById("dz-pick-month");
     const slug = sel && sel.value;
+    // 저장 대상 달을 폼에서 받는다. 예전에는 늘 이번 달에만 써서, 같은 달에
+    // 두 번 저장하면 앞의 것이 조용히 덮여 사라졌다.
+    const m = (mon && mon.value) || monthKey();
     if(!slug){ alert("질병을 먼저 선택하세요."); return; }
+    if(!/^\d{4}-\d{2}$/.test(m)){ alert("월을 올바르게 선택하세요."); return; }
     const picks = loadPicks();
-    picks[monthKey()] = { slug, note: (note && note.value || "").trim(), by: PICK_BY,
-                          ts: new Date().toISOString() };
+    const exists = !!picks[m];
+    if(exists && diseaseState.editMonth !== m &&
+       !confirm(monthLabel(m) + " 에 이미 저장된 선택이 있습니다. 덮어쓸까요?")) return;
+    picks[m] = { slug, note: (note && note.value || "").trim(), by: PICK_BY,
+                 ts: new Date().toISOString() };
     savePicks(picks);
+    diseaseState.editMonth = null;
     render();
   };
 
-  const ht = document.getElementById("dz-hist-toggle");
-  if(ht) ht.onclick = () => { diseaseState.showHist = !diseaseState.showHist; render(); };
+  document.querySelectorAll(".dz-pick-edit").forEach(el => el.onclick = () => {
+    const m = el.dataset.month;
+    diseaseState.editMonth = (diseaseState.editMonth === m) ? null : m;
+    render();
+  });
+
+  const cancel = document.getElementById("dz-pick-cancel");
+  if(cancel) cancel.onclick = () => { diseaseState.editMonth = null; render(); };
 
   document.querySelectorAll(".dz-goto").forEach(el => el.onclick = ev => {
     ev.preventDefault();
@@ -5113,6 +5151,7 @@ function attachDiseaseEvents(){
     const picks = loadPicks();
     delete picks[m];
     savePicks(picks);
+    if(diseaseState.editMonth === m) diseaseState.editMonth = null;
     render();
   });
 }
