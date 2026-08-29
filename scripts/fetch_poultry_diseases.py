@@ -56,6 +56,16 @@ HEADERS = {
 BOILER = re.compile(r"Global Ag Media provides|Sign up to our|newsletter|"
                     r"^©|cookie|privacy policy", re.I)
 
+# 칠면조 전용 질병은 싣지 않는다 — 국내 양계 컨설팅에서 쓸 일이 없다.
+# 제목에 TURKEY가 들어간 것만 골랐다. 대장균증·뉴캐슬병처럼 본문에 칠면조가
+# 언급되는 질병은 닭에도 오는 병이라 그대로 둔다.
+EXCLUDE_SLUGS = {
+    "haemorrhagic-enteritis-of-turkeys",
+    "spontaneous-rupture-of-the-caudial-renal-artery-in-turkeys",
+    "round-heart-in-turkeys-dilated-cardiomyopathy",
+    "gizzard-impaction-in-turkey-poults",
+}
+
 # 현장에서 쓰는 한글 병명. 기계번역 제목만으로는 검색이 안 걸리는 걸 보완한다.
 # 키는 URL 슬러그(고정값)라 사이트 제목이 바뀌어도 매칭이 유지된다.
 KO_ALIASES = {
@@ -117,7 +127,8 @@ def parse_index(html):
         if did not in found or (not found[did]["title_en"] and title):
             found[did] = {"id": did, "slug": slug, "title_en": title,
                           "url": BASE + m.group(1)}
-    return [found[k] for k in sorted(found, key=int)]
+    return [found[k] for k in sorted(found, key=int)
+            if found[k]["slug"] not in EXCLUDE_SLUGS]
 
 
 def parse_detail(html):

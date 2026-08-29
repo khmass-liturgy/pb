@@ -40,8 +40,12 @@ jobs:
           d = json.loads(Path("poultry_disease/diseases.json").read_text(encoding="utf-8"))
           ds = d["diseases"]
           assert d["count"] == len(ds)
-          # 사이트에 61종이 실려 있다. 크게 줄면 목록 파싱이 깨진 것이므로 막는다.
+          # 사이트에 61종이 실려 있고 칠면조 전용 4종을 빼 57종이다.
+          # 크게 줄면 목록 파싱이 깨진 것이므로 막는다.
           assert len(ds) >= 50, len(ds)
+          # 칠면조 전용 질병이 다시 섞여 들어오지 않았는지
+          tk = [x["slug"] for x in ds if "TURKEY" in x["title_en"].upper()]
+          assert not tk, tk
           for x in ds:
               assert x["slug"] and x["url"].startswith("https://")
               assert len(x["paras_en"]) == len(x["paras_ko"]), x["slug"]
