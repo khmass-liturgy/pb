@@ -1905,6 +1905,21 @@ function renderMonthlyPick(list){
     + '</div>';
 }
 
+// 구글 이미지 검색 버튼 두 개(영문·한글).
+// 영문 병명이 학술 표준어라 임상 사진이 훨씬 많이 나오고, 한글은 국내 자료를
+// 찾을 때 쓴다. 둘 다 'poultry/가금'을 붙여 사람 의학 사진이 섞이는 걸 줄인다.
+function googleImageBtn(x){
+  const mk = (q, label, title) =>
+    '<a href="https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(q) + '" '
+    + 'target="_blank" rel="noopener" title="' + esc(title) + '" '
+    + 'style="font-size:11px;border:1px solid #4285F4;border-radius:6px;padding:3px 9px;color:#4285F4;text-decoration:none">'
+    + label + '</a>';
+  const en = (x.title_en || "").trim();
+  const ko = (x.title_ko || "").trim();
+  return (en ? mk(en + " poultry", "🔍 이미지(영문)", en + " poultry") : "")
+       + (ko ? mk(ko + " 가금", "🔍 이미지(한글)", ko + " 가금") : "");
+}
+
 // 검색 결과만 따로 그린다. 검색창까지 다시 그리면 한글 조합(IME)이 끊겨
 // 글자가 안 쳐지므로, 입력 중에는 이 부분만 교체한다.
 function renderDiseaseResults(){
@@ -1939,7 +1954,9 @@ function renderDiseaseResults(){
         +   '<button class="dz-lang" data-slug="'+esc(x.slug)+'" style="font-size:11px;border:1px solid #00695C;border-radius:6px;padding:3px 9px;background:'
         +     (showEn?"#00695C":"#fff")+';color:'+(showEn?"#fff":"#00695C")+'">'
         +     (showEn?"영문 원문 보는 중 · 한글로":"한글 보는 중 · 영문 원문")+'</button>'
-        +   '<a href="'+esc(x.url)+'" target="_blank" rel="noopener" style="font-size:11px;border:1px solid #bbb;border-radius:6px;padding:3px 9px;color:#666;text-decoration:none">원문 페이지 ↗</a></div>'
+        +   '<a href="'+esc(x.url)+'" target="_blank" rel="noopener" style="font-size:11px;border:1px solid #bbb;border-radius:6px;padding:3px 9px;color:#666;text-decoration:none">원문 페이지 ↗</a>'
+        +   googleImageBtn(x)
+        +   '</div>'
         + (paras.length ? paraBlocks : '<div style="font-size:12px;color:#bbb">본문 없음</div>')
         + '</div>'
       : "";
