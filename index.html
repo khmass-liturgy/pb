@@ -1029,7 +1029,7 @@ async function fetchEggReport(){
   if(state.tab === "price") render();
 }
 // 양계질병: 검색어(query)와 펼친 항목(openSlug)은 화면 상태라 여기 함께 둔다.
-let diseaseState = { status: "idle", data: null, query: "", openSlug: null, showEn: {}, editRef: null };
+let diseaseState = { status: "idle", data: null, query: "", openSlug: null, showEn: {} };
 
 async function fetchDiseases(){
   if(diseaseState.status === "loading") return;
@@ -1585,66 +1585,154 @@ function hlDisease(text, q){
   return out;
 }
 
-// ── 이달의 질병 (수의사가 고르는 그달의 주의 질병) ────────────────────────
-// 정적 사이트라 서버가 없어 선택 이력은 이 브라우저의 localStorage에 쌓인다.
-// 다른 기기·다른 사람에게는 공유되지 않는다는 점을 화면에도 밝혀 둔다.
-const PICK_KEY = "poultry_monthly_pick";
-const PICK_BY  = "최동명 수의사";
+// ── 이달의 질병 ────────────────────────────────────────────────────────────
+// 선택 내용은 저장소의 monthly_pick/picks.json 에 들어간다. 보는 사람은 아무것도
+// 하지 않아도 이 파일을 읽어 같은 내용을 본다(예전에는 localStorage라 저장한
+// 사람 브라우저에서만 보였다).
+//
+// 정적 사이트라 서버가 없어서, 파일에 쓰는 건 브라우저가 GitHub API를 직접
+// 호출해 커밋하는 방식이다. 그러려면 쓰기 권한이 필요한데 **토큰을 페이지
+// 소스에 넣으면 사이트를 보는 누구나 저장소를 고칠 수 있게 되므로 절대 넣지
+// 않는다.** 대신 글을 올리는 사람이 자기 브라우저에 한 번 저장해 두고
+// (localStorage), 그 브라우저에서만 발행이 된다. 나머지 방문자는 읽기 전용이다.
+const PICK_REPO   = "khmass-liturgy/pb";
+const PICK_PATH   = "monthly_pick/picks.json";
+const PICK_BRANCH = "main";
+const PICK_TOKEN_KEY = "pb_gh_token";
+const PICK_LOCAL_KEY = "poultry_monthly_pick";   // 예전 저장 위치 (이관용)
+const PICK_BY = "최동명 수의사";
 
-// 저장 구조: { "2026-08": [ {id, slug, note, by, ts}, ... ] }
-// 처음에는 한 달에 하나만 담는 { "2026-08": {…} } 형태였는데, 그러면 같은 달에
-// 다시 저장할 때마다 앞의 것이 사라졌다. 지금은 달마다 배열로 쌓는다.
-// 옛 형태로 저장된 값은 읽을 때 배열로 감싸 그대로 살린다.
-function loadPicks(){
-  let raw;
-  try { raw = JSON.parse(localStorage.getItem(PICK_KEY) || "{}") || {}; }
-  catch(_) { return {}; }
-  const out = {};
-  Object.keys(raw).forEach(m => {
-    const v = raw[m];
-    const arr = Array.isArray(v) ? v : (v && v.slug ? [v] : []);
-    // id가 없던 시절 항목에도 id를 붙여 편집·삭제가 되게 한다.
-    // 달을 섞어 넣어야 서로 다른 달의 옛 항목끼리 id가 겹치지 않는다.
-    out[m] = arr.filter(Boolean).map((p, i) => Object.assign({}, p, {
-      id: p.id || (m + "_" + (p.ts || i))
-    }));
-  });
-  return out;
+let pickState = { status:"idle", data:null, sha:null, editRef:null,
+                  adminOpen:false, busy:false, msg:"" };
+
+function ghToken(){
+  try { return localStorage.getItem(PICK_TOKEN_KEY) || ""; } catch(_) { return ""; }
 }
-function savePicks(o){
-  try { localStorage.setItem(PICK_KEY, JSON.stringify(o)); } catch(_){}
+function setGhToken(v){
+  try { v ? localStorage.setItem(PICK_TOKEN_KEY, v) : localStorage.removeItem(PICK_TOKEN_KEY); } catch(_){}
 }
 function newPickId(){
-  return "p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  return "p" + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 }
 function monthKey(dt){
   const d = dt || new Date();
   return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0");
 }
 function monthLabel(k){
-  const parts = (k||"").split("-");
-  return parts[0] ? parts[0] + "년 " + parseInt(parts[1],10) + "월" : k;
+  const p = (k||"").split("-");
+  return p[0] ? p[0] + "년 " + parseInt(p[1],10) + "월" : k;
 }
-// 편집 대상 찾기 — {month, id}
+
+// 달마다 배열. 옛 형식({월: 객체 하나})으로 저장돼 있으면 배열로 감싼다.
+function normalizePicks(raw){
+  const out = {};
+  Object.keys(raw||{}).forEach(m => {
+    const v = raw[m];
+    const arr = Array.isArray(v) ? v : (v && v.slug ? [v] : []);
+    out[m] = arr.filter(Boolean).map((p,i) => Object.assign({}, p, {
+      id: p.id || (m + "_" + (p.ts || i))
+    }));
+  });
+  return out;
+}
+function currentPicks(){
+  return (pickState.data && pickState.data.picks) || {};
+}
+// 예전에 이 브라우저의 localStorage에만 있던 선택 (발행되지 않은 것)
+function localOnlyPicks(){
+  try { return normalizePicks(JSON.parse(localStorage.getItem(PICK_LOCAL_KEY) || "{}")); }
+  catch(_) { return {}; }
+}
+function countPicks(o){
+  return Object.keys(o||{}).reduce((n,m)=> n + (o[m]||[]).length, 0);
+}
+
+async function fetchMonthlyPicks(){
+  if(pickState.status === "loading") return;
+  pickState.status = "loading";
+  try {
+    const url = "https://raw.githubusercontent.com/" + PICK_REPO + "/" + PICK_BRANCH + "/" + PICK_PATH;
+    const r = await fetchWithTimeout(url + "?t=" + Date.now(), 8000);
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json();
+    j.picks = normalizePicks(j.picks);
+    pickState.data = j;
+    pickState.status = "done";
+  } catch(e) {
+    console.warn("이달의 질병 로딩 실패:", e);
+    pickState.data = { picks: {}, by: PICK_BY };
+    pickState.status = "error";
+  }
+  if(state.tab === "disease") render();
+}
+
+// UTF-8 문자열 → base64 (GitHub API가 요구하는 형식)
+function b64utf8(s){
+  return btoa(String.fromCharCode.apply(null, new TextEncoder().encode(s)));
+}
+
+async function publishPicks(picks, message){
+  const token = ghToken();
+  if(!token) return { ok:false, error:"발행 권한이 설정되지 않았습니다." };
+  const api = "https://api.github.com/repos/" + PICK_REPO + "/contents/" + PICK_PATH;
+  const head = { "Authorization": "Bearer " + token,
+                 "Accept": "application/vnd.github+json",
+                 "Content-Type": "application/json" };
+  try {
+    // 다른 곳에서 먼저 바뀌었을 수 있으므로 최신 sha를 받아서 쓴다
+    let sha = null;
+    const cur = await fetch(api + "?ref=" + PICK_BRANCH + "&t=" + Date.now(), { headers: head });
+    if(cur.ok) sha = (await cur.json()).sha;
+    else if(cur.status !== 404) throw new Error("현재 파일 확인 실패 (HTTP " + cur.status + ")");
+
+    const body = {
+      updated: new Date().toISOString().slice(0,16).replace("T"," ") + " UTC",
+      by: PICK_BY,
+      note: "이달의 질병 선택 — 화면에서 저장하면 이 파일이 갱신되고 모든 사람에게 같은 내용이 보입니다.",
+      picks: picks,
+    };
+    const res = await fetch(api, {
+      method: "PUT", headers: head,
+      body: JSON.stringify({
+        message: message || "📌 이달의 질병 갱신",
+        content: b64utf8(JSON.stringify(body, null, 1)),
+        branch: PICK_BRANCH,
+        sha: sha || undefined,
+      }),
+    });
+    if(!res.ok){
+      const t = await res.text();
+      if(res.status === 401) throw new Error("토큰이 올바르지 않거나 만료되었습니다.");
+      if(res.status === 403) throw new Error("이 토큰에는 쓰기 권한이 없습니다.");
+      if(res.status === 409) throw new Error("다른 곳에서 먼저 수정됐습니다. 새로고침 후 다시 시도하세요.");
+      throw new Error("발행 실패 (HTTP " + res.status + ") " + t.slice(0,120));
+    }
+    pickState.data = body;
+    return { ok:true };
+  } catch(e) {
+    return { ok:false, error: e.message || String(e) };
+  }
+}
+
 function findPick(picks, ref){
   if(!ref) return null;
   return (picks[ref.month]||[]).find(p => p.id === ref.id) || null;
 }
 
 function renderMonthlyPick(list){
-  const picks = loadPicks();
+  const picks = currentPicks();
   const cur = monthKey();
-  const ref = diseaseState.editRef;
+  const ref = pickState.editRef;
   const editing = findPick(picks, ref);
   const formMonth = (ref && ref.month) || cur;
   const months = Object.keys(picks).filter(m => (picks[m]||[]).length).sort().reverse();
   const curList = picks[cur] || [];
-  const total = months.reduce((n,m)=> n + picks[m].length, 0);
+  const total = countPicks(picks);
+  const admin = !!ghToken();
 
   const nameOf = s => { const d = list.find(x=>x.slug===s); return d ? d.title_ko : s; };
   const engOf  = s => { const d = list.find(x=>x.slug===s); return d ? d.title_en : ""; };
 
-  // 누적 통계 — 항목 단위로 센다
   const tally = {};
   months.forEach(m => picks[m].forEach(p => { tally[p.slug] = (tally[p.slug]||0)+1; }));
   const ranked = Object.entries(tally).sort((a,b)=> b[1]-a[1]);
@@ -1652,7 +1740,6 @@ function renderMonthlyPick(list){
   const options = list.map(x =>
     '<option value="'+esc(x.slug)+'"'+(editing&&editing.slug===x.slug?" selected":"")+'>'+esc(x.title_ko)+'</option>').join("");
 
-  // ── 이번 달 카드 (여러 건 모두 표시) ──
   const curCards = curList.length
     ? '<div style="display:flex;flex-direction:column;gap:7px">'
       + curList.map((p,i) =>
@@ -1666,35 +1753,14 @@ function renderMonthlyPick(list){
           + '</span>'
           + '<span style="font-size:11px;color:#B8860B;flex-shrink:0">보기 →</span></a>').join("")
       + '</div>'
-    : '<div style="background:#FAFAFA;border:1px dashed #ddd;border-radius:9px;padding:14px;text-align:center;font-size:12px;color:#999">이달의 질병이 아직 선택되지 않았습니다</div>';
+    : '<div style="background:#FAFAFA;border:1px dashed #ddd;border-radius:9px;padding:14px;text-align:center;font-size:12px;color:#999">'
+      + (pickState.status==="loading" ? "불러오는 중..." : "이달의 질병이 아직 선택되지 않았습니다") + '</div>';
 
-  // ── 입력폼 ──
-  const formBox = '<div style="margin-top:10px;background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">'
-    + '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:7px">'
-    +   '<div style="font-size:11px;font-weight:700;color:#7A5C00">'
-    +     (editing ? esc(monthLabel(ref.month))+' · '+esc(nameOf(editing.slug))+' 수정' : '질병 추가')+'</div>'
-    +   (editing?'<button id="dz-pick-cancel" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:2px 8px">편집 취소</button>':'')
-    + '</div>'
-    + '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'
-    +   '<input id="dz-pick-month" type="month" value="'+esc(formMonth)+'" '
-    +     'style="width:140px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />'
-    +   '<select id="dz-pick-sel" style="flex:1;min-width:140px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px">'
-    +     '<option value="">— 질병 선택 —</option>'+options+'</select>'
-    + '</div>'
-    + '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px">'
-    +   '<input id="dz-pick-note" type="text" placeholder="한줄 코멘트(선택)" value="'+esc(editing&&editing.note||"")+'" '
-    +     'style="flex:1;min-width:150px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />'
-    +   '<button id="dz-pick-save" style="border:1px solid #B8860B;background:#B8860B;color:#fff;border-radius:7px;padding:7px 15px;font-size:12px;font-weight:600">'
-    +     (editing?'수정 저장':'추가')+'</button>'
-    + '</div>'
-    + (editing?'':'<div style="font-size:10px;color:#B0A070;margin-top:6px">같은 달에 여러 건을 넣을 수 있습니다</div>')
-    + '</div>';
-
-  // ── 지난 선택 (달별로 묶어 전부 표시) ──
+  // 지난 선택 — 모두에게 보인다
   const histBlock = total
     ? '<div style="margin-top:12px;border-top:1px solid #f0f0f0;padding-top:10px">'
-      + '<div style="font-size:12px;font-weight:700;color:#555;margin-bottom:6px">'
-      +   '저장된 선택 '+total+'건 <span style="font-weight:400;color:#aaa">· '+months.length+'개월</span></div>'
+      + '<div style="font-size:12px;font-weight:700;color:#555;margin-bottom:6px">저장된 선택 '+total+'건 '
+      +   '<span style="font-weight:400;color:#aaa">· '+months.length+'개월</span></div>'
       + months.map(m =>
           '<div style="margin-bottom:9px">'
           + '<div style="font-size:11px;font-weight:700;color:'+(m===cur?'#B8860B':'#888')+';margin-bottom:3px">'
@@ -1707,13 +1773,14 @@ function renderMonthlyPick(list){
                 +   '<a href="#" class="dz-goto" data-slug="'+esc(p.slug)+'" style="font-size:12px;color:#00695C;font-weight:600;text-decoration:none">'+esc(nameOf(p.slug))+'</a>'
                 +   (p.note?'<div style="font-size:10px;color:#999;margin-top:2px">'+esc(p.note)+'</div>':"")
                 + '</div>'
-                + '<div style="flex-shrink:0;white-space:nowrap">'
-                +   '<button class="dz-pick-edit" data-month="'+esc(m)+'" data-id="'+esc(p.id)+'" '
-                +     'style="font-size:10px;border:1px solid #B8860B;border-radius:5px;background:'+(isEd?'#B8860B':'#fff')+';color:'+(isEd?'#fff':'#B8860B')+';padding:3px 8px;margin-right:4px">'
-                +     (isEd?'편집중':'편집')+'</button>'
-                +   '<button class="dz-pick-del" data-month="'+esc(m)+'" data-id="'+esc(p.id)+'" '
-                +     'style="font-size:10px;border:1px solid #eee;border-radius:5px;background:#fff;color:#bbb;padding:3px 8px">삭제</button>'
-                + '</div></div>';
+                + (admin ? '<div style="flex-shrink:0;white-space:nowrap">'
+                    + '<button class="dz-pick-edit" data-month="'+esc(m)+'" data-id="'+esc(p.id)+'" '
+                    +   'style="font-size:10px;border:1px solid #B8860B;border-radius:5px;background:'+(isEd?'#B8860B':'#fff')+';color:'+(isEd?'#fff':'#B8860B')+';padding:3px 8px;margin-right:4px">'
+                    +   (isEd?'편집중':'편집')+'</button>'
+                    + '<button class="dz-pick-del" data-month="'+esc(m)+'" data-id="'+esc(p.id)+'" '
+                    +   'style="font-size:10px;border:1px solid #eee;border-radius:5px;background:#fff;color:#bbb;padding:3px 8px">삭제</button>'
+                    + '</div>' : "")
+                + '</div>';
             }).join("")
           + '</div>').join("")
       + (ranked.length>1
@@ -1730,16 +1797,64 @@ function renderMonthlyPick(list){
             + '</div>'
           : "")
       + '</div>'
-    : '<div style="margin-top:12px;border-top:1px solid #f0f0f0;padding-top:10px;font-size:11px;color:#bbb;text-align:center">아직 저장된 선택이 없습니다</div>';
+    : "";
+
+  // ── 관리 영역 (발행 권한이 있는 사람만) ──
+  const localCount = countPicks(localOnlyPicks());
+  const adminBody = !admin
+    ? '<div style="font-size:11px;color:#666;line-height:1.8">'
+      + '이 브라우저에서 선택을 <b>발행</b>하려면 GitHub 토큰이 필요합니다. 토큰은 이 브라우저에만 저장되며 페이지에는 포함되지 않습니다.<br>'
+      + '<a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener" style="color:#00695C">토큰 만들기 ↗</a>'
+      + ' — Repository access는 <b>'+esc(PICK_REPO)+'</b>만, 권한은 <b>Contents: Read and write</b> 하나만 주세요.'
+      + '</div>'
+      + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'
+      +   '<input id="dz-token" type="password" placeholder="github_pat_..." autocomplete="off" '
+      +     'style="flex:1;min-width:170px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />'
+      +   '<button id="dz-token-save" style="border:1px solid #00695C;background:#00695C;color:#fff;border-radius:7px;padding:7px 13px;font-size:12px">저장</button>'
+      + '</div>'
+    : '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:8px">'
+      +   '<span style="font-size:11px;color:#2E7D32">✔ 발행 권한 설정됨</span>'
+      +   '<button id="dz-token-clear" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:2px 8px">권한 해제</button>'
+      + '</div>'
+      + '<div style="background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">'
+      +   '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:7px">'
+      +     '<div style="font-size:11px;font-weight:700;color:#7A5C00">'
+      +       (editing ? esc(monthLabel(ref.month))+' · '+esc(nameOf(editing.slug))+' 수정' : '질병 추가')+'</div>'
+      +     (editing?'<button id="dz-pick-cancel" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:2px 8px">편집 취소</button>':'')
+      +   '</div>'
+      +   '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'
+      +     '<input id="dz-pick-month" type="month" value="'+esc(formMonth)+'" style="width:140px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />'
+      +     '<select id="dz-pick-sel" style="flex:1;min-width:140px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px">'
+      +       '<option value="">— 질병 선택 —</option>'+options+'</select>'
+      +   '</div>'
+      +   '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px">'
+      +     '<input id="dz-pick-note" type="text" placeholder="한줄 코멘트(선택)" value="'+esc(editing&&editing.note||"")+'" '
+      +       'style="flex:1;min-width:150px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />'
+      +     '<button id="dz-pick-save"'+(pickState.busy?' disabled':'')+' style="border:1px solid #B8860B;background:'
+      +       (pickState.busy?'#ccc':'#B8860B')+';color:#fff;border-radius:7px;padding:7px 15px;font-size:12px;font-weight:600">'
+      +       (pickState.busy?'발행 중...':(editing?'수정 발행':'추가 발행'))+'</button>'
+      +   '</div>'
+      +   (localCount ? '<div style="margin-top:8px;padding:7px 9px;background:#FFF8E1;border:1px solid #F0E0A0;border-radius:7px;font-size:11px;color:#7A5C00">'
+      +     '이 브라우저에만 남아 있던 예전 선택 '+localCount+'건이 있습니다. '
+      +     '<button id="dz-migrate" style="font-size:10px;border:1px solid #B8860B;border-radius:5px;background:#fff;color:#B8860B;padding:2px 8px;margin-left:4px">함께 발행</button></div>' : "")
+      + '</div>';
+
+  const adminBox = '<div style="margin-top:10px;border-top:1px dashed #eee;padding-top:9px">'
+    + '<button id="dz-admin-toggle" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:3px 9px">'
+    +   (pickState.adminOpen?'관리 닫기':'⚙ 관리')+'</button>'
+    + (pickState.msg?'<span style="font-size:11px;margin-left:8px;color:'+(/실패|오류|않|없/.test(pickState.msg)?'#C62828':'#2E7D32')+'">'+esc(pickState.msg)+'</span>':'')
+    + (pickState.adminOpen?'<div style="margin-top:9px">'+adminBody+'</div>':'')
+    + '</div>';
+
+  const stamp = (pickState.data && pickState.data.updated)
+    ? '<div style="font-size:9px;color:#c0c0c0;margin-top:8px">모든 사람에게 같은 내용이 보입니다 · 최종 발행 '+esc(pickState.data.updated)+'</div>'
+    : '<div style="font-size:9px;color:#c0c0c0;margin-top:8px">모든 사람에게 같은 내용이 보입니다</div>';
 
   return '<div class="card" style="margin-bottom:12px;border-top:4px solid #B8860B">'
     + '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:8px">'
     +   '<div class="display" style="font-size:15px">📌 '+esc(PICK_BY)+'가 짚어주는 이달의 질병</div>'
     +   '<span style="font-size:11px;color:#888">'+esc(monthLabel(cur))+(curList.length?' · '+curList.length+'건':'')+'</span></div>'
-    + curCards
-    + formBox
-    + histBlock
-    + '<div style="font-size:9px;color:#c0c0c0;margin-top:9px">선택 이력은 이 브라우저에만 저장됩니다 (다른 기기와 공유되지 않음)</div>'
+    + curCards + histBlock + adminBox + stamp
     + '</div>';
 }
 
@@ -5144,7 +5259,17 @@ function attachDiseaseEvents(){
 
   attachDiseaseResultEvents();
 
-  // ── 이달의 질병 ──
+  // ── 이달의 질병 (발행) ──
+  // 저장은 곧 발행이다. 파일에 커밋해야 다른 사람 화면에도 같은 내용이 보인다.
+  const publishAnd = async (picks, msg, done) => {
+    pickState.busy = true; pickState.msg = "발행 중..."; render();
+    const r = await publishPicks(picks, msg);
+    pickState.busy = false;
+    pickState.msg = r.ok ? "발행 완료 — 모두에게 반영됩니다" : ("발행 실패: " + r.error);
+    if(r.ok && done) done();
+    render();
+  };
+
   const save = document.getElementById("dz-pick-save");
   if(save) save.onclick = () => {
     const sel  = document.getElementById("dz-pick-sel");
@@ -5155,8 +5280,9 @@ function attachDiseaseEvents(){
     if(!slug){ alert("질병을 먼저 선택하세요."); return; }
     if(!/^\d{4}-\d{2}$/.test(m)){ alert("월을 올바르게 선택하세요."); return; }
 
-    const picks = loadPicks();
-    const ref = diseaseState.editRef;
+    // 현재 발행본을 복사해서 고친다 (원본을 직접 건드리면 실패 시 화면이 어긋난다)
+    const picks = JSON.parse(JSON.stringify(currentPicks()));
+    const ref = pickState.editRef;
     const body = { slug, note: (note && note.value || "").trim(), by: PICK_BY,
                    ts: new Date().toISOString() };
 
@@ -5169,20 +5295,20 @@ function attachDiseaseEvents(){
       // 추가 — 같은 달이어도 덮어쓰지 않고 뒤에 쌓는다.
       (picks[m] = picks[m] || []).push(Object.assign({id: newPickId()}, body));
     }
-    savePicks(picks);
-    diseaseState.editRef = null;
-    render();
+    publishAnd(picks, "📌 이달의 질병 " + (ref ? "수정" : "추가") + " (" + m + ")",
+               () => { pickState.editRef = null; });
   };
 
   document.querySelectorAll(".dz-pick-edit").forEach(el => el.onclick = () => {
     const m = el.dataset.month, id = el.dataset.id;
-    const cur = diseaseState.editRef;
-    diseaseState.editRef = (cur && cur.month === m && cur.id === id) ? null : {month:m, id:id};
+    const cur = pickState.editRef;
+    pickState.editRef = (cur && cur.month === m && cur.id === id) ? null : {month:m, id:id};
+    pickState.msg = "";
     render();
   });
 
   const cancel = document.getElementById("dz-pick-cancel");
-  if(cancel) cancel.onclick = () => { diseaseState.editRef = null; render(); };
+  if(cancel) cancel.onclick = () => { pickState.editRef = null; render(); };
 
   document.querySelectorAll(".dz-goto").forEach(el => el.onclick = ev => {
     ev.preventDefault();
@@ -5191,24 +5317,70 @@ function attachDiseaseEvents(){
 
   document.querySelectorAll(".dz-pick-del").forEach(el => el.onclick = () => {
     const m = el.dataset.month, id = el.dataset.id;
-    // 달 전체가 아니라 그 항목 하나만 지운다
-    const picks = loadPicks();
+    const picks = JSON.parse(JSON.stringify(currentPicks()));
     const item = (picks[m]||[]).find(p => p.id === id);
     if(!item) return;
     if(!confirm(monthLabel(m) + " 의 이 선택을 삭제할까요?")) return;
     picks[m] = (picks[m]||[]).filter(p => p.id !== id);
     if(!picks[m].length) delete picks[m];
-    savePicks(picks);
-    const ref = diseaseState.editRef;
-    if(ref && ref.month === m && ref.id === id) diseaseState.editRef = null;
-    render();
+    publishAnd(picks, "📌 이달의 질병 삭제 (" + m + ")", () => {
+      const ref = pickState.editRef;
+      if(ref && ref.month === m && ref.id === id) pickState.editRef = null;
+    });
   });
+
+  // ── 관리(발행 권한) ──
+  const at = document.getElementById("dz-admin-toggle");
+  if(at) at.onclick = () => { pickState.adminOpen = !pickState.adminOpen; pickState.msg = ""; render(); };
+
+  const ts = document.getElementById("dz-token-save");
+  if(ts) ts.onclick = () => {
+    const el = document.getElementById("dz-token");
+    const v = (el && el.value || "").trim();
+    if(!v){ alert("토큰을 입력하세요."); return; }
+    setGhToken(v);
+    pickState.msg = "발행 권한이 저장되었습니다";
+    render();
+  };
+
+  const tc = document.getElementById("dz-token-clear");
+  if(tc) tc.onclick = () => {
+    if(!confirm("이 브라우저에서 발행 권한을 지울까요?")) return;
+    setGhToken("");
+    pickState.msg = "";
+    render();
+  };
+
+  // 예전에 이 브라우저에만 쌓여 있던 선택을 발행본에 합친다
+  const mg = document.getElementById("dz-migrate");
+  if(mg) mg.onclick = () => {
+    const local = localOnlyPicks();
+    const picks = JSON.parse(JSON.stringify(currentPicks()));
+    let added = 0;
+    Object.keys(local).forEach(m => {
+      picks[m] = picks[m] || [];
+      local[m].forEach(p => {
+        // 같은 달·같은 질병이 이미 발행돼 있으면 건너뛴다
+        if(picks[m].some(q => q.slug === p.slug)) return;
+        picks[m].push(Object.assign({}, p, {id: p.id || newPickId()}));
+        added++;
+      });
+      if(!picks[m].length) delete picks[m];
+    });
+    if(!added){ pickState.msg = "합칠 새 항목이 없습니다"; render(); return; }
+    publishAnd(picks, "📌 이달의 질병 — 기존 선택 " + added + "건 합침", () => {
+      try { localStorage.removeItem(PICK_LOCAL_KEY); } catch(_){}
+    });
+  };
 }
 
 function attachEvents(){
   document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
     state.tab=b.dataset.tab; render();
-    if(state.tab==="disease" && diseaseState.status==="idle") fetchDiseases();
+    if(state.tab==="disease"){
+      if(diseaseState.status==="idle") fetchDiseases();
+      if(pickState.status==="idle") fetchMonthlyPicks();
+    }
     if(state.tab==="coin" && coinFetchStatus!=="done" && coinFetchStatus!=="loading") fetchUpbitPrices();
     if(state.tab==="stock" && stockFetchStatus!=="done" && stockFetchStatus!=="loading") fetchStockPrices();
     if(state.tab==="weather" && weatherState.status==="idle"){
@@ -5466,6 +5638,7 @@ fetchPoultryPrices();
 fetchEggReport();
 fetchLayerStats();
 fetchHpaiRisk();
+fetchMonthlyPicks();
 
 </script>
 </body>
