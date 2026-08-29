@@ -2195,7 +2195,7 @@ function renderHpaiTab(){
 }
 
 function renderBriefingTab(){
-  return renderNoticesSection() + renderEconSection() + renderPolicySection();
+  return renderNoticesSection() + renderPolicySection();
 }
 
 function render(){
@@ -5156,74 +5156,6 @@ function renderWeatherBody(){
   </div>`;
 }
 
-// ── 브리핑: 경제동향 (주가·코인 요약) ────────────────────────────────────────
-function renderEconSection(){
-  const fmtNum = (n)=> n.toLocaleString(undefined,{maximumFractionDigits:2});
-  const row = (item)=>{
-    const diff = item.current - item.prevDay;
-    const pct = ((diff/item.prevDay)*100).toFixed(2);
-    const up = diff>0, flat = Math.abs(diff)<0.001;
-    const arrow = flat?"─":up?"▲":"▼";
-    const dColor = flat?"#888":up?"#D32F2F":"#1565C0";
-    return `
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f3f3f3">
-      <div style="display:flex;align-items:center;gap:7px;min-width:0">
-        <span style="font-size:15px">${item.icon}</span>
-        <span style="font-size:12px;font-weight:600;color:#1a1a1a;white-space:nowrap">${esc(item.name)}</span>
-      </div>
-      <div style="text-align:right">
-        <span style="font-size:13px;font-weight:800;color:#1a2744">${fmtNum(item.current)}</span>
-        <span style="font-size:10px;color:#aaa"> ${esc(item.unit)}</span>
-        <span style="font-size:11px;font-weight:700;color:${dColor};margin-left:6px">${arrow} ${pct}%</span>
-      </div>
-    </div>`;
-  };
-
-  const stockKeys = ["kospi","kosdaq","dow","nasdaq"];
-  const stocks = stockKeys.map(k=>STOCK_DATA.find(s=>s.key===k)).filter(Boolean);
-  const fx = FX_DATA.filter(f=>f.key==="usdkrw");
-  const coinKeys = ["btc","eth","xrp"];
-  const coins = coinKeys.map(k=>COIN_DATA.find(c=>c.key===k)).filter(Boolean);
-
-  const sStat = stockFetchStatus, cStat = coinFetchStatus;
-  const statBadge = (st)=> st==="loading"?`<span style="font-size:10px;color:#aaa">⏳ 갱신중</span>`
-    : st==="done"?`<span style="font-size:10px;color:#1B7A3E">🟢 실시간</span>`
-    : st==="cached"?`<span style="font-size:10px;color:#0288D1">🔵 최근 캐시</span>`
-    : st==="error"?`<span style="font-size:10px;color:#e67700">⚡ 저장값</span>`:"";
-
-  return `
-  <div style="margin-bottom:22px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-      <div>
-        <div class="display" style="font-size:16px">💹 경제동향</div>
-        <div style="font-size:10px;color:#aaa;margin-top:3px">주가지수 · 환율 · 주요 코인 시세 요약</div>
-      </div>
-      <button id="btn-econ-refresh"
-        style="border:none;border-radius:8px;background:#1a2744;padding:6px 14px;font-size:12px;color:#fff;font-weight:600;cursor:pointer">
-        🔄 갱신
-      </button>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
-      <div class="card" style="border-top:4px solid #0047A0">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <div style="font-size:13px;font-weight:700;color:#0047A0">📈 주가 · 환율</div>
-          ${statBadge(sStat)}
-        </div>
-        ${stocks.map(row).join("")}
-        ${fx.map(row).join("")}
-        <div style="margin-top:8px;text-align:right"><a href="https://m.stock.naver.com/domestic/home/capitalization/KOSPI" target="_blank" rel="noopener" style="font-size:11px;color:#0047A0;font-weight:600">네이버 증권 →</a></div>
-      </div>
-      <div class="card" style="border-top:4px solid #F7931A">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <div style="font-size:13px;font-weight:700;color:#F7931A">🪙 코인 (업비트 KRW)</div>
-          ${statBadge(cStat)}
-        </div>
-        ${coins.map(row).join("")}
-        <div style="margin-top:8px;text-align:right"><a href="https://upbit.com/exchange?code=CRIX.UPBIT.KRW-BTC" target="_blank" rel="noopener" style="font-size:11px;color:#F7931A;font-weight:600">업비트 시세 →</a></div>
-      </div>
-    </div>
-  </div>`;
-}
 
 // ── 브리핑: 농식품부 축산정책 뉴스 ─────────────────────────────────────────
 function renderPolicySection(){
@@ -5323,7 +5255,7 @@ function renderNoticesSection(){
   <div style="margin-bottom:22px">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
     <div>
-      <div class="display" style="font-size:16px">📰 축산 뉴스 · 경제동향</div>
+      <div class="display" style="font-size:16px">📰 축산 뉴스</div>
       <div style="font-size:10px;color:#aaa;margin-top:3px">축산신문 · 농수축산신문 · 한돈뉴스 · 데일리벳 · 해외 양계질병 · 아시아경제 최신 5건</div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
@@ -5661,11 +5593,8 @@ function attachEvents(){
       if(saved) fetchWeather(saved.lat, saved.lng, saved.name);
     }
     if(state.tab==="news" && newsState.status==="idle") fetchNews(newsState.activeChannel);
-    if(state.tab==="briefing"){
-      if(noticesState.status==="idle") fetchNotices();
-      if(stockFetchStatus!=="done" && stockFetchStatus!=="loading") fetchStockPrices();
-      if(coinFetchStatus!=="done" && coinFetchStatus!=="loading") fetchUpbitPrices();
-    }
+    // 경제동향 섹션을 뺀 뒤로 브리핑 탭은 주가·코인을 쓰지 않는다
+    if(state.tab==="briefing" && noticesState.status==="idle") fetchNotices();
     if(state.tab==="price" && poultryPriceState.status==="idle") fetchPoultryPrices();
   });
 
@@ -5719,10 +5648,6 @@ function attachEvents(){
     const box = intakeCurRow.closest(".intake-scroll");
     if(box) box.scrollTop = Math.max(0, intakeCurRow.offsetTop - box.clientHeight/2);
   }
-
-  // 경제동향 갱신 버튼 (주가+코인 동시 갱신)
-  const econRefreshBtn=document.getElementById("btn-econ-refresh");
-  if(econRefreshBtn) econRefreshBtn.onclick=()=>{ fetchStockPrices(); fetchUpbitPrices(); };
 
   // 육계 시세 갱신 버튼
   const chPriceRefreshBtn=document.getElementById("btn-ch-price-refresh");
