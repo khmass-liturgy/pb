@@ -1775,7 +1775,11 @@ function renderMonthlyPick(list){
   months.forEach(m => picks[m].forEach(p => { tally[p.slug] = (tally[p.slug]||0)+1; }));
   const ranked = Object.entries(tally).sort((a,b)=> b[1]-a[1]);
 
-  const options = list.map(x =>
+  // 드롭다운은 가나다순. 원본 목록은 사이트 게재 순서라 찾기 어렵다.
+  // localeCompare에 "ko"를 줘야 한글 자모 순서가 제대로 잡힌다.
+  const options = list.slice()
+    .sort((a,b) => (a.title_ko||"").localeCompare(b.title_ko||"", "ko"))
+    .map(x =>
     '<option value="'+esc(x.slug)+'"'+(editing&&editing.slug===x.slug?" selected":"")+'>'+esc(x.title_ko)+'</option>').join("");
 
   const curCards = curList.length

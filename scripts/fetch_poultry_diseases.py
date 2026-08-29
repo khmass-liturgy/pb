@@ -81,6 +81,7 @@ KO_ALIASES = {
     "coccidiosis": ["콕시듐증", "콕시디아", "구포자충증"],
     "histomonosis": ["히스토모나스", "흑두병"],
     "ascaridiosis": ["회충증"],
+    "knemidokoptosis": ["닭 옴진드기증", "각기병(다리비늘진드기)"],
     "aspergillosis": ["아스페르길루스증", "곰팡이성 폐렴"],
     "candidiasis": ["칸디다증"],
     "aflatoxicosis": ["아플라톡신 중독"],
