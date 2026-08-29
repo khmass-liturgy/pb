@@ -1033,7 +1033,7 @@ async function fetchEggReport(){
   if(state.tab === "price") render();
 }
 // 양계질병: 검색어(query)와 펼친 항목(openSlug)은 화면 상태라 여기 함께 둔다.
-let diseaseState = { status: "idle", data: null, query: "", openSlug: null, showEn: {} };
+let diseaseState = { status: "idle", data: null, query: "", openSlug: null, showEn: {}, showAll: false };
 
 async function fetchDiseases(){
   if(diseaseState.status === "loading") return;
@@ -1926,9 +1926,28 @@ function googleImageBtn(x){
 
 // 검색 결과만 따로 그린다. 검색창까지 다시 그리면 한글 조합(IME)이 끊겨
 // 글자가 안 쳐지므로, 입력 중에는 이 부분만 교체한다.
+// 목록에 무엇을 보여줄지 정한다.
+//  - 검색 중이면 검색 결과(관련도순)
+//  - '전체보기'면 57종 전부를 가나다순으로
+//  - 평소에는 이달의 질병만. 57종을 늘어놓기보다 이번 달 짚어준 것부터
+//    보는 편이 쓰임에 맞는다.
+function diseaseListing(){
+  const d = diseaseState, data = d.data, q = (d.query || "").trim();
+  if(q) return {mode:"search", items: diseaseMatches(data.diseases, q)};
+
+  const byName = arr => arr.slice()
+    .sort((a,b) => (a.title_ko||"").localeCompare(b.title_ko||"", "ko"));
+  if(d.showAll) return {mode:"all", items: byName(data.diseases)};
+
+  const picks = (currentPicks()[monthKey()] || []);
+  const items = picks.map(p => data.diseases.find(x => x.slug === p.slug)).filter(Boolean);
+  return {mode:"pick", items: items, picks: picks};
+}
+
 function renderDiseaseResults(){
   const d = diseaseState, data = d.data, q = d.query || "";
-  const hits = diseaseMatches(data.diseases, q);
+  const listing = diseaseListing();
+  const hits = listing.items;
 
   const rows = hits.map(x => {
     const open = d.openSlug === x.slug;
@@ -1982,14 +2001,29 @@ function renderDiseaseResults(){
       + body + '</div>';
   }).join("");
 
-  const countLine = '<div style="font-size:11px;color:#888;margin:0 0 10px 2px">'
-    + (q ? '‘'+esc(q)+'’ 검색결과 <b style="color:#00695C">'+hits.length+'</b>종'
-         : '전체 <b style="color:#00695C">'+data.count+'</b>종')
-    + ' · 병명뿐 아니라 <b>증상 본문</b>도 함께 검색됩니다</div>';
+  const toggle = '<button id="dz-showall" style="font-size:11px;border:1px solid #00695C;border-radius:6px;'
+    + 'background:'+(listing.mode==="all"?"#00695C":"#fff")+';color:'+(listing.mode==="all"?"#fff":"#00695C")+';padding:3px 10px">'
+    + (listing.mode==="all" ? "이달의 질병만" : "전체보기 "+data.count+"종") + '</button>';
 
-  const empty = '<div class="card" style="text-align:center;padding:26px;color:#aaa;font-size:12.5px">'
-    + '‘'+esc(q)+'’ 에 해당하는 질병을 찾지 못했습니다.<br>'
-    + '<span style="font-size:11px">다른 이름으로 검색해 보세요 (예: 기관지염, 장염, 백혈병)</span></div>';
+  const label = listing.mode==="search"
+      ? '‘'+esc(q)+'’ 검색결과 <b style="color:#00695C">'+hits.length+'</b>종'
+    : listing.mode==="all"
+      ? '전체 <b style="color:#00695C">'+data.count+'</b>종 · 가나다순'
+      : '📌 이달의 질병 <b style="color:#B8860B">'+hits.length+'</b>종';
+
+  const countLine = '<div style="display:flex;align-items:center;justify-content:space-between;'
+    + 'flex-wrap:wrap;gap:8px;margin:0 2px 10px">'
+    + '<span style="font-size:11px;color:#888">' + label
+    + ' · 병명뿐 아니라 <b>증상 본문</b>도 함께 검색됩니다</span>'
+    + (listing.mode==="search" ? "" : toggle) + '</div>';
+
+  const empty = listing.mode==="search"
+    ? '<div class="card" style="text-align:center;padding:26px;color:#aaa;font-size:12.5px">'
+      + '‘'+esc(q)+'’ 에 해당하는 질병을 찾지 못했습니다.<br>'
+      + '<span style="font-size:11px">다른 이름으로 검색해 보세요 (예: 기관지염, 장염, 백혈병)</span></div>'
+    : '<div class="card" style="text-align:center;padding:26px;color:#999;font-size:12.5px">'
+      + '이번 달 짚어준 질병이 아직 없습니다.<br>'
+      + '<span style="font-size:11px">위에서 검색하거나 ‘전체보기’로 '+data.count+'종을 볼 수 있습니다</span></div>';
 
   return countLine + (hits.length ? rows : empty);
 }
@@ -5426,6 +5460,13 @@ function updateDiseaseResults(){
 
 // 결과 카드 안의 이벤트 (결과를 다시 그릴 때마다 새로 걸어줘야 한다)
 function attachDiseaseResultEvents(){
+  const sa = document.getElementById("dz-showall");
+  if(sa) sa.onclick = () => {
+    diseaseState.showAll = !diseaseState.showAll;
+    diseaseState.openSlug = null;
+    updateDiseaseResults();
+  };
+
   document.querySelectorAll(".dz-head").forEach(el => el.onclick = () => {
     const s = el.dataset.slug;
     diseaseState.openSlug = (diseaseState.openSlug === s) ? null : s;
@@ -5443,6 +5484,9 @@ function attachDiseaseResultEvents(){
 function gotoDisease(slug){
   diseaseState.query = "";
   diseaseState.openSlug = slug;
+  // 이달의 질병 목록에 없는 항목(지난달 선택 등)이면 전체보기로 바꿔야 카드가 보인다
+  const inPick = (currentPicks()[monthKey()] || []).some(p => p.slug === slug);
+  if(!inPick) diseaseState.showAll = true;
   render();
   const el = document.getElementById("dz-card-" + slug);
   if(el) el.scrollIntoView({behavior:"smooth", block:"center"});
