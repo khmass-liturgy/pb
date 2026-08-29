@@ -2407,9 +2407,49 @@ function renderChickenPricePanel(){
   </div>`;
 }
 
-// 산란계 사육 마리수(분기 통계) 요약 — 축산시세 바로 아래에 붙는다.
+// 산란계·육계 사육 통계 (분기) — 축산시세 바로 아래.
+// 마리수(사육수)와 가구수(사육농가수)를 함께 보여준다. 두 값을 나눈 호당
+// 사육규모는 규모화 정도를 한눈에 보게 해 준다.
+const LS_SPECIES = {
+  layer:   {name:"산란계", icon:"🥚", color:"#C2185B", soft:"#FCE4EC", bar:"#F48FB1"},
+  broiler: {name:"육계",   icon:"🐔", color:"#E8530A", soft:"#FFF0E6", bar:"#FFAB76"},
+};
+
+function lsDelta(pct){
+  if(pct == null) return "";
+  const flat = Math.abs(pct) < 0.05;
+  const c = flat ? "#888" : (pct > 0 ? "#D32F2F" : "#1565C0");
+  return `<span style="color:${c};font-weight:600;font-size:11px">${flat?"─":pct>0?"▲":"▼"}${Math.abs(pct).toFixed(1)}%</span>`;
+}
+const lsNum = v => (v == null ? "-" : v.toLocaleString());
+
+function lsSpeciesCard(key, d){
+  const s = LS_SPECIES[key];
+  return `
+  <div style="flex:1;min-width:210px;background:${s.soft};border:1px solid ${s.bar};border-radius:10px;padding:12px 14px">
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+      <span style="font-size:17px">${s.icon}</span>
+      <span style="font-size:13px;font-weight:800;color:${s.color}">${s.name}</span>
+    </div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap">
+      <div style="flex:1;min-width:92px">
+        <div style="font-size:10px;color:#888">사육수</div>
+        <div style="font-size:19px;font-weight:800;color:${s.color};font-variant-numeric:tabular-nums;line-height:1.25">${lsNum(d.birds)}</div>
+        <div style="font-size:10px;color:#999">마리 ${lsDelta(d.birds_pct)}</div>
+      </div>
+      <div style="flex:1;min-width:82px">
+        <div style="font-size:10px;color:#888">사육농가수</div>
+        <div style="font-size:19px;font-weight:800;color:#555;font-variant-numeric:tabular-nums;line-height:1.25">${lsNum(d.farms)}</div>
+        <div style="font-size:10px;color:#999">농가 ${lsDelta(d.farms_pct)}</div>
+      </div>
+    </div>
+    ${d.per_farm ? `<div style="font-size:10px;color:#888;margin-top:7px;border-top:1px dashed ${s.bar};padding-top:6px">
+      호당 평균 <b style="color:${s.color}">${lsNum(d.per_farm)}</b>마리</div>` : ""}
+  </div>`;
+}
+
 function renderLayerStatsPanel(){
-  const TITLE = "🐔 산란계 사육수";
+  const TITLE = "🐔 산란계·육계 사육 통계";
   const d = layerStatsState;
   const shell = inner => `
   <div class="card" style="margin-bottom:16px;border-top:4px solid #C2185B">
@@ -2419,92 +2459,68 @@ function renderLayerStatsPanel(){
 
   if(d.status === "loading" || d.status === "idle")
     return shell(`<div style="text-align:center;padding:18px;color:#aaa">⏳ 불러오는 중...</div>`);
-  if(d.status === "error" || !d.data || !d.data.national)
+  if(d.status === "error" || !d.data || !d.data.layer)
     return shell(`<div style="text-align:center;padding:12px;color:#aaa;font-size:12px">
       데이터 없음 — 분기마다 갱신<br>
       <a href="https://mtrace.go.kr/stats/stp/dtl/stl/xtlStatsList.do" target="_blank" rel="noopener"
          style="color:#C2185B;font-size:11px">📊 축산유통 통계누리 바로가기</a></div>`);
 
-  const r = d.data, n = r.national;
+  const r = d.data;
   const regions = r.regions || [];
-  const man = v => (v == null ? "-" : (v/10000).toFixed(0) + "만");
-  // 증감은 부호를 색으로도 구분한다(증가=붉은색, 감소=파란색 — 국내 시세 표기 관행)
-  const delta = pct => {
-    if(pct == null) return "";
-    const up = pct > 0, flat = Math.abs(pct) < 0.05;
-    const c = flat ? "#888" : up ? "#D32F2F" : "#1565C0";
-    return `<span style="color:${c};font-weight:600">${flat?"─":up?"▲":"▼"}${Math.abs(pct).toFixed(1)}%</span>`;
-  };
+  const maxBirds = Math.max(1, ...regions.map(g =>
+    Math.max(g.layer.birds || 0, g.broiler.birds || 0)));
 
-  const ages = [
-    ["6개월이상(산란중)", n.over6m, "#C2185B"],
-    ["3~6개월(입식대기)", n.m3to6,  "#EC407A"],
-    ["3개월미만(육성중)", n.under3m,"#F8BBD0"],
-  ].filter(a => a[1] != null);
-  const ageBar = ages.map(([lb,v,c]) =>
-    `<div style="flex:${v};background:${c};height:100%" title="${esc(lb)} ${v.toLocaleString()}마리"></div>`).join("");
-  const ageLegend = ages.map(([lb,v,c]) =>
-    `<div style="display:flex;align-items:center;gap:4px;font-size:10px;color:#666">
-       <span style="width:8px;height:8px;border-radius:2px;background:${c};display:inline-block"></span>
-       ${esc(lb)} <b style="color:#333">${man(v)}</b>
-     </div>`).join("");
-
-  const maxTotal = regions.length ? regions[0].total : 1;
-  const rows = regions.map(g => `
-    <tr>
-      <td style="padding:5px 6px;font-size:12px;white-space:nowrap">${esc(g.name)}</td>
-      <td style="padding:5px 6px;text-align:right;font-size:12px;font-variant-numeric:tabular-nums">${g.total.toLocaleString()}</td>
-      <td style="padding:5px 6px;width:36%">
-        <div style="background:#F3E5EC;border-radius:3px;height:9px;overflow:hidden">
-          <div style="width:${(g.total/maxTotal*100).toFixed(1)}%;background:#C2185B;height:100%"></div>
-        </div>
-      </td>
-      <td style="padding:5px 6px;text-align:right;font-size:11px;color:#888;font-variant-numeric:tabular-nums">${g.share == null ? "-" : g.share.toFixed(1)+"%"}</td>
-      <td style="padding:5px 6px;text-align:right;font-size:11px;font-variant-numeric:tabular-nums">${delta(g.pct)}</td>
-    </tr>`).join("");
-
-  // 산란계 실적이 없는 시도(서울·부산 등)는 원본 표에서 빠져 시도 합이 전국보다 작다.
-  const etcNote = (n.etc && n.etc > 0)
-    ? `<div style="font-size:10px;color:#aaa;margin-top:6px">※ 위 시도 합계 ${n.listed_sum.toLocaleString()}마리 + 미표시 시도 ${n.etc.toLocaleString()}마리 = 전국 ${n.total.toLocaleString()}마리</div>`
-    : "";
+  const rows = regions.map(g => {
+    const bar = (v, color) => `<div style="background:#F2F2F2;border-radius:3px;height:7px;overflow:hidden">
+        <div style="width:${((v||0)/maxBirds*100).toFixed(1)}%;background:${color};height:100%"></div></div>`;
+    return `
+    <tr style="border-bottom:1px solid #f6f6f6">
+      <td style="padding:6px;font-size:12px;white-space:nowrap">${esc(g.name)}</td>
+      <td style="padding:6px;text-align:right;font-size:11.5px;font-variant-numeric:tabular-nums">${lsNum(g.layer.birds)}</td>
+      <td style="padding:6px;text-align:right;font-size:11px;color:#888;font-variant-numeric:tabular-nums">${lsNum(g.layer.farms)}</td>
+      <td style="padding:6px;width:15%">${bar(g.layer.birds, LS_SPECIES.layer.bar)}</td>
+      <td style="padding:6px;text-align:right;font-size:11.5px;font-variant-numeric:tabular-nums">${lsNum(g.broiler.birds)}</td>
+      <td style="padding:6px;text-align:right;font-size:11px;color:#888;font-variant-numeric:tabular-nums">${lsNum(g.broiler.farms)}</td>
+      <td style="padding:6px;width:15%">${bar(g.broiler.birds, LS_SPECIES.broiler.bar)}</td>
+    </tr>`;
+  }).join("");
 
   return shell(`
     <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-      <span style="font-size:11px;background:#FCE4EC;color:#C2185B;border-radius:10px;padding:2px 9px;font-weight:600">${esc(r.period || "")} 기준</span>
-      ${r.stale ? `<span style="font-size:10px;color:#E65100;background:#FFF3E0;border-radius:9px;padding:2px 7px">수집 실패 · 이전 자료</span>` : ""}
+      <span style="font-size:11px;background:#FCE4EC;color:#C2185B;border-radius:10px;padding:2px 9px;font-weight:600">${esc(r.period||"")} 기준</span>
+      ${r.prev_period?`<span style="font-size:10px;color:#aaa">증감은 ${esc(r.prev_period)} 대비</span>`:""}
+      ${r.stale?`<span style="font-size:10px;color:#E65100;background:#FFF3E0;border-radius:9px;padding:2px 7px">수집 실패 · 이전 자료</span>`:""}
     </div>
 
-    <div style="display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;margin-bottom:4px">
-      <span style="font-size:12px;color:#666">전국</span>
-      <span class="display" style="font-size:26px;color:#C2185B;font-variant-numeric:tabular-nums">${n.total.toLocaleString()}</span>
-      <span style="font-size:12px;color:#666">마리</span>
-      ${n.pct != null ? `<span style="font-size:12px">${delta(n.pct)}</span>` : ""}
-      ${n.diff != null ? `<span style="font-size:11px;color:#888">전분기 대비 ${n.diff>0?"+":""}${n.diff.toLocaleString()}</span>` : ""}
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+      ${lsSpeciesCard("layer", r.layer)}
+      ${lsSpeciesCard("broiler", r.broiler)}
     </div>
-
-    ${ages.length ? `
-    <div style="display:flex;height:10px;border-radius:5px;overflow:hidden;margin:10px 0 6px">${ageBar}</div>
-    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px">${ageLegend}</div>` : ""}
 
     <div style="overflow-x:auto">
-      <table style="width:100%;border-collapse:collapse;min-width:340px">
+      <table style="width:100%;border-collapse:collapse;min-width:520px">
         <thead>
           <tr style="border-bottom:1px solid #eee">
-            <th style="padding:5px 6px;text-align:left;font-size:10px;color:#999;font-weight:500">시도</th>
-            <th style="padding:5px 6px;text-align:right;font-size:10px;color:#999;font-weight:500">마리수</th>
-            <th style="padding:5px 6px"></th>
-            <th style="padding:5px 6px;text-align:right;font-size:10px;color:#999;font-weight:500">비중</th>
-            <th style="padding:5px 6px;text-align:right;font-size:10px;color:#999;font-weight:500">전분기</th>
+            <th rowspan="2" style="padding:5px 6px;text-align:left;font-size:10px;color:#999;font-weight:500;vertical-align:bottom">시도</th>
+            <th colspan="3" style="padding:4px 6px;font-size:10px;color:${LS_SPECIES.layer.color};font-weight:700;border-bottom:1px solid #f5f5f5">🥚 산란계</th>
+            <th colspan="3" style="padding:4px 6px;font-size:10px;color:${LS_SPECIES.broiler.color};font-weight:700;border-bottom:1px solid #f5f5f5">🐔 육계</th>
+          </tr>
+          <tr style="border-bottom:1px solid #eee">
+            <th style="padding:3px 6px;text-align:right;font-size:9px;color:#aaa;font-weight:500">마리수</th>
+            <th style="padding:3px 6px;text-align:right;font-size:9px;color:#aaa;font-weight:500">농가수</th>
+            <th></th>
+            <th style="padding:3px 6px;text-align:right;font-size:9px;color:#aaa;font-weight:500">마리수</th>
+            <th style="padding:3px 6px;text-align:right;font-size:9px;color:#aaa;font-weight:500">농가수</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
       </table>
     </div>
-    ${etcNote}
 
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-top:10px">
-      <div style="font-size:9px;color:#bbb">출처: ${esc(r.source || "")} · ${esc(r.table || "")} · 수집 ${esc(r.updated || "")}</div>
-      <a href="${esc(r.url || "https://mtrace.go.kr/stats/stp/dtl/stl/xtlStatsList.do")}" target="_blank" rel="noopener"
+      <div style="font-size:9px;color:#bbb">출처: ${esc(r.source||"")} · ${esc(r.table||"")} · 수집 ${esc(r.updated||"")}</div>
+      <a href="${esc(r.url||"https://mtrace.go.kr/stats/stp/dtl/stl/xtlStatsList.do")}" target="_blank" rel="noopener"
          style="font-size:11px;color:#C2185B;border:1px solid #C2185B;border-radius:6px;padding:4px 9px;text-decoration:none">원문 ↗</a>
     </div>`);
 }
@@ -2956,14 +2972,13 @@ function renderPoultryPriceLine(){
   if(st.status==="idle"||st.status==="loading") return `<div class="card" style="margin-bottom:20px;text-align:center;padding:20px;color:#aaa">⏳ 축산 산지시세 조회 중...</div>`;
   if(st.status==="error"||!st.data) return `<div class="card" style="margin-bottom:20px;text-align:center;padding:20px;color:#aaa">⚠️ 축산 산지시세를 불러오지 못했습니다.</div>`;
 
-  const egg=st.data.egg, chicken=st.data.chicken, pig=st.data.pig, cow=st.data.cow.items;
+  // 양계 컨설팅 화면이라 계란·육계만 띄운다. 양돈·소(암송아지·수송아지·
+  // 농가수취가격)는 수집은 계속하되 화면에서만 뺐다 — 필요해지면 아래 배열에
+  // 다시 넣으면 되고, 데이터는 poultry_price/latest.json 에 그대로 있다.
+  const egg=st.data.egg, chicken=st.data.chicken;
   const cards=[
     {icon:"🥚",label:"계란 산지가격",sub:"특란 (XL)",value:egg.latest,unit:"원/10개",color:"#D4A012",date:egg.rows[0]?.date},
     {icon:"🐔",label:"육계 생계유통",sub:"대",value:chicken.latest,unit:"원/kg",color:"#E8530A",date:chicken.rows[0]?.date},
-    {icon:"🐷",label:"양돈",sub:"농가수취 평균",value:pig.latest,unit:"원/kg",color:"#E84A6F",date:pig.rows[0]?.date},
-    {icon:"🐮",label:cow.female_calf.label,sub:"",value:cow.female_calf.value,unit:cow.female_calf.unit,color:"#A0522D",date:cow.female_calf.date},
-    {icon:"🐮",label:cow.male_calf.label,sub:"",value:cow.male_calf.value,unit:cow.male_calf.unit,color:"#8B4513",date:cow.male_calf.date},
-    {icon:"🐂",label:cow.farm_receipt_600kg.label,sub:"",value:cow.farm_receipt_600kg.value,unit:cow.farm_receipt_600kg.unit,color:"#6B4423",date:cow.farm_receipt_600kg.date},
   ].map(item=>`
     <div class="livestock-price-card" style="min-width:0;background:#fff;border:1px solid #eee;border-radius:12px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between">
       <div class="livestock-price-card__content" style="display:flex;align-items:center;gap:10px"><span class="livestock-price-card__icon" style="font-size:25px">${item.icon}</span><div class="livestock-price-card__body"><div class="livestock-price-card__label" style="font-size:12px;color:#777;font-weight:700">${item.label} <span style="font-weight:400">${item.sub}</span></div><div class="livestock-price-card__value" style="font-size:22px;color:${item.color};font-weight:800">${Number.isInteger(item.value)?item.value.toLocaleString():"-"}<span style="font-size:11px;color:#888;font-weight:400;margin-left:3px">${item.unit}</span></div></div></div>

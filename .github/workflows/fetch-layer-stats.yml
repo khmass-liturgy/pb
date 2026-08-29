@@ -36,18 +36,26 @@ jobs:
           import json
           from pathlib import Path
           d = json.loads(Path("layer_stats/latest.json").read_text(encoding="utf-8"))
-          n = d["national"]
-          assert isinstance(n["total"], int) and n["total"] > 0
-          # 전국 산란계는 6천만~1억 마리 규모다. 이 범위를 벗어나면 표 구조가
-          # 바뀌어 엉뚱한 열을 읽었을 가능성이 크므로 커밋 전에 막는다.
-          assert 60_000_000 < n["total"] < 100_000_000, n["total"]
-          # 월령 3구간 합이 합계와 맞아야 열 정렬이 어긋나지 않은 것
-          parts = [n["under3m"], n["m3to6"], n["over6m"]]
-          if all(p is not None for p in parts):
-              assert sum(parts) == n["total"], (parts, n["total"])
+          L, B = d["layer"], d["broiler"]
+          for nm, x in (("산란계", L), ("육계", B)):
+              assert isinstance(x["birds"], int) and isinstance(x["farms"], int), (nm, x)
+              assert x["birds"] > 0 and x["farms"] > 0, (nm, x)
+          # 전국 산란계는 6천만~1억, 육계는 5천만~2억 마리 규모다. 이 범위를 벗어나면
+          # 표 구조가 바뀌어 엉뚱한 열을 읽었을 가능성이 크므로 커밋 전에 막는다.
+          assert 60_000_000 < L["birds"] < 100_000_000, L["birds"]
+          assert 50_000_000 < B["birds"] < 200_000_000, B["birds"]
+          # 농가수가 마리수 자리에 들어오는 식으로 열이 밀리지 않았는지
+          assert L["farms"] < 100_000 and B["farms"] < 100_000, (L["farms"], B["farms"])
           assert d["regions"], "시도별 데이터 없음"
-          assert all(r["total"] > 0 for r in d["regions"])
-          print("검증 통과:", d["period"], format(n["total"], ","))
+          for r in d["regions"]:
+              assert (r["layer"]["birds"] or 0) + (r["broiler"]["birds"] or 0) > 0, r["name"]
+          # 시도 합계가 전국을 넘지 않아야 한다(실적 없는 시도는 빠지므로 작거나 같다)
+          for key in ("layer", "broiler"):
+              tot = sum(r[key]["birds"] or 0 for r in d["regions"])
+              assert tot <= d[key]["birds"], (key, tot, d[key]["birds"])
+          print("검증 통과:", d["period"],
+                "산란계", format(L["birds"], ","), "/", L["farms"], "농가",
+                "· 육계", format(B["birds"], ","), "/", B["farms"], "농가")
           PY
 
       - name: 결과 커밋
