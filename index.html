@@ -15,7 +15,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="application-name" content="농장동물 컨설팅 시세 · 사양환경 · 환기 컨설팅 · 뉴스" /><link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -26,7 +26,11 @@
   button { font-family: inherit; cursor: pointer; }
   input { font-family: inherit; }
   a { text-decoration: none; }
-  .display { font-family: 'Black Han Sans', sans-serif; letter-spacing: -0.5px; }
+  /* 타이틀 서체. 예전에는 Black Han Sans를 썼는데 획이 지나치게 굵어
+     글자가 뭉쳐 읽기 어려웠다. 본문과 같은 Noto Sans KR을 쓰되 굵기만
+     올려 제목임을 구분한다. */
+  .display { font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
+             font-weight: 600; letter-spacing: -0.2px; }
   header {
     background: linear-gradient(90deg, #1a2744 0%, #2C3E6B 100%);
     color: #fff; padding: 0 20px; position: sticky; top: 0; z-index: 100;
