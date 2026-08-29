@@ -1603,7 +1603,7 @@ const PICK_LOCAL_KEY = "poultry_monthly_pick";   // 예전 저장 위치 (이관
 const PICK_BY = "최동명 수의사";
 
 let pickState = { status:"idle", data:null, sha:null, editRef:null,
-                  adminOpen:false, busy:false, msg:"" };
+                  adminOpen:false, busy:false, msg:"", diag:"" };
 
 function ghToken(){
   try { return localStorage.getItem(PICK_TOKEN_KEY) || ""; } catch(_) { return ""; }
@@ -1683,7 +1683,10 @@ async function publishPicks(picks, message){
     let sha = null;
     const cur = await fetch(api + "?ref=" + PICK_BRANCH + "&t=" + Date.now(), { headers: head });
     if(cur.ok) sha = (await cur.json()).sha;
-    else if(cur.status !== 404) throw new Error("현재 파일 확인 실패 (HTTP " + cur.status + ")");
+    else if(cur.status === 401) throw new Error("토큰이 거부되었습니다. '토큰 점검'으로 원인을 확인하세요.");
+    else if(cur.status === 403) throw new Error("이 토큰에는 권한이 없습니다. '토큰 점검'으로 확인하세요.");
+    else if(cur.status === 404) sha = null;   // 파일이 아직 없으면 새로 만든다
+    else throw new Error("현재 파일 확인 실패 (HTTP " + cur.status + ")");
 
     const body = {
       updated: new Date().toISOString().slice(0,16).replace("T"," ") + " UTC",
@@ -1711,6 +1714,41 @@ async function publishPicks(picks, message){
     return { ok:true };
   } catch(e) {
     return { ok:false, error: e.message || String(e) };
+  }
+}
+
+// 401만 보고는 원인을 알 수 없다(토큰 오타 / 다른 계정 / 저장소 미선택 / 권한 부족).
+// 단계별로 물어봐서 어디서 막혔는지 짚어준다.
+async function diagnoseToken(){
+  const token = ghToken();
+  if(!token) return "토큰이 저장되어 있지 않습니다.";
+  const head = { "Authorization": "Bearer " + token, "Accept": "application/vnd.github+json" };
+  try {
+    // 1) 토큰 자체가 유효한가 + 어느 계정 것인가
+    const me = await fetch("https://api.github.com/user", { headers: head });
+    if(me.status === 401)
+      return "토큰이 유효하지 않습니다. 값이 잘렸거나 만료됐을 수 있으니 새로 만들어 다시 넣어보세요.";
+    if(!me.ok) return "토큰 확인 실패 (HTTP " + me.status + ")";
+    const login = (await me.json()).login;
+
+    // 2) 이 저장소에 닿는가
+    const rp = await fetch("https://api.github.com/repos/" + PICK_REPO, { headers: head });
+    if(rp.status === 404 || rp.status === 403){
+      const owner = PICK_REPO.split("/")[0];
+      return "토큰은 '" + login + "' 계정 것인데 " + PICK_REPO + " 에 접근할 수 없습니다."
+        + (login !== owner
+            ? " 저장소 주인은 '" + owner + "' 입니다 — 그 계정으로 로그인해 토큰을 만들어야 합니다."
+            : " 토큰 만들 때 Repository access에서 이 저장소를 선택했는지 확인하세요.");
+    }
+    if(!rp.ok) return "저장소 확인 실패 (HTTP " + rp.status + ")";
+    const perm = (await rp.json()).permissions || {};
+
+    // 3) 쓰기 권한이 있는가
+    if(!perm.push)
+      return "'" + login + "' 계정으로 저장소는 보이지만 쓰기 권한이 없습니다. 토큰 권한에 Contents: Read and write 를 주세요.";
+    return "정상입니다 — '" + login + "' 계정, " + PICK_REPO + " 쓰기 가능. 다시 발행해보세요.";
+  } catch(e) {
+    return "점검 중 오류: " + (e.message || e);
   }
 }
 
@@ -1814,8 +1852,13 @@ function renderMonthlyPick(list){
       + '</div>'
     : '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:8px">'
       +   '<span style="font-size:11px;color:#2E7D32">✔ 발행 권한 설정됨</span>'
-      +   '<button id="dz-token-clear" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:2px 8px">권한 해제</button>'
+      +   '<span style="display:flex;gap:5px">'
+      +     '<button id="dz-token-check" style="font-size:10px;border:1px solid #00695C;border-radius:5px;background:#fff;color:#00695C;padding:2px 8px">토큰 점검</button>'
+      +     '<button id="dz-token-clear" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:2px 8px">권한 해제</button>'
+      +   '</span>'
       + '</div>'
+      + (pickState.diag ? '<div style="font-size:11px;line-height:1.7;color:#7A5C00;background:#FFF8E1;border:1px solid #F0E0A0;border-radius:7px;padding:8px 10px;margin-bottom:8px">'
+          + esc(pickState.diag) + '</div>' : "")
       + '<div style="background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">'
       +   '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:7px">'
       +     '<div style="font-size:11px;font-weight:700;color:#7A5C00">'
@@ -5340,6 +5383,15 @@ function attachDiseaseEvents(){
     if(!v){ alert("토큰을 입력하세요."); return; }
     setGhToken(v);
     pickState.msg = "발행 권한이 저장되었습니다";
+    pickState.diag = "";
+    render();
+  };
+
+  const tk = document.getElementById("dz-token-check");
+  if(tk) tk.onclick = async () => {
+    pickState.diag = "점검 중...";
+    render();
+    pickState.diag = await diagnoseToken();
     render();
   };
 
@@ -5348,6 +5400,7 @@ function attachDiseaseEvents(){
     if(!confirm("이 브라우저에서 발행 권한을 지울까요?")) return;
     setGhToken("");
     pickState.msg = "";
+    pickState.diag = "";
     render();
   };
 
