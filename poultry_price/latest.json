@@ -1,5 +1,5 @@
 {
-  "updated": "2026-08-30 11:48 KST",
+  "updated": "2026-08-31 11:41 KST",
   "stale": {},
   "egg": {
     "label": "계란 산지가격",
@@ -86,10 +86,6 @@
       {
         "date": "2026-07-31",
         "value": 2232
-      },
-      {
-        "date": "2026-07-30",
-        "value": 2208
       }
     ]
   },
@@ -177,10 +173,6 @@
       {
         "date": "2026-07-31",
         "value": 2000
-      },
-      {
-        "date": "2026-07-30",
-        "value": 2000
       }
     ]
   },
@@ -204,14 +196,14 @@
       "female_calf": {
         "label": "암송아지(6~7개월)",
         "unit": "천원/마리",
-        "value": 3802,
-        "date": "2026-08-25"
+        "value": 3818,
+        "date": "2026-08-28"
       },
       "male_calf": {
         "label": "수송아지(6~7개월)",
         "unit": "천원/마리",
-        "value": 5202,
-        "date": "2026-08-25"
+        "value": 5405,
+        "date": "2026-08-28"
       },
       "farm_receipt_600kg": {
         "label": "농가수취가격(600kg)",
@@ -222,6 +214,12 @@
     },
     "rows": [
       {
+        "date": "2026-08-31",
+        "female_calf": null,
+        "male_calf": null,
+        "farm_receipt_600kg": null
+      },
+      {
         "date": "2026-08-29",
         "female_calf": null,
         "male_calf": null,
@@ -229,14 +227,14 @@
       },
       {
         "date": "2026-08-28",
-        "female_calf": null,
-        "male_calf": null,
+        "female_calf": 3818,
+        "male_calf": 5405,
         "farm_receipt_600kg": 8264
       },
       {
         "date": "2026-08-27",
-        "female_calf": null,
-        "male_calf": null,
+        "female_calf": 3810,
+        "male_calf": 5326,
         "farm_receipt_600kg": 8376
       },
       {
@@ -352,12 +350,6 @@
         "female_calf": null,
         "male_calf": null,
         "farm_receipt_600kg": 7686
-      },
-      {
-        "date": "2026-07-30",
-        "female_calf": 3803,
-        "male_calf": 5103,
-        "farm_receipt_600kg": 7514
       }
     ]
   },
