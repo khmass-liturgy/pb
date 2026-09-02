@@ -1,5 +1,5 @@
 {
-  "updated": "2026-09-01 10:38 KST",
+  "updated": "2026-09-02 09:48 KST",
   "channels": {
     "livestock": {
       "label": "축산·농업",
@@ -8,8 +8,15 @@
     },
     "vet": {
       "label": "수의·방역",
-      "items": [],
-      "count": 0
+      "items": [
+        {
+          "title": "충주시, 공수의 추가 위촉…가축전염병 예찰·방역 강화 - 경남도민뉴스",
+          "link": "https://news.google.com/rss/articles/CBMiY0FVX3lxTE91cmlwYXhuT1MwY1N6NWhBaXFiNFFtQzdKR291ZDV1QmhrcGNOQkE4bEJGODM3SHo0V3AtcWhTYjRzZEZ1SW5GQzRja1FCOE5mbGdNc0ttVXNsZC1MdUNJTzQ3NA?oc=5",
+          "date": "09/02 08:10",
+          "source": "경남도민뉴스"
+        }
+      ],
+      "count": 1
     },
     "disease": {
       "label": "가축질병",
@@ -23,39 +30,26 @@
     },
     "economy": {
       "label": "경제",
-      "items": [
-        {
-          "title": "환율 내려도 금리 또 올린 한은…물가·집값에 ‘선제 대응’ - sisaon.co.kr",
-          "link": "https://news.google.com/rss/articles/CBMia0FVX3lxTE0zS1g0b016VmpKLXBfVFpZWWQwLTdIRjNVaGxqaS13VkdnYzhzamdFSXRJSnFUUXNVV1didV9xM0c2MkJWMmMxeE1iUDQtbTVOekhycVJXbHJnTDFCa25ham01OF9yMUZUNUZn?oc=5",
-          "date": "08/27 14:55",
-          "source": "sisaon.co.kr"
-        },
-        {
-          "title": "물가·집값·환율 잡으려 금리 미리 인상…이제는 속도조절 - 한국경제",
-          "link": "https://news.google.com/rss/articles/CBMiWkFVX3lxTE9WeVlqdG5ydGJSc2gzLWdDSVhUcnJnekFCSkJBdDVqOXUtWFJwY1lDc0kwT25aU21yM3dMWUhqVGJKdWtyTDhPMk1sLWw0S1ZtTDZaMDc0ZGhxdw?oc=5",
-          "date": "08/27 13:39",
-          "source": "한국경제"
-        },
-        {
-          "title": "9월 채권시장 심리 개선…금리는 ‘보합’, 물가·환율은 ‘불안’ - 리드경제",
-          "link": "https://news.google.com/rss/articles/CBMib0FVX3lxTFBXeHNTbE1MdEhTSms4U1YzNmJYS1pLZjl3Mi10cXFJa2ZoaW1uaHpWWmN2UGxmOWlQLTBOdFgxbFBlWWNpeUdhSkR1RU9SMVd1YjdnRVI2aUFqV3AwRnV3b1doVzluaW9PbTE1MWZLTQ?oc=5",
-          "date": "08/25 10:44",
-          "source": "리드경제"
-        }
-      ],
-      "count": 3
+      "items": [],
+      "count": 0
     },
     "world": {
       "label": "국제",
       "items": [
         {
-          "title": "트럼프에 맞서 손잡은 시진핑·푸틴…“美 중심 아닌 다극화 세계” - 헤럴드경제",
-          "link": "https://news.google.com/rss/articles/CBMiVkFVX3lxTE51RjZLWXhMaXZIb3ZfaF82RWtKa2ZMR1lHWUFncU9PdENEcFhtYXF2Z0RwY1ZqREd4ZkJvZF9OZUNmQTVOSWVMTnFDRTBnTGpXMTdfbHJR?oc=5",
-          "date": "09/01 06:28",
-          "source": "헤럴드경제"
+          "title": "“미국만 바라보는 시대 끝내자”…시진핑·푸틴, ‘다극화’로 맞손 - 재외동포신문",
+          "link": "https://news.google.com/rss/articles/CBMibEFVX3lxTE9JUjdNd0dRZXlJMWhPV1hJQUl6UTlOR05BZ2NIMlZNMEtxekZiMDh3bkdQM181Q0x5SVZSV2tTQjhPU0FXekFfVm5rWjBhS0dhYktSdHhqbUFQZEdwc3E4Uks1cXBLRE1mWHUybw?oc=5",
+          "date": "09/01 19:30",
+          "source": "재외동포신문"
+        },
+        {
+          "title": "트럼프에 맞서 손잡은 시진핑·푸틴…“美 중심 아닌 다극화 세계” - v.daum.net",
+          "link": "https://news.google.com/rss/articles/CBMiT0FVX3lxTE5YUHAtMm5wbGFyU0NNYUk3d0pQVnZtVW1FcGFNa0xaNWpyS3EzTEtxTUx4ZGJ0MTJqcGNxc3NCcGJBVS13UmpFeTEyWHg0elU?oc=5",
+          "date": "09/01 06:30",
+          "source": "v.daum.net"
         }
       ],
-      "count": 1
+      "count": 2
     }
   }
 }
