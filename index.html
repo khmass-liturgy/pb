@@ -1453,7 +1453,7 @@ async function fetchNews(channelId){
 // ── Open-Meteo 날씨 연동 ───────────────────────────────────────────────────
 async function fetchWeather(lat, lng, name){
   weatherState.status="loading"; weatherState.locationName=name;
-  if(state.tab==="weather") render();
+  if(state.tab==="weather" || state.tab==="vent" || state.tab==="disease") render();
   try {
     const today = new Date();
     // 작년 같은 주 7일: 오늘부터 6일 후까지 (예보와 같은 기간)
@@ -1516,7 +1516,7 @@ async function fetchWeather(lat, lng, name){
     console.error("날씨 조회 실패:", e);
     weatherState.status="error";
   }
-  if(state.tab==="weather") render();
+  if(state.tab==="weather" || state.tab==="vent" || state.tab==="disease") render();
 }
 
 async function searchLocation(query){
@@ -2031,14 +2031,18 @@ function renderDiseaseResults(){
 function renderDiseaseTab(){
   const d = diseaseState;
   const shell = inner => '<div class="card" style="margin-bottom:16px">'+inner+'</div>';
+  // 오늘 기상 기준 사양관리 포인트는 질병 자료 로딩 상태와 무관하게 항상 맨 위에
+  // 둔다 — 질병 위험(호흡기·콕시듐·대장균)이 결국 오늘 사양환경에서 나오기 때문.
+  const head = renderHusbandryPointsCard({title:"📋 오늘의 사양관리 포인트", poultryOnly:true});
   if(d.status === "loading" || d.status === "idle")
-    return shell('<div style="text-align:center;padding:28px;color:#aaa">⏳ 질병 자료를 불러오는 중...</div>');
+    return head + shell('<div style="text-align:center;padding:28px;color:#aaa">⏳ 질병 자료를 불러오는 중...</div>');
   if(d.status === "error" || !d.data || !d.data.diseases)
-    return shell('<div style="text-align:center;padding:20px;color:#aaa;font-size:12px">자료를 불러오지 못했습니다.<br>'
+    return head + shell('<div style="text-align:center;padding:20px;color:#aaa;font-size:12px">자료를 불러오지 못했습니다.<br>'
       + '<a href="https://www.thepoultrysite.com/publications/diseases-of-poultry" target="_blank" rel="noopener" style="color:#00695C;font-size:11px">🌐 The Poultry Site 원문 바로가기</a></div>');
 
   const data = d.data, q = d.query || "";
-  return renderMonthlyPick(data.diseases)
+  return head
+    + renderMonthlyPick(data.diseases)
     + '<div class="card" style="margin-bottom:12px;border-top:4px solid #00695C">'
     +   '<div class="display" style="font-size:16px;margin-bottom:4px">🩺 양계질병 사전</div>'
     +   '<div style="font-size:11px;color:#888;margin-bottom:10px">한글 병명으로 검색하세요 — 뉴캐슬병, 콕시듐, 마렉, 감보로, 대장균증 …</div>'
@@ -3537,6 +3541,337 @@ const SWINE_VENT_STAGES = [
 
 let ventState = { species:"broiler", barn:"solid" };
 
+// ── 오늘의 사양관리 포인트 (세계 양계 컨설팅 표준 판정도구) ──────────────────
+// 판정 근거를 국내 관행이 아니라 세계 양계 컨설팅 그룹이 실제 현장에서 쓰는
+// 두 개의 도구에 맞췄다. 날씨 탭과 양계질병 탭이 이 엔진을 함께 쓴다.
+//
+//  ① Hy-Line 열스트레스 지수(HSI) — 산란계 컨설팅의 사실상 표준.
+//     HSI = 0.6 × 건구온도(°F) + 0.4 × 습구온도(°F)
+//     Xin & Harmon(Iowa State Univ., 1998)의 가금용 지수를 Hy-Line이 채택해
+//     70 / 76 / 82를 경계로 4단계 조치사항을 명문화했다. 아래 조치 문구는
+//     그 규정을 옮긴 것이며, 임의로 만든 항목이 아니다.
+//     출처: Hy-Line Technical Update 「Understanding Heat Stress in Layers」
+//
+//  ② Aviagen 체감온도(Apparent Temperature) — 육계 컨설팅의 표준.
+//     같은 건구온도라도 습도가 높으면 증발로 열을 못 버려 닭이 더 덥게 느낀다.
+//     그래서 습도에 맞춰 목표 계사온도를 다시 잡는 것이 컨설턴트의 첫 조치다.
+//     출처: Ross Broiler Management Handbook 2025, Table 2.5
+//          (Dr. Malcolm Mitchell, Scotland's Rural College 공식 기반)
+//
+// 기존 THI는 소·돼지까지 아우르는 범용 지수라 화면에 계속 함께 두되,
+// 양계 판정의 주 기준은 HSI로 둔다.
+
+// Hy-Line Technical Update Figure 2에 인쇄된 열스트레스 지수 표를 그대로 옮긴 것.
+// 행 = 건구온도(20~38°C, 2°C 간격), 열 = 상대습도(5~100%, 5%p 간격).
+//
+// 캡션의 공식(0.6×건구°F + 0.4×습구°F)을 우리가 다시 계산하지 않고 표 값을 쓴다.
+// 습구온도로 재계산하면 고온·저습 구간에서 원문 표와 최대 6까지 벌어지고(예:
+// 36°C/20% → 표 80(위험) vs 재계산 85(비상)), 그러면 단계 판정이 뒤집힌다.
+// 컨설턴트가 현장에서 실제로 읽는 것은 이 표이므로 표를 기준으로 삼는다.
+const HYLINE_HSI = {
+  temps: [20, 22, 24, 26, 28, 30, 32, 34, 36, 38],
+  rhs:   [5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100],
+  grid: [
+    [63,63,63,64,64,64,64,65,65,65,66,66,66,66,67,67,67,67,68,68],  // 20°C
+    [64,65,65,66,66,66,67,67,67,68,68,69,69,69,70,70,70,71,71,72],  // 22°C
+    [66,67,67,68,68,69,69,70,70,70,71,71,72,72,73,73,74,74,75,75],  // 24°C
+    [68,69,69,70,70,71,71,72,73,73,74,74,75,75,76,77,77,78,78,79],  // 26°C
+    [70,70,71,72,72,73,74,74,75,76,76,77,78,78,79,80,80,81,82,82],  // 28°C
+    [71,72,73,74,74,75,76,77,78,78,79,80,81,81,82,83,84,84,85,86],  // 30°C
+    [73,74,75,76,77,77,78,79,80,81,82,83,84,84,85,86,87,88,89,90],  // 32°C
+    [75,76,77,78,79,80,81,82,83,84,84,85,86,87,88,89,90,91,92,93],  // 34°C
+    [77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,93,94,95,96,97],  // 36°C
+    [78,79,81,82,83,84,85,86,88,89,90,91,92,93,95,96,97,98,99,100], // 38°C
+  ],
+};
+// 표 안에서 이중 선형보간. 표 범위 밖은 양 끝 값으로 고정한다 —
+// 매뉴얼이 제시하지 않은 구간을 임의로 외삽하지 않기 위해서다.
+function calcHeatStressIndex(tempC, rh){
+  if(tempC == null || rh == null) return null;
+  const {temps:T, rhs:R, grid:G} = HYLINE_HSI;
+  const pos = (arr, v) => {
+    if(v <= arr[0]) return {i:0, f:0};
+    if(v >= arr[arr.length-1]) return {i:arr.length-2, f:1};
+    for(let k=0; k<arr.length-1; k++){
+      if(v >= arr[k] && v <= arr[k+1]) return {i:k, f:(v-arr[k])/(arr[k+1]-arr[k])};
+    }
+    return {i:0, f:0};
+  };
+  const a = pos(T, tempC), b = pos(R, rh);
+  const top = G[a.i][b.i]   + (G[a.i][b.i+1]   - G[a.i][b.i])   * b.f;
+  const bot = G[a.i+1][b.i] + (G[a.i+1][b.i+1] - G[a.i+1][b.i]) * b.f;
+  return Math.round(top + (bot - top) * a.f);
+}
+// 표의 하한(20°C) 아래는 열스트레스 판정 범위가 아니다. 이때는 지수를 들이대지
+// 않고 저온 관리로 넘어간다 — Hy-Line이 정의한 적온대는 18~25°C다.
+function hsiInRange(tempC){ return tempC != null && tempC >= 20; }
+
+// Hy-Line이 규정한 4단계. 경계값(70/76/82)과 조치내용 모두 원문 그대로.
+const HSI_LEVELS = [
+  {min:82, key:"emergency", label:"비상", short:"Emergency", icon:"🚨", color:"#B71C1C", bg:"#FFEBEE"},
+  {min:76, key:"danger",    label:"위험", short:"Danger",    icon:"🔴", color:"#E65100", bg:"#FFF3E0"},
+  {min:70, key:"alert",     label:"경계", short:"Alert",     icon:"⚠️", color:"#F9A825", bg:"#FFFDE7"},
+  {min:-Infinity, key:"comfort", label:"쾌적", short:"Comfort", icon:"✅", color:"#2E7D32", bg:"#E8F5E9"},
+];
+function hsiLevel(hsi){
+  if(hsi == null) return null;
+  return HSI_LEVELS.find(l => hsi >= l.min) || HSI_LEVELS[HSI_LEVELS.length-1];
+}
+
+// 단계별 조치 — Hy-Line Technical Update 원문의 조치 목록을 우리말로 옮긴 것.
+const HSI_ACTIONS = {
+  comfort: [
+    "지금은 조치가 필요 없는 구간 — 다가올 더위를 준비하기 좋은 시점입니다",
+    "쿨링패드·포거·교반팬을 미리 시운전하고 니플 유량(70 ml/분 이상)을 점검하세요",
+    "전해질제를 미리 확보해 두세요 — 급등 직전에 투여해야 효과가 큽니다",
+  ],
+  alert: [
+    "환기량을 올리고 팬 속도를 높이세요 · 포거는 습도를 보고 가동",
+    "계군 행동을 관찰하세요 — 개구호흡(헐떡임)·날개 벌림이 첫 신호입니다",
+    "급수·환기 설비가 정상 작동하는지 지금 확인하세요",
+  ],
+  danger: [
+    "즉시 조치 구간 — 밀폐계사는 환기량 증대 + 습도를 보고 쿨링패드 가동",
+    "개방계사는 교반팬·미스터를 돌리고, 계체 위 풍속을 최소 1.8~2.0 m/s 확보",
+    "사료섭취 감소분에 맞춰 영양소 농도(아미노산·칼슘·나트륨·인)를 재조정",
+    "급수라인을 주기적으로 찬물로 플러싱하고 야간 냉각을 최대화하세요",
+  ],
+  emergency: [
+    "극심한 열스트레스 — 전빈·백신·선별 등 닭을 붙잡는 작업을 모두 중단",
+    "가장 더운 시간대에는 급이하지 마세요 (급이기 가동 중지)",
+    "광도를 낮춰 활동량과 체열 발생을 억제하세요",
+    "폐사 집중 발생 구간입니다 — 오후~초저녁 상주 관찰",
+  ],
+  // 열스트레스 표(20°C~) 아래 구간. Hy-Line이 정의한 적온대는 18~25°C이며,
+  // 그 아래에서는 체열 유지로 에너지가 새는 쪽이 문제가 된다.
+  cold: [
+    "적온대(18~25°C) 아래 — 체온 유지에 에너지가 쓰여 사료요구량이 늘어납니다",
+    "난방하려고 최소환기량을 줄이지 마세요 — 암모니아·이산화탄소가 쌓여 호흡기 피해로 이어집니다",
+    "음수 결빙·급수라인 동파를 점검하세요 (물이 차가우면 음수량과 함께 사료섭취도 떨어집니다)",
+    "깔짚이 젖으면 체감온도가 급격히 떨어집니다 — 건조 상태를 먼저 확인하세요",
+  ],
+};
+
+// Aviagen Ross Handbook 2025 Table 2.5 — 체중별·습도별 최적 건구온도(°C).
+// 표에 실린 40/50/60/70% 사이는 선형보간한다.
+const AVIAGEN_APPARENT_TEMP = {
+  rh: [40, 50, 60, 70],
+  rows: [
+    {w:44,   label:"입추 병아리 44g",  t:[36.0, 33.2, 30.8, 29.2]},
+    {w:100,  label:"100g",            t:[33.7, 31.2, 28.9, 27.3]},
+    {w:180,  label:"180g",            t:[32.5, 29.9, 27.7, 26.0]},
+    {w:290,  label:"290g",            t:[31.3, 28.6, 26.7, 25.0]},
+    {w:425,  label:"425g",            t:[30.2, 27.8, 25.7, 24.0]},
+    {w:590,  label:"590g",            t:[29.0, 26.8, 24.8, 23.0]},
+    {w:790,  label:"790g",            t:[27.7, 25.5, 23.6, 21.9]},
+    {w:1015, label:"1,015g",          t:[26.9, 24.7, 22.7, 21.3]},
+    {w:1260, label:"1,260g",          t:[25.7, 23.5, 21.7, 20.2]},
+    {w:1530, label:"1,530g 이상",     t:[24.8, 22.7, 20.7, 19.3]},
+  ],
+};
+// 습도에 맞춘 목표 건구온도. 표 범위(40~70%) 밖은 양 끝 값으로 고정한다 —
+// 매뉴얼이 그 바깥을 제시하지 않으므로 임의 외삽하지 않는다.
+function aviagenTargetTemp(row, rh){
+  const R = AVIAGEN_APPARENT_TEMP.rh;
+  if(rh == null) return null;
+  if(rh <= R[0]) return row.t[0];
+  if(rh >= R[R.length-1]) return row.t[R.length-1];
+  for(let i=0; i<R.length-1; i++){
+    if(rh >= R[i] && rh <= R[i+1]){
+      const f = (rh - R[i]) / (R[i+1] - R[i]);
+      return row.t[i] + (row.t[i+1] - row.t[i]) * f;
+    }
+  }
+  return null;
+}
+
+// 산란계 고온기 물:사료 비율 — Hy-Line: 21°C에서 2:1, 38°C에서 8:1.
+// 매뉴얼이 제시한 두 지점 사이를 선형보간한다(그 밖은 양 끝으로 고정).
+function layerWaterFeedRatio(tempC){
+  if(tempC == null) return null;
+  const lo = {t:21, r:2}, hi = {t:38, r:8};
+  if(tempC <= lo.t) return lo.r;
+  if(tempC >= hi.t) return hi.r;
+  return lo.r + (hi.r - lo.r) * (tempC - lo.t) / (hi.t - lo.t);
+}
+
+// 두 탭이 공유하는 오늘 기후 요약. weatherState에서 직접 뽑으므로
+// 날씨 탭을 거치지 않고 양계질병 탭으로 바로 들어와도 동일하게 동작한다.
+function getTodayClimate(){
+  const fc = weatherState.forecast || [];
+  if(fc.length === 0) return null;
+  const today = fc[0];
+  const hourly = (weatherState.hourly && weatherState.hourly[today.date]) || [];
+  const worstBy = (rows) => rows.reduce((a,b)=>
+    (calcHeatStressIndex(b.temp, b.humidity) || 0) > (calcHeatStressIndex(a.temp, a.humidity) || 0) ? b : a);
+
+  // 한낮(11~15시) 중 가장 가혹한 시간대를 오늘의 판정 기준으로 삼는다 —
+  // Hy-Line 지침이 "계군이 노출된 최고온도"를 기준으로 조치를 규정하기 때문.
+  const peakRows = hourly.filter(h => h.hour >= 11 && h.hour <= 15);
+  let peakTemp = today.tMax, peakHum = today.hum;
+  if(peakRows.length){
+    const w = worstBy(peakRows);
+    peakTemp = w.temp; peakHum = w.humidity;
+  }
+  if(peakHum == null) peakHum = 70; // 습도 결측 시 국내 여름 평균 수준으로 가정
+
+  // 야간 최저(새벽 3~5시) — 야간에 식지 않으면 다음날 누적 열부하가 커진다.
+  const nightRows = hourly.filter(h => h.hour >= 3 && h.hour <= 5);
+  let nightTemp = null, nightHum = null;
+  if(nightRows.length){
+    const w = worstBy(nightRows);
+    nightTemp = w.temp; nightHum = w.humidity;
+  }
+
+  return {
+    date: today.date,
+    tMax: today.tMax, tMin: today.tMin,
+    peakTemp, peakHum,
+    hsi: calcHeatStressIndex(peakTemp, peakHum),
+    wetBulb: calcWetBulbC(peakTemp, peakHum),
+    nightTemp, nightHsi: calcHeatStressIndex(nightTemp, nightHum),
+    dt: (today.tMax != null && today.tMin != null) ? Math.round(today.tMax - today.tMin) : null,
+    rainDays: fc.filter(d => (d.rain || 0) >= 5).length,
+    locationName: weatherState.locationName || "",
+  };
+}
+
+// 오늘의 사양관리 포인트 카드.
+// opts.title      — 카드 제목(탭마다 다르게 부른다)
+// opts.poultryOnly — true면 양돈 항목을 빼고 양계만 다룬다(양계질병 탭용)
+function renderHusbandryPointsCard(opts){
+  opts = opts || {};
+  const title = opts.title || "📋 오늘의 사양관리 포인트";
+  const poultryOnly = !!opts.poultryOnly;
+  const c = getTodayClimate();
+
+  if(!c || c.hsi == null){
+    const msg = weatherState.status === "loading"
+      ? "날씨 정보를 불러오는 중입니다..."
+      : "날씨 탭에서 농장 위치를 먼저 설정하면 오늘 기상 기준으로 포인트를 짚어드립니다.";
+    return `<div class="card" style="margin-bottom:14px;border-top:4px solid #0288D1">
+      <div style="font-size:14px;font-weight:700;color:#333;margin-bottom:4px">${title}</div>
+      <div style="font-size:11px;color:#aaa">${msg}</div>
+    </div>`;
+  }
+
+  // 20°C 미만은 Hy-Line 표의 판정 범위 밖 — 지수를 억지로 들이대지 않고
+  // 저온 관리로 분기한다. 카드에도 숫자 대신 그 사실을 적는다.
+  const inRange = hsiInRange(c.peakTemp);
+  const lv = inRange ? hsiLevel(c.hsi)
+    : {key:"cold", label:"저온", short:"Below range", icon:"❄️", color:"#1565C0", bg:"#E3F2FD"};
+  const actions = HSI_ACTIONS[lv.key] || [];
+  const rhInt = Math.round(c.peakHum);
+  const hot = inRange && c.hsi >= 70;
+
+  // 오늘 습도에서 다시 잡은 목표 계사온도 (육계) — 컨설턴트가 컨트롤러에
+  // 실제로 입력하는 숫자. 체중대는 육추~출하까지 고르게 4개만 보여준다.
+  const pickRows = AVIAGEN_APPARENT_TEMP.rows.filter(r => [44, 290, 790, 1530].includes(r.w));
+  const targetTiles = pickRows.map(r => {
+    const t = aviagenTargetTemp(r, rhInt);
+    const base = r.t[1]; // 표준조건 50% RH 기준값
+    const gap = t - base;
+    return `<div style="flex:1 1 74px;background:#FFF8F3;border-radius:9px;padding:8px 6px;text-align:center;border-top:2px solid #E8530A">
+      <div style="font-size:9px;color:#E8530A;font-weight:700">${r.label}</div>
+      <div style="font-size:15px;font-weight:800;color:#333">${t.toFixed(1)}°</div>
+      <div style="font-size:9px;color:${Math.abs(gap)<0.05?"#aaa":gap<0?"#1565C0":"#B71C1C"}">
+        ${Math.abs(gap)<0.05 ? "표준" : (gap<0?"▼":"▲")+Math.abs(gap).toFixed(1)+"°"}
+      </div>
+    </div>`;
+  }).join("");
+
+  const wfRatio = layerWaterFeedRatio(c.peakTemp);
+  const bullet = (txt, color) => `<div style="font-size:11.5px;color:#333;line-height:1.75;padding-left:15px;position:relative;margin-bottom:2px">
+    <span style="position:absolute;left:0;color:${color || lv.color};font-weight:700">·</span>${txt}</div>`;
+
+  // 열 이외의 오늘 위험요인 — 각각 근거가 있는 것만 조건부로 띄운다.
+  const extras = [];
+  if(hot){
+    // Hy-Line이 같은 문서에서 따로 한 장을 할애해 설명하는 기전.
+    // "칼슘을 더 넣으면 되지 않느냐"는 현장의 흔한 오해를 짚어주는 항목이다.
+    extras.push(bullet(`🥚 <b>산란계 난각질</b> — 헐떡임(과호흡)으로 혈중 CO₂가 빠지면 혈액이 알칼리로 기울어(호흡성 알칼리증) 난각선으로 가는 칼슘이 줄고 난각이 얇아집니다. <b>사료 칼슘만 올려서는 교정되지 않으니</b> 환기·냉방으로 헐떡임 자체를 줄이는 것이 우선입니다`, "#D4A012"));
+  }
+  if(c.nightHsi != null && c.nightHsi >= 70){
+    extras.push(bullet(`🌙 <b>야간에도 식지 않습니다 (새벽 HSI ${c.nightHsi})</b> — 팬을 밤새 연속 가동해 야간 냉각을 확보하세요. 밤에 열을 못 빼면 다음날 열부하가 누적됩니다`, "#5E35B1"));
+  }
+  if(c.dt != null && c.dt >= 12){
+    extras.push(bullet(`🌡️ <b>일교차 ${c.dt}°C 경보</b> — 호흡기·CRD 발병 위험 구간. 새벽 최소환기량을 낮추지 말고 온도만 보정하세요(환기 급감은 암모니아 축적으로 이어집니다)`, "#C62828"));
+  } else if(c.dt != null && c.dt >= 8){
+    extras.push(bullet(`🌡️ <b>일교차 ${c.dt}°C 주의</b> — 환기 단계가 급변하지 않도록 완충 구간을 두세요`, "#EF6C00"));
+  }
+  if(c.rainDays >= 3){
+    extras.push(bullet(`💧 <b>이번 주 강수 ${c.rainDays}일</b> — 깔짚 수분이 오르면 콕시듐(Eimeria)·대장균 위험이 함께 오릅니다. 급수라인 누수부터 점검하세요`, "#0277BD"));
+  } else if(c.rainDays >= 1){
+    extras.push(bullet(`🌧 <b>강수 ${c.rainDays}일 예보</b> — 배수로·깔짚 건조 상태 점검`, "#0277BD"));
+  }
+  if(inRange && c.tMax != null && c.tMax < 18 && !hot){
+    extras.push(bullet(`❄️ <b>낮 최고 ${Math.round(c.tMax)}°C</b> — 적온대(18~25°C) 아래로 떨어지는 시간대가 있습니다. 새벽 보온과 최소환기량을 함께 확인하세요`, "#1565C0"));
+  }
+  if(!poultryOnly && c.tMax != null && c.tMax >= 30){
+    extras.push(bullet(`🐷 <b>양돈</b> — 모돈 사료섭취·수태율 저하 위험. 임신돈·포유돈 냉방을 우선 가동하세요 (PIC Wean to Finish Guidelines)`, "#6D4C41"));
+  } else if(!poultryOnly && c.tMax != null && c.tMax < 10){
+    extras.push(bullet(`🐷 <b>양돈</b> — 자돈 설사·폐사 위험. 보온등·매트와 이유자돈 구역난방 점검 (PIC Guidelines)`, "#6D4C41"));
+  }
+
+  return `
+  <div class="card" style="margin-bottom:14px;border-top:4px solid ${lv.color}">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+      <div>
+        <div style="font-size:14px;font-weight:700;color:#333">${title}</div>
+        <div style="font-size:10px;color:#aaa;margin-top:2px">
+          ${c.locationName ? c.locationName + " · " : ""}한낮 ${c.peakTemp!=null?Math.round(c.peakTemp)+"°C":"-"} · 습도 ${rhInt}% · 습구 ${c.wetBulb!=null?c.wetBulb.toFixed(1)+"°C":"-"}
+        </div>
+      </div>
+      <div style="background:${lv.bg};border-radius:11px;padding:8px 13px;text-align:center;min-width:96px">
+        <div style="font-size:9px;color:${lv.color};font-weight:700;letter-spacing:.3px">열스트레스 지수</div>
+        ${inRange
+          ? `<div style="font-size:24px;font-weight:800;color:${lv.color};line-height:1.1">${c.hsi}</div>`
+          : `<div style="font-size:12px;font-weight:700;color:${lv.color};line-height:1.5;padding:4px 0">판정범위<br>밖(20°C↓)</div>`}
+        <div style="font-size:11px;font-weight:700;color:${lv.color}">${lv.icon} ${lv.label} <span style="font-size:9px;opacity:.7">${lv.short}</span></div>
+      </div>
+    </div>
+
+    <div style="background:${lv.bg};border-radius:10px;padding:10px 12px;margin-bottom:12px">
+      <div style="font-size:11px;font-weight:700;color:${lv.color};margin-bottom:5px">
+        ${lv.icon} 지금 해야 할 조치 <span style="font-size:9px;font-weight:600;opacity:.75">${inRange ? "Hy-Line 규정 조치" : "Hy-Line 적온대 기준"}</span>
+      </div>
+      ${actions.map(a => bullet(a)).join("")}
+    </div>
+
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;font-weight:700;color:#333;margin-bottom:5px">
+        🐔 오늘 습도(${rhInt}%)에 맞춘 목표 계사온도 <span style="font-size:9px;color:#aaa;font-weight:600">Aviagen 체감온도</span>
+      </div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">${targetTiles}</div>
+      <div style="font-size:9px;color:#aaa;margin-top:5px;line-height:1.6">
+        습도가 높으면 증발로 열을 못 버려 같은 온도라도 더 덥게 느낍니다 — 표시값은 습도 50% 표준조건 대비 증감입니다.
+        컨트롤러 설정온도를 이 값으로 맞추되, 최종 판단은 계군 행동(개구호흡·날개 벌림·밀집)으로 확인하세요.
+      </div>
+    </div>
+
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;font-weight:700;color:#333;margin-bottom:5px">💧 오늘의 음수·급이 기준</div>
+      ${bullet(`물:사료 비율 <b>약 ${wfRatio.toFixed(1)} : 1</b> 예상 (21°C 2:1 → 38°C 8:1) — 급수미터 실측값이 이보다 낮으면 급수 병목을 의심하세요`, "#0277BD")}
+      ${bullet(`니플 유량 <b>70 ml/분 이상</b> 확보 · 음수 온도는 <b>25°C 이하</b> 유지 (30°C 넘으면 음수량이 떨어지고 사료섭취까지 같이 떨어집니다)`, "#0277BD")}
+      ${hot ? bullet(`급이는 이른 아침·저녁으로 몰고, <b>심야급이 1~2시간</b>을 추가해 서늘한 시간대 섭취를 늘리세요`, "#0277BD") : ""}
+      ${hot ? bullet(`전해질(Na·K·Cl·중탄산) 보충 — 급등을 <b>예상해서 미리</b> 투여할 때 효과가 가장 큽니다`, "#0277BD") : ""}
+    </div>
+
+    ${extras.length ? `<div style="border-top:1px dashed #eee;padding-top:10px;margin-bottom:4px">
+      <div style="font-size:11px;font-weight:700;color:#333;margin-bottom:5px">⚠️ 오늘 함께 볼 위험요인</div>
+      ${extras.join("")}
+    </div>` : ""}
+
+    <div style="font-size:9px;color:#aaa;margin-top:8px;line-height:1.6">
+      ※ 판정도구 출처: 열스트레스 지수는 Hy-Line Technical Update
+      「Understanding Heat Stress in Layers」 Figure 2의 온도×습도 표를 그대로 조회한 값
+      (표 캡션 공식 0.6×건구°F + 0.4×습구°F, 원전 Xin &amp; Harmon, Iowa State Univ. 1998) ·
+      목표 계사온도 = Aviagen 「Ross Broiler Management Handbook 2025」 Table 2.5
+      (Dr. Malcolm Mitchell, SRUC 공식). 계군 행동 관찰이 최종 판단 기준입니다.
+    </div>
+  </div>`;
+}
+
 function renderLivestockWeatherPanel(fc, hourlyByDate){
   if(!fc || fc.length === 0) return "";
   hourlyByDate = hourlyByDate || {};
@@ -3613,9 +3948,6 @@ function renderLivestockWeatherPanel(fc, hourlyByDate){
     tMax: d.tMax, tMin: d.tMin,
     dt:   (d.tMax!=null && d.tMin!=null) ? Math.round(d.tMax-d.tMin) : null,
   }));
-
-  // 이번 주 강수 위험일 수
-  const rainDays = fc.filter(d => (d.rain||0) >= 5).length;
 
   // 오늘 야간 최저(새벽 3~5시) THI - 고온다습 야간 위험 체크
   const nightHours = todayHourly.filter(h => h.hour >= 3 && h.hour <= 5);
@@ -3792,24 +4124,8 @@ function renderLivestockWeatherPanel(fc, hourlyByDate){
       </div>
     </div>
 
-    <!-- 강수 위험 & 관리 조언 -->
-    <div style="background:#f7f7f7;border-radius:10px;padding:10px 12px;font-size:12px;color:#555;line-height:1.8">
-      <div style="font-weight:700;color:#333;margin-bottom:4px">📋 오늘의 축산 관리 포인트</div>
-      ${peakTHI != null && peakTHI >= 80 ? `<div>🔴 <b>심각한 열스트레스(THI ${peakTHI})</b> — 터널환기 최대 가동, 쿨링패드·미스터 점검, 음수량 30~50% 증가, 전해질(KCl·NaHCO₃) 공급, 오후 2~6시 집중 관찰</div>` :
-       peakTHI != null && peakTHI >= 72 ? `<div>🔶 <b>중등도 열스트레스(THI ${peakTHI})</b> — 환기 강화, 음수 충분 공급(수온 20°C 이하 유지), 사료 섭취 저하 예상(야간 급이 비중 확대)</div>` :
-       peakTHI != null && peakTHI >= 68 ? `<div>⚠️ <b>경미한 열스트레스(THI ${peakTHI})</b> — 환기 상태 점검, 음수 공급 확인, 과밀 사육 여부 체크</div>` :
-       `<div>✅ <b>열스트레스 없음(THI ${peakTHI ?? "-"})</b> — 정상 관리 유지</div>`}
-      ${dt != null && dt >= 12 ? `<div>🔴 <b>일교차 ${dt}°C 경보</b> — 호흡기·CRD 위험, 새벽 환기 조절, 백신·예방약 점검</div>` :
-       dt != null && dt >= 8  ? `<div>⚠️ <b>일교차 ${dt}°C 주의</b> — 온도 변화 완충, 환기 급변 억제</div>` : ""}
-      ${nightTHI != null && nightTHI >= 72 ? `<div>🌙 <b>야간 고온 경보(THI ${nightTHI})</b> — 새벽 2~5시 폐사 집중 모니터링, 야간 환기 유지</div>` : ""}
-      ${rainDays >= 3 ? `<div>💧 <b>이번 주 강수 ${rainDays}일 예상</b> — 축사 침수·누수 점검, 깔집 습도 관리, 대장균·살모넬라 감염 위험 ↑</div>` :
-       rainDays >= 1 ? `<div>🌧 <b>강수 예보 ${rainDays}일</b> — 배수로 점검, 입하리터 건조 유지</div>` : ""}
-      ${today?.tMax != null && Math.round(today.tMax) > 27 ? `<div>🥚 <b>산란계 주의</b> — 계사 온도 27°C 초과 예상, 산란율·난중·난각질 저하 위험. 사료 섭취 감소분 보완 위해 에너지·칼슘 농도 상향 검토, 오후 급이 자제·야간 급이 확대</div>` :
-       today?.tMax != null && Math.round(today.tMax) < 15 ? `<div>🥚 <b>산란계 주의</b> — 저온으로 사료 요구량 증가(체온 유지), 음수 결빙 점검, 환기 부족 시 암모니아 축적 주의</div>` : ""}
-      ${today?.tMax != null && Math.round(today.tMax) >= 30 ? `<div>🐷 <b>양돈 주의</b> — 고온으로 모돈 사료섭취 저하·수태율 저하 위험, 임신돈·포유돈 냉방(쿨링패드·터널환기) 우선 가동, 비육돈 출하 전 온열스트레스로 인한 폐사 주의</div>` :
-       today?.tMax != null && Math.round(today.tMax) < 10 ? `<div>🐷 <b>양돈 주의</b> — 저온으로 자돈 설사·폐사 위험 증가, 보온등·매트 점검, 이유자돈 구역난방 상태 확인</div>` : ""}
-      ${humAdj > 0 ? `<div>💦 <b>습도 ${Math.round(todayHum)}% (기준 60% 초과)</b> — 육추 목표온도 ${humAdj}°C 하향 조정 권장 (Hy-Line 지침)</div>` : ""}
-    </div>
+    <!-- 오늘의 축산 관리 포인트 — 세계 양계 컨설팅 표준 판정도구(HSI + Aviagen 체감온도) -->
+    ${renderHusbandryPointsCard({title:"📋 오늘의 축산 관리 포인트"})}
 
     <div style="font-size:10px;color:#aaa;margin-top:8px;text-align:right">
       THI 공식: USDA/Clemson Univ. · 육계: Aviagen Broiler Guide · 산란계: Hy-Line Layer Management Guide · 양돈: PIC Wean to Finish Guidelines
@@ -5643,6 +5959,11 @@ function attachEvents(){
     if(state.tab==="disease"){
       if(diseaseState.status==="idle") fetchDiseases();
       if(pickState.status==="idle") fetchMonthlyPicks();
+      // 상단 "오늘의 사양관리 포인트"가 오늘 기상을 쓰므로 날씨도 함께 준비한다
+      if(weatherState.status==="idle"){
+        const saved=loadWeatherLocation();
+        if(saved) fetchWeather(saved.lat, saved.lng, saved.name);
+      }
     }
     if(state.tab==="coin" && coinFetchStatus!=="done" && coinFetchStatus!=="loading") fetchUpbitPrices();
     if(state.tab==="stock" && stockFetchStatus!=="done" && stockFetchStatus!=="loading") fetchStockPrices();
