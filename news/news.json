@@ -1,19 +1,26 @@
 {
-  "updated": "2026-09-03 09:56 KST",
+  "updated": "2026-09-04 09:46 KST",
   "channels": {
     "livestock": {
       "label": "축산·농업",
-      "items": [],
-      "count": 0
+      "items": [
+        {
+          "title": "2027년 농정예산 역대 최대 확대…농축산업계 \"환영\" - 팜인사이트",
+          "link": "https://news.google.com/rss/articles/CBMibkFVX3lxTFBNYVdPekxNTmVCWUtTUl9GSDF1X3hfWjRyeFRrdklKb2xVT3FSNDBSd3l0RTU1Ylh5VVVxQ25IVi1STFpVVXUxUXJoeFlMdjVJOVFHNm80YXVZdHBGcjlKT2NUR3FWM3ZBZG0tUERB?oc=5",
+          "date": "09/02 20:13",
+          "source": "팜인사이트"
+        }
+      ],
+      "count": 1
     },
     "vet": {
       "label": "수의·방역",
       "items": [
         {
-          "title": "충주시, 공수의 추가 위촉…가축전염병 예찰·방역 강화 - mediatoday.asia",
-          "link": "https://news.google.com/rss/articles/CBMiSkFVX3lxTE1jazI1V2N2VFdFVGdqaThpakMxZS1xX3V1Yko3VkFWZndZM19SM0VOekJyQm9sNjJVMHJhLVdaVkdnZV8td0dtUUdn?oc=5",
+          "title": "충주시, 공수의 추가 위촉…가축전염병 예찰·방역 강화 - 한국언론연합",
+          "link": "https://news.google.com/rss/articles/CBMic0FVX3lxTE5GTXRnRnJxblFoVmd4WUR2c05sZlZ2QlByc0w4WHl5VWEzZ3U4UlZtM0gxVWhhWGJldnI4OTlSa2ZOSGpVSWZqNEQ4SC1qSW9JZlhtMzJfcy1BMU84d2dYdWtySVJ4VTVmOHAzWEZRMi1CTGM?oc=5",
           "date": "09/02 06:43",
-          "source": "mediatoday.asia"
+          "source": "한국언론연합"
         }
       ],
       "count": 1
@@ -32,29 +39,41 @@
       "label": "경제",
       "items": [
         {
-          "title": "부동산부터 금리·물가·환율까지…2기 경제사령탑 과제 '첩첩산중' - newstomato.com",
+          "title": "부동산부터 금리·물가·환율까지…2기 경제사령탑 과제 '첩첩산중' - 뉴스토마토",
           "link": "https://news.google.com/rss/articles/CBMiYEFVX3lxTFA1QlhuS244UzBWa2JOR3E0dVhvMzF5aUkzOEI3UlBnZG9tdXI3dHRQYU9mZHd6aUtuMFhRMGYtSktyLVNDM09Ub0JaQ1NtUHczSmFOWEJEZkdfeVhYMGF0TA?oc=5",
           "date": "09/02 17:28",
-          "source": "newstomato.com"
+          "source": "뉴스토마토"
+        },
+        {
+          "title": "[친절한 경제] 금리 37%인데 왜 돈은 녹을까…환율의 함정 - standingout.kr",
+          "link": "https://news.google.com/rss/articles/CBMia0FVX3lxTE9CdkVLUGphb0VIOUZMbGhORktNOWZvMldLY1FQTGJLb2FXR3B1eWdMQ3haOEYzWjl6TzNGcmJfaVFoUTFESmhENXJ5TFZPSWdlUF9qSUhTOTlocG5YSjl0SXRHZThOZzZqQ0dJ?oc=5",
+          "date": "09/03 21:17",
+          "source": "standingout.kr"
+        },
+        {
+          "title": "[오늘의 키워드] 중동 긴장에 흔들린 시장…물가 3%대 재진입·AI 예산·청문정국까지 - 강릉뉴스",
+          "link": "https://news.google.com/rss/articles/CBMibkFVX3lxTE1GOVUyZlMyWlotclhpR3lZdjdVU3QtZmVnd193OHBaTkhSa1VXSWI2MU1CTGlwVGVheFpIazNPbktxX0ZHMG0tcjJrTHpFOWVCUmFIdmRYYmdURGt2RU84THROWThBNVJZVzc0RHJn0gFyQVVfeXFMTjZyOGtKTjNkcG95U2NvZG0xcDdiS09UcHM3SXpPaGV6TGRXUEJrU2xRZ2JMOTUwRkNqTnRMWTYwM2pMSy1mVmQ5S0tCNFRWNnpPWFpLLVF4Nk8wSlFzMldyeklVY21SLUc4ZmlxY2JpT1VR?oc=5",
+          "date": "09/03 23:57",
+          "source": "강릉뉴스"
         },
         {
           "title": "금리·물가·환율 '3고'…지역경제 덮친 '내수 한파' - 대전일보",
           "link": "https://news.google.com/rss/articles/CBMib0FVX3lxTFBLSFlZOEx5ekJ4OHpTU3dGbFk5eWlxOXV4X1gyX2tTTHhJUUJlTl9ibk5PMW45VWY1VFdxSlNRbVItSUJvQ2IzOVhvYWN2OVVKNWdjaFVTNk56TEF4d2hsNjVFSVpOVzFNTEVQcEpsa9IBc0FVX3lxTE90ekJ2N2d4MEtaN3VNNjk1UkpycllUVDJGcDQ5Y3JzakxQYkpNdUkyYndYQmk5aEFRN0tENXh3a2VnN0lnS2NBTU5fLVN5MW0yc25FMG43SlFPMnBWVW1KWndFMDJzamZhNkV0WVhFVkhjbzg?oc=5",
           "date": "09/02 17:27",
           "source": "대전일보"
-        },
-        {
-          "title": "[오늘의 미국금리와 서민경제] 미국 금리 안 내려가고 한국은 3%…대출·집값·주식 어디로 갈까 - 전국시민의소리",
-          "link": "https://news.google.com/rss/articles/CBMibkFVX3lxTFBHT19vM1JHbDdlWEoxd2FLbWVzaHA2WUNpZTJwM1czLUZsdEIwam1zT1kwLV84VWV3WjBWeU9sZnV2cHYzQWJrYmlJcTlOUlI2MHBPVDBnYW9FcktwQzJONXZIejV1ckVkaGdPZ2J3?oc=5",
-          "date": "08/27 11:41",
-          "source": "전국시민의소리"
         }
       ],
-      "count": 3
+      "count": 4
     },
     "world": {
       "label": "국제",
       "items": [
+        {
+          "title": "[데일리뉴스 국제분석] 중국이 미국을 넘어 새로운 글로벌 패권국으로 부상할 수 있을까? - 데일리뉴스",
+          "link": "https://news.google.com/rss/articles/CBMimwRBVV95cUxPWU1zV0FSdUNFX3dYUW84NmxwRVZxSWJ6c2JIYmZwMzhNQ3ZtOXNmVDZKY0JEWXhGaC1fdWd1aVRkZldjbFJCZVNJeWhTLWxxZkNMMmkwYXdmaDZfVDloUHFBZDlqSEZ1LXcwSlFwMHZQUGtWc1F1dWxrQ2pBN0Y2S3pEdFZpWFJBWWRvMXZjdWE0OG80cFloLTNlZ3oyTEQ4YTE1ZnpHc2xtRVgydVZrYzYwQ2Zva1k0bEZwckdoaGZ0bTR4b3NqS2JVTlIyeEJFX1RRY2FXbTl6M1BDc1YtUmxyNXphYi1YYTBQaUhvQW1PUFhiX012bm93U0VtZjJnSVhiX3lFWDNUQko5OURrUW5RVE5EU01NQXdJbUI2WkM5TGNHWjg2NWRZa1Z3Qy0xZjFnbDlOTklVbEVveDBuNFgwLWFvTW9xeVk2MTEtY1l1NDBZV1ZiTEozdGFQVEhhRjlDb0dsckY1a3gyMEhvbUZUc21QdlRJQ0FodVdpTk1VRktYcXhDaUVFaHU4ajBBTENrMXRyS2VPVzJJcU84TEluTklQenZBekJQdXdUYlZUTlhsTkw4SHN4dFp2cHd3eE80SDZqdUpCNnc5M21EcDctMFBrck5RTkVWbVNud3dxRjJaWEJDMzBlY01JN09OVDBKdXd3bUZHZnhMeVJEWm8zRHJYU0R6ZjNDeF9xOGtsSWZMdlMwc0NkSQ?oc=5",
+          "date": "09/03 17:49",
+          "source": "데일리뉴스"
+        },
         {
           "title": "“미국만 바라보는 시대 끝내자”…시진핑·푸틴, ‘다극화’로 맞손 - 재외동포신문",
           "link": "https://news.google.com/rss/articles/CBMibEFVX3lxTE9JUjdNd0dRZXlJMWhPV1hJQUl6UTlOR05BZ2NIMlZNMEtxekZiMDh3bkdQM181Q0x5SVZSV2tTQjhPU0FXekFfVm5rWjBhS0dhYktSdHhqbUFQZEdwc3E4Uks1cXBLRE1mWHUybw?oc=5",
@@ -62,16 +81,10 @@
           "source": "재외동포신문"
         },
         {
-          "title": "트럼프 만나기 전 푸틴과 결속 다진 시진핑…\"세계 다극화\" 강조 - 뉴스1",
-          "link": "https://news.google.com/rss/articles/CBMiY0FVX3lxTE1oNXB6bmh2RVlZWDJiLXZwRDlpSVVTdDJKYTVBX2pDbFZKOTU4UjdYcXZkdEE1REFEMmd1ZWxVWUd5LTh0aUxFY2JBYVZ5SXBScXhwd1FvWU12am1qVng0eC1HONIBY0FVX3lxTE1oNXB6bmh2RVlZWDJiLXZwRDlpSVVTdDJKYTVBX2pDbFZKOTU4UjdYcXZkdEE1REFEMmd1ZWxVWUd5LTh0aUxFY2JBYVZ5SXBScXhwd1FvWU12am1qVng0eC1HOA?oc=5",
-          "date": "09/01 09:12",
-          "source": "뉴스1"
-        },
-        {
-          "title": "미국, G20서 중국 과잉생산 압박 예고…중국은 일방적 조치 반대 - 스페셜타임스",
-          "link": "https://news.google.com/rss/articles/CBMickFVX3lxTFBzb3p6d1hqRnFBcWhiYlhUUGV6RUNTRFk2WnZlY0tEUHB5MHFBNVd6WXFGenhCRU1SS3d2WEJ3STVFbUdiVmxWd2hYMHM2SXBBQXVqNHc3RzNXUjJQSi1NUkxndFp1YlFyWVlXZmlkT3BLdw?oc=5",
-          "date": "08/31 17:45",
-          "source": "스페셜타임스"
+          "title": "대검, 마약퇴치 국제회의…\"공소청 출범 후에도 협력 유지\" - 연합뉴스",
+          "link": "https://news.google.com/rss/articles/CBMiYEFVX3lxTFA3Nnp1aEhqN3RFUVcxbzVMdGY0VHRoN0lqczMwMV9sWVk4eXIyN2VqRmdaUTJMZDc2VzNRNFB4bERGaWRUZlBOaFdRWURrWGlDVjhOWXQ1Wm9FdzVJRng1ONIBYEFVX3lxTFA3Nnp1aEhqN3RFUVcxbzVMdGY0VHRoN0lqczMwMV9sWVk4eXIyN2VqRmdaUTJMZDc2VzNRNFB4bERGaWRUZlBOaFdRWURrWGlDVjhOWXQ1Wm9FdzVJRng1OA?oc=5",
+          "date": "09/01 14:00",
+          "source": "연합뉴스"
         }
       ],
       "count": 3
