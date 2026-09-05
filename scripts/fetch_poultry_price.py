@@ -19,6 +19,12 @@ from urllib.request import Request, urlopen
 
 KST = timezone(timedelta(hours=9))
 EGG_URL = "https://www.ekapepia.com/v3/price/livestock/egg/distrPrice.do?menuSn=36&boardInfoNo="
+# 산지가격(권역별) — 전국 옆에 수도권 XL 가격을 나란히 보여주기 위해 추가.
+# 이 페이지는 원/30개 단위만 준다(원/10개 열이 없다). 하지만 "전국" 산지가격
+# 페이지는 두 단위를 모두 주는데, 그 값으로 확인해 보면 원/10개 = round(원/30개 / 3)
+# 관계가 10개 표본 전부 정확히 들어맞는다(예: 6433 → 2144, 6511 → 2170).
+# 그래서 수도권도 같은 규칙으로 30개→10개 환산한다.
+EGG_REGION_URL = "https://www.ekapepia.com/v3/price/livestock/egg/producer/region.do?menuSn=138"
 CHICKEN_URL = "https://www.ekapepia.com/v3/price/livestock/chicken/distrPrice.do?menuSn=35&boardInfoNo="
 # 생계유통가격 페이지 — 유통단계별가격(distrPrice, 위)과 다른 화면이다.
 # distrPrice는 "생계유통(대)" 한 칸만 주지만, 이 페이지는 같은 생계유통 가격을
@@ -109,6 +115,22 @@ def parse_egg(html_text: str) -> list[dict[str, int | str]]:
         # 잘못 채택되는 문제가 있었다(진단 로그로 실제 확인됨).
         if date and len(numbers) >= 2:
             values.setdefault(date, {"date": date, "value": numbers[1]})
+    return sorted(values.values(), key=lambda item: str(item["date"]), reverse=True)[:30]
+
+
+def parse_egg_region(html_text: str) -> list[dict[str, int | str]]:
+    """산지가격(권역별) 표에서 수도권 XL만 뽑아 원/10개로 환산한다.
+    열 순서: [날짜, 전국, 수도권, 충청권, 전남, 전북, 경북, 경남, 제주]."""
+    parser = RowParser()
+    parser.feed(html_text)
+    values: dict[str, dict[str, int | str]] = {}
+    for row in parser.rows:
+        date = normalize_date(row[0]) if row else None
+        if not date or len(row) < 3:
+            continue
+        v30 = cell_number(row[2])  # 수도권, 원/30개
+        if v30 is not None:
+            values.setdefault(date, {"date": date, "value": round(v30 / 3)})
     return sorted(values.values(), key=lambda item: str(item["date"]), reverse=True)[:30]
 
 
@@ -243,6 +265,7 @@ def main() -> int:
     egg_rows = fetch_page(EGG_URL, parse_egg, "계란")
     chicken_rows = fetch_page(CHICKEN_URL, parse_chicken, "육계")
     chicken_grade_rows = fetch_page(CHICKEN_GRADE_URL, parse_chicken_grades, "육계(대중소)")
+    egg_region_rows = fetch_page(EGG_REGION_URL, parse_egg_region, "계란(수도권)")
     pig_rows = fetch_page(PIG_URL, parse_pig, "양돈")
     cow_rows = fetch_page(COW_URL, parse_cow, "한우")
 
@@ -277,6 +300,10 @@ def main() -> int:
         stale["chicken_grades"] = True
         chicken_grade_rows = (prev or {}).get("chicken_grades", {}).get("rows") or []
         print("  [육계-대중소] 이번 수집 실패 → 이전 데이터 유지")
+    if not egg_region_rows:
+        stale["egg_region"] = True
+        egg_region_rows = (prev or {}).get("egg_region", {}).get("rows") or []
+        print("  [계란-수도권] 이번 수집 실패 → 이전 데이터 유지")
 
     if not egg_rows or not chicken_rows or not pig_rows or not cow_rows:
         print("계란·육계·양돈·한우 시세를 찾지 못했고, 이전 데이터도 없습니다.")
@@ -297,15 +324,17 @@ def main() -> int:
     OUTPUT_PATH.write_text(json.dumps({
         "updated": now.strftime("%Y-%m-%d %H:%M KST"),
         "stale": stale,  # 이번 수집에 실패해 이전 데이터를 그대로 유지한 항목 표시
-        "egg": {"label": "계란 산지가격", "grade": "특란 (XL)", "unit": "원/10개", "latest": egg_rows[0]["value"], "rows": egg_rows},
+        "egg": {"label": "계란 산지가격", "region": "전국", "grade": "특란 (XL)", "unit": "원/10개", "latest": egg_rows[0]["value"], "rows": egg_rows},
+        "egg_region": {"label": "계란 산지가격", "region": "수도권", "grade": "특란 (XL)", "unit": "원/10개", "latest": (egg_region_rows[0]["value"] if egg_region_rows else None), "rows": egg_region_rows},
         "chicken": {"label": "생계유통(대)", "unit": "원/kg", "latest": chicken_rows[0]["value"], "rows": chicken_rows},
         "chicken_grades": {"unit": "원/kg", "items": chicken_grade_items, "rows": chicken_grade_rows},
         "pig": {"label": "농가수취 평균", "unit": "원/kg", "latest": pig_rows[0]["value"], "rows": pig_rows},
         "cow": {"items": cow_items, "rows": cow_rows},
-        "source_urls": {"egg": EGG_URL, "chicken": CHICKEN_URL, "chicken_grades": CHICKEN_GRADE_URL, "pig": PIG_URL, "cow": COW_URL},
+        "source_urls": {"egg": EGG_URL, "egg_region": EGG_REGION_URL, "chicken": CHICKEN_URL, "chicken_grades": CHICKEN_GRADE_URL, "pig": PIG_URL, "cow": COW_URL},
     }, ensure_ascii=False, indent=2), encoding="utf-8")
     print("수집 성공:", {"egg": egg_rows[0], "chicken": chicken_rows[0], "pig": pig_rows[0], "cow": cow_items})
     print("육계 대/중/소:", chicken_grade_items)
+    print("계란 수도권:", egg_region_rows[0] if egg_region_rows else "없음")
     if stale:
         print("stale 표시된 항목:", list(stale.keys()))
     return 0

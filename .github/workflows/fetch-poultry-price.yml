@@ -44,6 +44,10 @@ jobs:
           if "chicken_grades" in data:
               g = data["chicken_grades"]["items"]
               assert isinstance(g["large"]["value"], int)
+          # 계란 수도권도 대/중/소와 같은 원칙 — 있으면 좋은 보조 값이라
+          # 없어도(latest가 None이어도) 전체 실행을 막지 않는다.
+          if "egg_region" in data:
+              assert data["egg_region"]["region"] == "수도권"
           PY
       - name: 결과 커밋
         run: |

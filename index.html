@@ -3049,13 +3049,17 @@ function renderPoultryPriceLine(){
   if(st.status==="idle"||st.status==="loading") return `<div class="card" style="margin-bottom:20px;text-align:center;padding:20px;color:#aaa">⏳ 축산 산지시세 조회 중...</div>`;
   if(st.status==="error"||!st.data) return `<div class="card" style="margin-bottom:20px;text-align:center;padding:20px;color:#aaa">⚠️ 축산 산지시세를 불러오지 못했습니다.</div>`;
 
-  // 양계 컨설팅 화면이라 계란·육계만 띄운다. 양돈·소(암송아지·수송아지·
-  // 농가수취가격)는 수집은 계속하되 화면에서만 뺐다 — 필요해지면 아래 배열에
-  // 다시 넣으면 되고, 데이터는 poultry_price/latest.json 에 그대로 있다.
-  const egg=st.data.egg, chicken=st.data.chicken;
+  // 양계 컨설팅 화면이라 계란 위주로 띄운다. 육계 생계유통(대)은 아래
+  // "육계 생계유통 — 규격별(대/중/소)" 패널로 이미 나오므로 여기서는 뺐다.
+  // 대신 계란을 전국·수도권 두 지역으로 나눠 보여준다(둘 다 특란 XL,
+  // 원/10개 — 수도권은 원/30개로만 나오는 페이지라 3으로 나눠 환산했다).
+  // 양돈·소(암송아지·수송아지·농가수취가격)는 수집은 계속하되 화면에서만
+  // 뺐다 — 필요해지면 아래 배열에 다시 넣으면 되고, 데이터는
+  // poultry_price/latest.json 에 그대로 있다.
+  const egg=st.data.egg, eggRegion=st.data.egg_region;
   const cards=[
-    {icon:"🥚",label:"계란 산지가격",sub:"특란 (XL)",value:egg.latest,unit:"원/10개",color:"#D4A012",date:egg.rows[0]?.date},
-    {icon:"🐔",label:"육계 생계유통",sub:"대",value:chicken.latest,unit:"원/kg",color:"#E8530A",date:chicken.rows[0]?.date},
+    {icon:"🥚",label:"계란 산지가격",sub:"전국(XL)",value:egg.latest,unit:"원/10개",color:"#D4A012",date:egg.rows[0]?.date},
+    {icon:"🥚",label:"계란 산지가격",sub:"수도권(XL)",value:eggRegion?.latest,unit:"원/10개",color:"#C77800",date:eggRegion?.rows?.[0]?.date},
   ].map(item=>`
     <div class="livestock-price-card" style="min-width:0;background:#fff;border:1px solid #eee;border-radius:12px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between">
       <div class="livestock-price-card__content" style="display:flex;align-items:center;gap:10px"><span class="livestock-price-card__icon" style="font-size:25px">${item.icon}</span><div class="livestock-price-card__body"><div class="livestock-price-card__label" style="font-size:12px;color:#777;font-weight:700">${item.label} <span style="font-weight:400">${item.sub}</span></div><div class="livestock-price-card__value" style="font-size:22px;color:${item.color};font-weight:800">${Number.isInteger(item.value)?item.value.toLocaleString():"-"}<span style="font-size:11px;color:#888;font-weight:400;margin-left:3px">${item.unit}</span></div></div></div>

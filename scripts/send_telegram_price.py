@@ -35,21 +35,23 @@ def build_message():
     data = json.loads(PRICE_PATH.read_text(encoding="utf-8"))
 
     egg = data.get("egg") or {}
-    chicken = data.get("chicken") or {}
+    egg_region = data.get("egg_region") or {}
     grades = ((data.get("chicken_grades") or {}).get("items")) or {}
     stale = data.get("stale") or {}
 
     lines = ["🐔 오늘의 축산산지시세", ""]
 
+    # 계란은 화면(축산산지시세 탭)과 맞춰 전국·수도권 두 값을 함께 보낸다.
+    # 육계 생계유통(대) 단일 카드는 화면에서 뺐으므로 알림에서도 뺐다 —
+    # 대신 아래 대/중/소 규격별 값이 그 정보를 담는다.
     if egg.get("latest") is not None:
         d = (egg.get("rows") or [{}])[0].get("date", "")
         mark = " (이전값)" if stale.get("egg") else ""
-        lines.append(f"🥚 계란(특란 XL) {won(egg['latest'])}/10개{mark} · {d}")
-
-    if chicken.get("latest") is not None:
-        d = (chicken.get("rows") or [{}])[0].get("date", "")
-        mark = " (이전값)" if stale.get("chicken") else ""
-        lines.append(f"🐔 육계 생계유통(대) {won(chicken['latest'])}/kg{mark} · {d}")
+        lines.append(f"🥚 계란(전국 XL) {won(egg['latest'])}/10개{mark} · {d}")
+    if egg_region.get("latest") is not None:
+        d = (egg_region.get("rows") or [{}])[0].get("date", "")
+        mark = " (이전값)" if stale.get("egg_region") else ""
+        lines.append(f"🥚 계란(수도권 XL) {won(egg_region['latest'])}/10개{mark} · {d}")
 
     # 대/중/소 중 거래가 있었던 규격만 — 화면 표시 방식과 동일
     grade_bits = []
@@ -58,7 +60,7 @@ def build_message():
         if g.get("value") is not None:
             grade_bits.append(f"{g.get('label', key)} {won(g['value'])}({g.get('date', '')})")
     if grade_bits:
-        lines.append("   ㄴ 규격별: " + " / ".join(grade_bits))
+        lines.append("🐔 육계 생계유통 규격별: " + " / ".join(grade_bits))
 
     # 산란계·육계 사육 통계(분기)도 있으면 함께 — 매일 바뀌진 않지만 참고용
     if LAYER_PATH.exists():

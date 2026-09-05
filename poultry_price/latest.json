@@ -1,8 +1,9 @@
 {
-  "updated": "2026-09-06 03:25 KST",
+  "updated": "2026-09-06 03:43 KST",
   "stale": {},
   "egg": {
     "label": "계란 산지가격",
+    "region": "전국",
     "grade": "특란 (XL)",
     "unit": "원/10개",
     "latest": 2144,
@@ -90,6 +91,99 @@
       {
         "date": "2026-08-06",
         "value": 2246
+      }
+    ]
+  },
+  "egg_region": {
+    "label": "계란 산지가격",
+    "region": "수도권",
+    "grade": "특란 (XL)",
+    "unit": "원/10개",
+    "latest": 2167,
+    "rows": [
+      {
+        "date": "2026-09-04",
+        "value": 2167
+      },
+      {
+        "date": "2026-09-03",
+        "value": 2150
+      },
+      {
+        "date": "2026-09-02",
+        "value": 2154
+      },
+      {
+        "date": "2026-09-01",
+        "value": 2165
+      },
+      {
+        "date": "2026-08-31",
+        "value": 2187
+      },
+      {
+        "date": "2026-08-28",
+        "value": 2160
+      },
+      {
+        "date": "2026-08-27",
+        "value": 2228
+      },
+      {
+        "date": "2026-08-26",
+        "value": 2170
+      },
+      {
+        "date": "2026-08-25",
+        "value": 2164
+      },
+      {
+        "date": "2026-08-24",
+        "value": 2166
+      },
+      {
+        "date": "2026-08-21",
+        "value": 2182
+      },
+      {
+        "date": "2026-08-20",
+        "value": 2228
+      },
+      {
+        "date": "2026-08-19",
+        "value": 2250
+      },
+      {
+        "date": "2026-08-18",
+        "value": 2216
+      },
+      {
+        "date": "2026-08-14",
+        "value": 2193
+      },
+      {
+        "date": "2026-08-13",
+        "value": 2168
+      },
+      {
+        "date": "2026-08-12",
+        "value": 2249
+      },
+      {
+        "date": "2026-08-11",
+        "value": 2272
+      },
+      {
+        "date": "2026-08-10",
+        "value": 2302
+      },
+      {
+        "date": "2026-08-07",
+        "value": 2301
+      },
+      {
+        "date": "2026-08-06",
+        "value": 2282
       }
     ]
   },
@@ -520,6 +614,7 @@
   },
   "source_urls": {
     "egg": "https://www.ekapepia.com/v3/price/livestock/egg/distrPrice.do?menuSn=36&boardInfoNo=",
+    "egg_region": "https://www.ekapepia.com/v3/price/livestock/egg/producer/region.do?menuSn=138",
     "chicken": "https://www.ekapepia.com/v3/price/livestock/chicken/distrPrice.do?menuSn=35&boardInfoNo=",
     "chicken_grades": "https://www.ekapepia.com/v3/price/livestock/chicken/livePrice.do?menuSn=131",
     "pig": "https://www.ekapepia.com/v3/price/livestock/pig/producer.do?searchCondition=&searchCondition1=&searchCondition2=&searchCondition3=&searchGubn=&searchStartDate=&searchEndDate=&ctdt=&typeCd=&searchType=",
