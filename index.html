@@ -2114,6 +2114,27 @@ function renderHpaiTab(){
 
   const r = d.data, o = r.overall, fw = r.flyway || {}, kr = r.korea;
 
+  // ── 한 줄 요약 (매번 수집 데이터로 즉석 계산 — AI가 판단하는 게 아니라
+  //    숫자를 그대로 문장으로 옮긴 것) ──
+  const topRegion = (r.regions && r.regions[0]) || null;
+  const summaryParts = [];
+  summaryParts.push(`최근 ${r.window_days}일간 ${o.countries}개국 ${o.total}건 신고`
+    + (o.ongoing ? `, 이 중 <b style="color:#C62828">${o.ongoing}건 진행중</b>` : ""));
+  if(topRegion){
+    summaryParts.push(`${esc(HPAI_REGION_KO[topRegion.name]||topRegion.name)}이 ${topRegion.total}건으로 가장 많음`);
+  }
+  if(kr && kr.total){
+    summaryParts.push(kr.ongoing
+      ? `국내 <b style="color:#C62828">진행중 ${kr.ongoing}건</b> (최근 ${esc(kr.latest||"-")})`
+      : `국내 최근 신고 ${kr.total}건, 현재 진행중인 건 없음`);
+  } else {
+    summaryParts.push(`국내 최근 ${r.window_days}일간 신고 없음`);
+  }
+  if(fw.ongoing){
+    summaryParts.push(`한반도 철새경로(EAAF)에서도 <b style="color:#6A1B9A">${fw.ongoing}건 진행중</b> — 국내 유입 경계 필요`);
+  }
+  const summaryText = summaryParts.join(" · ");
+
   // ── 국내 현황 ──
   const krCard = `
     <div class="card" style="margin-bottom:14px;border-top:4px solid ${kr?HPAI_LEVEL[kr.level].color:"#2E7D32"}">
@@ -2203,7 +2224,13 @@ function renderHpaiTab(){
   <div class="card" style="margin-bottom:14px;border-top:4px solid #C62828">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
       <div class="display" style="font-size:16px">🦠 고병원성 AI(HPAI) 발생예측통계</div>
-      ${r.stale?`<span style="font-size:10px;color:#E65100;background:#FFF3E0;border-radius:9px;padding:2px 8px">수집 실패 · 이전 자료</span>`:""}
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:11px;color:#fff;background:${r.stale?"#E65100":"#455A64"};border-radius:9px;padding:3px 9px;white-space:nowrap">🗓️ 업데이트 ${esc(r.updated||"-")}</span>
+        ${r.stale?`<span style="font-size:10px;color:#E65100;background:#FFF3E0;border-radius:9px;padding:2px 8px">수집 실패 · 이전 자료</span>`:""}
+      </div>
+    </div>
+    <div style="background:#FFF8E1;border:1px solid #F0E0A0;border-radius:8px;padding:9px 12px;margin-bottom:10px;font-size:12.5px;color:#5A4A20;line-height:1.7">
+      💬 ${summaryText}
     </div>
     <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:13px;margin-bottom:8px">
       <span>최근 ${r.window_days}일 <b>${o.countries}</b>개국 <b style="font-size:17px;color:#C62828">${o.total}</b>건</span>
