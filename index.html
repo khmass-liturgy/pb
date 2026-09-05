@@ -3065,9 +3065,53 @@ function renderPoultryPriceLine(){
   return `<div class="card" style="margin-bottom:20px"><div class="livestock-price-heading" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:7px;margin-bottom:10px"><div class="display" style="font-size:15px">📊 축산산지시세 <span style="font-size:10px;color:#aaa;font-weight:400">수집 ${esc(collectedAt)}</span></div><div class="livestock-price-actions" style="display:flex;align-items:center;gap:6px"><a href="https://www.ekapepia.com/v3/web/main.do?userGroup=producer" target="_blank" rel="noopener" style="border:1px solid #1B7A3E;border-radius:8px;background:#fff;padding:6px 10px;font-size:11px;color:#1B7A3E;text-decoration:none">생산자 시세 ↗</a><button id="btn-refresh-poultry" style="border:1px solid #1B7A3E;border-radius:8px;background:#fff;padding:6px 10px;font-size:11px;color:#1B7A3E">🔄 갱신</button></div></div><div class="livestock-price-cards">${cards}</div><div style="font-size:9px;color:#bbb;margin-top:8px;text-align:right">카드 날짜=원본 발표일 · 수집 시각=${esc(collectedAt)} · 출처: 축산물품질평가원 다봄</div></div>`;
 }
 
+// 육계 생계유통을 규격(대/중/소)별로 나눠 보여준다. 위 축산산지시세 카드의
+// "육계 생계유통(대)"과 같은 시세지만 페이지가 다르다 — distrPrice(유통단계별)는
+// 대만 주고, livePrice(생계유통가격)가 대/중/소를 함께 준다. 중·소는 실제
+// 거래가 뜸해 최근 30일 안에 값이 없는 날이 대부분이라, latest_metric처럼
+// "최근 유효값 기준일"을 따로 표시해 오늘 시세로 착각하지 않게 한다.
+function renderChickenGradePanel(){
+  const st = poultryPriceState;
+  if(st.status !== "done" || !st.data || !st.data.chicken_grades) return "";
+  const cg = st.data.chicken_grades;
+  const it = cg.items || {};
+
+  // 최근 30일 안에 거래가 없는 규격(주로 '소')은 아예 표시하지 않는다.
+  // "-"·"거래 없음"을 보여주면 매번 빈 칸이 뜨는 규격 하나 때문에 화면이
+  // 지저분해지고, 실제로 값이 있는 규격만 보는 게 더 유용하다.
+  const box = (key, color) => {
+    const v = it[key];
+    if(!v || v.value == null) return "";
+    return `
+    <div style="flex:1;min-width:100px;background:#fff;border:1px solid ${color}33;border-radius:10px;padding:10px 12px;text-align:center">
+      <div style="font-size:12px;font-weight:800;color:${color}">${esc(v.label)}</div>
+      <div style="font-size:10px;color:#999;margin-top:1px">${esc(v.spec||"")}</div>
+      <div style="font-size:19px;font-weight:800;color:${color};margin-top:6px">
+        ${v.value.toLocaleString()}
+        <span style="font-size:10px;color:#999;font-weight:400">${esc(cg.unit||"")}</span>
+      </div>
+      <div style="font-size:9px;color:#bbb;margin-top:3px">${esc(v.date)} 기준</div>
+    </div>`;
+  };
+
+  const boxes = ["large","medium","small"].map(k => box(k, {large:"#E8530A",medium:"#0288D1",small:"#2E7D32"}[k])).join("");
+  if(!boxes) return "";  // 셋 다 최근 거래가 없으면 패널 자체를 띄우지 않는다
+
+  return `
+  <div class="card" style="margin-bottom:20px">
+    <div class="display" style="font-size:15px;margin-bottom:3px">🐔 육계 생계유통 — 규격별(대/중/소)</div>
+    <div style="font-size:10px;color:#aaa;margin-bottom:10px">규격 기준: 대 1.6kg 이상 · 중 1.4~1.6kg · 소 1.4kg 미만</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">${boxes}</div>
+    <div style="font-size:9px;color:#bbb;margin-top:10px;text-align:right">
+      거래가 없는 규격은 표시하지 않습니다 · 출처: 축산물품질평가원 다봄(생계유통가격)
+    </div>
+  </div>`;
+}
+
 function renderPriceTab(){
   return `
   ${renderPoultryPriceLine()}
+  ${renderChickenGradePanel()}
   ${renderLayerStatsPanel()}
   ${renderEggSupplyPanel()}`;
 }

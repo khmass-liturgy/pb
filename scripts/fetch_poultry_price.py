@@ -20,6 +20,11 @@ from urllib.request import Request, urlopen
 KST = timezone(timedelta(hours=9))
 EGG_URL = "https://www.ekapepia.com/v3/price/livestock/egg/distrPrice.do?menuSn=36&boardInfoNo="
 CHICKEN_URL = "https://www.ekapepia.com/v3/price/livestock/chicken/distrPrice.do?menuSn=35&boardInfoNo="
+# 생계유통가격 페이지 — 유통단계별가격(distrPrice, 위)과 다른 화면이다.
+# distrPrice는 "생계유통(대)" 한 칸만 주지만, 이 페이지는 같은 생계유통 가격을
+# 대/중/소 규격별로 나눠 준다(규격 기준: 대 1.6kg↑ · 중 1.4~1.6kg · 소 1.4kg↓,
+# 페이지 하단에 명시돼 있음). 중·소는 실제 거래가 뜸해 대부분 날짜가 "-"다.
+CHICKEN_GRADE_URL = "https://www.ekapepia.com/v3/price/livestock/chicken/livePrice.do?menuSn=131"
 PIG_URL = "https://www.ekapepia.com/v3/price/livestock/pig/producer.do?searchCondition=&searchCondition1=&searchCondition2=&searchCondition3=&searchGubn=&searchStartDate=&searchEndDate=&ctdt=&typeCd=&searchType="
 COW_URL = "https://www.ekapepia.com/v3/price/livestock/cow/distrPrice.do?menuSn=33&boardInfoNo="
 OUTPUT_PATH = Path("poultry_price/latest.json")
@@ -121,6 +126,26 @@ def parse_chicken(html_text: str) -> list[dict[str, int | str]]:
     return sorted(values.values(), key=lambda item: str(item["date"]), reverse=True)[:30]
 
 
+def parse_chicken_grades(html_text: str) -> list[dict[str, int | str | None]]:
+    """생계유통가격을 대/중/소 규격별로. cow와 같은 패턴 — 거래 없는 규격·날짜는
+    None으로 두고 latest_metric()이 최근 날짜부터 거꾸로 찾아 최신 유효값을 고른다."""
+    parser = RowParser()
+    parser.feed(html_text)
+    values: dict[str, dict[str, int | str | None]] = {}
+    for row in parser.rows:
+        date = normalize_date(row[0]) if row else None
+        if not date or len(row) < 4:
+            continue
+        item = {
+            "date": date,
+            "large": cell_number(row[1]),
+            "medium": cell_number(row[2]),
+            "small": cell_number(row[3]),
+        }
+        values.setdefault(date, item)
+    return sorted(values.values(), key=lambda item: str(item["date"]), reverse=True)[:30]
+
+
 def parse_pig(html_text: str) -> list[dict[str, int | str]]:
     parser = RowParser()
     parser.feed(html_text)
@@ -217,6 +242,7 @@ def load_previous() -> dict | None:
 def main() -> int:
     egg_rows = fetch_page(EGG_URL, parse_egg, "계란")
     chicken_rows = fetch_page(CHICKEN_URL, parse_chicken, "육계")
+    chicken_grade_rows = fetch_page(CHICKEN_GRADE_URL, parse_chicken_grades, "육계(대중소)")
     pig_rows = fetch_page(PIG_URL, parse_pig, "양돈")
     cow_rows = fetch_page(COW_URL, parse_cow, "한우")
 
@@ -243,6 +269,14 @@ def main() -> int:
         stale["cow"] = True
         cow_rows = (prev or {}).get("cow", {}).get("rows") or []
         print("  [한우] 이번 수집 실패 → 이전 데이터 유지")
+    # 대/중/소 규격별 가격은 기존 4종(계란·육계·양돈·한우)과 달리 있으면 좋은
+    # 보조 정보다. 실패해도 전체 실행을 막지 않고, 이전 값이 있으면 그것만
+    # stale로 표시해 채운다 — 이전 값도 없으면 그냥 빈 배열로 둔다(화면에서
+    # "데이터 없음"으로 처리).
+    if not chicken_grade_rows:
+        stale["chicken_grades"] = True
+        chicken_grade_rows = (prev or {}).get("chicken_grades", {}).get("rows") or []
+        print("  [육계-대중소] 이번 수집 실패 → 이전 데이터 유지")
 
     if not egg_rows or not chicken_rows or not pig_rows or not cow_rows:
         print("계란·육계·양돈·한우 시세를 찾지 못했고, 이전 데이터도 없습니다.")
@@ -253,6 +287,11 @@ def main() -> int:
         "male_calf": {"label": "수송아지(6~7개월)", "unit": "천원/마리", **(latest_metric(cow_rows, "male_calf") or {"value": None, "date": ""})},
         "farm_receipt_600kg": {"label": "농가수취가격(600kg)", "unit": "천원/마리", **(latest_metric(cow_rows, "farm_receipt_600kg") or {"value": None, "date": ""})},
     }
+    chicken_grade_items = {
+        "large":  {"label": "대", "spec": "1.6kg 이상",        **(latest_metric(chicken_grade_rows, "large")  or {"value": None, "date": ""})},
+        "medium": {"label": "중", "spec": "1.4~1.6kg",          **(latest_metric(chicken_grade_rows, "medium") or {"value": None, "date": ""})},
+        "small":  {"label": "소", "spec": "1.4kg 미만",          **(latest_metric(chicken_grade_rows, "small")  or {"value": None, "date": ""})},
+    }
     now = datetime.now(KST)
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT_PATH.write_text(json.dumps({
@@ -260,11 +299,13 @@ def main() -> int:
         "stale": stale,  # 이번 수집에 실패해 이전 데이터를 그대로 유지한 항목 표시
         "egg": {"label": "계란 산지가격", "grade": "특란 (XL)", "unit": "원/10개", "latest": egg_rows[0]["value"], "rows": egg_rows},
         "chicken": {"label": "생계유통(대)", "unit": "원/kg", "latest": chicken_rows[0]["value"], "rows": chicken_rows},
+        "chicken_grades": {"unit": "원/kg", "items": chicken_grade_items, "rows": chicken_grade_rows},
         "pig": {"label": "농가수취 평균", "unit": "원/kg", "latest": pig_rows[0]["value"], "rows": pig_rows},
         "cow": {"items": cow_items, "rows": cow_rows},
-        "source_urls": {"egg": EGG_URL, "chicken": CHICKEN_URL, "pig": PIG_URL, "cow": COW_URL},
+        "source_urls": {"egg": EGG_URL, "chicken": CHICKEN_URL, "chicken_grades": CHICKEN_GRADE_URL, "pig": PIG_URL, "cow": COW_URL},
     }, ensure_ascii=False, indent=2), encoding="utf-8")
     print("수집 성공:", {"egg": egg_rows[0], "chicken": chicken_rows[0], "pig": pig_rows[0], "cow": cow_items})
+    print("육계 대/중/소:", chicken_grade_items)
     if stale:
         print("stale 표시된 항목:", list(stale.keys()))
     return 0

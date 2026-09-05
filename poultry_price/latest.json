@@ -1,5 +1,5 @@
 {
-  "updated": "2026-09-05 11:17 KST",
+  "updated": "2026-09-06 03:25 KST",
   "stale": {},
   "egg": {
     "label": "계란 산지가격",
@@ -90,10 +90,6 @@
       {
         "date": "2026-08-06",
         "value": 2246
-      },
-      {
-        "date": "2026-08-05",
-        "value": 2262
       }
     ]
   },
@@ -185,10 +181,157 @@
       {
         "date": "2026-08-06",
         "value": 2000
+      }
+    ]
+  },
+  "chicken_grades": {
+    "unit": "원/kg",
+    "items": {
+      "large": {
+        "label": "대",
+        "spec": "1.6kg 이상",
+        "value": 2000,
+        "date": "2026-09-04"
+      },
+      "medium": {
+        "label": "중",
+        "spec": "1.4~1.6kg",
+        "value": 2200,
+        "date": "2026-08-24"
+      },
+      "small": {
+        "label": "소",
+        "spec": "1.4kg 미만",
+        "value": null,
+        "date": ""
+      }
+    },
+    "rows": [
+      {
+        "date": "2026-09-04",
+        "large": 2000,
+        "medium": null,
+        "small": null
       },
       {
-        "date": "2026-08-05",
-        "value": 2000
+        "date": "2026-09-03",
+        "large": 2100,
+        "medium": null,
+        "small": null
+      },
+      {
+        "date": "2026-09-02",
+        "large": 2200,
+        "medium": null,
+        "small": null
+      },
+      {
+        "date": "2026-09-01",
+        "large": 2200,
+        "medium": null,
+        "small": null
+      },
+      {
+        "date": "2026-08-31",
+        "large": 2100,
+        "medium": null,
+        "small": null
+      },
+      {
+        "date": "2026-08-28",
+        "large": 2100,
+        "medium": null,
+        "small": null
+      },
+      {
+        "date": "2026-08-27",
+        "large": 2100,
+        "medium": null,
+        "small": null
+      },
+      {
+        "date": "2026-08-26",
+        "large": 2100,
+        "medium": null,
+        "small": null
+      },
+      {
+        "date": "2026-08-25",
+        "large": 2200,
+        "medium": null,
+        "small": null
+      },
+      {
+        "date": "2026-08-24",
+        "large": 2200,
+        "medium": 2200,
+        "small": null
+      },
+      {
+        "date": "2026-08-21",
+        "large": 2334,
+        "medium": null,
+        "small": null
+      },
+      {
+        "date": "2026-08-20",
+        "large": 2400,
+        "medium": null,
+        "small": null
+      },
+      {
+        "date": "2026-08-19",
+        "large": 2400,
+        "medium": 2400,
+        "small": null
+      },
+      {
+        "date": "2026-08-18",
+        "large": 2400,
+        "medium": null,
+        "small": null
+      },
+      {
+        "date": "2026-08-14",
+        "large": 2400,
+        "medium": null,
+        "small": null
+      },
+      {
+        "date": "2026-08-13",
+        "large": 2400,
+        "medium": null,
+        "small": null
+      },
+      {
+        "date": "2026-08-12",
+        "large": 2300,
+        "medium": null,
+        "small": null
+      },
+      {
+        "date": "2026-08-11",
+        "large": 2160,
+        "medium": null,
+        "small": null
+      },
+      {
+        "date": "2026-08-10",
+        "large": 2100,
+        "medium": null,
+        "small": null
+      },
+      {
+        "date": "2026-08-07",
+        "large": 2000,
+        "medium": null,
+        "small": null
+      },
+      {
+        "date": "2026-08-06",
+        "large": 2000,
+        "medium": null,
+        "small": null
       }
     ]
   },
@@ -372,18 +515,13 @@
         "female_calf": 3690,
         "male_calf": 4923,
         "farm_receipt_600kg": 7893
-      },
-      {
-        "date": "2026-08-05",
-        "female_calf": 3695,
-        "male_calf": 4922,
-        "farm_receipt_600kg": 7906
       }
     ]
   },
   "source_urls": {
     "egg": "https://www.ekapepia.com/v3/price/livestock/egg/distrPrice.do?menuSn=36&boardInfoNo=",
     "chicken": "https://www.ekapepia.com/v3/price/livestock/chicken/distrPrice.do?menuSn=35&boardInfoNo=",
+    "chicken_grades": "https://www.ekapepia.com/v3/price/livestock/chicken/livePrice.do?menuSn=131",
     "pig": "https://www.ekapepia.com/v3/price/livestock/pig/producer.do?searchCondition=&searchCondition1=&searchCondition2=&searchCondition3=&searchGubn=&searchStartDate=&searchEndDate=&ctdt=&typeCd=&searchType=",
     "cow": "https://www.ekapepia.com/v3/price/livestock/cow/distrPrice.do?menuSn=33&boardInfoNo="
   }

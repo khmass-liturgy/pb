@@ -38,6 +38,12 @@ jobs:
           assert data["cow"]["items"]["farm_receipt_600kg"]["label"] == "농가수취가격(600kg)"
           for key in ("female_calf", "male_calf", "farm_receipt_600kg"):
               assert isinstance(data["cow"]["items"][key]["value"], int)
+          # 육계 대/중/소 규격별 — '대'는 기존 chicken.latest와 사실상 같은
+          # 시세라 항상 값이 있어야 한다. 중·소는 거래가 뜸해 없을 수 있으므로
+          # 필수로 강제하지 않는다(화면도 값이 있는 규격만 보여준다).
+          if "chicken_grades" in data:
+              g = data["chicken_grades"]["items"]
+              assert isinstance(g["large"]["value"], int)
           PY
       - name: 결과 커밋
         run: |
