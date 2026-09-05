@@ -36,6 +36,7 @@ API 메모
 import json
 import re
 import sys
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -98,14 +99,30 @@ def get_json(session, url):
 
 
 def fetch_events(session):
-    """최신순으로 PAGES 페이지를 받아 HPAI 이벤트만 추린다."""
+    """최신순으로 PAGES 페이지를 받아 HPAI 이벤트만 추린다.
+
+    WAHIS는 페이지 하나가 가끔 60초를 넘겨 응답 없이 끊긴다(실제로 3페이지째에서
+    ReadTimeout이 나 전체 수집이 실패한 적이 있다). 페이지 하나가 느린 것이지
+    서버가 완전히 죽은 게 아니므로, 그 페이지만 짧게 재시도하고 그래도 안 되면
+    포기한다 — 타임아웃을 무작정 늘리는 것보다 실행 시간을 예측 가능하게 유지한다.
+    """
     events = []
     for page in range(1, PAGES + 1):
         body = {"pageNumber": page, "pageSize": PAGE_SIZE, "searchText": "",
                 "sortColName": "", "sortColOrder": "DESC", "reportFilters": {}}
-        r = session.post(EVENT_URL, json=body, timeout=60)
-        r.raise_for_status()
-        rows = r.json().get("list", [])
+        rows = None
+        for attempt in range(3):
+            try:
+                r = session.post(EVENT_URL, json=body, timeout=90)
+                r.raise_for_status()
+                rows = r.json().get("list", [])
+                break
+            except requests.exceptions.RequestException as e:
+                print("  page %d 시도 %d/3 실패: %s" % (page, attempt + 1, type(e).__name__))
+                if attempt < 2:
+                    time.sleep(5 * (attempt + 1))
+        if rows is None:
+            raise RuntimeError("page %d 요청이 3회 모두 실패함 (마지막 페이지까지 못 받음)" % page)
         if not rows:
             break
         events += [x for x in rows if is_hpai(x.get("disease"))]
