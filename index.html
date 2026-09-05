@@ -2313,7 +2313,7 @@ function renderHeader(){
       <div style="text-align:right"><div style="font-size:13px;font-weight:700;color:#F9C74F">${fmtDate(now)}</div></div>
     </div>
     <div class="tabs">
-      <button class="tab ${state.tab==="price"||state.tab==="pig"||state.tab==="livestock"?"active":""}" data-tab="price">📊 축산산지시세</button>
+      <button class="tab ${state.tab==="price"||state.tab==="pig"||state.tab==="livestock"?"active":""}" data-tab="price">📊 계란 산지시세</button>
       <button class="tab ${state.tab==="weather"?"active":""}" data-tab="weather">🌤️ 날씨</button>
       <button class="tab ${state.tab==="vent"?"active":""}" data-tab="vent">🌬️ 환기가이드</button>
       <button class="tab ${state.tab==="consult"?"active":""}" data-tab="consult">🐔🥚 육계/산란계 컨설팅</button>
@@ -3075,7 +3075,7 @@ function renderPoultryPriceLine(){
       <div class="livestock-price-card__date" style="font-size:10px;color:#aaa;text-align:right">${item.date||""}<br>발표전일 기준</div>
     </div>`).join("");
   const collectedAt=st.data.updated||"";
-  return `<div class="card" style="margin-bottom:20px"><div class="livestock-price-heading" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:7px;margin-bottom:10px"><div class="display" style="font-size:15px">📊 축산산지시세 <span style="font-size:10px;color:#aaa;font-weight:400">수집 ${esc(collectedAt)}</span></div><div class="livestock-price-actions" style="display:flex;align-items:center;gap:6px"><a href="https://www.ekapepia.com/v3/web/main.do?userGroup=producer" target="_blank" rel="noopener" style="border:1px solid #1B7A3E;border-radius:8px;background:#fff;padding:6px 10px;font-size:11px;color:#1B7A3E;text-decoration:none">생산자 시세 ↗</a><button id="btn-refresh-poultry" style="border:1px solid #1B7A3E;border-radius:8px;background:#fff;padding:6px 10px;font-size:11px;color:#1B7A3E">🔄 갱신</button></div></div><div class="livestock-price-cards">${cards}</div><div style="font-size:9px;color:#bbb;margin-top:8px;text-align:right">카드 날짜=원본 발표일 · 수집 시각=${esc(collectedAt)} · 출처: 축산물품질평가원 다봄</div></div>`;
+  return `<div class="card" style="margin-bottom:20px"><div class="livestock-price-heading" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:7px;margin-bottom:10px"><div class="display" style="font-size:15px">📊 계란 산지시세 <span style="font-size:10px;color:#aaa;font-weight:400">수집 ${esc(collectedAt)}</span></div><div class="livestock-price-actions" style="display:flex;align-items:center;gap:6px"><a href="https://www.ekapepia.com/v3/web/main.do?userGroup=producer" target="_blank" rel="noopener" style="border:1px solid #1B7A3E;border-radius:8px;background:#fff;padding:6px 10px;font-size:11px;color:#1B7A3E;text-decoration:none">생산자 시세 ↗</a><button id="btn-refresh-poultry" style="border:1px solid #1B7A3E;border-radius:8px;background:#fff;padding:6px 10px;font-size:11px;color:#1B7A3E">🔄 갱신</button></div></div><div class="livestock-price-cards">${cards}</div><div style="font-size:9px;color:#bbb;margin-top:8px;text-align:right">카드 날짜=원본 발표일 · 수집 시각=${esc(collectedAt)} · 출처: 축산물품질평가원 다봄</div></div>`;
 }
 
 // 육계 생계유통을 규격(대/중/소)별로 나눠 보여준다. 위 축산산지시세 카드의
