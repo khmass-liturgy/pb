@@ -1162,16 +1162,16 @@ const WX_DESC = {
   95:"뇌우",96:"뇌우(우박)",99:"강한 뇌우(우박)",
 };
 
-// 풍속(km/h, 지상 10m 기준) 구간 — 축사 현장 기준으로 나눈다.
-// 기상청 특보 기준(주의보 시속 41km 이상, 강풍경보 54km 이상)을 그대로 쓰지 않고
+// 풍속(m/s, 지상 10m 기준) 구간 — 축사 현장 기준으로 나눈다.
+// 기상청 특보 기준(강풍주의보 초속 11m 이상, 강풍경보 14m 이상)을 그대로 쓰지 않고
 // 그보다 낮은 값에서부터 미리 경고하는 이유: 무창계사 커튼·차광막, 유창계사
 // 개폐형 커튼은 특보 발효 전 풍속에서도 펄럭임으로 인한 파손이 시작된다.
-function windLevel(kmh){
-  if(kmh==null) return null;
-  if(kmh<15) return {label:"약",     color:"#2E7D32", bg:"#E8F5E9", note:"환기·방제 작업에 지장 없음"};
-  if(kmh<30) return {label:"보통",   color:"#F57F17", bg:"#FFFDE7", note:"유창계사 커튼 고정 상태 점검"};
-  if(kmh<50) return {label:"강함",   color:"#E65100", bg:"#FFF3E0", note:"커튼·차광막 파손 위험 — 방제·소독 작업은 미루는 것이 안전"};
-  return       {label:"매우강함", color:"#B71C1C", bg:"#FFEBEE", note:"강풍특보 수준 — 축사 개폐부 결속, 정전 대비 필요"};
+function windLevel(ms){
+  if(ms==null) return null;
+  if(ms<4)  return {label:"약",     color:"#2E7D32", bg:"#E8F5E9", note:"환기·방제 작업에 지장 없음"};
+  if(ms<8)  return {label:"보통",   color:"#F57F17", bg:"#FFFDE7", note:"유창계사 커튼 고정 상태 점검"};
+  if(ms<14) return {label:"강함",   color:"#E65100", bg:"#FFF3E0", note:"커튼·차광막 파손 위험 — 방제·소독 작업은 미루는 것이 안전"};
+  return      {label:"매우강함", color:"#B71C1C", bg:"#FFEBEE", note:"강풍특보 수준 — 축사 개폐부 결속, 정전 대비 필요"};
 }
 
 
@@ -1472,7 +1472,7 @@ async function fetchWeather(lat, lng, name){
     const lyStart = new Date(today); lyStart.setFullYear(today.getFullYear()-1);
     const lyEnd = new Date(lyStart); lyEnd.setDate(lyStart.getDate()+6);
     const dateFmt = (d)=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-    const fcstUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max,relative_humidity_2m_mean&hourly=temperature_2m,weathercode,precipitation,windspeed_10m,relativehumidity_2m&timezone=Asia%2FSeoul&forecast_days=7`;
+    const fcstUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max,relative_humidity_2m_mean&hourly=temperature_2m,weathercode,precipitation,windspeed_10m,relativehumidity_2m&timezone=Asia%2FSeoul&forecast_days=7&windspeed_unit=ms`;
     const histUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=${dateFmt(lyStart)}&end_date=${dateFmt(lyEnd)}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,relative_humidity_2m_mean&timezone=Asia%2FSeoul`;
     const [fcstResp, histResp] = await Promise.all([
       fetchWithTimeout(fcstUrl, 10000),
@@ -3419,6 +3419,70 @@ function openTHIInfoModal(){
   modal.onclick = (e)=>{ if(e.target===modal) close(); };
 }
 
+function openColdInfoModal(){
+  const old = document.getElementById("cold-info-modal");
+  if(old) old.remove();
+
+  const ZONES = [
+    {range:"0°C 초과",     label:"약",     color:"#2E7D32", bg:"#E8F5E9", desc:"평소 사양관리로 대응 가능"},
+    {range:"0 ~ -10°C",   label:"경미",   color:"#F57F17", bg:"#FFFDE7", desc:"대사열 보충을 위해 사료섭취 증가 경향"},
+    {range:"-10 ~ -20°C", label:"중등도", color:"#E65100", bg:"#FFF3E0", desc:"어린 개체·벼슬 동상 위험, 틈새바람 차단 필요"},
+    {range:"-20°C 미만",   label:"심각",   color:"#B71C1C", bg:"#FFEBEE", desc:"보온·최소환기 균형 재점검, 급수라인 동결 확인"},
+  ];
+
+  const modal = document.createElement("div");
+  modal.id = "cold-info-modal";
+  modal.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px";
+  modal.innerHTML = `
+  <div style="background:#fff;border-radius:16px;width:100%;max-width:520px;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
+    <div style="padding:16px 20px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#fff;z-index:1">
+      <div>
+        <div style="font-size:16px;font-weight:700;color:#1a2744">🥶 겨울철 체감온도(윈드칠) 기준</div>
+        <div style="font-size:11px;color:#aaa;margin-top:2px">Wind Chill Temperature</div>
+      </div>
+      <button id="cold-modal-close" style="border:none;background:none;font-size:20px;color:#aaa;cursor:pointer;padding:4px">✕</button>
+    </div>
+
+    <div style="padding:16px 20px">
+      <div style="background:#f7f7f7;border-radius:10px;padding:10px 12px;margin-bottom:16px">
+        <div style="font-size:11px;font-weight:700;color:#555;margin-bottom:4px">📐 계산식 (미국 NWS · 캐나다 기상청 공동 제정, 2001)</div>
+        <div style="font-family:monospace;font-size:11px;color:#333;line-height:1.6">
+          WCT = 13.12 + 0.6215T − 11.37×V^0.16 + 0.3965×T×V^0.16
+        </div>
+        <div style="font-size:10px;color:#888;margin-top:4px">T: 기온(°C) · V: 지상 10m 풍속(km/h)</div>
+        <div style="font-size:10px;color:#888;margin-top:2px">기온 10°C 이하·풍속 4.8km/h 초과에서만 유효하도록 정의된 공식이라, 그 밖에서는 계산하지 않습니다.</div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:8px">단계별 위험도</div>
+      <div style="margin-bottom:12px">
+        ${ZONES.map(z=>`
+        <div style="display:flex;align-items:center;gap:10px;background:${z.bg};border-radius:8px;padding:8px 10px;margin-bottom:5px">
+          <div style="min-width:84px;font-size:12px;font-weight:800;color:${z.color};text-align:center">${z.range}</div>
+          <div style="min-width:44px;font-size:12px;font-weight:700;color:${z.color}">${z.label}</div>
+          <div style="flex:1;font-size:11px;color:#555;line-height:1.5">${z.desc}</div>
+        </div>`).join("")}
+      </div>
+
+      <div style="background:#FFF8E1;border-radius:8px;padding:10px 12px;font-size:10px;color:#666;line-height:1.7">
+        <b style="color:#333">💡 실무 참고</b><br>
+        · THI(온습도지수)는 더위 전용 지표라 겨울에는 항상 "정상"으로만 나옵니다 — 추위는 이 지표가 대신 봅니다<br>
+        · 같은 기온이라도 바람이 강할수록 체감온도가 더 떨어져 대사열 손실이 커집니다<br>
+        · 국내 국립축산과학원 가축사육기상정보시스템(축사로)은 여름 폭염지수만 제공하고 겨울 지수는 없어, 국제 표준 공식을 축산 현장 기준으로 재구성했습니다<br>
+        · 심야~새벽(22~06시) 중 체감온도가 가장 낮은 시간대를 기준으로 산출합니다
+      </div>
+
+      <div style="font-size:9px;color:#aaa;margin-top:10px;text-align:right">
+        출처: US National Weather Service · Environment Canada (2001 Joint Wind Chill Formula)
+      </div>
+    </div>
+  </div>`;
+
+  document.body.appendChild(modal);
+  const close = ()=>modal.remove();
+  document.getElementById("cold-modal-close").onclick = close;
+  modal.onclick = (e)=>{ if(e.target===modal) close(); };
+}
+
 // ── 축산 날씨 스트레스 지표 패널 ────────────────────────────────────────────
 // 육계 일령별 목표 사육온도 (Aviagen 기준)
 const BROILER_TARGET_TEMP = [
@@ -3907,6 +3971,35 @@ function renderLivestockWeatherPanel(fc, hourlyByDate){
     return {label:"위험", color:"#880000", bg:"#FCE4EC", icon:"🚨"};
   };
 
+  // ── 겨울철 한랭 스트레스: 체감온도(윈드칠) ────────────────────────────────
+  // THI는 더위 전용 지표라 겨울에는 항상 "정상"으로만 나온다(가금·돼지·소
+  // 모두 THI<68이면 정상 판정이라, 영하 10도여도 계산상 문제없다고 뜬다).
+  // 국립축산과학원 가축사육기상정보시스템(축사로)도 확인해 보니 폭염 지수만
+  // 제공하고 겨울철 지수는 없다. 그래서 국제 표준인 윈드칠(체감온도) 공식을
+  // 쓴다 — 미국 NWS·캐나다 기상청이 2001년 공동 제정한 공식으로, 기온
+  // 10°C 이하·풍속 4.8km/h 초과에서만 유효하도록 정의돼 있다(그 밖에서는
+  // 공식 자체가 신뢰성이 없다고 명시돼 있어 적용하지 않는다).
+  //   WCT(°C) = 13.12 + 0.6215T - 11.37×V^0.16 + 0.3965×T×V^0.16
+  //   (T: 기온 °C, V: 풍속 km/h, 지상 10m 기준)
+  // 등급 구간은 윈드칠 자체의 공식 위험 구간(Environment Canada 동상 위험
+  // 구간표: 0~-9 낮음 / -10~-27 보통 / -28~-39 높음 / -40 이하 매우높음)을
+  // 참고해 축산 현장 언어로 다시 붙인 것이다 — 축종별로 정량화된 공인
+  // 겨울 스트레스 등급표는 확인되지 않아, 참고용 실무 기준으로 재구성했다는
+  // 점을 밝혀 둔다.
+  const calcWindChill = (tempC, windMs) => {
+    if(tempC==null || windMs==null || tempC > 10) return null;
+    const vKmh = Math.max(windMs * 3.6, 4.8); // 4.8km/h 이하는 공식 적용 대상 밖 — 최솟값으로 고정
+    const v016 = Math.pow(vKmh, 0.16);
+    return Math.round(13.12 + 0.6215*tempC - 11.37*v016 + 0.3965*tempC*v016);
+  };
+  const windChillLevel = (wct) => {
+    if(wct == null) return null;
+    if(wct > 0)   return {label:"약",     color:"#2E7D32", bg:"#E8F5E9", icon:"✅", note:"평소 사양관리로 대응 가능"};
+    if(wct > -10) return {label:"경미",   color:"#F57F17", bg:"#FFFDE7", icon:"⚠️", note:"사료섭취 증가 경향 — 급이량 여유 있게"};
+    if(wct > -20) return {label:"중등도", color:"#E65100", bg:"#FFF3E0", icon:"🔶", note:"어린 개체·벼슬 동상 위험 — 틈새바람 차단"};
+    return              {label:"심각",   color:"#B71C1C", bg:"#FFEBEE", icon:"🔴", note:"보온·최소환기 균형 재점검, 급수라인 동결 확인"};
+  };
+
   // 일교차 위험도 (호흡기·면역 저하 기준: 10°C 이상시 경보)
   const dtLevel = (dt) => {
     if(dt == null) return null;
@@ -3971,6 +4064,26 @@ function renderLivestockWeatherPanel(fc, hourlyByDate){
     nightTHI = calcTHI(worst.temp, worst.humidity);
   }
 
+  // 겨울철 한랭 스트레스 — 심야~새벽(22~06시)이 가장 춥고 바람도 잘 안 죽어
+  // 체감온도가 가장 낮은 시간대라, 그 구간에서 최악값을 찾는다. 시간대별
+  // 자료가 없으면 오늘의 최저기온 + 일 최대풍속으로 대체한다(과대평가 방향
+  // 이라 안전 쪽으로 치우친 근사치).
+  const coldHours = todayHourly.filter(h => h.hour <= 6 || h.hour >= 22);
+  let coldTemp = null, coldWind = null;
+  if(coldHours.length > 0){
+    const worst = coldHours.reduce((a,b)=>
+      (calcWindChill(b.temp,b.wind) ?? 999) < (calcWindChill(a.temp,a.wind) ?? 999) ? b : a
+    );
+    coldTemp = worst.temp; coldWind = worst.wind;
+  } else if(today){
+    coldTemp = today.tMin; coldWind = today.wind;
+  }
+  // 기온이 10°C 이하로 떨어질 때만 표시한다 — 윈드칠 공식 자체가 그 이상
+  // 에서는 유효하지 않다고 정의돼 있어, 그 위에서는 억지로 계산하지 않는다.
+  const showColdCard = coldTemp != null && coldTemp <= 10;
+  const coldWCT = showColdCard ? calcWindChill(coldTemp, coldWind) : null;
+  const coldLv = showColdCard ? windChillLevel(coldWCT) : null;
+
   // ── 렌더링 ───────────────────────────────────────────────────────────────
   const fmtDay2 = (dateStr) => {
     const d=new Date(dateStr), dn=["일","월","화","수","목","금","토"];
@@ -4009,8 +4122,8 @@ function renderLivestockWeatherPanel(fc, hourlyByDate){
   <div class="card" style="margin-top:16px;margin-bottom:16px">
     <div class="display" style="font-size:16px;margin-bottom:14px">🌡️ 축산 날씨 스트레스 지표</div>
 
-    <!-- 핵심 지표 3종 -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
+    <!-- 핵심 지표 (평소 3종, 기온 10°C 이하로 떨어지면 겨울철 한랭 스트레스 1종 추가) -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px">
 
       <!-- THI 오늘 -->
       <div style="background:${thiLv ? thiLv.bg : "#f5f5f5"};border-radius:12px;padding:12px;text-align:center;position:relative">
@@ -4040,6 +4153,18 @@ function renderLivestockWeatherPanel(fc, hourlyByDate){
         </div>
         <div style="font-size:10px;color:#aaa;margin-top:8px">야간 폐사 위험 구간<br>(가금 새벽 2~5시 취약)</div>
       </div>
+
+      ${showColdCard ? `
+      <!-- 겨울철 한랭 스트레스 (체감온도/윈드칠) -->
+      <div style="background:${coldLv.bg};border-radius:12px;padding:12px;text-align:center;position:relative">
+        <button id="btn-cold-info" title="체감온도 기준 보기"
+          style="position:absolute;top:6px;right:6px;border:none;background:rgba(255,255,255,0.7);border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;color:#555;padding:0;line-height:1">ⓘ</button>
+        <div style="font-size:11px;color:#888;font-weight:600;margin-bottom:4px">겨울철 체감온도(윈드칠)</div>
+        <div style="font-size:29px;font-weight:800;color:${coldLv.color}">${coldWCT}°</div>
+        <div style="font-size:12px;font-weight:700;color:${coldLv.color}">${coldLv.icon} ${coldLv.label}</div>
+        <div style="font-size:10px;color:#aaa;margin-top:4px">실제 ${Math.round(coldTemp)}° · 풍속 ${coldWind!=null?coldWind.toFixed(1)+"m/s":"-"} 반영</div>
+        <div style="font-size:10px;color:#666;margin-top:6px;line-height:1.5">${coldLv.note}</div>
+      </div>` : ""}
     </div>
 
     <!-- 7일 THI 추이 -->
@@ -5440,7 +5565,7 @@ function renderWeatherBody(){
         <div style="font-size:11px;color:#1565C0">${tStr(d.tMin)}</div>
         ${d.hum!=null?`<div style="font-size:9px;color:#0288D1;margin-top:2px">💦 습도 ${Math.round(d.hum)}%</div>`:""}
         ${d.rain>0?`<div style="font-size:9px;color:#1565C0;margin-top:2px">💧${d.rain.toFixed(1)}mm</div>`:""}
-        ${d.wind!=null?`<div style="font-size:9px;color:${windLevel(d.wind).color};margin-top:2px">💨 ${Math.round(d.wind)}km/h${d.wind>=30?" "+windLevel(d.wind).label:""}</div>`:""}
+        ${d.wind!=null?`<div style="font-size:9px;color:${windLevel(d.wind).color};margin-top:2px">💨 ${d.wind.toFixed(1)}m/s${d.wind>=8?" "+windLevel(d.wind).label:""}</div>`:""}
       </div>
       <!-- 작년 -->
       <div style="background:#fafafa;padding:12px 8px;text-align:center">
@@ -5483,7 +5608,7 @@ function renderWeatherBody(){
         <div style="font-size:14px;font-weight:800;color:${isNight?"#ff8a80":"#D32F2F"}">${h.temp!=null?Math.round(h.temp)+"°":"-"}</div>
         <div style="font-size:9px;color:${isNight?"#80cbc4":"#0288D1"};margin-top:3px">💦${h.humidity!=null?Math.round(h.humidity)+"%":"-"}</div>
         ${h.rain>0?`<div style="font-size:9px;color:${isNight?"#80cbc4":"#1565C0"}">💧${h.rain.toFixed(1)}mm</div>`:""}
-        <div style="font-size:9px;color:${h.wind!=null?windLevel(h.wind).color:sub};margin-top:2px">💨${h.wind!=null?Math.round(h.wind):"?"}km/h</div>
+        <div style="font-size:9px;color:${h.wind!=null?windLevel(h.wind).color:sub};margin-top:2px">💨${h.wind!=null?h.wind.toFixed(1):"?"}m/s</div>
       </div>`;
     }).join("");
 
@@ -5494,12 +5619,13 @@ function renderWeatherBody(){
         <span style="font-size:10px;color:#aaa">3시간 간격 · 날짜 카드를 눌러 변경</span>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">${slots}</div>
-      <div style="margin-top:8px;font-size:10px;color:#aaa">💦 습도 · 💧 강수량 · 💨 풍속(km/h)</div>
+      <div style="margin-top:8px;font-size:10px;color:#aaa">💦 습도 · 💧 강수량 · 💨 풍속(m/s)</div>
     </div>`;
   }
 
   const todayWind = fc[0]?.wind;
   const twl = windLevel(todayWind);
+  const todayHigh = fc[0]?.tMax, todayLow = fc[0]?.tMin, todayHumToday = fc[0]?.hum;
 
   return `
   <div style="margin-bottom:16px">
@@ -5516,17 +5642,30 @@ function renderWeatherBody(){
   </div>
 
   ${todayWind!=null ? `
-  <div class="card" style="margin-bottom:12px;border-left:5px solid ${twl.color};padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-    <div style="display:flex;align-items:center;gap:10px">
-      <span style="font-size:24px">💨</span>
-      <div>
-        <div style="font-size:11px;color:#888">오늘 최대풍속 (지상 10m 기준)</div>
-        <div style="font-size:18px;font-weight:800;color:${twl.color}">${Math.round(todayWind)}km/h
-          <span style="font-size:12px;background:${twl.bg};color:${twl.color};border-radius:6px;padding:2px 8px;margin-left:4px">${twl.label}</span>
+  <div class="card" style="margin-bottom:12px;border-left:5px solid ${twl.color};padding:12px 16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px">
+      <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap">
+        <div>
+          <div style="font-size:11px;color:#888">오늘 최고/최저</div>
+          <div style="font-size:16px;font-weight:800;margin-top:2px">
+            <span style="color:#D32F2F">${todayHigh!=null?Math.round(todayHigh)+"°":"-"}</span>
+            <span style="color:#ccc;font-weight:400">/</span>
+            <span style="color:#1565C0">${todayLow!=null?Math.round(todayLow)+"°":"-"}</span>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:#888">습도</div>
+          <div style="font-size:16px;font-weight:800;color:#0288D1;margin-top:2px">${todayHumToday!=null?Math.round(todayHumToday)+"%":"-"}</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:#888">최대풍속 (지상 10m)</div>
+          <div style="font-size:16px;font-weight:800;color:${twl.color};margin-top:2px">💨 ${todayWind.toFixed(1)}m/s
+            <span style="font-size:11px;background:${twl.bg};color:${twl.color};border-radius:6px;padding:1px 7px;margin-left:2px">${twl.label}</span>
+          </div>
         </div>
       </div>
+      <div style="font-size:11px;color:#555;max-width:240px;text-align:right">${twl.note}</div>
     </div>
-    <div style="font-size:11px;color:#555;max-width:260px;text-align:right">${twl.note}</div>
   </div>` : ""}
 
   <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:12px">
@@ -5534,8 +5673,8 @@ function renderWeatherBody(){
   </div>
   <div style="font-size:10px;color:#aaa;text-align:right">
     기온 차이: <span style="color:#D32F2F">▲ 올해가 높음</span> · <span style="color:#1565C0">▼ 올해가 낮음</span> ·
-    풍속: <span style="color:#2E7D32">약(15미만)</span> · <span style="color:#F57F17">보통</span> ·
-    <span style="color:#E65100">강함(30↑)</span> · <span style="color:#B71C1C">매우강함(50↑)</span> ·
+    풍속: <span style="color:#2E7D32">약(4미만)</span> · <span style="color:#F57F17">보통</span> ·
+    <span style="color:#E65100">강함(8↑)</span> · <span style="color:#B71C1C">매우강함(14↑)</span> · 단위 m/s ·
     날짜 카드를 누르면 시간대별 날씨
   </div>
 
@@ -6110,6 +6249,8 @@ function attachEvents(){
   // THI 기준표 모달
   const thiInfoBtn = document.getElementById("btn-thi-info");
   if(thiInfoBtn) thiInfoBtn.onclick = (e)=>{ e.stopPropagation(); openTHIInfoModal(); };
+  const coldInfoBtn = document.getElementById("btn-cold-info");
+  if(coldInfoBtn) coldInfoBtn.onclick = (e)=>{ e.stopPropagation(); openColdInfoModal(); };
 
   // 날씨 요일 카드 클릭 → 시간대별 상세
   document.querySelectorAll(".wx-day-card").forEach(b=>b.onclick=()=>{
