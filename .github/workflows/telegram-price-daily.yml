@@ -1,0 +1,28 @@
+name: 축산시세 텔레그램 알림
+
+# 매일 아침 9시(KST)에 그날 수집돼 있는 축산산지시세(계란·육계)를 텔레그램으로
+# 보낸다. 시세 자체를 새로 수집하지 않는다 — fetch-poultry-price.yml이 매일
+# 09:00 KST에 먼저 갱신하므로, 이 알림은 그 직후(09:05)에 결과만 읽어 보낸다.
+on:
+  schedule:
+    # 00:05 UTC = 매일 한국시간 09:05 (시세 수집이 09:00에 끝난 뒤 5분 여유)
+    - cron: "5 0 * * *"
+  workflow_dispatch:
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Python 설정
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: 텔레그램 전송
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python scripts/send_telegram_price.py
