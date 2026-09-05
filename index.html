@@ -509,7 +509,16 @@ function saveCustomCoins(){ try { localStorage.setItem("custom_coins", JSON.stri
 // ═══════════════════════════════════════════════════════════════════════════
 // 상태 + 사용자 추가 사이트(localStorage)
 // ═══════════════════════════════════════════════════════════════════════════
+// 탭 바에 있는 탭 이름. 주소 해시(#weather)와 postMessage로 받은 값이 진짜 탭인지
+// 확인하는 데 쓴다 — 엉뚱한 값이 들어와 어느 탭도 선택되지 않은 화면이 되지 않도록.
+const TAB_IDS = ["price","weather","vent","consult","disease","hpai","briefing"];
+
 let state = { tab:"price", customSites:loadCustom(), customStocks:loadCustomList("custom_stocks"), customCoins:loadCustomList("custom_coins") };
+
+// 주소 끝에 #weather 처럼 탭 이름이 붙어 있으면 그 탭으로 연다.
+// 이 페이지를 iframe으로 띄우는 쪽(farm-pro의 가금컨설팅 메뉴)이 탭을 지정하는 통로이기도 하다.
+const initialHashTab = location.hash.replace(/^#/, "");
+if(TAB_IDS.includes(initialHashTab)) state.tab = initialHashTab;
 
 // ── 다봄 실시간 시세 (GitHub Actions → prices/prices.json) ────────────────
 const PRICES_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/prices/prices.json";
@@ -6200,9 +6209,12 @@ function attachDiseaseEvents(){
   };
 }
 
-function attachEvents(){
-  document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
-    state.tab=b.dataset.tab; render();
+// 탭 전환은 세 경로가 함께 쓴다: 탭 버튼 클릭 / 주소 해시(#weather) / 부모 창의 postMessage.
+// 탭마다 그때 처음 받아오는 데이터가 달라서(지연 로딩), 어느 경로로 들어와도 같은 준비가
+// 돌도록 한 함수에 모아둔다.
+function switchTab(tab){
+    if(!TAB_IDS.includes(tab)) return;
+    state.tab=tab; render();
     if(state.tab==="disease"){
       if(diseaseState.status==="idle") fetchDiseases();
       if(pickState.status==="idle") fetchMonthlyPicks();
@@ -6227,7 +6239,14 @@ function attachEvents(){
     // 경제동향 섹션을 뺀 뒤로 브리핑 탭은 주가·코인을 쓰지 않는다
     if(state.tab==="briefing" && noticesState.status==="idle") fetchNotices();
     if(state.tab==="price" && poultryPriceState.status==="idle") fetchPoultryPrices();
-  });
+    // 주소에도 남겨 새로고침하거나 링크를 공유해도 같은 탭으로 열린다.
+    // (pushState가 아니라 replaceState인 것은 탭을 눌러 다닐 때마다 뒤로가기 기록이
+    //  쌓이면 이 페이지를 벗어나기 어려워지기 때문이다)
+    try { history.replaceState(null, "", "#"+tab); } catch(e){}
+}
+
+function attachEvents(){
+  document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
 
   // 공지 갱신 버튼
   const noticesRefreshBtn=document.getElementById("btn-notices-refresh");
@@ -6571,6 +6590,26 @@ function attachEvents(){
 }
 
 render();
+// 해시로 곧장 열린 탭도 탭 버튼을 눌러 들어온 것과 똑같이 준비시킨다.
+// (질병 자료·날씨처럼 탭에 들어갈 때 비로소 받아오는 데이터가 있어서, 이걸 빼먹으면
+//  #disease로 열었을 때 목록이 영영 비어 있다. price는 아래 boot 로직이 이미 받아온다.)
+if(state.tab !== "price") switchTab(state.tab);
+
+// 주소 해시가 바뀌면 그 탭으로 옮긴다. iframe으로 띄운 부모(farm-pro)가 src의 해시만
+// 바꿔도 페이지를 다시 읽지 않고 탭만 바뀐다.
+window.addEventListener("hashchange", ()=>{
+  const t = location.hash.replace(/^#/, "");
+  if(t && t !== state.tab) switchTab(t);
+});
+
+// iframe으로 띄운 부모 창이 탭을 지정하는 통로. 보내는 쪽 출처를 따로 막지 않는 것은
+// 이 메시지로 할 수 있는 일이 "이미 공개된 탭 하나를 보여주는 것"뿐이고, 값도 TAB_IDS에
+// 있는 이름만 switchTab()이 받아주기 때문이다.
+window.addEventListener("message", (e)=>{
+  const tab = e.data && e.data.pbTab;
+  if(tab && tab !== state.tab) switchTab(tab);
+});
+
 // 페이지 로드 시 업비트 코인 시세 미리 갱신 (백그라운드)
 fetchUpbitPrices();
 // 페이지 로드 시 야후 주가지수 미리 갱신 (백그라운드)
