@@ -1162,6 +1162,18 @@ const WX_DESC = {
   95:"뇌우",96:"뇌우(우박)",99:"강한 뇌우(우박)",
 };
 
+// 풍속(km/h, 지상 10m 기준) 구간 — 축사 현장 기준으로 나눈다.
+// 기상청 특보 기준(주의보 시속 41km 이상, 강풍경보 54km 이상)을 그대로 쓰지 않고
+// 그보다 낮은 값에서부터 미리 경고하는 이유: 무창계사 커튼·차광막, 유창계사
+// 개폐형 커튼은 특보 발효 전 풍속에서도 펄럭임으로 인한 파손이 시작된다.
+function windLevel(kmh){
+  if(kmh==null) return null;
+  if(kmh<15) return {label:"약",     color:"#2E7D32", bg:"#E8F5E9", note:"환기·방제 작업에 지장 없음"};
+  if(kmh<30) return {label:"보통",   color:"#F57F17", bg:"#FFFDE7", note:"유창계사 커튼 고정 상태 점검"};
+  if(kmh<50) return {label:"강함",   color:"#E65100", bg:"#FFF3E0", note:"커튼·차광막 파손 위험 — 방제·소독 작업은 미루는 것이 안전"};
+  return       {label:"매우강함", color:"#B71C1C", bg:"#FFEBEE", note:"강풍특보 수준 — 축사 개폐부 결속, 정전 대비 필요"};
+}
+
 
 // 사용자가 추가한 종목의 trend는 입력한 현재가 기준으로 평탄하게 생성
 function makeFlatTrend(cur){ const arr=[]; for(let i=0;i<12;i++){ arr.push(Math.round(cur*(0.96+0.08*(i/11)))); } arr[11]=cur; return arr; }
@@ -5428,6 +5440,7 @@ function renderWeatherBody(){
         <div style="font-size:11px;color:#1565C0">${tStr(d.tMin)}</div>
         ${d.hum!=null?`<div style="font-size:9px;color:#0288D1;margin-top:2px">💦 습도 ${Math.round(d.hum)}%</div>`:""}
         ${d.rain>0?`<div style="font-size:9px;color:#1565C0;margin-top:2px">💧${d.rain.toFixed(1)}mm</div>`:""}
+        ${d.wind!=null?`<div style="font-size:9px;color:${windLevel(d.wind).color};margin-top:2px">💨 ${Math.round(d.wind)}km/h${d.wind>=30?" "+windLevel(d.wind).label:""}</div>`:""}
       </div>
       <!-- 작년 -->
       <div style="background:#fafafa;padding:12px 8px;text-align:center">
@@ -5470,7 +5483,7 @@ function renderWeatherBody(){
         <div style="font-size:14px;font-weight:800;color:${isNight?"#ff8a80":"#D32F2F"}">${h.temp!=null?Math.round(h.temp)+"°":"-"}</div>
         <div style="font-size:9px;color:${isNight?"#80cbc4":"#0288D1"};margin-top:3px">💦${h.humidity!=null?Math.round(h.humidity)+"%":"-"}</div>
         ${h.rain>0?`<div style="font-size:9px;color:${isNight?"#80cbc4":"#1565C0"}">💧${h.rain.toFixed(1)}mm</div>`:""}
-        <div style="font-size:9px;color:${sub};margin-top:2px">💨${h.wind!=null?Math.round(h.wind):"?"}km</div>
+        <div style="font-size:9px;color:${h.wind!=null?windLevel(h.wind).color:sub};margin-top:2px">💨${h.wind!=null?Math.round(h.wind):"?"}km/h</div>
       </div>`;
     }).join("");
 
@@ -5484,6 +5497,9 @@ function renderWeatherBody(){
       <div style="margin-top:8px;font-size:10px;color:#aaa">💦 습도 · 💧 강수량 · 💨 풍속(km/h)</div>
     </div>`;
   }
+
+  const todayWind = fc[0]?.wind;
+  const twl = windLevel(todayWind);
 
   return `
   <div style="margin-bottom:16px">
@@ -5499,11 +5515,28 @@ function renderWeatherBody(){
     </div>
   </div>
 
+  ${todayWind!=null ? `
+  <div class="card" style="margin-bottom:12px;border-left:5px solid ${twl.color};padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="font-size:24px">💨</span>
+      <div>
+        <div style="font-size:11px;color:#888">오늘 최대풍속 (지상 10m 기준)</div>
+        <div style="font-size:18px;font-weight:800;color:${twl.color}">${Math.round(todayWind)}km/h
+          <span style="font-size:12px;background:${twl.bg};color:${twl.color};border-radius:6px;padding:2px 8px;margin-left:4px">${twl.label}</span>
+        </div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:#555;max-width:260px;text-align:right">${twl.note}</div>
+  </div>` : ""}
+
   <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:12px">
     ${compCards}
   </div>
   <div style="font-size:10px;color:#aaa;text-align:right">
-    기온 차이: <span style="color:#D32F2F">▲ 올해가 높음</span> · <span style="color:#1565C0">▼ 올해가 낮음</span> · 날짜 카드를 누르면 시간대별 날씨
+    기온 차이: <span style="color:#D32F2F">▲ 올해가 높음</span> · <span style="color:#1565C0">▼ 올해가 낮음</span> ·
+    풍속: <span style="color:#2E7D32">약(15미만)</span> · <span style="color:#F57F17">보통</span> ·
+    <span style="color:#E65100">강함(30↑)</span> · <span style="color:#B71C1C">매우강함(50↑)</span> ·
+    날짜 카드를 누르면 시간대별 날씨
   </div>
 
   ${hourlyPanel}
@@ -6090,6 +6123,7 @@ function attachEvents(){
 
   const wxSearchBtn=document.getElementById("btn-wx-search");
   if(wxSearchBtn) wxSearchBtn.onclick=async ()=>{
+    const query=prompt("지역명을 입력하세요 (예: 서울, 파주, 부산, 고양)");
     if(!query||!query.trim()) return;
     try {
       const results=await searchLocation(query.trim());
