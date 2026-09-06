@@ -1517,6 +1517,19 @@ async function fetchWeather(lat, lng, name){
       });
     }
     weatherState.hourly = hourlyByDate;
+    // 낮(06~17시)/밤(18~05시) 시간대별 풍속(최대)·습도(평균) — 축사 환기/커튼 관리는
+    // 낮밤 조건이 크게 달라 일 최댓값 하나로는 부족해 시간대별로 나눠 보여준다.
+    weatherState.forecast.forEach(d=>{
+      const hrs = hourlyByDate[d.date] || [];
+      const dayHrs   = hrs.filter(h=>h.hour>=6 && h.hour<18);
+      const nightHrs = hrs.filter(h=>h.hour<6 || h.hour>=18);
+      const maxOf = arr => arr.length ? Math.max(...arr.map(h=>h.wind).filter(v=>v!=null)) : null;
+      const avgOf = arr => { const v=arr.map(h=>h.humidity).filter(x=>x!=null); return v.length ? v.reduce((a,b)=>a+b,0)/v.length : null; };
+      d.windDay   = maxOf(dayHrs);
+      d.windNight = maxOf(nightHrs);
+      d.humDay    = avgOf(dayHrs);
+      d.humNight  = avgOf(nightHrs);
+    });
     // 기본 선택: 오늘
     if(!weatherState.selectedDate && days.time.length>0){
       weatherState.selectedDate = days.time[0];
@@ -5659,9 +5672,9 @@ function renderWeatherBody(){
         <div style="font-size:9px;color:#aaa;margin:2px 0">${desc(d.code)}</div>
         <div style="font-size:13px;font-weight:700;color:#D32F2F">${tStr(d.tMax)}</div>
         <div style="font-size:11px;color:#1565C0">${tStr(d.tMin)}</div>
-        ${d.hum!=null?`<div style="font-size:9px;color:#0288D1;margin-top:2px">💦 습도 ${Math.round(d.hum)}%</div>`:""}
+        ${(d.humDay!=null||d.humNight!=null)?`<div style="font-size:9px;color:#0288D1;margin-top:2px">💦 🌞${d.humDay!=null?Math.round(d.humDay)+"%":"-"} 🌙${d.humNight!=null?Math.round(d.humNight)+"%":"-"}</div>`:""}
         ${d.rain>0?`<div style="font-size:9px;color:#1565C0;margin-top:2px">💧${d.rain.toFixed(1)}mm</div>`:""}
-        ${d.wind!=null?`<div style="font-size:9px;color:${windLevel(d.wind).color};margin-top:2px">💨 ${d.wind.toFixed(1)}m/s${d.wind>=8?" "+windLevel(d.wind).label:""}</div>`:""}
+        ${(d.windDay!=null||d.windNight!=null)?`<div style="font-size:9px;margin-top:2px"><span style="color:${d.windDay!=null?windLevel(d.windDay).color:"#aaa"}">🌞${d.windDay!=null?d.windDay.toFixed(1):"-"}</span> <span style="color:${d.windNight!=null?windLevel(d.windNight).color:"#aaa"}">🌙${d.windNight!=null?d.windNight.toFixed(1):"-"}</span>m/s</div>`:""}
       </div>
       <!-- 작년 -->
       <div style="background:#fafafa;padding:12px 8px;text-align:center">
@@ -5722,6 +5735,10 @@ function renderWeatherBody(){
   const todayWind = fc[0]?.wind;
   const twl = windLevel(todayWind);
   const todayHigh = fc[0]?.tMax, todayLow = fc[0]?.tMin, todayHumToday = fc[0]?.hum;
+  const twDay = fc[0]?.windDay, twNight = fc[0]?.windNight;
+  const twlDay = windLevel(twDay) || {color:"#aaa",bg:"#f5f5f5",label:"-",note:""};
+  const twlNight = windLevel(twNight) || {color:"#aaa",bg:"#f5f5f5",label:"-",note:""};
+  const thDay = fc[0]?.humDay, thNight = fc[0]?.humNight;
 
   return `
   <div style="margin-bottom:16px">
@@ -5750,12 +5767,13 @@ function renderWeatherBody(){
           </div>
         </div>
         <div>
-          <div style="font-size:11px;color:#888">습도</div>
-          <div style="font-size:16px;font-weight:800;color:#0288D1;margin-top:2px">${todayHumToday!=null?Math.round(todayHumToday)+"%":"-"}</div>
+          <div style="font-size:11px;color:#888">습도 (낮/밤)</div>
+          <div style="font-size:16px;font-weight:800;color:#0288D1;margin-top:2px">🌞${thDay!=null?Math.round(thDay)+"%":"-"} / 🌙${thNight!=null?Math.round(thNight)+"%":"-"}</div>
         </div>
         <div>
-          <div style="font-size:11px;color:#888">최대풍속 (지상 10m)</div>
-          <div style="font-size:16px;font-weight:800;color:${twl.color};margin-top:2px">💨 ${todayWind.toFixed(1)}m/s
+          <div style="font-size:11px;color:#888">최대풍속 (지상 10m, 낮/밤)</div>
+          <div style="font-size:16px;font-weight:800;margin-top:2px">
+            <span style="color:${twlDay.color}">🌞${twDay!=null?twDay.toFixed(1):"-"}</span> / <span style="color:${twlNight.color}">🌙${twNight!=null?twNight.toFixed(1):"-"}</span>m/s
             <span style="font-size:11px;background:${twl.bg};color:${twl.color};border-radius:6px;padding:1px 7px;margin-left:2px">${twl.label}</span>
           </div>
         </div>
