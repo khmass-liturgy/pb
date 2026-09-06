@@ -514,7 +514,7 @@ function saveCustomCoins(){ try { localStorage.setItem("custom_coins", JSON.stri
 // ═══════════════════════════════════════════════════════════════════════════
 // 탭 바에 있는 탭 이름. 주소 해시(#weather)와 postMessage로 받은 값이 진짜 탭인지
 // 확인하는 데 쓴다 — 엉뚱한 값이 들어와 어느 탭도 선택되지 않은 화면이 되지 않도록.
-const TAB_IDS = ["price","weather","vent","consult","disease","hpai","briefing"];
+const TAB_IDS = ["price","weather","vent","consult","disease","hpai","briefing","premium"];
 
 let state = { tab:"price", customSites:loadCustom(), customStocks:loadCustomList("custom_stocks"), customCoins:loadCustomList("custom_coins") };
 
@@ -2304,11 +2304,33 @@ function renderBriefingTab(){
   return renderNoticesSection() + renderPolicySection();
 }
 
+function renderPremiumTab(){
+  const items = [
+    { icon:"💬", title:"상담", desc:"농장 현안(사양·환기·질병 등)을 전문가와 1:1로 상담합니다.", color:"#1565C0" },
+    { icon:"🔍", title:"진단", desc:"계사 환경·사양관리 현황을 현장 데이터 기반으로 진단합니다.", color:"#2E7D32" },
+    { icon:"📈", title:"컨설팅", desc:"진단 결과를 바탕으로 생산성 개선 컨설팅을 제공합니다.", color:"#E65100" },
+  ];
+  return `
+  <div style="margin-bottom:16px">
+    <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px">💼 유료서비스</div>
+    <div style="font-size:11px;color:#aaa;margin-top:4px">전문 컨설턴트와 함께하는 맞춤형 농장 관리 서비스</div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
+    ${items.map(it=>`
+    <div class="card" style="text-align:center;padding:22px 14px;border-top:4px solid ${it.color}">
+      <div style="font-size:30px;margin-bottom:8px">${it.icon}</div>
+      <div class="display" style="font-size:15px;color:${it.color};margin-bottom:6px">${it.title}</div>
+      <div style="font-size:12px;color:#666;line-height:1.6">${it.desc}</div>
+    </div>`).join("")}
+  </div>
+  <div style="margin-top:14px;font-size:11px;color:#aaa;text-align:center">신청·문의는 협회 또는 담당 컨설턴트를 통해 접수해 주세요.</div>`;
+}
+
 function render(){
   document.getElementById("app").innerHTML = `
     ${renderHeader()}
     <main>
-      ${state.tab==="price" || state.tab==="pig" || state.tab==="livestock" ? renderPriceTab() : state.tab==="weather" ? renderWeatherTab() : state.tab==="vent" ? renderVentTab() : state.tab==="consult" ? renderConsultTab() : state.tab==="disease" ? renderDiseaseTab() : state.tab==="hpai" ? renderHpaiTab() : state.tab==="briefing" ? renderBriefingTab() : renderPriceTab()}
+      ${state.tab==="price" || state.tab==="pig" || state.tab==="livestock" ? renderPriceTab() : state.tab==="weather" ? renderWeatherTab() : state.tab==="vent" ? renderVentTab() : state.tab==="consult" ? renderConsultTab() : state.tab==="disease" ? renderDiseaseTab() : state.tab==="hpai" ? renderHpaiTab() : state.tab==="briefing" ? renderBriefingTab() : state.tab==="premium" ? renderPremiumTab() : renderPriceTab()}
       ${renderFooter()}
     </main>`;
   attachEvents();
@@ -2345,6 +2367,7 @@ function renderHeader(){
       <button class="tab ${state.tab==="disease"?"active":""}" data-tab="disease">🩺 양계질병</button>
       <button class="tab ${state.tab==="hpai"?"active":""}" data-tab="hpai">🦠 AI 발생예측통계</button>
       <button class="tab ${state.tab==="briefing"?"active":""}" data-tab="briefing">📋 뉴스정보</button>
+      <button class="tab ${state.tab==="premium"?"active":""}" data-tab="premium">💼 유료서비스</button>
     </div>
   </div></header>`;
 }
