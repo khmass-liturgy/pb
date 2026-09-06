@@ -629,7 +629,15 @@ function premiumSignInPhone(){
 
   const container = document.getElementById("premium-recaptcha-container");
   if(!container){ alert("로그인 화면을 새로고침한 뒤 다시 시도해 주세요."); return; }
+  // 이전 시도의 reCAPTCHA 위젯이 같은 컨테이너에 남아있으면 "already been
+  // rendered in this element" 오류가 나므로, 만들기 전에 항상 비운다.
+  if(window.__premiumRecaptcha){
+    try{ window.__premiumRecaptcha.clear(); }catch(e){}
+    window.__premiumRecaptcha = null;
+  }
+  container.innerHTML = "";
   const verifier = new firebase.auth.RecaptchaVerifier(container, { size: "invisible" });
+  window.__premiumRecaptcha = verifier;
 
   firebase.auth().signInWithPhoneNumber(phone, verifier)
     .then(confirmationResult => {
@@ -647,7 +655,11 @@ function premiumSignInPhone(){
         : "인증에 실패했습니다: " + (e.message || e);
       alert(msg);
     })
-    .finally(() => { try{ verifier.clear(); }catch(e){} });
+    .finally(() => {
+      try{ verifier.clear(); }catch(e){}
+      container.innerHTML = "";
+      window.__premiumRecaptcha = null;
+    });
 }
 
 function premiumSignInEmail(){
