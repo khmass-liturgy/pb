@@ -146,6 +146,11 @@
 <body>
 <div id="app"></div>
 
+<!-- 유료서비스 회원 로그인(구글/이메일)용 Firebase Auth. 결제·회원DB 없이
+     "로그인한 이메일이 승인 목록에 있는가"만 확인하는 용도라 Auth만 불러온다. -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+
 <script>
 // ═══════════════════════════════════════════════════════════════════════════
 // 시세 데이터
@@ -535,6 +540,89 @@ const HPAI_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/
 // 양계질병 자료 — The Poultry Site 원문을 scripts/fetch_poultry_diseases.py가 한글 번역까지 마쳐둔 파일
 const DISEASE_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/poultry_disease/diseases.json";
 const EGG_REPORT_SOURCE_URL = "https://www.ekapepia.com/v3/board/list.do?menuSn=51&boardInfoNo=0159";
+// 유료서비스 승인회원 목록 — 다른 패널과 같은 방식으로, 승인은 관리자가 이 파일에
+// 이메일을 추가해 커밋·푸시하는 것으로 처리한다(별도 관리자 백엔드 없음).
+const PREMIUM_APPROVED_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/premium/approved.json";
+
+// ── 유료서비스 로그인(Firebase Auth: 구글 / 이메일)·승인 상태 ──────────────
+// TODO: Firebase 콘솔 > 프로젝트 설정 > 일반 탭에서 발급받은 값으로 교체하세요.
+// Authentication 메뉴에서 "Google", "이메일/비밀번호" 로그인 제공업체를 켜야 동작합니다.
+const FIREBASE_CONFIG = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT",
+};
+let firebaseReady = false;
+try {
+  if(typeof firebase !== "undefined" && FIREBASE_CONFIG.apiKey !== "YOUR_API_KEY"){
+    firebase.initializeApp(FIREBASE_CONFIG);
+    firebaseReady = true;
+  }
+} catch(e){ console.warn("Firebase 초기화 실패:", e); }
+
+let premiumState = {
+  status: "idle",      // idle|loading|done|error — 승인 이메일 목록(JSON) 로딩 상태
+  approvedEmails: [],  // 소문자로 정규화해 저장
+  user: null,          // 로그인한 firebase User, 로그아웃 상태면 null
+  authChecked: false,  // onAuthStateChanged가 최초 1회 응답했는지 (초기 깜빡임 방지용)
+};
+
+async function fetchPremiumApproved(){
+  if(premiumState.status === "loading") return;
+  premiumState.status = "loading";
+  try {
+    const resp = await fetchWithTimeout(PREMIUM_APPROVED_JSON_URL + "?t=" + Date.now(), 8000);
+    if(!resp.ok) throw new Error("HTTP " + resp.status);
+    const data = await resp.json();
+    premiumState.approvedEmails = (data.emails || []).map(e => String(e).toLowerCase().trim());
+    premiumState.status = "done";
+  } catch(e){
+    console.warn("유료서비스 승인목록 로딩 실패:", e);
+    premiumState.status = "error";
+  }
+  if(state.tab === "premium") render();
+}
+
+function isPremiumApproved(){
+  const email = premiumState.user && premiumState.user.email;
+  if(!email) return false;
+  return premiumState.approvedEmails.includes(email.toLowerCase());
+}
+
+function premiumSignInGoogle(){
+  if(!firebaseReady){ alert("Firebase 설정이 아직 완료되지 않았습니다."); return; }
+  const provider = new firebase.auth.GoogleAuthProvider();
+  firebase.auth().signInWithPopup(provider).catch(e => {
+    console.warn("구글 로그인 실패:", e);
+    alert("로그인에 실패했습니다: " + (e.message || e));
+  });
+}
+
+function premiumSignInEmail(){
+  if(!firebaseReady){ alert("Firebase 설정이 아직 완료되지 않았습니다."); return; }
+  const email = prompt("등록된 이메일 주소를 입력하세요.");
+  if(!email) return;
+  const password = prompt("비밀번호를 입력하세요.");
+  if(!password) return;
+  firebase.auth().signInWithEmailAndPassword(email.trim(), password).catch(e => {
+    console.warn("이메일 로그인 실패:", e);
+    alert("로그인에 실패했습니다: " + (e.message || e));
+  });
+}
+
+function premiumSignOut(){
+  if(!firebaseReady) return;
+  firebase.auth().signOut();
+}
+
+if(firebaseReady){
+  firebase.auth().onAuthStateChanged(user => {
+    premiumState.user = user;
+    premiumState.authChecked = true;
+    if(user && premiumState.status === "idle") fetchPremiumApproved();
+    if(state.tab === "premium") render();
+  });
+}
 
 // ── 주가·환율·곡물 시세 (GitHub Actions → market/quotes.json) ────────────────
 // 서버에서 야후를 직접 호출해 저장한 파일. raw.githubusercontent.com 은 CORS 허용이라
@@ -2304,16 +2392,70 @@ function renderBriefingTab(){
   return renderNoticesSection() + renderPolicySection();
 }
 
+function renderPremiumGateHeader(){
+  return `
+  <div style="margin-bottom:16px">
+    <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px">💼 유료서비스</div>
+    <div style="font-size:11px;color:#aaa;margin-top:4px">전문 컨설턴트와 함께하는 맞춤형 농장 관리 서비스</div>
+  </div>`;
+}
+
 function renderPremiumTab(){
+  // Firebase 설정이 아직 안 된 경우(콘솔에서 FIREBASE_CONFIG 값을 안 넣은 상태)
+  if(!firebaseReady){
+    return renderPremiumGateHeader() + `
+    <div class="card" style="text-align:center;padding:32px 16px">
+      <div style="font-size:30px;margin-bottom:10px">⚙️</div>
+      <div class="display" style="font-size:15px;margin-bottom:8px">로그인 설정 준비 중입니다</div>
+      <div style="font-size:12px;color:#888;line-height:1.7">유료서비스는 승인된 회원만 이용할 수 있어요.<br>관리자가 로그인 설정을 마치면 이용하실 수 있습니다.</div>
+    </div>`;
+  }
+  // 최초 로딩 중(onAuthStateChanged 응답 전) — 로그인 여부를 아직 모르는 상태
+  if(!premiumState.authChecked){
+    return renderPremiumGateHeader() + `
+    <div class="card" style="text-align:center;padding:32px 16px;color:#aaa">로그인 상태 확인 중...</div>`;
+  }
+  // 로그아웃 상태 — 로그인 화면
+  if(!premiumState.user){
+    return renderPremiumGateHeader() + `
+    <div class="card" style="text-align:center;padding:32px 16px">
+      <div style="font-size:30px;margin-bottom:10px">🔒</div>
+      <div class="display" style="font-size:15px;margin-bottom:8px">승인된 회원만 이용할 수 있습니다</div>
+      <div style="font-size:12px;color:#888;margin-bottom:20px;line-height:1.7">구글 계정 또는 등록된 이메일로 로그인해 주세요.<br>승인 전에는 상담·진단·컨설팅 내용을 볼 수 없습니다.</div>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <button id="btn-premium-google" style="border:1px solid #ddd;border-radius:10px;background:#fff;color:#333;padding:12px 24px;font-size:13px;font-weight:600">🔵 Google로 로그인</button>
+        <button id="btn-premium-email" style="border:none;border-radius:10px;background:#1a2744;color:#fff;padding:12px 24px;font-size:13px;font-weight:600">✉️ 이메일로 로그인</button>
+      </div>
+    </div>`;
+  }
+  // 로그인은 했지만 승인목록 로딩 전
+  if(premiumState.status === "idle" || premiumState.status === "loading"){
+    return renderPremiumGateHeader() + `
+    <div class="card" style="text-align:center;padding:32px 16px;color:#aaa">회원 승인 여부 확인 중...</div>`;
+  }
+  // 로그인은 했지만 승인목록에 없음 — 승인 대기
+  if(!isPremiumApproved()){
+    return renderPremiumGateHeader() + `
+    <div class="card" style="text-align:center;padding:32px 16px">
+      <div style="font-size:30px;margin-bottom:10px">⏳</div>
+      <div class="display" style="font-size:15px;margin-bottom:8px">승인 대기 중입니다</div>
+      <div style="font-size:12px;color:#888;margin-bottom:6px">${esc(premiumState.user.email||"")}</div>
+      <div style="font-size:12px;color:#888;line-height:1.7">관리자 승인 후 이용하실 수 있습니다.<br>승인 신청은 협회 또는 담당 컨설턴트에게 문의해 주세요.</div>
+      <button id="btn-premium-logout" style="margin-top:18px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:8px 16px;font-size:12px">로그아웃</button>
+    </div>`;
+  }
+  // 승인된 회원 — 실제 유료서비스 메뉴
   const items = [
     { icon:"💬", title:"상담", desc:"농장 현안(사양·환기·질병 등)을 전문가와 1:1로 상담합니다.", color:"#1565C0" },
     { icon:"🔍", title:"진단", desc:"계사 환경·사양관리 현황을 현장 데이터 기반으로 진단합니다.", color:"#2E7D32" },
     { icon:"📈", title:"컨설팅", desc:"진단 결과를 바탕으로 생산성 개선 컨설팅을 제공합니다.", color:"#E65100" },
   ];
-  return `
-  <div style="margin-bottom:16px">
-    <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px">💼 유료서비스</div>
-    <div style="font-size:11px;color:#aaa;margin-top:4px">전문 컨설턴트와 함께하는 맞춤형 농장 관리 서비스</div>
+  return renderPremiumGateHeader() + `
+  <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+    <div style="font-size:11px;color:#888;display:flex;align-items:center;gap:8px">
+      ✅ ${esc(premiumState.user.email||"")} 승인됨
+      <button id="btn-premium-logout" style="border:1px solid #ddd;border-radius:6px;background:#fff;color:#888;padding:4px 10px;font-size:11px">로그아웃</button>
+    </div>
   </div>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
     ${items.map(it=>`
@@ -6292,6 +6434,7 @@ function switchTab(tab){
     if(state.tab==="news" && newsState.status==="idle") fetchNews(newsState.activeChannel);
     // 경제동향 섹션을 뺀 뒤로 브리핑 탭은 주가·코인을 쓰지 않는다
     if(state.tab==="briefing" && noticesState.status==="idle") fetchNotices();
+    if(state.tab==="premium" && premiumState.user && premiumState.status==="idle") fetchPremiumApproved();
     if(state.tab==="price" && poultryPriceState.status==="idle") fetchPoultryPrices();
     // 주소에도 남겨 새로고침하거나 링크를 공유해도 같은 탭으로 열린다.
     // (pushState가 아니라 replaceState인 것은 탭을 눌러 다닐 때마다 뒤로가기 기록이
@@ -6301,6 +6444,14 @@ function switchTab(tab){
 
 function attachEvents(){
   document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
+
+  // 유료서비스: 로그인/로그아웃
+  const pgBtn = document.getElementById("btn-premium-google");
+  if(pgBtn) pgBtn.onclick = premiumSignInGoogle;
+  const peBtn = document.getElementById("btn-premium-email");
+  if(peBtn) peBtn.onclick = premiumSignInEmail;
+  const poBtn = document.getElementById("btn-premium-logout");
+  if(poBtn) poBtn.onclick = premiumSignOut;
 
   // 공지 갱신 버튼
   const noticesRefreshBtn=document.getElementById("btn-notices-refresh");
