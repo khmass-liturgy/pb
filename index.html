@@ -645,6 +645,23 @@ function premiumSignOut(){
   firebase.auth().signOut();
 }
 
+// 비밀번호를 잊었을 때 — 관리자가 비밀번호를 알거나 바꿔줄 방법이 없으므로
+// (Firebase가 해시로만 저장) Firebase의 재설정 메일 발송 기능을 그대로 쓴다.
+function premiumResetPassword(){
+  if(!firebaseReady){ alert("Firebase 설정이 아직 완료되지 않았습니다."); return; }
+  const email = prompt("가입한 이메일 주소를 입력하세요. 비밀번호 재설정 링크를 보내드립니다.");
+  if(!email) return;
+  firebase.auth().sendPasswordResetEmail(email.trim())
+    .then(() => alert("비밀번호 재설정 메일을 보냈습니다. 메일함(스팸함 포함)을 확인해 주세요."))
+    .catch(e => {
+      console.warn("비밀번호 재설정 메일 발송 실패:", e);
+      const msg = e.code==="auth/user-not-found" ? "가입되지 않은 이메일입니다."
+        : e.code==="auth/invalid-email" ? "이메일 형식이 올바르지 않습니다."
+        : "메일 발송에 실패했습니다: " + (e.message || e);
+      alert(msg);
+    });
+}
+
 if(firebaseReady){
   firebase.auth().onAuthStateChanged(user => {
     premiumState.user = user;
@@ -2458,6 +2475,9 @@ function renderPremiumTab(){
       <div style="border-top:1px dashed #eee;padding-top:14px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
         <button id="btn-premium-email" style="border:1px solid #1a2744;border-radius:10px;background:#fff;color:#1a2744;padding:12px 24px;font-size:13px;font-weight:600">✉️ 이메일로 로그인</button>
         <button id="btn-premium-signup" style="border:none;border-radius:10px;background:#1a2744;color:#fff;padding:12px 24px;font-size:13px;font-weight:600">📝 이메일로 회원가입</button>
+      </div>
+      <div style="margin-top:12px">
+        <button id="btn-premium-reset" style="border:none;background:none;color:#888;font-size:11px;text-decoration:underline;cursor:pointer">비밀번호를 잊으셨나요?</button>
       </div>
     </div>`;
   }
@@ -6485,6 +6505,8 @@ function attachEvents(){
   if(peBtn) peBtn.onclick = premiumSignInEmail;
   const psBtn = document.getElementById("btn-premium-signup");
   if(psBtn) psBtn.onclick = premiumSignUpEmail;
+  const prBtn = document.getElementById("btn-premium-reset");
+  if(prBtn) prBtn.onclick = premiumResetPassword;
   const poBtn = document.getElementById("btn-premium-logout");
   if(poBtn) poBtn.onclick = premiumSignOut;
 
