@@ -38,13 +38,17 @@
   }
   .header-inner { max-width: 900px; margin: 0 auto; }
   .header-top { display: flex; align-items: center; justify-content: space-between; padding: 14px 0 8px; }
-  .tabs { display: flex; gap: 4px; }
+  /* 탭이 8개로 늘면서 좁은 화면에서 글자가 두 줄로 꺾이는 문제가 있어, 줄바꿈을
+     막고 대신 옆으로 스크롤되게 한다(모바일 브레이크포인트와 동일한 방식). */
+  .tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .tabs::-webkit-scrollbar { display: none; }
   /* iframe으로 다른 화면 안에 들어가 있을 때는 제목 줄(.header-top)을 빼고 탭만 남긴다.
      제목 줄이 없으면 탭이 위 모서리에 딱 붙으므로 그만큼 여백을 대신 준다. */
   header.embedded .tabs { padding-top: 8px; }
   .tab {
     border: none; background: transparent; color: #fff; padding: 8px 18px;
     font-size: 13px; border-radius: 8px 8px 0 0; border-bottom: 3px solid transparent;
+    flex: 0 0 auto; white-space: nowrap;
   }
   .tab.active { background: rgba(255,255,255,0.15); font-weight: 700; border-bottom: 3px solid #F9C74F; }
   main { max-width: 900px; margin: 0 auto; padding: 20px 16px 40px; }
