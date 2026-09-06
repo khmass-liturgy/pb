@@ -606,8 +606,32 @@ function premiumSignInEmail(){
   if(!password) return;
   firebase.auth().signInWithEmailAndPassword(email.trim(), password).catch(e => {
     console.warn("이메일 로그인 실패:", e);
-    alert("로그인에 실패했습니다: " + (e.message || e));
+    const msg = e.code==="auth/user-not-found" ? "등록되지 않은 이메일입니다. 먼저 회원가입을 해주세요."
+      : e.code==="auth/wrong-password" ? "비밀번호가 올바르지 않습니다."
+      : "로그인에 실패했습니다: " + (e.message || e);
+    alert(msg);
   });
+}
+
+// 이메일/비밀번호 계정을 새로 만든다 — 가입만으로는 유료서비스가 열리지 않고,
+// 이 이메일이 premium/approved.json 목록에 있어야 승인된다(가입=본인확인,
+// 승인=관리자가 이용 권한을 부여하는 별개 단계).
+function premiumSignUpEmail(){
+  if(!firebaseReady){ alert("Firebase 설정이 아직 완료되지 않았습니다."); return; }
+  const email = prompt("회원가입에 사용할 이메일 주소를 입력하세요.");
+  if(!email) return;
+  const password = prompt("사용할 비밀번호를 입력하세요. (6자 이상)");
+  if(!password) return;
+  firebase.auth().createUserWithEmailAndPassword(email.trim(), password)
+    .then(() => alert("가입이 완료되었습니다. 관리자 승인 후 이용하실 수 있습니다."))
+    .catch(e => {
+      console.warn("이메일 회원가입 실패:", e);
+      const msg = e.code==="auth/email-already-in-use" ? "이미 가입된 이메일입니다. 로그인을 이용해 주세요."
+        : e.code==="auth/weak-password" ? "비밀번호는 6자 이상이어야 합니다."
+        : e.code==="auth/invalid-email" ? "이메일 형식이 올바르지 않습니다."
+        : "가입에 실패했습니다: " + (e.message || e);
+      alert(msg);
+    });
 }
 
 function premiumSignOut(){
@@ -2421,10 +2445,13 @@ function renderPremiumTab(){
     <div class="card" style="text-align:center;padding:32px 16px">
       <div style="font-size:30px;margin-bottom:10px">🔒</div>
       <div class="display" style="font-size:15px;margin-bottom:8px">승인된 회원만 이용할 수 있습니다</div>
-      <div style="font-size:12px;color:#888;margin-bottom:20px;line-height:1.7">구글 계정 또는 등록된 이메일로 로그인해 주세요.<br>승인 전에는 상담·진단·컨설팅 내용을 볼 수 없습니다.</div>
-      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-        <button id="btn-premium-google" style="border:1px solid #ddd;border-radius:10px;background:#fff;color:#333;padding:12px 24px;font-size:13px;font-weight:600">🔵 Google로 로그인</button>
-        <button id="btn-premium-email" style="border:none;border-radius:10px;background:#1a2744;color:#fff;padding:12px 24px;font-size:13px;font-weight:600">✉️ 이메일로 로그인</button>
+      <div style="font-size:12px;color:#888;margin-bottom:20px;line-height:1.7">구글 계정은 로그인하면 바로 가입됩니다. 이메일 계정은 먼저 회원가입을 해주세요.<br>가입 후에도 관리자 승인 전까지는 상담·진단·컨설팅 내용을 볼 수 없습니다.</div>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:14px">
+        <button id="btn-premium-google" style="border:1px solid #ddd;border-radius:10px;background:#fff;color:#333;padding:12px 24px;font-size:13px;font-weight:600">🔵 Google로 로그인/가입</button>
+      </div>
+      <div style="border-top:1px dashed #eee;padding-top:14px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <button id="btn-premium-email" style="border:1px solid #1a2744;border-radius:10px;background:#fff;color:#1a2744;padding:12px 24px;font-size:13px;font-weight:600">✉️ 이메일로 로그인</button>
+        <button id="btn-premium-signup" style="border:none;border-radius:10px;background:#1a2744;color:#fff;padding:12px 24px;font-size:13px;font-weight:600">📝 이메일로 회원가입</button>
       </div>
     </div>`;
   }
@@ -6450,6 +6477,8 @@ function attachEvents(){
   if(pgBtn) pgBtn.onclick = premiumSignInGoogle;
   const peBtn = document.getElementById("btn-premium-email");
   if(peBtn) peBtn.onclick = premiumSignInEmail;
+  const psBtn = document.getElementById("btn-premium-signup");
+  if(psBtn) psBtn.onclick = premiumSignUpEmail;
   const poBtn = document.getElementById("btn-premium-logout");
   if(poBtn) poBtn.onclick = premiumSignOut;
 
