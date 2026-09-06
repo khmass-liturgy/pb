@@ -567,21 +567,11 @@ try {
 } catch(e){ console.warn("Firebase 초기화 실패:", e); }
 
 let premiumState = {
-  status: "idle",      // idle|loading|done|error — 승인 목록(JSON) 로딩 상태
+  status: "idle",      // idle|loading|done|error — 승인 이메일 목록(JSON) 로딩 상태
   approvedEmails: [],  // 소문자로 정규화해 저장
-  approvedPhones: [],  // "+8210..." 형식(Firebase User.phoneNumber와 같은 형식)으로 정규화해 저장
   user: null,          // 로그인한 firebase User, 로그아웃 상태면 null
   authChecked: false,  // onAuthStateChanged가 최초 1회 응답했는지 (초기 깜빡임 방지용)
 };
-
-// 국내 번호(010..., 010-1234-5678 등)를 Firebase User.phoneNumber와 같은
-// "+8210..." 국제 형식으로 통일한다. 이미 +로 시작하면 그대로 둔다.
-function normalizePhoneKr(p){
-  let v = String(p).trim().replace(/[\s-]/g, "");
-  if(v.startsWith("0")) v = "+82" + v.slice(1);
-  else if(!v.startsWith("+")) v = "+82" + v;
-  return v;
-}
 
 async function fetchPremiumApproved(){
   if(premiumState.status === "loading") return;
@@ -591,7 +581,6 @@ async function fetchPremiumApproved(){
     if(!resp.ok) throw new Error("HTTP " + resp.status);
     const data = await resp.json();
     premiumState.approvedEmails = (data.emails || []).map(e => String(e).toLowerCase().trim());
-    premiumState.approvedPhones = (data.phones || []).map(normalizePhoneKr);
     premiumState.status = "done";
   } catch(e){
     console.warn("유료서비스 승인목록 로딩 실패:", e);
@@ -601,11 +590,9 @@ async function fetchPremiumApproved(){
 }
 
 function isPremiumApproved(){
-  const user = premiumState.user;
-  if(!user) return false;
-  if(user.email && premiumState.approvedEmails.includes(user.email.toLowerCase())) return true;
-  if(user.phoneNumber && premiumState.approvedPhones.includes(user.phoneNumber)) return true;
-  return false;
+  const email = premiumState.user && premiumState.user.email;
+  if(!email) return false;
+  return premiumState.approvedEmails.includes(email.toLowerCase());
 }
 
 function premiumSignInGoogle(){
@@ -615,51 +602,6 @@ function premiumSignInGoogle(){
     console.warn("구글 로그인 실패:", e);
     alert("로그인에 실패했습니다: " + (e.message || e));
   });
-}
-
-// 전화번호 로그인/가입 — 최초 인증이 곧 가입이라 구글과 동일하게 별도 가입 절차가
-// 없다. 문자(SMS) 인증은 Firebase가 요구하는 reCAPTCHA 검증이 한 번 필요해
-// invisible reCAPTCHA를 그때그때 새로 만들어 쓴다(렌더할 때마다 DOM이 새로
-// 그려지므로 컨테이너를 캐싱하지 않는다).
-function premiumSignInPhone(){
-  if(!firebaseReady){ alert("Firebase 설정이 아직 완료되지 않았습니다."); return; }
-  let phone = prompt("휴대폰 번호를 입력하세요. 예) 01012345678");
-  if(!phone) return;
-  phone = normalizePhoneKr(phone);
-
-  const container = document.getElementById("premium-recaptcha-container");
-  if(!container){ alert("로그인 화면을 새로고침한 뒤 다시 시도해 주세요."); return; }
-  // 이전 시도의 reCAPTCHA 위젯이 같은 컨테이너에 남아있으면 "already been
-  // rendered in this element" 오류가 나므로, 만들기 전에 항상 비운다.
-  if(window.__premiumRecaptcha){
-    try{ window.__premiumRecaptcha.clear(); }catch(e){}
-    window.__premiumRecaptcha = null;
-  }
-  container.innerHTML = "";
-  const verifier = new firebase.auth.RecaptchaVerifier(container, { size: "invisible" });
-  window.__premiumRecaptcha = verifier;
-
-  firebase.auth().signInWithPhoneNumber(phone, verifier)
-    .then(confirmationResult => {
-      const code = prompt("문자로 받은 인증번호 6자리를 입력하세요.");
-      if(!code) return;
-      return confirmationResult.confirm(code.trim()).catch(e => {
-        console.warn("인증번호 확인 실패:", e);
-        alert("인증번호가 올바르지 않습니다.");
-      });
-    })
-    .catch(e => {
-      console.warn("전화번호 로그인 실패:", e);
-      const msg = e.code==="auth/invalid-phone-number" ? "전화번호 형식이 올바르지 않습니다."
-        : e.code==="auth/too-many-requests" ? "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요."
-        : "인증에 실패했습니다: " + (e.message || e);
-      alert(msg);
-    })
-    .finally(() => {
-      try{ verifier.clear(); }catch(e){}
-      container.innerHTML = "";
-      window.__premiumRecaptcha = null;
-    });
 }
 
 function premiumSignInEmail(){
@@ -2498,9 +2440,7 @@ function renderBriefingTab(){
 }
 
 function premiumUserLabel(){
-  const user = premiumState.user;
-  if(!user) return "";
-  return user.email || user.phoneNumber || "";
+  return (premiumState.user && premiumState.user.email) || "";
 }
 
 function renderPremiumGateHeader(){
@@ -2532,10 +2472,9 @@ function renderPremiumTab(){
     <div class="card" style="text-align:center;padding:32px 16px">
       <div style="font-size:30px;margin-bottom:10px">🔒</div>
       <div class="display" style="font-size:15px;margin-bottom:8px">승인된 회원만 이용할 수 있습니다</div>
-      <div style="font-size:12px;color:#888;margin-bottom:20px;line-height:1.7">구글 계정·전화번호는 로그인하면 바로 가입됩니다. 이메일 계정은 먼저 회원가입을 해주세요.<br>가입 후에도 관리자 승인 전까지는 상담·진단·컨설팅 내용을 볼 수 없습니다.</div>
+      <div style="font-size:12px;color:#888;margin-bottom:20px;line-height:1.7">구글 계정은 로그인하면 바로 가입됩니다. 이메일 계정은 먼저 회원가입을 해주세요.<br>가입 후에도 관리자 승인 전까지는 상담·진단·컨설팅 내용을 볼 수 없습니다.</div>
       <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:14px">
         <button id="btn-premium-google" style="border:1px solid #ddd;border-radius:10px;background:#fff;color:#333;padding:12px 24px;font-size:13px;font-weight:600">🔵 Google로 로그인/가입</button>
-        <button id="btn-premium-phone" style="border:1px solid #2E7D32;border-radius:10px;background:#fff;color:#2E7D32;padding:12px 24px;font-size:13px;font-weight:600">📱 전화번호로 로그인/가입</button>
       </div>
       <div style="border-top:1px dashed #eee;padding-top:14px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
         <button id="btn-premium-email" style="border:1px solid #1a2744;border-radius:10px;background:#fff;color:#1a2744;padding:12px 24px;font-size:13px;font-weight:600">✉️ 이메일로 로그인</button>
@@ -2544,7 +2483,6 @@ function renderPremiumTab(){
       <div style="margin-top:12px">
         <button id="btn-premium-reset" style="border:none;background:none;color:#888;font-size:11px;text-decoration:underline;cursor:pointer">비밀번호를 잊으셨나요?</button>
       </div>
-      <div id="premium-recaptcha-container"></div>
     </div>`;
   }
   // 로그인은 했지만 승인목록 로딩 전
@@ -6567,8 +6505,6 @@ function attachEvents(){
   // 유료서비스: 로그인/로그아웃
   const pgBtn = document.getElementById("btn-premium-google");
   if(pgBtn) pgBtn.onclick = premiumSignInGoogle;
-  const ppBtn = document.getElementById("btn-premium-phone");
-  if(ppBtn) ppBtn.onclick = premiumSignInPhone;
   const peBtn = document.getElementById("btn-premium-email");
   if(peBtn) peBtn.onclick = premiumSignInEmail;
   const psBtn = document.getElementById("btn-premium-signup");
