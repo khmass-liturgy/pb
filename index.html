@@ -5710,9 +5710,10 @@ function renderWeatherBody(){
       const isAft   = h.hour>=12 && h.hour<18;
       const bg  = isNight?"#1a1a2e":isMorn?"#e3f2fd":isAft?"#fff8e1":"#ede7f6";
       const sub = isNight?"rgba(255,255,255,0.6)":"#555";
+      const isDayPeriod = h.hour>=6 && h.hour<18; // 낮(06~17시)/밤(18~05시) — 위 요약·7일 카드와 동일 기준
       return `
       <div style="flex:1;min-width:78px;background:${bg};border-radius:10px;padding:10px 5px;text-align:center">
-        <div style="font-size:10px;font-weight:700;color:${sub};margin-bottom:4px">${timeLabel[h.hour]||h.hour+"시"}</div>
+        <div style="font-size:10px;font-weight:700;color:${sub};margin-bottom:4px">${isDayPeriod?"🌞":"🌙"} ${timeLabel[h.hour]||h.hour+"시"}</div>
         <div style="font-size:22px;margin:3px 0">${icon(h.code)}</div>
         <div style="font-size:14px;font-weight:800;color:${isNight?"#ff8a80":"#D32F2F"}">${h.temp!=null?Math.round(h.temp)+"°":"-"}</div>
         <div style="font-size:9px;color:${isNight?"#80cbc4":"#0288D1"};margin-top:3px">💦${h.humidity!=null?Math.round(h.humidity)+"%":"-"}</div>
