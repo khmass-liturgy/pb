@@ -1,23 +1,23 @@
 {
-  "updated": "2026-09-08 10:16 KST",
+  "updated": "2026-09-09 10:21 KST",
   "window_days": 180,
   "source": "WOAH WAHIS (세계동물보건기구 공식 신고)",
   "url": "https://wahis.woah.org/#/event-management",
   "level_rule": "최근 180일 신고를 기준으로 분류 — 진행중: WOAH에 '진행중(On-going)'으로 신고된 발생이 있음 · 최근신고: 진행중은 없으나 90일 내 신고가 있음 · 소강: 90일 넘게 신고 없음",
   "overall": {
     "countries": 67,
-    "total": 206,
+    "total": 209,
     "poultry": 86,
-    "wild": 120,
-    "ongoing": 64
+    "wild": 123,
+    "ongoing": 68
   },
   "regions": [
     {
       "countries": 34,
-      "total": 124,
-      "poultry": 48,
-      "wild": 76,
-      "ongoing": 26,
+      "total": 125,
+      "poultry": 47,
+      "wild": 78,
+      "ongoing": 28,
       "name": "Europe",
       "top": [
         "Germany",
@@ -27,15 +27,15 @@
     },
     {
       "countries": 13,
-      "total": 36,
-      "poultry": 9,
-      "wild": 27,
-      "ongoing": 17,
+      "total": 38,
+      "poultry": 10,
+      "wild": 28,
+      "ongoing": 19,
       "name": "Americas",
       "top": [
         "Chile",
-        "Canada",
-        "Honduras"
+        "United States of America",
+        "Canada"
       ]
     },
     {
@@ -81,10 +81,10 @@
     "name": "동아시아-대양주 철새경로 (EAAF)",
     "note": "한반도가 속한 철새 이동경로. 경로상 국가의 발생은 국내 유입 위험을 살피는 선행 관찰 대상이다.",
     "countries": 11,
-    "total": 35,
-    "poultry": 21,
-    "wild": 14,
-    "ongoing": 14,
+    "total": 37,
+    "poultry": 22,
+    "wild": 15,
+    "ongoing": 16,
     "countries_list": [
       {
         "name": "India",
@@ -97,7 +97,7 @@
         "latest": "2026-08-07",
         "first": "2026-01-11",
         "total": 6,
-        "days_since": 32,
+        "days_since": 33,
         "level": "ongoing"
       },
       {
@@ -111,7 +111,7 @@
         "latest": "2026-07-03",
         "first": "2024-10-29",
         "total": 6,
-        "days_since": 67,
+        "days_since": 68,
         "level": "ongoing"
       },
       {
@@ -125,7 +125,21 @@
         "latest": "2026-07-10",
         "first": "2022-01-06",
         "total": 5,
-        "days_since": 60,
+        "days_since": 61,
+        "level": "ongoing"
+      },
+      {
+        "name": "United States of America",
+        "iso": "USA",
+        "region": "Americas",
+        "eaaf": true,
+        "poultry": 3,
+        "wild": 2,
+        "ongoing": 5,
+        "latest": "2026-09-04",
+        "first": "2021-12-30",
+        "total": 5,
+        "days_since": 5,
         "level": "ongoing"
       },
       {
@@ -139,7 +153,7 @@
         "latest": "2026-05-27",
         "first": "2025-10-15",
         "total": 4,
-        "days_since": 104,
+        "days_since": 105,
         "level": "quiet"
       },
       {
@@ -153,7 +167,7 @@
         "latest": "2026-05-26",
         "first": "2026-01-25",
         "total": 3,
-        "days_since": 105,
+        "days_since": 106,
         "level": "quiet"
       },
       {
@@ -167,21 +181,7 @@
         "latest": "2026-08-28",
         "first": "2025-07-10",
         "total": 3,
-        "days_since": 11,
-        "level": "ongoing"
-      },
-      {
-        "name": "United States of America",
-        "iso": "USA",
-        "region": "Americas",
-        "eaaf": true,
-        "poultry": 2,
-        "wild": 1,
-        "ongoing": 3,
-        "latest": "2026-08-20",
-        "first": "2022-09-12",
-        "total": 3,
-        "days_since": 19,
+        "days_since": 12,
         "level": "ongoing"
       },
       {
@@ -195,7 +195,7 @@
         "latest": "2026-04-17",
         "first": "2026-02-26",
         "total": 2,
-        "days_since": 144,
+        "days_since": 145,
         "level": "quiet"
       },
       {
@@ -209,7 +209,7 @@
         "latest": "2026-08-07",
         "first": "2026-06-15",
         "total": 1,
-        "days_since": 32,
+        "days_since": 33,
         "level": "ongoing"
       },
       {
@@ -223,7 +223,7 @@
         "latest": "2026-07-13",
         "first": "2025-02-03",
         "total": 1,
-        "days_since": 57,
+        "days_since": 58,
         "level": "ongoing"
       },
       {
@@ -237,7 +237,7 @@
         "latest": "2026-07-02",
         "first": "2025-12-21",
         "total": 1,
-        "days_since": 68,
+        "days_since": 69,
         "level": "recent"
       }
     ]
@@ -253,7 +253,7 @@
     "latest": "2026-07-03",
     "first": "2024-10-29",
     "total": 6,
-    "days_since": 67,
+    "days_since": 68,
     "level": "ongoing"
   },
   "countries": [
@@ -264,11 +264,11 @@
       "eaaf": false,
       "poultry": 11,
       "wild": 20,
-      "ongoing": 7,
-      "latest": "2026-08-07",
+      "ongoing": 6,
+      "latest": "2026-09-01",
       "first": "2024-10-31",
       "total": 31,
-      "days_since": 32,
+      "days_since": 8,
       "level": "ongoing"
     },
     {
@@ -282,7 +282,7 @@
       "latest": "2026-08-20",
       "first": "2025-09-16",
       "total": 26,
-      "days_since": 19,
+      "days_since": 20,
       "level": "recent"
     },
     {
@@ -296,7 +296,7 @@
       "latest": "2026-08-27",
       "first": "2026-03-04",
       "total": 12,
-      "days_since": 12,
+      "days_since": 13,
       "level": "ongoing"
     },
     {
@@ -310,7 +310,7 @@
       "latest": "2026-05-14",
       "first": "2025-07-19",
       "total": 6,
-      "days_since": 117,
+      "days_since": 118,
       "level": "ongoing"
     },
     {
@@ -324,7 +324,7 @@
       "latest": "2026-08-07",
       "first": "2026-01-11",
       "total": 6,
-      "days_since": 32,
+      "days_since": 33,
       "level": "ongoing"
     },
     {
@@ -338,35 +338,7 @@
       "latest": "2026-07-03",
       "first": "2024-10-29",
       "total": 6,
-      "days_since": 67,
-      "level": "ongoing"
-    },
-    {
-      "name": "United Kingdom",
-      "iso": "GBR",
-      "region": "Europe",
-      "eaaf": false,
-      "poultry": 5,
-      "wild": 1,
-      "ongoing": 1,
-      "latest": "2026-08-21",
-      "first": "2025-09-29",
-      "total": 6,
-      "days_since": 18,
-      "level": "ongoing"
-    },
-    {
-      "name": "Finland",
-      "iso": "FIN",
-      "region": "Europe",
-      "eaaf": false,
-      "poultry": 0,
-      "wild": 5,
-      "ongoing": 2,
-      "latest": "2026-08-05",
-      "first": "2026-01-12",
-      "total": 5,
-      "days_since": 34,
+      "days_since": 68,
       "level": "ongoing"
     },
     {
@@ -380,7 +352,35 @@
       "latest": "2026-07-10",
       "first": "2022-01-06",
       "total": 5,
-      "days_since": 60,
+      "days_since": 61,
+      "level": "ongoing"
+    },
+    {
+      "name": "United Kingdom",
+      "iso": "GBR",
+      "region": "Europe",
+      "eaaf": false,
+      "poultry": 4,
+      "wild": 1,
+      "ongoing": 1,
+      "latest": "2026-08-21",
+      "first": "2025-09-29",
+      "total": 5,
+      "days_since": 19,
+      "level": "ongoing"
+    },
+    {
+      "name": "United States of America",
+      "iso": "USA",
+      "region": "Americas",
+      "eaaf": true,
+      "poultry": 3,
+      "wild": 2,
+      "ongoing": 5,
+      "latest": "2026-09-04",
+      "first": "2021-12-30",
+      "total": 5,
+      "days_since": 5,
       "level": "ongoing"
     },
     {
@@ -394,7 +394,7 @@
       "latest": "2026-06-29",
       "first": "2025-02-26",
       "total": 4,
-      "days_since": 71,
+      "days_since": 72,
       "level": "ongoing"
     },
     {
@@ -408,7 +408,21 @@
       "latest": "2026-07-30",
       "first": "2022-04-06",
       "total": 4,
-      "days_since": 40,
+      "days_since": 41,
+      "level": "ongoing"
+    },
+    {
+      "name": "Finland",
+      "iso": "FIN",
+      "region": "Europe",
+      "eaaf": false,
+      "poultry": 0,
+      "wild": 4,
+      "ongoing": 2,
+      "latest": "2026-08-05",
+      "first": "2026-02-26",
+      "total": 4,
+      "days_since": 35,
       "level": "ongoing"
     },
     {
@@ -422,7 +436,7 @@
       "latest": "2026-05-27",
       "first": "2025-10-15",
       "total": 4,
-      "days_since": 104,
+      "days_since": 105,
       "level": "quiet"
     },
     {
@@ -436,7 +450,7 @@
       "latest": "2026-06-26",
       "first": "2025-11-19",
       "total": 4,
-      "days_since": 74,
+      "days_since": 75,
       "level": "recent"
     },
     {
@@ -450,7 +464,7 @@
       "latest": "2026-05-26",
       "first": "2026-01-25",
       "total": 3,
-      "days_since": 105,
+      "days_since": 106,
       "level": "quiet"
     },
     {
@@ -464,7 +478,7 @@
       "latest": "2026-08-28",
       "first": "2025-07-10",
       "total": 3,
-      "days_since": 11,
+      "days_since": 12,
       "level": "ongoing"
     },
     {
@@ -478,7 +492,7 @@
       "latest": "2026-09-01",
       "first": "2025-10-06",
       "total": 3,
-      "days_since": 7,
+      "days_since": 8,
       "level": "recent"
     },
     {
@@ -492,7 +506,7 @@
       "latest": "2026-08-28",
       "first": "2025-07-16",
       "total": 3,
-      "days_since": 11,
+      "days_since": 12,
       "level": "ongoing"
     },
     {
@@ -506,7 +520,7 @@
       "latest": "2026-08-21",
       "first": "2026-06-03",
       "total": 3,
-      "days_since": 18,
+      "days_since": 19,
       "level": "ongoing"
     },
     {
@@ -520,7 +534,7 @@
       "latest": "2026-06-12",
       "first": "2025-09-29",
       "total": 3,
-      "days_since": 88,
+      "days_since": 89,
       "level": "ongoing"
     },
     {
@@ -534,7 +548,7 @@
       "latest": "2026-08-26",
       "first": "2023-03-07",
       "total": 3,
-      "days_since": 13,
+      "days_since": 14,
       "level": "ongoing"
     },
     {
@@ -548,21 +562,21 @@
       "latest": "2026-08-25",
       "first": "2025-07-03",
       "total": 3,
-      "days_since": 14,
+      "days_since": 15,
       "level": "ongoing"
     },
     {
-      "name": "United States of America",
-      "iso": "USA",
-      "region": "Americas",
-      "eaaf": true,
-      "poultry": 2,
-      "wild": 1,
-      "ongoing": 3,
-      "latest": "2026-08-20",
-      "first": "2022-09-12",
+      "name": "Ukraine",
+      "iso": "UKR",
+      "region": "Europe",
+      "eaaf": false,
+      "poultry": 0,
+      "wild": 3,
+      "ongoing": 2,
+      "latest": "2026-09-01",
+      "first": "2026-01-15",
       "total": 3,
-      "days_since": 19,
+      "days_since": 8,
       "level": "ongoing"
     },
     {
@@ -576,7 +590,7 @@
       "latest": "2026-06-08",
       "first": "2026-02-09",
       "total": 2,
-      "days_since": 92,
+      "days_since": 93,
       "level": "quiet"
     },
     {
@@ -590,7 +604,7 @@
       "latest": "2026-07-13",
       "first": "2025-09-23",
       "total": 2,
-      "days_since": 57,
+      "days_since": 58,
       "level": "ongoing"
     },
     {
@@ -604,7 +618,7 @@
       "latest": "2026-07-03",
       "first": "2026-01-23",
       "total": 2,
-      "days_since": 67,
+      "days_since": 68,
       "level": "recent"
     },
     {
@@ -618,7 +632,7 @@
       "latest": "2026-04-27",
       "first": "2026-01-26",
       "total": 2,
-      "days_since": 134,
+      "days_since": 135,
       "level": "quiet"
     },
     {
@@ -632,7 +646,7 @@
       "latest": "2026-08-19",
       "first": "2026-02-21",
       "total": 2,
-      "days_since": 20,
+      "days_since": 21,
       "level": "recent"
     },
     {
@@ -646,7 +660,7 @@
       "latest": "2026-07-13",
       "first": "2025-05-08",
       "total": 2,
-      "days_since": 57,
+      "days_since": 58,
       "level": "recent"
     },
     {
@@ -660,7 +674,7 @@
       "latest": "2026-05-06",
       "first": "2025-09-09",
       "total": 2,
-      "days_since": 125,
+      "days_since": 126,
       "level": "ongoing"
     },
     {
@@ -674,8 +688,22 @@
       "latest": "2026-08-30",
       "first": "2025-10-15",
       "total": 2,
-      "days_since": 9,
+      "days_since": 10,
       "level": "recent"
+    },
+    {
+      "name": "Latvia",
+      "iso": "LVA",
+      "region": "Europe",
+      "eaaf": false,
+      "poultry": 0,
+      "wild": 2,
+      "ongoing": 1,
+      "latest": "2026-09-01",
+      "first": "2025-09-20",
+      "total": 2,
+      "days_since": 8,
+      "level": "ongoing"
     },
     {
       "name": "Lithuania",
@@ -688,7 +716,7 @@
       "latest": "2026-06-22",
       "first": "2025-10-12",
       "total": 2,
-      "days_since": 78,
+      "days_since": 79,
       "level": "ongoing"
     },
     {
@@ -702,7 +730,7 @@
       "latest": "2026-08-01",
       "first": "2026-03-02",
       "total": 2,
-      "days_since": 38,
+      "days_since": 39,
       "level": "ongoing"
     },
     {
@@ -716,7 +744,7 @@
       "latest": "2026-05-19",
       "first": "2025-09-02",
       "total": 2,
-      "days_since": 112,
+      "days_since": 113,
       "level": "quiet"
     },
     {
@@ -730,7 +758,7 @@
       "latest": "2026-08-26",
       "first": "2026-02-02",
       "total": 2,
-      "days_since": 13,
+      "days_since": 14,
       "level": "ongoing"
     },
     {
@@ -744,7 +772,7 @@
       "latest": "2026-04-17",
       "first": "2026-02-26",
       "total": 2,
-      "days_since": 144,
+      "days_since": 145,
       "level": "quiet"
     },
     {
@@ -758,7 +786,7 @@
       "latest": "2026-07-16",
       "first": "2023-03-05",
       "total": 2,
-      "days_since": 54,
+      "days_since": 55,
       "level": "ongoing"
     },
     {
@@ -772,7 +800,7 @@
       "latest": "2026-08-28",
       "first": "2025-05-01",
       "total": 2,
-      "days_since": 11,
+      "days_since": 12,
       "level": "ongoing"
     },
     {
@@ -786,7 +814,7 @@
       "latest": "2026-08-07",
       "first": "2026-06-15",
       "total": 1,
-      "days_since": 32,
+      "days_since": 33,
       "level": "ongoing"
     },
     {
@@ -800,7 +828,7 @@
       "latest": "2026-08-18",
       "first": "2025-12-08",
       "total": 1,
-      "days_since": 21,
+      "days_since": 22,
       "level": "ongoing"
     },
     {
@@ -814,7 +842,7 @@
       "latest": "2026-03-30",
       "first": "2025-11-06",
       "total": 1,
-      "days_since": 162,
+      "days_since": 163,
       "level": "ongoing"
     },
     {
@@ -828,7 +856,7 @@
       "latest": "2026-08-11",
       "first": "2026-06-18",
       "total": 1,
-      "days_since": 28,
+      "days_since": 29,
       "level": "recent"
     },
     {
@@ -842,7 +870,7 @@
       "latest": "2026-04-15",
       "first": "2026-03-16",
       "total": 1,
-      "days_since": 146,
+      "days_since": 147,
       "level": "ongoing"
     },
     {
@@ -856,7 +884,7 @@
       "latest": "2026-07-23",
       "first": "2026-07-09",
       "total": 1,
-      "days_since": 47,
+      "days_since": 48,
       "level": "recent"
     },
     {
@@ -870,7 +898,7 @@
       "latest": "2026-06-25",
       "first": "2025-12-02",
       "total": 1,
-      "days_since": 75,
+      "days_since": 76,
       "level": "ongoing"
     },
     {
@@ -884,7 +912,7 @@
       "latest": "2026-07-28",
       "first": "2024-10-24",
       "total": 1,
-      "days_since": 42,
+      "days_since": 43,
       "level": "ongoing"
     },
     {
@@ -898,8 +926,8 @@
       "latest": "2026-06-10",
       "first": "2026-04-03",
       "total": 1,
-      "days_since": 90,
-      "level": "recent"
+      "days_since": 91,
+      "level": "quiet"
     },
     {
       "name": "Heard and McDonald Islands",
@@ -912,7 +940,7 @@
       "latest": "2026-06-29",
       "first": "2026-01-03",
       "total": 1,
-      "days_since": 71,
+      "days_since": 72,
       "level": "recent"
     },
     {
@@ -926,7 +954,7 @@
       "latest": "2026-07-13",
       "first": "2025-02-03",
       "total": 1,
-      "days_since": 57,
+      "days_since": 58,
       "level": "ongoing"
     },
     {
@@ -940,22 +968,8 @@
       "latest": "2026-07-30",
       "first": "2025-02-17",
       "total": 1,
-      "days_since": 40,
+      "days_since": 41,
       "level": "ongoing"
-    },
-    {
-      "name": "Latvia",
-      "iso": "LVA",
-      "region": "Europe",
-      "eaaf": false,
-      "poultry": 0,
-      "wild": 1,
-      "ongoing": 0,
-      "latest": "2026-06-16",
-      "first": "2025-11-09",
-      "total": 1,
-      "days_since": 84,
-      "level": "recent"
     },
     {
       "name": "Liberia",
@@ -968,7 +982,7 @@
       "latest": "2026-06-03",
       "first": "2025-02-03",
       "total": 1,
-      "days_since": 97,
+      "days_since": 98,
       "level": "quiet"
     },
     {
@@ -982,7 +996,7 @@
       "latest": "2026-07-01",
       "first": "2025-10-21",
       "total": 1,
-      "days_since": 69,
+      "days_since": 70,
       "level": "recent"
     },
     {
@@ -996,7 +1010,7 @@
       "latest": "2026-04-27",
       "first": "2026-01-14",
       "total": 1,
-      "days_since": 134,
+      "days_since": 135,
       "level": "ongoing"
     },
     {
@@ -1010,7 +1024,7 @@
       "latest": "2026-05-04",
       "first": "2026-02-25",
       "total": 1,
-      "days_since": 127,
+      "days_since": 128,
       "level": "quiet"
     },
     {
@@ -1024,7 +1038,7 @@
       "latest": "2026-07-07",
       "first": "2025-12-10",
       "total": 1,
-      "days_since": 63,
+      "days_since": 64,
       "level": "ongoing"
     },
     {
@@ -1038,7 +1052,7 @@
       "latest": "2026-07-07",
       "first": "2025-10-06",
       "total": 1,
-      "days_since": 63,
+      "days_since": 64,
       "level": "recent"
     },
     {
@@ -1052,7 +1066,7 @@
       "latest": "2026-07-09",
       "first": "2020-12-17",
       "total": 1,
-      "days_since": 61,
+      "days_since": 62,
       "level": "ongoing"
     },
     {
@@ -1066,7 +1080,7 @@
       "latest": "2026-06-05",
       "first": "2026-01-16",
       "total": 1,
-      "days_since": 95,
+      "days_since": 96,
       "level": "quiet"
     },
     {
@@ -1080,7 +1094,7 @@
       "latest": "2026-06-11",
       "first": "2026-01-23",
       "total": 1,
-      "days_since": 89,
+      "days_since": 90,
       "level": "recent"
     },
     {
@@ -1094,7 +1108,7 @@
       "latest": "2026-03-23",
       "first": "2026-02-03",
       "total": 1,
-      "days_since": 169,
+      "days_since": 170,
       "level": "quiet"
     },
     {
@@ -1108,7 +1122,7 @@
       "latest": "2026-06-01",
       "first": "2025-10-27",
       "total": 1,
-      "days_since": 99,
+      "days_since": 100,
       "level": "quiet"
     },
     {
@@ -1122,7 +1136,7 @@
       "latest": "2026-08-27",
       "first": "2025-02-05",
       "total": 1,
-      "days_since": 12,
+      "days_since": 13,
       "level": "recent"
     },
     {
@@ -1136,7 +1150,7 @@
       "latest": "2026-05-06",
       "first": "2025-11-03",
       "total": 1,
-      "days_since": 125,
+      "days_since": 126,
       "level": "quiet"
     },
     {
@@ -1150,22 +1164,8 @@
       "latest": "2026-07-19",
       "first": "2026-07-01",
       "total": 1,
-      "days_since": 51,
+      "days_since": 52,
       "level": "ongoing"
-    },
-    {
-      "name": "Ukraine",
-      "iso": "UKR",
-      "region": "Europe",
-      "eaaf": false,
-      "poultry": 0,
-      "wild": 1,
-      "ongoing": 0,
-      "latest": "2026-04-07",
-      "first": "2026-01-15",
-      "total": 1,
-      "days_since": 154,
-      "level": "quiet"
     },
     {
       "name": "Uruguay",
@@ -1178,7 +1178,7 @@
       "latest": "2026-04-22",
       "first": "2026-02-19",
       "total": 1,
-      "days_since": 139,
+      "days_since": 140,
       "level": "quiet"
     },
     {
@@ -1192,7 +1192,7 @@
       "latest": "2026-07-02",
       "first": "2025-12-21",
       "total": 1,
-      "days_since": 68,
+      "days_since": 69,
       "level": "recent"
     }
   ],
