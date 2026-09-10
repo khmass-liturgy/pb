@@ -1,5 +1,5 @@
 {
-  "updated": "2026-09-09 10:02 KST",
+  "updated": "2026-09-10 09:50 KST",
   "channels": {
     "livestock": {
       "label": "축산·농업",
@@ -8,8 +8,15 @@
     },
     "vet": {
       "label": "수의·방역",
-      "items": [],
-      "count": 0
+      "items": [
+        {
+          "title": "수의사 구제역 백신접종 지원사업 대폭 확대한다 ‘내년부터 소 100두 농가까지’ - 데일리벳",
+          "link": "https://news.google.com/rss/articles/CBMiWEFVX3lxTE1VMUZwc1BlR0hHNDhVZHUzaENhN1dQbm1tSUhqaFhVbVh6NlVPRTY2eDdId2dfZkdCTWZXUERVV2J1UHBlSVNnN0x5TUxsRmxYcTFYQ0RwRGU?oc=5",
+          "date": "09/09 17:13",
+          "source": "데일리벳"
+        }
+      ],
+      "count": 1
     },
     "disease": {
       "label": "가축질병",
@@ -32,29 +39,23 @@
       "label": "경제",
       "items": [
         {
-          "title": "부동산부터 금리·물가·환율까지…2기 경제사령탑 과제 '산적' - 뉴스토마토",
-          "link": "https://news.google.com/rss/articles/CBMiYEFVX3lxTFA0bWNiQjFJUDRIOW5ZX3FtQ1RybGEyODhzZVQ4UG5EOTBfa0NDUTVCdkMtQXRBRWRwallGcFNBQWh3ZWlkUWJOTGs4RGQwSTdHM3JlLV9XYlBBSEpHZC1xLQ?oc=5",
-          "date": "09/02 17:28",
-          "source": "뉴스토마토"
-        },
-        {
-          "title": "금리·물가·환율 '3고'…지역경제 덮친 '내수 한파' - 대전일보",
-          "link": "https://news.google.com/rss/articles/CBMib0FVX3lxTFBLSFlZOEx5ekJ4OHpTU3dGbFk5eWlxOXV4X1gyX2tTTHhJUUJlTl9ibk5PMW45VWY1VFdxSlNRbVItSUJvQ2IzOVhvYWN2OVVKNWdjaFVTNk56TEF4d2hsNjVFSVpOVzFNTEVQcEpsa9IBc0FVX3lxTE90ekJ2N2d4MEtaN3VNNjk1UkpycllUVDJGcDQ5Y3JzakxQYkpNdUkyYndYQmk5aEFRN0tENXh3a2VnN0lnS2NBTU5fLVN5MW0yc25FMG43SlFPMnBWVW1KWndFMDJzamZhNkV0WVhFVkhjbzg?oc=5",
-          "date": "09/02 17:27",
-          "source": "대전일보"
-        },
-        {
           "title": "[친절한 경제] 금리 37%인데 왜 돈은 녹을까…환율의 함정 - standingout.kr",
           "link": "https://news.google.com/rss/articles/CBMia0FVX3lxTE9CdkVLUGphb0VIOUZMbGhORktNOWZvMldLY1FQTGJLb2FXR3B1eWdMQ3haOEYzWjl6TzNGcmJfaVFoUTFESmhENXJ5TFZPSWdlUF9qSUhTOTlocG5YSjl0SXRHZThOZzZqQ0dJ?oc=5",
           "date": "09/03 21:17",
           "source": "standingout.kr"
         }
       ],
-      "count": 3
+      "count": 1
     },
     "world": {
       "label": "국제",
       "items": [
+        {
+          "title": "‘로봇 강국 중국’…R&D 총액, 미국 제치고 사상 첫 세계 1위 - 문화일보",
+          "link": "https://news.google.com/rss/articles/CBMiUEFVX3lxTE94MFhMaEhXeUptOTlaXzk1NVBHaHVac085QzhVR2JIOFlBUWNDRVdOeE9JU1l0VHBzWmgxZG9nMzFUbWNpWWtQVloxXzRnVDlJ?oc=5",
+          "date": "09/09 11:56",
+          "source": "문화일보"
+        },
         {
           "title": "[데일리뉴스 국제분석] 중국이 미국을 넘어 새로운 글로벌 패권국으로 부상할 수 있을까? - 데일리뉴스",
           "link": "https://news.google.com/rss/articles/CBMilgRBVV95cUxPRGF3cjl1NlhLU0tDdk1xYjV0SUw3MUdJR0RCdE9yN3hQVkZJYldYMXl5T0hpNTdsem5oUWRNa1FjeTBwZFhGZFhOdTJGUXBhWl8wRm5kQXBwT1Z5NGhyZ19RQm1vLUhqUThxbE9MQktKVUEwaTU2Wjh6VlBSeGFYWGx0MTYzQVNUc0NsVWFRRDFUZXJIaUN0eThaY2ZTUnBJUllqS0kxSHViLXdnVFRJcTBnZVRDdF9LaDhDaGdLLXh2UVltN0dRQ0duakt1V20tcTRnMW54bVZvR2dfNjF3eEozM0c4dGdBTDNTYUlXeWJFRmViVjI5WGN6WHFoRzBmeXYzZjJXMXA3cnRJTUZrWUozdEVyMEt4c0pTYVdUMlNmRkJHejExaDE0cV83ck9leFJ6WVN6YlZ2Z3pFVUhGMUVRaHpkcTFPalg4TEJ5WFJFak5jNmM3VUppSU5fSHBxUkVmRl9qMS1IN3hHUkNIeDg4OGdSek84UXE2Tlpka3ZwdzY0SjVwNGVxTGF4U2VYeHVuOWwyb2NiaHlidzhWZ3hZV0duVmR0Tkx1Sjg0Vmk0V1YyNmxKTkNDVlFpLXV3eWtyMTlhUUZ0R3g2LXB5TEc4bC1lLXlmNHpsNFV2bmFFSmNFX2xTN3FnUGdFTDR4cHdabkVDLUsyMmppNlJBNmEyX2xkcTZxUGVLcTJZN2ZKd2liS2c?oc=5",
@@ -62,7 +63,7 @@
           "source": "데일리뉴스"
         }
       ],
-      "count": 1
+      "count": 2
     }
   }
 }
