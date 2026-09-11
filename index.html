@@ -2611,8 +2611,16 @@ function wdExtractPeriod(html){
   const doc = new DOMParser().parseFromString(html, "text/html");
   // 문서마다 단락 클래스가 다르다(indent0 / title 등 혼용) → 전체 <p> 를 훑는다
   const paras = [...doc.querySelectorAll("p")];
-  // 소제목 표기가 문서마다 다르다: "바. 휴약기간" / "4) 휴약기간" / "4. 휴약기간" 모두 존재
-  const isHeading = t => /^(?:[가-힣]\s*\.\s*\S|\(?\d+\)\s*\S|\d+\s*\.\s*\S)/.test(t);
+  // 소제목 줄 맨 앞의 번호만 뽑는다. "4) 휴약기간"처럼 소제목 자체가 번호를 달고
+  // 있는 문서와, "1) 돼지 : 7일"처럼 그 아래 축종별 항목이 번호를 다는 문서가
+  // 섞여 있어 숫자 하나만 보고는 "새 소제목"인지 "하위 항목"인지 구분이 안 된다.
+  const numberOf = t => {
+    const m = t.match(/^\(?(\d+)\)|^(\d+)\s*\./);
+    return m ? parseInt(m[1] || m[2], 10) : null;
+  };
+  // 문자로 된 소제목("가./나./바./사." 등)은 축종별 하위 항목과 표기가 겹칠 일이 없어
+  // 그대로 "새 소제목"의 확실한 신호로 쓴다.
+  const isLetteredHeading = t => /^[가-힣]\s*\.\s*\S/.test(t);
   // "바. 휴약기간" 처럼 소제목 한 줄로 끝나기도 하고, "1) 휴약기간 : 없음" / "바. 휴약기간 - 돼지 : 14일"
   // 처럼 소제목 뒤에 값이 바로 붙어 한 줄에 나오기도 한다 → 접두어만 매치해 나머지를 분리
   // "...휴약기간을 준수하지..." 같은 [권고사항] 속 문장은 조사가 바로 붙으므로
@@ -2625,10 +2633,19 @@ function wdExtractPeriod(html){
     if(!m) continue;
     const inline = t.slice(m[0].length).trim();
     const lines = inline ? [inline] : [];
+    // 소제목 자체에 번호가 있으면("6) 휴약기간") 다음 소제목도 그 다음 번호("7)")로
+    // 이어진다고 보고 그 번호가 나올 때만 멈춘다 — 그래야 "1)"부터 다시 시작하는
+    // 축종별 하위 항목("1) 돼지 : 7일")을 새 소제목으로 착각해 곧장 멈추지 않는다.
+    // 소제목이 문자 형식("바. 휴약기간")이면 그 아래 숫자로 시작하는 줄은 전부
+    // 하위 항목으로 보고 문자 소제목이 나올 때만 멈춘다. 두 경우 다 번호 하나만으로는
+    // 소제목·하위항목을 구분할 수 없어서 나온 판단 기준이다.
+    const headingNum = numberOf(t);
     for(let j = i + 1; j < paras.length; j++){
       const u = paras[j].textContent.replace(/\s+/g, " ").trim();
       if(!u) continue;
-      if(isHeading(u) || u.startsWith("[")) break;
+      if(u.startsWith("[")) break;
+      if(isLetteredHeading(u)) break;
+      if(headingNum != null && numberOf(u) === headingNum + 1) break;
       lines.push(u);
     }
     if(lines.length) sections.push(lines.join(" / "));
@@ -2740,7 +2757,7 @@ function renderDrugSearchPanel(){
         : `<strong>${esc(r.제품명||"")}</strong>`}</td>
       <td style="padding:7px 8px">${esc(r.업체명||"")}</td>
       <td style="padding:7px 8px"><span style="font-size:10px;padding:2px 7px;border-radius:6px;background:${r.품목구분==="동물용의약품"?"#E3F2FD":"#F1F8E9"};color:${r.품목구분==="동물용의약품"?"#1565C0":"#558B2F"}">${esc(r.품목구분||"")}</span></td>
-      <td style="padding:7px 8px;color:#666">${esc(r.주성분||"")}</td>
+      <td style="padding:7px 8px;color:#666">${r.주성분 ? esc(r.주성분) : `<span style="color:#ccc;font-size:11px">정보 없음</span>`}</td>
       <td style="padding:7px 8px;color:#aaa;font-size:11px">${esc(r.허가일||"")}</td>
       <td style="padding:7px 8px">${wdCell}</td>
     </tr>`;
