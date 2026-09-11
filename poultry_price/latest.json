@@ -1,13 +1,17 @@
 {
-  "updated": "2026-09-10 11:24 KST",
+  "updated": "2026-09-11 11:19 KST",
   "stale": {},
   "egg": {
     "label": "계란 산지가격",
     "region": "전국",
     "grade": "특란 (XL)",
     "unit": "원/10개",
-    "latest": 2097,
+    "latest": 2102,
     "rows": [
+      {
+        "date": "2026-09-10",
+        "value": 2102
+      },
       {
         "date": "2026-09-09",
         "value": 2097
@@ -91,10 +95,6 @@
       {
         "date": "2026-08-11",
         "value": 2226
-      },
-      {
-        "date": "2026-08-10",
-        "value": 2260
       }
     ]
   },
@@ -105,6 +105,10 @@
     "unit": "원/10개",
     "latest": 2106,
     "rows": [
+      {
+        "date": "2026-09-10",
+        "value": 2106
+      },
       {
         "date": "2026-09-09",
         "value": 2106
@@ -188,18 +192,18 @@
       {
         "date": "2026-08-11",
         "value": 2272
-      },
-      {
-        "date": "2026-08-10",
-        "value": 2302
       }
     ]
   },
   "chicken": {
     "label": "생계유통(대)",
     "unit": "원/kg",
-    "latest": 1800,
+    "latest": 1664,
     "rows": [
+      {
+        "date": "2026-09-10",
+        "value": 1664
+      },
       {
         "date": "2026-09-09",
         "value": 1800
@@ -283,10 +287,6 @@
       {
         "date": "2026-08-11",
         "value": 2160
-      },
-      {
-        "date": "2026-08-10",
-        "value": 2100
       }
     ]
   },
@@ -296,8 +296,8 @@
       "large": {
         "label": "대",
         "spec": "1.6kg 이상",
-        "value": 1800,
-        "date": "2026-09-09"
+        "value": 1664,
+        "date": "2026-09-10"
       },
       "medium": {
         "label": "중",
@@ -313,6 +313,12 @@
       }
     },
     "rows": [
+      {
+        "date": "2026-09-10",
+        "large": 1664,
+        "medium": null,
+        "small": null
+      },
       {
         "date": "2026-09-09",
         "large": 1800,
@@ -438,27 +444,21 @@
         "large": 2160,
         "medium": null,
         "small": null
-      },
-      {
-        "date": "2026-08-10",
-        "large": 2100,
-        "medium": null,
-        "small": null
       }
     ]
   },
   "pig": {
     "label": "농가수취 평균",
     "unit": "원/kg",
-    "latest": 7835,
+    "latest": 7810,
     "rows": [
+      {
+        "date": "2026-09-10",
+        "value": 7810
+      },
       {
         "date": "2026-09-09",
         "value": 7835
-      },
-      {
-        "date": "2026-09-08",
-        "value": 7752
       }
     ]
   },
@@ -467,39 +467,45 @@
       "female_calf": {
         "label": "암송아지(6~7개월)",
         "unit": "천원/마리",
-        "value": 3883,
-        "date": "2026-09-07"
+        "value": 3945,
+        "date": "2026-09-09"
       },
       "male_calf": {
         "label": "수송아지(6~7개월)",
         "unit": "천원/마리",
-        "value": 5456,
-        "date": "2026-09-07"
+        "value": 5395,
+        "date": "2026-09-09"
       },
       "farm_receipt_600kg": {
         "label": "농가수취가격(600kg)",
         "unit": "천원/마리",
-        "value": 8930,
-        "date": "2026-09-09"
+        "value": 8863,
+        "date": "2026-09-10"
       }
     },
     "rows": [
       {
-        "date": "2026-09-10",
+        "date": "2026-09-11",
         "female_calf": null,
         "male_calf": null,
         "farm_receipt_600kg": null
       },
       {
-        "date": "2026-09-09",
+        "date": "2026-09-10",
         "female_calf": null,
         "male_calf": null,
+        "farm_receipt_600kg": 8863
+      },
+      {
+        "date": "2026-09-09",
+        "female_calf": 3945,
+        "male_calf": 5395,
         "farm_receipt_600kg": 8930
       },
       {
         "date": "2026-09-08",
-        "female_calf": null,
-        "male_calf": null,
+        "female_calf": 3870,
+        "male_calf": 5418,
         "farm_receipt_600kg": 8888
       },
       {
@@ -633,12 +639,6 @@
         "female_calf": 3732,
         "male_calf": 5069,
         "farm_receipt_600kg": 8013
-      },
-      {
-        "date": "2026-08-10",
-        "female_calf": 3716,
-        "male_calf": 5054,
-        "farm_receipt_600kg": 6291
       }
     ]
   },
