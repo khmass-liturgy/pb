@@ -1960,12 +1960,26 @@ async function diagnoseToken(){
             : " 토큰 만들 때 Repository access에서 이 저장소를 선택했는지 확인하세요.");
     }
     if(!rp.ok) return "저장소 확인 실패 (HTTP " + rp.status + ")";
-    const perm = (await rp.json()).permissions || {};
+    // 여기서 받은 permissions.push는 "이 계정이 저장소에 일반적으로 가진 권한"이라
+    // 저장소 주인이면 토큰 세부 권한과 무관하게 항상 true로 나온다 — 파인그레인드
+    // 토큰이 Contents 권한을 Read-only(또는 미부여)로 만들어졌어도 이 단계는
+    // 통과해버려서 "정상"이라고 오판하게 만든다. 그래서 실제 파일 조회(Contents
+    // 권한이 있어야 되는 호출)로 다시 확인한다.
 
-    // 3) 쓰기 권한이 있는가
-    if(!perm.push)
-      return "'" + login + "' 계정으로 저장소는 보이지만 쓰기 권한이 없습니다. 토큰 권한에 Contents: Read and write 를 주세요.";
-    return "정상입니다 — '" + login + "' 계정, " + PICK_REPO + " 쓰기 가능. 다시 발행해보세요.";
+    // 3) Contents 권한이 실제로 있는가 — 발행 대상 파일을 직접 조회해본다
+    const cp = await fetch("https://api.github.com/repos/" + PICK_REPO + "/contents/" + PICK_PATH, { headers: head });
+    if(cp.status === 403 || cp.status === 401)
+      return "'" + login + "' 계정으로 저장소는 보이지만 Contents 권한이 없습니다. "
+        + "토큰을 새로 만들 때 Permissions → Contents를 'Read-only'가 아니라 'Read and write'로 선택했는지 확인하세요 "
+        + "(권한 종류를 안 건드리면 기본값이 No access라 저장소 접근은 되는데 파일은 못 읽고 못 씁니다).";
+    if(!cp.ok && cp.status !== 404)
+      return "파일 확인 실패 (HTTP " + cp.status + ")";
+    // Contents 읽기까지는 확인됐다. 쓰기(Read and write)는 안전하게 미리 확인할
+    // 방법이 없어(실제로 커밋해봐야 안다) 여기서는 "아마 될 것"까지만 말해준다 —
+    // 그래도 여전히 발행이 403으로 실패하면 Read-only로 선택됐을 가능성이 크다.
+    return "'" + login + "' 계정, " + PICK_REPO + " 저장소와 파일 읽기까지 정상입니다. 다시 발행해보세요. "
+      + "그래도 '쓰기 권한이 없습니다' 오류가 반복되면, 토큰의 Contents 권한이 Read-only로 되어 있을 가능성이 큽니다 — "
+      + "새 토큰을 만들 때 Contents를 'Read and write'로 선택해 주세요.";
   } catch(e) {
     return "점검 중 오류: " + (e.message || e);
   }
