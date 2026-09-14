@@ -6462,26 +6462,26 @@ function renderWeatherBody(){
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px">
       <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap">
         <div>
-          <div style="font-size:11px;color:#888">오늘 최고/최저</div>
-          <div style="font-size:16px;font-weight:800;margin-top:2px">
+          <div style="font-size:22px;color:#888">오늘 최고/최저</div>
+          <div style="font-size:32px;font-weight:800;margin-top:2px">
             <span style="color:#D32F2F">${todayHigh!=null?Math.round(todayHigh)+"°":"-"}</span>
             <span style="color:#ccc;font-weight:400">/</span>
             <span style="color:#1565C0">${todayLow!=null?Math.round(todayLow)+"°":"-"}</span>
           </div>
         </div>
         <div>
-          <div style="font-size:11px;color:#888">습도 (낮/밤)</div>
-          <div style="font-size:16px;font-weight:800;color:#0288D1;margin-top:2px">🌞${thDay!=null?Math.round(thDay)+"%":"-"} / 🌙${thNight!=null?Math.round(thNight)+"%":"-"}</div>
+          <div style="font-size:22px;color:#888">습도 (낮/밤)</div>
+          <div style="font-size:32px;font-weight:800;color:#0288D1;margin-top:2px">🌞${thDay!=null?Math.round(thDay)+"%":"-"} / 🌙${thNight!=null?Math.round(thNight)+"%":"-"}</div>
         </div>
         <div>
-          <div style="font-size:11px;color:#888">최대풍속 (지상 10m, 낮/밤)</div>
-          <div style="font-size:16px;font-weight:800;margin-top:2px">
+          <div style="font-size:22px;color:#888">최대풍속 (지상 10m, 낮/밤)</div>
+          <div style="font-size:32px;font-weight:800;margin-top:2px">
             <span style="color:${twlDay.color}">🌞${twDay!=null?twDay.toFixed(1):"-"}</span> / <span style="color:${twlNight.color}">🌙${twNight!=null?twNight.toFixed(1):"-"}</span>m/s
-            <span style="font-size:11px;background:${twl.bg};color:${twl.color};border-radius:6px;padding:1px 7px;margin-left:2px">${twl.label}</span>
+            <span style="font-size:22px;background:${twl.bg};color:${twl.color};border-radius:6px;padding:1px 7px;margin-left:2px">${twl.label}</span>
           </div>
         </div>
       </div>
-      <div style="font-size:11px;color:#555;max-width:240px;text-align:right">${twl.note}</div>
+      <div style="font-size:22px;color:#555;max-width:420px;text-align:right">${twl.note}</div>
     </div>
   </div>` : ""}
 
