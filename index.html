@@ -3827,7 +3827,7 @@ function renderBroilerPriceTodayPanel(){
   ];
   const rows = d.rows.map(r => `
     <tr>
-      <th scope="row" style="text-align:left;padding:8px 6px;font-size:12px;font-weight:700;color:#333;border-top:1px solid #eee">${esc(r.grade)}</th>
+      <th scope="row" style="text-align:center;padding:8px 6px;font-size:12px;font-weight:700;color:#333;border-top:1px solid #eee">${esc(r.grade)}</th>
       ${cols.map(c => `<td style="text-align:center;padding:8px 6px;font-size:13px;font-weight:800;color:${c.color};background:${c.bg};border-top:1px solid #eee">${r[c.key].toLocaleString()}</td>`).join("")}
     </tr>`).join("");
   return `
@@ -3837,7 +3837,7 @@ function renderBroilerPriceTodayPanel(){
       <table style="width:100%;border-collapse:collapse;min-width:320px">
         <thead>
           <tr style="background:#00897B;color:#fff">
-            <th scope="col" style="text-align:left;padding:8px 6px;font-size:11px;border-radius:8px 0 0 0">${esc(d.date_label||"")}</th>
+            <th scope="col" style="text-align:center;padding:8px 6px;font-size:11px;border-radius:8px 0 0 0">${esc(d.date_label||"")}</th>
             ${cols.map((c,i) => `<th scope="col" style="text-align:center;padding:8px 6px;font-size:11px;color:${c.color};background:${c.bg};${i===cols.length-1?"border-radius:0 8px 0 0":""}">${c.label}</th>`).join("")}
           </tr>
         </thead>
