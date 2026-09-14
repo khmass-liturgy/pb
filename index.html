@@ -3817,16 +3817,18 @@ function renderBroilerPriceTodayPanel(){
   const st = broilerPriceTodayState;
   if(st.status !== "done" || !st.data || !st.data.rows?.length) return "";
   const d = st.data;
+  // 금일/전일/전월/전년을 색으로 구분 — 금일은 지금 봐야 할 값이라 붉게 강조하고,
+  // 나머지 비교값은 서로 헷갈리지 않게 각기 다른 색을 준다.
   const cols = [
-    { key:"today", label:"금일" },
-    { key:"yesterday", label:"전일" },
-    { key:"last_month", label:"전월" },
-    { key:"last_year", label:"전년" },
+    { key:"today",      label:"금일", color:"#D32F2F", bg:"#FFEBEE" },
+    { key:"yesterday",  label:"전일", color:"#555555", bg:"#F5F5F5" },
+    { key:"last_month", label:"전월", color:"#1565C0", bg:"#E3F2FD" },
+    { key:"last_year",  label:"전년", color:"#6A1B9A", bg:"#F3E5F5" },
   ];
   const rows = d.rows.map(r => `
     <tr>
       <th scope="row" style="text-align:left;padding:8px 6px;font-size:12px;font-weight:700;color:#333;border-top:1px solid #eee">${esc(r.grade)}</th>
-      ${cols.map(c => `<td style="text-align:center;padding:8px 6px;font-size:13px;font-weight:700;color:#1a2744;border-top:1px solid #eee">${r[c.key].toLocaleString()}</td>`).join("")}
+      ${cols.map(c => `<td style="text-align:center;padding:8px 6px;font-size:13px;font-weight:800;color:${c.color};background:${c.bg};border-top:1px solid #eee">${r[c.key].toLocaleString()}</td>`).join("")}
     </tr>`).join("");
   return `
   <div class="card" style="margin-bottom:20px">
@@ -3836,7 +3838,7 @@ function renderBroilerPriceTodayPanel(){
         <thead>
           <tr style="background:#00897B;color:#fff">
             <th scope="col" style="text-align:left;padding:8px 6px;font-size:11px;border-radius:8px 0 0 0">${esc(d.date_label||"")}</th>
-            ${cols.map((c,i) => `<th scope="col" style="text-align:center;padding:8px 6px;font-size:11px;${i===cols.length-1?"border-radius:0 8px 0 0":""}">${c.label}</th>`).join("")}
+            ${cols.map((c,i) => `<th scope="col" style="text-align:center;padding:8px 6px;font-size:11px;color:${c.color};background:${c.bg};${i===cols.length-1?"border-radius:0 8px 0 0":""}">${c.label}</th>`).join("")}
           </tr>
         </thead>
         <tbody>${rows}</tbody>
