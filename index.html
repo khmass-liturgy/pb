@@ -1924,10 +1924,15 @@ async function publishPicks(picks, message){
     });
     if(!res.ok){
       const t = await res.text();
-      if(res.status === 401) throw new Error("토큰이 올바르지 않거나 만료되었습니다.");
-      if(res.status === 403) throw new Error("이 토큰에는 쓰기 권한이 없습니다.");
+      // GitHub가 준 실제 사유를 그대로 보여준다 — 예전엔 403을 무조건 "쓰기
+      // 권한이 없습니다"로 단정했는데, 토큰 권한은 정상인데도 403이 나는
+      // 경우(예: 조직 SSO 미승인, 푸시 보호 등)가 있어 원인 파악이 안 됐다.
+      let apiMsg = "";
+      try { apiMsg = JSON.parse(t).message || ""; } catch(e){}
+      if(res.status === 401) throw new Error("토큰이 올바르지 않거나 만료되었습니다." + (apiMsg?" ("+apiMsg+")":""));
+      if(res.status === 403) throw new Error("발행이 거부됐습니다(HTTP 403)." + (apiMsg?" GitHub 응답: "+apiMsg:" 토큰 권한을 다시 확인하세요."));
       if(res.status === 409) throw new Error("다른 곳에서 먼저 수정됐습니다. 새로고침 후 다시 시도하세요.");
-      throw new Error("발행 실패 (HTTP " + res.status + ") " + t.slice(0,120));
+      throw new Error("발행 실패 (HTTP " + res.status + ") " + (apiMsg || t.slice(0,120)));
     }
     pickState.data = body;
     return { ok:true };
@@ -1968,10 +1973,13 @@ async function diagnoseToken(){
 
     // 3) Contents 권한이 실제로 있는가 — 발행 대상 파일을 직접 조회해본다
     const cp = await fetch("https://api.github.com/repos/" + PICK_REPO + "/contents/" + PICK_PATH, { headers: head });
-    if(cp.status === 403 || cp.status === 401)
-      return "'" + login + "' 계정으로 저장소는 보이지만 Contents 권한이 없습니다. "
-        + "토큰을 새로 만들 때 Permissions → Contents를 'Read-only'가 아니라 'Read and write'로 선택했는지 확인하세요 "
-        + "(권한 종류를 안 건드리면 기본값이 No access라 저장소 접근은 되는데 파일은 못 읽고 못 씁니다).";
+    if(cp.status === 403 || cp.status === 401){
+      let apiMsg = ""; try { apiMsg = (await cp.json()).message || ""; } catch(e){}
+      return "'" + login + "' 계정으로 저장소는 보이지만 파일 조회가 거부됐습니다(HTTP " + cp.status + ")."
+        + (apiMsg ? " GitHub 응답: " + apiMsg + "." : "")
+        + " 토큰을 새로 만들 때 Permissions → Contents를 'Read-only'가 아니라 'Read and write'로 선택했는지 확인하고,"
+        + " 그래도 안 되면 '권한 해제' 후 방금 만든 토큰을 다시 붙여넣어(오타·공백 없이) 저장해보세요.";
+    }
     if(!cp.ok && cp.status !== 404)
       return "파일 확인 실패 (HTTP " + cp.status + ")";
     // Contents 읽기까지는 확인됐다. 쓰기(Read and write)는 안전하게 미리 확인할
