@@ -1647,17 +1647,8 @@ async function fetchWeather(lat, lng, name){
   weatherState.status="loading"; weatherState.locationName=name;
   if(state.tab==="weather" || state.tab==="vent" || state.tab==="disease") render();
   try {
-    const today = new Date();
-    // 작년 같은 주 7일: 오늘부터 6일 후까지 (예보와 같은 기간)
-    const lyStart = new Date(today); lyStart.setFullYear(today.getFullYear()-1);
-    const lyEnd = new Date(lyStart); lyEnd.setDate(lyStart.getDate()+6);
-    const dateFmt = (d)=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
     const fcstUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max,relative_humidity_2m_mean&hourly=temperature_2m,weathercode,precipitation,windspeed_10m,relativehumidity_2m&timezone=Asia%2FSeoul&forecast_days=7&windspeed_unit=ms`;
-    const histUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=${dateFmt(lyStart)}&end_date=${dateFmt(lyEnd)}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,relative_humidity_2m_mean&timezone=Asia%2FSeoul`;
-    const [fcstResp, histResp] = await Promise.all([
-      fetchWithTimeout(fcstUrl, 10000),
-      fetchWithTimeout(histUrl, 10000),
-    ]);
+    const fcstResp = await fetchWithTimeout(fcstUrl, 10000);
     if(!fcstResp.ok) throw new Error("예보 HTTP "+fcstResp.status);
     const fcstData = await fcstResp.json();
     const days = fcstData.daily;
@@ -1702,7 +1693,30 @@ async function fetchWeather(lat, lng, name){
     if(!weatherState.selectedDate && days.time.length>0){
       weatherState.selectedDate = days.time[0];
     }
-    // 작년 7일치 배열로 저장
+    weatherState.lat=lat; weatherState.lng=lng;
+    weatherState.status="done";
+    saveWeatherLocation(lat, lng, name);
+  } catch(e){
+    console.error("날씨 조회 실패:", e);
+    weatherState.status="error";
+    if(state.tab==="weather" || state.tab==="vent" || state.tab==="disease") render();
+    return;
+  }
+  if(state.tab==="weather" || state.tab==="vent" || state.tab==="disease") render();
+
+  // 작년 같은 주 비교는 부가 정보라 별도로 받는다 — archive-api.open-meteo.com이
+  // 사용자 네트워크에 따라 아주 느리거나(수십 초) 아예 막히는 경우가 있는데,
+  // 예보(fcstUrl)와 한 Promise.all로 묶어서 기다리면 이것 하나 때문에 예보까지
+  // 통째로 "조회 실패"가 되어 버렸다. 실패해도 예보는 이미 화면에 떠 있으니
+  // "작년" 칸만 "데이터 없음"으로 남긴다.
+  try {
+    const today = new Date();
+    // 작년 같은 주 7일: 오늘부터 6일 후까지 (예보와 같은 기간)
+    const lyStart = new Date(today); lyStart.setFullYear(today.getFullYear()-1);
+    const lyEnd = new Date(lyStart); lyEnd.setDate(lyStart.getDate()+6);
+    const dateFmt = (d)=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    const histUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=${dateFmt(lyStart)}&end_date=${dateFmt(lyEnd)}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,relative_humidity_2m_mean&timezone=Asia%2FSeoul`;
+    const histResp = await fetchWithTimeout(histUrl, 8000);
     if(histResp.ok){
       const hd = (await histResp.json()).daily;
       if(hd && hd.time){
@@ -1714,12 +1728,8 @@ async function fetchWeather(lat, lng, name){
         }));
       }
     }
-    weatherState.lat=lat; weatherState.lng=lng;
-    weatherState.status="done";
-    saveWeatherLocation(lat, lng, name);
   } catch(e){
-    console.error("날씨 조회 실패:", e);
-    weatherState.status="error";
+    console.warn("작년 비교 날씨 로딩 실패(예보는 정상 표시됨):", e);
   }
   if(state.tab==="weather" || state.tab==="vent" || state.tab==="disease") render();
 }
@@ -1979,9 +1989,13 @@ function renderMonthlyPick(list){
 
   const nameOf = s => { const d = list.find(x=>x.slug===s); return d ? d.title_ko : s; };
   const engOf  = s => { const d = list.find(x=>x.slug===s); return d ? d.title_en : ""; };
+  // 질병을 선택하지 않고 등록한 "기타사항"은 slug가 없다 — 연결할 질병
+  // 상세페이지가 없으므로 이름은 직접 입력한 제목으로, 통계 집계에서는 뺀다.
+  const displayName = p => p.slug ? nameOf(p.slug) : (p.title || "기타사항");
+  const displayEng  = p => p.slug ? engOf(p.slug) : "기타사항";
 
   const tally = {};
-  months.forEach(m => picks[m].forEach(p => { tally[p.slug] = (tally[p.slug]||0)+1; }));
+  months.forEach(m => picks[m].forEach(p => { if(p.slug) tally[p.slug] = (tally[p.slug]||0)+1; }));
   const ranked = Object.entries(tally).sort((a,b)=> b[1]-a[1]);
 
   // 드롭다운은 가나다순. 원본 목록은 사이트 게재 순서라 찾기 어렵다.
@@ -1994,15 +2008,16 @@ function renderMonthlyPick(list){
   const curCards = curList.length
     ? '<div style="display:flex;flex-direction:column;gap:7px">'
       + curList.map((p,i) =>
-          '<a href="#" class="dz-goto" data-slug="'+esc(p.slug)+'" '
-          + 'style="display:flex;align-items:flex-start;gap:10px;text-decoration:none;background:#FFFBEA;border:1px solid #F0E0A0;border-radius:9px;padding:11px 13px">'
+          '<'+(p.slug?'a href="#" class="dz-goto" data-slug="'+esc(p.slug)+'"':'div')
+          + ' style="display:flex;align-items:flex-start;gap:10px;text-decoration:none;background:#FFFBEA;border:1px solid #F0E0A0;border-radius:9px;padding:11px 13px">'
           + '<span style="font-size:11px;font-weight:800;color:#B8860B;background:#fff;border:1px solid #F0E0A0;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+(i+1)+'</span>'
           + '<span style="flex:1;min-width:0">'
-          +   '<span style="display:block;font-size:15px;font-weight:800;color:#7A5C00">'+esc(nameOf(p.slug))+'</span>'
-          +   '<span style="display:block;font-size:10px;color:#A08A50;margin-top:1px">'+esc(engOf(p.slug))+'</span>'
+          +   '<span style="display:block;font-size:15px;font-weight:800;color:#7A5C00">'+esc(displayName(p))+(p.slug?'':' <span style="font-size:10px;font-weight:400;color:#B8860B">(기타)</span>')+'</span>'
+          +   (p.slug?'<span style="display:block;font-size:10px;color:#A08A50;margin-top:1px">'+esc(displayEng(p))+'</span>':'')
           +   (p.note?'<span style="display:block;font-size:12px;color:#6B5A20;margin-top:5px;line-height:1.6">'+esc(p.note)+'</span>':"")
           + '</span>'
-          + '<span style="font-size:11px;color:#B8860B;flex-shrink:0">보기 →</span></a>').join("")
+          + (p.slug?'<span style="font-size:11px;color:#B8860B;flex-shrink:0">보기 →</span>':'')
+          + '</'+(p.slug?'a':'div')+'>').join("")
       + '</div>'
     : '<div style="background:#FAFAFA;border:1px dashed #ddd;border-radius:9px;padding:14px;text-align:center;font-size:12px;color:#999">'
       + (pickState.status==="loading" ? "불러오는 중..." : "이달의 질병이 아직 선택되지 않았습니다") + '</div>';
@@ -2021,7 +2036,9 @@ function renderMonthlyPick(list){
               return '<div style="display:flex;align-items:flex-start;gap:8px;padding:5px 8px;border-radius:6px;'
                 + (isEd?'background:#FFFBEA;border:1px solid #F0E0A0':'border:1px solid #f5f5f5')+';margin-bottom:3px">'
                 + '<div style="flex:1;min-width:0">'
-                +   '<a href="#" class="dz-goto" data-slug="'+esc(p.slug)+'" style="font-size:12px;color:#00695C;font-weight:600;text-decoration:none">'+esc(nameOf(p.slug))+'</a>'
+                +   (p.slug
+                      ? '<a href="#" class="dz-goto" data-slug="'+esc(p.slug)+'" style="font-size:12px;color:#00695C;font-weight:600;text-decoration:none">'+esc(displayName(p))+'</a>'
+                      : '<span style="font-size:12px;color:#333;font-weight:600">'+esc(displayName(p))+' <span style="font-size:10px;font-weight:400;color:#B8860B">(기타)</span></span>')
                 +   (p.note?'<div style="font-size:10px;color:#999;margin-top:2px">'+esc(p.note)+'</div>':"")
                 + '</div>'
                 + (admin ? '<div style="flex-shrink:0;white-space:nowrap">'
@@ -2075,13 +2092,17 @@ function renderMonthlyPick(list){
       + '<div style="background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">'
       +   '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:7px">'
       +     '<div style="font-size:11px;font-weight:700;color:#7A5C00">'
-      +       (editing ? esc(monthLabel(ref.month))+' · '+esc(nameOf(editing.slug))+' 수정' : '질병 추가')+'</div>'
+      +       (editing ? esc(monthLabel(ref.month))+' · '+esc(displayName(editing))+' 수정' : '질병 추가')+'</div>'
       +     (editing?'<button id="dz-pick-cancel" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:2px 8px">편집 취소</button>':'')
       +   '</div>'
       +   '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'
       +     '<input id="dz-pick-month" type="month" value="'+esc(formMonth)+'" style="width:140px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />'
       +     '<select id="dz-pick-sel" style="flex:1;min-width:140px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px">'
-      +       '<option value="">— 질병 선택 —</option>'+options+'</select>'
+      +       '<option value="">— 질병 선택 (또는 아래에 기타사항 직접 입력) —</option>'+options+'</select>'
+      +   '</div>'
+      +   '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px">'
+      +     '<input id="dz-pick-custom-title" type="text" placeholder="기타사항 제목 (질병을 선택하지 않았을 때만 사용)" value="'+esc(editing&&!editing.slug&&editing.title||"")+'" '
+      +       'style="flex:1;min-width:150px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />'
       +   '</div>'
       +   '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px">'
       +     '<input id="dz-pick-note" type="text" placeholder="한줄 코멘트(선택)" value="'+esc(editing&&editing.note||"")+'" '
@@ -6785,19 +6806,24 @@ function attachDiseaseEvents(){
 
   const save = document.getElementById("dz-pick-save");
   if(save) save.onclick = () => {
-    const sel  = document.getElementById("dz-pick-sel");
-    const note = document.getElementById("dz-pick-note");
-    const mon  = document.getElementById("dz-pick-month");
-    const slug = sel && sel.value;
+    const sel   = document.getElementById("dz-pick-sel");
+    const title = document.getElementById("dz-pick-custom-title");
+    const note  = document.getElementById("dz-pick-note");
+    const mon   = document.getElementById("dz-pick-month");
+    const slug  = (sel && sel.value) || "";
+    const customTitle = (title && title.value || "").trim();
     const m = (mon && mon.value) || monthKey();
-    if(!slug){ alert("질병을 먼저 선택하세요."); return; }
+    // 질병을 선택했으면 기존처럼 slug로 등록하고, 선택하지 않았으면 직접
+    // 입력한 제목으로 "기타사항"을 등록한다 — 슬러그가 없으니 질병 상세
+    // 페이지로는 연결되지 않는다.
+    if(!slug && !customTitle){ alert("질병을 선택하거나, 기타사항 제목을 입력하세요."); return; }
     if(!/^\d{4}-\d{2}$/.test(m)){ alert("월을 올바르게 선택하세요."); return; }
 
     // 현재 발행본을 복사해서 고친다 (원본을 직접 건드리면 실패 시 화면이 어긋난다)
     const picks = JSON.parse(JSON.stringify(currentPicks()));
     const ref = pickState.editRef;
-    const body = { slug, note: (note && note.value || "").trim(), by: PICK_BY,
-                   ts: new Date().toISOString() };
+    const body = Object.assign({ slug, note: (note && note.value || "").trim(), by: PICK_BY,
+                   ts: new Date().toISOString() }, slug ? {} : { title: customTitle });
 
     if(ref){
       // 편집 — 해당 항목만 고친다. 달을 바꿨으면 옮긴다.
