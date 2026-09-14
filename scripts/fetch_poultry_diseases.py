@@ -64,6 +64,12 @@ EXCLUDE_SLUGS = {
     "spontaneous-rupture-of-the-caudial-renal-artery-in-turkeys",
     "round-heart-in-turkeys-dilated-cardiomyopathy",
     "gizzard-impaction-in-turkey-poults",
+    # 사용자 요청으로 뺀 항목(2026-09) — 국내 양계 컨설팅 현장에서 쓸 일이
+    # 없다는 판단. 여기 넣어두지 않으면 다음 주간 수집 때 원문에서 다시
+    # 긁어와 되살아난다.
+    "acute-propanebutane-intoxication",       # 급성 프로판-부탄 중독
+    "riemerella-anatipestifer-infections",    # 리메렐라 아나티페스티퍼 감염
+    "adenocarcinomatosis",                    # 선암종증
 }
 
 # 현장에서 쓰는 한글 병명. 기계번역 제목만으로는 검색이 안 걸리는 걸 보완한다.
