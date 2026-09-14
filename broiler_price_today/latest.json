@@ -1,0 +1,45 @@
+{
+  "date_label": "09/14",
+  "rows": [
+    {
+      "grade": "대",
+      "spec": "1.6kg이상",
+      "unit": "원/kg",
+      "today": 1600,
+      "yesterday": 1600,
+      "last_month": 2400,
+      "last_year": 1800
+    },
+    {
+      "grade": "중",
+      "spec": "1.6kg미만~1.4kg이상",
+      "unit": "원/kg",
+      "today": 1700,
+      "yesterday": 1700,
+      "last_month": 2400,
+      "last_year": 1900
+    },
+    {
+      "grade": "소",
+      "spec": "1.4kg미만",
+      "unit": "원/kg",
+      "today": 1800,
+      "yesterday": 1800,
+      "last_month": 2500,
+      "last_year": 2000
+    },
+    {
+      "grade": "병아리",
+      "spec": null,
+      "unit": "원/마리",
+      "today": 720,
+      "yesterday": 720,
+      "last_month": 620,
+      "last_year": 520
+    }
+  ],
+  "note": "게재시간 : 당일 오후 1시 · 대(1.6kg이상), 중(1.6kg미만~1.4kg이상), 소(1.4kg미만)",
+  "updated": "2026-09-15 01:19 KST",
+  "source_url": "https://www.poultry.or.kr/",
+  "stale": false
+}

@@ -1,0 +1,50 @@
+name: 금일 육계시세(협회) 수집
+
+# 대한양계협회 홈페이지가 매일 오후 1시(KST)경 표를 갱신하므로, 그 이후인
+# 오후 1시 20분에 가져온다.
+on:
+  schedule:
+    # 04:20 UTC = 매일 한국시간 13:20
+    - cron: "20 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-broiler-price-today:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: 패키지 설치
+        run: pip install requests
+      - name: 금일 육계시세 수집
+        run: python scripts/fetch_broiler_price_today.py
+      - name: 결과 검증
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path("broiler_price_today/latest.json").read_text(encoding="utf-8"))
+          assert data["rows"], "행이 비어 있음"
+          grades = {r["grade"] for r in data["rows"]}
+          assert {"대", "중", "소", "병아리"} <= grades, grades
+          for r in data["rows"]:
+              assert isinstance(r["today"], int) and r["today"] > 0, r
+          PY
+      - name: 결과 커밋
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add broiler_price_today/
+          git diff --staged --quiet && exit 0
+          git commit -m "🐔 금일 육계시세(협회) 갱신"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin ${GITHUB_REF_NAME} && git push && exit 0
+            echo "푸시 재시도 $i"
+            sleep 5
+          done
+          exit 1

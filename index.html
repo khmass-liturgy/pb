@@ -442,6 +442,27 @@ const PRICE_CATEGORIES = [
 const POULTRY_PRICE_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/poultry_price/latest.json";
 let poultryPriceState = { status:"idle", data:null };
 
+// 대한양계협회(poultry.or.kr) 홈페이지 "금일 육계시세" 표 — 위 축산물품질평가원
+// (다봄) 시세와는 출처가 다른 협회 자체 공시가라 별도 패널로 둔다.
+const BROILER_PRICE_TODAY_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/broiler_price_today/latest.json";
+let broilerPriceTodayState = { status:"idle", data:null };
+
+async function fetchBroilerPriceToday(force){
+  broilerPriceTodayState.status = "loading";
+  try {
+    const bust = force ? Date.now() : Math.floor(Date.now()/600000);
+    const resp = await fetchWithTimeout(BROILER_PRICE_TODAY_JSON_URL + "?t=" + bust, 8000);
+    if(!resp.ok) throw new Error("HTTP " + resp.status);
+    const data = await resp.json();
+    if(!data.rows?.length) throw new Error("금일 육계시세 자료 없음");
+    broilerPriceTodayState = { status:"done", data };
+  } catch(e){
+    console.warn("금일 육계시세(협회) 로딩 실패:", e.message);
+    broilerPriceTodayState = { status:"error", data:null };
+  }
+  if(state.tab==="price" || state.tab==="pig" || state.tab==="livestock") render();
+}
+
 async function fetchPoultryPrices(force){
   poultryPriceState.status="loading";
   if(state.tab==="price" || state.tab==="pig" || state.tab==="livestock") render();
@@ -3789,10 +3810,47 @@ function renderChickenGradePanel(){
   </div>`;
 }
 
+// 대한양계협회 홈페이지에 매일 게시되는 "금일 육계시세" 표를 그대로 재현한다
+// (대/중/소/병아리 × 금일/전일/전월/전년). 위 규격별 카드(다봄 생계유통가격)와
+// 출처·구성이 달라 비교 목적의 별도 표로 둔다.
+function renderBroilerPriceTodayPanel(){
+  const st = broilerPriceTodayState;
+  if(st.status !== "done" || !st.data || !st.data.rows?.length) return "";
+  const d = st.data;
+  const cols = [
+    { key:"today", label:"금일" },
+    { key:"yesterday", label:"전일" },
+    { key:"last_month", label:"전월" },
+    { key:"last_year", label:"전년" },
+  ];
+  const rows = d.rows.map(r => `
+    <tr>
+      <th scope="row" style="text-align:left;padding:8px 6px;font-size:12px;font-weight:700;color:#333;border-top:1px solid #eee">${esc(r.grade)}</th>
+      ${cols.map(c => `<td style="text-align:center;padding:8px 6px;font-size:13px;font-weight:700;color:#1a2744;border-top:1px solid #eee">${r[c.key].toLocaleString()}</td>`).join("")}
+    </tr>`).join("");
+  return `
+  <div class="card" style="margin-bottom:20px">
+    <div class="display" style="font-size:15px;margin-bottom:10px">🐔 금일 육계시세 <span style="font-size:10px;color:#aaa;font-weight:400">대한양계협회</span></div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;min-width:320px">
+        <thead>
+          <tr style="background:#00897B;color:#fff">
+            <th scope="col" style="text-align:left;padding:8px 6px;font-size:11px;border-radius:8px 0 0 0">${esc(d.date_label||"")}</th>
+            ${cols.map((c,i) => `<th scope="col" style="text-align:center;padding:8px 6px;font-size:11px;${i===cols.length-1?"border-radius:0 8px 0 0":""}">${c.label}</th>`).join("")}
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div style="font-size:9px;color:#bbb;margin-top:8px;text-align:right">${esc(d.note||"")} · 수집 ${esc(d.updated||"")} · 출처: 대한양계협회</div>
+  </div>`;
+}
+
 function renderPriceTab(){
   return `
   ${renderPoultryPriceLine()}
   ${renderChickenGradePanel()}
+  ${renderBroilerPriceTodayPanel()}
   ${renderLayerStatsPanel()}
   ${renderEggSupplyPanel()}`;
 }
@@ -6914,6 +6972,7 @@ function switchTab(tab){
     if(state.tab==="briefing" && noticesState.status==="idle") fetchNotices();
     if(state.tab==="premium" && premiumState.user && premiumState.status==="idle") fetchPremiumApproved();
     if(state.tab==="price" && poultryPriceState.status==="idle") fetchPoultryPrices();
+    if(state.tab==="price" && broilerPriceTodayState.status==="idle") fetchBroilerPriceToday();
     // 주소에도 남겨 새로고침하거나 링크를 공유해도 같은 탭으로 열린다.
     // (pushState가 아니라 replaceState인 것은 탭을 눌러 다닐 때마다 뒤로가기 기록이
     //  쌓이면 이 페이지를 벗어나기 어려워지기 때문이다)
@@ -7331,6 +7390,8 @@ fetchStockPrices();
 // 다봄 실시간 시세 자동 로드 (백그라운드)
 fetchDabomPrices().then(()=>{ if(state.tab==="price"||state.tab==="pig") render(); });
 fetchPoultryPrices();
+// 금일 육계시세(대한양계협회) 자동 로드 (백그라운드)
+fetchBroilerPriceToday();
 // 주간 계란 수급 정보 (GitHub Actions 매주 화요일 업데이트)
 fetchEggReport();
 fetchLayerStats();
