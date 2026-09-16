@@ -1,13 +1,17 @@
 {
-  "updated": "2026-09-16 11:40 KST",
+  "updated": "2026-09-16 20:10 KST",
   "stale": {},
   "egg": {
     "label": "계란 산지가격",
     "region": "전국",
     "grade": "특란 (XL)",
     "unit": "원/10개",
-    "latest": 2105,
+    "latest": 2095,
     "rows": [
+      {
+        "date": "2026-09-16",
+        "value": 2095
+      },
       {
         "date": "2026-09-15",
         "value": 2105
@@ -99,8 +103,12 @@
     "region": "수도권",
     "grade": "특란 (XL)",
     "unit": "원/10개",
-    "latest": 2119,
+    "latest": 2099,
     "rows": [
+      {
+        "date": "2026-09-16",
+        "value": 2099
+      },
       {
         "date": "2026-09-15",
         "value": 2119
@@ -190,8 +198,12 @@
   "chicken": {
     "label": "생계유통(대)",
     "unit": "원/kg",
-    "latest": 1500,
+    "latest": 1783,
     "rows": [
+      {
+        "date": "2026-09-16",
+        "value": 1783
+      },
       {
         "date": "2026-09-15",
         "value": 1500
@@ -301,6 +313,12 @@
       }
     },
     "rows": [
+      {
+        "date": "2026-09-16",
+        "large": null,
+        "medium": null,
+        "small": null
+      },
       {
         "date": "2026-09-15",
         "large": 1500,
@@ -624,12 +642,102 @@
       }
     ]
   },
+  "chick": {
+    "label": "산란계 병아리(초생추)",
+    "unit": "원/마리",
+    "period": "월",
+    "latest": 1990,
+    "rows": [
+      {
+        "date": "2026-08",
+        "value": 1990
+      },
+      {
+        "date": "2026-07",
+        "value": 1990
+      },
+      {
+        "date": "2026-06",
+        "value": 1942
+      }
+    ]
+  },
+  "old_hen": {
+    "label": "산란노계",
+    "unit": "원/마리",
+    "period": "주",
+    "latest": 723,
+    "rows": [
+      {
+        "date": "2026-09-07",
+        "value": 723
+      },
+      {
+        "date": "2026-08-31",
+        "value": 821
+      },
+      {
+        "date": "2026-08-24",
+        "value": 706
+      },
+      {
+        "date": "2026-08-17",
+        "value": 1001
+      },
+      {
+        "date": "2026-08-10",
+        "value": 1095
+      },
+      {
+        "date": "2026-08-03",
+        "value": 998
+      },
+      {
+        "date": "2026-07-27",
+        "value": 1261
+      },
+      {
+        "date": "2026-07-20",
+        "value": 1150
+      },
+      {
+        "date": "2026-07-13",
+        "value": 1173
+      },
+      {
+        "date": "2026-07-06",
+        "value": 1184
+      },
+      {
+        "date": "2026-06-29",
+        "value": 1193
+      },
+      {
+        "date": "2026-06-22",
+        "value": 1023
+      },
+      {
+        "date": "2026-06-15",
+        "value": 1206
+      },
+      {
+        "date": "2026-06-08",
+        "value": 1161
+      },
+      {
+        "date": "2026-06-01",
+        "value": 1224
+      }
+    ]
+  },
   "source_urls": {
     "egg": "https://www.ekapepia.com/v3/price/livestock/egg/distrPrice.do?menuSn=36&boardInfoNo=",
     "egg_region": "https://www.ekapepia.com/v3/price/livestock/egg/producer/region.do?menuSn=138",
     "chicken": "https://www.ekapepia.com/v3/price/livestock/chicken/distrPrice.do?menuSn=35&boardInfoNo=",
     "chicken_grades": "https://www.ekapepia.com/v3/price/livestock/chicken/livePrice.do?menuSn=131",
     "pig": "https://www.ekapepia.com/v3/price/livestock/pig/producer.do?searchCondition=&searchCondition1=&searchCondition2=&searchCondition3=&searchGubn=&searchStartDate=&searchEndDate=&ctdt=&typeCd=&searchType=",
-    "cow": "https://www.ekapepia.com/v3/price/livestock/cow/distrPrice.do?menuSn=33&boardInfoNo="
+    "cow": "https://www.ekapepia.com/v3/price/livestock/cow/distrPrice.do?menuSn=33&boardInfoNo=",
+    "chick": "https://www.ekapepia.com/v3/price/livestock/egg/chick.do",
+    "old_hen": "https://www.ekapepia.com/v3/price/livestock/egg/oldAge.do"
   }
 }
