@@ -33,6 +33,11 @@ CHICKEN_URL = "https://www.ekapepia.com/v3/price/livestock/chicken/distrPrice.do
 CHICKEN_GRADE_URL = "https://www.ekapepia.com/v3/price/livestock/chicken/livePrice.do?menuSn=131"
 PIG_URL = "https://www.ekapepia.com/v3/price/livestock/pig/producer.do?searchCondition=&searchCondition1=&searchCondition2=&searchCondition3=&searchGubn=&searchStartDate=&searchEndDate=&ctdt=&typeCd=&searchType="
 COW_URL = "https://www.ekapepia.com/v3/price/livestock/cow/distrPrice.do?menuSn=33&boardInfoNo="
+# 산란계 초생추(병아리) — 월별 공시(매월 15일, 전월 물량가중평균가). "중추"(육성 중인
+# 병아리~산란 전 단계)는 다봄·통계누리 어디에도 별도로 공시되는 가격이 없어 못 넣는다.
+CHICK_URL = "https://www.ekapepia.com/v3/price/livestock/egg/chick.do"
+# 산란노계(폐계) — 주별 공시(매주 월요일, 전주 물량가중평균가)
+OLD_HEN_URL = "https://www.ekapepia.com/v3/price/livestock/egg/oldAge.do"
 OUTPUT_PATH = Path("poultry_price/latest.json")
 HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; pb-poultry-price/1.0)", "Accept-Language": "ko-KR,ko;q=0.9"}
 PROXY_FACTORIES = (
@@ -82,6 +87,29 @@ def normalize_date(value: str) -> str | None:
         month, day = map(int, match.groups())
     try:
         return datetime(year, month, day).strftime("%Y-%m-%d")
+    except ValueError:
+        return None
+
+
+def normalize_year_month(value: str) -> str | None:
+    """"26년 08월" → "2026-08". 초생추 표는 월 단위로만 나온다."""
+    match = re.search(r"(\d{2,4})년\s*(\d{1,2})월", value)
+    if not match:
+        return None
+    yy, month = match.groups()
+    year = int(yy) if len(yy) == 4 else 2000 + int(yy)
+    return f"{year:04d}-{int(month):02d}"
+
+
+def normalize_week_start(value: str) -> str | None:
+    """"26년 37주 (9/7~9/13)" → 그 주의 시작일 "2026-09-07". 노계 표는 주 단위."""
+    match = re.search(r"(\d{2,4})년.*?\((\d{1,2})/(\d{1,2})\s*~", value)
+    if not match:
+        return None
+    yy, month, day = match.groups()
+    year = int(yy) if len(yy) == 4 else 2000 + int(yy)
+    try:
+        return datetime(year, int(month), int(day)).strftime("%Y-%m-%d")
     except ValueError:
         return None
 
@@ -203,6 +231,36 @@ def parse_cow(html_text: str) -> list[dict[str, int | str | None]]:
     return sorted(values.values(), key=lambda item: str(item["date"]), reverse=True)[:30]
 
 
+def parse_chick(html_text: str) -> list[dict[str, int | str]]:
+    """산란계 초생추(병아리) 유통가격 — 월별, 원/마리."""
+    parser = RowParser()
+    parser.feed(html_text)
+    values: dict[str, dict[str, int | str]] = {}
+    for row in parser.rows:
+        date = normalize_year_month(row[0]) if row else None
+        if not date or len(row) < 2:
+            continue
+        value = cell_number(row[1])
+        if value is not None:
+            values.setdefault(date, {"date": date, "value": value})
+    return sorted(values.values(), key=lambda item: str(item["date"]), reverse=True)[:24]
+
+
+def parse_old_hen(html_text: str) -> list[dict[str, int | str]]:
+    """산란노계(폐계) 유통가격 — 주별, 원/마리."""
+    parser = RowParser()
+    parser.feed(html_text)
+    values: dict[str, dict[str, int | str]] = {}
+    for row in parser.rows:
+        date = normalize_week_start(row[0]) if row else None
+        if not date or len(row) < 2:
+            continue
+        value = cell_number(row[1])
+        if value is not None:
+            values.setdefault(date, {"date": date, "value": value})
+    return sorted(values.values(), key=lambda item: str(item["date"]), reverse=True)[:20]
+
+
 def latest_metric(rows: list[dict[str, int | str | None]], key: str) -> dict[str, int | str] | None:
     for row in rows:
         value = row.get(key)
@@ -268,6 +326,8 @@ def main() -> int:
     egg_region_rows = fetch_page(EGG_REGION_URL, parse_egg_region, "계란(수도권)")
     pig_rows = fetch_page(PIG_URL, parse_pig, "양돈")
     cow_rows = fetch_page(COW_URL, parse_cow, "한우")
+    chick_rows = fetch_page(CHICK_URL, parse_chick, "산란계-초생추")
+    old_hen_rows = fetch_page(OLD_HEN_URL, parse_old_hen, "산란노계")
 
     prev = load_previous()
     stale: dict[str, bool] = {}
@@ -304,6 +364,14 @@ def main() -> int:
         stale["egg_region"] = True
         egg_region_rows = (prev or {}).get("egg_region", {}).get("rows") or []
         print("  [계란-수도권] 이번 수집 실패 → 이전 데이터 유지")
+    if not chick_rows:
+        stale["chick"] = True
+        chick_rows = (prev or {}).get("chick", {}).get("rows") or []
+        print("  [산란계-초생추] 이번 수집 실패 → 이전 데이터 유지")
+    if not old_hen_rows:
+        stale["old_hen"] = True
+        old_hen_rows = (prev or {}).get("old_hen", {}).get("rows") or []
+        print("  [산란노계] 이번 수집 실패 → 이전 데이터 유지")
 
     if not egg_rows or not chicken_rows or not pig_rows or not cow_rows:
         print("계란·육계·양돈·한우 시세를 찾지 못했고, 이전 데이터도 없습니다.")
@@ -330,11 +398,17 @@ def main() -> int:
         "chicken_grades": {"unit": "원/kg", "items": chicken_grade_items, "rows": chicken_grade_rows},
         "pig": {"label": "농가수취 평균", "unit": "원/kg", "latest": pig_rows[0]["value"], "rows": pig_rows},
         "cow": {"items": cow_items, "rows": cow_rows},
-        "source_urls": {"egg": EGG_URL, "egg_region": EGG_REGION_URL, "chicken": CHICKEN_URL, "chicken_grades": CHICKEN_GRADE_URL, "pig": PIG_URL, "cow": COW_URL},
+        "chick": {"label": "산란계 병아리(초생추)", "unit": "원/마리", "period": "월",
+                  "latest": (chick_rows[0]["value"] if chick_rows else None), "rows": chick_rows},
+        "old_hen": {"label": "산란노계", "unit": "원/마리", "period": "주",
+                    "latest": (old_hen_rows[0]["value"] if old_hen_rows else None), "rows": old_hen_rows},
+        "source_urls": {"egg": EGG_URL, "egg_region": EGG_REGION_URL, "chicken": CHICKEN_URL, "chicken_grades": CHICKEN_GRADE_URL, "pig": PIG_URL, "cow": COW_URL, "chick": CHICK_URL, "old_hen": OLD_HEN_URL},
     }, ensure_ascii=False, indent=2), encoding="utf-8")
     print("수집 성공:", {"egg": egg_rows[0], "chicken": chicken_rows[0], "pig": pig_rows[0], "cow": cow_items})
     print("육계 대/중/소:", chicken_grade_items)
     print("계란 수도권:", egg_region_rows[0] if egg_region_rows else "없음")
+    print("산란계 병아리:", chick_rows[0] if chick_rows else "없음")
+    print("산란노계:", old_hen_rows[0] if old_hen_rows else "없음")
     if stale:
         print("stale 표시된 항목:", list(stale.keys()))
     return 0

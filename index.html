@@ -3841,17 +3841,22 @@ function renderPoultryPriceLine(){
   // 양돈·소(암송아지·수송아지·농가수취가격)는 수집은 계속하되 화면에서만
   // 뺐다 — 필요해지면 아래 배열에 다시 넣으면 되고, 데이터는
   // poultry_price/latest.json 에 그대로 있다.
-  const egg=st.data.egg, eggRegion=st.data.egg_region;
+  const egg=st.data.egg, chick=st.data.chick, oldHen=st.data.old_hen;
   const cards=[
-    {icon:"🥚",label:"계란 산지가격",sub:"전국(XL)",value:egg.latest,unit:"원/10개",color:"#D4A012",date:egg.rows[0]?.date},
-    {icon:"🥚",label:"계란 산지가격",sub:"수도권(XL)",value:eggRegion?.latest,unit:"원/10개",color:"#C77800",date:eggRegion?.rows?.[0]?.date},
+    {icon:"🥚",label:"계란 산지가격",sub:"전국(XL)",value:egg.latest,unit:"원/10개",color:"#D4A012",date:egg.rows[0]?.date,
+      extra:Number.isInteger(egg.latest)?`개당 ${Math.round(egg.latest/10).toLocaleString()}원 · 30개(판) ${(egg.latest*3).toLocaleString()}원`:"",
+      caption:"발표전일 기준"},
+    {icon:"🐣",label:"산란계 병아리",sub:"초생추",value:chick?.latest,unit:"원/마리",color:"#F9A825",date:chick?.rows?.[0]?.date,
+      caption:"전월 실적(월 공시)"},
+    {icon:"🐔",label:"산란노계",sub:"폐계",value:oldHen?.latest,unit:"원/마리",color:"#8D6E63",date:oldHen?.rows?.[0]?.date,
+      caption:"전주 실적(주 공시)"},
   ].map(item=>`
     <div class="livestock-price-card" style="min-width:0;background:#fff;border:1px solid #eee;border-radius:12px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between">
-      <div class="livestock-price-card__content" style="display:flex;align-items:center;gap:10px"><span class="livestock-price-card__icon" style="font-size:25px">${item.icon}</span><div class="livestock-price-card__body"><div class="livestock-price-card__label" style="font-size:12px;color:#777;font-weight:700">${item.label} <span style="font-weight:400">${item.sub}</span></div><div class="livestock-price-card__value" style="font-size:22px;color:${item.color};font-weight:800">${Number.isInteger(item.value)?item.value.toLocaleString():"-"}<span style="font-size:11px;color:#888;font-weight:400;margin-left:3px">${item.unit}</span></div>${Number.isInteger(item.value)?`<div style="font-size:11px;color:#999;margin-top:3px">개당 ${Math.round(item.value/10).toLocaleString()}원 · 30개(판) ${(item.value*3).toLocaleString()}원</div>`:""}</div></div>
-      <div class="livestock-price-card__date" style="font-size:10px;color:#aaa;text-align:right">${item.date||""}<br>발표전일 기준</div>
+      <div class="livestock-price-card__content" style="display:flex;align-items:center;gap:10px"><span class="livestock-price-card__icon" style="font-size:25px">${item.icon}</span><div class="livestock-price-card__body"><div class="livestock-price-card__label" style="font-size:12px;color:#777;font-weight:700">${item.label} <span style="font-weight:400">${item.sub}</span></div><div class="livestock-price-card__value" style="font-size:22px;color:${item.color};font-weight:800">${Number.isInteger(item.value)?item.value.toLocaleString():"-"}<span style="font-size:11px;color:#888;font-weight:400;margin-left:3px">${item.unit}</span></div>${item.extra?`<div style="font-size:11px;color:#999;margin-top:3px">${item.extra}</div>`:""}</div></div>
+      <div class="livestock-price-card__date" style="font-size:10px;color:#aaa;text-align:right">${item.date||""}<br>${item.caption}</div>
     </div>`).join("");
   const collectedAt=st.data.updated||"";
-  return `<div class="card" style="margin-bottom:20px"><div class="livestock-price-heading" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:7px;margin-bottom:10px"><div class="display" style="font-size:15px">📊 계란 산지시세 <span style="font-size:10px;color:#aaa;font-weight:400">수집 ${esc(collectedAt)}</span></div><div class="livestock-price-actions" style="display:flex;align-items:center;gap:6px"><a href="https://www.ekapepia.com/v3/web/main.do?userGroup=producer" target="_blank" rel="noopener" style="border:1px solid #1B7A3E;border-radius:8px;background:#fff;padding:6px 10px;font-size:11px;color:#1B7A3E;text-decoration:none">생산자 시세 ↗</a><button id="btn-refresh-poultry" style="border:1px solid #1B7A3E;border-radius:8px;background:#fff;padding:6px 10px;font-size:11px;color:#1B7A3E">🔄 갱신</button></div></div><div class="livestock-price-cards">${cards}</div><div style="font-size:9px;color:#bbb;margin-top:8px;text-align:right">카드 날짜=원본 발표일 · 수집 시각=${esc(collectedAt)} · 출처: 축산물품질평가원 다봄</div></div>`;
+  return `<div class="card" style="margin-bottom:20px"><div class="livestock-price-heading" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:7px;margin-bottom:10px"><div class="display" style="font-size:15px">📊 계란 산지시세 <span style="font-size:10px;color:#aaa;font-weight:400">수집 ${esc(collectedAt)}</span></div><div class="livestock-price-actions" style="display:flex;align-items:center;gap:6px"><a href="https://www.ekapepia.com/v3/web/main.do?userGroup=producer" target="_blank" rel="noopener" style="border:1px solid #1B7A3E;border-radius:8px;background:#fff;padding:6px 10px;font-size:11px;color:#1B7A3E;text-decoration:none">생산자 시세 ↗</a><button id="btn-refresh-poultry" style="border:1px solid #1B7A3E;border-radius:8px;background:#fff;padding:6px 10px;font-size:11px;color:#1B7A3E">🔄 갱신</button></div></div><div class="livestock-price-cards">${cards}</div><div style="font-size:9px;color:#bbb;margin-top:8px;text-align:right">카드 날짜=원본 발표일 · 수집 시각=${esc(collectedAt)} · 출처: 축산물품질평가원 다봄<br>※ 중추(육성계) 시세는 공식 공시 자료가 없어 표시하지 못합니다.</div></div>`;
 }
 
 // 대한양계협회 홈페이지에 매일 게시되는 "금일 육계시세" 표를 그대로 재현한다
