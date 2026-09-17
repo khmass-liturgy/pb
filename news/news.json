@@ -1,5 +1,5 @@
 {
-  "updated": "2026-09-16 10:06 KST",
+  "updated": "2026-09-17 10:05 KST",
   "channels": {
     "livestock": {
       "label": "축산·농업",
@@ -8,15 +8,8 @@
     },
     "vet": {
       "label": "수의·방역",
-      "items": [
-        {
-          "title": "수의사 구제역 백신접종 지원사업 대폭 확대한다 ‘내년부터 소 100두 농가까지’ - 데일리벳",
-          "link": "https://news.google.com/rss/articles/CBMiWEFVX3lxTE1VMUZwc1BlR0hHNDhVZHUzaENhN1dQbm1tSUhqaFhVbVh6NlVPRTY2eDdId2dfZkdCTWZXUERVV2J1UHBlSVNnN0x5TUxsRmxYcTFYQ0RwRGU?oc=5",
-          "date": "09/09 17:13",
-          "source": "데일리벳"
-        }
-      ],
-      "count": 1
+      "items": [],
+      "count": 0
     },
     "disease": {
       "label": "가축질병",
@@ -42,8 +35,15 @@
     },
     "world": {
       "label": "국제",
-      "items": [],
-      "count": 0
+      "items": [
+        {
+          "title": "관세폭탄·이란전쟁에 美리더십 '휘청'…\"美주도 괜찮다\" 39%뿐 - 뉴스1",
+          "link": "https://news.google.com/rss/articles/CBMiXkFVX3lxTE1kcl9sWUZ0VS1ZbzVNOGpOckQyazJTQUhKU2tqMm5oUk1MSzVrWDk3YXJ0dzR2bnVSNnJRM2hCcWc4WVB5U21MY3VtOS1wRERwVmYtMzdjM3FJWWhzNlHSAV5BVV95cUxNZHJfbFlGdFUtWW81TThqTnJEMmsyU0FISlNrajJuaFJNTEs1a1g5N2FydHc0dm51UjZyUTNoQnFnOFlQeVNtTGN1bTktcEREcFZmLTM3YzNxSVloczZR?oc=5",
+          "date": "09/16 17:12",
+          "source": "뉴스1"
+        }
+      ],
+      "count": 1
     }
   }
 }
