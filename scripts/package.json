@@ -1,0 +1,9 @@
+{
+  "name": "pb-scripts-ocr",
+  "private": true,
+  "description": "fetch_jungchu_price.py가 표 OCR용으로 서브프로세스 호출하는 ocr_jungchu_table.js의 의존성만 담는다. 저장소의 나머지 수집 스크립트는 전부 Python이다.",
+  "dependencies": {
+    "sharp": "^0.33.5",
+    "tesseract.js": "^5.1.1"
+  }
+}

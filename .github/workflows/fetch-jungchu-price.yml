@@ -19,9 +19,14 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - name: 패키지 설치
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: 패키지 설치(Python)
         run: pip install requests
-      - name: 중추가격 이미지 수집
+      - name: 패키지 설치(OCR용 Node — scripts/ocr_jungchu_table.js가 씀)
+        run: npm install --prefix scripts
+      - name: 중추가격 이미지+표 수집
         run: python scripts/fetch_jungchu_price.py
       - name: 결과 검증
         run: |
@@ -32,6 +37,9 @@ jobs:
           assert data.get("title"), "title 없음"
           assert data.get("image_hash"), "image_hash 없음"
           assert Path("jungchu_price/latest.jpg").stat().st_size > 1000, "이미지 파일이 너무 작음"
+          # OCR은 실패해도(numbers_stale=True) 스크립트 자체는 정상 종료하지만,
+          # latest 자체가 아예 없다면(최초 실행에서 OCR도 실패) 문제로 본다.
+          assert data.get("latest") is not None, "latest 값이 아예 없음(최초 수집 실패)"
           PY
       - name: 결과 커밋
         run: |

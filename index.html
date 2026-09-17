@@ -3850,11 +3850,12 @@ function last7DayInfos(){
 }
 
 // 산란계 중추가격 — (사)대한산란계협회가 매월 게시하는 표가 숫자가 아니라
-// 이미지 한 장(그래프+연도별 월별 표)으로만 올라온다. 다른 카드처럼 숫자를
-// 뽑아 보여주면 좋겠지만, OCR로 잘못 읽은 숫자를 시세로 보여주는 건 아예
-// 안 보여주는 것보다 나쁘다고 판단해 숫자 대신 작은 그래프 미리보기 +
-// "그래프 보기" 링크로 카드를 채운다. 자세한 이유는
-// scripts/fetch_jungchu_price.py 상단 설명 참고.
+// 이미지 한 장(그래프+연도별 월별 표)으로만 올라온다. scripts/fetch_jungchu_price.py가
+// 표 영역만 OCR로 읽되, 표에 같이 인쇄된 "평균" 값을 체크섬으로 대조해 통과한
+// 경우에만 latest 값을 갱신한다(대조 실패 시 이전 값 유지 → numbers_stale).
+// 그래서 다른 카드처럼 실제 숫자를 보여주되, OCR 출처라는 걸 캡션에 밝히고
+// 클릭하면 원본 게시글에서 직접 대조해볼 수 있게 한다. 자세한 검증 로직은
+// scripts/ocr_jungchu_table.js 참고.
 function renderJungchuPriceCard(){
   const st = jungchuPriceState;
   const shell = inner => `<div class="livestock-price-card" style="min-width:0;background:#fff;border:1px solid #eee;border-radius:12px;padding:14px 18px;display:flex;align-items:center;justify-content:${st.status==="done"&&st.data?"space-between":"center"}">${inner}</div>`;
@@ -3866,22 +3867,33 @@ function renderJungchuPriceCard(){
     return shell(`<span style="font-size:11px;color:#aaa;text-align:center">⚠️ 중추가격 불러오기 실패<br><a href="https://kegg.or.kr/board/sub3?Ncode=breed" target="_blank" rel="noopener" style="color:#1B7A3E">원문 ↗</a></span>`);
   }
   const d = st.data;
-  const dateShort = (d.hash_updated_at || d.updated || "").slice(0, 10);
-  // 다른 카드와 같은 3줄 구조(라벨+서브 / 값 / 날짜)를 그대로 따르되, 숫자
-  // 대신 "그래프 보기" 링크를 값 자리에 넣는다. 썸네일 이미지를 같이 넣어봤더니
-  // 4열로 좁아진 카드 폭(약 200px)에서 라벨 텍스트가 글자 단위로 줄바꿈되는
-  // 문제가 있어(overflow-wrap:anywhere + 공간 부족) 뺐다 — 다른 카드들과 같은
-  // 정도의 내용량을 유지해야 이 좁은 폭에서도 깨지지 않는다.
+  // OCR이 지금까지 한 번도 성공한 적 없으면(최초 수집이 하필 실패) 값이 없다 —
+  // 이때만 그래프 링크로 대체하고, 값이 있으면(과거분이라도) 숫자를 보여준다.
+  if(d.latest == null){
+    return `
+    <a href="${esc(d.post_url)}" target="_blank" rel="noopener" class="livestock-price-card" style="min-width:0;background:#fff;border:1px solid #eee;border-radius:12px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;text-decoration:none;color:inherit">
+      <div class="livestock-price-card__content" style="display:flex;align-items:center;gap:10px;min-width:0">
+        <span class="livestock-price-card__icon" style="font-size:25px;flex:0 0 auto">🐣</span>
+        <div class="livestock-price-card__body" style="min-width:0">
+          <div class="livestock-price-card__label" style="font-size:12px;color:#777;font-weight:700">산란계 중추 <span style="font-weight:400">협회</span></div>
+          <div class="livestock-price-card__value" style="font-size:16px;color:#1B7A3E;font-weight:800">그래프 보기 ↗</div>
+        </div>
+      </div>
+      <div class="livestock-price-card__date" style="font-size:10px;color:#aaa;text-align:right;flex:0 0 auto">표 인식 대기중</div>
+    </a>`;
+  }
+  const monthLabel = `${d.latest_year}-${String(d.latest_month).padStart(2,"0")}`;
   return `
   <a href="${esc(d.post_url)}" target="_blank" rel="noopener" class="livestock-price-card" style="min-width:0;background:#fff;border:1px solid #eee;border-radius:12px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;text-decoration:none;color:inherit">
-    <div class="livestock-price-card__content" style="display:flex;align-items:center;gap:10px;min-width:0">
-      <span class="livestock-price-card__icon" style="font-size:25px;flex:0 0 auto">🐣</span>
-      <div class="livestock-price-card__body" style="min-width:0">
+    <div class="livestock-price-card__content" style="display:flex;align-items:center;gap:10px">
+      <span class="livestock-price-card__icon" style="font-size:25px">🐣</span>
+      <div class="livestock-price-card__body">
         <div class="livestock-price-card__label" style="font-size:12px;color:#777;font-weight:700">산란계 중추 <span style="font-weight:400">협회</span></div>
-        <div class="livestock-price-card__value" style="font-size:16px;color:#1B7A3E;font-weight:800">그래프 보기 ↗</div>
+        <div class="livestock-price-card__value" style="font-size:22px;color:#1B7A3E;font-weight:800">${d.latest.toLocaleString()}<span style="font-size:11px;color:#888;font-weight:400;margin-left:3px">원/마리</span></div>
+        ${d.numbers_stale?`<div style="font-size:11px;color:#E65100;margin-top:3px">⚠️ 최신 확인 실패, 이전 값</div>`:""}
       </div>
     </div>
-    <div class="livestock-price-card__date" style="font-size:10px;color:#aaa;text-align:right;flex:0 0 auto">${esc(dateShort)}${d.stale?'<br><span style="color:#E65100">⚠️실패</span>':""}<br>이미지 게시</div>
+    <div class="livestock-price-card__date" style="font-size:10px;color:#aaa;text-align:right">${esc(monthLabel)}<br>협회 발표(OCR)</div>
   </a>`;
 }
 

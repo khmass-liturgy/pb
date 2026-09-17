@@ -3,10 +3,15 @@
 
 협회가 매월 게시판(https://kegg.or.kr/board/sub3?Ncode=breed)에 올리는 "중추가격"
 글은 표가 텍스트가 아니라 이미지 한 장(그래프 + 연도별 월별 표)으로만 올라온다.
-그래서 이 스크립트는 숫자를 파싱하지 않고, 그 이미지 자체를 원본 그대로
-저장소에 미러링한다 — OCR로 숫자를 억지로 뽑으면 오독 위험이 있는데, 사료값도
-아니고 시세 데이터에서 틀린 숫자를 보여주는 쪽이 아예 안 보여주는 쪽보다 더
-나쁘다고 판단했다.
+이미지 자체는 항상 원본 그대로 저장소에 미러링해 두고(카드에서 원문 확인용
+링크로 쓴다), 최근 가격 "숫자"는 scripts/ocr_jungchu_table.js(Node/tesseract.js)를
+서브프로세스로 호출해 표 영역만 OCR로 읽어 얻는다.
+
+OCR을 신뢰하는 근거: 표에 인쇄된 "평균" 칸을 체크섬으로 쓴다 — OCR로 읽은
+월별 숫자의 평균을 직접 계산해서 OCR로 읽은 "평균" 칸과 대조하고, 한 행이라도
+어긋나면 이번 회차 OCR 결과 전체를 버리고 이전에 성공했던 숫자를 그대로
+유지한다(자세한 검증 로직은 ocr_jungchu_table.js 참고). 시세 데이터에서
+오독한 숫자를 보여주는 것보다 갱신을 하루 건너뛰는 게 낫다고 판단했다.
 
 같은 글 번호(number=)를 계속 수정해서 쓰는 게시판이라 "작성일"이 실제
 갱신일을 반영하지 않는다(예: 2026년 8월 자료인데 작성일은 2024-01-11로 찍혀
@@ -25,6 +30,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import subprocess
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import quote, urljoin
@@ -36,6 +42,7 @@ BASE_URL = "https://kegg.or.kr"
 LIST_URL = f"{BASE_URL}/board/sub3?Ncode=breed"
 JSON_OUTPUT_PATH = Path("jungchu_price/latest.json")
 IMAGE_OUTPUT_PATH = Path("jungchu_price/latest.jpg")
+OCR_SCRIPT_PATH = Path(__file__).parent / "ocr_jungchu_table.js"
 HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; pb-jungchu-price/1.0)", "Accept-Language": "ko-KR,ko;q=0.9"}
 PROXY_URLS = [
     lambda url: "https://api.allorigins.win/raw?url=" + quote(url, safe=""),
@@ -100,6 +107,42 @@ def find_image_url(detail_html: str) -> str | None:
     return urljoin(BASE_URL, m.group(1))
 
 
+def run_ocr(image_path: Path) -> dict | None:
+    """ocr_jungchu_table.js를 서브프로세스로 돌려 표 데이터를 얻는다.
+
+    Node/OCR 자체가 안 되거나(로컬 개발 환경 등), 검증(평균 체크섬)을 통과하지
+    못하면 None을 돌려준다 — 호출부는 이 경우 이전에 저장해 둔 숫자를 그대로
+    쓴다. 이미지 미러링(원문 확인용)은 이 성공 여부와 무관하게 항상 갱신된다.
+    """
+    if not OCR_SCRIPT_PATH.exists():
+        print(f"OCR 스크립트 없음: {OCR_SCRIPT_PATH}")
+        return None
+    try:
+        proc = subprocess.run(
+            ["node", str(OCR_SCRIPT_PATH), str(image_path)],
+            capture_output=True, text=True, timeout=180,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        print(f"OCR 실행 실패(Node 미설치 등): {type(exc).__name__}: {exc}")
+        return None
+    if proc.returncode != 0:
+        print(f"OCR 스크립트 비정상 종료(rc={proc.returncode}): {proc.stderr[-500:]}")
+        return None
+    lines = [ln for ln in proc.stdout.strip().splitlines() if ln.strip()]
+    if not lines:
+        print(f"OCR 스크립트 출력 없음: stderr={proc.stderr[-500:]}")
+        return None
+    try:
+        result = json.loads(lines[-1])
+    except json.JSONDecodeError as exc:
+        print(f"OCR 출력 JSON 파싱 실패: {exc} / 출력: {lines[-1][:300]}")
+        return None
+    if not result.get("ok"):
+        print(f"OCR 표 추출 실패(검증 불통과): {result.get('reason')}")
+        return None
+    return result
+
+
 def main() -> int:
     now = datetime.now(KST)
 
@@ -147,6 +190,17 @@ def main() -> int:
     IMAGE_OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     IMAGE_OUTPUT_PATH.write_bytes(image_bytes)
 
+    ocr = run_ocr(IMAGE_OUTPUT_PATH)
+    if ocr:
+        rows, latest, latest_year, latest_month = ocr["rows"], ocr["latest"], ocr["latest_year"], ocr["latest_month"]
+        numbers_stale = False
+    else:
+        # OCR이 이번엔 실패해도 이미지 자체(위에서 이미 저장)는 최신으로 갱신됐다.
+        # 숫자만 이전 성공분을 그대로 유지하고, 그 사실을 numbers_stale로 구분해 둔다.
+        rows = previous.get("rows")
+        latest, latest_year, latest_month = previous.get("latest"), previous.get("latest_year"), previous.get("latest_month")
+        numbers_stale = rows is not None
+
     JSON_OUTPUT_PATH.write_text(json.dumps({
         "title": title,
         "post_url": post_url,
@@ -155,12 +209,18 @@ def main() -> int:
         "image_hash": image_hash,
         "hash_updated_at": hash_updated_at,
         "updated": now.strftime("%Y-%m-%d %H:%M KST"),
-        "note": "대한산란계협회가 매월 게시하는 산란계 중추가격 표/그래프 이미지를 그대로 가져온 것입니다. "
-                "이미지 제목에 적힌 '○○년 ○월 기준'이 실제 데이터 기준월이며, 게시판 작성일은 최초 등록일로 "
-                "고정돼 있어 실제 갱신 여부와 무관합니다.",
+        "rows": rows,
+        "latest": latest,
+        "latest_year": latest_year,
+        "latest_month": latest_month,
+        "numbers_stale": numbers_stale,
+        "note": "대한산란계협회가 매월 게시하는 산란계 중추가격 표를 OCR로 읽은 값입니다(원본은 표/그래프가 담긴 "
+                "이미지 한 장으로만 게시됨). 표에 함께 인쇄된 '평균' 값을 체크섬으로 대조해 통과한 경우에만 숫자를 "
+                "갱신하며, 대조에 실패하면 이전 값을 그대로 유지합니다 — 정확한 원본은 게시글 링크에서 확인하세요.",
         "stale": False,
     }, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"수집 성공: {title} ({post_url}) hash={image_hash[:12]} changed={hash_changed}")
+    print(f"수집 성공: {title} ({post_url}) hash={image_hash[:12]} changed={hash_changed} "
+          f"latest={latest}({latest_year}-{latest_month}) ocr_ok={bool(ocr)}")
     return 0
 
 
