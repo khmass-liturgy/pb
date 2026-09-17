@@ -30,7 +30,7 @@ Each data domain has this shape:
 |---|---|---|---|---|
 | Chicken/egg/pig/cattle farm prices (ekapepia) | `scripts/fetch_poultry_price.py` | `poultry_price/latest.json` | fetch-poultry-price.yml | daily 09:00 |
 | Chicken/egg via KAPE public API | `scripts/fetch_prices.py` | `prices/prices.json` | fetch-prices.yml | weekdays 08:00 |
-| Egg weekly supply/demand report (PDF) | `scripts/fetch_egg_report.py` | `egg_report/latest.json` (+ `.pdf`, `debug.html`) | — | — |
+| Egg weekly supply/demand report (PDF) | `scripts/fetch_egg_report.py` | `egg_report/latest.json` (+ `.pdf`) | fetch-egg-report.yml | daily 10:00 |
 | Chicken price board (chicken.or.kr) | `scripts/fetch_egg_price.py` | `chicken_price/latest.json` | — | — |
 | Stocks/FX/grain futures (Yahoo Finance) | `scripts/fetch_market.py` | `market/quotes.json` | fetch-market.yml | weekdays hourly during KR+US market hours, weekends 1x |
 | Briefing news (multi-outlet scrape) | `scripts/fetch_briefing_news.py` | `news/briefing.json` | fetch-briefing-news.yml | weekdays every 2h, weekends 08:00 |

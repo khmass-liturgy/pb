@@ -2,9 +2,11 @@
 """
 KAPE 다봄 — 주간 계란 수급 정보 PDF 자동 수집·파싱
 
-확인된 HTML 구조:
-  attachNo: href="/common/attachfile/attachfileDownload.do?attachNo=00089200"
-  제목:     data-value="7월 20일 주간 계란 수급 정보(51차).pdf"
+확인된 HTML 구조 (2026-09 개편 이후):
+  attachNo: onclick="javascript:loadPage('/common/attachfile/attachfileDownload.do?attachNo=00090283','pdf');"
+            (2026-09 이전엔 정적 href였다 — 폴백으로 그 패턴도 같이 본다)
+  제목:     <th>제목</th><td colspan="5">9월 7일 주간 계란 수급 정보(58차)</td>
+            (2026-09 이전엔 data-value="....pdf" 속성이었다 — 폴백 유지)
   boardNo:  <input type="hidden" name="boardNo" id="boardNo" value="00041017"/>
 """
 
@@ -50,17 +52,30 @@ def fetch_detail(board_no):
     r.encoding = "utf-8"
     html = r.text
 
+    # 2026-09 무렵 사이트 개편으로 첨부파일 링크가 정적 href
+    # ("...attachNo=00089200")에서 loadPage()/pendingNo 같은 자바스크립트
+    # 호출로 바뀌었다(파일 다운로드 로직 자체는 자바스크립트지만, attachNo
+    # 숫자 자체는 여전히 페이지 텍스트에 그대로 박혀 있다). 트레일링 문자를
+    # 따옴표 하나로 못박지 않고 attachNo=8자리 숫자만 보면 되게 풀었다 —
+    # 페이지에 이 attachNo가 유일하게 한 번만 나온다는 것도 실제로 확인함.
     attach_no = ""
-    m = re.search(r'attachfileDownload\.do\?attachNo=(\d{8})(?:&#034;|")', html)
+    m = re.search(r'attachfileDownload\.do\?attachNo=(\d{8})', html)
     if m:
         attach_no = m.group(1)
 
+    # 제목도 같은 개편으로 data-value 속성 대신 게시글 정보 표
+    # (<th>제목</th><td>...</td>)에 평문으로 들어간다. 옛 구조로 남아있는
+    # 페이지가 있을 수 있어 data-value 패턴도 폴백으로 유지한다.
     title = ""
-    m = re.search(r'data-value="([^"]*주간\s*계란[^"]*\.pdf)"', html)
+    m = re.search(r'<th[^>]*>\s*제목\s*</th>\s*<td[^>]*>([^<]*주간[^<]*계란[^<]*)</td>', html)
     if m:
-        title = m.group(1).replace(".pdf", "").strip()
-    elif re.search(r'<title>([^<]*주간[^<]*계란[^<]*)</title>', html):
-        title = re.search(r'<title>([^<]*주간[^<]*계란[^<]*)</title>', html).group(1).strip()
+        title = m.group(1).strip()
+    else:
+        m = re.search(r'data-value="([^"]*주간\s*계란[^"]*\.pdf)"', html)
+        if m:
+            title = m.group(1).replace(".pdf", "").strip()
+        elif re.search(r'<title>([^<]*주간[^<]*계란[^<]*)</title>', html):
+            title = re.search(r'<title>([^<]*주간[^<]*계란[^<]*)</title>', html).group(1).strip()
 
     return attach_no, title, html
 
