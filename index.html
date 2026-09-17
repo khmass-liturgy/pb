@@ -81,7 +81,7 @@
      모바일에서는 고정 폭을 줄여서 억지로 맞추지 않고, 콘텐츠의
      우선순위에 따라 헤더/카드/표를 재배치한다. */
   html { overflow-x: hidden; }
-  .livestock-price-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .livestock-price-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
   .livestock-price-card { min-width: 0; }
   .livestock-price-card__content, .livestock-price-card__body { min-width: 0; flex: 1 1 auto; }
   .livestock-price-card__label { overflow-wrap: anywhere; }
@@ -3850,34 +3850,39 @@ function last7DayInfos(){
 }
 
 // 산란계 중추가격 — (사)대한산란계협회가 매월 게시하는 표가 숫자가 아니라
-// 이미지 한 장(그래프+연도별 월별 표)으로만 올라와서, 카드처럼 숫자를 뽑아
-// 보여주지 못하고 원본 이미지를 그대로 보여준다. 자세한 이유는
+// 이미지 한 장(그래프+연도별 월별 표)으로만 올라온다. 다른 카드처럼 숫자를
+// 뽑아 보여주면 좋겠지만, OCR로 잘못 읽은 숫자를 시세로 보여주는 건 아예
+// 안 보여주는 것보다 나쁘다고 판단해 숫자 대신 작은 그래프 미리보기 +
+// "그래프 보기" 링크로 카드를 채운다. 자세한 이유는
 // scripts/fetch_jungchu_price.py 상단 설명 참고.
-function renderJungchuPricePanel(){
+function renderJungchuPriceCard(){
   const st = jungchuPriceState;
+  const shell = inner => `<div class="livestock-price-card" style="min-width:0;background:#fff;border:1px solid #eee;border-radius:12px;padding:14px 18px;display:flex;align-items:center;justify-content:${st.status==="done"&&st.data?"space-between":"center"}">${inner}</div>`;
+
   if(st.status==="idle" || st.status==="loading"){
-    return `<div style="margin-top:12px;padding:16px;text-align:center;color:#aaa;font-size:12px;background:#fafafa;border-radius:10px">⏳ 중추가격 이미지 불러오는 중...</div>`;
+    return shell(`<span style="font-size:12px;color:#aaa">⏳ 중추가격 불러오는 중...</span>`);
   }
   if(st.status==="error" || !st.data){
-    return `<div style="margin-top:12px;padding:14px;text-align:center;color:#aaa;font-size:12px;background:#fafafa;border-radius:10px">⚠️ 중추가격 이미지를 불러오지 못했습니다. <a href="https://kegg.or.kr/board/sub3?Ncode=breed" target="_blank" rel="noopener" style="color:#1B7A3E">원문 바로가기 ↗</a></div>`;
+    return shell(`<span style="font-size:11px;color:#aaa;text-align:center">⚠️ 중추가격 불러오기 실패<br><a href="https://kegg.or.kr/board/sub3?Ncode=breed" target="_blank" rel="noopener" style="color:#1B7A3E">원문 ↗</a></span>`);
   }
   const d = st.data;
+  const dateShort = (d.hash_updated_at || d.updated || "").slice(0, 10);
+  // 다른 카드와 같은 3줄 구조(라벨+서브 / 값 / 날짜)를 그대로 따르되, 숫자
+  // 대신 "그래프 보기" 링크를 값 자리에 넣는다. 썸네일 이미지를 같이 넣어봤더니
+  // 4열로 좁아진 카드 폭(약 200px)에서 라벨 텍스트가 글자 단위로 줄바꿈되는
+  // 문제가 있어(overflow-wrap:anywhere + 공간 부족) 뺐다 — 다른 카드들과 같은
+  // 정도의 내용량을 유지해야 이 좁은 폭에서도 깨지지 않는다.
   return `
-  <div style="margin-top:14px;border-top:1px dashed #eee;padding-top:12px">
-    <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px;margin-bottom:8px">
-      <div style="font-size:12px;font-weight:700;color:#333">🐣 산란계 중추가격 <span style="font-size:10px;color:#aaa;font-weight:400">(사)대한산란계협회</span></div>
-      <a href="${esc(d.post_url)}" target="_blank" rel="noopener" style="font-size:10px;color:#1B7A3E">원문 ↗</a>
+  <a href="${esc(d.post_url)}" target="_blank" rel="noopener" class="livestock-price-card" style="min-width:0;background:#fff;border:1px solid #eee;border-radius:12px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;text-decoration:none;color:inherit">
+    <div class="livestock-price-card__content" style="display:flex;align-items:center;gap:10px;min-width:0">
+      <span class="livestock-price-card__icon" style="font-size:25px;flex:0 0 auto">🐣</span>
+      <div class="livestock-price-card__body" style="min-width:0">
+        <div class="livestock-price-card__label" style="font-size:12px;color:#777;font-weight:700">산란계 중추 <span style="font-weight:400">협회</span></div>
+        <div class="livestock-price-card__value" style="font-size:16px;color:#1B7A3E;font-weight:800">그래프 보기 ↗</div>
+      </div>
     </div>
-    <a href="${esc(d.post_url)}" target="_blank" rel="noopener">
-      <img src="${JUNGCHU_PRICE_IMAGE_URL}?v=${encodeURIComponent(d.image_hash||"")}" alt="산란계 중추가격"
-        style="width:100%;max-width:100%;border-radius:8px;border:1px solid #eee;display:block" />
-    </a>
-    <div style="font-size:9px;color:#bbb;margin-top:6px;line-height:1.6">
-      ${st.status==="done" && d.stale ? "⚠️ 최신 확인 실패로 이전에 저장된 이미지입니다 · " : ""}
-      이미지 갱신 확인 ${esc(d.hash_updated_at||d.updated||"")} · 이미지 속 "○○년 ○월 기준" 표기가 실제 데이터 기준월입니다.
-      표가 이미지로만 게시돼 카드로 만들지 못해 원본 이미지를 그대로 보여드립니다.
-    </div>
-  </div>`;
+    <div class="livestock-price-card__date" style="font-size:10px;color:#aaa;text-align:right;flex:0 0 auto">${esc(dateShort)}${d.stale?'<br><span style="color:#E65100">⚠️실패</span>':""}<br>이미지 게시</div>
+  </a>`;
 }
 
 function renderPoultryPriceLine(){
@@ -3907,7 +3912,7 @@ function renderPoultryPriceLine(){
       <div class="livestock-price-card__date" style="font-size:10px;color:#aaa;text-align:right">${item.date||""}<br>${item.caption}</div>
     </div>`).join("");
   const collectedAt=st.data.updated||"";
-  return `<div class="card" style="margin-bottom:20px"><div class="livestock-price-heading" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:7px;margin-bottom:10px"><div class="display" style="font-size:15px">📊 산란계 관련시세 <span style="font-size:10px;color:#aaa;font-weight:400">수집 ${esc(collectedAt)}</span></div><div class="livestock-price-actions" style="display:flex;align-items:center;gap:6px"><a href="https://www.ekapepia.com/v3/web/main.do?userGroup=producer" target="_blank" rel="noopener" style="border:1px solid #1B7A3E;border-radius:8px;background:#fff;padding:6px 10px;font-size:11px;color:#1B7A3E;text-decoration:none">생산자 시세 ↗</a><button id="btn-refresh-poultry" style="border:1px solid #1B7A3E;border-radius:8px;background:#fff;padding:6px 10px;font-size:11px;color:#1B7A3E">🔄 갱신</button></div></div><div class="livestock-price-cards">${cards}</div>${renderJungchuPricePanel()}<div style="font-size:9px;color:#bbb;margin-top:8px;text-align:right">카드 날짜=원본 발표일 · 수집 시각=${esc(collectedAt)} · 출처: 축산물품질평가원 다봄</div></div>`;
+  return `<div class="card" style="margin-bottom:20px"><div class="livestock-price-heading" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:7px;margin-bottom:10px"><div class="display" style="font-size:15px">📊 산란계 관련시세 <span style="font-size:10px;color:#aaa;font-weight:400">수집 ${esc(collectedAt)}</span></div><div class="livestock-price-actions" style="display:flex;align-items:center;gap:6px"><a href="https://www.ekapepia.com/v3/web/main.do?userGroup=producer" target="_blank" rel="noopener" style="border:1px solid #1B7A3E;border-radius:8px;background:#fff;padding:6px 10px;font-size:11px;color:#1B7A3E;text-decoration:none">생산자 시세 ↗</a><button id="btn-refresh-poultry" style="border:1px solid #1B7A3E;border-radius:8px;background:#fff;padding:6px 10px;font-size:11px;color:#1B7A3E">🔄 갱신</button></div></div><div class="livestock-price-cards">${cards}${renderJungchuPriceCard()}</div><div style="font-size:9px;color:#bbb;margin-top:8px;text-align:right">카드 날짜=원본 발표일 · 수집 시각=${esc(collectedAt)} · 출처: 축산물품질평가원 다봄</div></div>`;
 }
 
 // 대한양계협회 홈페이지에 매일 게시되는 "금일 육계시세" 표를 그대로 재현한다
