@@ -1,0 +1,48 @@
+name: 산란계 중추가격(협회) 수집
+
+# (사)대한산란계협회가 게시판 글을 부정기적으로(대략 월 1회) 수정하므로,
+# 다른 일 단위 작업들과 겹치지 않는 시간대에 하루 한 번만 확인한다.
+on:
+  schedule:
+    # 00:10 UTC = 매일 한국시간 09:10
+    - cron: "10 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-jungchu-price:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: 패키지 설치
+        run: pip install requests
+      - name: 중추가격 이미지 수집
+        run: python scripts/fetch_jungchu_price.py
+      - name: 결과 검증
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path("jungchu_price/latest.json").read_text(encoding="utf-8"))
+          assert data.get("title"), "title 없음"
+          assert data.get("image_hash"), "image_hash 없음"
+          assert Path("jungchu_price/latest.jpg").stat().st_size > 1000, "이미지 파일이 너무 작음"
+          PY
+      - name: 결과 커밋
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add jungchu_price/
+          git diff --staged --quiet && exit 0
+          git commit -m "🐣 산란계 중추가격(협회) 갱신"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin ${GITHUB_REF_NAME} && git push && exit 0
+            echo "푸시 재시도 $i"
+            sleep 5
+          done
+          exit 1

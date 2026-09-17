@@ -562,6 +562,10 @@ const PRICES_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/mai
 const EGG_REPORT_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/egg_report/latest.json";
 // 산란계 사육 마리수(분기) — mtrace 통계누리 DT_1EO415를 scripts/fetch_layer_stats.py가 모아둔 파일
 const LAYER_STATS_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/layer_stats/latest.json";
+// 산란계 중추가격 — (사)대한산란계협회(kegg.or.kr) 게시판 이미지를 scripts/fetch_jungchu_price.py가 그대로 미러링한 파일.
+// 표가 이미지 한 장으로만 올라오는 자료라 숫자로 파싱하지 않고 이미지 자체를 보여준다(자세한 이유는 스크립트 상단 설명 참고).
+const JUNGCHU_PRICE_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/jungchu_price/latest.json";
+const JUNGCHU_PRICE_IMAGE_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/jungchu_price/latest.jpg";
 // 고병원성 AI 발생예측통계 — WOAH WAHIS 공식 신고를 scripts/fetch_hpai_risk.py가 모아둔 파일
 const HPAI_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/hpai_risk/latest.json";
 // 양계질병 자료 — The Poultry Site 원문을 scripts/fetch_poultry_diseases.py가 한글 번역까지 마쳐둔 파일
@@ -1302,6 +1306,23 @@ async function fetchLayerStats(){
   } catch(e) {
     console.warn("산란계 사육수 로딩 실패:", e);
     layerStatsState.status = "error";
+  }
+  if(state.tab === "price") render();
+}
+
+let jungchuPriceState = { status: "idle", data: null }; // idle|loading|done|error
+
+async function fetchJungchuPrice(){
+  if(jungchuPriceState.status === "loading") return;
+  jungchuPriceState.status = "loading";
+  try {
+    const resp = await fetchWithTimeout(JUNGCHU_PRICE_JSON_URL + "?t=" + Date.now(), 8000);
+    if(!resp.ok) throw new Error("HTTP " + resp.status);
+    jungchuPriceState.data   = await resp.json();
+    jungchuPriceState.status = "done";
+  } catch(e) {
+    console.warn("산란계 중추가격 로딩 실패:", e);
+    jungchuPriceState.status = "error";
   }
   if(state.tab === "price") render();
 }
@@ -3828,6 +3849,36 @@ function last7DayInfos(){
   return getLast7Days().map(d=>({label:fmtDate(d), isWeekend:d.getDay()===0||d.getDay()===6}));
 }
 
+// 산란계 중추가격 — (사)대한산란계협회가 매월 게시하는 표가 숫자가 아니라
+// 이미지 한 장(그래프+연도별 월별 표)으로만 올라와서, 카드처럼 숫자를 뽑아
+// 보여주지 못하고 원본 이미지를 그대로 보여준다. 자세한 이유는
+// scripts/fetch_jungchu_price.py 상단 설명 참고.
+function renderJungchuPricePanel(){
+  const st = jungchuPriceState;
+  if(st.status==="idle" || st.status==="loading"){
+    return `<div style="margin-top:12px;padding:16px;text-align:center;color:#aaa;font-size:12px;background:#fafafa;border-radius:10px">⏳ 중추가격 이미지 불러오는 중...</div>`;
+  }
+  if(st.status==="error" || !st.data){
+    return `<div style="margin-top:12px;padding:14px;text-align:center;color:#aaa;font-size:12px;background:#fafafa;border-radius:10px">⚠️ 중추가격 이미지를 불러오지 못했습니다. <a href="https://kegg.or.kr/board/sub3?Ncode=breed" target="_blank" rel="noopener" style="color:#1B7A3E">원문 바로가기 ↗</a></div>`;
+  }
+  const d = st.data;
+  return `
+  <div style="margin-top:14px;border-top:1px dashed #eee;padding-top:12px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+      <div style="font-size:12px;font-weight:700;color:#333">🐣 산란계 중추가격 <span style="font-size:10px;color:#aaa;font-weight:400">(사)대한산란계협회</span></div>
+      <a href="${esc(d.post_url)}" target="_blank" rel="noopener" style="font-size:10px;color:#1B7A3E">원문 ↗</a>
+    </div>
+    <a href="${esc(d.post_url)}" target="_blank" rel="noopener">
+      <img src="${JUNGCHU_PRICE_IMAGE_URL}?v=${encodeURIComponent(d.image_hash||"")}" alt="산란계 중추가격"
+        style="width:100%;max-width:100%;border-radius:8px;border:1px solid #eee;display:block" />
+    </a>
+    <div style="font-size:9px;color:#bbb;margin-top:6px;line-height:1.6">
+      ${st.status==="done" && d.stale ? "⚠️ 최신 확인 실패로 이전에 저장된 이미지입니다 · " : ""}
+      이미지 갱신 확인 ${esc(d.hash_updated_at||d.updated||"")} · 이미지 속 "○○년 ○월 기준" 표기가 실제 데이터 기준월입니다.
+      표가 이미지로만 게시돼 카드로 만들지 못해 원본 이미지를 그대로 보여드립니다.
+    </div>
+  </div>`;
+}
 
 function renderPoultryPriceLine(){
   const st=poultryPriceState;
@@ -3856,7 +3907,7 @@ function renderPoultryPriceLine(){
       <div class="livestock-price-card__date" style="font-size:10px;color:#aaa;text-align:right">${item.date||""}<br>${item.caption}</div>
     </div>`).join("");
   const collectedAt=st.data.updated||"";
-  return `<div class="card" style="margin-bottom:20px"><div class="livestock-price-heading" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:7px;margin-bottom:10px"><div class="display" style="font-size:15px">📊 산란계 관련시세 <span style="font-size:10px;color:#aaa;font-weight:400">수집 ${esc(collectedAt)}</span></div><div class="livestock-price-actions" style="display:flex;align-items:center;gap:6px"><a href="https://www.ekapepia.com/v3/web/main.do?userGroup=producer" target="_blank" rel="noopener" style="border:1px solid #1B7A3E;border-radius:8px;background:#fff;padding:6px 10px;font-size:11px;color:#1B7A3E;text-decoration:none">생산자 시세 ↗</a><button id="btn-refresh-poultry" style="border:1px solid #1B7A3E;border-radius:8px;background:#fff;padding:6px 10px;font-size:11px;color:#1B7A3E">🔄 갱신</button></div></div><div class="livestock-price-cards">${cards}</div><div style="font-size:9px;color:#bbb;margin-top:8px;text-align:right">카드 날짜=원본 발표일 · 수집 시각=${esc(collectedAt)} · 출처: 축산물품질평가원 다봄<br>※ 중추(육성계) 시세는 공식 공시 자료가 없어 표시하지 못합니다.</div></div>`;
+  return `<div class="card" style="margin-bottom:20px"><div class="livestock-price-heading" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:7px;margin-bottom:10px"><div class="display" style="font-size:15px">📊 산란계 관련시세 <span style="font-size:10px;color:#aaa;font-weight:400">수집 ${esc(collectedAt)}</span></div><div class="livestock-price-actions" style="display:flex;align-items:center;gap:6px"><a href="https://www.ekapepia.com/v3/web/main.do?userGroup=producer" target="_blank" rel="noopener" style="border:1px solid #1B7A3E;border-radius:8px;background:#fff;padding:6px 10px;font-size:11px;color:#1B7A3E;text-decoration:none">생산자 시세 ↗</a><button id="btn-refresh-poultry" style="border:1px solid #1B7A3E;border-radius:8px;background:#fff;padding:6px 10px;font-size:11px;color:#1B7A3E">🔄 갱신</button></div></div><div class="livestock-price-cards">${cards}</div>${renderJungchuPricePanel()}<div style="font-size:9px;color:#bbb;margin-top:8px;text-align:right">카드 날짜=원본 발표일 · 수집 시각=${esc(collectedAt)} · 출처: 축산물품질평가원 다봄</div></div>`;
 }
 
 // 대한양계협회 홈페이지에 매일 게시되는 "금일 육계시세" 표를 그대로 재현한다
@@ -7450,6 +7501,7 @@ fetchBroilerPriceToday();
 // 주간 계란 수급 정보 (GitHub Actions 매주 화요일 업데이트)
 fetchEggReport();
 fetchLayerStats();
+fetchJungchuPrice();
 fetchHpaiRisk();
 fetchMonthlyPicks();
 
