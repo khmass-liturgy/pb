@@ -5287,6 +5287,145 @@ const CONSULT_BREEDS = {
 
 let consultState = { species:"broiler", breed:"ross308", age:7 };
 
+// ── 육계 생산지수(EPEF, European Production Efficiency Factor) ─────────────
+// 국내외 육계 현장에서 가장 널리 쓰는 종합 성적 지표. 공식:
+//   생존율(%)      = 출하수수 / 입식마릿수 × 100
+//   평균출하체중    = 총중량(kg) / 출하수수
+//   일당증체량(g)   = 평균출하체중(g) / 사육일수
+//   사료요구율(FCR) = 총사료섭취량(kg) / 총중량(kg)
+//   생산지수(EPEF)  = 생존율 × 일당증체량 / (사료요구율 × 10)
+// 출처: Aviagen/Cobb 등 주요 육종회사 매뉴얼과 국내 계열화업체가 공통으로 쓰는
+// "유럽생산지수" 정의. 300 안팎이 평균, 400 이상이면 세계 최상위권으로 본다.
+let prodIndexState = { placed: 30000, shipped: 29400, days: 33, feedKg: 62000, totalWeightKg: 51000 };
+let prodIndexReverseState = { target: 400, survival: 97, days: 33, fcr: 1.55 };
+
+function calcProductionIndex(s){
+  const survival = s.shipped / s.placed * 100;
+  const avgWeightKg = s.totalWeightKg / s.shipped;
+  const adg = (avgWeightKg * 1000) / s.days;      // g/일
+  const fcr = s.feedKg / s.totalWeightKg;
+  const epef = (survival * adg) / (fcr * 10);
+  return { survival, avgWeightKg, adg, fcr, epef };
+}
+
+// 정방향 공식을 뒤집어 "이 조건(생존율·사육일수·FCR)에서 목표 지수를 내려면
+// 하루에 얼마나 키워야(ADG) 하는가"를 구한다.
+//   EPEF = 생존율 × ADG / (FCR × 10)  →  ADG = EPEF × FCR × 10 / 생존율
+function calcRequiredAdg(r){
+  const adg = r.target * r.fcr * 10 / r.survival;   // g/일
+  const weightKg = (adg * r.days) / 1000;           // 그 ADG로 사육일수만큼 키웠을 때 출하체중
+  return { adg, weightKg };
+}
+
+function productionIndexGrade(epef){
+  if(epef >= 400) return { label:"최우수", color:"#1B7A3E", bg:"#E8F5E9", note:"세계 최상위권 수준" };
+  if(epef >= 350) return { label:"우수",   color:"#2E7D32", bg:"#F1F8E9", note:"상위권 성적" };
+  if(epef >= 300) return { label:"양호",   color:"#F57F17", bg:"#FFFDE7", note:"평균 이상" };
+  if(epef >= 250) return { label:"보통",   color:"#E65100", bg:"#FFF3E0", note:"국내 평균 수준" };
+  return              { label:"개선 필요", color:"#C62828", bg:"#FFEBEE", note:"평균 이하 — 폐사율·증체·사료효율 점검 필요" };
+}
+
+function renderProductionIndexPanel(){
+  if(consultState.species !== "broiler") return "";
+  const s = prodIndexState;
+  const r = calcProductionIndex(s);
+  const grade = productionIndexGrade(r.epef);
+
+  const numInput = (id, label, value, unit, step) => `
+    <div style="min-width:130px;flex:1">
+      <div style="font-size:10px;color:#888;margin-bottom:3px">${label}</div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <input type="number" id="${id}" value="${value}" step="${step||1}" min="0"
+          style="width:100%;border:1px solid #ddd;border-radius:8px;padding:7px 8px;font-size:13px;text-align:right" />
+        <span style="font-size:10px;color:#aaa;white-space:nowrap">${unit}</span>
+      </div>
+    </div>`;
+
+  const rv = prodIndexReverseState;
+  const req = calcRequiredAdg(rv);
+  const reqGrade = productionIndexGrade(rv.target);
+
+  const rangeRow = (id, label, value, min, max, step, unit, display) => `
+    <div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:#666;margin-bottom:3px">
+        <span>${label}</span><span id="${id}-val" style="font-weight:700;color:#1a2744">${display!=null?display:value}${unit}</span>
+      </div>
+      <input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${value}" style="width:100%" />
+    </div>`;
+
+  return `
+  <div class="card" style="border-top:5px solid #E65100;margin-top:16px">
+    <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:3px">🧮 육계 생산지수 계산기 (EPEF)</div>
+    <div style="font-size:10px;color:#aaa;margin-bottom:12px">입식·출하 성적을 입력하면 생산지수를 자동 계산합니다</div>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      ${numInput("pi-placed", "입식마릿수", s.placed, "마리", 1)}
+      ${numInput("pi-shipped", "출하수수", s.shipped, "마리", 1)}
+      ${numInput("pi-days", "사육일수", s.days, "일", 1)}
+      ${numInput("pi-feed", "총사료섭취량", s.feedKg, "kg", 1)}
+      ${numInput("pi-weight", "총중량(출하시)", s.totalWeightKg, "kg", 1)}
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">
+      <div style="background:#fafafa;border-radius:8px;padding:8px 10px;text-align:center">
+        <div style="font-size:9px;color:#888">생존율</div>
+        <div style="font-size:15px;font-weight:800;color:#1a2744">${r.survival.toFixed(1)}%</div>
+      </div>
+      <div style="background:#fafafa;border-radius:8px;padding:8px 10px;text-align:center">
+        <div style="font-size:9px;color:#888">평균출하체중</div>
+        <div style="font-size:15px;font-weight:800;color:#1a2744">${r.avgWeightKg.toFixed(2)}kg</div>
+      </div>
+      <div style="background:#fafafa;border-radius:8px;padding:8px 10px;text-align:center">
+        <div style="font-size:9px;color:#888">일당증체량</div>
+        <div style="font-size:15px;font-weight:800;color:#1a2744">${r.adg.toFixed(1)}g</div>
+      </div>
+      <div style="background:#fafafa;border-radius:8px;padding:8px 10px;text-align:center">
+        <div style="font-size:9px;color:#888">사료요구율</div>
+        <div style="font-size:15px;font-weight:800;color:#1a2744">${r.fcr.toFixed(3)}</div>
+      </div>
+    </div>
+
+    <div style="background:${grade.bg};border-radius:10px;padding:14px;text-align:center;margin-bottom:6px">
+      <div style="font-size:11px;color:#888">생산지수 (EPEF)</div>
+      <div style="font-size:32px;font-weight:800;color:${grade.color};margin-top:2px">${r.epef.toFixed(0)}
+        <span style="font-size:13px;background:#fff;color:${grade.color};border-radius:6px;padding:2px 8px;margin-left:4px">${grade.label}</span>
+      </div>
+      <div style="font-size:11px;color:#666;margin-top:3px">${grade.note}</div>
+    </div>
+    <div style="font-size:9px;color:#aaa;line-height:1.6">
+      공식: 생산지수 = 생존율(%) × 일당증체량(g) ÷ (사료요구율 × 10)
+    </div>
+  </div>
+
+  <div class="card" style="border-top:5px solid #6A1B9A;margin-top:16px">
+    <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:3px">🎯 목표 생산지수 역산</div>
+    <div style="font-size:10px;color:#aaa;margin-bottom:12px">슬라이더를 움직여 목표 지수를 내려면 하루 얼마나 키워야 하는지 바로 확인하세요</div>
+
+    ${rangeRow("pir-target", "목표 생산지수", rv.target, 200, 500, 5, "", rv.target)}
+    ${rangeRow("pir-survival", "생존율", rv.survival, 80, 100, 0.5, "%")}
+    ${rangeRow("pir-days", "사육일수", rv.days, 25, 45, 1, "일")}
+    ${rangeRow("pir-fcr", "사료요구율(FCR)", rv.fcr, 1.20, 2.00, 0.01, "")}
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px">
+      <div style="background:#F3E5F5;border-radius:10px;padding:12px;text-align:center">
+        <div style="font-size:10px;color:#6A1B9A">필요 일당증체량(ADG)</div>
+        <div style="font-size:20px;font-weight:800;color:#4A148C;margin-top:2px"><span id="pir-adg-val">${req.adg.toFixed(1)}</span> <span style="font-size:11px;font-weight:600">g/일</span></div>
+      </div>
+      <div style="background:#F3E5F5;border-radius:10px;padding:12px;text-align:center">
+        <div style="font-size:10px;color:#6A1B9A">→ <span id="pir-days-label">${rv.days}</span>일령 필요 출하체중</div>
+        <div style="font-size:20px;font-weight:800;color:#4A148C;margin-top:2px"><span id="pir-weight-val">${req.weightKg.toFixed(2)}</span> <span style="font-size:11px;font-weight:600">kg</span></div>
+      </div>
+    </div>
+    <div id="pir-grade-box" style="font-size:11px;color:${reqGrade.color};background:${reqGrade.bg};border-radius:8px;padding:8px 10px;margin-top:10px;text-align:center">
+      목표 <span id="pir-grade-target">${rv.target}</span>은(는) "<span id="pir-grade-label">${reqGrade.label}</span>" 등급입니다 — <span id="pir-grade-note">${reqGrade.note}</span>
+    </div>
+    <div style="font-size:9px;color:#aaa;line-height:1.6;margin-top:8px">
+      공식을 뒤집은 값: 일당증체량 = 목표지수 × FCR × 10 ÷ 생존율. 생존율·사육일수·FCR을 고정했을 때
+      이 일당증체량을 달성해야 목표 생산지수에 도달합니다.
+    </div>
+  </div>`;
+}
+
 // ── 일령별 음수량 기준 ───────────────────────────────────────────────────────
 // 육종회사 사육표준 매뉴얼은 "일령별 음수량(ml)" 표를 그대로 싣지 않는다. 대신
 // 음수량을 "물:사료 비율(water:feed ratio)"로 제시하고, 온도에 따른 보정규칙을
@@ -6009,6 +6148,7 @@ function renderConsultTab(){
   ${renderWetBulbPanel()}
   ${renderDewPointPanel()}
   ${renderVentCalcPanel()}
+  ${renderProductionIndexPanel()}
   ${renderMgmtPointsPanel()}
 
   <div style="font-size:10px;color:#aaa;line-height:1.7">
@@ -7186,6 +7326,54 @@ function attachEvents(){
     const v = parseInt(e.target.value,10);
     if(!isNaN(v)){ consultState.age = v; render(); }
   };
+
+  // 육계 생산지수 계산기 — 입력값 5개, 값이 바뀌면(포커스 빠질 때) 다시 계산한다
+  const piIds = { "pi-placed":"placed", "pi-shipped":"shipped", "pi-days":"days", "pi-feed":"feedKg", "pi-weight":"totalWeightKg" };
+  Object.keys(piIds).forEach(id => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.onchange = (e) => {
+      const v = parseFloat(e.target.value);
+      if(!isNaN(v) && v >= 0) prodIndexState[piIds[id]] = v;
+      render();
+    };
+  });
+
+  // 목표 생산지수 역산 슬라이더 — 드래그하는 동안(input) 매번 render()를 부르면
+  // 슬라이더 DOM이 통째로 새로 그려져 드래그가 끊긴다. 그래서 드래그 중에는
+  // 결과 숫자만 직접 DOM에 써 넣고(부드러운 "스크롤" 체감), 전체 재렌더는
+  // 하지 않는다 — 다른 조작으로 화면이 다시 그려질 때 최신값이 반영되도록
+  // prodIndexReverseState는 매 input마다 갱신해 둔다.
+  const pirIds = { "pir-target":"target", "pir-survival":"survival", "pir-days":"days", "pir-fcr":"fcr" };
+  const pirUnits = { "pir-target":"", "pir-survival":"%", "pir-days":"일", "pir-fcr":"" };
+  Object.keys(pirIds).forEach(id => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.oninput = (e) => {
+      const v = parseFloat(e.target.value);
+      if(isNaN(v)) return;
+      prodIndexReverseState[pirIds[id]] = v;
+      const valSpan = document.getElementById(id + "-val");
+      if(valSpan) valSpan.textContent = (id==="pir-fcr" ? v.toFixed(2) : v) + pirUnits[id];
+
+      const req = calcRequiredAdg(prodIndexReverseState);
+      const grade = productionIndexGrade(prodIndexReverseState.target);
+      const adgEl = document.getElementById("pir-adg-val");
+      const daysLabelEl = document.getElementById("pir-days-label");
+      const weightEl = document.getElementById("pir-weight-val");
+      const boxEl = document.getElementById("pir-grade-box");
+      const targetEl = document.getElementById("pir-grade-target");
+      const labelEl = document.getElementById("pir-grade-label");
+      const noteEl = document.getElementById("pir-grade-note");
+      if(adgEl) adgEl.textContent = req.adg.toFixed(1);
+      if(daysLabelEl) daysLabelEl.textContent = prodIndexReverseState.days;
+      if(weightEl) weightEl.textContent = req.weightKg.toFixed(2);
+      if(boxEl){ boxEl.style.color = grade.color; boxEl.style.background = grade.bg; }
+      if(targetEl) targetEl.textContent = prodIndexReverseState.target;
+      if(labelEl) labelEl.textContent = grade.label;
+      if(noteEl) noteEl.textContent = grade.note;
+    };
+  });
 
   // 일령별 음수량·사료섭취량 표는 40행(육계)이 넘으므로, 다시 그릴 때마다
   // 현재 선택된 일령 행이 스크롤 영역 가운데로 오도록 맞춰준다.
