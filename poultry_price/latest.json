@@ -1,13 +1,17 @@
 {
-  "updated": "2026-09-18 11:31 KST",
+  "updated": "2026-09-19 11:30 KST",
   "stale": {},
   "egg": {
     "label": "계란 산지가격",
     "region": "전국",
     "grade": "특란 (XL)",
     "unit": "원/10개",
-    "latest": 2098,
+    "latest": 2082,
     "rows": [
+      {
+        "date": "2026-09-18",
+        "value": 2082
+      },
       {
         "date": "2026-09-17",
         "value": 2098
@@ -95,10 +99,6 @@
       {
         "date": "2026-08-19",
         "value": 2201
-      },
-      {
-        "date": "2026-08-18",
-        "value": 2166
       }
     ]
   },
@@ -107,8 +107,12 @@
     "region": "수도권",
     "grade": "특란 (XL)",
     "unit": "원/10개",
-    "latest": 2091,
+    "latest": 2062,
     "rows": [
+      {
+        "date": "2026-09-18",
+        "value": 2062
+      },
       {
         "date": "2026-09-17",
         "value": 2091
@@ -196,10 +200,6 @@
       {
         "date": "2026-08-19",
         "value": 2250
-      },
-      {
-        "date": "2026-08-18",
-        "value": 2216
       }
     ]
   },
@@ -208,6 +208,10 @@
     "unit": "원/kg",
     "latest": 1500,
     "rows": [
+      {
+        "date": "2026-09-18",
+        "value": 1500
+      },
       {
         "date": "2026-09-17",
         "value": 1500
@@ -295,10 +299,6 @@
       {
         "date": "2026-08-19",
         "value": 2400
-      },
-      {
-        "date": "2026-08-18",
-        "value": 2400
       }
     ]
   },
@@ -309,7 +309,7 @@
         "label": "대",
         "spec": "1.6kg 이상",
         "value": 1500,
-        "date": "2026-09-17"
+        "date": "2026-09-18"
       },
       "medium": {
         "label": "중",
@@ -325,6 +325,12 @@
       }
     },
     "rows": [
+      {
+        "date": "2026-09-18",
+        "large": 1500,
+        "medium": null,
+        "small": null
+      },
       {
         "date": "2026-09-17",
         "large": 1500,
@@ -456,27 +462,21 @@
         "large": 2400,
         "medium": 2400,
         "small": null
-      },
-      {
-        "date": "2026-08-18",
-        "large": 2400,
-        "medium": null,
-        "small": null
       }
     ]
   },
   "pig": {
     "label": "농가수취 평균",
     "unit": "원/kg",
-    "latest": 7797,
+    "latest": 7853,
     "rows": [
+      {
+        "date": "2026-09-18",
+        "value": 7853
+      },
       {
         "date": "2026-09-17",
         "value": 7797
-      },
-      {
-        "date": "2026-09-16",
-        "value": 7813
       }
     ]
   },
@@ -485,20 +485,20 @@
       "female_calf": {
         "label": "암송아지(6~7개월)",
         "unit": "천원/마리",
-        "value": 3956,
-        "date": "2026-09-15"
+        "value": 3922,
+        "date": "2026-09-17"
       },
       "male_calf": {
         "label": "수송아지(6~7개월)",
         "unit": "천원/마리",
-        "value": 5583,
-        "date": "2026-09-15"
+        "value": 5618,
+        "date": "2026-09-17"
       },
       "farm_receipt_600kg": {
         "label": "농가수취가격(600kg)",
         "unit": "천원/마리",
-        "value": 8413,
-        "date": "2026-09-17"
+        "value": 8096,
+        "date": "2026-09-18"
       }
     },
     "rows": [
@@ -506,12 +506,12 @@
         "date": "2026-09-18",
         "female_calf": null,
         "male_calf": null,
-        "farm_receipt_600kg": null
+        "farm_receipt_600kg": 8096
       },
       {
         "date": "2026-09-17",
-        "female_calf": null,
-        "male_calf": null,
+        "female_calf": 3922,
+        "male_calf": 5618,
         "farm_receipt_600kg": 8413
       },
       {
@@ -657,12 +657,6 @@
         "female_calf": 3685,
         "male_calf": 5172,
         "farm_receipt_600kg": 8099
-      },
-      {
-        "date": "2026-08-18",
-        "female_calf": 3693,
-        "male_calf": 5205,
-        "farm_receipt_600kg": 8081
       }
     ]
   },
