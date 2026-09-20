@@ -37,6 +37,7 @@ Each data domain has this shape:
 | General news (RSS) | `scripts/fetch_news.py` | `news/news.json` | fetch-news.yml | daily 08:00 |
 | Association notices | `scripts/fetch_notices.py` | `notices/notices.json` | fetch-notices.yml | daily 08:00 |
 | 금일 육계시세(대한양계협회 poultry.or.kr) | `scripts/fetch_broiler_price_today.py` | `broiler_price_today/latest.json` | fetch-broiler-price-today.yml | daily 13:20 |
+| 기술탐구 논문(PubMed → Claude API 번역·요약, 유료서비스 전용) | `scripts/fetch_research_papers.py` | `research_papers/latest.json` | fetch-research-papers.yml | weekly Sun 07:10 |
 
 `fetch_egg_report.py` and `fetch_egg_price.py` currently have no workflow wired up — check before
 assuming their output is refreshed automatically.

@@ -1,0 +1,54 @@
+name: 유료서비스 기술탐구(논문) 수집
+
+# 질병논문/사양관리기술/컨설팅도구 3개 카테고리 최신 논문 5편씩을 PubMed에서
+# 가져와 Claude API로 한글 번역·요약한다. 매주 발표되는 새 논문을 모으는
+# 용도라 주 1회면 충분하다.
+on:
+  schedule:
+    # 22:10 UTC 토요일 = 매주 일요일 한국시간 07:10
+    - cron: "10 22 * * 6"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-research-papers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: 패키지 설치
+        run: pip install requests
+      - name: 논문 수집·번역·요약
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python scripts/fetch_research_papers.py
+      - name: 결과 검증
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path("research_papers/latest.json").read_text(encoding="utf-8"))
+          assert data["categories"], "카테고리가 하나도 없음"
+          for key, cat in data["categories"].items():
+              assert cat["papers"], f"{key}: 논문이 비어 있음"
+              for p in cat["papers"]:
+                  assert p["title_ko"] and p["summary_ko"] and p["url"]
+          PY
+      - name: 결과 커밋
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add research_papers/
+          git diff --staged --quiet && echo "변경 없음" && exit 0
+          git commit -m "📚 기술탐구 논문 갱신 ($(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M KST'))"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin ${GITHUB_REF_NAME} && git push && exit 0
+            echo "푸시 재시도 $i"
+            sleep 5
+          done
+          exit 1
