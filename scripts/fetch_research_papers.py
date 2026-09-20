@@ -34,26 +34,35 @@ EFETCH_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
 
 ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
 ANTHROPIC_MODEL = "claude-sonnet-5"
+ANTHROPIC_MODEL_FALLBACK = "claude-3-5-sonnet-20241022"  # 기본 모델 ID가 거부될 때만 씀
 
 # 카테고리별 PubMed 검색어 — 제목/초록(tiab)에 육계·산란계·가금 키워드와
 # 카테고리 키워드가 함께 들어간 논문만 고른다.
+#
+# 주의 두 가지(둘 다 실제로 겪은 버그):
+# 1) 홑단어 "layer"를 OR에 넣으면 "muscle layer"·"nanofluid layer"처럼 전혀
+#    무관한 분야(공학·의학)까지 걸린다 — 반드시 "laying hen(s)"처럼 구를
+#    따옴표로 묶어 쓴다. poultry/broiler/chicken 정도만 홑단어로 써도 된다.
+# 2) OR 항목이 너무 많으면(한쪽에 5개 이상) PubMed 파서가 괄호 우선순위를
+#    안정적으로 지키지 못해 AND가 사실상 무시되고 완전히 무관한 최신 논문이
+#    섞여 나오는 현상이 있었다(예: 산부인과·건선 논문). 각 괄호는 2~4개
+#    OR 항목으로 짧게 유지한다.
 CATEGORIES = {
     "disease": {
         "label": "질병논문",
-        "query": '(broiler[tiab] OR layer[tiab] OR "laying hen"[tiab] OR poultry[tiab] OR chicken[tiab]) '
-                 'AND (disease[tiab] OR virus[tiab] OR pathogen[tiab] OR infection[tiab] OR outbreak[tiab])',
+        "query": '(broiler[tiab] OR poultry[tiab] OR chicken[tiab] OR "laying hen"[tiab] OR "laying hens"[tiab]) '
+                 'AND (disease[tiab] OR virus[tiab] OR pathogen[tiab])',
     },
     "management": {
         "label": "사양관리기술",
-        "query": '(broiler[tiab] OR layer[tiab] OR "laying hen"[tiab] OR poultry[tiab]) '
-                  'AND (feed[tiab] OR nutrition[tiab] OR housing[tiab] OR ventilation[tiab] '
-                  'OR welfare[tiab] OR "management practice"[tiab])',
+        "query": '(broiler[tiab] OR poultry[tiab] OR chicken[tiab] OR "laying hen"[tiab] OR "laying hens"[tiab]) '
+                  'AND (nutrition[tiab] OR feed[tiab] OR housing[tiab] OR welfare[tiab])',
     },
     "consulting": {
         "label": "컨설팅도구",
-        "query": '(poultry[tiab] OR broiler[tiab] OR layer[tiab]) '
-                  'AND ("decision support"[tiab] OR "precision livestock farming"[tiab] '
-                  'OR economic[tiab] OR benchmarking[tiab] OR "farm management"[tiab])',
+        "query": '(poultry[tiab] OR broiler[tiab] OR "laying hen"[tiab]) '
+                  'AND ("precision livestock farming"[tiab] OR "decision support"[tiab] '
+                  'OR "farm management"[tiab] OR benchmarking[tiab])',
     },
 }
 
@@ -66,7 +75,9 @@ def esearch_pmids(query: str) -> list[str]:
         "db": "pubmed",
         "term": query,
         "retmax": RESULTS_PER_CATEGORY,
-        "sort": "date",
+        # "date"는 유효한 정렬 스키마가 아니라 조용히 무시된다(NCBI가 그냥
+        # 경고만 주고 relevance로 돌아감) — 최근순 정렬은 pub_date를 쓴다.
+        "sort": "pub_date",
         "datetype": "pdat",
         "reldate": RECENCY_DAYS,
         "retmode": "json",
@@ -139,20 +150,24 @@ def translate_and_summarize(articles: list[dict[str, str]]) -> list[dict[str, st
         f"논문 목록:\n{numbered}"
     )
 
-    resp = requests.post(
-        ANTHROPIC_URL,
-        headers={
-            "x-api-key": api_key,
-            "anthropic-version": "2023-06-01",
-            "content-type": "application/json",
-        },
-        json={
-            "model": ANTHROPIC_MODEL,
-            "max_tokens": 4000,
-            "messages": [{"role": "user", "content": prompt}],
-        },
-        timeout=120,
-    )
+    headers = {
+        "x-api-key": api_key,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+    }
+    body_base = {"max_tokens": 4000, "messages": [{"role": "user", "content": prompt}]}
+
+    # 모델 ID는 시간이 지나며 바뀔 수 있어(구/신모델 교체), 기본 모델이
+    # "model not found"류로 거부되면 알려진 안정 모델로 한 번 더 시도한다.
+    # 그 외 오류(키 무효, 요금 문제 등)는 재시도해도 소용없으니 바로 올린다.
+    resp = None
+    for model in (ANTHROPIC_MODEL, ANTHROPIC_MODEL_FALLBACK):
+        resp = requests.post(ANTHROPIC_URL, headers=headers, json={**body_base, "model": model}, timeout=120)
+        if resp.ok:
+            break
+        print(f"  Anthropic API 응답 {resp.status_code} (model={model}): {resp.text[:300]}")
+        if resp.status_code not in (400, 404) or model == ANTHROPIC_MODEL_FALLBACK:
+            break
     resp.raise_for_status()
     text = resp.json()["content"][0]["text"].strip()
     # 코드펜스로 감싸 나오는 경우가 있어 벗겨낸다
