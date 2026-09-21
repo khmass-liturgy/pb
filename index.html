@@ -639,6 +639,7 @@ const PREMIUM_ITEMS = [
   { key:"drug", icon:"💊", title:"약품조회 및 휴약기간 검색", desc:"동물용의약품을 제품명·업체명·성분명으로 검색하고, 축종별 휴약기간을 QIA 공식 데이터로 바로 확인합니다.", color:"#00838F" },
   { key:"research", icon:"📚", title:"기술탐구", desc:"질병논문·사양관리기술·컨설팅도구 최신 국제논문 5편씩을 매주 한글로 번역·요약해 드립니다.", color:"#6A1B9A" },
   { key:"treatment", icon:"💉", title:"상황별 처방(투약) 패키지", desc:"육계·산란계 농장 상황을 고르면 그에 맞는 투약(처방) 프로그램을 보여드립니다. 상황은 계속 추가됩니다.", color:"#C62828" },
+  { key:"seasonal", icon:"🗓️", title:"계절별 투약(관리) 패키지", desc:"봄·여름·가을·겨울 시기별로 챙겨야 할 투약(백신)과 사양관리 주의사항을 안내합니다.", color:"#795548" },
   { key:"consult", icon:"💬", title:"온라인 상담", desc:"농장 현안(사양·환기·질병 등)을 질문하면 최동명 수의사가 답변합니다. 사진 첨부 가능, 답변은 작성자만 볼 수 있습니다.", color:"#1565C0" },
   { key:"diagnosis", icon:"🔍", title:"온라인 진단", desc:"닭의 외부모습·분변상태·부검사진(기관지·간·신장·소장)을 올리면 최동명 수의사가 직접 진단합니다.", color:"#2E7D32" },
   { key:"consulting", icon:"📈", title:"온라인 컨설팅", desc:"농장 운영·질병 현황을 바탕으로 맞춤 투약·백신 프로그램을 작성해 드립니다. 답변은 작성자만 볼 수 있습니다.", color:"#E65100" },
@@ -787,6 +788,107 @@ async function publishTreatmentPackages(packages, message){
       throw new Error("발행 실패 (HTTP " + res.status + ") " + (apiMsg || t.slice(0,120)));
     }
     treatmentPkgState.data = body;
+    return { ok:true };
+  } catch(e) {
+    return { ok:false, error: e.message || String(e) };
+  }
+}
+
+// ── 계절별 투약·사양관리 패키지 ───────────────────────────────────────────────
+// 상황별 처방 패키지와 같은 발행 방식(GitHub Contents API 커밋)을 쓰지만,
+// 필터 기준이 species가 아니라 season이고, 항목 하나에 프로그램이 하나
+// (program)가 아니라 두 개(medication=투약, husbandry=사양관리 주의사항)라
+// 별도 상태/함수로 둔다. 계절 4개(spring/summer/fall/winter)와 그 기간은
+// 고정값이고, 각 계절 안에 들어가는 항목(글)은 상황별 처방처럼 관리자가
+// 계속 추가/편집/삭제할 수 있다.
+const SEASON_TABS = [
+  { key:"spring", label:"🌸 봄", period:"3월~5월" },
+  { key:"summer", label:"☀️ 여름", period:"6월~8월" },
+  { key:"fall", label:"🍂 가을", period:"9월~11월" },
+  { key:"winter", label:"❄️ 겨울", period:"12월~2월" },
+];
+function seasonLabel(key){
+  const s = SEASON_TABS.find(s=>s.key===key);
+  return s ? s.label + " (" + s.period + ")" : key;
+}
+
+const SEASONAL_PATH = "seasonal_packages/latest.json";
+// TREATMENT_PATH 쪽과 같은 이유(PICK_REPO/PICK_BRANCH가 이 파일 뒤쪽에서
+// 선언되는 TDZ 문제)로, URL도 쓰는 시점에 매번 조합하는 함수로 둔다.
+function seasonalJsonUrl(){
+  return "https://raw.githubusercontent.com/" + PICK_REPO + "/" + PICK_BRANCH + "/" + SEASONAL_PATH;
+}
+
+let seasonalPkgState = { status:"idle", data:null, busy:false, msg:"", adminOpen:false, editKey:null, diag:"" };
+
+async function fetchSeasonalPackages(){
+  if(seasonalPkgState.status === "loading") return;
+  seasonalPkgState.status = "loading";
+  try {
+    const r = await fetchWithTimeout(seasonalJsonUrl() + "?t=" + Date.now(), 8000);
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json();
+    j.packages = Array.isArray(j.packages) ? j.packages : [];
+    seasonalPkgState.data = j;
+    seasonalPkgState.status = "done";
+  } catch(e){
+    console.warn("계절별 패키지 로딩 실패:", e);
+    seasonalPkgState.data = { packages: [], by: PICK_BY };
+    seasonalPkgState.status = "error";
+  }
+  if(premiumState.view === "seasonal") render();
+}
+
+function currentSeasonalPackages(){
+  return (seasonalPkgState.data && seasonalPkgState.data.packages) || [];
+}
+function seasonalPackagesFor(season){
+  return currentSeasonalPackages().filter(p => p.season === season);
+}
+function newSeasonalKey(){
+  return "s" + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+}
+
+async function publishSeasonalPackages(packages, message){
+  const token = ghToken();
+  if(!token) return { ok:false, error:"발행 권한이 설정되지 않았습니다." };
+  const api = "https://api.github.com/repos/" + PICK_REPO + "/contents/" + SEASONAL_PATH;
+  const head = { "Authorization": "Bearer " + token,
+                 "Accept": "application/vnd.github+json",
+                 "Content-Type": "application/json" };
+  try {
+    let sha = null;
+    const cur = await fetch(api + "?ref=" + PICK_BRANCH + "&t=" + Date.now(), { headers: head });
+    if(cur.ok) sha = (await cur.json()).sha;
+    else if(cur.status === 401) throw new Error("토큰이 거부되었습니다. '토큰 점검'으로 원인을 확인하세요.");
+    else if(cur.status === 403) throw new Error("이 토큰에는 권한이 없습니다. '토큰 점검'으로 확인하세요.");
+    else if(cur.status === 404) sha = null;
+    else throw new Error("현재 파일 확인 실패 (HTTP " + cur.status + ")");
+
+    const body = {
+      updated: new Date().toISOString().slice(0,16).replace("T"," ") + " UTC",
+      by: PICK_BY,
+      note: "계절별 투약·사양관리 패키지 — 화면에서 저장하면 이 파일이 갱신되고 모든 사람에게 같은 내용이 보입니다.",
+      packages: packages,
+    };
+    const res = await fetch(api, {
+      method: "PUT", headers: head,
+      body: JSON.stringify({
+        message: message || "🗓️ 계절별 패키지 갱신",
+        content: b64utf8(JSON.stringify(body, null, 1)),
+        branch: PICK_BRANCH,
+        sha: sha || undefined,
+      }),
+    });
+    if(!res.ok){
+      const t = await res.text();
+      let apiMsg = ""; try { apiMsg = JSON.parse(t).message || ""; } catch(e){}
+      if(res.status === 401) throw new Error("토큰이 올바르지 않거나 만료되었습니다." + (apiMsg?" ("+apiMsg+")":""));
+      if(res.status === 403) throw new Error("발행이 거부됐습니다(HTTP 403)." + (apiMsg?" GitHub 응답: "+apiMsg:" 토큰 권한을 다시 확인하세요."));
+      if(res.status === 409) throw new Error("다른 곳에서 먼저 수정됐습니다. 새로고침 후 다시 시도하세요.");
+      throw new Error("발행 실패 (HTTP " + res.status + ") " + (apiMsg || t.slice(0,120)));
+    }
+    seasonalPkgState.data = body;
     return { ok:true };
   } catch(e) {
     return { ok:false, error: e.message || String(e) };
@@ -3352,6 +3454,7 @@ function renderResearchPanel(){
 
 // ── 상황별 처방(투약) 패키지 화면 ────────────────────────────────────────────
 let treatmentTabState = { species: "broiler", openKey: null, adminOpen: false, formKey: undefined };
+let seasonalTabState = { season: "spring", openKey: null, adminOpen: false, formKey: undefined };
 
 // 관리(추가/편집) 폼에 넣을 값 — null이면 새로 추가하는 중, 객체면 그 항목을 편집 중.
 // 프로그램 단계는 "제목|설명" 한 줄씩 textarea로 입력받아 저장할 때 배열로 바꾼다
@@ -3631,6 +3734,100 @@ function renderTreatmentPanel(){
     ※ 항생제·구충제 등은 국내 동물용의약품 수의사처방제 대상입니다 — 여기 나온 계열·단계는 참고 프로그램이며,
     실제 투약은 반드시 수의사 처방·지도를 거쳐 진행하세요. 계란·계육 출하 전에는 약품조회 메뉴에서 휴약기간을 꼭 확인하세요.
     새로운 상황은 계속 추가됩니다.
+  </div>`;
+}
+
+function renderSeasonalPanel(){
+  const head = `
+  <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+    <div>
+      <div class="display" style="font-size:16px;margin-bottom:3px">🗓️ 계절별 투약(관리) 패키지</div>
+      <div style="font-size:11px;color:#aaa">계절을 고르면 그 시기에 챙겨야 할 투약(백신)과 사양관리 주의사항을 보여드립니다</div>
+    </div>
+    <button id="seasonal-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button>
+  </div>`;
+
+  const st = seasonalPkgState;
+  if(st.status === "idle" || st.status === "loading"){
+    return head + `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⏳ 계절별 정보를 불러오는 중...</div>`;
+  }
+  if(st.status === "error" || !st.data){
+    return head + `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⚠️ 계절별 정보를 불러오지 못했습니다.</div>`;
+  }
+
+  const admin = !!ghToken();
+  const seasonBtns = SEASON_TABS.map(s => `
+    <button class="seasonal-season-btn" data-season="${s.key}"
+      style="flex:1;border:2px solid ${seasonalTabState.season===s.key?"#795548":"#eee"};background:${seasonalTabState.season===s.key?"#795548":"#fff"};color:${seasonalTabState.season===s.key?"#fff":"#333"};border-radius:10px;padding:10px 4px;font-size:12.5px;font-weight:700;cursor:pointer">${s.label}<br><span style="font-size:10px;font-weight:500;opacity:0.85">${s.period}</span></button>`).join("");
+
+  const list = seasonalPackagesFor(seasonalTabState.season);
+  const cards = list.length ? list.map(p => {
+    const open = seasonalTabState.openKey === p.key;
+    return `
+    <div class="card" style="border-top:4px solid #795548;margin-bottom:10px;padding:16px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+        <div class="seasonal-toggle" data-key="${p.key}" style="cursor:pointer;flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:800;color:#333">${esc(p.title)}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
+          <span class="seasonal-toggle" data-key="${p.key}" style="cursor:pointer;font-size:11px;color:#795548;font-weight:700;white-space:nowrap">${open?"접기 ▲":"내용 보기 ▼"}</span>
+          ${admin ? `
+          <div style="white-space:nowrap">
+            <button class="seasonal-edit-btn" data-key="${p.key}" style="font-size:10px;border:1px solid #795548;border-radius:5px;background:#fff;color:#795548;padding:3px 8px;margin-right:4px">편집</button>
+            <button class="seasonal-del-btn" data-key="${p.key}" style="font-size:10px;border:1px solid #eee;border-radius:5px;background:#fff;color:#bbb;padding:3px 8px">삭제</button>
+          </div>` : ""}
+        </div>
+      </div>
+      ${open ? `
+      <div style="margin-top:12px;padding-top:12px;border-top:1px dashed #eee">
+        <div style="font-size:11.5px;font-weight:700;color:#795548;margin-bottom:6px">💊 투약(백신) 사항</div>
+        ${p.medication.length ? p.medication.map(s => `
+        <div style="margin-bottom:9px">
+          <div style="font-size:12.5px;font-weight:700;color:#333">${esc(s.step)}</div>
+          <div style="font-size:12.5px;color:#444;line-height:1.6;margin-top:2px">${esc(s.detail)}</div>
+        </div>`).join("") : `<div style="font-size:12px;color:#aaa;margin-bottom:9px">등록된 내용이 없습니다.</div>`}
+        <div style="font-size:11.5px;font-weight:700;color:#795548;margin:12px 0 6px">🌾 사양관리 주의사항</div>
+        ${p.husbandry.length ? p.husbandry.map(s => `
+        <div style="margin-bottom:9px">
+          <div style="font-size:12.5px;font-weight:700;color:#333">${esc(s.step)}</div>
+          <div style="font-size:12.5px;color:#444;line-height:1.6;margin-top:2px">${esc(s.detail)}</div>
+        </div>`).join("") : `<div style="font-size:12px;color:#aaa">등록된 내용이 없습니다.</div>`}
+      </div>` : ""}
+    </div>`;
+  }).join("") : `<div class="card" style="text-align:center;padding:28px 16px;color:#aaa">아직 등록된 내용이 없습니다.${admin?"":" 곧 추가됩니다."}</div>`;
+
+  const editing = seasonalTabState.formKey && list.concat(currentSeasonalPackages()).find(p=>p.key===seasonalTabState.formKey);
+  const adminBox = !admin ? "" : `
+  <div style="margin-top:16px;border-top:1px dashed #eee;padding-top:12px">
+    <button id="seasonal-admin-toggle" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:3px 9px">${seasonalTabState.adminOpen?"관리 닫기":"⚙ 관리"}</button>
+    ${seasonalPkgState.msg?`<span style="font-size:11px;margin-left:8px;color:${/실패|오류|않|없/.test(seasonalPkgState.msg)?"#C62828":"#2E7D32"}">${esc(seasonalPkgState.msg)}</span>`:""}
+    ${seasonalTabState.adminOpen ? `
+    <div style="margin-top:9px;background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">
+      <div style="font-size:11px;font-weight:700;color:#7A5C00;margin-bottom:8px">${editing?"항목 수정: "+esc(editing.title):"새 항목 추가"} (${seasonLabel(seasonalTabState.season)})</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+        <input id="sp-title" type="text" placeholder="제목 (예: 환절기 호흡기 질환 대비)" value="${esc(editing?editing.title:"")}"
+          style="flex:1;min-width:180px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />
+      </div>
+      <div style="font-size:10px;color:#888;margin-bottom:3px">💊 투약(백신) 사항 — 한 줄에 한 항목씩, '제목|설명' 형식</div>
+      <textarea id="sp-medication" placeholder="예) 뉴캣슬병 백신 재접종|환절기 면역저하 대비 2주 간격 음수백신"
+        style="width:100%;min-height:90px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:6px">${esc(editing?treatmentProgramToText(editing.medication):"")}</textarea>
+      <div style="font-size:10px;color:#888;margin-bottom:3px">🌾 사양관리 주의사항 — 같은 형식</div>
+      <textarea id="sp-husbandry" placeholder="예) 보온·환기 균형|일교차 큰 시기 야간 최소환기량 유지하며 보온"
+        style="width:100%;min-height:90px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:8px">${esc(editing?treatmentProgramToText(editing.husbandry):"")}</textarea>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <button id="sp-save" ${seasonalPkgState.busy?"disabled":""} style="border:1px solid #B8860B;background:${seasonalPkgState.busy?"#ccc":"#B8860B"};color:#fff;border-radius:7px;padding:7px 15px;font-size:12px;font-weight:600">${seasonalPkgState.busy?"발행 중...":(editing?"수정 발행":"추가 발행")}</button>
+        ${editing?`<button id="sp-cancel" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:6px 10px">취소</button>`:""}
+      </div>
+    </div>` : ""}
+  </div>`;
+
+  return head + `
+  <div style="display:flex;gap:8px;margin-bottom:14px">${seasonBtns}</div>
+  ${cards}
+  ${adminBox}
+  <div style="font-size:9px;color:#aaa;line-height:1.6;margin-top:6px">
+    ※ 항생제·백신 등 실제 투약은 반드시 수의사 처방·지도를 거쳐 진행하세요. 계절·지역·농장 여건에 따라
+    시기가 달라질 수 있어 참고용 프로그램입니다. 새로운 내용은 계속 추가됩니다.
   </div>`;
 }
 
@@ -3946,6 +4143,11 @@ function renderPremiumTab(){
   if(premiumState.view === "treatment"){
     if(treatmentPkgState.status === "idle") fetchTreatmentPackages();
     return renderPremiumGateHeader() + logoutBar + renderTreatmentPanel();
+  }
+  // 계절별 투약·사양관리 패키지 화면
+  if(premiumState.view === "seasonal"){
+    if(seasonalPkgState.status === "idle") fetchSeasonalPackages();
+    return renderPremiumGateHeader() + logoutBar + renderSeasonalPanel();
   }
   // 온라인 상담·온라인 진단·온라인 컨설팅 — 셋 다 PREMIUM_BOARDS에 정의된
   // 같은 회원별 비공개 게시판 구조라 화면도 하나(renderBoardPanel)를 같이 쓴다.
@@ -8266,6 +8468,72 @@ function attachEvents(){
       prompt("아래 내용을 복사해 문자 앱에 붙여넣어 주세요:", text);
     }
   });
+
+  // 계절별 투약·사양관리 패키지
+  const seasonalBackBtn = document.getElementById("seasonal-back-btn");
+  if(seasonalBackBtn) seasonalBackBtn.onclick = ()=>{ premiumState.view = "menu"; render(); };
+  document.querySelectorAll(".seasonal-season-btn").forEach(b=>b.onclick=()=>{
+    seasonalTabState.season = b.dataset.season;
+    seasonalTabState.openKey = null;
+    render();
+  });
+  document.querySelectorAll(".seasonal-toggle").forEach(b=>b.onclick=()=>{
+    const key = b.dataset.key;
+    seasonalTabState.openKey = seasonalTabState.openKey === key ? null : key;
+    render();
+  });
+  const seasonalAdminToggle = document.getElementById("seasonal-admin-toggle");
+  if(seasonalAdminToggle) seasonalAdminToggle.onclick = ()=>{
+    seasonalTabState.adminOpen = !seasonalTabState.adminOpen;
+    seasonalTabState.formKey = undefined;
+    seasonalPkgState.msg = "";
+    render();
+  };
+  document.querySelectorAll(".seasonal-edit-btn").forEach(b=>b.onclick=()=>{
+    seasonalTabState.adminOpen = true;
+    seasonalTabState.formKey = b.dataset.key;
+    seasonalPkgState.msg = "";
+    render();
+  });
+  const seasonalCancelBtn = document.getElementById("sp-cancel");
+  if(seasonalCancelBtn) seasonalCancelBtn.onclick = ()=>{ seasonalTabState.formKey = undefined; render(); };
+
+  document.querySelectorAll(".seasonal-del-btn").forEach(b=>b.onclick=async ()=>{
+    const key = b.dataset.key;
+    const pkg = currentSeasonalPackages().find(p=>p.key===key);
+    if(!pkg || !confirm(`"${pkg.title}" 항목을 삭제할까요?`)) return;
+    const next = currentSeasonalPackages().filter(p=>p.key!==key);
+    seasonalPkgState.busy = true; seasonalPkgState.msg = "발행 중..."; render();
+    const r = await publishSeasonalPackages(next, "🗓️ 계절별 패키지 삭제: " + pkg.title);
+    seasonalPkgState.busy = false;
+    seasonalPkgState.msg = r.ok ? "삭제 완료 — 모두에게 반영됩니다" : ("발행 실패: " + r.error);
+    if(r.ok && seasonalTabState.openKey===key) seasonalTabState.openKey = null;
+    render();
+  });
+
+  const seasonalSaveBtn = document.getElementById("sp-save");
+  if(seasonalSaveBtn) seasonalSaveBtn.onclick = async ()=>{
+    const title = (document.getElementById("sp-title")?.value || "").trim();
+    const medication = treatmentProgramFromText(document.getElementById("sp-medication")?.value);
+    const husbandry = treatmentProgramFromText(document.getElementById("sp-husbandry")?.value);
+    if(!title){ alert("제목을 입력하세요."); return; }
+    if(!medication.length && !husbandry.length){ alert("투약 사항 또는 사양관리 주의사항을 한 줄 이상 입력하세요. ('제목|설명' 형식)"); return; }
+
+    const packages = currentSeasonalPackages().slice();
+    const editKey = seasonalTabState.formKey;
+    if(editKey){
+      const idx = packages.findIndex(p=>p.key===editKey);
+      if(idx>=0) packages[idx] = Object.assign({}, packages[idx], { title, medication, husbandry });
+    } else {
+      packages.push({ key:newSeasonalKey(), season:seasonalTabState.season, title, medication, husbandry });
+    }
+    seasonalPkgState.busy = true; seasonalPkgState.msg = "발행 중..."; render();
+    const r = await publishSeasonalPackages(packages, "🗓️ 계절별 패키지 " + (editKey?"수정":"추가") + ": " + title);
+    seasonalPkgState.busy = false;
+    seasonalPkgState.msg = r.ok ? "발행 완료 — 모두에게 반영됩니다" : ("발행 실패: " + r.error);
+    if(r.ok) seasonalTabState.formKey = undefined;
+    render();
+  };
 
   // 온라인 상담·진단·컨설팅 (회원별 비공개 게시판)
   const boardBackBtn = document.getElementById("board-back-btn");
