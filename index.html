@@ -152,14 +152,17 @@
 <body>
 <div id="app"></div>
 
-<!-- 유료서비스 회원 로그인(구글/이메일)용 Firebase Auth. 결제·회원DB 없이
-     "로그인한 이메일이 승인 목록에 있는가"만 확인하는 용도라 Auth만 불러온다. -->
+<!-- 유료서비스 회원 로그인(구글/이메일)용 Firebase Auth. -->
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <!-- 회원관리 화면의 "삭제"·"비밀번호 재설정"이 부르는 Cloud Functions(functions/)용.
      다른 사람 계정을 지우는 건 Admin SDK 권한이 있어야 해서 서버(Functions) 쪽에서만
      할 수 있다 — 클라이언트 SDK(위 auth)에는 그 권한이 없다. -->
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js"></script>
+<!-- 온라인 상담·진단·컨설팅 게시글의 사진·글 저장용 Firebase Storage. 공개
+     GitHub 저장소에는 회원 개인정보·농장 사진을 커밋할 수 없어서, 회원별
+     비공개 폴더(storage.rules로 접근 제어)에 저장한다. -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
 
 <script>
 // ═══════════════════════════════════════════════════════════════════════════
@@ -608,6 +611,7 @@ const FIREBASE_CONFIG = {
   apiKey: "AIzaSyALVnXknySYP_snXoSRLFEECF2MRtQJ0Yc",
   authDomain: "chicken-dx.firebaseapp.com",
   projectId: "chicken-dx",
+  storageBucket: "chicken-dx.firebasestorage.app",
 };
 let firebaseReady = false;
 try {
@@ -628,15 +632,16 @@ let premiumState = {
 
 // 유료서비스가 제공하는 메뉴 목록. 로그인 전(가입 초기화면)에는 미리보기로,
 // 승인 후에는 실제로 눌러서 들어가는 메뉴로 같은 배열을 함께 쓴다.
-// key가 있는 항목만 클릭 가능한 실제 기능이고, 없는 항목(상담·진단·컨설팅)은
-// 오프라인으로 진행되는 서비스 안내용이다.
+// key가 있는 항목만 클릭 가능한 실제 기능이다. 상담·진단·컨설팅 세 메뉴는
+// PREMIUM_BOARDS(아래)에 정의된 같은 구조(회원별 비공개 게시판)를 쓴다 —
+// icon·title·desc·color는 메뉴 카드/미리보기에 공통으로 쓰이므로 여기 그대로 둔다.
 const PREMIUM_ITEMS = [
   { key:"drug", icon:"💊", title:"약품조회 및 휴약기간 검색", desc:"동물용의약품을 제품명·업체명·성분명으로 검색하고, 축종별 휴약기간을 QIA 공식 데이터로 바로 확인합니다.", color:"#00838F" },
   { key:"research", icon:"📚", title:"기술탐구", desc:"질병논문·사양관리기술·컨설팅도구 최신 국제논문 5편씩을 매주 한글로 번역·요약해 드립니다.", color:"#6A1B9A" },
   { key:"treatment", icon:"💉", title:"상황별 처방(투약) 패키지", desc:"육계·산란계 농장 상황을 고르면 그에 맞는 투약(처방) 프로그램을 보여드립니다. 상황은 계속 추가됩니다.", color:"#C62828" },
-  { icon:"💬", title:"온라인 상담", desc:"농장 현안(사양·환기·질병 등)을 전문가와 1:1로 상담합니다.", color:"#1565C0" },
-  { icon:"🔍", title:"온라인 진단", desc:"계사 환경·사양관리 현황을 현장 데이터 기반으로 진단합니다.", color:"#2E7D32" },
-  { icon:"📈", title:"온라인 컨설팅", desc:"진단 결과를 바탕으로 생산성 개선 컨설팅을 제공합니다.", color:"#E65100" },
+  { key:"consult", icon:"💬", title:"온라인 상담", desc:"농장 현안(사양·환기·질병 등)을 질문하면 최동명 수의사가 답변합니다. 사진 첨부 가능, 답변은 작성자만 볼 수 있습니다.", color:"#1565C0" },
+  { key:"diagnosis", icon:"🔍", title:"온라인 진단", desc:"닭의 외부모습·분변상태·부검사진(기관지·간·신장·소장)을 올리면 최동명 수의사가 직접 진단합니다.", color:"#2E7D32" },
+  { key:"consulting", icon:"📈", title:"온라인 컨설팅", desc:"농장 운영·질병 현황을 바탕으로 맞춤 투약·백신 프로그램을 작성해 드립니다. 답변은 작성자만 볼 수 있습니다.", color:"#E65100" },
 ];
 
 // ── 상황별 처방(투약) 패키지 ─────────────────────────────────────────────────
@@ -880,6 +885,195 @@ if(firebaseReady){
     if(user && premiumState.status === "idle") fetchPremiumApproved();
     if(state.tab === "premium") render();
   });
+}
+
+// ── 유료서비스: 온라인 진단·온라인 상담·온라인 컨설팅 ──────────────────────────
+// 세 메뉴 모두 같은 구조다 — 회원이 글(+선택적으로 사진)을 올리면 최동명 수의사가
+// 답변을 달고, 그 글과 답변은 작성자 본인과 관리자만 볼 수 있다. 공개 게시판이
+// 아니라 회원 개인정보·농장 사진이 섞이므로, 이 저장소(공개 GitHub repo)에는
+// 절대 커밋하지 않는다 — 대신 Firebase Storage에 회원 uid별 폴더로 올린다.
+// 경로: premium_board/{boardType}/{uid}/{postId}/post.json (+선택 reply.json,
+// photos/*). 목록 조회는 GitHub JSON처럼 미리 만들어둔 파일을 읽는 게 아니라
+// Storage listAll()로 그때그때 나열한다 — 이 서비스 규모(회원 수 적음)에서는
+// 충분히 빠르고, 별도 DB(Firestore 등)를 새로 붙이지 않아도 된다.
+// 실제 접근 제어는 storage.rules에 있다: 본인 uid 폴더는 본인+관리자만
+// 읽고/쓸 수 있다.
+const PREMIUM_BOARDS = {
+  diagnosis: {
+    introText: "아래 항목에 맞춰 사진을 올려주시면 진단에 큰 도움이 됩니다. 사진이 없어도 요청할 수 있습니다.",
+    photoSlots: [
+      { key:"outer", label:"닭 외부모습" },
+      { key:"feces", label:"분변 상태" },
+      { key:"trachea", label:"부검 - 기관지" },
+      { key:"liver", label:"부검 - 간" },
+      { key:"kidney", label:"부검 - 신장" },
+      { key:"intestine", label:"부검 - 소장" },
+    ],
+    fields: [
+      { key:"symptom", label:"증상 및 농장 상황", type:"textarea", required:true, placeholder:"주령, 사육수수, 증상, 폐사 여부 등을 적어주세요." },
+    ],
+  },
+  consult: {
+    introText: "궁금하신 점을 자유롭게 질문해 주세요. 필요하면 사진을 함께 첨부할 수 있습니다.",
+    freePhotos: true,
+    maxPhotos: 4,
+    fields: [
+      { key:"title", label:"제목", type:"text", required:true, placeholder:"예) 환기량 관련 문의드립니다" },
+      { key:"question", label:"질문 내용", type:"textarea", required:true, placeholder:"" },
+    ],
+  },
+  consulting: {
+    introText: "농장 현황을 자세히 적어주실수록 더 정확한 컨설팅 프로그램을 받으실 수 있습니다.",
+    fields: [
+      { key:"farmStatus", label:"사양관리 현황", type:"textarea", required:true, placeholder:"축종, 사육수수, 일령/주령, 사료·급이 방식 등" },
+      { key:"diseaseStatus", label:"질병 발생 현황", type:"textarea", required:true, placeholder:"최근 발생한 질병, 폐사율, 백신·투약 이력 등" },
+      { key:"note", label:"기타 참고사항", type:"textarea", required:false, placeholder:"" },
+    ],
+  },
+};
+
+let boardState = {
+  status: {},        // { [boardType]: idle|loading|done|error } — 내 글 목록(회원용)
+  posts: {},          // { [boardType]: [...] } — 내 글만
+  inboxStatus: {},    // { [boardType]: idle|loading|done|error } — 전체 글 목록(관리자용)
+  inboxPosts: {},      // { [boardType]: [...] }
+  openId: null,        // 지금 펼쳐서 보고 있는 글 id
+  formOpen: false,
+  busy: false,
+  msg: "",
+};
+
+function newBoardPostId(){
+  return "b" + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+}
+
+// 별도 관리자 배열을 또 만들지 않고 Cloud Functions(functions/index.js)의
+// ADMIN_EMAILS와 같은 이메일 목록을 쓴다 — 둘 다 "관리자 = 이 이메일들"이라는
+// 같은 사실을 나타내므로 한쪽만 바뀌면 불일치가 생긴다(추가 시 둘 다 갱신 필요).
+const BOARD_ADMIN_EMAILS = ["trsumun@gmail.com", "trsumun@daum.net"];
+function isBoardAdmin(){
+  const email = ((premiumState.user && premiumState.user.email) || "").toLowerCase();
+  return BOARD_ADMIN_EMAILS.includes(email);
+}
+
+function boardPostPath(boardType, uid, postId){
+  return "premium_board/" + boardType + "/" + uid + "/" + postId;
+}
+
+// Firebase Storage SDK 호출(listAll/getDownloadURL 등)은 네트워크 오류가 나면
+// 내부적으로 재시도를 반복하며 기본 최대 2분까지 기다린 뒤에야 실패를 알려준다
+// (예: 관리자가 아직 Firebase 콘솔에서 Storage를 켜지 않은 상태) — 다른 모든
+// 네트워크 호출에 쓰는 fetchWithTimeout()과 마찬가지로, 여기서도 직접 정해둔
+// 시간 안에 실패로 처리해 화면이 무한 로딩으로 보이지 않게 한다.
+function withStorageTimeout(promise, ms){
+  return Promise.race([
+    promise,
+    new Promise((_,reject) => setTimeout(()=>reject(new Error("시간 초과")), ms || 12000)),
+  ]);
+}
+
+// Storage 참조가 가리키는 JSON 파일을 읽는다. 파일이 아직 없으면(답변 전
+// reply.json 등) null — 에러로 취급하지 않는다.
+async function readBoardJson(ref){
+  try {
+    const url = await withStorageTimeout(ref.getDownloadURL());
+    const resp = await fetch(url);
+    if(!resp.ok) return null;
+    return await resp.json();
+  } catch(e){
+    return null;
+  }
+}
+
+// 글 작성(+사진 업로드). 사진을 먼저 다 올리고 나서 post.json을 마지막에
+// 올린다 — 목록에는 post.json이 있는 글만 나타나므로, 업로드 도중 실패해도
+// 반쪽짜리 글이 보이지 않는다.
+async function submitBoardPost(boardType, fields, photos){
+  const user = premiumState.user;
+  if(!user) return { ok:false, error:"로그인이 필요합니다." };
+  const postId = newBoardPostId();
+  const base = boardPostPath(boardType, user.uid, postId);
+  try {
+    const uploaded = [];
+    for(const p of photos){
+      const ext = (p.file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g,"") || "jpg";
+      const ref = firebase.storage().ref(base + "/photos/" + p.slot + "." + ext);
+      await withStorageTimeout(ref.put(p.file), 30000);
+      const url = await withStorageTimeout(ref.getDownloadURL());
+      uploaded.push({ slot:p.slot, label:p.label||"", url });
+    }
+    const post = { id:postId, email:user.email, createdAt:new Date().toISOString(), fields, photos:uploaded };
+    await withStorageTimeout(firebase.storage().ref(base + "/post.json")
+      .putString(JSON.stringify(post), "raw", { contentType:"application/json" }));
+    return { ok:true, post };
+  } catch(e){
+    console.warn("게시글 등록 실패:", e);
+    return { ok:false, error: e.message || String(e) };
+  }
+}
+
+async function submitBoardReply(boardType, uid, postId, text){
+  try {
+    const reply = { text, repliedAt:new Date().toISOString(), by:PICK_BY };
+    await withStorageTimeout(firebase.storage().ref(boardPostPath(boardType, uid, postId) + "/reply.json")
+      .putString(JSON.stringify(reply), "raw", { contentType:"application/json" }));
+    return { ok:true, reply };
+  } catch(e){
+    console.warn("답변 등록 실패:", e);
+    return { ok:false, error: e.message || String(e) };
+  }
+}
+
+// 본인이 쓴 글 목록(회원용) — premium_board/{boardType}/{내 uid}/ 아래를 나열한다.
+async function fetchMyBoardPosts(boardType){
+  const user = premiumState.user;
+  if(!user || boardState.status[boardType] === "loading") return;
+  boardState.status[boardType] = "loading";
+  try {
+    const listing = await withStorageTimeout(firebase.storage().ref("premium_board/" + boardType + "/" + user.uid).listAll());
+    const posts = [];
+    for(const prefix of listing.prefixes){
+      const post = await readBoardJson(prefix.child("post.json"));
+      if(!post) continue;
+      post.reply = await readBoardJson(prefix.child("reply.json"));
+      posts.push(post);
+    }
+    posts.sort((a,b) => (b.createdAt||"").localeCompare(a.createdAt||""));
+    boardState.posts[boardType] = posts;
+    boardState.status[boardType] = "done";
+  } catch(e){
+    console.warn("내 글 목록 로딩 실패:", e);
+    boardState.status[boardType] = "error";
+  }
+  if(premiumState.view === boardType) render();
+}
+
+// 관리자용: 전체 회원의 글을 나열한다(uid 폴더 → 글 폴더 순으로 두 단계 listAll).
+// 회원 수가 적은 서비스라 이렇게 매번 직접 나열해도 충분히 빠르다.
+async function fetchInboxBoardPosts(boardType){
+  if(boardState.inboxStatus[boardType] === "loading") return;
+  boardState.inboxStatus[boardType] = "loading";
+  try {
+    const uidListing = await withStorageTimeout(firebase.storage().ref("premium_board/" + boardType).listAll());
+    const posts = [];
+    for(const uidPrefix of uidListing.prefixes){
+      const postListing = await withStorageTimeout(uidPrefix.listAll());
+      for(const postPrefix of postListing.prefixes){
+        const post = await readBoardJson(postPrefix.child("post.json"));
+        if(!post) continue;
+        post.uid = uidPrefix.name;
+        post.reply = await readBoardJson(postPrefix.child("reply.json"));
+        posts.push(post);
+      }
+    }
+    posts.sort((a,b) => (b.createdAt||"").localeCompare(a.createdAt||""));
+    boardState.inboxPosts[boardType] = posts;
+    boardState.inboxStatus[boardType] = "done";
+  } catch(e){
+    console.warn("게시글함 로딩 실패:", e);
+    boardState.inboxStatus[boardType] = "error";
+  }
+  if(premiumState.view === boardType) render();
 }
 
 // ── 주가·환율·곡물 시세 (GitHub Actions → market/quotes.json) ────────────────
@@ -3311,8 +3505,8 @@ function renderMemberManagePanel(){
           <button id="mm-gen-password" type="button" style="font-size:11px;border:1px solid #37474F;border-radius:6px;background:#fff;color:#37474F;padding:7px 10px">🎲 자동생성</button>
           <button id="mm-reset-password" type="button" ${memberMgmtState.busy?"disabled":""} style="font-size:11px;border:1px solid #7A5C00;border-radius:6px;background:${memberMgmtState.busy?"#ccc":"#fff"};color:#7A5C00;padding:7px 10px;font-weight:600">재설정</button>
         </div>
-        <div style="font-size:9.5px;color:#8D6E00;line-height:1.6">먼저 Firebase 콘솔(Authentication → Users)에서 이 회원의 기존 계정을 삭제한 뒤 누르세요 —
-        기존 계정이 남아있으면 "이미 등록된 이메일"로 실패합니다. 회원 정보(이름·전화번호 등)는 그대로 유지됩니다.</div>
+        <div style="font-size:9.5px;color:#8D6E00;line-height:1.6">기존 계정을 지우고 새 비밀번호로 다시 만듭니다(Firebase 콘솔에서 미리 지울 필요 없음).
+        회원 정보(이름·전화번호 등)는 그대로 유지됩니다.</div>
       </div>
       `}
       <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
@@ -3440,6 +3634,173 @@ function renderTreatmentPanel(){
   </div>`;
 }
 
+// 온라인 상담/진단/컨설팅 공용 화면 — PREMIUM_ITEMS(제목·아이콘·색)와
+// PREMIUM_BOARDS(입력 항목·사진 슬롯)를 합쳐서 쓴다.
+function currentBoardCfg(){
+  const meta = PREMIUM_ITEMS.find(it => it.key === premiumState.view) || {};
+  return Object.assign({}, PREMIUM_BOARDS[premiumState.view], meta);
+}
+
+function renderBoardPhotoInputs(cfg){
+  if(cfg.photoSlots){
+    return cfg.photoSlots.map(s => `
+      <div style="margin-bottom:6px">
+        <div style="font-size:11px;color:#666;margin-bottom:3px">${esc(s.label)}</div>
+        <input type="file" accept="image/*" class="board-photo-input" data-slot="${s.key}" data-label="${esc(s.label)}" style="width:100%;font-size:11.5px" />
+      </div>`).join("");
+  }
+  if(cfg.freePhotos){
+    return `
+    <div style="margin-bottom:6px">
+      <div style="font-size:11px;color:#666;margin-bottom:3px">사진 첨부 (선택, 최대 ${cfg.maxPhotos}장)</div>
+      <input type="file" accept="image/*" multiple id="board-free-photos" style="width:100%;font-size:11.5px" />
+    </div>`;
+  }
+  return "";
+}
+
+function renderBoardCreateForm(cfg){
+  return `
+  <div style="background:#FAFAFA;border:1px solid #eee;border-radius:9px;padding:12px;margin-bottom:14px">
+    <div style="font-size:11px;font-weight:700;color:#333;margin-bottom:8px">새 ${esc(cfg.title)} 작성</div>
+    ${cfg.fields.map(f => `
+    <div style="margin-bottom:8px">
+      <div style="font-size:11px;color:#666;margin-bottom:3px">${esc(f.label)}${f.required?' <span style="color:#C62828">*</span>':""}</div>
+      ${f.type==="textarea"
+        ? `<textarea class="board-field" data-field="${f.key}" placeholder="${esc(f.placeholder||"")}" style="width:100%;min-height:80px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit"></textarea>`
+        : `<input type="text" class="board-field" data-field="${f.key}" placeholder="${esc(f.placeholder||"")}" style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />`}
+    </div>`).join("")}
+    ${renderBoardPhotoInputs(cfg)}
+    ${boardState.msg?`<div style="font-size:11px;margin:6px 0;color:${/실패|오류/.test(boardState.msg)?"#C62828":"#2E7D32"}">${esc(boardState.msg)}</div>`:""}
+    <div style="display:flex;gap:6px;align-items:center;margin-top:6px">
+      <button id="board-submit-btn" ${boardState.busy?"disabled":""} style="border:1px solid ${cfg.color};background:${boardState.busy?"#ccc":cfg.color};color:#fff;border-radius:7px;padding:7px 15px;font-size:12px;font-weight:600">${boardState.busy?"등록 중...":"등록"}</button>
+      <button id="board-form-cancel" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:6px 10px">취소</button>
+    </div>
+  </div>`;
+}
+
+function boardStatusBadge(post){
+  return post.reply
+    ? `<span style="font-size:10.5px;color:#2E7D32;background:#E8F5E9;border-radius:6px;padding:3px 8px;font-weight:700;white-space:nowrap">답변완료</span>`
+    : `<span style="font-size:10.5px;color:#F57F17;background:#FFFDE7;border-radius:6px;padding:3px 8px;font-weight:700;white-space:nowrap">답변대기</span>`;
+}
+
+function renderBoardPhotos(post){
+  if(!post.photos || !post.photos.length) return "";
+  return `
+  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
+    ${post.photos.map(p => `
+    <a href="${p.url}" target="_blank" rel="noopener" style="display:block;width:84px">
+      <img src="${p.url}" style="width:84px;height:84px;object-fit:cover;border-radius:8px;border:1px solid #eee" />
+      <div style="font-size:9.5px;color:#888;text-align:center;margin-top:2px">${esc(p.label||"")}</div>
+    </a>`).join("")}
+  </div>`;
+}
+
+function renderBoardFields(cfg, post){
+  return cfg.fields.map(f => `
+    <div style="margin-bottom:8px">
+      <div style="font-size:10.5px;color:#999;font-weight:700">${esc(f.label)}</div>
+      <div style="font-size:12.5px;color:#333;white-space:pre-wrap;line-height:1.6">${esc((post.fields && post.fields[f.key]) || "-")}</div>
+    </div>`).join("");
+}
+
+function renderBoardPostDetail(cfg, post, admin){
+  return `
+  <div style="margin-top:10px;padding-top:10px;border-top:1px dashed #eee">
+    ${renderBoardFields(cfg, post)}
+    ${renderBoardPhotos(post)}
+    ${post.reply ? `
+    <div style="margin-top:10px;background:#F1F8F4;border:1px solid #D6EBDB;border-radius:9px;padding:10px">
+      <div style="font-size:10.5px;font-weight:700;color:#2E7D32;margin-bottom:4px">💬 ${esc(post.reply.by||PICK_BY)}의 답변</div>
+      <div style="font-size:12.5px;color:#333;white-space:pre-wrap;line-height:1.6">${esc(post.reply.text)}</div>
+    </div>` : (admin ? "" : `<div style="margin-top:10px;font-size:11.5px;color:#aaa">아직 답변이 등록되지 않았습니다.</div>`)}
+    ${admin ? `
+    <div style="margin-top:10px">
+      <textarea class="board-reply-input" data-uid="${esc(post.uid)}" data-post="${esc(post.id)}" placeholder="답변 내용을 입력하세요"
+        style="width:100%;min-height:80px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit">${esc(post.reply?post.reply.text:"")}</textarea>
+      <button class="board-reply-submit" data-uid="${esc(post.uid)}" data-post="${esc(post.id)}" ${boardState.busy?"disabled":""}
+        style="margin-top:6px;border:1px solid #2E7D32;background:${boardState.busy?"#ccc":"#2E7D32"};color:#fff;border-radius:7px;padding:6px 14px;font-size:11.5px;font-weight:600">${post.reply?"답변 수정":"답변 등록"}</button>
+    </div>` : ""}
+  </div>`;
+}
+
+function renderBoardList(cfg, posts, admin){
+  if(!posts || !posts.length){
+    return `<div class="card" style="text-align:center;padding:28px 16px;color:#aaa">${admin?"등록된 글이 없습니다.":"작성한 글이 없습니다."}</div>`;
+  }
+  return posts.map(post => {
+    const open = boardState.openId === post.id;
+    const firstField = cfg.fields[0];
+    const label = (firstField && post.fields && post.fields[firstField.key]) ? post.fields[firstField.key].slice(0,40) : "(제목 없음)";
+    return `
+    <div class="card" style="border-top:4px solid ${cfg.color};margin-bottom:10px;padding:14px 16px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+        <div class="board-toggle" data-id="${esc(post.id)}" style="cursor:pointer;flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:700;color:#333">${esc(label)}</div>
+          <div style="font-size:10.5px;color:#999;margin-top:3px">${admin?esc(post.email)+" · ":""}${esc((post.createdAt||"").slice(0,16).replace("T"," "))}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
+          ${boardStatusBadge(post)}
+          <span class="board-toggle" data-id="${esc(post.id)}" style="cursor:pointer;font-size:10.5px;color:${cfg.color};font-weight:700">${open?"접기 ▲":"보기 ▼"}</span>
+        </div>
+      </div>
+      ${open ? renderBoardPostDetail(cfg, post, admin) : ""}
+    </div>`;
+  }).join("");
+}
+
+function renderBoardPanel(){
+  const cfg = currentBoardCfg();
+  const admin = isBoardAdmin();
+  const head = `
+  <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+    <div>
+      <div class="display" style="font-size:16px;margin-bottom:3px">${cfg.icon} ${esc(cfg.title)}</div>
+      <div style="font-size:11px;color:#aaa">${esc(cfg.desc||"")}</div>
+    </div>
+    <button id="board-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button>
+  </div>`;
+  const footNote = `
+  <div style="font-size:9px;color:#aaa;line-height:1.6;margin-top:10px">
+    ※ 답변까지 다소 시간이 걸릴 수 있습니다. 대량 폐사 등 응급 상황은 010-9150-8844로 바로 연락해 주세요.
+  </div>`;
+
+  if(admin){
+    const ist = boardState.inboxStatus[cfg.key];
+    if(!ist || ist === "idle") fetchInboxBoardPosts(cfg.key);
+    if(ist === "error"){
+      return head + `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⚠️ 게시글을 불러오지 못했습니다.</div>`;
+    }
+    if(!ist || ist === "idle" || ist === "loading" || !boardState.inboxPosts[cfg.key]){
+      return head + `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⏳ 게시글을 불러오는 중...</div>`;
+    }
+    const posts = boardState.inboxPosts[cfg.key] || [];
+    const pending = posts.filter(p=>!p.reply).length;
+    return head + `
+    <div style="font-size:11.5px;color:#888;margin-bottom:10px">전체 ${posts.length}건 · 답변대기 ${pending}건</div>
+    ${renderBoardList(cfg, posts, true)}
+    ${footNote}`;
+  }
+
+  const st = boardState.status[cfg.key];
+  if(!st || st === "idle") fetchMyBoardPosts(cfg.key);
+  const addBtn = !boardState.formOpen
+    ? `<button id="board-write-btn" style="border:none;border-radius:8px;background:${cfg.color};color:#fff;padding:9px 16px;font-size:12px;font-weight:700;margin-bottom:12px">+ 새 글쓰기</button>`
+    : "";
+  const listBody = st === "error"
+    ? `<div class="card" style="text-align:center;padding:28px 16px;color:#aaa">⚠️ 내 글 목록을 불러오지 못했습니다.</div>`
+    : (!st || st === "idle" || st === "loading" || !boardState.posts[cfg.key])
+    ? `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⏳ 불러오는 중...</div>`
+    : renderBoardList(cfg, boardState.posts[cfg.key], false);
+  return head + `
+  <div style="font-size:11.5px;color:#888;margin-bottom:10px">${esc(cfg.introText||"")}</div>
+  ${addBtn}
+  ${boardState.formOpen ? renderBoardCreateForm(cfg) : ""}
+  ${listBody}
+  ${footNote}`;
+}
+
 function premiumUserLabel(){
   return (premiumState.user && premiumState.user.email) || "";
 }
@@ -3485,7 +3846,10 @@ function renderPremiumSignupGuide(){
 function renderPremiumPreview(){
   return `
   <div style="margin-top:22px;text-align:left">
-    <div style="font-size:11px;color:#888;font-weight:700;margin-bottom:10px;text-align:center">가입하면 이런 메뉴를 이용할 수 있어요</div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <div style="font-size:11px;color:#888;font-weight:700">가입하면 이런 메뉴를 이용할 수 있어요</div>
+      <span style="font-size:9.5px;color:#2E7D32;background:#E8F5E9;border-radius:20px;padding:3px 9px;font-weight:700;white-space:nowrap">🆕 새로운 메뉴가 계속 업데이트됩니다</span>
+    </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
       ${PREMIUM_ITEMS.map(it=>`
       <div style="border:1px solid #eee;border-radius:12px;padding:14px 12px;border-top:4px solid ${it.color}">
@@ -3570,6 +3934,11 @@ function renderPremiumTab(){
     if(treatmentPkgState.status === "idle") fetchTreatmentPackages();
     return renderPremiumGateHeader() + logoutBar + renderTreatmentPanel();
   }
+  // 온라인 상담·온라인 진단·온라인 컨설팅 — 셋 다 PREMIUM_BOARDS에 정의된
+  // 같은 회원별 비공개 게시판 구조라 화면도 하나(renderBoardPanel)를 같이 쓴다.
+  if(PREMIUM_BOARDS[premiumState.view]){
+    return renderPremiumGateHeader() + logoutBar + renderBoardPanel();
+  }
   // 회원관리 화면 — 관리자(ghToken 보유자)가 아니면 메뉴로 돌려보낸다
   // (URL 조작 등으로 view만 바뀌어도 실제 데이터·기능에는 못 들어가지만,
   // 화면 자체를 안 보여주는 게 더 안전하고 덜 혼란스럽다).
@@ -3595,7 +3964,7 @@ function renderPremiumTab(){
       ${it.key ? `<div style="font-size:10px;color:${it.color};font-weight:700;margin-top:8px">바로가기 →</div>` : ""}
     </div>`).join("")}
   </div>
-  <div style="margin-top:14px;font-size:11px;color:#aaa;text-align:center">상담·진단·컨설팅 신청·문의는 협회 또는 담당 컨설턴트를 통해 접수해 주세요.</div>`;
+  <div style="margin-top:14px;font-size:11px;color:#aaa;text-align:center">위 메뉴는 계속 추가됩니다. 궁금한 점은 010-9150-8844로 문의해 주세요.</div>`;
 }
 
 function render(){
@@ -7883,6 +8252,85 @@ function attachEvents(){
     } catch(e){
       prompt("아래 내용을 복사해 문자 앱에 붙여넣어 주세요:", text);
     }
+  });
+
+  // 온라인 상담·진단·컨설팅 (회원별 비공개 게시판)
+  const boardBackBtn = document.getElementById("board-back-btn");
+  if(boardBackBtn) boardBackBtn.onclick = ()=>{
+    premiumState.view = "menu";
+    boardState.formOpen = false; boardState.openId = null; boardState.msg = "";
+    render();
+  };
+  const boardWriteBtn = document.getElementById("board-write-btn");
+  if(boardWriteBtn) boardWriteBtn.onclick = ()=>{ boardState.formOpen = true; boardState.msg = ""; render(); };
+  const boardFormCancel = document.getElementById("board-form-cancel");
+  if(boardFormCancel) boardFormCancel.onclick = ()=>{ boardState.formOpen = false; boardState.msg = ""; render(); };
+  document.querySelectorAll(".board-toggle").forEach(b=>b.onclick=()=>{
+    const id = b.dataset.id;
+    boardState.openId = boardState.openId === id ? null : id;
+    render();
+  });
+
+  const boardSubmitBtn = document.getElementById("board-submit-btn");
+  if(boardSubmitBtn) boardSubmitBtn.onclick = async ()=>{
+    const cfg = currentBoardCfg();
+    const fields = {};
+    let missingLabel = "";
+    cfg.fields.forEach(f=>{
+      const el = document.querySelector(`.board-field[data-field="${f.key}"]`);
+      const v = (el && el.value || "").trim();
+      fields[f.key] = v;
+      if(f.required && !v && !missingLabel) missingLabel = f.label;
+    });
+    if(missingLabel){ alert(missingLabel + "을(를) 입력하세요."); return; }
+
+    const photos = [];
+    if(cfg.photoSlots){
+      document.querySelectorAll(".board-photo-input").forEach(inp=>{
+        const file = inp.files && inp.files[0];
+        if(file) photos.push({ slot: inp.dataset.slot, label: inp.dataset.label, file });
+      });
+    } else if(cfg.freePhotos){
+      const inp = document.getElementById("board-free-photos");
+      const files = inp && inp.files ? Array.from(inp.files).slice(0, cfg.maxPhotos) : [];
+      files.forEach((file,i)=> photos.push({ slot:"photo"+(i+1), label:"", file }));
+    }
+    const MAX_PHOTO_MB = 15;
+    const tooBig = photos.find(p => p.file.size > MAX_PHOTO_MB*1024*1024);
+    if(tooBig){ alert((tooBig.label||"사진") + " 파일이 너무 큽니다(" + MAX_PHOTO_MB + "MB 이하로 올려주세요)."); return; }
+
+    boardState.busy = true; boardState.msg = "등록 중..."; render();
+    const r = await submitBoardPost(cfg.key, fields, photos);
+    boardState.busy = false;
+    if(r.ok){
+      const list = boardState.posts[cfg.key] || (boardState.posts[cfg.key] = []);
+      list.unshift(Object.assign({}, r.post, { reply:null }));
+      boardState.status[cfg.key] = "done";
+      boardState.formOpen = false;
+      boardState.msg = "";
+    } else {
+      boardState.msg = "등록 실패: " + r.error;
+    }
+    render();
+  };
+
+  document.querySelectorAll(".board-reply-submit").forEach(b=>b.onclick=async ()=>{
+    const uid = b.dataset.uid, postId = b.dataset.post;
+    const cfg = currentBoardCfg();
+    const ta = document.querySelector(`.board-reply-input[data-uid="${uid}"][data-post="${postId}"]`);
+    const text = (ta && ta.value || "").trim();
+    if(!text){ alert("답변 내용을 입력하세요."); return; }
+    boardState.busy = true; render();
+    const r = await submitBoardReply(cfg.key, uid, postId, text);
+    boardState.busy = false;
+    if(r.ok){
+      const list = boardState.inboxPosts[cfg.key] || [];
+      const idx = list.findIndex(p=>p.id===postId && p.uid===uid);
+      if(idx>=0) list[idx] = Object.assign({}, list[idx], { reply:r.reply });
+    } else {
+      alert("답변 등록 실패: " + r.error);
+    }
+    render();
   });
 
   // 회원관리 (관리자 전용)

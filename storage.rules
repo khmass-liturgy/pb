@@ -1,0 +1,44 @@
+rules_version = '2';
+
+// 온라인 상담·진단·컨설팅 게시글(premium_board/{boardType}/{uid}/{postId}/...)의
+// 접근 제어. 회원 개인정보·농장 사진이 섞여 있어 본인과 관리자만 읽고 쓸 수
+// 있어야 한다 — index.html의 PREMIUM_BOARDS/renderBoardPanel이 이 경로를 쓴다.
+//
+// 관리자 이메일은 functions/index.js의 ADMIN_EMAILS와 같은 목록이다. 둘 중
+// 하나만 바꾸면 불일치가 생기니, 관리자를 추가/제거할 때는 두 곳 다 고치고
+// (여기는 firebase deploy --only storage, 함수는 firebase deploy --only functions
+// 로) 다시 배포해야 한다.
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isAdmin() {
+      return request.auth != null &&
+        request.auth.token.email in ["trsumun@gmail.com", "trsumun@daum.net"];
+    }
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    match /premium_board/{boardType} {
+      allow list: if isAdmin();
+    }
+    match /premium_board/{boardType}/{uid} {
+      allow list: if isOwner(uid) || isAdmin();
+    }
+    match /premium_board/{boardType}/{uid}/{postId} {
+      allow list: if isOwner(uid) || isAdmin();
+
+      match /{fileName=**} {
+        // 사진 용량 제한(15MB) — index.html 쪽 제한(MAX_PHOTO_MB)과 별개로
+        // 서버 쪽에서도 한 번 더 막는다.
+        allow read: if isOwner(uid) || isAdmin();
+        allow write: if (isOwner(uid) || isAdmin())
+          && request.resource.size < 15 * 1024 * 1024;
+      }
+    }
+
+    // 그 외 경로는 전부 차단(기본값과 동일하지만 명시적으로 남긴다).
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
