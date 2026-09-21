@@ -3767,19 +3767,32 @@ function renderBoardPanel(){
   </div>`;
 
   if(admin){
+    // 관리자도 회원과 마찬가지로 글을 쓸 수 있다 — 관리자 본인의 계정으로
+    // 기능을 테스트하거나(승인 회원이 관리자 계정뿐인 초기 상태 포함),
+    // 전화로 받은 문의를 대신 기록해둘 때 필요하다. 관리자가 쓴 글도 똑같이
+    // 이 받은함(전체 회원 글 목록)에 섞여 나타난다.
     const ist = boardState.inboxStatus[cfg.key];
     if(!ist || ist === "idle") fetchInboxBoardPosts(cfg.key);
+    const addBtn = !boardState.formOpen
+      ? `<button id="board-write-btn" style="border:none;border-radius:8px;background:${cfg.color};color:#fff;padding:9px 16px;font-size:12px;font-weight:700;margin-bottom:12px">+ 새 글쓰기</button>`
+      : "";
+    let body;
     if(ist === "error"){
-      return head + `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⚠️ 게시글을 불러오지 못했습니다.</div>`;
+      body = `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⚠️ 게시글을 불러오지 못했습니다.</div>`;
+    } else if(!ist || ist === "idle" || ist === "loading" || !boardState.inboxPosts[cfg.key]){
+      body = `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⏳ 게시글을 불러오는 중...</div>`;
+    } else {
+      const posts = boardState.inboxPosts[cfg.key] || [];
+      const pending = posts.filter(p=>!p.reply).length;
+      body = `
+      <div style="font-size:11.5px;color:#888;margin-bottom:10px">전체 ${posts.length}건 · 답변대기 ${pending}건</div>
+      ${renderBoardList(cfg, posts, true)}`;
     }
-    if(!ist || ist === "idle" || ist === "loading" || !boardState.inboxPosts[cfg.key]){
-      return head + `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⏳ 게시글을 불러오는 중...</div>`;
-    }
-    const posts = boardState.inboxPosts[cfg.key] || [];
-    const pending = posts.filter(p=>!p.reply).length;
     return head + `
-    <div style="font-size:11.5px;color:#888;margin-bottom:10px">전체 ${posts.length}건 · 답변대기 ${pending}건</div>
-    ${renderBoardList(cfg, posts, true)}
+    <div style="font-size:11.5px;color:#888;margin-bottom:10px">${esc(cfg.introText||"")}</div>
+    ${addBtn}
+    ${boardState.formOpen ? renderBoardCreateForm(cfg) : ""}
+    ${body}
     ${footNote}`;
   }
 
@@ -8303,9 +8316,17 @@ function attachEvents(){
     const r = await submitBoardPost(cfg.key, fields, photos);
     boardState.busy = false;
     if(r.ok){
-      const list = boardState.posts[cfg.key] || (boardState.posts[cfg.key] = []);
-      list.unshift(Object.assign({}, r.post, { reply:null }));
-      boardState.status[cfg.key] = "done";
+      // 관리자가 쓴 글이면 받은함(inboxPosts)에, 회원이 쓴 글이면 내 글 목록
+      // (posts)에 바로 얹는다 — 지금 보고 있는 화면에 즉시 나타나야 하므로.
+      if(isBoardAdmin()){
+        const list = boardState.inboxPosts[cfg.key] || (boardState.inboxPosts[cfg.key] = []);
+        list.unshift(Object.assign({}, r.post, { reply:null, uid: premiumState.user.uid }));
+        boardState.inboxStatus[cfg.key] = "done";
+      } else {
+        const list = boardState.posts[cfg.key] || (boardState.posts[cfg.key] = []);
+        list.unshift(Object.assign({}, r.post, { reply:null }));
+        boardState.status[cfg.key] = "done";
+      }
       boardState.formOpen = false;
       boardState.msg = "";
     } else {
