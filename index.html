@@ -3461,18 +3461,18 @@ function renderPremiumSignupGuide(){
     { n:1, title:"계좌 입금", detail:`년회원 <b>200,000원</b> 입금<br>농협 <b>172404-51-001771</b> (예금주: 최동명)` },
     { n:2, title:"입금 문자 전송", detail:`입금자명을 <b>010-9150-8844</b>로 문자 전송` },
     { n:3, title:"아이디·비밀번호 수신", detail:`입금 확인 후 로그인용 아이디(이메일)·비밀번호를 문자로 받습니다` },
-    { n:4, title:"로그인", detail:`위 "이메일로 로그인" 버튼에서 전달받은 아이디·비밀번호로 로그인` },
+    { n:4, title:"로그인", detail:`위 "아이디/비밀번호 로그인" 버튼에서 전달받은 아이디·비밀번호로 로그인` },
   ];
   return `
   <div style="margin-top:24px;text-align:left">
     <div style="font-size:11px;color:#888;font-weight:700;margin-bottom:10px;text-align:center">💳 신규 회원가입 안내</div>
-    <div style="border:1px solid #eee;border-radius:12px;padding:16px">
-      ${steps.map((s,i) => `
-      <div style="display:flex;gap:12px;align-items:flex-start;${i<steps.length-1?"margin-bottom:14px;padding-bottom:14px;border-bottom:1px dashed #eee":""}">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      ${steps.map(s => `
+      <div style="display:flex;gap:10px;align-items:flex-start;border:1px solid #eee;border-radius:10px;padding:12px">
         <span style="flex-shrink:0;width:24px;height:24px;border-radius:50%;background:#1a2744;color:#F9C74F;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center">${s.n}</span>
-        <div>
+        <div style="min-width:0">
           <div style="font-size:12.5px;font-weight:700;color:#333">${esc(s.title)}</div>
-          <div style="font-size:12px;color:#666;line-height:1.7;margin-top:2px">${s.detail}</div>
+          <div style="font-size:11.5px;color:#666;line-height:1.6;margin-top:2px">${s.detail}</div>
         </div>
       </div>`).join("")}
     </div>
@@ -3519,11 +3519,10 @@ function renderPremiumTab(){
       <div style="font-size:30px;margin-bottom:10px">🔒</div>
       <div class="display" style="font-size:15px;margin-bottom:8px">승인된 회원만 이용할 수 있습니다</div>
       <div style="font-size:12px;color:#888;margin-bottom:20px;line-height:1.7">구글 계정은 로그인하면 바로 가입됩니다.<br>이메일 계정은 회원가입 없이, 관리자에게 전달받은 아이디(이메일)·비밀번호로 로그인해 주세요.<br>로그인 후에도 관리자 승인 전까지는 상담·진단·컨설팅 내용을 볼 수 없습니다.</div>
-      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:14px">
+      <div style="display:flex;gap:14px;justify-content:center;align-items:center;flex-wrap:wrap;margin-bottom:14px">
         <button id="btn-premium-google" style="border:1px solid #ddd;border-radius:10px;background:#fff;color:#333;padding:12px 24px;font-size:13px;font-weight:600">🔵 Google로 로그인/가입</button>
-      </div>
-      <div style="border-top:1px dashed #eee;padding-top:14px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-        <button id="btn-premium-email" style="border:1px solid #1a2744;border-radius:10px;background:#fff;color:#1a2744;padding:12px 24px;font-size:13px;font-weight:600">✉️ 이메일로 로그인</button>
+        <span style="font-size:12px;color:#bbb">또는</span>
+        <button id="btn-premium-email" style="border:1px solid #1a2744;border-radius:10px;background:#fff;color:#1a2744;padding:12px 24px;font-size:13px;font-weight:600">🔑 아이디/비밀번호 로그인</button>
       </div>
       <div style="margin-top:12px">
         <button id="btn-premium-reset" style="border:none;background:none;color:#888;font-size:11px;text-decoration:underline;cursor:pointer">비밀번호를 잊으셨나요?</button>
