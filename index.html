@@ -156,6 +156,10 @@
      "로그인한 이메일이 승인 목록에 있는가"만 확인하는 용도라 Auth만 불러온다. -->
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<!-- 회원관리 화면의 "삭제"·"비밀번호 재설정"이 부르는 Cloud Functions(functions/)용.
+     다른 사람 계정을 지우는 건 Admin SDK 권한이 있어야 해서 서버(Functions) 쪽에서만
+     할 수 있다 — 클라이언트 SDK(위 auth)에는 그 권한이 없다. -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js"></script>
 
 <script>
 // ═══════════════════════════════════════════════════════════════════════════
@@ -3209,6 +3213,32 @@ async function createFirebaseMemberAccount(email, password){
   } finally {
     if(secondaryApp) try{ await secondaryApp.delete(); }catch(e){}
   }
+}
+
+// 남의 Firebase 계정을 지우는 건 클라이언트 SDK로 못 한다(Admin SDK 권한이
+// 필요) — functions/index.js에 있는 Cloud Functions(resetMemberAccount·
+// deleteMemberAccount)를 호출한다. 그 함수들은 "지금 로그인한 사람의 이메일이
+// 관리자 목록에 있는가"로 스스로를 보호하므로, 여기서 별도 비밀키를 관리할
+// 필요가 없다 — 회원관리 화면에 들어와 있다는 것 자체가 이미 로그인 상태다.
+async function callMemberFunction(name, data){
+  if(!firebaseReady) return { ok:false, error:"Firebase 설정이 아직 완료되지 않았습니다." };
+  try {
+    const fn = firebase.app().functions().httpsCallable(name);
+    const res = await fn(data);
+    return res.data;
+  } catch(e){
+    const msg = e.code==="functions/permission-denied" ? "관리자 계정으로 로그인돼 있지 않습니다."
+      : e.code==="functions/invalid-argument" ? (e.message || "입력값이 올바르지 않습니다.")
+      : e.code==="functions/not-found" ? "서버 함수가 아직 배포되지 않았습니다(firebase deploy --only functions 필요)."
+      : "요청 실패: " + (e.message || e);
+    return { ok:false, error: msg };
+  }
+}
+function resetMemberAccountRemote(email, password){
+  return callMemberFunction("resetMemberAccount", { email, password });
+}
+function deleteMemberAccountRemote(email){
+  return callMemberFunction("deleteMemberAccount", { email });
 }
 
 function renderMemberManagePanel(){
@@ -7883,12 +7913,23 @@ function attachEvents(){
   document.querySelectorAll(".member-del-btn").forEach(b=>b.onclick=async ()=>{
     const email = b.dataset.email;
     const m = (premiumState.members||[]).find(x=>x.email===email);
-    if(!m || !confirm(`"${m.name||m.email}" 회원을 삭제할까요? (로그인 승인도 함께 해제됩니다)`)) return;
+    if(!m || !confirm(`"${m.name||m.email}" 회원을 삭제할까요?\nFirebase 계정도 함께 지워집니다.`)) return;
+
+    memberMgmtState.busy = true; memberMgmtState.msg = "Firebase 계정 삭제 중..."; render();
+    // Cloud Function 배포 전이거나 일시적으로 실패해도, 명부에서 빼는 것(=승인
+    // 해제)은 그대로 진행한다 — 계정이 좀 남아있는 것보다 명부가 안 지워지는
+    // 쪽이 더 헷갈린다. 실패했으면 결과 메시지에만 남긴다.
+    const accResult = await deleteMemberAccountRemote(email);
     const next = (premiumState.members||[]).filter(x=>x.email!==email);
-    memberMgmtState.busy = true; memberMgmtState.msg = "발행 중..."; render();
     const r = await publishMembers(next, "👤 회원 삭제: " + email);
     memberMgmtState.busy = false;
-    memberMgmtState.msg = r.ok ? "삭제 완료" : ("발행 실패: " + r.error);
+    if(!r.ok){
+      memberMgmtState.msg = "발행 실패: " + r.error;
+    } else if(!accResult.ok){
+      memberMgmtState.msg = "회원 명부는 삭제됐지만 Firebase 계정 삭제는 실패: " + accResult.error;
+    } else {
+      memberMgmtState.msg = "삭제 완료";
+    }
     render();
   });
   const genPwBtn = document.getElementById("mm-gen-password");
@@ -7904,10 +7945,12 @@ function attachEvents(){
     const password = (document.getElementById("mm-password")?.value || "").trim();
     if(!email) return;
     if(password.length < 6){ alert("비밀번호는 6자 이상이어야 합니다."); return; }
-    if(!confirm(`Firebase 콘솔에서 "${email}" 계정을 이미 삭제하셨나요?\n삭제 전이면 "이미 등록된 이메일" 오류가 납니다.`)) return;
+    if(!confirm(`"${email}" 계정을 삭제하고 새 비밀번호로 다시 만들까요?`)) return;
 
-    memberMgmtState.busy = true; memberMgmtState.msg = "Firebase 계정 재생성 중..."; render();
-    const acc = await createFirebaseMemberAccount(email, password);
+    // 삭제+재생성을 Cloud Function(resetMemberAccountRemote)이 서버 권한으로
+    // 한 번에 처리한다 — Firebase 콘솔에서 미리 지울 필요가 없다.
+    memberMgmtState.busy = true; memberMgmtState.msg = "Firebase 계정 재설정 중..."; render();
+    const acc = await resetMemberAccountRemote(email, password);
     memberMgmtState.busy = false;
     if(!acc.ok){
       memberMgmtState.msg = acc.error;

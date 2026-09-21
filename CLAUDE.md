@@ -17,6 +17,14 @@ external sources server-side and commit the resulting JSON back into this repo. 
 reads the committed JSON. A few panels (news RSS, some board scraping) still fetch directly from the
 browser through public CORS proxies — see `CORS_PROXIES` in index.html.
 
+One piece is **not** static: `functions/` holds two Firebase Cloud Functions
+(`resetMemberAccount`, `deleteMemberAccount`) used only by the admin-only 회원관리 (member
+management) screen inside the 유료서비스 tab, because deleting *another* user's Firebase Auth
+account requires Admin SDK privileges the browser's client SDK doesn't have. They're guarded by
+checking the caller's verified Firebase ID token email against `ADMIN_EMAILS` in
+`functions/index.js` — no separate secret. Deploy with `firebase deploy --only functions` (requires
+`firebase-tools` and `firebase login` once); nothing else in this repo needs a build/deploy step.
+
 ## Architecture: the fetch-script → JSON → dashboard pipeline
 
 Each data domain has this shape:
