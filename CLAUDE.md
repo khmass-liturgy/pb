@@ -7,9 +7,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 A single-page static dashboard (`index.html`, ~4300 lines, no build step) for livestock/poultry
 farm consulting: market prices (egg, chicken, pig, cattle), stocks/FX/grain futures, industry news,
 and association notices. It's a Korean-language site (농장동물 컨설팅) deployed as a static GitHub
-Pages-style site — `index.html` fetches its own JSON data files straight from
+Pages site — `index.html` fetches its own JSON data files straight from
 `raw.githubusercontent.com/khmass-liturgy/pb/main/...` at runtime (see the `*_JSON_URL` constants
 around index.html:420-530).
+
+**Custom domain**: `polcon.cc`, registered and DNS-managed through **Cloudflare** (not the GitHub
+Pages default `khmass-liturgy.github.io`). DNS is 4 `A` records at the apex pointing at GitHub
+Pages' IPs (185.199.108-111.153), proxied (orange cloud) through Cloudflare. If HTTPS or the
+custom-domain check on the GitHub Pages settings page ever breaks after a DNS change, the fix is to
+temporarily flip those records to "DNS only" (grey cloud) until GitHub finishes issuing/renewing the
+Let's Encrypt cert — Cloudflare's proxy can block GitHub's validation — then switch back to proxied.
 
 The data those JSON files contain is **not** produced at page-load time by the browser for most
 panels. Instead, scheduled GitHub Actions workflows run Python scripts on a cron, which scrape/call
