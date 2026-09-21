@@ -1,5 +1,5 @@
 {
-  "updated": "2026-09-21 16:49 KST",
+  "updated": "2026-09-21 17:02 KST",
   "stale": {},
   "categories": {
     "disease": {
@@ -7,8 +7,8 @@
       "papers": [
         {
           "title_en": "Molecular surveillance of chicken Eimeria species in commercial poultry farms in the Philippines.",
-          "title_ko": "Molecular surveillance of chicken Eimeria species in commercial poultry farms in the Philippines.",
-          "summary_ko": "(번역 실패 — 영문 초록 참고) Chromist parasites of the genus Eimeria are the causative agent of coccidiosis, an economically important disease of poultry characterized by enteritis, reduced growth performance and decrease in egg ",
+          "title_ko": "필리핀 상업용 가금농장에서 닭 아이메리아종에 대한 분자 감시",
+          "summary_ko": "필리핀 16개 상업용 가금농장의 42개 사육장을 대상으로 아이메리아(Eimeria) 감염에 대한 분자 감시를 수행하였다. 42개 사육장 중 24개(57.1%), 16개 농장 중 9개(56.3%)에서 아이메리아 오시스트가 검출되었으며, 생산 시스템별 양성률은 육계 60%(6/10), 육계 종계 100%(6/6), 산란예비계 47.8%(11/23), 산란계 50%(1/2), 투계 0%(0/1)로 나타났다. 조사된 농장의 평균 오시스트 배출량(OPG)은 7211.9(범위 19.6~44,933.3)였으며, PCR 분석 결과 E. tenella, E. necatrix, E. acervulina, E. mitis 등 4종이 확인되었다. 이는 필리핀 상업용 가금 사육 환경에서 고병원성 아이메리아종이 광범위하게 분포함을 시사하며, 콕시디아증 관리를 위한 기초자료를 제공한다.",
           "journal": "Parasitology international",
           "pub_date": "2027-Feb",
           "author": "Takano 외",
@@ -16,8 +16,8 @@
         },
         {
           "title_en": "Automated detection of Eimeria tenella from hematoxylin and eosin-stained chicken cecal tissues using YOLOv4-based deep learning: A proof-of-concept study.",
-          "title_ko": "Automated detection of Eimeria tenella from hematoxylin and eosin-stained chicken cecal tissues using YOLOv4-based deep learning: A proof-of-concept study.",
-          "summary_ko": "(번역 실패 — 영문 초록 참고) Avian coccidiosis is a disease primarily characterized by diarrhea caused by intestinal infection with protozoa of the genus Eimeria, causing significant economic impact worldwide. Early diagnosis of ",
+          "title_ko": "YOLOv4 기반 딥러닝을 이용한 헤마톡실린-에오신 염색 닭 맹장 조직에서 Eimeria tenella 자동 검출: 개념 증명 연구",
+          "summary_ko": "본 연구는 E. tenella에 경구 감염된 닭 4마리의 맹장 조직에서 헤마톡실린-에오신 염색 표본 960개의 이미지 패치를 준비하여 YOLOv4 및 YOLOv4-tiny 알고리즘 기반 객체 탐지 모델을 개발하였다. 훈련 및 검증 데이터로 분할한 후 조직 병리 영상에서 schizont와 macrogametocyte를 자동 검출하는 모델을 구축하고, 현장 사례의 조직 이미지에 적용하여 성능을 평가하였다. 그 결과 평균 정밀도(mAP)는 YOLOv4에서 78.08~78.87%, YOLOv4-tiny에서 64.26~68.13%로 나타나 YOLOv4가 더 우수한 성능을 보였다. 데이터셋 크기의 한계가 있음에도 이 연구는 딥러닝 기반 접근법이 조직병리학적 콕시디아 진단을 지원할 가능성을 시사한다.",
           "journal": "Parasitology international",
           "pub_date": "2027-Feb",
           "author": "Iwaide 외",
@@ -25,8 +25,8 @@
         },
         {
           "title_en": "Platycodin D restricts NDV replication via modulation of MAPK, NLRP3 inflammasome and interferon signaling.",
-          "title_ko": "Platycodin D restricts NDV replication via modulation of MAPK, NLRP3 inflammasome and interferon signaling.",
-          "summary_ko": "(번역 실패 — 영문 초록 참고) Platycodon grandiflorus (PG) is a traditional herb widely used for respiratory infections. Newcastle disease virus (NDV) is a highly contagious and devastating pathogen that causes severe economic los",
+          "title_ko": "Platycodin D는 MAPK, NLRP3 인플라마좀 및 인터페론 신호전달 조절을 통해 뉴캐슬병 바이러스 복제를 억제한다",
+          "summary_ko": "본 연구는 전통 약재 Platycodon grandiflorus의 생리활성 성분인 Platycodin D(PD)가 뉴캐슬병 바이러스(NDV)에 대해 갖는 항바이러스 활성과 그 기전을 in vitro 및 in vivo 실험을 통해 조사하였다. 전사체 분석과 네트워크 약리학 기법을 활용하여 PD의 표적 경로를 규명하고, MAPK 신호전달, NLRP3 인플라마좀 조립, 염증성 사이토카인 프로파일, 세포사멸 조절, 제1형 인터페론 반응을 분석하였다. PD는 감염된 닭에서 바이러스 부하와 조직 손상을 감소시켰으며, IL-1β, IL-6, IL-8, IL-18 등 염증성 사이토카인 생성을 억제하고 Bcl-2 상향조절을 통해 바이러스 유도 세포사멸을 완화하였다. 또한 PD는 IFN-α/β 발현과 STAT1 인산화를 촉진하여 항바이러스 면역을 증강시켰으며, 이는 PD가 숙주 표적 항바이러스제로서의 잠재력을 지님을 시사한다.",
           "journal": "Journal of ethnopharmacology",
           "pub_date": "2027-Jan",
           "author": "Gao 외",
@@ -34,8 +34,8 @@
         },
         {
           "title_en": "Genomic insights into Salmonella enterica serovar Corvallis from China 2014-2023: A foodborne bacterial pathogen for antimicrobial resistance carriage and potential global transmission.",
-          "title_ko": "Genomic insights into Salmonella enterica serovar Corvallis from China 2014-2023: A foodborne bacterial pathogen for antimicrobial resistance carriage and potential global transmission.",
-          "summary_ko": "(번역 실패 — 영문 초록 참고) Nontyphoidal Salmonella (NTS) is a leading zoonotic bacterial pathogen and a major cause of foodborne illness worldwide. Salmonella enterica subsp. enterica serovar Corvallis (S. Corvallis) has recent",
+          "title_ko": "2014-2023년 중국 내 Salmonella enterica serovar Corvallis의 유전체학적 통찰: 항균제 내성 보유 및 전 세계적 확산 가능성을 가진 식품매개 세균 병원체",
+          "summary_ko": "본 연구는 2014년부터 2023년까지 중국 국가 식품매개질병 감시 프로그램을 통해 수집된 260개의 Salmonella Corvallis 분리주와 전 세계에서 공개된 598개 유전체를 종합적으로 분석하였다. 항균제 내성 유전자(ARG), 팬유전체 동역학, 계통발생학적 구조, 전 세계 확산 양상을 통합적으로 분석한 결과, 닭 생산 사슬(닭고기 및 도축 환경 샘플) 유래 분리주가 인체 유래 분리주보다 유의하게 많은 ARG를 보유함을 확인하였다. 상관관계 네트워크 분석에서 IncHI2 플라스미드는 aadA16, dfrA27, sul1과, IncQ1은 floR와, IncA/C2는 dfrA12 및 aadA2와 함께 발현되었으며 IS26이 이들의 공동 이동을 매개하는 것으로 나타났다. SNP 분석에서는 분리주 간 유전적 거리가 0~350 SNP 범위였으며 상당수가 10 SNP 이하의 차이를 보여 전파 가능성을 시사했고, 주요 계통형은 ST1541로 중국·영국·미주 지역에서 군집을 이루었다. 이 결과는 가금 생산 사슬 내 항균제 사용 관행이 다제내성 인수공통 병원체의 진화 및 전 세계적 확산에 영향을 미칠 수 있음을 보여준다.",
           "journal": "Food microbiology",
           "pub_date": "2027-Jan",
           "author": "Yan 외",
@@ -43,23 +43,23 @@
         },
         {
           "title_en": "In vivo models to study gastrointestinal Salmonella infections.",
-          "title_ko": "In vivo models to study gastrointestinal Salmonella infections.",
-          "summary_ko": "(번역 실패 — 영문 초록 참고) Given that non-typhoidal Salmonella (NTS) remains a leading cause of foodborne infections worldwide, efforts to detect and combat these pathogens continue to be a major focus of research. Enhancing Sa",
+          "title_ko": "위장관 Salmonella 감염 연구를 위한 생체 내 모델",
+          "summary_ko": "본 종설은 비장티푸스성 살모넬라(NTS) 감염 연구에 사용되는 다양한 생체 내 모델을 검토하였다. Caenorhabditis elegans, Danio rerio(제브라피시), 닭, 마우스, 소, 돼지 모델을 포함하여 각 모델의 활용성과 생리학적·생태학적 관련성을 비교 분석하였다. 무척추동물 모델은 고효율 스크리닝에 유용하며, 고등 동물 모델은 보다 복잡한 숙주-병원체 상호작용에 대한 통찰을 제공한다는 점을 강조하였다. 단일 모델로는 자연 감염 조건을 완전히 반영할 수 없으므로, 여러 모델을 통합하는 조합적 접근이 필요함을 제시하였다.",
           "journal": "Gut microbes",
           "pub_date": "2026-Dec",
           "author": "Thiers 외",
           "url": "https://doi.org/10.1080/19490976.2026.2659456"
         }
       ],
-      "translated": false
+      "translated": true
     },
     "management": {
       "label": "사양관리기술",
       "papers": [
         {
           "title_en": "Ovalbumin oxidative modification fingerprints depend on gas plasma-driven reactive species profiles.",
-          "title_ko": "Ovalbumin oxidative modification fingerprints depend on gas plasma-driven reactive species profiles.",
-          "summary_ko": "(번역 실패 — 영문 초록 참고) Oxidative protein modifications have been linked to several diseases, but the variety and diversity of modifications are less studied. We used the chicken egg protein ovalbumin and gas plasma technolo",
+          "title_ko": "오브알부민의 산화적 변형 지문은 가스 플라즈마가 유도하는 반응성 종 프로파일에 따라 달라진다",
+          "summary_ko": "이 연구는 계란 단백질인 오브알부민을 대상으로 가스 플라즈마 기술을 이용해 단백질 산화를 유도하고, 고해상도 질량분석법과 자체 개발한 분석 워크플로우를 통해 아미노산 단위 해상도에서 80종 이상의 산화적 단백질 변형을 매핑했다. 물, 에탄올, 산소, 질소 등 분자 가스를 체계적으로 혼합하여 12종의 서로 다른 아르곤 가스 플라즈마를 생성하고, 광방출분광법(OES) 및 장수명 반응종(과산화수소, 아질산염, 질산염)의 광도측정을 통해 반응성 산소/질소 종(ROS/RNS) 프로파일을 특성화했다. 질량분석 데이터와의 상관관계 분석 결과 원자상 산소와 과산화수소가 단백질 산화에 유의하게 관여함이 확인되었으며, 건조 아르곤 가스에서는 Trp149, 수산기 라디칼이 풍부한 가습 아르곤 가스에서는 Met274와 같이 공급 가스에 따른 특이적 산화 핫스팟이 확인되었다. 이는 동적 반응성 종 환경과 단백질 산화 프로파일 간의 복잡한 관계를 오브알부민 모델 시스템을 통해 최초로 규명한 연구이다.",
           "journal": "Redox report : communications in free radical research",
           "pub_date": "2026-Dec",
           "author": "Schulan 외",
@@ -67,8 +67,8 @@
         },
         {
           "title_en": "Empowering communities against AMR: Evaluating the one health-based antibiotic-wise village (SAJAKA) in Bali, Indonesia.",
-          "title_ko": "Empowering communities against AMR: Evaluating the one health-based antibiotic-wise village (SAJAKA) in Bali, Indonesia.",
-          "summary_ko": "(번역 실패 — 영문 초록 참고) Antimicrobial resistance (AMR) is a critical global health issue, especially in low-resource settings. A One Health-based community engagement approach, such as the Antibiotic-Wise Village (SAJAKA) mo",
+          "title_ko": "AMR에 대응하는 지역사회 역량강화: 인도네시아 발리의 원헬스 기반 항생제 현명 마을(SAJAKA) 평가",
+          "summary_ko": "이 연구는 인도네시아 발리의 4개 마을을 대상으로 원헬스 기반 지역사회 참여 모델인 항생제 현명 마을(SAJAKA)의 시행 효과를 사전-사후 검사 설계로 평가했다. 워크숍, 학교 프로그램, 가금 사료/물 분석, 의료 감사를 포함한 개입을 통해 가정주부, 학생, 농민, 보건의료종사자 등 총 769명을 조사했다. 그 결과 특히 농민(30.69%)과 가정주부(26.65%)에서 지식 수준이 유의하게 향상되었고, 가정 내 항생제 보관율은 3.39% 감소했으며 가금 사료 내 항생제 첨가가 근절되었다. 그러나 보건의료종사자의 비합리적 처방은 지속되었고, 수질 검사에서 분변 오염은 검출되었으나 3세대 세팔로스포린 내성 대장균은 검출되지 않았으며, 4개 마을 중 Buwit 마을이 점수 7점으로 '항생제 현명 마을' 지위를 획득했다.",
           "journal": "Global public health",
           "pub_date": "2026-Dec",
           "author": "Saputra 외",
@@ -76,8 +76,8 @@
         },
         {
           "title_en": "Gut microbial signatures in poultry under low-protein diets and lysine restriction: implications for precision nutrition.",
-          "title_ko": "Gut microbial signatures in poultry under low-protein diets and lysine restriction: implications for precision nutrition.",
-          "summary_ko": "(번역 실패 — 영문 초록 참고) Three key signatures - microbial, nutritional, and epigenetic - are pivotal in nutrigenomics, mediating poultry responses to nutritional signals, such as low-protein diets (LPDs) and lysine restrictio",
+          "title_ko": "저단백 사료와 라이신 제한 하 가금류의 장내 미생물 시그니처: 정밀 영양학을 위한 함의",
+          "summary_ko": "이 PRISMA-ScR 방식의 스코핑 리뷰는 저단백 사료(LPD)와 라이신 제한(LR)이 가금류의 장내 미생물, 영양, 후성유전학적 시그니처에 미치는 영향을 다중오믹스 근거를 종합하여 분석했다. 저단백 사료는 맹장 발효를 당분해 경로로 전환시켜 부티레이트 생성균(Ruminococcaceae, Lachnospiraceae)을 증가시키고 Proteobacteria 및 독성 단백분해 대사산물(암모니아, 분지쇄지방산)을 억제하는 것으로 나타났다. 라이신 제한은 Actinobacteria/Synergistetes를 증가시키고 미생물 질소 제한을 유발하며 단쇄지방산(SCFA) 프로파일을 재구성하여 mTOR 하향조절 및 GCN2 상향조절을 통해 면역과 사료요구율(FCR) 개선을 우선시하게 만든다. 메탄생성 고세균(Methanobrevibacter)이 수소 대사를 조절하지만 사료 유도 변화에 대한 추가 연구가 필요하며, 인과적 다중오믹스 검증, 품종별 반응, 표준화된 기준선 확립 등의 과제가 남아있다고 결론지었다.",
           "journal": "Veterinary and animal science",
           "pub_date": "2026-Dec",
           "author": "Salahi 외",
@@ -85,8 +85,8 @@
         },
         {
           "title_en": "Dietary supplementation with raw potato starch enhanced tibia mass of meat ducks potentially linked to intestine-derived inflammation.",
-          "title_ko": "Dietary supplementation with raw potato starch enhanced tibia mass of meat ducks potentially linked to intestine-derived inflammation.",
-          "summary_ko": "(번역 실패 — 영문 초록 참고) Gait problems in poultry is a welfare issue with a prevalence of about 21% in commercial meat ducks, which compromises growth performance by restricting access to feed and water. This study evaluated ",
+          "title_ko": "생감자전분 보충 급여가 육용오리의 경골 골량 증가에 미치는 영향과 장 유래 염증과의 연관성",
+          "summary_ko": "이 연구는 생감자전분(RPS)이 건강한 오리와 장염 유발 오리의 장벽 기능 및 골대사에 미치는 영향을 평가했다. 1차 실험에서는 1일령 수컷 오리 288수(초기체중 51.4±1.7g)를 0%, 6%, 12%, 18% RPS를 함유한 4개 처리구(처리당 6반복, 반복당 12수)에 배정하여 21일간 사육한 결과, RPS 급여는 용량 의존적으로 경골 회분함량과 강도를 증가시키고 혈청 D-lactate 함량과 전신 염증을 감소시켰으며 12% RPS가 최적 첨가 수준으로 확인되었다. 2차 실험에서는 덱스트란황산나트륨(DSS)으로 장염을 유발한 오리 288수(47.8±0.8g)를 대조군, DSS군, DSS+12%RPS군(군당 8반복, 반복당 12수)으로 나누어 21일간 사육했으며, DSS 투여는 혈청 및 골수 내 IL-6와 TNF-α를 증가시키고 경골 밀도(P=0.002)와 기계적 특성을 저하시켰으나, 12% RPS 급여는 회장 내 TNF-α와 IL-6를 감소시키고 Firmicutes 증가·Bacteroidetes 감소(P<0.05) 및 단쇄지방산(아세트산, 부티르산) 생성을 증가시켜 경골 미세구조와 강도를 개선했다. 이러한 개선 효과는 파골세포 활성 및 수 감소, 혈청 인 함량 증가와 관련이 있었다.",
           "journal": "Animal nutrition (Zhongguo xu mu shou yi xue hui)",
           "pub_date": "2026-Dec",
           "author": "Yin 외",
@@ -94,23 +94,23 @@
         },
         {
           "title_en": "Graded levels of wheat oligopeptides relieve feed change-induced intestinal damage via modulation of the Wnt/β-catenin signaling pathway in broilers.",
-          "title_ko": "Graded levels of wheat oligopeptides relieve feed change-induced intestinal damage via modulation of the Wnt/β-catenin signaling pathway in broilers.",
-          "summary_ko": "(번역 실패 — 영문 초록 참고) The abrupt transition in feed composition and form during the starter (d 0 to 10) to grower (d 11 to 21) phase can damage intestinal barriers and affect broiler performance, triggering the feed change",
+          "title_ko": "단계별 밀 올리고펩타이드 첨가가 Wnt/β-카테닌 신호경로 조절을 통해 육계의 사료 전환 유발 장 손상을 완화한다",
+          "summary_ko": "이 연구는 육계에서 초이(0~10일)에서 육성기(11~21일)로의 급격한 사료 전환이 유발하는 장 손상 스트레스의 영향과, 밀 올리고펩타이드(WOP)의 완화 효과 및 기전을 규명하고자 했다. 1일령 Arbor Acre 수컷 육계 120수(초기체중 45.38±0.64g)를 사료전환군과 비전환군으로 나누어(반복당 6개, 반복당 10수) 11일째 사료 전환 후 60시간 동안 관찰한 결과, 사료 전환군은 전환 4시간 후 사료섭취량이 감소(P=0.006)했고 CLDN2 발현이 하향조절되었으며 IL-8과 TNF-α 발현이 상향조절(P<0.001)되고 장줄기세포(ISC) 분화지표(BMI1, LGR5, CHGA, SI, MUC2)가 억제되었다(P<0.05). 이어 1일령 육계 240수(초기체중 45.33±0.55g)를 WOP 0.0%, 0.1%, 0.2%, 0.3% 첨가군(반복당 6개, 반복당 10수)으로 나누어 42일간 사육한 결과, WOP 첨가군은 42일령 체중(P=0.010), 11~42일 일당증체량(P=0.010) 증가 및 사료요구율 감소(P=0.002)를 보였으며 0.2% 첨가가 최적 수준이었다. 기전적으로 WOP는 Wnt, β-catenin, c-Myc의 mRNA 및 단백질 발현을 상향조절(P<0.05)함으로써 ISC 분화를 촉진하고 사료 전환에 의한 영양소 수송체 억제 및 염증반응을 완화하는 것으로 나타났다.",
           "journal": "Animal nutrition (Zhongguo xu mu shou yi xue hui)",
           "pub_date": "2026-Dec",
           "author": "Fu 외",
           "url": "https://doi.org/10.1016/j.aninu.2026.03.004"
         }
       ],
-      "translated": false
+      "translated": true
     },
     "consulting": {
       "label": "컨설팅도구",
       "papers": [
         {
           "title_en": "\"If you want to sleep easy, you give antibiotics\" exploring drivers of antimicrobial use in the small- and medium scale broiler sector in Indonesia: A qualitative study.",
-          "title_ko": "\"If you want to sleep easy, you give antibiotics\" exploring drivers of antimicrobial use in the small- and medium scale broiler sector in Indonesia: A qualitative study.",
-          "summary_ko": "(번역 실패 — 영문 초록 참고) Antimicrobial use (AMU) in livestock contributes to antimicrobial resistance (AMR), a major public health concern. In Indonesia, poultry is the main source of animal protein, and demand continues to r",
+          "title_ko": "\"편히 자고 싶으면 항생제를 준다\": 인도네시아 중소규모 육계 산업의 항생제 사용 동인 탐색 - 질적 연구",
+          "summary_ko": "본 연구는 인도네시아 서자바 지역 중소규모 육계 농가를 대상으로 항생제 사용(AMU)의 동기와 인식을 파악하기 위한 질적 연구로, 2024년 10월부터 12월까지 반구조화 심층 인터뷰, 비공식 대화, 참여관찰을 통해 자료를 수집했다. 인도네시아 축산업에서 항생제 사용의 80%가 예방적 목적으로 이루어지고 있으며, 이는 주로 경제적 불확실성 속에서 생산 손실에 대비한 저비용 안전장치로 인식되었다. 주요 동인으로는 병아리 품질에 대한 불신, 농장 관리 개선을 위한 자원 부족, 빠른 생산 일정을 맞춰야 하는 압박 등이 확인되었다. 이전의 스튜어드십 개입 연구가 초기에는 긍정적으로 받아들여졌으나, 지침 부족과 자원 제약, 경쟁적인 농장 우선순위로 인해 지속적인 실천에는 어려움이 있었다. 이러한 질적 통찰은 정량적 종단 개입 연구 결과와 결합되어 보다 효과적인 항생제 관리 개입 설계에 기여할 수 있다.",
           "journal": "Preventive veterinary medicine",
           "pub_date": "2026-Oct",
           "author": "Anwar Sani 외",
@@ -118,8 +118,8 @@
         },
         {
           "title_en": "Multi-parameter characterization of heterogeneous animal by-products for sustainable bio-refinery pathway selection.",
-          "title_ko": "Multi-parameter characterization of heterogeneous animal by-products for sustainable bio-refinery pathway selection.",
-          "summary_ko": "(번역 실패 — 영문 초록 참고) Organic waste valorization studies are often fragmented, focusing on individual biomass streams or isolated conversion pathways, thereby limiting the comparability and transferability of reuse strateg",
+          "title_ko": "지속가능한 바이오리파이너리 경로 선택을 위한 이종 동물 부산물의 다중 파라미터 특성화",
+          "summary_ko": "이 연구는 수산업, 양식업, 가금류 가공, 곤충 생산 시스템에서 유래한 12종의 이종 동물 부산물 매트릭스를 특성화하고 문헌 데이터와 통합하여 'Green Tree'라는 데이터 기반 의사결정 지원 프레임워크를 개발했다. K-평균 클러스터링 분석을 통해 회분(ash), 고정탄소(FC), 질소(N) 함량이 가장 판별력 있는 변수로 확인되었으며, 각각 14 wt%, 16 wt%, 10 wt%의 운영 기준값이 설정되었다. 문헌 기반 외부 검증에서는 예상 분류와 Green Tree 분류 간 90%의 높은 일치도를 보였고, 실험 결과 닭 깃털은 낮은 열분해 전환율(35-42%)로 탄화 지향형 물질로 확인되었으며, 어류 비늘은 약 71%의 전환율과 높은 광물 함량으로 광물 회수형 매트릭스로 분류되었다. 어류 폐기물의 혐기성 소화에서는 47-63%의 메탄(CH4) 함량을 가진 바이오가스가 생성되어 휘발성 물질이 풍부한 잔류물의 생화학적 전환 적합성이 확인되었다. 이 Green Tree 프레임워크는 조성 데이터를 실용적인 자원화 기준으로 전환하여 지속가능한 폐기물 관리와 순환형 바이오리파이너리 전략에 기여할 수 있다.",
           "journal": "Waste management (New York, N.Y.)",
           "pub_date": "2026-Sep",
           "author": "Caterino 외",
@@ -127,8 +127,8 @@
         },
         {
           "title_en": "Analysis of the main causes of chicken carcass condemnation in slaughterhouses in Mato Grosso, Brazil.",
-          "title_ko": "Analysis of the main causes of chicken carcass condemnation in slaughterhouses in Mato Grosso, Brazil.",
-          "summary_ko": "(번역 실패 — 영문 초록 참고) Pre-slaughter inspection activities encompass clinical, documentary, and sanitary checks; post-mortem inspection identifies abnormalities in chicken carcasses, such as lesions caused by disease or ina",
+          "title_ko": "브라질 마투그로소주 도계장에서의 닭 도체 폐기 주요 원인 분석",
+          "summary_ko": "본 연구는 2017년 1월부터 2024년 12월까지 브라질 마투그로소주에서 도살된 닭의 도체 폐기 원인과 경제적 손실을 평가하기 위한 후향적 탐색 연구로, 연방검사시스템(SIGSIF)의 데이터와 검사 시설 보고서를 활용했다. 총 12억 5,162만 3,202두의 닭이 도살되었으며, 이 중 9.5%(1억 1,899만 903두)가 폐기 처리되었는데 전체 폐기가 2.69%, 부분 폐기가 6.8%를 차지했다. 위장관 오염이 전체 폐기(57.16%)와 부분 폐기(37.55%) 모두에서 가장 높은 비율을 보였고, 셀룰리티스가 두 유형 모두에서 18%를 차지하며 두 번째로 높았으며, 혐오스러운 외관(7.94%)과 타박상/골절(11.29%)이 세 번째로 확인되었다. 온도와 상대습도 등 환경적 요인과 사육, 운송, 가공 중 취급 관행이 폐기의 주요 영향 요인으로 나타났으며, 이 기간 동안 폐기된 조류로 인한 경제적 손실은 총 13억 6,542만 611.93 헤알(R$)에 달했다. 연구 결과는 농장 관리부터 가공 과정까지 폐기에 영향을 미치는 복합적 요인의 이해를 통해 예방 및 경제적 손실 완화 대책 수립에 기여할 수 있음을 보여준다.",
           "journal": "Brazilian journal of veterinary medicine",
           "pub_date": "2026",
           "author": "Krindges 외",
@@ -136,8 +136,8 @@
         },
         {
           "title_en": "Forecasting egg production in free-range laying hens using multi-farm data.",
-          "title_ko": "Forecasting egg production in free-range laying hens using multi-farm data.",
-          "summary_ko": "(번역 실패 — 영문 초록 참고) Despite technological advancements in poultry production, accurately forecasting laying rates including sudden drops in egg production remains challenging. This study evaluated the potential of predic",
+          "title_ko": "다중 농장 데이터를 활용한 자유방목 산란계의 산란량 예측",
+          "summary_ko": "본 연구는 4개 상업용 자유방목 산란계 농장(A-D, 106개 무리, 35,346 무리-일)의 생산 및 기상 데이터를 통합하여 산란율 및 생산 감소일을 예측하는 랜덤포레스트(Random Forest) 모델 3종을 개발했다: (1) 농장 A 데이터만 사용한 단일 농장 모델, (2) 농장 B, C, D 데이터를 통합한 다중 농장 모델, (3) 전체 농장(A-D) 데이터를 결합한 통합 모델. 성능 평가는 농장 A를 목표 대상으로 삼아 분류에는 AUC(수신자조작특성곡선 아래 면적), 회귀에는 RMSE(평균제곱근오차)를 사용했다. 단일 농장 모델은 중앙값 AUC 0.86과 RMSE 2.8로 우수한 예측력을 보였고, 다중 농장 모델은 AUC가 소폭 높은 0.89를 기록했으나 회귀 정확도는 낮은 RMSE 4.98을 보였다. 통합 모델은 회귀 성능(RMSE 2.55)은 개선되었으나 분류 정확도(AUC 0.82)는 가장 낮게 나타나 혼재된 결과를 보였으며, 이는 여러 농장의 데이터를 통합하는 것이 항상 성능 향상으로 이어지지는 않지만 농장 간 교차 예측의 가능성을 시사한다.",
           "journal": "Poultry science",
           "pub_date": "2026-Sep",
           "author": "Adejola 외",
@@ -145,15 +145,15 @@
         },
         {
           "title_en": "Robust Tracking and Quantification of Open-Beak Behavior for Heat Stress Assessment in Multi-Tier Caged Rearing Broiler Breeders via Mobile Inspection.",
-          "title_ko": "Robust Tracking and Quantification of Open-Beak Behavior for Heat Stress Assessment in Multi-Tier Caged Rearing Broiler Breeders via Mobile Inspection.",
-          "summary_ko": "(번역 실패 — 영문 초록 참고) Panting is one of the earliest and most prominent behavioral responses of chickens under heat stress. More importantly, panting is inherently a temporally continuous state rather than an instantaneous",
+          "title_ko": "다층 케이지 사육 육계 종계의 열 스트레스 평가를 위한 모바일 검사 기반 개구 행동의 강건한 추적 및 정량화",
+          "summary_ko": "본 연구는 다층 케이지 사육 육계 종계(broiler breeders)의 열 스트레스 평가를 위해 지속적인 개구(open-beak) 행동을 정량화하는 누적 팬팅비율(Cumulative Panting Ratio, CPR) 방법을 제안했다. 시간적 슬라이딩 윈도우 내에서 순간적 개구 이벤트를 추적 및 누적하는 방식으로, 신체 수준 추적과 세밀한 부리 행동 추론을 분리하는 탐지-추적-분류(Detection-Tracking-Classification) 파이프라인과 플랫폼 이동으로 인해 단편화된 궤적을 재연결하는 준온라인 궤적 결합기(Near-Online Trajectory Stitcher)를 구축했다. 실제 검사 데이터셋 실험에서 기존 최신 기법과 비교했을 때 ID 전환(identity switch)이 10회에서 4회로 감소했고 IDF1 지표가 2.43% 개선되었으며, 다양한 검출기 구조에서 계수 오류를 최소화했다. TensorRT 가속과 Jetson Orin NX에서의 다중 스트림 병렬처리를 통해 정확도를 유지하면서 시스템 처리량이 초당 7.89프레임(FPS)에서 51.43 FPS로 크게 향상되었다. 이 연구는 정밀 가축 사양 관리를 위한 생리적 상태 모니터링 시스템 구현에 실질적인 열 스트레스 정량 평가 솔루션을 제공한다.",
           "journal": "Animals : an open access journal from MDPI",
           "pub_date": "2026-Aug",
           "author": "Kong 외",
           "url": "https://doi.org/10.3390/ani16152408"
         }
       ],
-      "translated": false
+      "translated": true
     }
   },
   "source": "PubMed(NCBI) — 원문 제목/초록을 Claude API로 번역·요약"
