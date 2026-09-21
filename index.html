@@ -78,8 +78,8 @@
   .hidden { display: none !important; }
 
   /* 온라인 자가진단: 닭 그림 위 클릭 가능한 부위(hotspot) */
-  .selfcheck-hotspot { cursor: pointer; transition: fill-opacity 0.15s; }
-  .selfcheck-hotspot:hover { fill-opacity: 0.35 !important; }
+  .selfcheck-hotspot { cursor: pointer; transition: transform 0.1s; }
+  .selfcheck-hotspot:hover { transform: translate(-50%,-50%) scale(1.15) !important; }
 
   /* ── 반응형 레이아웃 ──
      모바일에서는 고정 폭을 줄여서 억지로 맞추지 않고, 콘텐츠의
@@ -645,7 +645,7 @@ const PREMIUM_ITEMS = [
   { key:"treatment", icon:"💉", title:"상황별 처방(투약) 패키지", desc:"육계·산란계 농장 상황을 고르면 그에 맞는 투약(처방) 프로그램을 보여드립니다. 상황은 계속 추가됩니다.", color:"#C62828" },
   { key:"seasonal", icon:"🗓️", title:"계절별 투약(관리) 패키지", desc:"봄·여름·가을·겨울 시기별로 챙겨야 할 투약(백신)과 사양관리 주의사항을 안내합니다.", color:"#795548" },
   { key:"finder", icon:"🎯", title:"내 농장에 맞는 약품 찾기", desc:"축종과 문제 증상을 단계별로 선택하면 진단·원인 분석과 추천 처방을 보여드립니다.", color:"#283593" },
-  { key:"selfcheck", icon:"🐔", title:"온라인 자가진단", desc:"닭 그림에서 부위를 클릭하면 그 부위에서 흔히 나타나는 질병 목록을 보여드립니다.", color:"#AD1457" },
+  { key:"selfcheck", icon:"🐔", title:"온라인 자가진단", desc:"닭 해부도에서 장기를 클릭하면 그 장기의 기능과 흔히 나타나는 질병을 보여드립니다.", color:"#AD1457" },
   { key:"consult", icon:"💬", title:"온라인 상담", desc:"농장 현안(사양·환기·질병 등)을 질문하면 최동명 수의사가 답변합니다. 사진 첨부 가능, 답변은 작성자만 볼 수 있습니다.", color:"#1565C0" },
   { key:"diagnosis", icon:"🔍", title:"온라인 진단", desc:"닭의 외부모습·분변상태·부검사진(기관지·간·신장·소장)을 올리면 최동명 수의사가 직접 진단합니다.", color:"#2E7D32" },
   { key:"consulting", icon:"📈", title:"온라인 컨설팅", desc:"농장 운영·질병 현황을 바탕으로 맞춤 투약·백신 프로그램을 작성해 드립니다. 답변은 작성자만 볼 수 있습니다.", color:"#E65100" },
@@ -970,33 +970,50 @@ async function publishFarmFinderCases(cases, message){
   }
 }
 
-// ── 온라인 자가진단 (닭 그림에서 부위 클릭 → 그 부위에 흔한 질병 목록) ─────────
-// 부위(BODY_PARTS)는 화면에 그린 SVG 그림의 클릭 영역과 1:1로 맞춰야 하므로
-// 고정 목록이다(축종처럼). 그 부위에 속한 질병 목록은 다른 발행형 데이터와
-// 같은 방식(GitHub Contents API 커밋)으로 관리자가 계속 추가/편집/삭제한다.
+// ── 온라인 자가진단 (닭 해부도 이미지에서 장기 번호 클릭 → 기능·질병 목록) ─────
+// 부위(BODY_PARTS)는 self_check/chicken_anatomy.jpg(관리자가 올려준 해부도)의
+// 번호·위치와 1:1로 맞춘 고정 목록이다(그림을 바꾸지 않는 한 좌표도 고정).
+// x/y는 이미지 가로세로에 대한 % 위치 — 이미지가 화면 크기에 맞춰 커지고
+// 작아져도 핫스팟이 항상 같은 장기 위에 오도록 퍼센트로 둔다.
+// 각 장기의 "기능" 설명과 "질병" 목록은 다른 발행형 데이터와 같은 방식
+// (premium_content, 관리자만 발행)으로 최동명 수의사가 계속 추가/편집/
+// 삭제할 수 있다.
 const BODY_PARTS = [
-  { key:"head", label:"머리·볏", icon:"🔴" },
-  { key:"eyes", label:"눈", icon:"👁" },
-  { key:"respiratory", label:"호흡기(기관·폐)", icon:"🫁" },
-  { key:"crop", label:"소낭(모이주머니)", icon:"🍽" },
-  { key:"liver", label:"간", icon:"🟤" },
-  { key:"kidney", label:"신장", icon:"🫘" },
-  { key:"intestine", label:"장(소화기)", icon:"🌀" },
-  { key:"legs", label:"다리·관절", icon:"🦵" },
-  { key:"skin", label:"피부·깃털", icon:"🪶" },
-  { key:"reproductive", label:"산란기관(생식기)", icon:"🥚" },
-  { key:"vent", label:"총배설강", icon:"⭕" },
+  { key:"brain", num:1, label:"뇌", x:16, y:11 },
+  { key:"trachea", num:2, label:"기관", x:19.5, y:25 },
+  { key:"esophagus", num:3, label:"식도", x:22, y:31 },
+  { key:"crop", num:4, label:"소낭", x:21, y:38 },
+  { key:"heart", num:5, label:"심장", x:36, y:39 },
+  { key:"lungs", num:6, label:"폐", x:41, y:37 },
+  { key:"proventriculus", num:7, label:"선위", x:40, y:44 },
+  { key:"gizzard", num:8, label:"근위", x:50, y:46 },
+  { key:"liver", num:9, label:"간", x:33, y:50 },
+  { key:"gallbladder", num:10, label:"담낭", x:34, y:57 },
+  { key:"spleen", num:11, label:"비장", x:40, y:40 },
+  { key:"duodenum", num:12, label:"십이지장", x:37, y:69 },
+  { key:"pancreas", num:13, label:"췌장", x:49, y:59 },
+  { key:"intestine", num:14, label:"소장", x:59, y:64 },
+  { key:"caeca", num:15, label:"맹장", x:80, y:32 },
+  { key:"largeintestine", num:16, label:"대장", x:73, y:68 },
+  { key:"cloaca", num:17, label:"총배설강", x:78, y:53 },
+  { key:"kidney", num:18, label:"신장", x:67, y:31 },
+  { key:"ovary", num:19, label:"난소", x:56, y:31 },
+  { key:"oviduct", num:20, label:"난관", x:67, y:20 },
 ];
 function bodyPartLabel(key){
   const p = BODY_PARTS.find(p=>p.key===key);
   return p ? p.label : key;
 }
+function bodyPartByKey(key){
+  return BODY_PARTS.find(p=>p.key===key);
+}
 
 // Firebase Storage(premium_content/self_check/latest.json)에 둔다.
 let selfCheckPkgState = { status:"idle", data:null, busy:false, msg:"" };
 // part만 선택하면 되는 단순한 화면이라(하위 단계가 없다) 마법사 상태도
-// finderNavState보다 단순하다.
-let selfCheckNavState = { part:null, adminOpen:false, formKey:undefined };
+// finderNavState보다 단순하다. functionFormOpen은 "기능 설명 편집" 폼을
+// 따로 여닫기 위한 상태(새 질병 추가 폼과는 별개).
+let selfCheckNavState = { part:null, adminOpen:false, formKey:undefined, functionFormOpen:false };
 
 async function fetchSelfCheckDiseases(){
   if(selfCheckPkgState.status === "loading") return;
@@ -1004,16 +1021,18 @@ async function fetchSelfCheckDiseases(){
   try {
     const j = await fetchPremiumContentJson("self_check");
     j.diseases = Array.isArray(j.diseases) ? j.diseases : [];
+    j.organFunctions = (j.organFunctions && typeof j.organFunctions === "object") ? j.organFunctions : {};
     selfCheckPkgState.data = j;
     selfCheckPkgState.status = "done";
   } catch(e){
     console.warn("온라인 자가진단 데이터 로딩 실패:", e);
     const migrated = await migrateOldPremiumJson("self_check/latest.json");
     const oldDiseases = migrated && Array.isArray(migrated.diseases) ? migrated.diseases : null;
-    const r = oldDiseases && await publishSelfCheckDiseases(oldDiseases, "🔄 기존 데이터 Storage로 이전");
+    const oldFunctions = (migrated && migrated.organFunctions && typeof migrated.organFunctions === "object") ? migrated.organFunctions : {};
+    const r = oldDiseases && await publishSelfCheckContent(oldDiseases, oldFunctions, "🔄 기존 데이터 Storage로 이전");
     if(r && r.ok){ selfCheckPkgState.status = "done"; }
     else {
-      selfCheckPkgState.data = { diseases: [], by: PICK_BY };
+      selfCheckPkgState.data = { diseases: [], organFunctions: {}, by: PICK_BY };
       selfCheckPkgState.status = "error";
     }
   }
@@ -1023,6 +1042,12 @@ async function fetchSelfCheckDiseases(){
 function currentSelfCheckDiseases(){
   return (selfCheckPkgState.data && selfCheckPkgState.data.diseases) || [];
 }
+function currentOrganFunctions(){
+  return (selfCheckPkgState.data && selfCheckPkgState.data.organFunctions) || {};
+}
+function organFunctionFor(part){
+  return currentOrganFunctions()[part] || "";
+}
 function selfCheckDiseasesFor(part){
   return currentSelfCheckDiseases().filter(d => d.part === part);
 }
@@ -1030,13 +1055,14 @@ function newSelfCheckKey(){
   return "d" + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 }
 
-async function publishSelfCheckDiseases(diseases, message){
+async function publishSelfCheckContent(diseases, organFunctions, message){
   try {
     const body = {
       updated: new Date().toISOString().slice(0,16).replace("T"," ") + " UTC",
       by: PICK_BY,
       note: "온라인 자가진단 — 화면에서 저장하면 이 파일이 갱신되고 승인된 회원 모두에게 같은 내용이 보입니다.",
       diseases: diseases,
+      organFunctions: organFunctions,
     };
     await writePremiumContentJson("self_check", body);
     selfCheckPkgState.data = body;
@@ -1044,6 +1070,16 @@ async function publishSelfCheckDiseases(diseases, message){
   } catch(e) {
     return { ok:false, error: e.message || String(e) };
   }
+}
+// 기존 호출부(질병 추가/편집/삭제)와의 호환을 위한 얇은 래퍼 — organFunctions는
+// 현재 상태 그대로 유지한 채 diseases만 바꾼다.
+function publishSelfCheckDiseases(diseases, message){
+  return publishSelfCheckContent(diseases, currentOrganFunctions(), message);
+}
+// 기능 설명만 바꿀 때 쓴다 — diseases는 현재 상태 그대로 유지한다.
+function publishOrganFunction(part, text, message){
+  const next = Object.assign({}, currentOrganFunctions(), { [part]: text });
+  return publishSelfCheckContent(currentSelfCheckDiseases(), next, message);
 }
 
 // "만료일이 없으면 계속 승인" / "만료일이 있으면 그 날짜(포함)까지만 승인".
@@ -4176,7 +4212,7 @@ function renderSelfCheckPanel(){
   <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
     <div>
       <div class="display" style="font-size:16px;margin-bottom:3px">🐔 온라인 자가진단</div>
-      <div style="font-size:11px;color:#aaa">닭 그림에서 부위를 클릭하면 그 부위에서 흔히 나타나는 질병 목록을 보여드립니다</div>
+      <div style="font-size:11px;color:#aaa">닭 해부도에서 장기를 클릭하면 그 장기의 기능과 흔히 나타나는 질병을 보여드립니다</div>
     </div>
     <button id="selfcheck-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button>
   </div>`;
@@ -4191,69 +4227,46 @@ function renderSelfCheckPanel(){
 
   const admin = isBoardAdmin();
 
-  // 부위별 클릭 영역 좌표 (viewBox 420x270 기준). shape가 섞여 있어(원/타원/
-  // 사각형) 태그별로 attrs 문자열을 그대로 심는다. skin(날개 전체)처럼 넓은
-  // 영역을 먼저 그리고 간·신장·장처럼 그 안에 겹치는 구체적 영역을 나중에
-  // 그려야, 나중 것이 위에 그려져 좁은 영역도 따로 클릭된다(겹치는 부분은
-  // SVG에서 나중에 그린 도형이 클릭을 먼저 받는다).
-  const HOTSPOT_GEOM = {
-    skin:         { tag:"ellipse", attrs:'cx="175" cy="160" rx="54" ry="36" transform="rotate(-10 175 160)"' },
-    legs:         { tag:"rect",    attrs:'x="155" y="206" width="90" height="48" rx="10"' },
-    respiratory:  { tag:"ellipse", attrs:'cx="272" cy="105" rx="22" ry="40"' },
-    crop:         { tag:"ellipse", attrs:'cx="238" cy="138" rx="18" ry="16"' },
-    liver:        { tag:"ellipse", attrs:'cx="225" cy="150" rx="27" ry="21"' },
-    kidney:       { tag:"ellipse", attrs:'cx="175" cy="133" rx="21" ry="15"' },
-    intestine:    { tag:"ellipse", attrs:'cx="195" cy="186" rx="39" ry="23"' },
-    reproductive: { tag:"ellipse", attrs:'cx="150" cy="180" rx="21" ry="16"' },
-    vent:         { tag:"circle",  attrs:'cx="110" cy="186" r="15"' },
-    head:         { tag:"circle",  attrs:'cx="305" cy="78" r="35"' },
-    eyes:         { tag:"circle",  attrs:'cx="312" cy="76" r="9"' },
-  };
-  const hotspotOrder = ["skin","legs","respiratory","crop","liver","kidney","intestine","reproductive","vent","head","eyes"];
-  const hotspots = hotspotOrder.map(key => {
-    const g = HOTSPOT_GEOM[key];
-    const selected = nav.part === key;
-    return `<${g.tag} class="selfcheck-hotspot" data-part="${key}" ${g.attrs}
-      fill="#AD1457" fill-opacity="${selected?0.42:0.05}" stroke="${selected?"#AD1457":"none"}" stroke-width="${selected?2:0}"><title>${esc(bodyPartLabel(key))}</title></${g.tag}>`;
+  // 관리자가 올려준 실제 해부도 이미지(self_check/chicken_anatomy.jpg) 위에
+  // 번호 핫스팟을 %(이미지 가로세로 대비 비율)로 겹쳐 그린다 — 이미지가
+  // 반응형으로 커지고 작아져도 항상 같은 장기 위에 오도록 절대좌표가 아니라
+  // % 위치를 쓴다.
+  const hotspots = BODY_PARTS.map(p => {
+    const selected = nav.part === p.key;
+    return `<button class="selfcheck-hotspot" data-part="${p.key}" title="${esc(p.num+". "+p.label)}"
+      style="position:absolute;left:${p.x}%;top:${p.y}%;transform:translate(-50%,-50%);width:26px;height:26px;border-radius:50%;
+      border:2px solid ${selected?"#AD1457":"#fff"};background:${selected?"#AD1457":"rgba(255,255,255,0.85)"};color:${selected?"#fff":"#AD1457"};
+      font-size:11px;font-weight:800;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,0.35);padding:0;line-height:1">${p.num}</button>`;
   }).join("");
 
   const diagram = `
-  <div style="text-align:center;margin-bottom:14px">
-    <svg viewBox="0 0 420 270" style="width:100%;max-width:420px;height:auto">
-      <g pointer-events="none">
-        <line x1="178" y1="208" x2="178" y2="248" stroke="#F9A825" stroke-width="5" stroke-linecap="round"/>
-        <line x1="215" y1="208" x2="215" y2="248" stroke="#F9A825" stroke-width="5" stroke-linecap="round"/>
-        <path d="M170,250 l-10,8 M178,250 l0,10 M186,250 l10,8" stroke="#F9A825" stroke-width="4" fill="none" stroke-linecap="round"/>
-        <path d="M207,250 l-10,8 M215,250 l0,10 M223,250 l10,8" stroke="#F9A825" stroke-width="4" fill="none" stroke-linecap="round"/>
-        <path d="M100,150 Q58,128 75,108 Q97,140 112,146 Z" fill="#E8D9B5"/>
-        <path d="M96,166 Q54,160 66,140 Q92,156 110,162 Z" fill="#F0E0B8"/>
-        <ellipse cx="195" cy="155" rx="95" ry="62" fill="#FDF6E3" stroke="#E8D9B5" stroke-width="2"/>
-        <ellipse cx="175" cy="160" rx="50" ry="32" fill="#F0E0B8" stroke="#DFCBA0" stroke-width="1.5" transform="rotate(-10 175 160)"/>
-        <ellipse cx="272" cy="105" rx="18" ry="38" fill="#FDF6E3" stroke="#E8D9B5" stroke-width="2"/>
-        <circle cx="305" cy="78" r="30" fill="#FDF6E3" stroke="#E8D9B5" stroke-width="2"/>
-        <path d="M292,50 Q298,36 304,50 Q310,34 316,50 Q322,38 326,54 Q310,63 292,54 Z" fill="#D32F2F"/>
-        <path d="M320,92 Q331,99 322,107 Q315,98 320,92 Z" fill="#D32F2F"/>
-        <path d="M330,80 L345,86 L330,93 Z" fill="#F9A825"/>
-        <circle cx="312" cy="76" r="3.2" fill="#333"/>
-      </g>
+  <div style="margin-bottom:14px">
+    <div style="position:relative;width:100%;border-radius:12px;overflow:hidden;border:1px solid #eee">
+      <img src="self_check/chicken_anatomy.jpg" alt="닭 내장 해부도" style="width:100%;height:auto;display:block" />
       ${hotspots}
-    </svg>
-    <div style="font-size:11px;color:#888;margin-top:4px">${nav.part?("선택됨: "+esc(bodyPartLabel(nav.part))):"그림을 클릭하거나 아래 목록에서 부위를 골라보세요"}</div>
+    </div>
+    <div style="font-size:11px;color:#888;margin-top:6px;text-align:center">${nav.part?("선택됨: "+esc(bodyPartByKey(nav.part).num+". "+bodyPartLabel(nav.part))):"그림의 번호를 클릭하거나 아래 목록에서 장기를 골라보세요"}</div>
   </div>`;
 
   const chips = `
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px;margin-bottom:16px">
     ${BODY_PARTS.map(p => `
     <button class="selfcheck-part-btn" data-part="${p.key}"
-      style="border:2px solid ${nav.part===p.key?"#AD1457":"#eee"};background:${nav.part===p.key?"#AD1457":"#fff"};color:${nav.part===p.key?"#fff":"#333"};border-radius:9px;padding:8px 6px;font-size:11.5px;font-weight:700;cursor:pointer">${p.icon} ${esc(p.label)}</button>`).join("")}
+      style="border:2px solid ${nav.part===p.key?"#AD1457":"#eee"};background:${nav.part===p.key?"#AD1457":"#fff"};color:${nav.part===p.key?"#fff":"#333"};border-radius:9px;padding:8px 6px;font-size:11.5px;font-weight:700;cursor:pointer">${p.num}. ${esc(p.label)}</button>`).join("")}
   </div>`;
 
   let resultBody = "";
   if(nav.part){
     const list = selfCheckDiseasesFor(nav.part);
+    const func = organFunctionFor(nav.part);
     resultBody = `
     <div style="border-top:1px dashed #eee;padding-top:14px">
-      <div class="display" style="font-size:14px;margin-bottom:10px">${esc(bodyPartLabel(nav.part))}에서 흔히 나타나는 질병</div>
+      <div class="display" style="font-size:14px;margin-bottom:10px">${esc(bodyPartByKey(nav.part).num+". "+bodyPartLabel(nav.part))}</div>
+      <div class="card" style="border-top:4px solid #37474F;margin-bottom:10px;padding:12px 16px">
+        <div style="font-size:11px;font-weight:700;color:#37474F;margin-bottom:4px">🔧 기능</div>
+        <div style="font-size:12.5px;color:#444;line-height:1.6">${func?esc(func):`<span style="color:#aaa">등록된 설명이 없습니다.${admin?"":""}</span>`}</div>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:#666;margin:12px 0 8px">🩺 이 장기에서 흔히 나타나는 질병</div>
       ${list.length ? list.map(d => `
       <div class="card" style="border-top:4px solid #AD1457;margin-bottom:8px;padding:12px 16px">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
@@ -4292,11 +4305,17 @@ function renderSelfCheckAdminBox(admin){
     <button id="selfcheck-admin-toggle" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:3px 9px">${nav.adminOpen?"관리 닫기":"⚙ 관리"}</button>
     ${selfCheckPkgState.msg?`<span style="font-size:11px;margin-left:8px;color:${/실패|오류|않|없/.test(selfCheckPkgState.msg)?"#C62828":"#2E7D32"}">${esc(selfCheckPkgState.msg)}</span>`:""}
     ${nav.adminOpen ? `
-    <div style="margin-top:9px;background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">
+    <div style="margin-top:9px;background:#F1F4F6;border:1px solid #DCE3E7;border-radius:9px;padding:10px;margin-bottom:10px">
+      <div style="font-size:11px;font-weight:700;color:#37474F;margin-bottom:8px">🔧 "${esc(bodyPartLabel(nav.part))}" 기능 설명 편집</div>
+      <textarea id="sc-function" placeholder="이 장기의 기능을 설명해주세요"
+        style="width:100%;min-height:54px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:8px">${esc(organFunctionFor(nav.part))}</textarea>
+      <button id="sc-function-save" ${selfCheckPkgState.busy?"disabled":""} style="border:1px solid #37474F;background:${selfCheckPkgState.busy?"#ccc":"#37474F"};color:#fff;border-radius:7px;padding:6px 14px;font-size:11.5px;font-weight:600">${selfCheckPkgState.busy?"발행 중...":"기능 설명 저장"}</button>
+    </div>
+    <div style="background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">
       <div style="font-size:11px;font-weight:700;color:#7A5C00;margin-bottom:8px">${editing?"질병 수정: "+esc(editing.name):"새 질병 추가"}</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
         <select id="sc-part" style="flex:1;min-width:160px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px">
-          ${BODY_PARTS.map(p=>`<option value="${p.key}" ${(editing?editing.part:nav.part)===p.key?"selected":""}>${esc(p.label)}</option>`).join("")}
+          ${BODY_PARTS.map(p=>`<option value="${p.key}" ${(editing?editing.part:nav.part)===p.key?"selected":""}>${p.num}. ${esc(p.label)}</option>`).join("")}
         </select>
         <input id="sc-name" type="text" placeholder="질병명 (예: 뉴캣슬병)" value="${esc(editing?editing.name:"")}"
           style="flex:2;min-width:180px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />
@@ -9147,6 +9166,16 @@ function attachEvents(){
     selfCheckNavState.adminOpen = !selfCheckNavState.adminOpen;
     selfCheckNavState.formKey = undefined;
     selfCheckPkgState.msg = "";
+    render();
+  };
+  const selfCheckFunctionSaveBtn = document.getElementById("sc-function-save");
+  if(selfCheckFunctionSaveBtn) selfCheckFunctionSaveBtn.onclick = async ()=>{
+    const part = selfCheckNavState.part;
+    const text = (document.getElementById("sc-function")?.value || "").trim();
+    selfCheckPkgState.busy = true; selfCheckPkgState.msg = "발행 중..."; render();
+    const r = await publishOrganFunction(part, text, "🔧 " + bodyPartLabel(part) + " 기능 설명 수정");
+    selfCheckPkgState.busy = false;
+    selfCheckPkgState.msg = r.ok ? "발행 완료 — 모두에게 반영됩니다" : ("발행 실패: " + r.error);
     render();
   };
   document.querySelectorAll(".selfcheck-edit-btn").forEach(b=>b.onclick=()=>{
