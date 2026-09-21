@@ -573,7 +573,8 @@ const DISEASE_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/ma
 const EGG_REPORT_SOURCE_URL = "https://www.ekapepia.com/v3/board/list.do?menuSn=51&boardInfoNo=0159";
 // 유료서비스 승인회원 목록 — 다른 패널과 같은 방식으로, 승인은 관리자가 이 파일에
 // 이메일을 추가해 커밋·푸시하는 것으로 처리한다(별도 관리자 백엔드 없음).
-const PREMIUM_APPROVED_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/premium/approved.json";
+const PREMIUM_PATH = "premium/approved.json";
+const PREMIUM_APPROVED_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/" + PREMIUM_PATH;
 // 유료서비스 "기술탐구" — 질병논문/사양관리기술/컨설팅도구 최신 논문(PubMed
 // 원문을 Claude API로 번역·요약). scripts/fetch_research_papers.py가 매주
 // 일요일 GitHub Actions로 갱신한다.
@@ -614,10 +615,11 @@ try {
 
 let premiumState = {
   status: "idle",      // idle|loading|done|error — 승인 목록(JSON) 로딩 상태
-  approvedEmails: [],  // 소문자로 정규화해 저장
+  approvedEmails: [],  // 소문자로 정규화해 저장, 만료 안 지난 회원만
+  members: [],         // 회원관리 화면에 쓰는 원본 목록(이름·전화번호·가입일·만료일 포함)
   user: null,          // 로그인한 firebase User, 로그아웃 상태면 null
   authChecked: false,  // onAuthStateChanged가 최초 1회 응답했는지 (초기 깜빡임 방지용)
-  view: "menu",        // menu | drug — 승인회원 화면 안에서 어떤 하위 메뉴를 보고 있는지
+  view: "menu",        // menu | drug | research | treatment | members — 승인회원 화면 안에서 어떤 하위 메뉴를 보고 있는지
 };
 
 // 유료서비스가 제공하는 메뉴 목록. 로그인 전(가입 초기화면)에는 미리보기로,
@@ -686,6 +688,56 @@ function newTreatmentKey(){
 // publishPicks와 똑같은 GitHub Contents API 발행 로직이라, 경로(TREATMENT_PATH)
 // 만 바꿔 그대로 재사용한다 — 토큰도 같은 것(ghToken())을 쓰므로 관리자가
 // "이달의 질병"에서 이미 등록해둔 발행 권한이 여기서도 그대로 통한다.
+// premium/approved.json도 monthly_pick·treatment_packages와 같은 방식으로
+// 발행한다 — 회원관리 화면(관리자 전용)에서 이름·전화번호·가입일·만료일을
+// 추가/편집/삭제하면 이 파일이 갱신되고, isPremiumApproved()가 읽는 승인
+// 목록도 자동으로 같이 갱신된다.
+async function publishMembers(members, message){
+  const token = ghToken();
+  if(!token) return { ok:false, error:"발행 권한이 설정되지 않았습니다." };
+  const api = "https://api.github.com/repos/" + PICK_REPO + "/contents/" + PREMIUM_PATH;
+  const head = { "Authorization": "Bearer " + token,
+                 "Accept": "application/vnd.github+json",
+                 "Content-Type": "application/json" };
+  try {
+    let sha = null;
+    const cur = await fetch(api + "?ref=" + PICK_BRANCH + "&t=" + Date.now(), { headers: head });
+    if(cur.ok) sha = (await cur.json()).sha;
+    else if(cur.status === 401) throw new Error("토큰이 거부되었습니다. '토큰 점검'으로 원인을 확인하세요.");
+    else if(cur.status === 403) throw new Error("이 토큰에는 권한이 없습니다. '토큰 점검'으로 확인하세요.");
+    else if(cur.status === 404) sha = null;
+    else throw new Error("현재 파일 확인 실패 (HTTP " + cur.status + ")");
+
+    const body = {
+      note: "유료서비스 회원 명부. 화면(유료서비스 → 회원관리, 관리자만 보임)에서 추가/편집/삭제하면 이 파일이 갱신됩니다. 이메일은 대소문자를 구분하지 않습니다. expires가 없으면 만료 없이 계속 승인 상태이고, 있으면 그 날짜(포함)까지만 로그인이 승인됩니다.",
+      members: members,
+    };
+    const res = await fetch(api, {
+      method: "PUT", headers: head,
+      body: JSON.stringify({
+        message: message || "👤 회원 명부 갱신",
+        content: b64utf8(JSON.stringify(body, null, 1)),
+        branch: PICK_BRANCH,
+        sha: sha || undefined,
+      }),
+    });
+    if(!res.ok){
+      const t = await res.text();
+      let apiMsg = ""; try { apiMsg = JSON.parse(t).message || ""; } catch(e){}
+      if(res.status === 401) throw new Error("토큰이 올바르지 않거나 만료되었습니다." + (apiMsg?" ("+apiMsg+")":""));
+      if(res.status === 403) throw new Error("발행이 거부됐습니다(HTTP 403)." + (apiMsg?" GitHub 응답: "+apiMsg:" 토큰 권한을 다시 확인하세요."));
+      if(res.status === 409) throw new Error("다른 곳에서 먼저 수정됐습니다. 새로고침 후 다시 시도하세요.");
+      throw new Error("발행 실패 (HTTP " + res.status + ") " + (apiMsg || t.slice(0,120)));
+    }
+    const members2 = body.members;
+    premiumState.members = members2;
+    premiumState.approvedEmails = members2.filter(isMemberActiveToday).map(m => String(m.email).toLowerCase().trim());
+    return { ok:true };
+  } catch(e) {
+    return { ok:false, error: e.message || String(e) };
+  }
+}
+
 async function publishTreatmentPackages(packages, message){
   const token = ghToken();
   if(!token) return { ok:false, error:"발행 권한이 설정되지 않았습니다." };
@@ -732,6 +784,15 @@ async function publishTreatmentPackages(packages, message){
   }
 }
 
+// "만료일이 없으면 계속 승인" / "만료일이 있으면 그 날짜(포함)까지만 승인".
+// 날짜 비교는 문자열 "YYYY-MM-DD" 그대로 해도 되지만(사전식 정렬이 날짜 순서와
+// 같음), 오늘 날짜도 같은 포맷으로 맞춰서 비교한다.
+function isMemberActiveToday(m){
+  if(!m.expires) return true;
+  const today = new Date().toISOString().slice(0,10);
+  return m.expires >= today;
+}
+
 async function fetchPremiumApproved(){
   if(premiumState.status === "loading") return;
   premiumState.status = "loading";
@@ -739,7 +800,11 @@ async function fetchPremiumApproved(){
     const resp = await fetchWithTimeout(PREMIUM_APPROVED_JSON_URL + "?t=" + Date.now(), 8000);
     if(!resp.ok) throw new Error("HTTP " + resp.status);
     const data = await resp.json();
-    premiumState.approvedEmails = (data.emails || []).map(e => String(e).toLowerCase().trim());
+    const members = Array.isArray(data.members) ? data.members : [];
+    premiumState.members = members;
+    // 만료 안 지난 회원의 이메일만 "승인됨"으로 취급한다 — isPremiumApproved()가
+    // 매 렌더마다 날짜 계산을 다시 하지 않도록 여기서 한 번에 걸러둔다.
+    premiumState.approvedEmails = members.filter(isMemberActiveToday).map(m => String(m.email).toLowerCase().trim());
     premiumState.status = "done";
   } catch(e){
     console.warn("유료서비스 승인목록 로딩 실패:", e);
@@ -3103,6 +3168,96 @@ function treatmentProgramFromText(text){
   }).filter(s=>s.step);
 }
 
+// ── 회원관리 화면 (관리자 전용) ───────────────────────────────────────────
+// 비밀번호는 여기 안 둔다 — Firebase는 비밀번호를 해시로만 갖고 있어 애초에
+// 다시 읽어올 방법이 없고, 설령 있어도 평문으로 어딘가(GitHub 커밋 포함)에
+// 저장해두는 건 보안상 하면 안 된다. 계정 생성·비밀번호 설정은 계속
+// Firebase 콘솔에서 하고, 여기서는 이름·전화번호·가입일·만료일만 관리한다.
+let memberMgmtState = { formOpen:false, editEmail:null, msg:"", busy:false };
+
+function renderMemberManagePanel(){
+  const head = `
+  <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+    <div>
+      <div class="display" style="font-size:16px;margin-bottom:3px">👤 회원관리 <span style="font-size:10px;color:#aaa;font-weight:400">관리자 전용</span></div>
+      <div style="font-size:11px;color:#aaa">이름·전화번호·가입일·만료일을 관리합니다. 아이디(이메일)·비밀번호는 Firebase 콘솔에서 만듭니다.</div>
+    </div>
+    <button id="member-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button>
+  </div>`;
+
+  if(premiumState.status === "idle" || premiumState.status === "loading"){
+    return head + `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⏳ 회원 명부를 불러오는 중...</div>`;
+  }
+
+  const members = premiumState.members || [];
+  const today = new Date().toISOString().slice(0,10);
+  const rows = members.length ? members.map(m => {
+    const active = isMemberActiveToday(m);
+    const statusLabel = !m.expires ? { text:"무기한", color:"#2E7D32", bg:"#E8F5E9" }
+      : active ? { text:"만료 "+m.expires, color:"#F57F17", bg:"#FFFDE7" }
+      : { text:"만료됨 "+m.expires, color:"#C62828", bg:"#FFEBEE" };
+    return `
+    <div class="card" style="padding:14px 16px;margin-bottom:8px;border-left:4px solid ${statusLabel.color}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
+        <div style="min-width:0">
+          <div style="font-size:13.5px;font-weight:800;color:#333">${esc(m.name||"(이름 미입력)")} <span style="font-size:11px;color:#888;font-weight:400">${esc(m.email)}</span></div>
+          <div style="font-size:11.5px;color:#666;margin-top:3px">📞 ${esc(m.phone||"-")} · 가입 ${esc(m.joined||"-")}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+          <span style="font-size:10.5px;color:${statusLabel.color};background:${statusLabel.bg};border-radius:6px;padding:3px 8px;font-weight:700;white-space:nowrap">${statusLabel.text}</span>
+          <button class="member-edit-btn" data-email="${esc(m.email)}" style="font-size:10px;border:1px solid #37474F;border-radius:5px;background:#fff;color:#37474F;padding:4px 8px">편집</button>
+          <button class="member-del-btn" data-email="${esc(m.email)}" style="font-size:10px;border:1px solid #eee;border-radius:5px;background:#fff;color:#bbb;padding:4px 8px">삭제</button>
+        </div>
+      </div>
+    </div>`;
+  }).join("") : `<div class="card" style="text-align:center;padding:28px 16px;color:#aaa">등록된 회원이 없습니다.</div>`;
+
+  const editing = memberMgmtState.editEmail ? members.find(m=>m.email===memberMgmtState.editEmail) : null;
+  const addBtn = !memberMgmtState.formOpen
+    ? `<button id="member-add-btn" style="border:none;border-radius:8px;background:#37474F;color:#fff;padding:9px 16px;font-size:12px;font-weight:700;margin-bottom:12px">+ 새 회원 추가</button>`
+    : "";
+  const form = memberMgmtState.formOpen ? `
+    <div style="background:#FAFAFA;border:1px solid #eee;border-radius:9px;padding:12px;margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;color:#37474F;margin-bottom:8px">${editing?"회원 정보 수정":"새 회원 추가"}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+        <input id="mm-email" type="email" placeholder="이메일(아이디) *" value="${esc(editing?editing.email:"")}" ${editing?"disabled":""}
+          style="flex:1;min-width:160px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;${editing?"background:#eee;color:#888":""}" />
+        <input id="mm-name" type="text" placeholder="이름" value="${esc(editing?editing.name||"":"")}"
+          style="flex:1;min-width:120px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+        <input id="mm-phone" type="text" placeholder="전화번호 (010-1234-5678)" value="${esc(editing?editing.phone||"":"")}"
+          style="flex:1;min-width:140px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+        <div style="flex:1;min-width:140px">
+          <div style="font-size:10px;color:#888;margin-bottom:3px">가입일</div>
+          <input id="mm-joined" type="date" value="${esc(editing?editing.joined||"":today)}"
+            style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />
+        </div>
+        <div style="flex:1;min-width:140px">
+          <div style="font-size:10px;color:#888;margin-bottom:3px">만료일 (비우면 무기한)</div>
+          <input id="mm-expires" type="date" value="${esc(editing?editing.expires||"":"")}"
+            style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button id="mm-save" ${memberMgmtState.busy?"disabled":""} style="border:1px solid #37474F;background:${memberMgmtState.busy?"#ccc":"#37474F"};color:#fff;border-radius:7px;padding:7px 15px;font-size:12px;font-weight:600">${memberMgmtState.busy?"발행 중...":(editing?"수정 발행":"추가 발행")}</button>
+        <button id="mm-cancel" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:6px 10px">취소</button>
+      </div>
+    </div>` : "";
+
+  return head + `
+  ${addBtn}
+  ${form}
+  ${memberMgmtState.msg?`<div style="font-size:11px;margin-bottom:10px;color:${/실패|오류|없/.test(memberMgmtState.msg)?"#C62828":"#2E7D32"}">${esc(memberMgmtState.msg)}</div>`:""}
+  ${rows}
+  <div style="font-size:9px;color:#aaa;line-height:1.6;margin-top:10px">
+    ※ 비밀번호는 여기서 관리하지 않습니다 — Firebase 콘솔(Authentication → Users)에서 계정을 만들 때 함께 설정하세요.
+    만료일이 지나면 그 회원은 로그인해도 "승인 대기" 화면이 뜨고 유료서비스를 이용할 수 없습니다.
+  </div>`;
+}
+
 function renderTreatmentPanel(){
   const head = `
   <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
@@ -3330,11 +3485,23 @@ function renderPremiumTab(){
     if(treatmentPkgState.status === "idle") fetchTreatmentPackages();
     return renderPremiumGateHeader() + logoutBar + renderTreatmentPanel();
   }
+  // 회원관리 화면 — 관리자(ghToken 보유자)가 아니면 메뉴로 돌려보낸다
+  // (URL 조작 등으로 view만 바뀌어도 실제 데이터·기능에는 못 들어가지만,
+  // 화면 자체를 안 보여주는 게 더 안전하고 덜 혼란스럽다).
+  if(premiumState.view === "members"){
+    if(!ghToken()){ premiumState.view = "menu"; }
+    else return renderPremiumGateHeader() + logoutBar + renderMemberManagePanel();
+  }
 
-  // 기본 화면 — 유료서비스 메뉴 목록
+  // 기본 화면 — 유료서비스 메뉴 목록. 회원관리는 관리자(ghToken 보유자)에게만
+  // 보인다 — PREMIUM_ITEMS 배열 자체에는 안 넣는다(로그인 전 미리보기
+  // renderPremiumPreview()도 같은 배열을 쓰는데, 거기서도 안 보여야 하므로).
+  const menuItems = ghToken()
+    ? PREMIUM_ITEMS.concat([{ key:"members", icon:"👤", title:"회원관리", desc:"이름·전화번호·가입일·만료일을 관리합니다. (관리자 전용)", color:"#37474F" }])
+    : PREMIUM_ITEMS;
   return renderPremiumGateHeader() + logoutBar + `
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
-    ${PREMIUM_ITEMS.map(it=>`
+    ${menuItems.map(it=>`
     <div class="card premium-item-card ${it.key?"premium-item-btn":""}" ${it.key?`data-key="${it.key}"`:""}
       style="text-align:center;padding:22px 14px;border-top:4px solid ${it.color};${it.key?"cursor:pointer":""}">
       <div style="font-size:30px;margin-bottom:8px">${it.icon}</div>
@@ -7632,6 +7799,66 @@ function attachEvents(){
       prompt("아래 내용을 복사해 문자 앱에 붙여넣어 주세요:", text);
     }
   });
+
+  // 회원관리 (관리자 전용)
+  const memberBackBtn = document.getElementById("member-back-btn");
+  if(memberBackBtn) memberBackBtn.onclick = ()=>{ premiumState.view = "menu"; render(); };
+  const memberAddBtn = document.getElementById("member-add-btn");
+  if(memberAddBtn) memberAddBtn.onclick = ()=>{
+    memberMgmtState.formOpen = true;
+    memberMgmtState.editEmail = null;
+    memberMgmtState.msg = "";
+    render();
+  };
+  const memberCancelBtn = document.getElementById("mm-cancel");
+  if(memberCancelBtn) memberCancelBtn.onclick = ()=>{
+    memberMgmtState.formOpen = false;
+    memberMgmtState.editEmail = null;
+    render();
+  };
+  document.querySelectorAll(".member-edit-btn").forEach(b=>b.onclick=()=>{
+    memberMgmtState.formOpen = true;
+    memberMgmtState.editEmail = b.dataset.email;
+    memberMgmtState.msg = "";
+    render();
+  });
+  document.querySelectorAll(".member-del-btn").forEach(b=>b.onclick=async ()=>{
+    const email = b.dataset.email;
+    const m = (premiumState.members||[]).find(x=>x.email===email);
+    if(!m || !confirm(`"${m.name||m.email}" 회원을 삭제할까요? (로그인 승인도 함께 해제됩니다)`)) return;
+    const next = (premiumState.members||[]).filter(x=>x.email!==email);
+    memberMgmtState.busy = true; memberMgmtState.msg = "발행 중..."; render();
+    const r = await publishMembers(next, "👤 회원 삭제: " + email);
+    memberMgmtState.busy = false;
+    memberMgmtState.msg = r.ok ? "삭제 완료" : ("발행 실패: " + r.error);
+    render();
+  });
+  const memberSaveBtn = document.getElementById("mm-save");
+  if(memberSaveBtn) memberSaveBtn.onclick = async ()=>{
+    const emailInput = document.getElementById("mm-email");
+    const email = (emailInput?.value || "").trim().toLowerCase();
+    const name = (document.getElementById("mm-name")?.value || "").trim();
+    const phone = (document.getElementById("mm-phone")?.value || "").trim();
+    const joined = document.getElementById("mm-joined")?.value || "";
+    const expires = document.getElementById("mm-expires")?.value || "";
+    if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ alert("올바른 이메일 형식을 입력하세요."); return; }
+
+    const members = (premiumState.members||[]).slice();
+    const editEmail = memberMgmtState.editEmail;
+    if(editEmail){
+      const idx = members.findIndex(m=>m.email===editEmail);
+      if(idx>=0) members[idx] = { email, name, phone, joined, expires };
+    } else {
+      if(members.some(m=>m.email===email)){ alert("이미 등록된 이메일입니다."); return; }
+      members.push({ email, name, phone, joined, expires });
+    }
+    memberMgmtState.busy = true; memberMgmtState.msg = "발행 중..."; render();
+    const r = await publishMembers(members, "👤 회원 " + (editEmail?"수정":"추가") + ": " + email);
+    memberMgmtState.busy = false;
+    memberMgmtState.msg = r.ok ? "발행 완료" : ("발행 실패: " + r.error);
+    if(r.ok){ memberMgmtState.formOpen = false; memberMgmtState.editEmail = null; }
+    render();
+  };
 
   // 약품조회 및 휴약기간 검색
   document.querySelectorAll(".drug-mode-btn").forEach(b=>b.onclick=()=>setDrugMode(b.dataset.mode));
