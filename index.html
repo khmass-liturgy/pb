@@ -3182,6 +3182,34 @@ function renderPremiumGateHeader(){
   </div>`;
 }
 
+// 가입 초기화면에 붙이는 "신규 회원가입 안내" — 입금 → 입금 문자 → 아이디·
+// 비밀번호 문자 수신 → 로그인 4단계를 숫자로 안내한다. 실제 계정 발급은
+// 관리자가 Firebase 콘솔에서 직접 만들어 문자로 전달하는 방식이라(자동화된
+// 결제 연동이 아니다), 여기는 안내문일 뿐 결제·가입을 처리하는 폼이 아니다.
+function renderPremiumSignupGuide(){
+  const steps = [
+    { n:1, title:"계좌 입금", detail:`년회원 <b>200,000원</b> 입금<br>농협 <b>172404-51-001771</b> (예금주: 최동명)` },
+    { n:2, title:"입금 문자 전송", detail:`입금자명을 <b>010-9150-8844</b>로 문자 전송` },
+    { n:3, title:"아이디·비밀번호 수신", detail:`입금 확인 후 로그인용 아이디(이메일)·비밀번호를 문자로 받습니다` },
+    { n:4, title:"로그인", detail:`위 "이메일로 로그인" 버튼에서 전달받은 아이디·비밀번호로 로그인` },
+  ];
+  return `
+  <div style="margin-top:24px;text-align:left">
+    <div style="font-size:11px;color:#888;font-weight:700;margin-bottom:10px;text-align:center">💳 신규 회원가입 안내</div>
+    <div style="border:1px solid #eee;border-radius:12px;padding:16px">
+      ${steps.map((s,i) => `
+      <div style="display:flex;gap:12px;align-items:flex-start;${i<steps.length-1?"margin-bottom:14px;padding-bottom:14px;border-bottom:1px dashed #eee":""}">
+        <span style="flex-shrink:0;width:24px;height:24px;border-radius:50%;background:#1a2744;color:#F9C74F;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center">${s.n}</span>
+        <div>
+          <div style="font-size:12.5px;font-weight:700;color:#333">${esc(s.title)}</div>
+          <div style="font-size:12px;color:#666;line-height:1.7;margin-top:2px">${s.detail}</div>
+        </div>
+      </div>`).join("")}
+    </div>
+    <div style="font-size:10.5px;color:#aaa;margin-top:8px;text-align:center">입금 확인은 영업일 기준으로 다소 시간이 걸릴 수 있습니다.</div>
+  </div>`;
+}
+
 // 가입 초기화면 등 아직 로그인/승인 전 화면에 붙이는 "제공 메뉴 미리보기".
 // 실제로 누를 수 있는 화면이 아니므로 카드에 클릭 이벤트를 달지 않는다.
 function renderPremiumPreview(){
@@ -3232,6 +3260,7 @@ function renderPremiumTab(){
         <button id="btn-premium-reset" style="border:none;background:none;color:#888;font-size:11px;text-decoration:underline;cursor:pointer">비밀번호를 잊으셨나요?</button>
       </div>
       <div id="premium-recaptcha-container"></div>
+      ${renderPremiumSignupGuide()}
       ${renderPremiumPreview()}
     </div>`;
   }
