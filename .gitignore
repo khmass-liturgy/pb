@@ -2,3 +2,6 @@ __pycache__/
 *.pyc
 node_modules/
 *.traineddata
+firebase-debug.log
+firebase-debug.*.log
+.runtimeconfig.json

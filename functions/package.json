@@ -2,7 +2,7 @@
   "name": "functions",
   "description": "회원관리 화면의 계정 삭제·재설정용 Cloud Functions — Firebase Admin SDK가 필요한 두 가지(다른 사람 계정 삭제, 삭제+재생성)만 여기 있고, 나머지는 전부 index.html에서 클라이언트 SDK로 처리한다.",
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "main": "index.js",
   "dependencies": {
