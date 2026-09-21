@@ -64,3 +64,27 @@ exports.deleteMemberAccount = onCall(async (request) => {
     throw new HttpsError("internal", e.message || String(e));
   }
 });
+
+// 유료 콘텐츠(상황별 처방·계절별 패키지·농장 맞춤 찾기·자가진단)는 공개
+// GitHub 저장소 대신 Firebase Storage에 두고, storage.rules에서
+// "request.auth.token.approved == true"인 사람만 읽을 수 있게 막는다.
+// 그런데 승인 여부는 premium/approved.json(누가 회원인지)에 있지, Firebase
+// 계정 자체에는 없다 — 그래서 회원을 추가/수정할 때마다 이 함수로 그 계정의
+// ID 토큰에 approved 커스텀 클레임을 심어준다(index.html의 mm-save
+// 핸들러가 호출). 클레임은 다음 로그인/토큰 갱신 때 반영된다(즉시 반영이
+// 필요하면 클라이언트에서 getIdToken(true)로 강제 갱신).
+exports.setMemberApproval = onCall(async (request) => {
+  assertAdmin(request);
+  const { email, approved } = request.data || {};
+  if (!email || typeof email !== "string") {
+    throw new HttpsError("invalid-argument", "이메일이 필요합니다.");
+  }
+  try {
+    const user = await admin.auth().getUserByEmail(email).catch(() => null);
+    if (!user) return { ok: true, skipped: true };
+    await admin.auth().setCustomUserClaims(user.uid, { approved: !!approved });
+    return { ok: true };
+  } catch (e) {
+    throw new HttpsError("internal", e.message || String(e));
+  }
+});

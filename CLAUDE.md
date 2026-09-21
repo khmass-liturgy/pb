@@ -41,6 +41,20 @@ Two pieces are **not** static, both Firebase, both under the 유료서비스 tab
     `email`/`expires` (whatever `isPremiumApproved()` needs client-side); it used to also hold
     name/phone until that was recognized as a PII leak (anyone can read a public repo's files
     without logging in) and split out here.
+  - `premium_content/{dataset}/latest.json` holds the four premium-only datasets (상황별 처방,
+    계절별 패키지, 농장 맞춤 찾기, 온라인 자가진단— `treatment_packages`/`seasonal_packages`/
+    `farm_finder`/`self_check`). These used to be public GitHub files like everything else in this
+    repo, which meant anyone who found the raw URL could read paid content without logging in —
+    moved here so only approved members (or admins) can read it, and only admins can write it.
+    Approval is checked via a Firebase Auth **custom claim** (`request.auth.token.approved`), since
+    Storage rules can't query `premium/approved.json`'s dynamic member list directly. The
+    `setMemberApproval` Cloud Function sets that claim, called from index.html's member-save handler
+    every time a member is added or edited — so a membership's `expires` field only actually takes
+    effect at the Storage layer the next time that member's record is saved (not automatically at
+    midnight on the expiry date; whoever edits members should re-save a lapsed member to revoke
+    Storage access, or delete them outright). The claim only applies on the member's next token
+    refresh (up to ~1h) unless index.html forces one via `getIdToken(true)`, which it does right
+    after a login is found to be approved.
   Both paths check the caller's email against a hardcoded admin list — keep it in sync with
   `functions/index.js`'s `ADMIN_EMAILS` when adding/removing an admin. Deploy with
   `firebase deploy --only storage`.

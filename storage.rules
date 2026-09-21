@@ -17,6 +17,16 @@ service firebase.storage {
     function isOwner(uid) {
       return request.auth != null && request.auth.uid == uid;
     }
+    // 승인된(결제한) 회원인지 — Firebase Auth 커스텀 클레임으로 판단한다.
+    // premium/approved.json(공개 GitHub 저장소, 이메일·만료일만)이 "누가
+    // 회원인지"의 원본이고, 회원을 추가/수정할 때마다 그 정보를 바탕으로
+    // Cloud Function(setMemberApproval)이 이 클레임을 심어준다 — 여기서
+    // 직접 approved.json을 읽을 수는 없어서(스토리지 규칙은 다른 파일 내용을
+    // 볼 수 없다) 클레임이 유일한 판단 기준이다. 클레임은 로그인/토큰 갱신
+    // 시점에 반영되므로, 방금 승인된 회원은 재로그인해야 접근된다.
+    function isApprovedMember() {
+      return request.auth != null && request.auth.token.approved == true;
+    }
 
     match /premium_board/{boardType} {
       allow list: if isAdmin();
@@ -45,6 +55,16 @@ service firebase.storage {
     }
     match /premium_members/{email}/{fileName=**} {
       allow read, write: if isAdmin();
+    }
+
+    // 유료 콘텐츠(상황별 처방·계절별 패키지·농장 맞춤 찾기·자가진단) —
+    // 예전엔 공개 GitHub 저장소에 있어서 로그인 없이도 URL만 알면 누구나
+    // 볼 수 있었다. 승인된 회원(또는 관리자)만 읽을 수 있게 여기로 옮긴다.
+    // 쓰기(발행)는 관리자만 — 이제 이 콘텐츠들은 GitHub PAT이 아니라
+    // Firebase 관리자 계정으로 발행한다.
+    match /premium_content/{dataset}/{fileName} {
+      allow read: if isApprovedMember() || isAdmin();
+      allow write: if isAdmin();
     }
 
     // 그 외 경로는 전부 차단(기본값과 동일하지만 명시적으로 남긴다).

@@ -657,34 +657,30 @@ const PREMIUM_ITEMS = [
 // 걸러서 목록을 그릴 뿐이라 코드를 따로 안 건드려도 된다.
 // 국내는 동물용 항생제 수의사처방제(2013~) 대상이라, 항생제 계열은 상표명이
 // 아니라 "계열/성분군"까지만 적고 실제 처방은 수의사 확인을 거치도록 안내한다.
-// 이제 하드코딩 배열이 아니라 GitHub에 커밋된 JSON(monthly_pick과 같은 발행
-// 방식)에서 읽는다 — 관리자가 화면에서 추가/편집/삭제하면 이 파일이 갱신되고
-// 모든 방문자에게 같은 내용이 보인다.
-const TREATMENT_PATH = "treatment_packages/latest.json";
-// PICK_REPO/PICK_BRANCH는 이 파일 뒤쪽(모듈 최상위)에서 선언되는 const라, 여기서
-// 바로 문자열로 합쳐 상수를 만들면 TDZ(선언 전 접근) ReferenceError가 난다 —
-// 실제로 겪은 버그. 그래서 URL을 쓰는 시점(fetchTreatmentPackages 안)에 매번
-// 조합하는 함수로 바꿨다.
-function treatmentJsonUrl(){
-  return "https://raw.githubusercontent.com/" + PICK_REPO + "/" + PICK_BRANCH + "/" + TREATMENT_PATH;
-}
-
+// Firebase Storage(premium_content/treatment_packages/latest.json)에 두고
+// 승인된 회원+관리자만 읽을 수 있게 한다 — 예전엔 공개 GitHub 저장소였다.
+// 관리자가 화면에서 추가/편집/삭제하면 이 파일이 갱신되고 승인된 회원
+// 모두에게 같은 내용이 보인다.
 let treatmentPkgState = { status:"idle", data:null, busy:false, msg:"", adminOpen:false, editKey:null, diag:"" };
 
 async function fetchTreatmentPackages(){
   if(treatmentPkgState.status === "loading") return;
   treatmentPkgState.status = "loading";
   try {
-    const r = await fetchWithTimeout(treatmentJsonUrl() + "?t=" + Date.now(), 8000);
-    if(!r.ok) throw new Error("HTTP " + r.status);
-    const j = await r.json();
+    const j = await fetchPremiumContentJson("treatment_packages");
     j.packages = Array.isArray(j.packages) ? j.packages : [];
     treatmentPkgState.data = j;
     treatmentPkgState.status = "done";
   } catch(e){
     console.warn("상황별 처방 패키지 로딩 실패:", e);
-    treatmentPkgState.data = { packages: [], by: PICK_BY };
-    treatmentPkgState.status = "error";
+    const migrated = await migrateOldPremiumJson("treatment_packages/latest.json");
+    const oldPackages = migrated && Array.isArray(migrated.packages) ? migrated.packages : null;
+    const r = oldPackages && await publishTreatmentPackages(oldPackages, "🔄 기존 데이터 Storage로 이전");
+    if(r && r.ok){ treatmentPkgState.status = "done"; }
+    else {
+      treatmentPkgState.data = { packages: [], by: PICK_BY };
+      treatmentPkgState.status = "error";
+    }
   }
   if(premiumState.view === "treatment") render();
 }
@@ -701,9 +697,10 @@ function newTreatmentKey(){
   return "t" + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 }
 
-// publishPicks와 똑같은 GitHub Contents API 발행 로직이라, 경로(TREATMENT_PATH)
-// 만 바꿔 그대로 재사용한다 — 토큰도 같은 것(ghToken())을 쓰므로 관리자가
-// "이달의 질병"에서 이미 등록해둔 발행 권한이 여기서도 그대로 통한다.
+// publishPicks와 똑같은 GitHub Contents API 발행 로직이다(회원 명부는 지금도
+// 공개 저장소에 커밋한다 — 이메일·만료일뿐이라 원래도 개인정보가 아니다).
+// 토큰도 같은 것(ghToken())을 쓰므로 관리자가 "이달의 질병"에서 이미
+// 등록해둔 발행 권한이 여기서도 그대로 통한다.
 //
 // premium/approved.json은 공개 GitHub 저장소라 브라우저에서 로그인 없이도
 // 그대로 읽힌다 — isPremiumApproved()의 클라이언트 승인 체크에 꼭 필요한
@@ -809,44 +806,14 @@ function memberProfile(email){
 }
 
 async function publishTreatmentPackages(packages, message){
-  const token = ghToken();
-  if(!token) return { ok:false, error:"발행 권한이 설정되지 않았습니다." };
-  const api = "https://api.github.com/repos/" + PICK_REPO + "/contents/" + TREATMENT_PATH;
-  const head = { "Authorization": "Bearer " + token,
-                 "Accept": "application/vnd.github+json",
-                 "Content-Type": "application/json" };
   try {
-    let sha = null;
-    const cur = await fetch(api + "?ref=" + PICK_BRANCH + "&t=" + Date.now(), { headers: head });
-    if(cur.ok) sha = (await cur.json()).sha;
-    else if(cur.status === 401) throw new Error("토큰이 거부되었습니다. '토큰 점검'으로 원인을 확인하세요.");
-    else if(cur.status === 403) throw new Error("이 토큰에는 권한이 없습니다. '토큰 점검'으로 확인하세요.");
-    else if(cur.status === 404) sha = null;
-    else throw new Error("현재 파일 확인 실패 (HTTP " + cur.status + ")");
-
     const body = {
       updated: new Date().toISOString().slice(0,16).replace("T"," ") + " UTC",
       by: PICK_BY,
-      note: "상황별 처방(투약) 패키지 — 화면에서 저장하면 이 파일이 갱신되고 모든 사람에게 같은 내용이 보입니다.",
+      note: "상황별 처방(투약) 패키지 — 화면에서 저장하면 이 파일이 갱신되고 승인된 회원 모두에게 같은 내용이 보입니다.",
       packages: packages,
     };
-    const res = await fetch(api, {
-      method: "PUT", headers: head,
-      body: JSON.stringify({
-        message: message || "💉 상황별 처방 패키지 갱신",
-        content: b64utf8(JSON.stringify(body, null, 1)),
-        branch: PICK_BRANCH,
-        sha: sha || undefined,
-      }),
-    });
-    if(!res.ok){
-      const t = await res.text();
-      let apiMsg = ""; try { apiMsg = JSON.parse(t).message || ""; } catch(e){}
-      if(res.status === 401) throw new Error("토큰이 올바르지 않거나 만료되었습니다." + (apiMsg?" ("+apiMsg+")":""));
-      if(res.status === 403) throw new Error("발행이 거부됐습니다(HTTP 403)." + (apiMsg?" GitHub 응답: "+apiMsg:" 토큰 권한을 다시 확인하세요."));
-      if(res.status === 409) throw new Error("다른 곳에서 먼저 수정됐습니다. 새로고침 후 다시 시도하세요.");
-      throw new Error("발행 실패 (HTTP " + res.status + ") " + (apiMsg || t.slice(0,120)));
-    }
+    await writePremiumContentJson("treatment_packages", body);
     treatmentPkgState.data = body;
     return { ok:true };
   } catch(e) {
@@ -872,29 +839,28 @@ function seasonLabel(key){
   return s ? s.label + " (" + s.period + ")" : key;
 }
 
-const SEASONAL_PATH = "seasonal_packages/latest.json";
-// TREATMENT_PATH 쪽과 같은 이유(PICK_REPO/PICK_BRANCH가 이 파일 뒤쪽에서
-// 선언되는 TDZ 문제)로, URL도 쓰는 시점에 매번 조합하는 함수로 둔다.
-function seasonalJsonUrl(){
-  return "https://raw.githubusercontent.com/" + PICK_REPO + "/" + PICK_BRANCH + "/" + SEASONAL_PATH;
-}
-
+// Firebase Storage(premium_content/seasonal_packages/latest.json)에 둔다 —
+// treatment_packages와 같은 이유(공개 저장소 노출 방지).
 let seasonalPkgState = { status:"idle", data:null, busy:false, msg:"", adminOpen:false, editKey:null, diag:"" };
 
 async function fetchSeasonalPackages(){
   if(seasonalPkgState.status === "loading") return;
   seasonalPkgState.status = "loading";
   try {
-    const r = await fetchWithTimeout(seasonalJsonUrl() + "?t=" + Date.now(), 8000);
-    if(!r.ok) throw new Error("HTTP " + r.status);
-    const j = await r.json();
+    const j = await fetchPremiumContentJson("seasonal_packages");
     j.packages = Array.isArray(j.packages) ? j.packages : [];
     seasonalPkgState.data = j;
     seasonalPkgState.status = "done";
   } catch(e){
     console.warn("계절별 패키지 로딩 실패:", e);
-    seasonalPkgState.data = { packages: [], by: PICK_BY };
-    seasonalPkgState.status = "error";
+    const migrated = await migrateOldPremiumJson("seasonal_packages/latest.json");
+    const oldPackages = migrated && Array.isArray(migrated.packages) ? migrated.packages : null;
+    const r = oldPackages && await publishSeasonalPackages(oldPackages, "🔄 기존 데이터 Storage로 이전");
+    if(r && r.ok){ seasonalPkgState.status = "done"; }
+    else {
+      seasonalPkgState.data = { packages: [], by: PICK_BY };
+      seasonalPkgState.status = "error";
+    }
   }
   if(premiumState.view === "seasonal") render();
 }
@@ -910,44 +876,14 @@ function newSeasonalKey(){
 }
 
 async function publishSeasonalPackages(packages, message){
-  const token = ghToken();
-  if(!token) return { ok:false, error:"발행 권한이 설정되지 않았습니다." };
-  const api = "https://api.github.com/repos/" + PICK_REPO + "/contents/" + SEASONAL_PATH;
-  const head = { "Authorization": "Bearer " + token,
-                 "Accept": "application/vnd.github+json",
-                 "Content-Type": "application/json" };
   try {
-    let sha = null;
-    const cur = await fetch(api + "?ref=" + PICK_BRANCH + "&t=" + Date.now(), { headers: head });
-    if(cur.ok) sha = (await cur.json()).sha;
-    else if(cur.status === 401) throw new Error("토큰이 거부되었습니다. '토큰 점검'으로 원인을 확인하세요.");
-    else if(cur.status === 403) throw new Error("이 토큰에는 권한이 없습니다. '토큰 점검'으로 확인하세요.");
-    else if(cur.status === 404) sha = null;
-    else throw new Error("현재 파일 확인 실패 (HTTP " + cur.status + ")");
-
     const body = {
       updated: new Date().toISOString().slice(0,16).replace("T"," ") + " UTC",
       by: PICK_BY,
-      note: "계절별 투약·사양관리 패키지 — 화면에서 저장하면 이 파일이 갱신되고 모든 사람에게 같은 내용이 보입니다.",
+      note: "계절별 투약·사양관리 패키지 — 화면에서 저장하면 이 파일이 갱신되고 승인된 회원 모두에게 같은 내용이 보입니다.",
       packages: packages,
     };
-    const res = await fetch(api, {
-      method: "PUT", headers: head,
-      body: JSON.stringify({
-        message: message || "🗓️ 계절별 패키지 갱신",
-        content: b64utf8(JSON.stringify(body, null, 1)),
-        branch: PICK_BRANCH,
-        sha: sha || undefined,
-      }),
-    });
-    if(!res.ok){
-      const t = await res.text();
-      let apiMsg = ""; try { apiMsg = JSON.parse(t).message || ""; } catch(e){}
-      if(res.status === 401) throw new Error("토큰이 올바르지 않거나 만료되었습니다." + (apiMsg?" ("+apiMsg+")":""));
-      if(res.status === 403) throw new Error("발행이 거부됐습니다(HTTP 403)." + (apiMsg?" GitHub 응답: "+apiMsg:" 토큰 권한을 다시 확인하세요."));
-      if(res.status === 409) throw new Error("다른 곳에서 먼저 수정됐습니다. 새로고침 후 다시 시도하세요.");
-      throw new Error("발행 실패 (HTTP " + res.status + ") " + (apiMsg || t.slice(0,120)));
-    }
+    await writePremiumContentJson("seasonal_packages", body);
     seasonalPkgState.data = body;
     return { ok:true };
   } catch(e) {
@@ -972,13 +908,7 @@ function finderSpeciesLabel(key){
   return s ? s.label : key;
 }
 
-const FINDER_PATH = "farm_finder/latest.json";
-// 다른 발행형 데이터(TREATMENT_PATH 등)와 같은 이유로 URL은 쓰는 시점에
-// 조합한다 — PICK_REPO/PICK_BRANCH가 이 파일 뒤쪽에서 선언되는 TDZ 문제.
-function finderJsonUrl(){
-  return "https://raw.githubusercontent.com/" + PICK_REPO + "/" + PICK_BRANCH + "/" + FINDER_PATH;
-}
-
+// Firebase Storage(premium_content/farm_finder/latest.json)에 둔다.
 let finderPkgState = { status:"idle", data:null, busy:false, msg:"" };
 // 마법사 진행 상태 — species/category/openKey가 하나씩 채워지며 화면이
 // 단계별로 좁혀진다. 셋 다 비면 1단계(축종 선택)부터 다시 시작.
@@ -988,16 +918,20 @@ async function fetchFarmFinderCases(){
   if(finderPkgState.status === "loading") return;
   finderPkgState.status = "loading";
   try {
-    const r = await fetchWithTimeout(finderJsonUrl() + "?t=" + Date.now(), 8000);
-    if(!r.ok) throw new Error("HTTP " + r.status);
-    const j = await r.json();
+    const j = await fetchPremiumContentJson("farm_finder");
     j.cases = Array.isArray(j.cases) ? j.cases : [];
     finderPkgState.data = j;
     finderPkgState.status = "done";
   } catch(e){
     console.warn("농장 맞춤 약품 찾기 로딩 실패:", e);
-    finderPkgState.data = { cases: [], by: PICK_BY };
-    finderPkgState.status = "error";
+    const migrated = await migrateOldPremiumJson("farm_finder/latest.json");
+    const oldCases = migrated && Array.isArray(migrated.cases) ? migrated.cases : null;
+    const r = oldCases && await publishFarmFinderCases(oldCases, "🔄 기존 데이터 Storage로 이전");
+    if(r && r.ok){ finderPkgState.status = "done"; }
+    else {
+      finderPkgState.data = { cases: [], by: PICK_BY };
+      finderPkgState.status = "error";
+    }
   }
   if(premiumState.view === "finder") render();
 }
@@ -1021,44 +955,14 @@ function newFinderKey(){
 }
 
 async function publishFarmFinderCases(cases, message){
-  const token = ghToken();
-  if(!token) return { ok:false, error:"발행 권한이 설정되지 않았습니다." };
-  const api = "https://api.github.com/repos/" + PICK_REPO + "/contents/" + FINDER_PATH;
-  const head = { "Authorization": "Bearer " + token,
-                 "Accept": "application/vnd.github+json",
-                 "Content-Type": "application/json" };
   try {
-    let sha = null;
-    const cur = await fetch(api + "?ref=" + PICK_BRANCH + "&t=" + Date.now(), { headers: head });
-    if(cur.ok) sha = (await cur.json()).sha;
-    else if(cur.status === 401) throw new Error("토큰이 거부되었습니다. '토큰 점검'으로 원인을 확인하세요.");
-    else if(cur.status === 403) throw new Error("이 토큰에는 권한이 없습니다. '토큰 점검'으로 확인하세요.");
-    else if(cur.status === 404) sha = null;
-    else throw new Error("현재 파일 확인 실패 (HTTP " + cur.status + ")");
-
     const body = {
       updated: new Date().toISOString().slice(0,16).replace("T"," ") + " UTC",
       by: PICK_BY,
-      note: "내 농장에 맞는 약품 찾기 — 화면에서 저장하면 이 파일이 갱신되고 모든 사람에게 같은 내용이 보입니다.",
+      note: "내 농장에 맞는 약품 찾기 — 화면에서 저장하면 이 파일이 갱신되고 승인된 회원 모두에게 같은 내용이 보입니다.",
       cases: cases,
     };
-    const res = await fetch(api, {
-      method: "PUT", headers: head,
-      body: JSON.stringify({
-        message: message || "🎯 농장 맞춤 약품 찾기 갱신",
-        content: b64utf8(JSON.stringify(body, null, 1)),
-        branch: PICK_BRANCH,
-        sha: sha || undefined,
-      }),
-    });
-    if(!res.ok){
-      const t = await res.text();
-      let apiMsg = ""; try { apiMsg = JSON.parse(t).message || ""; } catch(e){}
-      if(res.status === 401) throw new Error("토큰이 올바르지 않거나 만료되었습니다." + (apiMsg?" ("+apiMsg+")":""));
-      if(res.status === 403) throw new Error("발행이 거부됐습니다(HTTP 403)." + (apiMsg?" GitHub 응답: "+apiMsg:" 토큰 권한을 다시 확인하세요."));
-      if(res.status === 409) throw new Error("다른 곳에서 먼저 수정됐습니다. 새로고침 후 다시 시도하세요.");
-      throw new Error("발행 실패 (HTTP " + res.status + ") " + (apiMsg || t.slice(0,120)));
-    }
+    await writePremiumContentJson("farm_finder", body);
     finderPkgState.data = body;
     return { ok:true };
   } catch(e) {
@@ -1088,11 +992,7 @@ function bodyPartLabel(key){
   return p ? p.label : key;
 }
 
-const SELFCHECK_PATH = "self_check/latest.json";
-function selfCheckJsonUrl(){
-  return "https://raw.githubusercontent.com/" + PICK_REPO + "/" + PICK_BRANCH + "/" + SELFCHECK_PATH;
-}
-
+// Firebase Storage(premium_content/self_check/latest.json)에 둔다.
 let selfCheckPkgState = { status:"idle", data:null, busy:false, msg:"" };
 // part만 선택하면 되는 단순한 화면이라(하위 단계가 없다) 마법사 상태도
 // finderNavState보다 단순하다.
@@ -1102,16 +1002,20 @@ async function fetchSelfCheckDiseases(){
   if(selfCheckPkgState.status === "loading") return;
   selfCheckPkgState.status = "loading";
   try {
-    const r = await fetchWithTimeout(selfCheckJsonUrl() + "?t=" + Date.now(), 8000);
-    if(!r.ok) throw new Error("HTTP " + r.status);
-    const j = await r.json();
+    const j = await fetchPremiumContentJson("self_check");
     j.diseases = Array.isArray(j.diseases) ? j.diseases : [];
     selfCheckPkgState.data = j;
     selfCheckPkgState.status = "done";
   } catch(e){
     console.warn("온라인 자가진단 데이터 로딩 실패:", e);
-    selfCheckPkgState.data = { diseases: [], by: PICK_BY };
-    selfCheckPkgState.status = "error";
+    const migrated = await migrateOldPremiumJson("self_check/latest.json");
+    const oldDiseases = migrated && Array.isArray(migrated.diseases) ? migrated.diseases : null;
+    const r = oldDiseases && await publishSelfCheckDiseases(oldDiseases, "🔄 기존 데이터 Storage로 이전");
+    if(r && r.ok){ selfCheckPkgState.status = "done"; }
+    else {
+      selfCheckPkgState.data = { diseases: [], by: PICK_BY };
+      selfCheckPkgState.status = "error";
+    }
   }
   if(premiumState.view === "selfcheck") render();
 }
@@ -1127,44 +1031,14 @@ function newSelfCheckKey(){
 }
 
 async function publishSelfCheckDiseases(diseases, message){
-  const token = ghToken();
-  if(!token) return { ok:false, error:"발행 권한이 설정되지 않았습니다." };
-  const api = "https://api.github.com/repos/" + PICK_REPO + "/contents/" + SELFCHECK_PATH;
-  const head = { "Authorization": "Bearer " + token,
-                 "Accept": "application/vnd.github+json",
-                 "Content-Type": "application/json" };
   try {
-    let sha = null;
-    const cur = await fetch(api + "?ref=" + PICK_BRANCH + "&t=" + Date.now(), { headers: head });
-    if(cur.ok) sha = (await cur.json()).sha;
-    else if(cur.status === 401) throw new Error("토큰이 거부되었습니다. '토큰 점검'으로 원인을 확인하세요.");
-    else if(cur.status === 403) throw new Error("이 토큰에는 권한이 없습니다. '토큰 점검'으로 확인하세요.");
-    else if(cur.status === 404) sha = null;
-    else throw new Error("현재 파일 확인 실패 (HTTP " + cur.status + ")");
-
     const body = {
       updated: new Date().toISOString().slice(0,16).replace("T"," ") + " UTC",
       by: PICK_BY,
-      note: "온라인 자가진단 — 화면에서 저장하면 이 파일이 갱신되고 모든 사람에게 같은 내용이 보입니다.",
+      note: "온라인 자가진단 — 화면에서 저장하면 이 파일이 갱신되고 승인된 회원 모두에게 같은 내용이 보입니다.",
       diseases: diseases,
     };
-    const res = await fetch(api, {
-      method: "PUT", headers: head,
-      body: JSON.stringify({
-        message: message || "🐔 온라인 자가진단 갱신",
-        content: b64utf8(JSON.stringify(body, null, 1)),
-        branch: PICK_BRANCH,
-        sha: sha || undefined,
-      }),
-    });
-    if(!res.ok){
-      const t = await res.text();
-      let apiMsg = ""; try { apiMsg = JSON.parse(t).message || ""; } catch(e){}
-      if(res.status === 401) throw new Error("토큰이 올바르지 않거나 만료되었습니다." + (apiMsg?" ("+apiMsg+")":""));
-      if(res.status === 403) throw new Error("발행이 거부됐습니다(HTTP 403)." + (apiMsg?" GitHub 응답: "+apiMsg:" 토큰 권한을 다시 확인하세요."));
-      if(res.status === 409) throw new Error("다른 곳에서 먼저 수정됐습니다. 새로고침 후 다시 시도하세요.");
-      throw new Error("발행 실패 (HTTP " + res.status + ") " + (apiMsg || t.slice(0,120)));
-    }
+    await writePremiumContentJson("self_check", body);
     selfCheckPkgState.data = body;
     return { ok:true };
   } catch(e) {
@@ -1194,6 +1068,14 @@ async function fetchPremiumApproved(){
     // 매 렌더마다 날짜 계산을 다시 하지 않도록 여기서 한 번에 걸러둔다.
     premiumState.approvedEmails = members.filter(isMemberActiveToday).map(m => String(m.email).toLowerCase().trim());
     premiumState.status = "done";
+    // premium_content(상황별 처방 등)는 로그인 토큰의 approved 클레임으로
+    // 접근을 막는다. 방금 승인된 회원이 로그인한 경우 그 토큰은 아직 옛
+    // 클레임(approved 없음)을 들고 있을 수 있어, 여기서 한 번 강제로
+    // 새로고침해 최신 클레임을 받아온다 — 실패해도(오프라인 등) 다음 자연
+    // 갱신(최대 1시간) 때 반영되므로 무시한다.
+    if(isPremiumApproved() && firebase.auth().currentUser){
+      firebase.auth().currentUser.getIdToken(true).catch(()=>{});
+    }
   } catch(e){
     console.warn("유료서비스 승인목록 로딩 실패:", e);
     premiumState.status = "error";
@@ -1362,6 +1244,44 @@ async function readBoardJson(ref){
   } catch(e){
     return null;
   }
+}
+
+// premium_content/{dataset}/latest.json 공용 읽기/쓰기 — storage.rules에서
+// 승인된 회원+관리자만 읽고, 관리자만 쓸 수 있다. 상황별 처방·계절별
+// 패키지·농장 맞춤 찾기·자가진단 4개 데이터셋이 전부 이 두 함수로 읽고/
+// 쓴다(예전엔 공개 GitHub 저장소였는데, 로그인 없이 URL만 알면 누구나
+// 볼 수 있는 문제가 있어 여기로 옮겼다). readBoardJson과 달리 실패를
+// 삼키지 않고 그대로 던진다 — 각 fetch*Packages()가 상태를 error로
+// 표시할 수 있어야 하므로.
+function premiumContentPath(dataset){
+  return "premium_content/" + dataset + "/latest.json";
+}
+async function fetchPremiumContentJson(dataset){
+  const url = await withStorageTimeout(firebase.storage().ref(premiumContentPath(dataset)).getDownloadURL());
+  const resp = await fetch(url);
+  if(!resp.ok) throw new Error("HTTP " + resp.status);
+  return await resp.json();
+}
+async function writePremiumContentJson(dataset, body){
+  await withStorageTimeout(firebase.storage().ref(premiumContentPath(dataset))
+    .putString(JSON.stringify(body, null, 1), "raw", { contentType:"application/json" }));
+}
+
+// 이전(migration) 도우미 — treatment_packages 등 4개 데이터셋은 예전에
+// 공개 GitHub 저장소에 있었다. Storage로 막 옮긴 직후에는 premium_content가
+// 비어있으므로, 관리자가 화면을 열었을 때 예전 공개 파일에서 한 번 읽어와
+// 그대로 반환한다 — 호출한 쪽(fetch*)이 이 내용을 Storage에 다시 써서
+// 채워 넣는다. Storage에 내용이 자리잡으면 정상 fetch가 먼저 성공하므로
+// 이 경로는 다시 타지 않는다. 관리자가 아니면 시도하지 않는다(옮길 권한도
+// 없고, 일반 회원이 예전 공개 파일을 불필요하게 요청할 이유도 없다).
+async function migrateOldPremiumJson(path){
+  if(!isBoardAdmin()) return null;
+  try {
+    const url = "https://raw.githubusercontent.com/" + PICK_REPO + "/" + PICK_BRANCH + "/" + path + "?t=" + Date.now();
+    const r = await fetchWithTimeout(url, 8000);
+    if(!r.ok) return null;
+    return await r.json();
+  } catch(e){ return null; }
 }
 
 // 글 작성(+사진 업로드). 사진을 먼저 다 올리고 나서 post.json을 마지막에
@@ -3814,6 +3734,12 @@ function resetMemberAccountRemote(email, password){
 function deleteMemberAccountRemote(email){
   return callMemberFunction("deleteMemberAccount", { email });
 }
+// 유료 콘텐츠(premium_content/…)를 지키는 storage.rules는 이 계정의 로그인
+// 토큰에 있는 approved 클레임만 볼 수 있다 — 회원을 추가/수정할 때마다
+// 이 함수로 그 클레임을 최신 승인 상태에 맞게 갱신해준다.
+function setMemberApprovalRemote(email, approved){
+  return callMemberFunction("setMemberApproval", { email, approved });
+}
 
 function renderMemberManagePanel(){
   const head = `
@@ -3939,7 +3865,7 @@ function renderTreatmentPanel(){
     return head + `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⚠️ 상황 목록을 불러오지 못했습니다.</div>`;
   }
 
-  const admin = !!ghToken();
+  const admin = isBoardAdmin();
   const speciesBtns = [
     { key:"broiler", label:"🐔 육계" },
     { key:"layer", label:"🥚 산란계" },
@@ -4035,7 +3961,7 @@ function renderSeasonalPanel(){
     return head + `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⚠️ 계절별 정보를 불러오지 못했습니다.</div>`;
   }
 
-  const admin = !!ghToken();
+  const admin = isBoardAdmin();
   const seasonBtns = SEASON_TABS.map(s => `
     <button class="seasonal-season-btn" data-season="${s.key}"
       style="flex:1;border:2px solid ${seasonalTabState.season===s.key?"#795548":"#eee"};background:${seasonalTabState.season===s.key?"#795548":"#fff"};color:${seasonalTabState.season===s.key?"#fff":"#333"};border-radius:10px;padding:10px 4px;font-size:12.5px;font-weight:700;cursor:pointer">${s.label}<br><span style="font-size:10px;font-weight:500;opacity:0.85">${s.period}</span></button>`).join("");
@@ -4133,7 +4059,7 @@ function renderFarmFinderPanel(){
     return head + `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⚠️ 불러오지 못했습니다.</div>`;
   }
 
-  const admin = !!ghToken();
+  const admin = isBoardAdmin();
   const crumbs = [];
   crumbs.push(`<span class="finder-crumb" data-to="species" style="cursor:${nav.species?"pointer":"default"};font-weight:${nav.species?400:800};color:${nav.species?"#283593":"#333"}">${nav.species?finderSpeciesLabel(nav.species):"1. 축종 선택"}</span>`);
   if(nav.species){
@@ -4263,7 +4189,7 @@ function renderSelfCheckPanel(){
     return head + `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⚠️ 불러오지 못했습니다.</div>`;
   }
 
-  const admin = !!ghToken();
+  const admin = isBoardAdmin();
 
   // 부위별 클릭 영역 좌표 (viewBox 420x270 기준). shape가 섞여 있어(원/타원/
   // 사각형) 태그별로 attrs 문자열을 그대로 심는다. skin(날개 전체)처럼 넓은
@@ -9483,10 +9409,17 @@ function attachEvents(){
     memberMgmtState.busy = true; memberMgmtState.msg = "발행 중..."; render();
     const r = await publishMembers(members, "👤 회원 " + (editEmail?"수정":"추가") + ": " + email);
     let profileResult = { ok:true };
-    if(r.ok) profileResult = await writeMemberProfile(email, { name, phone, joined });
+    let claimResult = { ok:true };
+    if(r.ok){
+      profileResult = await writeMemberProfile(email, { name, phone, joined });
+      // 유료 콘텐츠(premium_content) 접근 여부는 이 클레임으로 정해지므로,
+      // 저장한 만료일 기준으로 지금 승인 상태인지를 함께 반영해둔다.
+      claimResult = await setMemberApprovalRemote(email, isMemberActiveToday({ expires }));
+    }
     memberMgmtState.busy = false;
     memberMgmtState.msg = !r.ok ? "발행 실패: " + r.error
       : !profileResult.ok ? "승인 명부는 저장됐지만 개인정보(이름·전화번호) 저장은 실패: " + profileResult.error
+      : !claimResult.ok ? "저장은 됐지만 유료 콘텐츠 접근 권한 갱신은 실패: " + claimResult.error + " (Firebase 계정이 아직 없는 회원이면 정상입니다 — 계정 생성 후 다시 저장하세요)"
       : "발행 완료";
     if(r.ok){
       memberMgmtState.formOpen = false;
