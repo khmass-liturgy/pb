@@ -7296,6 +7296,10 @@ function attachDiseaseEvents(){
 // 돌도록 한 함수에 모아둔다.
 function switchTab(tab){
     if(!TAB_IDS.includes(tab)) return;
+    // 유료서비스 탭 버튼을 누르면 항상 메뉴 화면으로 — 안 그러면 약품조회·
+    // 기술탐구 같은 하위 화면에 들어가 있는 상태로 탭을 눌러도 그대로 남아
+    // "눌러도 안 돌아온다"는 것처럼 보인다.
+    if(tab==="premium") premiumState.view = "menu";
     state.tab=tab; render();
     if(state.tab==="disease"){
       if(diseaseState.status==="idle") fetchDiseases();
