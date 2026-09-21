@@ -1,7 +1,19 @@
 {
-  "note": "유료서비스 회원 명부. 화면(유료서비스 → 회원관리, 관리자만 보임)에서 추가/편집/삭제하면 이 파일이 갱신됩니다. 이메일은 대소문자를 구분하지 않습니다. expires가 없으면 만료 없이 계속 승인 상태이고, 있으면 그 날짜(포함)까지만 로그인이 승인됩니다.",
-  "members": [
-    { "email": "trsumun@gmail.com", "name": "", "phone": "", "joined": "", "expires": "" },
-    { "email": "trsumun@daum.net", "name": "", "phone": "", "joined": "", "expires": "" }
-  ]
+ "note": "유료서비스 회원 명부. 화면(유료서비스 → 회원관리, 관리자만 보임)에서 추가/편집/삭제하면 이 파일이 갱신됩니다. 이메일은 대소문자를 구분하지 않습니다. expires가 없으면 만료 없이 계속 승인 상태이고, 있으면 그 날짜(포함)까지만 로그인이 승인됩니다.",
+ "members": [
+  {
+   "email": "trsumun@gmail.com",
+   "name": "최동명",
+   "phone": "01091508844",
+   "joined": "",
+   "expires": ""
+  },
+  {
+   "email": "trsumun@daum.net",
+   "name": "",
+   "phone": "",
+   "joined": "",
+   "expires": ""
+  }
+ ]
 }
