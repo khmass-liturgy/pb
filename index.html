@@ -637,10 +637,79 @@ function normalizePhoneKr(p){
 const PREMIUM_ITEMS = [
   { key:"drug", icon:"💊", title:"약품조회 및 휴약기간 검색", desc:"동물용의약품을 제품명·업체명·성분명으로 검색하고, 축종별 휴약기간을 QIA 공식 데이터로 바로 확인합니다.", color:"#00838F" },
   { key:"research", icon:"📚", title:"기술탐구", desc:"질병논문·사양관리기술·컨설팅도구 최신 국제논문 5편씩을 매주 한글로 번역·요약해 드립니다.", color:"#6A1B9A" },
+  { key:"treatment", icon:"💉", title:"상황별 처방(투약) 패키지", desc:"육계·산란계 농장 상황을 고르면 그에 맞는 투약(처방) 프로그램을 보여드립니다. 상황은 계속 추가됩니다.", color:"#C62828" },
   { icon:"💬", title:"상담", desc:"농장 현안(사양·환기·질병 등)을 전문가와 1:1로 상담합니다.", color:"#1565C0" },
   { icon:"🔍", title:"진단", desc:"계사 환경·사양관리 현황을 현장 데이터 기반으로 진단합니다.", color:"#2E7D32" },
   { icon:"📈", title:"컨설팅", desc:"진단 결과를 바탕으로 생산성 개선 컨설팅을 제공합니다.", color:"#E65100" },
 ];
+
+// ── 상황별 처방(투약) 패키지 ─────────────────────────────────────────────────
+// 농장에서 흔히 겪는 상황(species + 상황)마다 투약 프로그램을 미리 짜둔 목록.
+// 새 상황이 생기면 이 배열에 항목만 추가하면 된다 — 화면 쪽은 species로
+// 걸러서 목록을 그릴 뿐이라 코드를 따로 안 건드려도 된다.
+// 국내는 동물용 항생제 수의사처방제(2013~) 대상이라, 항생제 계열은 상표명이
+// 아니라 "계열/성분군"까지만 적고 실제 처방은 수의사 확인을 거치도록 안내한다.
+const TREATMENT_PACKAGES = [
+  {
+    key: "broiler-ne", species: "broiler", title: "괴사성 장염(NE) 의심 시",
+    trigger: "혈변·검붉은 설사, 갑작스러운 폐사 증가, 사료섭취량 급감",
+    program: [
+      { step: "1. 원인 점검", detail: "직전 콕시듐증 발생 여부, 사료 내 단백질원 변경, 깔짚 과습을 먼저 확인합니다 — NE는 대부분 이 셋 중 하나가 방아쇠입니다." },
+      { step: "2. 항생제(수의사 처방)", detail: "클로스트리디움에 감수성 있는 계열(예: 페니실린·마크롤라이드계 등)을 수의사 처방으로 3~5일 음수 투여합니다. 계열 선택은 최근 감수성 결과를 따릅니다." },
+      { step: "3. 보조요법", detail: "전해질·비타민K(지혈)·유산균제를 함께 급여해 탈수와 장점막 회복을 돕습니다." },
+      { step: "4. 환경 조치", detail: "깔짚 습도·환기량을 즉시 재점검하고, 사료를 일시적으로 저단백·소화가 쉬운 배합으로 전환합니다." },
+    ],
+    caution: "괴사성 장염은 전조 없이 폐사가 급증할 수 있어 24시간 내 수의사 확진(부검·배양)을 함께 진행하는 것이 안전합니다.",
+  },
+  {
+    key: "broiler-crd", species: "broiler", title: "만성호흡기병(CRD/마이코플라스마) 의심 시",
+    trigger: "쌕쌕거림·기침, 결막염, 성장 불균일, 도체 폐기율 증가",
+    program: [
+      { step: "1. 원인 점검", detail: "일교차·암모니아 농도(환기 부족)·대장균 이차감염 여부를 함께 확인합니다. CRD 단독보다 복합감염이 흔합니다." },
+      { step: "2. 항생제(수의사 처방)", detail: "마이코플라스마에 감수성 있는 계열(마크롤라이드·플루오로퀴놀론 등 중 택1)을 5~7일 음수 투여합니다." },
+      { step: "3. 환기·온도 보정", detail: "야간 최소환기량을 늘리고 일교차를 줄여 호흡기 점막 자극 요인을 먼저 제거합니다 — 약을 써도 환경이 그대로면 재발합니다." },
+      { step: "4. 재발 방지", detail: "다음 입추 전 종계장 마이코플라스마 청정화 여부, 백신 프로그램(생독/사독)을 컨설턴트와 재점검합니다." },
+    ],
+    caution: "항생제만으로는 재발이 잦은 질병입니다 — 환기·밀도 등 사양관리 원인 교정이 반드시 함께 가야 합니다.",
+  },
+  {
+    key: "broiler-coccidiosis", species: "broiler", title: "콕시듐증 의심 시",
+    trigger: "혈변·점액변, 사료섭취 저하, 깃털 부스스함, 특정 주령대(2~4주령)에 집중 발생",
+    program: [
+      { step: "1. 원인 점검", detail: "깔짚 습도, 사용 중인 항콕시듐제(코시디오스탯) 내성 여부, 최근 백신 접종 여부를 확인합니다." },
+      { step: "2. 치료제 투여", detail: "설파계·암프롤리움 등 치료용 항콕시듐제를 3~5일 음수 투여합니다(예방용 사료첨가제와는 별도 처방)." },
+      { step: "3. 보조요법", detail: "전해질·비타민A·K를 함께 급여해 장점막 재생과 지혈을 돕습니다." },
+      { step: "4. 재발 방지", detail: "깔짚을 건조하게 유지하고, 다음 로테이션에서는 항콕시듐제 계열을 교체(로테이션 프로그램)해 내성을 관리합니다." },
+    ],
+    caution: "치료제 반복 사용은 내성을 키웁니다 — 같은 계열을 연속 사용하지 말고 로테이션 프로그램을 따르세요.",
+  },
+  {
+    key: "layer-egg-drop", species: "layer", title: "산란율 급락(원인 불명) 시",
+    trigger: "1주 이내 산란율 5%p 이상 급락, 연피란·기형란 증가",
+    program: [
+      { step: "1. 원인 점검", detail: "최근 사료 배합 변경, 스트레스 요인(정전·소음·백신 스트레스), 전염성기관지염(IB)·산란저하증후군(EDS) 의심 증상(호흡기·설사)을 함께 확인합니다." },
+      { step: "2. 감염성 원인 시 항생제/항바이러스 지원(수의사 판단)", detail: "세균성 이차감염이 동반되면 수의사 처방 항생제를 병행하고, 바이러스성(IB/EDS)이면 대증치료(전해질·영양) 중심으로 전환합니다." },
+      { step: "3. 영양 보정", detail: "칼슘·인 비율과 비타민D3를 재점검하고, 단기간 고칼슘 사료로 난각 강도부터 회복시킵니다." },
+      { step: "4. 스트레스 요인 제거", detail: "급이·급수·점등 스케줄을 일정하게 유지하고, 최근 계사 내 변화(신규 설비, 소음원)를 되짚어봅니다." },
+    ],
+    caution: "산란율 급락은 원인이 다양해 수의사 확진(항체가 검사 등) 없이 약제만 투여하면 오히려 회복이 늦어질 수 있습니다.",
+  },
+  {
+    key: "layer-worms", species: "layer", title: "기생충(회충증 등) 의심 시",
+    trigger: "산란율·사료효율 저하, 분변에서 충체 확인, 야외방사·평사 사육에서 흔함",
+    program: [
+      { step: "1. 원인 점검", detail: "분변검사로 충란 확인 후 구충제 투여 여부를 결정합니다 — 육안으로만 판단하지 않습니다." },
+      { step: "2. 구충제 투여(휴약기간 준수)", detail: "구충제를 처방 용법대로 급여하고, 계란 휴약기간을 반드시 지킵니다(약품조회 메뉴에서 확인)." },
+      { step: "3. 영양 보정", detail: "구충 후 1~2주는 비타민·미네랄을 보강해 회복을 돕습니다." },
+      { step: "4. 재발 방지", detail: "방사장·깔짚의 분변 제거 주기를 단축하고, 중간숙주(지렁이 등) 접촉을 줄이는 사육환경 개선을 병행합니다." },
+    ],
+    caution: "구충제도 축종·휴약기간 표기가 제품마다 다릅니다 — 반드시 약품조회 메뉴에서 해당 제품의 계란 휴약기간을 확인한 뒤 출하하세요.",
+  },
+];
+
+function treatmentPackagesFor(species){
+  return TREATMENT_PACKAGES.filter(p => p.species === species);
+}
 
 async function fetchPremiumApproved(){
   if(premiumState.status === "loading") return;
@@ -3045,6 +3114,60 @@ function renderResearchPanel(){
   </div>`;
 }
 
+// ── 상황별 처방(투약) 패키지 화면 ────────────────────────────────────────────
+let treatmentTabState = { species: "broiler", openKey: null };
+
+function renderTreatmentPanel(){
+  const head = `
+  <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+    <div>
+      <div class="display" style="font-size:16px;margin-bottom:3px">💉 상황별 처방(투약) 패키지</div>
+      <div style="font-size:11px;color:#aaa">농장 상황을 고르면 투약(처방) 프로그램을 단계별로 보여드립니다</div>
+    </div>
+    <button id="treatment-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button>
+  </div>`;
+
+  const speciesBtns = [
+    { key:"broiler", label:"🐔 육계" },
+    { key:"layer", label:"🥚 산란계" },
+  ].map(s => `
+    <button class="treatment-species-btn" data-species="${s.key}"
+      style="flex:1;border:2px solid ${treatmentTabState.species===s.key?"#C62828":"#eee"};background:${treatmentTabState.species===s.key?"#C62828":"#fff"};color:${treatmentTabState.species===s.key?"#fff":"#333"};border-radius:10px;padding:10px 6px;font-size:13px;font-weight:700;cursor:pointer">${s.label}</button>`).join("");
+
+  const list = treatmentPackagesFor(treatmentTabState.species);
+  const cards = list.length ? list.map(p => {
+    const open = treatmentTabState.openKey === p.key;
+    return `
+    <div class="card" style="border-top:4px solid #C62828;margin-bottom:10px;padding:16px">
+      <div class="treatment-toggle" data-key="${p.key}" style="cursor:pointer;display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+        <div>
+          <div style="font-size:14px;font-weight:800;color:#333">${esc(p.title)}</div>
+          <div style="font-size:11px;color:#888;margin-top:4px">${esc(p.trigger)}</div>
+        </div>
+        <span style="font-size:11px;color:#C62828;font-weight:700;white-space:nowrap">${open?"접기 ▲":"처방 보기 ▼"}</span>
+      </div>
+      ${open ? `
+      <div style="margin-top:12px;padding-top:12px;border-top:1px dashed #eee">
+        ${p.program.map(s => `
+        <div style="margin-bottom:9px">
+          <div style="font-size:12.5px;font-weight:700;color:#C62828">${esc(s.step)}</div>
+          <div style="font-size:12.5px;color:#444;line-height:1.6;margin-top:2px">${esc(s.detail)}</div>
+        </div>`).join("")}
+        <div style="font-size:11px;color:#8D6E00;background:#FFF8E1;border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.6">⚠️ ${esc(p.caution)}</div>
+      </div>` : ""}
+    </div>`;
+  }).join("") : `<div class="card" style="text-align:center;padding:28px 16px;color:#aaa">아직 등록된 상황이 없습니다. 곧 추가됩니다.</div>`;
+
+  return head + `
+  <div style="display:flex;gap:8px;margin-bottom:14px">${speciesBtns}</div>
+  ${cards}
+  <div style="font-size:9px;color:#aaa;line-height:1.6;margin-top:6px">
+    ※ 항생제·구충제 등은 국내 동물용의약품 수의사처방제 대상입니다 — 여기 나온 계열·단계는 참고 프로그램이며,
+    실제 투약은 반드시 수의사 처방·지도를 거쳐 진행하세요. 계란·계육 출하 전에는 약품조회 메뉴에서 휴약기간을 꼭 확인하세요.
+    새로운 상황은 계속 추가될 예정입니다.
+  </div>`;
+}
+
 function premiumUserLabel(){
   const user = premiumState.user;
   if(!user) return "";
@@ -3145,6 +3268,10 @@ function renderPremiumTab(){
   if(premiumState.view === "research"){
     if(researchPapersState.status === "idle") fetchResearchPapers();
     return renderPremiumGateHeader() + logoutBar + renderResearchPanel();
+  }
+  // 상황별 처방(투약) 패키지 화면
+  if(premiumState.view === "treatment"){
+    return renderPremiumGateHeader() + logoutBar + renderTreatmentPanel();
   }
 
   // 기본 화면 — 유료서비스 메뉴 목록
@@ -7361,6 +7488,20 @@ function attachEvents(){
   if(researchBackBtn) researchBackBtn.onclick = ()=>{ premiumState.view = "menu"; render(); };
   document.querySelectorAll(".research-cat-btn").forEach(b=>b.onclick=()=>{
     researchTabState.cat = b.dataset.cat;
+    render();
+  });
+
+  // 상황별 처방(투약) 패키지
+  const treatmentBackBtn = document.getElementById("treatment-back-btn");
+  if(treatmentBackBtn) treatmentBackBtn.onclick = ()=>{ premiumState.view = "menu"; render(); };
+  document.querySelectorAll(".treatment-species-btn").forEach(b=>b.onclick=()=>{
+    treatmentTabState.species = b.dataset.species;
+    treatmentTabState.openKey = null;
+    render();
+  });
+  document.querySelectorAll(".treatment-toggle").forEach(b=>b.onclick=()=>{
+    const key = b.dataset.key;
+    treatmentTabState.openKey = treatmentTabState.openKey === key ? null : key;
     render();
   });
 
