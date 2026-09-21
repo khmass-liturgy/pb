@@ -3272,7 +3272,19 @@ function renderMemberManagePanel(){
         <button id="mm-gen-password" type="button" style="font-size:11px;border:1px solid #37474F;border-radius:6px;background:#fff;color:#37474F;padding:7px 10px">🎲 자동생성</button>
       </div>
       <div style="font-size:9.5px;color:#aaa;margin:-3px 0 8px">비워두면 Firebase 계정은 안 만들고 회원 정보만 등록합니다(이미 계정이 있는 경우).</div>
-      ` : ""}
+      ` : `
+      <div style="background:#FFF8E1;border:1px solid #F0E0A0;border-radius:8px;padding:10px;margin-bottom:8px">
+        <div style="font-size:10.5px;font-weight:700;color:#7A5C00;margin-bottom:6px">🔑 비밀번호 재설정 (계정을 잊어버렸을 때만 사용)</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:5px">
+          <input id="mm-password" type="text" placeholder="새 비밀번호 (6자 이상)" value="${esc(memberMgmtState.genPassword||"")}"
+            style="flex:1;min-width:180px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:monospace" />
+          <button id="mm-gen-password" type="button" style="font-size:11px;border:1px solid #37474F;border-radius:6px;background:#fff;color:#37474F;padding:7px 10px">🎲 자동생성</button>
+          <button id="mm-reset-password" type="button" ${memberMgmtState.busy?"disabled":""} style="font-size:11px;border:1px solid #7A5C00;border-radius:6px;background:${memberMgmtState.busy?"#ccc":"#fff"};color:#7A5C00;padding:7px 10px;font-weight:600">재설정</button>
+        </div>
+        <div style="font-size:9.5px;color:#8D6E00;line-height:1.6">먼저 Firebase 콘솔(Authentication → Users)에서 이 회원의 기존 계정을 삭제한 뒤 누르세요 —
+        기존 계정이 남아있으면 "이미 등록된 이메일"로 실패합니다. 회원 정보(이름·전화번호 등)는 그대로 유지됩니다.</div>
+      </div>
+      `}
       <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
         <div style="flex:1;min-width:140px">
           <div style="font-size:10px;color:#888;margin-bottom:3px">가입일</div>
@@ -7885,6 +7897,28 @@ function attachEvents(){
     memberMgmtState.genPassword = pw;
     const el = document.getElementById("mm-password");
     if(el) el.value = pw;
+  };
+  const resetPwBtn = document.getElementById("mm-reset-password");
+  if(resetPwBtn) resetPwBtn.onclick = async ()=>{
+    const email = memberMgmtState.editEmail;
+    const password = (document.getElementById("mm-password")?.value || "").trim();
+    if(!email) return;
+    if(password.length < 6){ alert("비밀번호는 6자 이상이어야 합니다."); return; }
+    if(!confirm(`Firebase 콘솔에서 "${email}" 계정을 이미 삭제하셨나요?\n삭제 전이면 "이미 등록된 이메일" 오류가 납니다.`)) return;
+
+    memberMgmtState.busy = true; memberMgmtState.msg = "Firebase 계정 재생성 중..."; render();
+    const acc = await createFirebaseMemberAccount(email, password);
+    memberMgmtState.busy = false;
+    if(!acc.ok){
+      memberMgmtState.msg = acc.error;
+      render();
+      return;
+    }
+    memberMgmtState.msg = "계정 재설정 완료";
+    memberMgmtState.genPassword = "";
+    try { await navigator.clipboard.writeText(`아이디: ${email}\n비밀번호: ${password}`); } catch(e){}
+    alert(`계정이 재설정됐습니다.\n아이디: ${email}\n비밀번호: ${password}\n\n(클립보드에 복사했습니다 — 회원에게 문자로 전달하세요)`);
+    render();
   };
   const memberSaveBtn = document.getElementById("mm-save");
   if(memberSaveBtn) memberSaveBtn.onclick = async ()=>{
