@@ -36,6 +36,17 @@ service firebase.storage {
       }
     }
 
+    // 회원 개인정보(이름·전화번호·가입일). premium/approved.json(공개 GitHub
+    // 저장소)에는 승인 체크에 필요한 이메일·만료일만 남기고, 실제 개인정보는
+    // 여기 관리자만 읽고 쓸 수 있는 곳에 둔다 — 회원 본인도 읽을 필요가 없는
+    // 정보라(회원관리 화면은 관리자 전용) admin만 허용한다.
+    match /premium_members {
+      allow list: if isAdmin();
+    }
+    match /premium_members/{email}/{fileName=**} {
+      allow read, write: if isAdmin();
+    }
+
     // 그 외 경로는 전부 차단(기본값과 동일하지만 명시적으로 남긴다).
     match /{allPaths=**} {
       allow read, write: if false;

@@ -31,12 +31,19 @@ Two pieces are **not** static, both Firebase, both under the 유료서비스 tab
   Auth account requires Admin SDK privileges the browser's client SDK doesn't have. Guarded by
   checking the caller's verified Firebase ID token email against `ADMIN_EMAILS` in
   `functions/index.js` — no separate secret. Deploy with `firebase deploy --only functions`.
-- `storage.rules` guards Firebase Storage, used by the 온라인 진단/상담/컨설팅 boards
-  (`PREMIUM_BOARDS` in index.html) to store member-submitted posts, photos and the vet's replies —
-  each under a `premium_board/{boardType}/{uid}/{postId}/` folder that only its owner and
-  `ADMIN_EMAILS`-listed accounts can read/write (mirrors `functions/index.js`'s admin list — keep
-  both in sync). This data is per-member-private, unlike everything else in this repo, so it can't
-  use the public-GitHub-commit pattern below. Deploy with `firebase deploy --only storage`.
+- `storage.rules` guards Firebase Storage, used for two things that can't go through the
+  public-GitHub-commit pattern below because the data is private, not public content:
+  - the 온라인 진단/상담/컨설팅 boards (`PREMIUM_BOARDS` in index.html) store member-submitted
+    posts, photos and the vet's replies under `premium_board/{boardType}/{uid}/{postId}/`, readable
+    only by that post's owner and admins.
+  - `premium_members/{email}/info.json` holds each member's name/phone/join date — admin-only
+    read/write. `premium/approved.json` (public GitHub repo) intentionally keeps only
+    `email`/`expires` (whatever `isPremiumApproved()` needs client-side); it used to also hold
+    name/phone until that was recognized as a PII leak (anyone can read a public repo's files
+    without logging in) and split out here.
+  Both paths check the caller's email against a hardcoded admin list — keep it in sync with
+  `functions/index.js`'s `ADMIN_EMAILS` when adding/removing an admin. Deploy with
+  `firebase deploy --only storage`.
 
 Both need `firebase-tools` and `firebase login` once; nothing else in this repo needs a build/deploy
 step.

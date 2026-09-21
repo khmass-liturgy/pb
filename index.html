@@ -704,10 +704,14 @@ function newTreatmentKey(){
 // publishPicks와 똑같은 GitHub Contents API 발행 로직이라, 경로(TREATMENT_PATH)
 // 만 바꿔 그대로 재사용한다 — 토큰도 같은 것(ghToken())을 쓰므로 관리자가
 // "이달의 질병"에서 이미 등록해둔 발행 권한이 여기서도 그대로 통한다.
-// premium/approved.json도 monthly_pick·treatment_packages와 같은 방식으로
-// 발행한다 — 회원관리 화면(관리자 전용)에서 이름·전화번호·가입일·만료일을
-// 추가/편집/삭제하면 이 파일이 갱신되고, isPremiumApproved()가 읽는 승인
-// 목록도 자동으로 같이 갱신된다.
+//
+// premium/approved.json은 공개 GitHub 저장소라 브라우저에서 로그인 없이도
+// 그대로 읽힌다 — isPremiumApproved()의 클라이언트 승인 체크에 꼭 필요한
+// 이메일·만료일만 여기 남기고, 이름·전화번호·가입일 같은 실제 개인정보는
+// writeMemberProfile()로 Firebase Storage(관리자만 읽기)에 따로 저장한다.
+// 이 함수는 안전을 위해 email/expires 외 필드는 무엇을 넘겨받든 저장 전에
+// 항상 걸러낸다 — 호출하는 쪽에서 실수로 이름·전화번호를 포함해 넘겨도
+// 공개 저장소에는 올라가지 않는다.
 async function publishMembers(members, message){
   const token = ghToken();
   if(!token) return { ok:false, error:"발행 권한이 설정되지 않았습니다." };
@@ -724,9 +728,10 @@ async function publishMembers(members, message){
     else if(cur.status === 404) sha = null;
     else throw new Error("현재 파일 확인 실패 (HTTP " + cur.status + ")");
 
+    const publicMembers = members.map(m => ({ email: m.email, expires: m.expires || "" }));
     const body = {
-      note: "유료서비스 회원 명부. 화면(유료서비스 → 회원관리, 관리자만 보임)에서 추가/편집/삭제하면 이 파일이 갱신됩니다. 이메일은 대소문자를 구분하지 않습니다. expires가 없으면 만료 없이 계속 승인 상태이고, 있으면 그 날짜(포함)까지만 로그인이 승인됩니다.",
-      members: members,
+      note: "유료서비스 승인 목록(이메일·만료일만). 이름·전화번호는 개인정보라 여기(공개 저장소)에 두지 않고 Firebase Storage에 별도 보관한다 — 화면(유료서비스 → 회원관리, 관리자만 보임)에서 관리한다. 이메일은 대소문자를 구분하지 않습니다. expires가 없으면 만료 없이 계속 승인 상태이고, 있으면 그 날짜(포함)까지만 로그인이 승인됩니다.",
+      members: publicMembers,
     };
     const res = await fetch(api, {
       method: "PUT", headers: head,
@@ -745,13 +750,62 @@ async function publishMembers(members, message){
       if(res.status === 409) throw new Error("다른 곳에서 먼저 수정됐습니다. 새로고침 후 다시 시도하세요.");
       throw new Error("발행 실패 (HTTP " + res.status + ") " + (apiMsg || t.slice(0,120)));
     }
-    const members2 = body.members;
-    premiumState.members = members2;
-    premiumState.approvedEmails = members2.filter(isMemberActiveToday).map(m => String(m.email).toLowerCase().trim());
+    premiumState.members = publicMembers;
+    premiumState.approvedEmails = publicMembers.filter(isMemberActiveToday).map(m => String(m.email).toLowerCase().trim());
     return { ok:true };
   } catch(e) {
     return { ok:false, error: e.message || String(e) };
   }
+}
+
+// ── 회원 개인정보(이름·전화번호·가입일) — Firebase Storage 비공개 보관 ─────────
+// premium_members/{email}/info.json 하나에 {name,phone,joined}만 담는다.
+// storage.rules에서 관리자만 읽고/쓸 수 있게 막아뒀다 — 회원 본인도 이 경로를
+// 볼 이유가 없다(회원관리 화면은 관리자 전용이라).
+function memberProfilePath(email){
+  return "premium_members/" + String(email).toLowerCase().trim() + "/info.json";
+}
+let memberProfilesState = { status:"idle", data:{} };
+
+async function writeMemberProfile(email, profile){
+  try {
+    await withStorageTimeout(firebase.storage().ref(memberProfilePath(email))
+      .putString(JSON.stringify(profile), "raw", { contentType:"application/json" }));
+    memberProfilesState.data[String(email).toLowerCase().trim()] = profile;
+    return { ok:true };
+  } catch(e){
+    console.warn("회원 개인정보 저장 실패:", e);
+    return { ok:false, error: e.message || String(e) };
+  }
+}
+async function deleteMemberProfile(email){
+  try {
+    await withStorageTimeout(firebase.storage().ref(memberProfilePath(email)).delete());
+  } catch(e){ /* 이미 없으면(또는 실패해도) 명부 삭제 자체는 계속 진행 */ }
+  delete memberProfilesState.data[String(email).toLowerCase().trim()];
+}
+// 회원관리 화면을 열 때만 필요한 데이터라(다른 화면·비관리자는 볼 일이
+// 없다) premiumState.members처럼 항상 불러오지 않고 그때 한 번만 가져온다.
+async function fetchMemberProfiles(){
+  if(memberProfilesState.status === "loading") return;
+  memberProfilesState.status = "loading";
+  try {
+    const listing = await withStorageTimeout(firebase.storage().ref("premium_members").listAll());
+    const data = {};
+    for(const emailPrefix of listing.prefixes){
+      const profile = await readBoardJson(emailPrefix.child("info.json"));
+      if(profile) data[emailPrefix.name] = profile;
+    }
+    memberProfilesState.data = data;
+    memberProfilesState.status = "done";
+  } catch(e){
+    console.warn("회원 개인정보 목록 로딩 실패:", e);
+    memberProfilesState.status = "error";
+  }
+  if(premiumState.view === "members") render();
+}
+function memberProfile(email){
+  return memberProfilesState.data[String(email).toLowerCase().trim()] || {};
 }
 
 async function publishTreatmentPackages(packages, message){
@@ -3776,8 +3830,10 @@ function renderMemberManagePanel(){
   }
 
   const members = premiumState.members || [];
+  const profilesLoading = memberProfilesState.status === "idle" || memberProfilesState.status === "loading";
   const today = new Date().toISOString().slice(0,10);
   const rows = members.length ? members.map(m => {
+    const profile = memberProfile(m.email);
     const active = isMemberActiveToday(m);
     const statusLabel = !m.expires ? { text:"무기한", color:"#2E7D32", bg:"#E8F5E9" }
       : active ? { text:"만료 "+m.expires, color:"#F57F17", bg:"#FFFDE7" }
@@ -3786,8 +3842,8 @@ function renderMemberManagePanel(){
     <div class="card" style="padding:14px 16px;margin-bottom:8px;border-left:4px solid ${statusLabel.color}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
         <div style="min-width:0">
-          <div style="font-size:13.5px;font-weight:800;color:#333">${esc(m.name||"(이름 미입력)")} <span style="font-size:11px;color:#888;font-weight:400">${esc(m.email)}</span></div>
-          <div style="font-size:11.5px;color:#666;margin-top:3px">📞 ${esc(m.phone||"-")} · 가입 ${esc(m.joined||"-")}</div>
+          <div style="font-size:13.5px;font-weight:800;color:#333">${profilesLoading?"⏳ 개인정보 불러오는 중...":esc(profile.name||"(이름 미입력)")} <span style="font-size:11px;color:#888;font-weight:400">${esc(m.email)}</span></div>
+          <div style="font-size:11.5px;color:#666;margin-top:3px">${profilesLoading?"":`📞 ${esc(profile.phone||"-")} · 가입 ${esc(profile.joined||"-")}`}</div>
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
           <span style="font-size:10.5px;color:${statusLabel.color};background:${statusLabel.bg};border-radius:6px;padding:3px 8px;font-weight:700;white-space:nowrap">${statusLabel.text}</span>
@@ -3799,6 +3855,7 @@ function renderMemberManagePanel(){
   }).join("") : `<div class="card" style="text-align:center;padding:28px 16px;color:#aaa">등록된 회원이 없습니다.</div>`;
 
   const editing = memberMgmtState.editEmail ? members.find(m=>m.email===memberMgmtState.editEmail) : null;
+  const editingProfile = editing ? memberProfile(editing.email) : {};
   const addBtn = !memberMgmtState.formOpen
     ? `<button id="member-add-btn" style="border:none;border-radius:8px;background:#37474F;color:#fff;padding:9px 16px;font-size:12px;font-weight:700;margin-bottom:12px">+ 새 회원 추가</button>`
     : "";
@@ -3808,11 +3865,11 @@ function renderMemberManagePanel(){
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
         <input id="mm-email" type="email" placeholder="이메일(아이디) *" value="${esc(editing?editing.email:"")}" ${editing?"disabled":""}
           style="flex:1;min-width:160px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;${editing?"background:#eee;color:#888":""}" />
-        <input id="mm-name" type="text" placeholder="이름" value="${esc(editing?editing.name||"":"")}"
+        <input id="mm-name" type="text" placeholder="이름" value="${esc(editing?editingProfile.name||"":"")}"
           style="flex:1;min-width:120px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
-        <input id="mm-phone" type="text" placeholder="전화번호 (010-1234-5678)" value="${esc(editing?editing.phone||"":"")}"
+        <input id="mm-phone" type="text" placeholder="전화번호 (010-1234-5678)" value="${esc(editing?editingProfile.phone||"":"")}"
           style="flex:1;min-width:140px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />
       </div>
       ${!editing ? `
@@ -3838,7 +3895,7 @@ function renderMemberManagePanel(){
       <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
         <div style="flex:1;min-width:140px">
           <div style="font-size:10px;color:#888;margin-bottom:3px">가입일</div>
-          <input id="mm-joined" type="date" value="${esc(editing?editing.joined||"":today)}"
+          <input id="mm-joined" type="date" value="${esc(editing?editingProfile.joined||"":today)}"
             style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />
         </div>
         <div style="flex:1;min-width:140px">
@@ -4670,7 +4727,10 @@ function renderPremiumTab(){
   // 화면 자체를 안 보여주는 게 더 안전하고 덜 혼란스럽다).
   if(premiumState.view === "members"){
     if(!ghToken()){ premiumState.view = "menu"; }
-    else return renderPremiumGateHeader() + logoutBar + renderMemberManagePanel();
+    else {
+      if(memberProfilesState.status === "idle") fetchMemberProfiles();
+      return renderPremiumGateHeader() + logoutBar + renderMemberManagePanel();
+    }
   }
 
   // 기본 화면 — 유료서비스 메뉴 목록. 회원관리는 관리자(ghToken 보유자)에게만
@@ -9324,7 +9384,7 @@ function attachEvents(){
   document.querySelectorAll(".member-del-btn").forEach(b=>b.onclick=async ()=>{
     const email = b.dataset.email;
     const m = (premiumState.members||[]).find(x=>x.email===email);
-    if(!m || !confirm(`"${m.name||m.email}" 회원을 삭제할까요?\nFirebase 계정도 함께 지워집니다.`)) return;
+    if(!m || !confirm(`"${memberProfile(email).name||email}" 회원을 삭제할까요?\nFirebase 계정도 함께 지워집니다.`)) return;
 
     memberMgmtState.busy = true; memberMgmtState.msg = "Firebase 계정 삭제 중..."; render();
     // Cloud Function 배포 전이거나 일시적으로 실패해도, 명부에서 빼는 것(=승인
@@ -9333,6 +9393,7 @@ function attachEvents(){
     const accResult = await deleteMemberAccountRemote(email);
     const next = (premiumState.members||[]).filter(x=>x.email!==email);
     const r = await publishMembers(next, "👤 회원 삭제: " + email);
+    await deleteMemberProfile(email);
     memberMgmtState.busy = false;
     if(!r.ok){
       memberMgmtState.msg = "발행 실패: " + r.error;
@@ -9389,10 +9450,10 @@ function attachEvents(){
     const editEmail = memberMgmtState.editEmail;
     if(editEmail){
       const idx = members.findIndex(m=>m.email===editEmail);
-      if(idx>=0) members[idx] = { email, name, phone, joined, expires };
+      if(idx>=0) members[idx] = { email, expires };
     } else {
       if(members.some(m=>m.email===email)){ alert("이미 등록된 이메일입니다."); return; }
-      members.push({ email, name, phone, joined, expires });
+      members.push({ email, expires });
     }
 
     // 새 회원을 추가하는 경우에만, 그리고 비밀번호를 입력했을 때만 Firebase
@@ -9421,8 +9482,12 @@ function attachEvents(){
 
     memberMgmtState.busy = true; memberMgmtState.msg = "발행 중..."; render();
     const r = await publishMembers(members, "👤 회원 " + (editEmail?"수정":"추가") + ": " + email);
+    let profileResult = { ok:true };
+    if(r.ok) profileResult = await writeMemberProfile(email, { name, phone, joined });
     memberMgmtState.busy = false;
-    memberMgmtState.msg = r.ok ? "발행 완료" : ("발행 실패: " + r.error);
+    memberMgmtState.msg = !r.ok ? "발행 실패: " + r.error
+      : !profileResult.ok ? "승인 명부는 저장됐지만 개인정보(이름·전화번호) 저장은 실패: " + profileResult.error
+      : "발행 완료";
     if(r.ok){
       memberMgmtState.formOpen = false;
       memberMgmtState.editEmail = null;
