@@ -615,20 +615,10 @@ try {
 let premiumState = {
   status: "idle",      // idle|loading|done|error — 승인 목록(JSON) 로딩 상태
   approvedEmails: [],  // 소문자로 정규화해 저장
-  approvedPhones: [],  // "+8210..." 형식(Firebase User.phoneNumber와 같은 형식)으로 정규화해 저장
   user: null,          // 로그인한 firebase User, 로그아웃 상태면 null
   authChecked: false,  // onAuthStateChanged가 최초 1회 응답했는지 (초기 깜빡임 방지용)
   view: "menu",        // menu | drug — 승인회원 화면 안에서 어떤 하위 메뉴를 보고 있는지
 };
-
-// 국내 번호(010..., 010-1234-5678 등)를 Firebase User.phoneNumber와 같은
-// "+8210..." 국제 형식으로 통일한다. 이미 +로 시작하면 그대로 둔다.
-function normalizePhoneKr(p){
-  let v = String(p).trim().replace(/[\s-]/g, "");
-  if(v.startsWith("0")) v = "+82" + v.slice(1);
-  else if(!v.startsWith("+")) v = "+82" + v;
-  return v;
-}
 
 // 유료서비스가 제공하는 메뉴 목록. 로그인 전(가입 초기화면)에는 미리보기로,
 // 승인 후에는 실제로 눌러서 들어가는 메뉴로 같은 배열을 함께 쓴다.
@@ -638,9 +628,9 @@ const PREMIUM_ITEMS = [
   { key:"drug", icon:"💊", title:"약품조회 및 휴약기간 검색", desc:"동물용의약품을 제품명·업체명·성분명으로 검색하고, 축종별 휴약기간을 QIA 공식 데이터로 바로 확인합니다.", color:"#00838F" },
   { key:"research", icon:"📚", title:"기술탐구", desc:"질병논문·사양관리기술·컨설팅도구 최신 국제논문 5편씩을 매주 한글로 번역·요약해 드립니다.", color:"#6A1B9A" },
   { key:"treatment", icon:"💉", title:"상황별 처방(투약) 패키지", desc:"육계·산란계 농장 상황을 고르면 그에 맞는 투약(처방) 프로그램을 보여드립니다. 상황은 계속 추가됩니다.", color:"#C62828" },
-  { icon:"💬", title:"상담", desc:"농장 현안(사양·환기·질병 등)을 전문가와 1:1로 상담합니다.", color:"#1565C0" },
-  { icon:"🔍", title:"진단", desc:"계사 환경·사양관리 현황을 현장 데이터 기반으로 진단합니다.", color:"#2E7D32" },
-  { icon:"📈", title:"컨설팅", desc:"진단 결과를 바탕으로 생산성 개선 컨설팅을 제공합니다.", color:"#E65100" },
+  { icon:"💬", title:"온라인 상담", desc:"농장 현안(사양·환기·질병 등)을 전문가와 1:1로 상담합니다.", color:"#1565C0" },
+  { icon:"🔍", title:"온라인 진단", desc:"계사 환경·사양관리 현황을 현장 데이터 기반으로 진단합니다.", color:"#2E7D32" },
+  { icon:"📈", title:"온라인 컨설팅", desc:"진단 결과를 바탕으로 생산성 개선 컨설팅을 제공합니다.", color:"#E65100" },
 ];
 
 // ── 상황별 처방(투약) 패키지 ─────────────────────────────────────────────────
@@ -649,66 +639,97 @@ const PREMIUM_ITEMS = [
 // 걸러서 목록을 그릴 뿐이라 코드를 따로 안 건드려도 된다.
 // 국내는 동물용 항생제 수의사처방제(2013~) 대상이라, 항생제 계열은 상표명이
 // 아니라 "계열/성분군"까지만 적고 실제 처방은 수의사 확인을 거치도록 안내한다.
-const TREATMENT_PACKAGES = [
-  {
-    key: "broiler-ne", species: "broiler", title: "괴사성 장염(NE) 의심 시",
-    trigger: "혈변·검붉은 설사, 갑작스러운 폐사 증가, 사료섭취량 급감",
-    program: [
-      { step: "1. 원인 점검", detail: "직전 콕시듐증 발생 여부, 사료 내 단백질원 변경, 깔짚 과습을 먼저 확인합니다 — NE는 대부분 이 셋 중 하나가 방아쇠입니다." },
-      { step: "2. 항생제(수의사 처방)", detail: "클로스트리디움에 감수성 있는 계열(예: 페니실린·마크롤라이드계 등)을 수의사 처방으로 3~5일 음수 투여합니다. 계열 선택은 최근 감수성 결과를 따릅니다." },
-      { step: "3. 보조요법", detail: "전해질·비타민K(지혈)·유산균제를 함께 급여해 탈수와 장점막 회복을 돕습니다." },
-      { step: "4. 환경 조치", detail: "깔짚 습도·환기량을 즉시 재점검하고, 사료를 일시적으로 저단백·소화가 쉬운 배합으로 전환합니다." },
-    ],
-    caution: "괴사성 장염은 전조 없이 폐사가 급증할 수 있어 24시간 내 수의사 확진(부검·배양)을 함께 진행하는 것이 안전합니다.",
-  },
-  {
-    key: "broiler-crd", species: "broiler", title: "만성호흡기병(CRD/마이코플라스마) 의심 시",
-    trigger: "쌕쌕거림·기침, 결막염, 성장 불균일, 도체 폐기율 증가",
-    program: [
-      { step: "1. 원인 점검", detail: "일교차·암모니아 농도(환기 부족)·대장균 이차감염 여부를 함께 확인합니다. CRD 단독보다 복합감염이 흔합니다." },
-      { step: "2. 항생제(수의사 처방)", detail: "마이코플라스마에 감수성 있는 계열(마크롤라이드·플루오로퀴놀론 등 중 택1)을 5~7일 음수 투여합니다." },
-      { step: "3. 환기·온도 보정", detail: "야간 최소환기량을 늘리고 일교차를 줄여 호흡기 점막 자극 요인을 먼저 제거합니다 — 약을 써도 환경이 그대로면 재발합니다." },
-      { step: "4. 재발 방지", detail: "다음 입추 전 종계장 마이코플라스마 청정화 여부, 백신 프로그램(생독/사독)을 컨설턴트와 재점검합니다." },
-    ],
-    caution: "항생제만으로는 재발이 잦은 질병입니다 — 환기·밀도 등 사양관리 원인 교정이 반드시 함께 가야 합니다.",
-  },
-  {
-    key: "broiler-coccidiosis", species: "broiler", title: "콕시듐증 의심 시",
-    trigger: "혈변·점액변, 사료섭취 저하, 깃털 부스스함, 특정 주령대(2~4주령)에 집중 발생",
-    program: [
-      { step: "1. 원인 점검", detail: "깔짚 습도, 사용 중인 항콕시듐제(코시디오스탯) 내성 여부, 최근 백신 접종 여부를 확인합니다." },
-      { step: "2. 치료제 투여", detail: "설파계·암프롤리움 등 치료용 항콕시듐제를 3~5일 음수 투여합니다(예방용 사료첨가제와는 별도 처방)." },
-      { step: "3. 보조요법", detail: "전해질·비타민A·K를 함께 급여해 장점막 재생과 지혈을 돕습니다." },
-      { step: "4. 재발 방지", detail: "깔짚을 건조하게 유지하고, 다음 로테이션에서는 항콕시듐제 계열을 교체(로테이션 프로그램)해 내성을 관리합니다." },
-    ],
-    caution: "치료제 반복 사용은 내성을 키웁니다 — 같은 계열을 연속 사용하지 말고 로테이션 프로그램을 따르세요.",
-  },
-  {
-    key: "layer-egg-drop", species: "layer", title: "산란율 급락(원인 불명) 시",
-    trigger: "1주 이내 산란율 5%p 이상 급락, 연피란·기형란 증가",
-    program: [
-      { step: "1. 원인 점검", detail: "최근 사료 배합 변경, 스트레스 요인(정전·소음·백신 스트레스), 전염성기관지염(IB)·산란저하증후군(EDS) 의심 증상(호흡기·설사)을 함께 확인합니다." },
-      { step: "2. 감염성 원인 시 항생제/항바이러스 지원(수의사 판단)", detail: "세균성 이차감염이 동반되면 수의사 처방 항생제를 병행하고, 바이러스성(IB/EDS)이면 대증치료(전해질·영양) 중심으로 전환합니다." },
-      { step: "3. 영양 보정", detail: "칼슘·인 비율과 비타민D3를 재점검하고, 단기간 고칼슘 사료로 난각 강도부터 회복시킵니다." },
-      { step: "4. 스트레스 요인 제거", detail: "급이·급수·점등 스케줄을 일정하게 유지하고, 최근 계사 내 변화(신규 설비, 소음원)를 되짚어봅니다." },
-    ],
-    caution: "산란율 급락은 원인이 다양해 수의사 확진(항체가 검사 등) 없이 약제만 투여하면 오히려 회복이 늦어질 수 있습니다.",
-  },
-  {
-    key: "layer-worms", species: "layer", title: "기생충(회충증 등) 의심 시",
-    trigger: "산란율·사료효율 저하, 분변에서 충체 확인, 야외방사·평사 사육에서 흔함",
-    program: [
-      { step: "1. 원인 점검", detail: "분변검사로 충란 확인 후 구충제 투여 여부를 결정합니다 — 육안으로만 판단하지 않습니다." },
-      { step: "2. 구충제 투여(휴약기간 준수)", detail: "구충제를 처방 용법대로 급여하고, 계란 휴약기간을 반드시 지킵니다(약품조회 메뉴에서 확인)." },
-      { step: "3. 영양 보정", detail: "구충 후 1~2주는 비타민·미네랄을 보강해 회복을 돕습니다." },
-      { step: "4. 재발 방지", detail: "방사장·깔짚의 분변 제거 주기를 단축하고, 중간숙주(지렁이 등) 접촉을 줄이는 사육환경 개선을 병행합니다." },
-    ],
-    caution: "구충제도 축종·휴약기간 표기가 제품마다 다릅니다 — 반드시 약품조회 메뉴에서 해당 제품의 계란 휴약기간을 확인한 뒤 출하하세요.",
-  },
-];
+// 이제 하드코딩 배열이 아니라 GitHub에 커밋된 JSON(monthly_pick과 같은 발행
+// 방식)에서 읽는다 — 관리자가 화면에서 추가/편집/삭제하면 이 파일이 갱신되고
+// 모든 방문자에게 같은 내용이 보인다.
+const TREATMENT_PATH = "treatment_packages/latest.json";
+// PICK_REPO/PICK_BRANCH는 이 파일 뒤쪽(모듈 최상위)에서 선언되는 const라, 여기서
+// 바로 문자열로 합쳐 상수를 만들면 TDZ(선언 전 접근) ReferenceError가 난다 —
+// 실제로 겪은 버그. 그래서 URL을 쓰는 시점(fetchTreatmentPackages 안)에 매번
+// 조합하는 함수로 바꿨다.
+function treatmentJsonUrl(){
+  return "https://raw.githubusercontent.com/" + PICK_REPO + "/" + PICK_BRANCH + "/" + TREATMENT_PATH;
+}
+
+let treatmentPkgState = { status:"idle", data:null, busy:false, msg:"", adminOpen:false, editKey:null, diag:"" };
+
+async function fetchTreatmentPackages(){
+  if(treatmentPkgState.status === "loading") return;
+  treatmentPkgState.status = "loading";
+  try {
+    const r = await fetchWithTimeout(treatmentJsonUrl() + "?t=" + Date.now(), 8000);
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json();
+    j.packages = Array.isArray(j.packages) ? j.packages : [];
+    treatmentPkgState.data = j;
+    treatmentPkgState.status = "done";
+  } catch(e){
+    console.warn("상황별 처방 패키지 로딩 실패:", e);
+    treatmentPkgState.data = { packages: [], by: PICK_BY };
+    treatmentPkgState.status = "error";
+  }
+  if(premiumState.view === "treatment") render();
+}
+
+function currentTreatmentPackages(){
+  return (treatmentPkgState.data && treatmentPkgState.data.packages) || [];
+}
 
 function treatmentPackagesFor(species){
-  return TREATMENT_PACKAGES.filter(p => p.species === species);
+  return currentTreatmentPackages().filter(p => p.species === species);
+}
+
+function newTreatmentKey(){
+  return "t" + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+}
+
+// publishPicks와 똑같은 GitHub Contents API 발행 로직이라, 경로(TREATMENT_PATH)
+// 만 바꿔 그대로 재사용한다 — 토큰도 같은 것(ghToken())을 쓰므로 관리자가
+// "이달의 질병"에서 이미 등록해둔 발행 권한이 여기서도 그대로 통한다.
+async function publishTreatmentPackages(packages, message){
+  const token = ghToken();
+  if(!token) return { ok:false, error:"발행 권한이 설정되지 않았습니다." };
+  const api = "https://api.github.com/repos/" + PICK_REPO + "/contents/" + TREATMENT_PATH;
+  const head = { "Authorization": "Bearer " + token,
+                 "Accept": "application/vnd.github+json",
+                 "Content-Type": "application/json" };
+  try {
+    let sha = null;
+    const cur = await fetch(api + "?ref=" + PICK_BRANCH + "&t=" + Date.now(), { headers: head });
+    if(cur.ok) sha = (await cur.json()).sha;
+    else if(cur.status === 401) throw new Error("토큰이 거부되었습니다. '토큰 점검'으로 원인을 확인하세요.");
+    else if(cur.status === 403) throw new Error("이 토큰에는 권한이 없습니다. '토큰 점검'으로 확인하세요.");
+    else if(cur.status === 404) sha = null;
+    else throw new Error("현재 파일 확인 실패 (HTTP " + cur.status + ")");
+
+    const body = {
+      updated: new Date().toISOString().slice(0,16).replace("T"," ") + " UTC",
+      by: PICK_BY,
+      note: "상황별 처방(투약) 패키지 — 화면에서 저장하면 이 파일이 갱신되고 모든 사람에게 같은 내용이 보입니다.",
+      packages: packages,
+    };
+    const res = await fetch(api, {
+      method: "PUT", headers: head,
+      body: JSON.stringify({
+        message: message || "💉 상황별 처방 패키지 갱신",
+        content: b64utf8(JSON.stringify(body, null, 1)),
+        branch: PICK_BRANCH,
+        sha: sha || undefined,
+      }),
+    });
+    if(!res.ok){
+      const t = await res.text();
+      let apiMsg = ""; try { apiMsg = JSON.parse(t).message || ""; } catch(e){}
+      if(res.status === 401) throw new Error("토큰이 올바르지 않거나 만료되었습니다." + (apiMsg?" ("+apiMsg+")":""));
+      if(res.status === 403) throw new Error("발행이 거부됐습니다(HTTP 403)." + (apiMsg?" GitHub 응답: "+apiMsg:" 토큰 권한을 다시 확인하세요."));
+      if(res.status === 409) throw new Error("다른 곳에서 먼저 수정됐습니다. 새로고침 후 다시 시도하세요.");
+      throw new Error("발행 실패 (HTTP " + res.status + ") " + (apiMsg || t.slice(0,120)));
+    }
+    treatmentPkgState.data = body;
+    return { ok:true };
+  } catch(e) {
+    return { ok:false, error: e.message || String(e) };
+  }
 }
 
 async function fetchPremiumApproved(){
@@ -719,7 +740,6 @@ async function fetchPremiumApproved(){
     if(!resp.ok) throw new Error("HTTP " + resp.status);
     const data = await resp.json();
     premiumState.approvedEmails = (data.emails || []).map(e => String(e).toLowerCase().trim());
-    premiumState.approvedPhones = (data.phones || []).map(normalizePhoneKr);
     premiumState.status = "done";
   } catch(e){
     console.warn("유료서비스 승인목록 로딩 실패:", e);
@@ -732,7 +752,6 @@ function isPremiumApproved(){
   const user = premiumState.user;
   if(!user) return false;
   if(user.email && premiumState.approvedEmails.includes(user.email.toLowerCase())) return true;
-  if(user.phoneNumber && premiumState.approvedPhones.includes(user.phoneNumber)) return true;
   return false;
 }
 
@@ -743,52 +762,6 @@ function premiumSignInGoogle(){
     console.warn("구글 로그인 실패:", e);
     alert("로그인에 실패했습니다: " + (e.message || e));
   });
-}
-
-// 전화번호 로그인/가입 — 최초 인증이 곧 가입이라 구글과 동일하게 별도 가입 절차가
-// 없다. 문자(SMS) 인증은 Firebase가 요구하는 reCAPTCHA 검증이 한 번 필요해
-// invisible reCAPTCHA를 그때그때 새로 만들어 쓴다(렌더할 때마다 DOM이 새로
-// 그려지므로 컨테이너를 캐싱하지 않는다). Blaze(종량제) 요금제가 켜져 있어야
-// 실제 SMS가 발송된다.
-function premiumSignInPhone(){
-  if(!firebaseReady){ alert("Firebase 설정이 아직 완료되지 않았습니다."); return; }
-  let phone = prompt("휴대폰 번호를 입력하세요. 예) 01012345678");
-  if(!phone) return;
-  phone = normalizePhoneKr(phone);
-
-  const container = document.getElementById("premium-recaptcha-container");
-  if(!container){ alert("로그인 화면을 새로고침한 뒤 다시 시도해 주세요."); return; }
-  // 이전 시도의 reCAPTCHA 위젯이 같은 컨테이너에 남아있으면 "already been
-  // rendered in this element" 오류가 나므로, 만들기 전에 항상 비운다.
-  if(window.__premiumRecaptcha){
-    try{ window.__premiumRecaptcha.clear(); }catch(e){}
-    window.__premiumRecaptcha = null;
-  }
-  container.innerHTML = "";
-  const verifier = new firebase.auth.RecaptchaVerifier(container, { size: "invisible" });
-  window.__premiumRecaptcha = verifier;
-
-  firebase.auth().signInWithPhoneNumber(phone, verifier)
-    .then(confirmationResult => {
-      const code = prompt("문자로 받은 인증번호 6자리를 입력하세요.");
-      if(!code) return;
-      return confirmationResult.confirm(code.trim()).catch(e => {
-        console.warn("인증번호 확인 실패:", e);
-        alert("인증번호가 올바르지 않습니다.");
-      });
-    })
-    .catch(e => {
-      console.warn("전화번호 로그인 실패:", e);
-      const msg = e.code==="auth/invalid-phone-number" ? "전화번호 형식이 올바르지 않습니다."
-        : e.code==="auth/too-many-requests" ? "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요."
-        : "인증에 실패했습니다: " + (e.message || e);
-      alert(msg);
-    })
-    .finally(() => {
-      try{ verifier.clear(); }catch(e){}
-      container.innerHTML = "";
-      window.__premiumRecaptcha = null;
-    });
 }
 
 // 이메일/비밀번호 계정은 회원이 직접 만들지 않는다 — 관리자가 Firebase 콘솔
@@ -3115,7 +3088,20 @@ function renderResearchPanel(){
 }
 
 // ── 상황별 처방(투약) 패키지 화면 ────────────────────────────────────────────
-let treatmentTabState = { species: "broiler", openKey: null };
+let treatmentTabState = { species: "broiler", openKey: null, adminOpen: false, formKey: undefined };
+
+// 관리(추가/편집) 폼에 넣을 값 — null이면 새로 추가하는 중, 객체면 그 항목을 편집 중.
+// 프로그램 단계는 "제목|설명" 한 줄씩 textarea로 입력받아 저장할 때 배열로 바꾼다
+// (동적 행 추가 UI보다 훨씬 간단하면서도, 몇 단계든 자유롭게 넣고 뺄 수 있다).
+function treatmentProgramToText(program){
+  return (program||[]).map(s => `${s.step}|${s.detail}`).join("\n");
+}
+function treatmentProgramFromText(text){
+  return String(text||"").split("\n").map(l=>l.trim()).filter(Boolean).map(line=>{
+    const idx = line.indexOf("|");
+    return idx===-1 ? { step: line, detail: "" } : { step: line.slice(0,idx).trim(), detail: line.slice(idx+1).trim() };
+  }).filter(s=>s.step);
+}
 
 function renderTreatmentPanel(){
   const head = `
@@ -3127,6 +3113,15 @@ function renderTreatmentPanel(){
     <button id="treatment-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button>
   </div>`;
 
+  const st = treatmentPkgState;
+  if(st.status === "idle" || st.status === "loading"){
+    return head + `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⏳ 상황 목록을 불러오는 중...</div>`;
+  }
+  if(st.status === "error" || !st.data){
+    return head + `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⚠️ 상황 목록을 불러오지 못했습니다.</div>`;
+  }
+
+  const admin = !!ghToken();
   const speciesBtns = [
     { key:"broiler", label:"🐔 육계" },
     { key:"layer", label:"🥚 산란계" },
@@ -3139,12 +3134,19 @@ function renderTreatmentPanel(){
     const open = treatmentTabState.openKey === p.key;
     return `
     <div class="card" style="border-top:4px solid #C62828;margin-bottom:10px;padding:16px">
-      <div class="treatment-toggle" data-key="${p.key}" style="cursor:pointer;display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
-        <div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+        <div class="treatment-toggle" data-key="${p.key}" style="cursor:pointer;flex:1;min-width:0">
           <div style="font-size:14px;font-weight:800;color:#333">${esc(p.title)}</div>
           <div style="font-size:11px;color:#888;margin-top:4px">${esc(p.trigger)}</div>
         </div>
-        <span style="font-size:11px;color:#C62828;font-weight:700;white-space:nowrap">${open?"접기 ▲":"처방 보기 ▼"}</span>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
+          <span class="treatment-toggle" data-key="${p.key}" style="cursor:pointer;font-size:11px;color:#C62828;font-weight:700;white-space:nowrap">${open?"접기 ▲":"처방 보기 ▼"}</span>
+          ${admin ? `
+          <div style="white-space:nowrap">
+            <button class="treatment-edit-btn" data-key="${p.key}" style="font-size:10px;border:1px solid #C62828;border-radius:5px;background:#fff;color:#C62828;padding:3px 8px;margin-right:4px">편집</button>
+            <button class="treatment-del-btn" data-key="${p.key}" style="font-size:10px;border:1px solid #eee;border-radius:5px;background:#fff;color:#bbb;padding:3px 8px">삭제</button>
+          </div>` : ""}
+        </div>
       </div>
       ${open ? `
       <div style="margin-top:12px;padding-top:12px;border-top:1px dashed #eee">
@@ -3154,24 +3156,51 @@ function renderTreatmentPanel(){
           <div style="font-size:12.5px;color:#444;line-height:1.6;margin-top:2px">${esc(s.detail)}</div>
         </div>`).join("")}
         <div style="font-size:11px;color:#8D6E00;background:#FFF8E1;border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.6">⚠️ ${esc(p.caution)}</div>
+        ${admin ? `<button class="treatment-sms-btn" data-key="${p.key}" style="margin-top:10px;border:1px solid #2E7D32;border-radius:7px;background:#fff;color:#2E7D32;padding:6px 12px;font-size:11px;font-weight:600">📱 문자로 보내기</button>` : ""}
       </div>` : ""}
     </div>`;
-  }).join("") : `<div class="card" style="text-align:center;padding:28px 16px;color:#aaa">아직 등록된 상황이 없습니다. 곧 추가됩니다.</div>`;
+  }).join("") : `<div class="card" style="text-align:center;padding:28px 16px;color:#aaa">아직 등록된 상황이 없습니다.${admin?"":" 곧 추가됩니다."}</div>`;
+
+  const editing = treatmentTabState.formKey && list.concat(currentTreatmentPackages()).find(p=>p.key===treatmentTabState.formKey);
+  const adminBox = !admin ? "" : `
+  <div style="margin-top:16px;border-top:1px dashed #eee;padding-top:12px">
+    <button id="treatment-admin-toggle" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:3px 9px">${treatmentTabState.adminOpen?"관리 닫기":"⚙ 관리"}</button>
+    ${treatmentPkgState.msg?`<span style="font-size:11px;margin-left:8px;color:${/실패|오류|않|없/.test(treatmentPkgState.msg)?"#C62828":"#2E7D32"}">${esc(treatmentPkgState.msg)}</span>`:""}
+    ${treatmentTabState.adminOpen ? `
+    <div style="margin-top:9px;background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">
+      <div style="font-size:11px;font-weight:700;color:#7A5C00;margin-bottom:8px">${editing?"상황 수정: "+esc(editing.title):"새 상황 추가"} (${treatmentTabState.species==="broiler"?"육계":"산란계"})</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+        <input id="tp-title" type="text" placeholder="상황 제목 (예: 괴사성 장염 의심 시)" value="${esc(editing?editing.title:"")}"
+          style="flex:1;min-width:180px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+        <input id="tp-trigger" type="text" placeholder="증상/징후 (예: 혈변, 폐사 증가...)" value="${esc(editing?editing.trigger:"")}"
+          style="flex:1;min-width:180px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />
+      </div>
+      <textarea id="tp-program" placeholder="한 줄에 한 단계씩, '단계제목|설명' 형식으로 입력${"\n"}예) 1. 원인 점검|깔짚 습도와 백신 이력을 확인합니다."
+        style="width:100%;min-height:110px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:6px">${esc(editing?treatmentProgramToText(editing.program):"")}</textarea>
+      <textarea id="tp-caution" placeholder="주의사항"
+        style="width:100%;min-height:50px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:8px">${esc(editing?editing.caution:"")}</textarea>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <button id="tp-save" ${treatmentPkgState.busy?"disabled":""} style="border:1px solid #B8860B;background:${treatmentPkgState.busy?"#ccc":"#B8860B"};color:#fff;border-radius:7px;padding:7px 15px;font-size:12px;font-weight:600">${treatmentPkgState.busy?"발행 중...":(editing?"수정 발행":"추가 발행")}</button>
+        ${editing?`<button id="tp-cancel" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:6px 10px">취소</button>`:""}
+      </div>
+    </div>` : ""}
+  </div>`;
 
   return head + `
   <div style="display:flex;gap:8px;margin-bottom:14px">${speciesBtns}</div>
   ${cards}
+  ${adminBox}
   <div style="font-size:9px;color:#aaa;line-height:1.6;margin-top:6px">
     ※ 항생제·구충제 등은 국내 동물용의약품 수의사처방제 대상입니다 — 여기 나온 계열·단계는 참고 프로그램이며,
     실제 투약은 반드시 수의사 처방·지도를 거쳐 진행하세요. 계란·계육 출하 전에는 약품조회 메뉴에서 휴약기간을 꼭 확인하세요.
-    새로운 상황은 계속 추가될 예정입니다.
+    새로운 상황은 계속 추가됩니다.
   </div>`;
 }
 
 function premiumUserLabel(){
-  const user = premiumState.user;
-  if(!user) return "";
-  return user.email || user.phoneNumber || "";
+  return (premiumState.user && premiumState.user.email) || "";
 }
 
 function renderPremiumGateHeader(){
@@ -3248,10 +3277,9 @@ function renderPremiumTab(){
     <div class="card" style="text-align:center;padding:32px 16px">
       <div style="font-size:30px;margin-bottom:10px">🔒</div>
       <div class="display" style="font-size:15px;margin-bottom:8px">승인된 회원만 이용할 수 있습니다</div>
-      <div style="font-size:12px;color:#888;margin-bottom:20px;line-height:1.7">구글 계정·전화번호는 로그인하면 바로 가입됩니다.<br>이메일 계정은 회원가입 없이, 관리자에게 전달받은 아이디(이메일)·비밀번호로 로그인해 주세요.<br>로그인 후에도 관리자 승인 전까지는 상담·진단·컨설팅 내용을 볼 수 없습니다.</div>
+      <div style="font-size:12px;color:#888;margin-bottom:20px;line-height:1.7">구글 계정은 로그인하면 바로 가입됩니다.<br>이메일 계정은 회원가입 없이, 관리자에게 전달받은 아이디(이메일)·비밀번호로 로그인해 주세요.<br>로그인 후에도 관리자 승인 전까지는 상담·진단·컨설팅 내용을 볼 수 없습니다.</div>
       <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:14px">
         <button id="btn-premium-google" style="border:1px solid #ddd;border-radius:10px;background:#fff;color:#333;padding:12px 24px;font-size:13px;font-weight:600">🔵 Google로 로그인/가입</button>
-        <button id="btn-premium-phone" style="border:1px solid #2E7D32;border-radius:10px;background:#fff;color:#2E7D32;padding:12px 24px;font-size:13px;font-weight:600">📱 전화번호로 로그인/가입</button>
       </div>
       <div style="border-top:1px dashed #eee;padding-top:14px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
         <button id="btn-premium-email" style="border:1px solid #1a2744;border-radius:10px;background:#fff;color:#1a2744;padding:12px 24px;font-size:13px;font-weight:600">✉️ 이메일로 로그인</button>
@@ -3259,7 +3287,6 @@ function renderPremiumTab(){
       <div style="margin-top:12px">
         <button id="btn-premium-reset" style="border:none;background:none;color:#888;font-size:11px;text-decoration:underline;cursor:pointer">비밀번호를 잊으셨나요?</button>
       </div>
-      <div id="premium-recaptcha-container"></div>
       ${renderPremiumSignupGuide()}
       ${renderPremiumPreview()}
     </div>`;
@@ -3300,6 +3327,7 @@ function renderPremiumTab(){
   }
   // 상황별 처방(투약) 패키지 화면
   if(premiumState.view === "treatment"){
+    if(treatmentPkgState.status === "idle") fetchTreatmentPackages();
     return renderPremiumGateHeader() + logoutBar + renderTreatmentPanel();
   }
 
@@ -7495,8 +7523,6 @@ function attachEvents(){
   // 유료서비스: 로그인/로그아웃
   const pgBtn = document.getElementById("btn-premium-google");
   if(pgBtn) pgBtn.onclick = premiumSignInGoogle;
-  const ppBtn = document.getElementById("btn-premium-phone");
-  if(ppBtn) ppBtn.onclick = premiumSignInPhone;
   const peBtn = document.getElementById("btn-premium-email");
   if(peBtn) peBtn.onclick = premiumSignInEmail;
   const prBtn = document.getElementById("btn-premium-reset");
@@ -7532,6 +7558,79 @@ function attachEvents(){
     const key = b.dataset.key;
     treatmentTabState.openKey = treatmentTabState.openKey === key ? null : key;
     render();
+  });
+  const treatmentAdminToggle = document.getElementById("treatment-admin-toggle");
+  if(treatmentAdminToggle) treatmentAdminToggle.onclick = ()=>{
+    treatmentTabState.adminOpen = !treatmentTabState.adminOpen;
+    treatmentTabState.formKey = undefined;
+    treatmentPkgState.msg = "";
+    render();
+  };
+  document.querySelectorAll(".treatment-edit-btn").forEach(b=>b.onclick=()=>{
+    treatmentTabState.adminOpen = true;
+    treatmentTabState.formKey = b.dataset.key;
+    treatmentPkgState.msg = "";
+    render();
+  });
+  const treatmentCancelBtn = document.getElementById("tp-cancel");
+  if(treatmentCancelBtn) treatmentCancelBtn.onclick = ()=>{ treatmentTabState.formKey = undefined; render(); };
+
+  document.querySelectorAll(".treatment-del-btn").forEach(b=>b.onclick=async ()=>{
+    const key = b.dataset.key;
+    const pkg = currentTreatmentPackages().find(p=>p.key===key);
+    if(!pkg || !confirm(`"${pkg.title}" 항목을 삭제할까요?`)) return;
+    const next = currentTreatmentPackages().filter(p=>p.key!==key);
+    treatmentPkgState.busy = true; treatmentPkgState.msg = "발행 중..."; render();
+    const r = await publishTreatmentPackages(next, "💉 상황별 처방 패키지 삭제: " + pkg.title);
+    treatmentPkgState.busy = false;
+    treatmentPkgState.msg = r.ok ? "삭제 완료 — 모두에게 반영됩니다" : ("발행 실패: " + r.error);
+    if(r.ok && treatmentTabState.openKey===key) treatmentTabState.openKey = null;
+    render();
+  });
+
+  const treatmentSaveBtn = document.getElementById("tp-save");
+  if(treatmentSaveBtn) treatmentSaveBtn.onclick = async ()=>{
+    const title = (document.getElementById("tp-title")?.value || "").trim();
+    const trigger = (document.getElementById("tp-trigger")?.value || "").trim();
+    const program = treatmentProgramFromText(document.getElementById("tp-program")?.value);
+    const caution = (document.getElementById("tp-caution")?.value || "").trim();
+    if(!title){ alert("상황 제목을 입력하세요."); return; }
+    if(!program.length){ alert("투약 프로그램을 한 줄 이상 입력하세요. ('단계제목|설명' 형식)"); return; }
+
+    const packages = currentTreatmentPackages().slice();
+    const editKey = treatmentTabState.formKey;
+    if(editKey){
+      const idx = packages.findIndex(p=>p.key===editKey);
+      if(idx>=0) packages[idx] = Object.assign({}, packages[idx], { title, trigger, program, caution });
+    } else {
+      packages.push({ key:newTreatmentKey(), species:treatmentTabState.species, title, trigger, program, caution });
+    }
+    treatmentPkgState.busy = true; treatmentPkgState.msg = "발행 중..."; render();
+    const r = await publishTreatmentPackages(packages, "💉 상황별 처방 패키지 " + (editKey?"수정":"추가") + ": " + title);
+    treatmentPkgState.busy = false;
+    treatmentPkgState.msg = r.ok ? "발행 완료 — 모두에게 반영됩니다" : ("발행 실패: " + r.error);
+    if(r.ok) treatmentTabState.formKey = undefined;
+    render();
+  };
+
+  // 처방 내용을 문자로 보내기 — 알리고 SMS는 고정 IP에서만 호출이 허용돼
+  // GitHub Pages(브라우저)에서 바로 못 부른다. 그래서 문자 내용을 만들어
+  // 클립보드에 복사해주고, 실제 발송은 문자 앱(또는 별도 중계 서버)에서
+  // 하도록 안내한다.
+  document.querySelectorAll(".treatment-sms-btn").forEach(b=>b.onclick=async ()=>{
+    const key = b.dataset.key;
+    const pkg = currentTreatmentPackages().find(p=>p.key===key);
+    if(!pkg) return;
+    const lines = [`[상황별 처방] ${pkg.title}`, `증상: ${pkg.trigger}`, ""];
+    pkg.program.forEach(s => lines.push(`${s.step}: ${s.detail}`));
+    lines.push("", "⚠ " + pkg.caution);
+    const text = lines.join("\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      alert("문자 내용을 클립보드에 복사했습니다.\n문자 앱에 붙여넣어 발송해 주세요.");
+    } catch(e){
+      prompt("아래 내용을 복사해 문자 앱에 붙여넣어 주세요:", text);
+    }
   });
 
   // 약품조회 및 휴약기간 검색
