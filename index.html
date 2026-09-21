@@ -3173,7 +3173,43 @@ function treatmentProgramFromText(text){
 // 다시 읽어올 방법이 없고, 설령 있어도 평문으로 어딘가(GitHub 커밋 포함)에
 // 저장해두는 건 보안상 하면 안 된다. 계정 생성·비밀번호 설정은 계속
 // Firebase 콘솔에서 하고, 여기서는 이름·전화번호·가입일·만료일만 관리한다.
-let memberMgmtState = { formOpen:false, editEmail:null, msg:"", busy:false };
+let memberMgmtState = { formOpen:false, editEmail:null, msg:"", busy:false, genPassword:"" };
+
+// 회원가입 시 사용하기 쉬우면서도 어느 정도 안전한 임시 비밀번호를 만든다
+// (헷갈리는 0/O, 1/l/I은 뺐다 — 문자로 옮겨 적어 전달하는 방식이라서다).
+function generateTempPassword(){
+  const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+  let out = "";
+  for(let i=0;i<10;i++) out += chars[Math.floor(Math.random()*chars.length)];
+  return out;
+}
+
+// 관리자가 로그인한 상태 그대로 새 계정을 만들기 위해, Firebase 클라이언트
+// SDK를 "보조 앱" 인스턴스로 하나 더 띄워서 거기서만 createUserWithEmailAndPassword를
+// 호출한다 — 기본 앱(firebase.auth())에서 이 함수를 호출하면 로그인 세션이
+// 방금 만든 새 계정으로 바뀌어버려(=관리자 본인이 로그아웃된 것처럼 보임)
+// 곤란하다. 서버 쪽 Admin SDK 없이도 클라이언트에서 이 부작용만 피하는 표준
+// 방법이다. 쓰고 나면 보조 앱은 즉시 정리한다.
+async function createFirebaseMemberAccount(email, password){
+  if(!firebaseReady) return { ok:false, error:"Firebase 설정이 아직 완료되지 않았습니다." };
+  const name = "member-create-" + Date.now();
+  let secondaryApp;
+  try {
+    secondaryApp = firebase.initializeApp(FIREBASE_CONFIG, name);
+    const secondaryAuth = secondaryApp.auth();
+    await secondaryAuth.createUserWithEmailAndPassword(email, password);
+    await secondaryAuth.signOut();
+    return { ok:true };
+  } catch(e){
+    const msg = e.code==="auth/email-already-in-use" ? "이미 Firebase에 등록된 이메일입니다."
+      : e.code==="auth/weak-password" ? "비밀번호는 6자 이상이어야 합니다."
+      : e.code==="auth/invalid-email" ? "이메일 형식이 올바르지 않습니다."
+      : "계정 생성 실패: " + (e.message || e);
+    return { ok:false, error: msg, code: e.code };
+  } finally {
+    if(secondaryApp) try{ await secondaryApp.delete(); }catch(e){}
+  }
+}
 
 function renderMemberManagePanel(){
   const head = `
@@ -3229,6 +3265,14 @@ function renderMemberManagePanel(){
         <input id="mm-phone" type="text" placeholder="전화번호 (010-1234-5678)" value="${esc(editing?editing.phone||"":"")}"
           style="flex:1;min-width:140px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />
       </div>
+      ${!editing ? `
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;align-items:center">
+        <input id="mm-password" type="text" placeholder="비밀번호 (6자 이상) — Firebase 계정을 함께 만듭니다" value="${esc(memberMgmtState.genPassword||"")}"
+          style="flex:1;min-width:200px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:monospace" />
+        <button id="mm-gen-password" type="button" style="font-size:11px;border:1px solid #37474F;border-radius:6px;background:#fff;color:#37474F;padding:7px 10px">🎲 자동생성</button>
+      </div>
+      <div style="font-size:9.5px;color:#aaa;margin:-3px 0 8px">비워두면 Firebase 계정은 안 만들고 회원 정보만 등록합니다(이미 계정이 있는 경우).</div>
+      ` : ""}
       <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
         <div style="flex:1;min-width:140px">
           <div style="font-size:10px;color:#888;margin-bottom:3px">가입일</div>
@@ -7807,6 +7851,7 @@ function attachEvents(){
   if(memberAddBtn) memberAddBtn.onclick = ()=>{
     memberMgmtState.formOpen = true;
     memberMgmtState.editEmail = null;
+    memberMgmtState.genPassword = generateTempPassword();
     memberMgmtState.msg = "";
     render();
   };
@@ -7814,6 +7859,7 @@ function attachEvents(){
   if(memberCancelBtn) memberCancelBtn.onclick = ()=>{
     memberMgmtState.formOpen = false;
     memberMgmtState.editEmail = null;
+    memberMgmtState.genPassword = "";
     render();
   };
   document.querySelectorAll(".member-edit-btn").forEach(b=>b.onclick=()=>{
@@ -7833,6 +7879,13 @@ function attachEvents(){
     memberMgmtState.msg = r.ok ? "삭제 완료" : ("발행 실패: " + r.error);
     render();
   });
+  const genPwBtn = document.getElementById("mm-gen-password");
+  if(genPwBtn) genPwBtn.onclick = ()=>{
+    const pw = generateTempPassword();
+    memberMgmtState.genPassword = pw;
+    const el = document.getElementById("mm-password");
+    if(el) el.value = pw;
+  };
   const memberSaveBtn = document.getElementById("mm-save");
   if(memberSaveBtn) memberSaveBtn.onclick = async ()=>{
     const emailInput = document.getElementById("mm-email");
@@ -7841,6 +7894,7 @@ function attachEvents(){
     const phone = (document.getElementById("mm-phone")?.value || "").trim();
     const joined = document.getElementById("mm-joined")?.value || "";
     const expires = document.getElementById("mm-expires")?.value || "";
+    const password = (document.getElementById("mm-password")?.value || "").trim();
     if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ alert("올바른 이메일 형식을 입력하세요."); return; }
 
     const members = (premiumState.members||[]).slice();
@@ -7852,11 +7906,44 @@ function attachEvents(){
       if(members.some(m=>m.email===email)){ alert("이미 등록된 이메일입니다."); return; }
       members.push({ email, name, phone, joined, expires });
     }
+
+    // 새 회원을 추가하는 경우에만, 그리고 비밀번호를 입력했을 때만 Firebase
+    // 계정을 함께 만든다. 편집 중이거나 비밀번호를 비워뒀으면(이미 계정이
+    // 있는 회원을 등록하는 경우) 이 단계는 건너뛴다.
+    if(!editEmail && password){
+      if(password.length < 6){ alert("비밀번호는 6자 이상이어야 합니다."); return; }
+      memberMgmtState.busy = true; memberMgmtState.msg = "Firebase 계정 생성 중..."; render();
+      const acc = await createFirebaseMemberAccount(email, password);
+      if(!acc.ok){
+        memberMgmtState.busy = false;
+        if(acc.code === "auth/email-already-in-use"){
+          if(!confirm(acc.error + "\n\n이미 있는 계정이라면 그대로 회원 정보만 등록할까요?")){
+            memberMgmtState.msg = "";
+            render();
+            return;
+          }
+          // 계속 진행 — 아래에서 회원 정보(메타데이터)만 발행한다
+        } else {
+          memberMgmtState.msg = acc.error;
+          render();
+          return;
+        }
+      }
+    }
+
     memberMgmtState.busy = true; memberMgmtState.msg = "발행 중..."; render();
     const r = await publishMembers(members, "👤 회원 " + (editEmail?"수정":"추가") + ": " + email);
     memberMgmtState.busy = false;
     memberMgmtState.msg = r.ok ? "발행 완료" : ("발행 실패: " + r.error);
-    if(r.ok){ memberMgmtState.formOpen = false; memberMgmtState.editEmail = null; }
+    if(r.ok){
+      memberMgmtState.formOpen = false;
+      memberMgmtState.editEmail = null;
+      memberMgmtState.genPassword = "";
+      if(!editEmail && password){
+        try { await navigator.clipboard.writeText(`아이디: ${email}\n비밀번호: ${password}`); } catch(e){}
+        alert(`계정이 생성됐습니다.\n아이디: ${email}\n비밀번호: ${password}\n\n(클립보드에 복사했습니다 — 회원에게 문자로 전달하세요)`);
+      }
+    }
     render();
   };
 
