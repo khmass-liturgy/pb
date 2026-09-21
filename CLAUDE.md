@@ -17,13 +17,22 @@ external sources server-side and commit the resulting JSON back into this repo. 
 reads the committed JSON. A few panels (news RSS, some board scraping) still fetch directly from the
 browser through public CORS proxies — see `CORS_PROXIES` in index.html.
 
-One piece is **not** static: `functions/` holds two Firebase Cloud Functions
-(`resetMemberAccount`, `deleteMemberAccount`) used only by the admin-only 회원관리 (member
-management) screen inside the 유료서비스 tab, because deleting *another* user's Firebase Auth
-account requires Admin SDK privileges the browser's client SDK doesn't have. They're guarded by
-checking the caller's verified Firebase ID token email against `ADMIN_EMAILS` in
-`functions/index.js` — no separate secret. Deploy with `firebase deploy --only functions` (requires
-`firebase-tools` and `firebase login` once); nothing else in this repo needs a build/deploy step.
+Two pieces are **not** static, both Firebase, both under the 유료서비스 tab:
+
+- `functions/` holds two Cloud Functions (`resetMemberAccount`, `deleteMemberAccount`) used only by
+  the admin-only 회원관리 (member management) screen, because deleting *another* user's Firebase
+  Auth account requires Admin SDK privileges the browser's client SDK doesn't have. Guarded by
+  checking the caller's verified Firebase ID token email against `ADMIN_EMAILS` in
+  `functions/index.js` — no separate secret. Deploy with `firebase deploy --only functions`.
+- `storage.rules` guards Firebase Storage, used by the 온라인 진단/상담/컨설팅 boards
+  (`PREMIUM_BOARDS` in index.html) to store member-submitted posts, photos and the vet's replies —
+  each under a `premium_board/{boardType}/{uid}/{postId}/` folder that only its owner and
+  `ADMIN_EMAILS`-listed accounts can read/write (mirrors `functions/index.js`'s admin list — keep
+  both in sync). This data is per-member-private, unlike everything else in this repo, so it can't
+  use the public-GitHub-commit pattern below. Deploy with `firebase deploy --only storage`.
+
+Both need `firebase-tools` and `firebase login` once; nothing else in this repo needs a build/deploy
+step.
 
 ## Architecture: the fetch-script → JSON → dashboard pipeline
 
