@@ -77,6 +77,10 @@
   .board-link:hover { filter: brightness(0.96); }
   .hidden { display: none !important; }
 
+  /* 온라인 자가진단: 닭 그림 위 클릭 가능한 부위(hotspot) */
+  .selfcheck-hotspot { cursor: pointer; transition: fill-opacity 0.15s; }
+  .selfcheck-hotspot:hover { fill-opacity: 0.35 !important; }
+
   /* ── 반응형 레이아웃 ──
      모바일에서는 고정 폭을 줄여서 억지로 맞추지 않고, 콘텐츠의
      우선순위에 따라 헤더/카드/표를 재배치한다. */
@@ -641,6 +645,7 @@ const PREMIUM_ITEMS = [
   { key:"treatment", icon:"💉", title:"상황별 처방(투약) 패키지", desc:"육계·산란계 농장 상황을 고르면 그에 맞는 투약(처방) 프로그램을 보여드립니다. 상황은 계속 추가됩니다.", color:"#C62828" },
   { key:"seasonal", icon:"🗓️", title:"계절별 투약(관리) 패키지", desc:"봄·여름·가을·겨울 시기별로 챙겨야 할 투약(백신)과 사양관리 주의사항을 안내합니다.", color:"#795548" },
   { key:"finder", icon:"🎯", title:"내 농장에 맞는 약품 찾기", desc:"축종과 문제 증상을 단계별로 선택하면 진단·원인 분석과 추천 처방을 보여드립니다.", color:"#283593" },
+  { key:"selfcheck", icon:"🐔", title:"온라인 자가진단", desc:"닭 그림에서 부위를 클릭하면 그 부위에서 흔히 나타나는 질병 목록을 보여드립니다.", color:"#AD1457" },
   { key:"consult", icon:"💬", title:"온라인 상담", desc:"농장 현안(사양·환기·질병 등)을 질문하면 최동명 수의사가 답변합니다. 사진 첨부 가능, 답변은 작성자만 볼 수 있습니다.", color:"#1565C0" },
   { key:"diagnosis", icon:"🔍", title:"온라인 진단", desc:"닭의 외부모습·분변상태·부검사진(기관지·간·신장·소장)을 올리면 최동명 수의사가 직접 진단합니다.", color:"#2E7D32" },
   { key:"consulting", icon:"📈", title:"온라인 컨설팅", desc:"농장 운영·질병 현황을 바탕으로 맞춤 투약·백신 프로그램을 작성해 드립니다. 답변은 작성자만 볼 수 있습니다.", color:"#E65100" },
@@ -1001,6 +1006,112 @@ async function publishFarmFinderCases(cases, message){
       throw new Error("발행 실패 (HTTP " + res.status + ") " + (apiMsg || t.slice(0,120)));
     }
     finderPkgState.data = body;
+    return { ok:true };
+  } catch(e) {
+    return { ok:false, error: e.message || String(e) };
+  }
+}
+
+// ── 온라인 자가진단 (닭 그림에서 부위 클릭 → 그 부위에 흔한 질병 목록) ─────────
+// 부위(BODY_PARTS)는 화면에 그린 SVG 그림의 클릭 영역과 1:1로 맞춰야 하므로
+// 고정 목록이다(축종처럼). 그 부위에 속한 질병 목록은 다른 발행형 데이터와
+// 같은 방식(GitHub Contents API 커밋)으로 관리자가 계속 추가/편집/삭제한다.
+const BODY_PARTS = [
+  { key:"head", label:"머리·볏", icon:"🔴" },
+  { key:"eyes", label:"눈", icon:"👁" },
+  { key:"respiratory", label:"호흡기(기관·폐)", icon:"🫁" },
+  { key:"crop", label:"소낭(모이주머니)", icon:"🍽" },
+  { key:"liver", label:"간", icon:"🟤" },
+  { key:"kidney", label:"신장", icon:"🫘" },
+  { key:"intestine", label:"장(소화기)", icon:"🌀" },
+  { key:"legs", label:"다리·관절", icon:"🦵" },
+  { key:"skin", label:"피부·깃털", icon:"🪶" },
+  { key:"reproductive", label:"산란기관(생식기)", icon:"🥚" },
+  { key:"vent", label:"총배설강", icon:"⭕" },
+];
+function bodyPartLabel(key){
+  const p = BODY_PARTS.find(p=>p.key===key);
+  return p ? p.label : key;
+}
+
+const SELFCHECK_PATH = "self_check/latest.json";
+function selfCheckJsonUrl(){
+  return "https://raw.githubusercontent.com/" + PICK_REPO + "/" + PICK_BRANCH + "/" + SELFCHECK_PATH;
+}
+
+let selfCheckPkgState = { status:"idle", data:null, busy:false, msg:"" };
+// part만 선택하면 되는 단순한 화면이라(하위 단계가 없다) 마법사 상태도
+// finderNavState보다 단순하다.
+let selfCheckNavState = { part:null, adminOpen:false, formKey:undefined };
+
+async function fetchSelfCheckDiseases(){
+  if(selfCheckPkgState.status === "loading") return;
+  selfCheckPkgState.status = "loading";
+  try {
+    const r = await fetchWithTimeout(selfCheckJsonUrl() + "?t=" + Date.now(), 8000);
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json();
+    j.diseases = Array.isArray(j.diseases) ? j.diseases : [];
+    selfCheckPkgState.data = j;
+    selfCheckPkgState.status = "done";
+  } catch(e){
+    console.warn("온라인 자가진단 데이터 로딩 실패:", e);
+    selfCheckPkgState.data = { diseases: [], by: PICK_BY };
+    selfCheckPkgState.status = "error";
+  }
+  if(premiumState.view === "selfcheck") render();
+}
+
+function currentSelfCheckDiseases(){
+  return (selfCheckPkgState.data && selfCheckPkgState.data.diseases) || [];
+}
+function selfCheckDiseasesFor(part){
+  return currentSelfCheckDiseases().filter(d => d.part === part);
+}
+function newSelfCheckKey(){
+  return "d" + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+}
+
+async function publishSelfCheckDiseases(diseases, message){
+  const token = ghToken();
+  if(!token) return { ok:false, error:"발행 권한이 설정되지 않았습니다." };
+  const api = "https://api.github.com/repos/" + PICK_REPO + "/contents/" + SELFCHECK_PATH;
+  const head = { "Authorization": "Bearer " + token,
+                 "Accept": "application/vnd.github+json",
+                 "Content-Type": "application/json" };
+  try {
+    let sha = null;
+    const cur = await fetch(api + "?ref=" + PICK_BRANCH + "&t=" + Date.now(), { headers: head });
+    if(cur.ok) sha = (await cur.json()).sha;
+    else if(cur.status === 401) throw new Error("토큰이 거부되었습니다. '토큰 점검'으로 원인을 확인하세요.");
+    else if(cur.status === 403) throw new Error("이 토큰에는 권한이 없습니다. '토큰 점검'으로 확인하세요.");
+    else if(cur.status === 404) sha = null;
+    else throw new Error("현재 파일 확인 실패 (HTTP " + cur.status + ")");
+
+    const body = {
+      updated: new Date().toISOString().slice(0,16).replace("T"," ") + " UTC",
+      by: PICK_BY,
+      note: "온라인 자가진단 — 화면에서 저장하면 이 파일이 갱신되고 모든 사람에게 같은 내용이 보입니다.",
+      diseases: diseases,
+    };
+    const res = await fetch(api, {
+      method: "PUT", headers: head,
+      body: JSON.stringify({
+        message: message || "🐔 온라인 자가진단 갱신",
+        content: b64utf8(JSON.stringify(body, null, 1)),
+        branch: PICK_BRANCH,
+        sha: sha || undefined,
+      }),
+    });
+    if(!res.ok){
+      const t = await res.text();
+      let apiMsg = ""; try { apiMsg = JSON.parse(t).message || ""; } catch(e){}
+      if(res.status === 401) throw new Error("토큰이 올바르지 않거나 만료되었습니다." + (apiMsg?" ("+apiMsg+")":""));
+      if(res.status === 403) throw new Error("발행이 거부됐습니다(HTTP 403)." + (apiMsg?" GitHub 응답: "+apiMsg:" 토큰 권한을 다시 확인하세요."));
+      if(res.status === 409) throw new Error("다른 곳에서 먼저 수정됐습니다. 새로고침 후 다시 시도하세요.");
+      throw new Error("발행 실패 (HTTP " + res.status + ") " + (apiMsg || t.slice(0,120)));
+    }
+    selfCheckPkgState.data = body;
     return { ok:true };
   } catch(e) {
     return { ok:false, error: e.message || String(e) };
@@ -4072,6 +4183,151 @@ function renderFinderAdminBox(admin){
   </div>`;
 }
 
+// 온라인 자가진단 — 닭 그림(SVG) 위에서 부위를 클릭하거나 아래 버튼 목록에서
+// 골라도 같은 곳(nav.part)으로 선택된다. 그림의 클릭 영역이 작아 정밀하게
+// 누르기 어려울 수 있어(특히 모바일) 버튼 목록을 항상 같이 보여준다 — 둘 다
+// 같은 selfcheck-part-btn/selfcheck-hotspot 클릭 처리로 이어진다.
+function renderSelfCheckPanel(){
+  const nav = selfCheckNavState;
+  const head = `
+  <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+    <div>
+      <div class="display" style="font-size:16px;margin-bottom:3px">🐔 온라인 자가진단</div>
+      <div style="font-size:11px;color:#aaa">닭 그림에서 부위를 클릭하면 그 부위에서 흔히 나타나는 질병 목록을 보여드립니다</div>
+    </div>
+    <button id="selfcheck-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button>
+  </div>`;
+
+  const st = selfCheckPkgState;
+  if(st.status === "idle" || st.status === "loading"){
+    return head + `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⏳ 불러오는 중...</div>`;
+  }
+  if(st.status === "error" || !st.data){
+    return head + `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⚠️ 불러오지 못했습니다.</div>`;
+  }
+
+  const admin = !!ghToken();
+
+  // 부위별 클릭 영역 좌표 (viewBox 420x270 기준). shape가 섞여 있어(원/타원/
+  // 사각형) 태그별로 attrs 문자열을 그대로 심는다. skin(날개 전체)처럼 넓은
+  // 영역을 먼저 그리고 간·신장·장처럼 그 안에 겹치는 구체적 영역을 나중에
+  // 그려야, 나중 것이 위에 그려져 좁은 영역도 따로 클릭된다(겹치는 부분은
+  // SVG에서 나중에 그린 도형이 클릭을 먼저 받는다).
+  const HOTSPOT_GEOM = {
+    skin:         { tag:"ellipse", attrs:'cx="175" cy="160" rx="54" ry="36" transform="rotate(-10 175 160)"' },
+    legs:         { tag:"rect",    attrs:'x="155" y="206" width="90" height="48" rx="10"' },
+    respiratory:  { tag:"ellipse", attrs:'cx="272" cy="105" rx="22" ry="40"' },
+    crop:         { tag:"ellipse", attrs:'cx="238" cy="138" rx="18" ry="16"' },
+    liver:        { tag:"ellipse", attrs:'cx="225" cy="150" rx="27" ry="21"' },
+    kidney:       { tag:"ellipse", attrs:'cx="175" cy="133" rx="21" ry="15"' },
+    intestine:    { tag:"ellipse", attrs:'cx="195" cy="186" rx="39" ry="23"' },
+    reproductive: { tag:"ellipse", attrs:'cx="150" cy="180" rx="21" ry="16"' },
+    vent:         { tag:"circle",  attrs:'cx="110" cy="186" r="15"' },
+    head:         { tag:"circle",  attrs:'cx="305" cy="78" r="35"' },
+    eyes:         { tag:"circle",  attrs:'cx="312" cy="76" r="9"' },
+  };
+  const hotspotOrder = ["skin","legs","respiratory","crop","liver","kidney","intestine","reproductive","vent","head","eyes"];
+  const hotspots = hotspotOrder.map(key => {
+    const g = HOTSPOT_GEOM[key];
+    const selected = nav.part === key;
+    return `<${g.tag} class="selfcheck-hotspot" data-part="${key}" ${g.attrs}
+      fill="#AD1457" fill-opacity="${selected?0.42:0.05}" stroke="${selected?"#AD1457":"none"}" stroke-width="${selected?2:0}"><title>${esc(bodyPartLabel(key))}</title></${g.tag}>`;
+  }).join("");
+
+  const diagram = `
+  <div style="text-align:center;margin-bottom:14px">
+    <svg viewBox="0 0 420 270" style="width:100%;max-width:420px;height:auto">
+      <g pointer-events="none">
+        <line x1="178" y1="208" x2="178" y2="248" stroke="#F9A825" stroke-width="5" stroke-linecap="round"/>
+        <line x1="215" y1="208" x2="215" y2="248" stroke="#F9A825" stroke-width="5" stroke-linecap="round"/>
+        <path d="M170,250 l-10,8 M178,250 l0,10 M186,250 l10,8" stroke="#F9A825" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <path d="M207,250 l-10,8 M215,250 l0,10 M223,250 l10,8" stroke="#F9A825" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <path d="M100,150 Q58,128 75,108 Q97,140 112,146 Z" fill="#E8D9B5"/>
+        <path d="M96,166 Q54,160 66,140 Q92,156 110,162 Z" fill="#F0E0B8"/>
+        <ellipse cx="195" cy="155" rx="95" ry="62" fill="#FDF6E3" stroke="#E8D9B5" stroke-width="2"/>
+        <ellipse cx="175" cy="160" rx="50" ry="32" fill="#F0E0B8" stroke="#DFCBA0" stroke-width="1.5" transform="rotate(-10 175 160)"/>
+        <ellipse cx="272" cy="105" rx="18" ry="38" fill="#FDF6E3" stroke="#E8D9B5" stroke-width="2"/>
+        <circle cx="305" cy="78" r="30" fill="#FDF6E3" stroke="#E8D9B5" stroke-width="2"/>
+        <path d="M292,50 Q298,36 304,50 Q310,34 316,50 Q322,38 326,54 Q310,63 292,54 Z" fill="#D32F2F"/>
+        <path d="M320,92 Q331,99 322,107 Q315,98 320,92 Z" fill="#D32F2F"/>
+        <path d="M330,80 L345,86 L330,93 Z" fill="#F9A825"/>
+        <circle cx="312" cy="76" r="3.2" fill="#333"/>
+      </g>
+      ${hotspots}
+    </svg>
+    <div style="font-size:11px;color:#888;margin-top:4px">${nav.part?("선택됨: "+esc(bodyPartLabel(nav.part))):"그림을 클릭하거나 아래 목록에서 부위를 골라보세요"}</div>
+  </div>`;
+
+  const chips = `
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px;margin-bottom:16px">
+    ${BODY_PARTS.map(p => `
+    <button class="selfcheck-part-btn" data-part="${p.key}"
+      style="border:2px solid ${nav.part===p.key?"#AD1457":"#eee"};background:${nav.part===p.key?"#AD1457":"#fff"};color:${nav.part===p.key?"#fff":"#333"};border-radius:9px;padding:8px 6px;font-size:11.5px;font-weight:700;cursor:pointer">${p.icon} ${esc(p.label)}</button>`).join("")}
+  </div>`;
+
+  let resultBody = "";
+  if(nav.part){
+    const list = selfCheckDiseasesFor(nav.part);
+    resultBody = `
+    <div style="border-top:1px dashed #eee;padding-top:14px">
+      <div class="display" style="font-size:14px;margin-bottom:10px">${esc(bodyPartLabel(nav.part))}에서 흔히 나타나는 질병</div>
+      ${list.length ? list.map(d => `
+      <div class="card" style="border-top:4px solid #AD1457;margin-bottom:8px;padding:12px 16px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13.5px;font-weight:800;color:#333">${esc(d.name)}</div>
+            <div style="font-size:12px;color:#666;margin-top:3px;line-height:1.6">${esc(d.note)}</div>
+          </div>
+          ${admin ? `
+          <div style="white-space:nowrap;flex-shrink:0">
+            <button class="selfcheck-edit-btn" data-key="${d.key}" style="font-size:10px;border:1px solid #AD1457;border-radius:5px;background:#fff;color:#AD1457;padding:3px 8px;margin-right:4px">편집</button>
+            <button class="selfcheck-del-btn" data-key="${d.key}" style="font-size:10px;border:1px solid #eee;border-radius:5px;background:#fff;color:#bbb;padding:3px 8px">삭제</button>
+          </div>` : ""}
+        </div>
+      </div>`).join("") : `<div class="card" style="padding:24px 16px;color:#aaa;text-align:center">등록된 질병이 없습니다.${admin?"":" 곧 추가됩니다."}</div>`}
+      ${renderSelfCheckAdminBox(admin)}
+    </div>`;
+  }
+
+  return head + `
+  ${diagram}
+  ${chips}
+  ${resultBody}
+  <div style="font-size:9px;color:#aaa;line-height:1.6;margin-top:14px">
+    ※ 이 목록은 참고용 자가진단 도우미입니다. 실제 확진은 반드시 수의사의 부검·검사를 거쳐야 합니다.
+    자세한 처방이 필요하면 "내 농장에 맞는 약품 찾기" 또는 "온라인 진단" 메뉴를 이용하세요.
+  </div>`;
+}
+
+function renderSelfCheckAdminBox(admin){
+  if(!admin || !selfCheckNavState.part) return "";
+  const nav = selfCheckNavState;
+  const list = currentSelfCheckDiseases();
+  const editing = nav.formKey && list.find(d=>d.key===nav.formKey);
+  return `
+  <div style="margin-top:12px">
+    <button id="selfcheck-admin-toggle" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:3px 9px">${nav.adminOpen?"관리 닫기":"⚙ 관리"}</button>
+    ${selfCheckPkgState.msg?`<span style="font-size:11px;margin-left:8px;color:${/실패|오류|않|없/.test(selfCheckPkgState.msg)?"#C62828":"#2E7D32"}">${esc(selfCheckPkgState.msg)}</span>`:""}
+    ${nav.adminOpen ? `
+    <div style="margin-top:9px;background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">
+      <div style="font-size:11px;font-weight:700;color:#7A5C00;margin-bottom:8px">${editing?"질병 수정: "+esc(editing.name):"새 질병 추가"}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+        <select id="sc-part" style="flex:1;min-width:160px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px">
+          ${BODY_PARTS.map(p=>`<option value="${p.key}" ${(editing?editing.part:nav.part)===p.key?"selected":""}>${esc(p.label)}</option>`).join("")}
+        </select>
+        <input id="sc-name" type="text" placeholder="질병명 (예: 뉴캣슬병)" value="${esc(editing?editing.name:"")}"
+          style="flex:2;min-width:180px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />
+      </div>
+      <textarea id="sc-note" placeholder="주요 증상/특징"
+        style="width:100%;min-height:60px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:8px">${esc(editing?editing.note:"")}</textarea>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <button id="sc-save" ${selfCheckPkgState.busy?"disabled":""} style="border:1px solid #B8860B;background:${selfCheckPkgState.busy?"#ccc":"#B8860B"};color:#fff;border-radius:7px;padding:7px 15px;font-size:12px;font-weight:600">${selfCheckPkgState.busy?"발행 중...":(editing?"수정 발행":"추가 발행")}</button>
+        ${editing?`<button id="sc-cancel" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:6px 10px">취소</button>`:""}
+      </div>
+    </div>` : ""}
+  </div>`;
+}
+
 // 온라인 상담/진단/컨설팅 공용 화면 — PREMIUM_ITEMS(제목·아이콘·색)와
 // PREMIUM_BOARDS(입력 항목·사진 슬롯)를 합쳐서 쓴다.
 function currentBoardCfg(){
@@ -4398,6 +4654,11 @@ function renderPremiumTab(){
   if(premiumState.view === "finder"){
     if(finderPkgState.status === "idle") fetchFarmFinderCases();
     return renderPremiumGateHeader() + logoutBar + renderFarmFinderPanel();
+  }
+  // 온라인 자가진단 화면
+  if(premiumState.view === "selfcheck"){
+    if(selfCheckPkgState.status === "idle") fetchSelfCheckDiseases();
+    return renderPremiumGateHeader() + logoutBar + renderSelfCheckPanel();
   }
   // 온라인 상담·온라인 진단·온라인 컨설팅 — 셋 다 PREMIUM_BOARDS에 정의된
   // 같은 회원별 비공개 게시판 구조라 화면도 하나(renderBoardPanel)를 같이 쓴다.
@@ -8878,6 +9139,73 @@ function attachEvents(){
     if(r.ok){
       finderNavState.formKey = undefined;
       finderNavState.category = category;
+    }
+    render();
+  };
+
+  // 온라인 자가진단 (닭 그림 클릭 / 버튼 목록 — 둘 다 같은 부위 선택으로 이어짐)
+  const selfCheckBackBtn = document.getElementById("selfcheck-back-btn");
+  if(selfCheckBackBtn) selfCheckBackBtn.onclick = ()=>{
+    premiumState.view = "menu";
+    selfCheckNavState = { part:null, adminOpen:false, formKey:undefined };
+    render();
+  };
+  document.querySelectorAll(".selfcheck-hotspot, .selfcheck-part-btn").forEach(b=>b.onclick=()=>{
+    selfCheckNavState.part = b.dataset.part;
+    selfCheckNavState.adminOpen = false;
+    selfCheckNavState.formKey = undefined;
+    render();
+  });
+  const selfCheckAdminToggle = document.getElementById("selfcheck-admin-toggle");
+  if(selfCheckAdminToggle) selfCheckAdminToggle.onclick = ()=>{
+    selfCheckNavState.adminOpen = !selfCheckNavState.adminOpen;
+    selfCheckNavState.formKey = undefined;
+    selfCheckPkgState.msg = "";
+    render();
+  };
+  document.querySelectorAll(".selfcheck-edit-btn").forEach(b=>b.onclick=()=>{
+    selfCheckNavState.adminOpen = true;
+    selfCheckNavState.formKey = b.dataset.key;
+    selfCheckPkgState.msg = "";
+    render();
+  });
+  const selfCheckCancelBtn = document.getElementById("sc-cancel");
+  if(selfCheckCancelBtn) selfCheckCancelBtn.onclick = ()=>{ selfCheckNavState.formKey = undefined; render(); };
+
+  document.querySelectorAll(".selfcheck-del-btn").forEach(b=>b.onclick=async ()=>{
+    const key = b.dataset.key;
+    const d = currentSelfCheckDiseases().find(x=>x.key===key);
+    if(!d || !confirm(`"${d.name}" 항목을 삭제할까요?`)) return;
+    const next = currentSelfCheckDiseases().filter(x=>x.key!==key);
+    selfCheckPkgState.busy = true; selfCheckPkgState.msg = "발행 중..."; render();
+    const r = await publishSelfCheckDiseases(next, "🐔 온라인 자가진단 삭제: " + d.name);
+    selfCheckPkgState.busy = false;
+    selfCheckPkgState.msg = r.ok ? "삭제 완료 — 모두에게 반영됩니다" : ("발행 실패: " + r.error);
+    render();
+  });
+
+  const selfCheckSaveBtn = document.getElementById("sc-save");
+  if(selfCheckSaveBtn) selfCheckSaveBtn.onclick = async ()=>{
+    const part = document.getElementById("sc-part")?.value || selfCheckNavState.part;
+    const name = (document.getElementById("sc-name")?.value || "").trim();
+    const note = (document.getElementById("sc-note")?.value || "").trim();
+    if(!name){ alert("질병명을 입력하세요."); return; }
+
+    const diseases = currentSelfCheckDiseases().slice();
+    const editKey = selfCheckNavState.formKey;
+    if(editKey){
+      const idx = diseases.findIndex(d=>d.key===editKey);
+      if(idx>=0) diseases[idx] = Object.assign({}, diseases[idx], { part, name, note });
+    } else {
+      diseases.push({ key:newSelfCheckKey(), part, name, note });
+    }
+    selfCheckPkgState.busy = true; selfCheckPkgState.msg = "발행 중..."; render();
+    const r = await publishSelfCheckDiseases(diseases, "🐔 온라인 자가진단 " + (editKey?"수정":"추가") + ": " + name);
+    selfCheckPkgState.busy = false;
+    selfCheckPkgState.msg = r.ok ? "발행 완료 — 모두에게 반영됩니다" : ("발행 실패: " + r.error);
+    if(r.ok){
+      selfCheckNavState.formKey = undefined;
+      selfCheckNavState.part = part;
     }
     render();
   };
