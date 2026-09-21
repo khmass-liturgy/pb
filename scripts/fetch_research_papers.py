@@ -169,7 +169,14 @@ def translate_and_summarize(articles: list[dict[str, str]]) -> list[dict[str, st
         if resp.status_code not in (400, 404) or model == ANTHROPIC_MODEL_FALLBACK:
             break
     resp.raise_for_status()
-    text = resp.json()["content"][0]["text"].strip()
+    blocks = resp.json().get("content", [])
+    # content[0]이 항상 답변 텍스트라고 가정하면 안 된다 — 모델이 추론
+    # 과정을 담은 thinking 블록을 먼저 반환하면 실제 답은 뒤쪽 블록에 있다.
+    # type이 "text"인 첫 블록을 찾는다(KeyError 'text'로 실패했던 원인).
+    text_blocks = [b.get("text", "") for b in blocks if b.get("type") == "text"]
+    if not text_blocks:
+        raise ValueError(f"응답에 text 블록이 없음: {[b.get('type') for b in blocks]}")
+    text = text_blocks[0].strip()
     # 코드펜스로 감싸 나오는 경우가 있어 벗겨낸다
     text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip())
     parsed = json.loads(text)
