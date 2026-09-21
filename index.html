@@ -640,6 +640,7 @@ const PREMIUM_ITEMS = [
   { key:"research", icon:"📚", title:"기술탐구", desc:"질병논문·사양관리기술·컨설팅도구 최신 국제논문 5편씩을 매주 한글로 번역·요약해 드립니다.", color:"#6A1B9A" },
   { key:"treatment", icon:"💉", title:"상황별 처방(투약) 패키지", desc:"육계·산란계 농장 상황을 고르면 그에 맞는 투약(처방) 프로그램을 보여드립니다. 상황은 계속 추가됩니다.", color:"#C62828" },
   { key:"seasonal", icon:"🗓️", title:"계절별 투약(관리) 패키지", desc:"봄·여름·가을·겨울 시기별로 챙겨야 할 투약(백신)과 사양관리 주의사항을 안내합니다.", color:"#795548" },
+  { key:"finder", icon:"🎯", title:"내 농장에 맞는 약품 찾기", desc:"축종과 문제 증상을 단계별로 선택하면 진단·원인 분석과 추천 처방을 보여드립니다.", color:"#283593" },
   { key:"consult", icon:"💬", title:"온라인 상담", desc:"농장 현안(사양·환기·질병 등)을 질문하면 최동명 수의사가 답변합니다. 사진 첨부 가능, 답변은 작성자만 볼 수 있습니다.", color:"#1565C0" },
   { key:"diagnosis", icon:"🔍", title:"온라인 진단", desc:"닭의 외부모습·분변상태·부검사진(기관지·간·신장·소장)을 올리면 최동명 수의사가 직접 진단합니다.", color:"#2E7D32" },
   { key:"consulting", icon:"📈", title:"온라인 컨설팅", desc:"농장 운영·질병 현황을 바탕으로 맞춤 투약·백신 프로그램을 작성해 드립니다. 답변은 작성자만 볼 수 있습니다.", color:"#E65100" },
@@ -889,6 +890,117 @@ async function publishSeasonalPackages(packages, message){
       throw new Error("발행 실패 (HTTP " + res.status + ") " + (apiMsg || t.slice(0,120)));
     }
     seasonalPkgState.data = body;
+    return { ok:true };
+  } catch(e) {
+    return { ok:false, error: e.message || String(e) };
+  }
+}
+
+// ── 내 농장에 맞는 약품 찾기 (단계별 축종 → 카테고리 → 증상 좁혀가기) ─────────────
+// 상황별 처방 패키지와 같은 발행 방식이지만, 화면이 "축종 탭 → 평평한 목록"이
+// 아니라 "축종 선택 → 문제 카테고리 선택 → 구체적 증상 선택"으로 단계적으로
+// 좁혀가는 마법사(wizard) 형태다. category는 관리자가 자유롭게 입력하는
+// 텍스트라 별도 목록으로 관리하지 않고, 그 축종에 이미 쓰인 category 값들의
+// 집합에서 화면의 2단계 버튼을 그때그때 만든다 — 관리자가 새 항목을 추가하면
+// 카테고리 버튼도 자동으로 늘어난다.
+const FINDER_SPECIES = [
+  { key:"broiler", label:"🐔 육계" },
+  { key:"layer", label:"🥚 산란계" },
+  { key:"native", label:"🐓 토종닭" },
+];
+function finderSpeciesLabel(key){
+  const s = FINDER_SPECIES.find(s=>s.key===key);
+  return s ? s.label : key;
+}
+
+const FINDER_PATH = "farm_finder/latest.json";
+// 다른 발행형 데이터(TREATMENT_PATH 등)와 같은 이유로 URL은 쓰는 시점에
+// 조합한다 — PICK_REPO/PICK_BRANCH가 이 파일 뒤쪽에서 선언되는 TDZ 문제.
+function finderJsonUrl(){
+  return "https://raw.githubusercontent.com/" + PICK_REPO + "/" + PICK_BRANCH + "/" + FINDER_PATH;
+}
+
+let finderPkgState = { status:"idle", data:null, busy:false, msg:"" };
+// 마법사 진행 상태 — species/category/openKey가 하나씩 채워지며 화면이
+// 단계별로 좁혀진다. 셋 다 비면 1단계(축종 선택)부터 다시 시작.
+let finderNavState = { species:null, category:null, openKey:null, adminOpen:false, formKey:undefined };
+
+async function fetchFarmFinderCases(){
+  if(finderPkgState.status === "loading") return;
+  finderPkgState.status = "loading";
+  try {
+    const r = await fetchWithTimeout(finderJsonUrl() + "?t=" + Date.now(), 8000);
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json();
+    j.cases = Array.isArray(j.cases) ? j.cases : [];
+    finderPkgState.data = j;
+    finderPkgState.status = "done";
+  } catch(e){
+    console.warn("농장 맞춤 약품 찾기 로딩 실패:", e);
+    finderPkgState.data = { cases: [], by: PICK_BY };
+    finderPkgState.status = "error";
+  }
+  if(premiumState.view === "finder") render();
+}
+
+function currentFinderCases(){
+  return (finderPkgState.data && finderPkgState.data.cases) || [];
+}
+function finderCasesForSpecies(species){
+  return currentFinderCases().filter(c => c.species === species);
+}
+function finderCategoriesFor(species){
+  const seen = [];
+  finderCasesForSpecies(species).forEach(c => { if(c.category && !seen.includes(c.category)) seen.push(c.category); });
+  return seen;
+}
+function finderCasesForCategory(species, category){
+  return finderCasesForSpecies(species).filter(c => c.category === category);
+}
+function newFinderKey(){
+  return "f" + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+}
+
+async function publishFarmFinderCases(cases, message){
+  const token = ghToken();
+  if(!token) return { ok:false, error:"발행 권한이 설정되지 않았습니다." };
+  const api = "https://api.github.com/repos/" + PICK_REPO + "/contents/" + FINDER_PATH;
+  const head = { "Authorization": "Bearer " + token,
+                 "Accept": "application/vnd.github+json",
+                 "Content-Type": "application/json" };
+  try {
+    let sha = null;
+    const cur = await fetch(api + "?ref=" + PICK_BRANCH + "&t=" + Date.now(), { headers: head });
+    if(cur.ok) sha = (await cur.json()).sha;
+    else if(cur.status === 401) throw new Error("토큰이 거부되었습니다. '토큰 점검'으로 원인을 확인하세요.");
+    else if(cur.status === 403) throw new Error("이 토큰에는 권한이 없습니다. '토큰 점검'으로 확인하세요.");
+    else if(cur.status === 404) sha = null;
+    else throw new Error("현재 파일 확인 실패 (HTTP " + cur.status + ")");
+
+    const body = {
+      updated: new Date().toISOString().slice(0,16).replace("T"," ") + " UTC",
+      by: PICK_BY,
+      note: "내 농장에 맞는 약품 찾기 — 화면에서 저장하면 이 파일이 갱신되고 모든 사람에게 같은 내용이 보입니다.",
+      cases: cases,
+    };
+    const res = await fetch(api, {
+      method: "PUT", headers: head,
+      body: JSON.stringify({
+        message: message || "🎯 농장 맞춤 약품 찾기 갱신",
+        content: b64utf8(JSON.stringify(body, null, 1)),
+        branch: PICK_BRANCH,
+        sha: sha || undefined,
+      }),
+    });
+    if(!res.ok){
+      const t = await res.text();
+      let apiMsg = ""; try { apiMsg = JSON.parse(t).message || ""; } catch(e){}
+      if(res.status === 401) throw new Error("토큰이 올바르지 않거나 만료되었습니다." + (apiMsg?" ("+apiMsg+")":""));
+      if(res.status === 403) throw new Error("발행이 거부됐습니다(HTTP 403)." + (apiMsg?" GitHub 응답: "+apiMsg:" 토큰 권한을 다시 확인하세요."));
+      if(res.status === 409) throw new Error("다른 곳에서 먼저 수정됐습니다. 새로고침 후 다시 시도하세요.");
+      throw new Error("발행 실패 (HTTP " + res.status + ") " + (apiMsg || t.slice(0,120)));
+    }
+    finderPkgState.data = body;
     return { ok:true };
   } catch(e) {
     return { ok:false, error: e.message || String(e) };
@@ -3831,6 +3943,135 @@ function renderSeasonalPanel(){
   </div>`;
 }
 
+// 내 농장에 맞는 약품 찾기 — 축종 → 카테고리 → 구체적 증상 순으로 좁혀가는
+// 마법사 화면. 세 값(species/category/openKey)이 채워진 만큼 화면이
+// 단계적으로 좁혀진다. 빵부스러기(breadcrumb)를 눌러 이전 단계로 돌아간다.
+function renderFarmFinderPanel(){
+  const nav = finderNavState;
+  const head = `
+  <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+    <div>
+      <div class="display" style="font-size:16px;margin-bottom:3px">🎯 내 농장에 맞는 약품 찾기</div>
+      <div style="font-size:11px;color:#aaa">축종과 문제 증상을 단계별로 선택하면 진단·원인 분석과 추천 처방을 보여드립니다</div>
+    </div>
+    <button id="finder-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button>
+  </div>`;
+
+  const st = finderPkgState;
+  if(st.status === "idle" || st.status === "loading"){
+    return head + `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⏳ 불러오는 중...</div>`;
+  }
+  if(st.status === "error" || !st.data){
+    return head + `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⚠️ 불러오지 못했습니다.</div>`;
+  }
+
+  const admin = !!ghToken();
+  const crumbs = [];
+  crumbs.push(`<span class="finder-crumb" data-to="species" style="cursor:${nav.species?"pointer":"default"};font-weight:${nav.species?400:800};color:${nav.species?"#283593":"#333"}">${nav.species?finderSpeciesLabel(nav.species):"1. 축종 선택"}</span>`);
+  if(nav.species){
+    crumbs.push(`<span style="color:#ccc">›</span>`);
+    crumbs.push(`<span class="finder-crumb" data-to="category" style="cursor:${nav.category?"pointer":"default"};font-weight:${nav.category?400:800};color:${nav.category?"#283593":"#333"}">${nav.category||"2. 문제 카테고리 선택"}</span>`);
+  }
+  const breadcrumb = `<div style="font-size:12.5px;margin-bottom:14px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">${crumbs.join("")}</div>`;
+
+  // 1단계: 축종 선택
+  if(!nav.species){
+    const btns = FINDER_SPECIES.map(s => `
+      <button class="finder-species-btn" data-species="${s.key}"
+        style="flex:1;min-width:120px;border:2px solid #eee;background:#fff;color:#333;border-radius:12px;padding:22px 10px;font-size:16px;font-weight:700;cursor:pointer">${s.label}</button>`).join("");
+    return head + breadcrumb + `<div style="display:flex;gap:10px;flex-wrap:wrap">${btns}</div>`;
+  }
+
+  // 2단계: 카테고리 선택
+  if(!nav.category){
+    const cats = finderCategoriesFor(nav.species);
+    const catBtns = cats.length ? cats.map(c => `
+      <button class="finder-category-btn" data-category="${esc(c)}"
+        style="border:2px solid #eee;background:#fff;color:#333;border-radius:10px;padding:14px 16px;font-size:13px;font-weight:700;cursor:pointer;text-align:left">${esc(c)}</button>`).join("")
+      : `<div class="card" style="padding:24px 16px;color:#aaa;text-align:center">${finderSpeciesLabel(nav.species)} 관련 내용이 아직 없습니다.${admin?"":" 곧 추가됩니다."}</div>`;
+    return head + breadcrumb + `
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">${catBtns}</div>
+    ${renderFinderAdminBox(admin)}`;
+  }
+
+  // 3단계: 해당 축종+카테고리의 구체적 사례 목록(카드) — 눌러서 펼치면 진단·원인·처방
+  const list = finderCasesForCategory(nav.species, nav.category);
+  const cards = list.length ? list.map(c => {
+    const open = nav.openKey === c.key;
+    return `
+    <div class="card" style="border-top:4px solid #283593;margin-bottom:10px;padding:16px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+        <div class="finder-toggle" data-key="${c.key}" style="cursor:pointer;flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:800;color:#333">${esc(c.title)}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
+          <span class="finder-toggle" data-key="${c.key}" style="cursor:pointer;font-size:11px;color:#283593;font-weight:700;white-space:nowrap">${open?"접기 ▲":"진단·처방 보기 ▼"}</span>
+          ${admin ? `
+          <div style="white-space:nowrap">
+            <button class="finder-edit-btn" data-key="${c.key}" style="font-size:10px;border:1px solid #283593;border-radius:5px;background:#fff;color:#283593;padding:3px 8px;margin-right:4px">편집</button>
+            <button class="finder-del-btn" data-key="${c.key}" style="font-size:10px;border:1px solid #eee;border-radius:5px;background:#fff;color:#bbb;padding:3px 8px">삭제</button>
+          </div>` : ""}
+        </div>
+      </div>
+      ${open ? `
+      <div style="margin-top:12px;padding-top:12px;border-top:1px dashed #eee">
+        <div style="font-size:13px;font-weight:800;color:#283593;margin-bottom:8px">🩺 ${esc(c.diagnosis)}</div>
+        <div style="font-size:11.5px;font-weight:700;color:#666;margin-bottom:3px">환경·사양관리 원인 분석</div>
+        <div style="font-size:12.5px;color:#444;line-height:1.6;margin-bottom:10px">${esc(c.cause)}</div>
+        <div style="font-size:11.5px;font-weight:700;color:#666;margin-bottom:5px">추천 처방(투약) 프로그램</div>
+        ${(c.program||[]).map(s => `
+        <div style="margin-bottom:9px">
+          <div style="font-size:12.5px;font-weight:700;color:#333">${esc(s.step)}</div>
+          <div style="font-size:12.5px;color:#444;line-height:1.6;margin-top:2px">${esc(s.detail)}</div>
+        </div>`).join("")}
+        ${c.caution ? `<div style="font-size:11px;color:#8D6E00;background:#FFF8E1;border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.6">⚠️ ${esc(c.caution)}</div>` : ""}
+      </div>` : ""}
+    </div>`;
+  }).join("") : `<div class="card" style="padding:24px 16px;color:#aaa;text-align:center">아직 등록된 사례가 없습니다.</div>`;
+
+  return head + breadcrumb + cards + renderFinderAdminBox(admin);
+}
+
+// 관리자 전용 추가/편집 폼 — 축종은 현재 마법사에서 선택된 값을 그대로 쓰고,
+// 카테고리는 자유 입력(텍스트+datalist로 기존 카테고리 재사용 유도)이다.
+function renderFinderAdminBox(admin){
+  if(!admin || !finderNavState.species) return "";
+  const nav = finderNavState;
+  const list = currentFinderCases();
+  const editing = nav.formKey && list.find(c=>c.key===nav.formKey);
+  const existingCats = finderCategoriesFor(nav.species);
+  return `
+  <div style="margin-top:16px;border-top:1px dashed #eee;padding-top:12px">
+    <button id="finder-admin-toggle" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:3px 9px">${nav.adminOpen?"관리 닫기":"⚙ 관리"}</button>
+    ${finderPkgState.msg?`<span style="font-size:11px;margin-left:8px;color:${/실패|오류|않|없/.test(finderPkgState.msg)?"#C62828":"#2E7D32"}">${esc(finderPkgState.msg)}</span>`:""}
+    ${nav.adminOpen ? `
+    <div style="margin-top:9px;background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">
+      <div style="font-size:11px;font-weight:700;color:#7A5C00;margin-bottom:8px">${editing?"사례 수정: "+esc(editing.title):"새 사례 추가"} (${finderSpeciesLabel(nav.species)})</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+        <input id="ff-category" list="ff-category-list" type="text" placeholder="문제 카테고리 (예: 호흡기 증상)" value="${esc(editing?editing.category:(nav.category||""))}"
+          style="flex:1;min-width:160px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />
+        <datalist id="ff-category-list">${existingCats.map(c=>`<option value="${esc(c)}">`).join("")}</datalist>
+        <input id="ff-title" type="text" placeholder="구체적 증상 요약 (예: 쌕쌕거림·기침, 결막염)" value="${esc(editing?editing.title:"")}"
+          style="flex:2;min-width:200px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+        <input id="ff-diagnosis" type="text" placeholder="진단명 (예: 만성호흡기병(CRD) 의심)" value="${esc(editing?editing.diagnosis:"")}"
+          style="flex:1;min-width:200px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />
+      </div>
+      <textarea id="ff-cause" placeholder="환경·사양관리 원인 분석"
+        style="width:100%;min-height:60px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:6px">${esc(editing?editing.cause:"")}</textarea>
+      <textarea id="ff-program" placeholder="한 줄에 한 단계씩, '단계제목|설명' 형식${"\n"}예) 1. 원인 점검|환기량과 백신 이력을 확인합니다."
+        style="width:100%;min-height:90px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:6px">${esc(editing?treatmentProgramToText(editing.program):"")}</textarea>
+      <textarea id="ff-caution" placeholder="주의사항 (선택)"
+        style="width:100%;min-height:44px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:8px">${esc(editing?editing.caution||"":"")}</textarea>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <button id="ff-save" ${finderPkgState.busy?"disabled":""} style="border:1px solid #B8860B;background:${finderPkgState.busy?"#ccc":"#B8860B"};color:#fff;border-radius:7px;padding:7px 15px;font-size:12px;font-weight:600">${finderPkgState.busy?"발행 중...":(editing?"수정 발행":"추가 발행")}</button>
+        ${editing?`<button id="ff-cancel" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:6px 10px">취소</button>`:""}
+      </div>
+    </div>` : ""}
+  </div>`;
+}
+
 // 온라인 상담/진단/컨설팅 공용 화면 — PREMIUM_ITEMS(제목·아이콘·색)와
 // PREMIUM_BOARDS(입력 항목·사진 슬롯)를 합쳐서 쓴다.
 function currentBoardCfg(){
@@ -4017,9 +4258,13 @@ function premiumUserLabel(){
 
 function renderPremiumGateHeader(){
   return `
-  <div style="margin-bottom:16px">
-    <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px">💼 유료서비스</div>
-    <div style="font-size:11px;color:#aaa;margin-top:4px">전문 컨설턴트와 함께하는 맞춤형 농장 관리 서비스</div>
+  <div style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
+    <div>
+      <div style="font-size:12px;color:#888;font-weight:600;letter-spacing:1px">💼 유료서비스</div>
+      <div style="font-size:11px;color:#aaa;margin-top:4px">전문 컨설턴트와 함께하는 맞춤형 농장 관리 서비스</div>
+    </div>
+    <a href="mailto:trsumun@daum.net?subject=%5B%EA%B4%91%EA%B3%A0%EB%AC%B8%EC%9D%98%5D"
+      style="font-size:10.5px;color:#888;background:#F5F5F5;border-radius:20px;padding:5px 12px;text-decoration:none;white-space:nowrap;flex-shrink:0">📢 광고문의</a>
   </div>`;
 }
 
@@ -4148,6 +4393,11 @@ function renderPremiumTab(){
   if(premiumState.view === "seasonal"){
     if(seasonalPkgState.status === "idle") fetchSeasonalPackages();
     return renderPremiumGateHeader() + logoutBar + renderSeasonalPanel();
+  }
+  // 내 농장에 맞는 약품 찾기 화면
+  if(premiumState.view === "finder"){
+    if(finderPkgState.status === "idle") fetchFarmFinderCases();
+    return renderPremiumGateHeader() + logoutBar + renderFarmFinderPanel();
   }
   // 온라인 상담·온라인 진단·온라인 컨설팅 — 셋 다 PREMIUM_BOARDS에 정의된
   // 같은 회원별 비공개 게시판 구조라 화면도 하나(renderBoardPanel)를 같이 쓴다.
@@ -8532,6 +8782,103 @@ function attachEvents(){
     seasonalPkgState.busy = false;
     seasonalPkgState.msg = r.ok ? "발행 완료 — 모두에게 반영됩니다" : ("발행 실패: " + r.error);
     if(r.ok) seasonalTabState.formKey = undefined;
+    render();
+  };
+
+  // 내 농장에 맞는 약품 찾기 (축종 → 카테고리 → 증상 좁혀가는 마법사)
+  const finderBackBtn = document.getElementById("finder-back-btn");
+  if(finderBackBtn) finderBackBtn.onclick = ()=>{
+    premiumState.view = "menu";
+    finderNavState = { species:null, category:null, openKey:null, adminOpen:false, formKey:undefined };
+    render();
+  };
+  document.querySelectorAll(".finder-species-btn").forEach(b=>b.onclick=()=>{
+    finderNavState.species = b.dataset.species;
+    finderNavState.category = null;
+    finderNavState.openKey = null;
+    finderNavState.adminOpen = false;
+    finderNavState.formKey = undefined;
+    render();
+  });
+  document.querySelectorAll(".finder-category-btn").forEach(b=>b.onclick=()=>{
+    finderNavState.category = b.dataset.category;
+    finderNavState.openKey = null;
+    finderNavState.adminOpen = false;
+    finderNavState.formKey = undefined;
+    render();
+  });
+  document.querySelectorAll(".finder-crumb").forEach(b=>b.onclick=()=>{
+    const to = b.dataset.to;
+    if(to === "species"){ finderNavState.species = null; finderNavState.category = null; }
+    else if(to === "category"){ finderNavState.category = null; }
+    finderNavState.openKey = null;
+    finderNavState.adminOpen = false;
+    finderNavState.formKey = undefined;
+    render();
+  });
+  document.querySelectorAll(".finder-toggle").forEach(b=>b.onclick=()=>{
+    const key = b.dataset.key;
+    finderNavState.openKey = finderNavState.openKey === key ? null : key;
+    render();
+  });
+  const finderAdminToggle = document.getElementById("finder-admin-toggle");
+  if(finderAdminToggle) finderAdminToggle.onclick = ()=>{
+    finderNavState.adminOpen = !finderNavState.adminOpen;
+    finderNavState.formKey = undefined;
+    finderPkgState.msg = "";
+    render();
+  };
+  document.querySelectorAll(".finder-edit-btn").forEach(b=>b.onclick=()=>{
+    finderNavState.adminOpen = true;
+    finderNavState.formKey = b.dataset.key;
+    finderPkgState.msg = "";
+    render();
+  });
+  const finderCancelBtn = document.getElementById("ff-cancel");
+  if(finderCancelBtn) finderCancelBtn.onclick = ()=>{ finderNavState.formKey = undefined; render(); };
+
+  document.querySelectorAll(".finder-del-btn").forEach(b=>b.onclick=async ()=>{
+    const key = b.dataset.key;
+    const c = currentFinderCases().find(x=>x.key===key);
+    if(!c || !confirm(`"${c.title}" 사례를 삭제할까요?`)) return;
+    const next = currentFinderCases().filter(x=>x.key!==key);
+    finderPkgState.busy = true; finderPkgState.msg = "발행 중..."; render();
+    const r = await publishFarmFinderCases(next, "🎯 농장 맞춤 약품 찾기 삭제: " + c.title);
+    finderPkgState.busy = false;
+    finderPkgState.msg = r.ok ? "삭제 완료 — 모두에게 반영됩니다" : ("발행 실패: " + r.error);
+    if(r.ok && finderNavState.openKey===key) finderNavState.openKey = null;
+    render();
+  });
+
+  const finderSaveBtn = document.getElementById("ff-save");
+  if(finderSaveBtn) finderSaveBtn.onclick = async ()=>{
+    const category = (document.getElementById("ff-category")?.value || "").trim();
+    const title = (document.getElementById("ff-title")?.value || "").trim();
+    const diagnosis = (document.getElementById("ff-diagnosis")?.value || "").trim();
+    const cause = (document.getElementById("ff-cause")?.value || "").trim();
+    const program = treatmentProgramFromText(document.getElementById("ff-program")?.value);
+    const caution = (document.getElementById("ff-caution")?.value || "").trim();
+    if(!category){ alert("문제 카테고리를 입력하세요."); return; }
+    if(!title){ alert("구체적 증상 요약을 입력하세요."); return; }
+    if(!diagnosis){ alert("진단명을 입력하세요."); return; }
+    if(!program.length){ alert("추천 처방 프로그램을 한 줄 이상 입력하세요. ('단계제목|설명' 형식)"); return; }
+
+    const cases = currentFinderCases().slice();
+    const editKey = finderNavState.formKey;
+    if(editKey){
+      const idx = cases.findIndex(c=>c.key===editKey);
+      if(idx>=0) cases[idx] = Object.assign({}, cases[idx], { category, title, diagnosis, cause, program, caution });
+    } else {
+      cases.push({ key:newFinderKey(), species:finderNavState.species, category, title, diagnosis, cause, program, caution });
+    }
+    finderPkgState.busy = true; finderPkgState.msg = "발행 중..."; render();
+    const r = await publishFarmFinderCases(cases, "🎯 농장 맞춤 약품 찾기 " + (editKey?"수정":"추가") + ": " + title);
+    finderPkgState.busy = false;
+    finderPkgState.msg = r.ok ? "발행 완료 — 모두에게 반영됩니다" : ("발행 실패: " + r.error);
+    if(r.ok){
+      finderNavState.formKey = undefined;
+      finderNavState.category = category;
+    }
     render();
   };
 
