@@ -106,6 +106,23 @@ assuming their output is refreshed automatically.
   CI doesn't need extra pip installs; `fetch_market.py` and `fetch_prices.py` are the exceptions
   (they use `requests`).
 
+### The SMS dispatch job (not the fetch-script shape above)
+
+`scripts/send_sms_subscriptions.py` + `.github/workflows/send-sms-subscriptions.yml` (daily 08:30
+KST) is a different shape from the table above — it doesn't read an external source or write JSON
+into this repo. It processes the 유료서비스 "자동 문자 발송 신청" subscriptions (member picks a
+menu — 계절별 패키지/기술탐구/상황별 처방 — and an interval) stored in Firebase Storage under
+`premium_board/sms_sub/{uid}/settings/config.json`, and for whichever subscribers are due, sends a
+digest text via the **sms-relay** fixed-IP proxy already deployed for the sibling `farm-pro` project
+(OneDrive `GitHub-daehan/farm-pro/sms-relay/`, an Oracle Cloud VM in front of the 알리고 SMS API —
+알리고 only accepts calls from an IP it has allowlisted, which GitHub Actions runners don't have).
+Requires three repo secrets that don't exist anywhere else in this repo — `FIREBASE_SERVICE_ACCOUNT_JSON`
+(a `chicken-dx` Firebase service account key, since the script reads/writes Storage with Admin SDK
+privileges that bypass `storage.rules` — there's no logged-in user in CI), `SMS_RELAY_URL` and
+`SMS_RELAY_SECRET` (the same two values farm-pro's Supabase Edge Function secrets use for the same
+relay). index.html's admin-only "자동 문자 발송 관리" screen is a monitoring/manual-backup view for
+this job, not the primary send path.
+
 ## Commands
 
 Run the one existing test suite:

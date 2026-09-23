@@ -1,0 +1,31 @@
+name: 자동 문자 발송 신청 처리
+
+# 유료서비스 "자동 문자 발송 신청" 메뉴 구독자 중 발송 주기(매일/매주/매월)가
+# 된 사람에게 신청한 메뉴(계절별 패키지/기술탐구/상황별 처방)의 최신 정보를
+# 문자로 보낸다. 알리고 SMS API는 고정 IP에서만 호출을 허용해 이 워크플로
+# (매번 IP가 바뀜)에서 직접 부를 수 없으므로, farm-pro 프로젝트에 이미 배포된
+# 고정 IP 중계 서버(sms-relay)를 그대로 재사용한다. 저장소 코드나 결과물을
+# 건드리지 않고 Firebase Storage만 읽고 쓰므로 git commit 단계가 없다.
+on:
+  schedule:
+    # 23:30 UTC = 매일 한국시간 08:30
+    - cron: "30 23 * * *"
+  workflow_dispatch:
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: 패키지 설치
+        run: pip install firebase-admin
+      - name: 발송 대상 확인 및 문자 발송
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          SMS_RELAY_URL: ${{ secrets.SMS_RELAY_URL }}
+          SMS_RELAY_SECRET: ${{ secrets.SMS_RELAY_SECRET }}
+        run: python scripts/send_sms_subscriptions.py

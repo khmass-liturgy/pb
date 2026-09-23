@@ -1003,18 +1003,23 @@ async function publishDiseaseDisinfectants(items, message){
 }
 
 // ── 자동 문자 발송 신청 ───────────────────────────────────────────────────────
-// 회원이 "어떤 메뉴 정보를, 얼마나 자주" 받고 싶은지 설정만 저장해두고,
-// 실제 발송은 관리자가 발송관리 화면에서 확인 후 보낸다 — 알리고 등 SMS
-// API는 고정 IP에서만 호출이 허용돼(publishTreatmentPackages 근처의
-// treatment-sms-btn 설명 참고) GitHub Pages(브라우저)나 GitHub Actions
-// (매번 IP가 바뀜)에서 서버가 알아서 문자를 쏴주는 구조를 만들 수 없다.
-// 대신 "누가 무엇을, 언제 다시 받아야 하는지"를 계산해두고, 관리자가
-// 발송관리 화면에서 대상자별 문자 내용을 한 번에 만들어(클립보드 복사)
-// 발송 앱에서 보내는 방식 — 기존 상황별 처방의 "문자로 보내기"와 같은
-// 수동 발송 방식을 구독 목록 기반으로 확장한 것이다.
+// 회원이 "어떤 메뉴 정보를, 얼마나 자주" 받고 싶은지 여기서 설정만 저장한다.
+// 실제 발송은 이 화면(브라우저)이 아니라 매일 실행되는 GitHub Actions
+// (.github/workflows/send-sms-subscriptions.yml → scripts/send_sms_subscriptions.py)가
+// 처리한다 — 알리고 SMS API는 고정 IP에서만 호출을 허용해 GitHub Pages
+// (브라우저)나 매번 IP가 바뀌는 GitHub Actions 러너에서 직접 부를 수 없으므로,
+// farm-pro 프로젝트에 이미 배포해둔 고정 IP 중계 서버(sms-relay, Oracle Cloud
+// VM)를 그대로 재사용한다. 그 서버는 RELAY_SECRET 공유 비밀값으로만 호출자를
+// 확인하므로 어디서 불러도 상관없다 — farm-pro/sms-relay/README.md 참고.
+// renderSmsAdminPanel의 "문자 준비" 버튼(클립보드 복사)은 자동 발송이 실패하거나
+// 급하게 지금 바로 보내야 할 때 쓰는 수동 백업 경로로 남겨둔다.
 // 저장 위치는 새 storage.rules 경로를 안 만들고 기존 premium_board 패턴을
 // 재사용한다 — boardType을 "sms_sub"로 두면 소유자 본인+관리자만 읽고 쓸 수
 // 있는 규칙을 그대로 탄다(경로: premium_board/sms_sub/{uid}/settings/config.json).
+// GitHub Actions는 로그인 세션이 없어 이 규칙을 그대로는 못 타므로, Firebase
+// 서비스 계정(Admin SDK)으로 규칙을 우회해 읽고 쓴다 — 필요한 저장소 Secret
+// 3개(FIREBASE_SERVICE_ACCOUNT_JSON/SMS_RELAY_URL/SMS_RELAY_SECRET)는 스크립트
+// 상단 설명 참고.
 const SMS_SUBSCRIBABLE_MENUS = [
   { key:"seasonal", label:"🗓️ 계절별 투약(관리) 패키지" },
   { key:"research", label:"📚 기술탐구" },
@@ -4718,8 +4723,8 @@ function renderSmsSubPanel(){
     </div>
   </div>
   <div style="font-size:9px;color:#aaa;line-height:1.6;margin-top:8px">
-    ※ 자동 문자 발송은 관리자가 신청 목록을 확인해 신청 주기에 맞춰 직접 보내드립니다(문자 API를 통한 즉시 자동발송이
-    아닙니다). 발송 시점은 신청 주기 기준으로 다소 앞뒤로 차이가 날 수 있습니다.
+    ※ 매일 자동으로 발송 대상을 확인해 신청 주기가 되면 자동으로 문자를 보내드립니다.
+    발송 시점은 신청 주기 기준으로 하루 정도 앞뒤로 차이가 날 수 있습니다.
   </div>`;
 }
 
@@ -4729,7 +4734,7 @@ function renderSmsAdminPanel(){
   <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
     <div>
       <div class="display" style="font-size:16px;margin-bottom:3px">📱 자동 문자 발송 관리 <span style="font-size:10px;color:#aaa;font-weight:400">관리자 전용</span></div>
-      <div style="font-size:11px;color:#aaa">발송 주기가 된 신청자를 보여줍니다. 문자 내용을 만들어 복사한 뒤 문자 앱에서 직접 보내세요.</div>
+      <div style="font-size:11px;color:#aaa">매일 자동으로 발송됩니다(GitHub Actions). 아래 목록은 현황 확인용이며, "문자 준비"는 급히 지금 바로 보내야 할 때 쓰는 수동 백업입니다.</div>
     </div>
     <button id="smsadmin-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button>
   </div>`;
@@ -4768,8 +4773,9 @@ function renderSmsAdminPanel(){
 
   return head + rows + (smsAdminState.msg?`<div style="font-size:11px;margin:8px 0;color:${/실패|오류/.test(smsAdminState.msg)?"#C62828":"#2E7D32"}">${esc(smsAdminState.msg)}</div>`:"") + `
   <div style="font-size:9px;color:#aaa;line-height:1.6;margin-top:8px">
-    ※ "문자 준비"를 누르면 해당 회원 정보로 문자 내용이 클립보드에 복사되고, 마지막 발송일이 오늘로 기록됩니다.
-    실제 발송은 복사된 내용을 문자 앱에 붙여넣어 보내주세요.
+    ※ 정상적인 경우 이 화면에서 따로 누를 일은 없습니다 — 매일 아침 자동 발송(GitHub Actions)이 처리합니다.
+    "문자 준비"는 자동 발송이 실패했거나 지금 바로 보내야 할 때만 쓰세요. 누르면 문자 내용이 클립보드에
+    복사되고 마지막 발송일이 오늘로 기록되니, 복사된 내용을 문자 앱에 붙여넣어 보내면 됩니다.
   </div>`;
 }
 
