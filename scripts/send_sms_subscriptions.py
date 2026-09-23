@@ -170,7 +170,7 @@ def main():
             continue
 
         digest = build_digest(bucket, cfg["menu"])
-        text = "[농장동물 컨설팅 안내]\n" + digest
+        text = "[농장동물 컨설팅 안내]\n" + digest + "\n\n자세히 보기: https://polcon.cc"
         try:
             result = send_sms(relay_url, relay_secret, cfg["phone"], text)
             print(f"발송 완료: {cfg.get('email','?')} ({cfg['menu']}) -> {result}")

@@ -10077,7 +10077,7 @@ function attachEvents(){
     const cfg = smsAdminState.list.find(c=>c.uid===uid);
     if(!cfg) return;
     const digest = buildSmsDigestText(cfg.menu);
-    const text = `[농장동물 컨설팅 안내]\n수신: ${cfg.phone}\n\n${digest}`;
+    const text = `[농장동물 컨설팅 안내]\n수신: ${cfg.phone}\n\n${digest}\n\n자세히 보기: https://polcon.cc`;
     try { await navigator.clipboard.writeText(text); alert("문자 내용을 클립보드에 복사했습니다.\n문자 앱에 붙여넣어 발송해 주세요."); }
     catch(e){ prompt("아래 내용을 복사해 문자 앱에 붙여넣어 주세요:", text); }
     smsAdminState.msg = "발송 처리 중..."; render();
