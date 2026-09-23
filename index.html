@@ -644,6 +644,9 @@ const PREMIUM_ITEMS = [
   { key:"finder", icon:"🎯", title:"내 농장에 맞는 약품 찾기", desc:"축종과 문제 증상을 단계별로 선택하면 진단·원인 분석과 추천 처방을 보여드립니다.", color:"#283593" },
   { key:"disinfect", icon:"🧴", title:"질병별 소독제 선택과 소독요령", desc:"질병을 고르면 그에 맞는 소독제 선택 기준과 소독요령을 단계별로 안내합니다.", color:"#00695C" },
   { key:"selfcheck", icon:"🐔", title:"온라인 자가진단", desc:"닭 해부도에서 장기를 클릭하면 그 장기의 기능과 흔히 나타나는 질병을 보여드립니다.", color:"#AD1457" },
+  { key:"study", icon:"🎓", title:"최수의사의 온라인 학습(카드 학습)", desc:"수의사가 올린 카드형 학습자료(앞면/뒷면)로 필요할 때마다 학습할 수 있습니다.", color:"#4527A0" },
+  { key:"smssub", icon:"📱", title:"자동 문자 발송 신청", desc:"계절별 투약 패키지·기술탐구·상황별 처방 중 원하는 정보를 정해진 주기로 문자 알림 신청합니다.", color:"#0277BD" },
+  { key:"feature_board", icon:"💡", title:"기능 요청 게시판", desc:"필요한 기능을 자유롭게 제안해 주세요. 작성자는 다른 회원에게 익명으로 표시됩니다.", color:"#00838F" },
   { key:"consult", icon:"💬", title:"온라인 상담", desc:"농장 현안(사양·환기·질병 등)을 질문하면 최동명 수의사가 답변합니다. 사진 첨부 가능, 답변은 작성자만 볼 수 있습니다.", color:"#1565C0" },
   { key:"diagnosis", icon:"🔍", title:"온라인 진단", desc:"닭의 외부모습·분변상태·부검사진(기관지·간·신장·소장)을 올리면 최동명 수의사가 직접 진단합니다.", color:"#2E7D32" },
   { key:"consulting", icon:"📈", title:"온라인 컨설팅", desc:"농장 운영·질병 현황을 바탕으로 맞춤 투약·백신 프로그램을 작성해 드립니다. 답변은 작성자만 볼 수 있습니다.", color:"#E65100" },
@@ -995,6 +998,299 @@ async function publishDiseaseDisinfectants(items, message){
     diseaseDisinfectState.data = body;
     return { ok:true };
   } catch(e) {
+    return { ok:false, error: e.message || String(e) };
+  }
+}
+
+// ── 자동 문자 발송 신청 ───────────────────────────────────────────────────────
+// 회원이 "어떤 메뉴 정보를, 얼마나 자주" 받고 싶은지 설정만 저장해두고,
+// 실제 발송은 관리자가 발송관리 화면에서 확인 후 보낸다 — 알리고 등 SMS
+// API는 고정 IP에서만 호출이 허용돼(publishTreatmentPackages 근처의
+// treatment-sms-btn 설명 참고) GitHub Pages(브라우저)나 GitHub Actions
+// (매번 IP가 바뀜)에서 서버가 알아서 문자를 쏴주는 구조를 만들 수 없다.
+// 대신 "누가 무엇을, 언제 다시 받아야 하는지"를 계산해두고, 관리자가
+// 발송관리 화면에서 대상자별 문자 내용을 한 번에 만들어(클립보드 복사)
+// 발송 앱에서 보내는 방식 — 기존 상황별 처방의 "문자로 보내기"와 같은
+// 수동 발송 방식을 구독 목록 기반으로 확장한 것이다.
+// 저장 위치는 새 storage.rules 경로를 안 만들고 기존 premium_board 패턴을
+// 재사용한다 — boardType을 "sms_sub"로 두면 소유자 본인+관리자만 읽고 쓸 수
+// 있는 규칙을 그대로 탄다(경로: premium_board/sms_sub/{uid}/settings/config.json).
+const SMS_SUBSCRIBABLE_MENUS = [
+  { key:"seasonal", label:"🗓️ 계절별 투약(관리) 패키지" },
+  { key:"research", label:"📚 기술탐구" },
+  { key:"treatment", label:"💉 상황별 처방(투약) 패키지" },
+];
+const SMS_INTERVALS = [
+  { key:"daily", label:"매일", days:1 },
+  { key:"weekly", label:"매주", days:7 },
+  { key:"monthly", label:"매월", days:30 },
+];
+function smsMenuLabel(key){ return (SMS_SUBSCRIBABLE_MENUS.find(m=>m.key===key)||{}).label || key; }
+function smsIntervalLabel(key){ return (SMS_INTERVALS.find(i=>i.key===key)||{}).label || key; }
+
+function smsSubscriptionPath(uid){
+  return boardPostPath("sms_sub", uid, "settings") + "/config.json";
+}
+
+let smsSubState = { status:"idle", data:null, busy:false, msg:"" };
+
+async function fetchMySmsSubscription(){
+  const user = premiumState.user;
+  if(!user) return;
+  smsSubState.status = "loading";
+  const data = await readBoardJson(firebase.storage().ref(smsSubscriptionPath(user.uid)));
+  smsSubState.data = data || { menu:"", interval:"", phone:"", active:false };
+  smsSubState.status = "done";
+  if(premiumState.view === "smssub") render();
+}
+
+async function writeSmsSubscription(uid, cfg){
+  try {
+    await withStorageTimeout(firebase.storage().ref(smsSubscriptionPath(uid))
+      .putString(JSON.stringify(cfg), "raw", { contentType:"application/json" }));
+    return { ok:true };
+  } catch(e){
+    return { ok:false, error: e.message || String(e) };
+  }
+}
+
+async function saveMySmsSubscription(cfg){
+  const user = premiumState.user;
+  if(!user) return { ok:false, error:"로그인이 필요합니다." };
+  const body = Object.assign({}, smsSubState.data, cfg, { email:user.email, updatedAt:new Date().toISOString() });
+  const r = await writeSmsSubscription(user.uid, body);
+  if(r.ok) smsSubState.data = body;
+  return r;
+}
+
+// ── 자동 문자 발송 관리 (관리자 전용) ─────────────────────────────────────────
+// premium_board/sms_sub 아래 모든 회원의 구독 설정을 훑어 "다음 발송일이
+// 지난" 대상만 골라 보여준다. isAdmin()은 premium_board/{boardType} 레벨의
+// list를 허용하므로 관리자는 전체 uid 목록을 볼 수 있다(회원 본인은 자기
+// 것만 list 가능).
+let smsAdminState = { status:"idle", list:[], busy:false, msg:"" };
+
+function smsNextDueDate(cfg){
+  const interval = SMS_INTERVALS.find(i=>i.key===cfg.interval) || SMS_INTERVALS[0];
+  if(!cfg.lastSentAt) return null; // 한 번도 안 보냈으면 즉시 대상
+  return new Date(new Date(cfg.lastSentAt).getTime() + interval.days*86400000);
+}
+function smsIsDue(cfg){
+  const due = smsNextDueDate(cfg);
+  return !due || new Date() >= due;
+}
+
+async function fetchAllSmsSubscriptions(){
+  smsAdminState.status = "loading";
+  try {
+    const listing = await withStorageTimeout(firebase.storage().ref("premium_board/sms_sub").listAll());
+    const out = [];
+    for(const uidPrefix of listing.prefixes){
+      const cfg = await readBoardJson(uidPrefix.child("settings/config.json"));
+      if(cfg && cfg.active && cfg.menu && cfg.interval && cfg.phone){
+        out.push(Object.assign({ uid: uidPrefix.name }, cfg));
+      }
+    }
+    out.sort((a,b) => smsIsDue(b) - smsIsDue(a));
+    smsAdminState.list = out;
+    smsAdminState.status = "done";
+  } catch(e){
+    console.warn("문자 발송 구독 목록 로딩 실패:", e);
+    smsAdminState.status = "error";
+  }
+  if(premiumState.view === "smsadmin") render();
+}
+
+// 신청한 메뉴의 "지금 시점 정보"를 문자용 짧은 텍스트로 요약한다. 각 메뉴가
+// 이미 화면에 쓰는 데이터(state)를 그대로 재사용하므로, 관리자가 발송관리
+// 화면을 열기 전에 해당 메뉴 데이터가 로딩돼 있어야 정확하다 — 없으면
+// 그때그때 fetch를 걸어준다(아래 renderSmsAdminPanel 참고).
+function buildSmsDigestText(menuKey){
+  if(menuKey === "seasonal"){
+    const month = new Date().getMonth() + 1;
+    const season = (month>=3&&month<=5) ? "spring" : (month>=6&&month<=8) ? "summer" : (month>=9&&month<=11) ? "fall" : "winter";
+    const items = seasonalPackagesFor(season);
+    if(!items.length) return `[${seasonLabel(season)} 계절별 패키지]\n아직 등록된 내용이 없습니다.`;
+    const lines = [`[${seasonLabel(season)} 계절별 투약·관리 패키지]`];
+    items.forEach(p => {
+      lines.push("", "▶ " + p.title);
+      (p.medication||[]).slice(0,2).forEach(s => lines.push("- " + s.step + ": " + s.detail));
+    });
+    return lines.join("\n");
+  }
+  if(menuKey === "research"){
+    const cats = (researchPapersState.data && researchPapersState.data.categories) || {};
+    const keys = Object.keys(cats);
+    if(!keys.length) return "[기술탐구]\n아직 수집된 논문이 없습니다.";
+    const lines = ["[이번 주 기술탐구 요약]"];
+    keys.forEach(k => {
+      const p = (cats[k].papers||[])[0];
+      if(p) lines.push("", "▶ " + cats[k].label + " — " + p.title_ko);
+    });
+    return lines.join("\n");
+  }
+  if(menuKey === "treatment"){
+    const items = currentTreatmentPackages();
+    if(!items.length) return "[상황별 처방 패키지]\n아직 등록된 상황이 없습니다.";
+    const lines = ["[상황별 처방(투약) 패키지 목록]"];
+    ["broiler","layer"].forEach(sp => {
+      const list = treatmentPackagesFor(sp);
+      if(list.length) lines.push("", sp==="broiler"?"🐔 육계":"🥚 산란계", ...list.map(p=>"- "+p.title));
+    });
+    return lines.join("\n");
+  }
+  return "";
+}
+
+// ── 최수의사의 온라인 학습(카드 학습) ─────────────────────────────────────────
+// 덱(주제) 하나에 카드 여러 장 — 카드는 앞면/뒷면 텍스트 + 선택적 이미지
+// 한 장. 이미지는 텍스트 메타데이터(premium_content/study_cards/latest.json)와
+// 따로, premium_content/study_card_images/{cardKey}.{ext}에 올린다 —
+// storage.rules의 premium_content/{dataset}/{fileName} 규칙이 dataset명을
+// 가리지 않으므로 "study_card_images"를 그대로 새 폴더처럼 쓸 수 있다.
+let studyCardsState = { status:"idle", data:null, busy:false, msg:"" };
+
+async function fetchStudyCards(){
+  if(studyCardsState.status === "loading") return;
+  studyCardsState.status = "loading";
+  try {
+    const j = await fetchPremiumContentJson("study_cards");
+    j.decks = Array.isArray(j.decks) ? j.decks : [];
+    studyCardsState.data = j;
+    studyCardsState.status = "done";
+  } catch(e){
+    console.warn("온라인 학습 카드 로딩 실패(최초 미발행 상태로 간주):", e);
+    studyCardsState.data = { decks: [] };
+    studyCardsState.status = "done";
+  }
+  if(premiumState.view === "study") render();
+}
+
+function currentStudyDecks(){
+  return (studyCardsState.data && studyCardsState.data.decks) || [];
+}
+function newStudyKey(prefix){
+  return (prefix||"s") + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+}
+
+async function publishStudyDecks(decks, message){
+  try {
+    const body = {
+      updated: new Date().toISOString().slice(0,16).replace("T"," ") + " UTC",
+      by: PICK_BY,
+      note: "최수의사의 온라인 학습(카드 학습) — 화면에서 저장하면 이 파일이 갱신되고 승인된 회원 모두에게 같은 내용이 보입니다.",
+      decks: decks,
+    };
+    await writePremiumContentJson("study_cards", body);
+    studyCardsState.data = body;
+    return { ok:true };
+  } catch(e) {
+    return { ok:false, error: e.message || String(e) };
+  }
+}
+
+// 카드 이미지 업로드 — submitBoardPost의 사진 업로드와 같은 방식(먼저 올리고
+// 다운로드 URL을 받아 메타데이터에 넣는다). 이미지가 없으면(선택 사항) 그냥
+// undefined를 돌려주고, 호출한 쪽에서 기존 imageUrl을 유지하거나 비운다.
+async function uploadStudyCardImage(cardKey, file){
+  if(!file) return null;
+  const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g,"") || "jpg";
+  const ref = firebase.storage().ref("premium_content/study_card_images/" + cardKey + "." + ext);
+  await withStorageTimeout(ref.put(file), 30000);
+  return await withStorageTimeout(ref.getDownloadURL());
+}
+
+// ── 유료회원 기능요청 게시판 ──────────────────────────────────────────────────
+// 상담·진단·컨설팅(PREMIUM_BOARDS)과 달리 글쓴이 본인+관리자만 보는 게
+// 아니라 승인된 회원 전체가 서로의 글·답글을 볼 수 있는 공개 게시판이다.
+// 화면에는 글쓴이를 항상 "익명"으로만 보여준다 — 실제 uid는 Storage 경로
+// (feature_requests/{uid}/{postId})에만 남고 어떤 화면에도 노출하지 않는다.
+// storage.rules에서 post.json은 글쓴이 본인+관리자만 쓸 수 있고(경로의 uid로
+// 판별), 답글(replies/{replyId})은 승인된 회원 누구나 새로 달 수 있다.
+let featureBoardState = { status:"idle", posts:[], busy:false, msg:"", newText:"", replyOpenId:null, replyText:"" };
+
+function featureRequestPostPath(uid, postId){
+  return "feature_requests/" + uid + "/" + postId + "/post.json";
+}
+function featureRequestRepliesPrefix(uid, postId){
+  return "feature_requests/" + uid + "/" + postId + "/replies";
+}
+function newFeatureRequestId(){
+  return "f" + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+}
+
+// 관리자든 회원이든, 자기 글이 아닌 남의 글 작성자를 알 방법이 없어야 하므로
+// 화면에는 이 라벨만 쓴다. 관리자가 단 답글만 구분해서 보여준다(공식 답변
+// 표시 목적 — 관리자 신원 자체는 원래도 회원들에게 알려진 정보라 익명 대상이
+// 아니다).
+function featureBoardAuthorLabel(){ return "👤 익명 회원"; }
+function featureBoardReplyLabel(isAdminReply){ return isAdminReply ? "🩺 관리자 답변" : "👤 익명 회원"; }
+
+async function fetchFeatureRequests(){
+  featureBoardState.status = "loading";
+  try {
+    const listing = await withStorageTimeout(firebase.storage().ref("feature_requests").listAll());
+    const posts = [];
+    for(const uidPrefix of listing.prefixes){
+      const postListing = await withStorageTimeout(uidPrefix.listAll());
+      for(const postPrefix of postListing.prefixes){
+        const post = await readBoardJson(postPrefix.child("post.json"));
+        if(!post) continue;
+        const replies = [];
+        try {
+          const replyListing = await withStorageTimeout(postPrefix.child("replies").listAll());
+          for(const replyRef of replyListing.items){
+            const reply = await readBoardJson(replyRef);
+            if(reply) replies.push(reply);
+          }
+        } catch(e){ /* 답글이 아직 없으면 폴더 자체가 없어 listAll이 비어있게 온다 */ }
+        replies.sort((a,b) => (a.at||"").localeCompare(b.at||""));
+        posts.push(Object.assign({}, post, { uid: uidPrefix.name, postId: postPrefix.name, replies }));
+      }
+    }
+    posts.sort((a,b) => (b.createdAt||"").localeCompare(a.createdAt||""));
+    featureBoardState.posts = posts;
+    featureBoardState.status = "done";
+  } catch(e){
+    console.warn("기능요청 게시판 로딩 실패:", e);
+    featureBoardState.status = "error";
+  }
+  if(premiumState.view === "feature_board") render();
+}
+
+async function submitFeatureRequest(text){
+  const user = premiumState.user;
+  if(!user) return { ok:false, error:"로그인이 필요합니다." };
+  const postId = newFeatureRequestId();
+  const post = { id:postId, uid:user.uid, text, createdAt:new Date().toISOString() };
+  try {
+    await withStorageTimeout(firebase.storage().ref(featureRequestPostPath(user.uid, postId))
+      .putString(JSON.stringify(post), "raw", { contentType:"application/json" }));
+    return { ok:true, post };
+  } catch(e){
+    return { ok:false, error: e.message || String(e) };
+  }
+}
+
+async function submitFeatureReply(uid, postId, text){
+  const user = premiumState.user;
+  if(!user) return { ok:false, error:"로그인이 필요합니다." };
+  const replyId = newFeatureRequestId();
+  const reply = { id:replyId, byUid:user.uid, isAdminReply:isBoardAdmin(), text, at:new Date().toISOString() };
+  try {
+    await withStorageTimeout(firebase.storage().ref(featureRequestRepliesPrefix(uid, postId) + "/" + replyId + ".json")
+      .putString(JSON.stringify(reply), "raw", { contentType:"application/json" }));
+    return { ok:true, reply };
+  } catch(e){
+    return { ok:false, error: e.message || String(e) };
+  }
+}
+
+async function deleteFeatureRequest(uid, postId){
+  try {
+    await withStorageTimeout(firebase.storage().ref(featureRequestPostPath(uid, postId)).delete());
+    return { ok:true };
+  } catch(e){
     return { ok:false, error: e.message || String(e) };
   }
 }
@@ -3867,6 +4163,10 @@ function renderResearchPanel(){
 let treatmentTabState = { species: "broiler", openKey: null, adminOpen: false, formKey: undefined };
 let seasonalTabState = { season: "spring", openKey: null, adminOpen: false, formKey: undefined };
 let disinfectTabState = { openKey: null, adminOpen: false, formKey: undefined };
+// 학습 화면 내비게이션 — deckKey가 없으면 덱 목록, 있으면 그 덱의 카드
+// 뷰어(cardIndex번째 카드, flipped면 뒷면 표시 중). deckFormKey/cardFormKey는
+// 관리자가 덱/카드를 추가·편집할 때 쓰는 폼 상태다(둘 다 undefined면 새로 추가).
+let studyNavState = { deckKey: null, cardIndex: 0, flipped: false, adminOpen: false, deckFormKey: undefined, cardFormKey: undefined };
 
 // 관리(추가/편집) 폼에 넣을 값 — null이면 새로 추가하는 중, 객체면 그 항목을 편집 중.
 // 프로그램 단계는 "제목|설명" 한 줄씩 textarea로 입력받아 저장할 때 배열로 바꾼다
@@ -4369,6 +4669,290 @@ function renderDisinfectPanel(){
     라벨의 사용농도·접촉시간을 따르세요. 가축전염병예방법상 신고대상 질병(AI 등)은 방역당국 지침이 우선합니다.
     새로운 질병은 계속 추가됩니다.
   </div>`;
+}
+
+// ── 자동 문자 발송 신청 화면 (회원용) ─────────────────────────────────────────
+function renderSmsSubPanel(){
+  const head = `
+  <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+    <div>
+      <div class="display" style="font-size:16px;margin-bottom:3px">📱 자동 문자 발송 신청</div>
+      <div style="font-size:11px;color:#aaa">원하는 정보를 정해진 주기로 문자 알림 신청합니다</div>
+    </div>
+    <button id="smssub-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button>
+  </div>`;
+
+  const st = smsSubState;
+  if(st.status === "idle" || st.status === "loading"){
+    return head + `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⏳ 신청 현황을 불러오는 중...</div>`;
+  }
+  const cfg = st.data || {};
+
+  const menuBtns = SMS_SUBSCRIBABLE_MENUS.map(m => `
+    <button class="smssub-menu-btn" data-menu="${m.key}"
+      style="flex:1;min-width:130px;border:2px solid ${cfg.menu===m.key?"#0277BD":"#eee"};background:${cfg.menu===m.key?"#0277BD":"#fff"};color:${cfg.menu===m.key?"#fff":"#333"};border-radius:10px;padding:10px 8px;font-size:12.5px;font-weight:700;cursor:pointer">${m.label}</button>`).join("");
+  const intervalBtns = SMS_INTERVALS.map(i => `
+    <button class="smssub-interval-btn" data-interval="${i.key}"
+      style="flex:1;border:2px solid ${cfg.interval===i.key?"#0277BD":"#eee"};background:${cfg.interval===i.key?"#0277BD":"#fff"};color:${cfg.interval===i.key?"#fff":"#333"};border-radius:10px;padding:9px 6px;font-size:12.5px;font-weight:700;cursor:pointer">${i.label}</button>`).join("");
+
+  const statusBox = cfg.active ? `
+  <div style="background:#E3F2FD;border-radius:9px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:#01579B;line-height:1.7">
+    ✅ 현재 <b>${esc(smsMenuLabel(cfg.menu))}</b> 정보를 <b>${esc(smsIntervalLabel(cfg.interval))}</b> 받도록 신청돼 있습니다. (수신번호 ${esc(cfg.phone||"-")})
+    ${cfg.lastSentAt ? "<br>마지막 발송: "+esc(cfg.lastSentAt.slice(0,10)) : "<br>아직 발송된 적이 없습니다."}
+  </div>` : "";
+
+  return head + `
+  ${statusBox}
+  <div class="card" style="padding:16px">
+    <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:8px">1. 받고 싶은 정보</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">${menuBtns}</div>
+    <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:8px">2. 수신 주기</div>
+    <div style="display:flex;gap:8px;margin-bottom:16px">${intervalBtns}</div>
+    <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:8px">3. 수신 전화번호</div>
+    <input id="smssub-phone" type="tel" placeholder="010-1234-5678" value="${esc(cfg.phone||"")}"
+      style="width:100%;padding:9px 10px;border:1px solid #ddd;border-radius:8px;font-size:13px;margin-bottom:16px;box-sizing:border-box" />
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button id="smssub-save" ${st.busy?"disabled":""} style="border:1px solid #0277BD;background:${st.busy?"#ccc":"#0277BD"};color:#fff;border-radius:8px;padding:9px 16px;font-size:12.5px;font-weight:700">${st.busy?"저장 중...":"신청 저장"}</button>
+      ${cfg.active ? `<button id="smssub-stop" ${st.busy?"disabled":""} style="border:1px solid #C62828;background:#fff;color:#C62828;border-radius:8px;padding:9px 14px;font-size:12px;font-weight:600">신청 해지</button>` : ""}
+      ${st.msg?`<span style="font-size:11px;color:${/실패|오류/.test(st.msg)?"#C62828":"#2E7D32"}">${esc(st.msg)}</span>`:""}
+    </div>
+  </div>
+  <div style="font-size:9px;color:#aaa;line-height:1.6;margin-top:8px">
+    ※ 자동 문자 발송은 관리자가 신청 목록을 확인해 신청 주기에 맞춰 직접 보내드립니다(문자 API를 통한 즉시 자동발송이
+    아닙니다). 발송 시점은 신청 주기 기준으로 다소 앞뒤로 차이가 날 수 있습니다.
+  </div>`;
+}
+
+// ── 자동 문자 발송 관리 화면 (관리자 전용) ────────────────────────────────────
+function renderSmsAdminPanel(){
+  const head = `
+  <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+    <div>
+      <div class="display" style="font-size:16px;margin-bottom:3px">📱 자동 문자 발송 관리 <span style="font-size:10px;color:#aaa;font-weight:400">관리자 전용</span></div>
+      <div style="font-size:11px;color:#aaa">발송 주기가 된 신청자를 보여줍니다. 문자 내용을 만들어 복사한 뒤 문자 앱에서 직접 보내세요.</div>
+    </div>
+    <button id="smsadmin-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button>
+  </div>`;
+
+  if(treatmentPkgState.status === "idle") fetchTreatmentPackages();
+  if(seasonalPkgState.status === "idle") fetchSeasonalPackages();
+  if(researchPapersState.status === "idle") fetchResearchPapers();
+
+  const st = smsAdminState;
+  if(st.status === "idle" || st.status === "loading"){
+    return head + `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⏳ 신청 목록을 불러오는 중...</div>`;
+  }
+  if(st.status === "error"){
+    return head + `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⚠️ 신청 목록을 불러오지 못했습니다.</div>`;
+  }
+  if(!st.list.length){
+    return head + `<div class="card" style="text-align:center;padding:28px 16px;color:#aaa">활성화된 신청이 없습니다.</div>`;
+  }
+
+  const rows = st.list.map(cfg => {
+    const due = smsIsDue(cfg);
+    return `
+    <div class="card" style="padding:14px 16px;margin-bottom:8px;border-left:4px solid ${due?"#2E7D32":"#ccc"}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
+        <div style="min-width:0">
+          <div style="font-size:13px;font-weight:800;color:#333">${esc(cfg.email||"")} <span style="font-size:11px;color:#888;font-weight:400">${esc(cfg.phone||"")}</span></div>
+          <div style="font-size:11.5px;color:#666;margin-top:3px">${esc(smsMenuLabel(cfg.menu))} · ${esc(smsIntervalLabel(cfg.interval))} · ${cfg.lastSentAt?"마지막 발송 "+esc(cfg.lastSentAt.slice(0,10)):"발송 이력 없음"}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+          <span style="font-size:10.5px;color:${due?"#2E7D32":"#999"};background:${due?"#E8F5E9":"#F5F5F5"};border-radius:6px;padding:3px 8px;font-weight:700">${due?"발송 대상":"대기"}</span>
+          <button class="smsadmin-prepare-btn" data-uid="${esc(cfg.uid)}" style="font-size:10px;border:1px solid #0277BD;border-radius:5px;background:#fff;color:#0277BD;padding:4px 8px">📋 문자 준비</button>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+
+  return head + rows + (smsAdminState.msg?`<div style="font-size:11px;margin:8px 0;color:${/실패|오류/.test(smsAdminState.msg)?"#C62828":"#2E7D32"}">${esc(smsAdminState.msg)}</div>`:"") + `
+  <div style="font-size:9px;color:#aaa;line-height:1.6;margin-top:8px">
+    ※ "문자 준비"를 누르면 해당 회원 정보로 문자 내용이 클립보드에 복사되고, 마지막 발송일이 오늘로 기록됩니다.
+    실제 발송은 복사된 내용을 문자 앱에 붙여넣어 보내주세요.
+  </div>`;
+}
+
+// ── 최수의사의 온라인 학습(카드 학습) 화면 ────────────────────────────────────
+function renderStudyPanel(){
+  const head = `
+  <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+    <div>
+      <div class="display" style="font-size:16px;margin-bottom:3px">🎓 최수의사의 온라인 학습(카드 학습)</div>
+      <div style="font-size:11px;color:#aaa">수의사가 올린 카드형 학습자료로 필요할 때마다 학습할 수 있습니다</div>
+    </div>
+    <button id="study-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button>
+  </div>`;
+
+  const st = studyCardsState;
+  if(st.status === "idle" || st.status === "loading"){
+    return head + `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⏳ 학습자료를 불러오는 중...</div>`;
+  }
+  const admin = isBoardAdmin();
+  const decks = currentStudyDecks();
+  const nav = studyNavState;
+
+  if(!nav.deckKey){
+    const list = decks.length ? decks.map(d => `
+    <div class="card study-deck-open" data-deck="${d.key}" style="padding:16px;margin-bottom:10px;border-top:4px solid #4527A0;cursor:pointer">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+        <div style="min-width:0">
+          <div style="font-size:14px;font-weight:800;color:#333">${esc(d.title)}</div>
+          <div style="font-size:11.5px;color:#888;margin-top:4px">${esc(d.desc||"")}</div>
+          <div style="font-size:10.5px;color:#4527A0;margin-top:6px;font-weight:700">카드 ${d.cards.length}장</div>
+        </div>
+        ${admin ? `
+        <div style="white-space:nowrap;flex-shrink:0">
+          <button class="study-deck-edit-btn" data-deck="${d.key}" style="font-size:10px;border:1px solid #4527A0;border-radius:5px;background:#fff;color:#4527A0;padding:3px 8px;margin-right:4px">편집</button>
+          <button class="study-deck-del-btn" data-deck="${d.key}" style="font-size:10px;border:1px solid #eee;border-radius:5px;background:#fff;color:#bbb;padding:3px 8px">삭제</button>
+        </div>` : ""}
+      </div>
+    </div>`).join("") : `<div class="card" style="text-align:center;padding:28px 16px;color:#aaa">아직 등록된 학습자료가 없습니다.${admin?"":" 곧 추가됩니다."}</div>`;
+
+    const editingDeck = nav.deckFormKey && decks.find(d=>d.key===nav.deckFormKey);
+    const adminBox = !admin ? "" : `
+    <div style="margin-top:16px;border-top:1px dashed #eee;padding-top:12px">
+      <button id="study-admin-toggle" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:3px 9px">${nav.adminOpen?"관리 닫기":"⚙ 관리"}</button>
+      ${studyCardsState.msg?`<span style="font-size:11px;margin-left:8px;color:${/실패|오류/.test(studyCardsState.msg)?"#C62828":"#2E7D32"}">${esc(studyCardsState.msg)}</span>`:""}
+      ${nav.adminOpen ? `
+      <div style="margin-top:9px;background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">
+        <div style="font-size:11px;font-weight:700;color:#7A5C00;margin-bottom:8px">${editingDeck?"덱 수정: "+esc(editingDeck.title):"새 덱 추가"}</div>
+        <input id="sd-title" type="text" placeholder="덱 제목 (예: 호흡기 질병 기초)" value="${esc(editingDeck?editingDeck.title:"")}"
+          style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;margin-bottom:6px;box-sizing:border-box" />
+        <textarea id="sd-desc" placeholder="덱 설명"
+          style="width:100%;min-height:50px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:8px">${esc(editingDeck?editingDeck.desc:"")}</textarea>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          <button id="sd-save" ${studyCardsState.busy?"disabled":""} style="border:1px solid #B8860B;background:${studyCardsState.busy?"#ccc":"#B8860B"};color:#fff;border-radius:7px;padding:7px 15px;font-size:12px;font-weight:600">${studyCardsState.busy?"발행 중...":(editingDeck?"수정 발행":"추가 발행")}</button>
+          ${editingDeck?`<button id="sd-cancel" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:6px 10px">취소</button>`:""}
+        </div>
+      </div>` : ""}
+    </div>`;
+
+    return head + list + adminBox;
+  }
+
+  const deck = decks.find(d=>d.key===nav.deckKey);
+  if(!deck){
+    nav.deckKey = null;
+    return head + `<div class="card" style="text-align:center;padding:28px 16px;color:#aaa">덱을 찾을 수 없습니다.</div>`;
+  }
+  const cardsArr = deck.cards || [];
+  if(nav.cardIndex >= cardsArr.length) nav.cardIndex = 0;
+  const card = cardsArr[nav.cardIndex];
+
+  const breadcrumb = `<div style="margin-bottom:12px"><button id="study-deck-back-btn" style="font-size:11px;border:1px solid #ddd;border-radius:6px;background:#fff;color:#666;padding:5px 10px">← 덱 목록</button>
+  <span style="font-size:12.5px;font-weight:700;color:#333;margin-left:8px">${esc(deck.title)}</span></div>`;
+
+  const viewer = !card ? `<div class="card" style="text-align:center;padding:28px 16px;color:#aaa">아직 등록된 카드가 없습니다.</div>` : `
+  <div style="font-size:11px;color:#888;margin-bottom:8px;text-align:center">카드 ${nav.cardIndex+1} / ${cardsArr.length}</div>
+  <div id="study-flip-card" style="cursor:pointer;background:#fff;border:1px solid #eee;border-radius:14px;padding:28px 20px;min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.04)">
+    ${(!nav.flipped && card.imageUrl) ? `<img src="${esc(card.imageUrl)}" alt="" style="max-width:100%;max-height:160px;border-radius:8px;margin-bottom:12px" />` : ""}
+    <div style="font-size:15px;font-weight:800;color:#333;line-height:1.6;white-space:pre-wrap">${esc(nav.flipped ? card.back : card.front)}</div>
+    <div style="font-size:10.5px;color:#aaa;margin-top:14px">${nav.flipped?"다시 눌러 앞면 보기":"눌러서 정답 보기"}</div>
+  </div>
+  <div style="display:flex;justify-content:space-between;gap:8px;margin-top:14px">
+    <button id="study-prev-btn" ${nav.cardIndex===0?"disabled":""} style="flex:1;border:1px solid #ddd;border-radius:8px;background:#fff;color:${nav.cardIndex===0?"#ccc":"#333"};padding:10px;font-size:12.5px;font-weight:700">← 이전</button>
+    <button id="study-next-btn" ${nav.cardIndex>=cardsArr.length-1?"disabled":""} style="flex:1;border:1px solid #ddd;border-radius:8px;background:#fff;color:${nav.cardIndex>=cardsArr.length-1?"#ccc":"#333"};padding:10px;font-size:12.5px;font-weight:700">다음 →</button>
+  </div>`;
+
+  const editingCard = nav.cardFormKey && cardsArr.find(c=>c.key===nav.cardFormKey);
+  const cardAdminBox = !admin ? "" : `
+  <div style="margin-top:18px;border-top:1px dashed #eee;padding-top:12px">
+    <button id="study-card-admin-toggle" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:3px 9px">${nav.adminOpen?"카드 관리 닫기":"⚙ 카드 관리"}</button>
+    ${studyCardsState.msg?`<span style="font-size:11px;margin-left:8px;color:${/실패|오류/.test(studyCardsState.msg)?"#C62828":"#2E7D32"}">${esc(studyCardsState.msg)}</span>`:""}
+    ${nav.adminOpen ? `
+    <div style="margin-top:9px">
+      ${cardsArr.map((c,i) => `
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 8px;border-bottom:1px solid #f2f2f2;font-size:12px">
+        <span style="min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${i+1}. ${esc(c.front)}</span>
+        <span style="flex-shrink:0"><button class="study-card-edit-btn" data-card="${c.key}" style="font-size:10px;border:1px solid #4527A0;border-radius:5px;background:#fff;color:#4527A0;padding:3px 8px;margin-right:4px">편집</button><button class="study-card-del-btn" data-card="${c.key}" style="font-size:10px;border:1px solid #eee;border-radius:5px;background:#fff;color:#bbb;padding:3px 8px">삭제</button></span>
+      </div>`).join("")}
+      <div style="margin-top:10px;background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">
+        <div style="font-size:11px;font-weight:700;color:#7A5C00;margin-bottom:8px">${editingCard?"카드 수정":"새 카드 추가"}</div>
+        <textarea id="sc-front" placeholder="앞면 (질문/용어)"
+          style="width:100%;min-height:50px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:6px">${esc(editingCard?editingCard.front:"")}</textarea>
+        <textarea id="sc-back" placeholder="뒷면 (답/설명)"
+          style="width:100%;min-height:70px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:6px">${esc(editingCard?editingCard.back:"")}</textarea>
+        <div style="font-size:10px;color:#888;margin-bottom:4px">이미지(선택)${editingCard&&editingCard.imageUrl?" — 새 파일을 고르지 않으면 기존 이미지 유지":""}</div>
+        <input type="file" accept="image/*" id="sc-image" style="width:100%;font-size:11.5px;margin-bottom:8px" />
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          <button id="sc-save" ${studyCardsState.busy?"disabled":""} style="border:1px solid #B8860B;background:${studyCardsState.busy?"#ccc":"#B8860B"};color:#fff;border-radius:7px;padding:7px 15px;font-size:12px;font-weight:600">${studyCardsState.busy?"발행 중...":(editingCard?"수정 발행":"추가 발행")}</button>
+          ${editingCard?`<button id="sc-cancel" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:6px 10px">취소</button>`:""}
+        </div>
+      </div>
+    </div>` : ""}
+  </div>`;
+
+  return head + breadcrumb + viewer + cardAdminBox;
+}
+
+// ── 유료회원 기능요청 게시판 화면 ─────────────────────────────────────────────
+function renderFeatureBoardPanel(){
+  const head = `
+  <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+    <div>
+      <div class="display" style="font-size:16px;margin-bottom:3px">💡 기능 요청 게시판</div>
+      <div style="font-size:11px;color:#aaa">필요한 기능을 자유롭게 제안해 주세요. 작성자는 다른 회원에게 익명으로 표시됩니다.</div>
+    </div>
+    <button id="fboard-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button>
+  </div>`;
+
+  const st = featureBoardState;
+  const myUid = premiumState.user && premiumState.user.uid;
+  const admin = isBoardAdmin();
+
+  const newForm = `
+  <div class="card" style="padding:14px 16px;margin-bottom:14px">
+    <textarea id="fboard-new-text" placeholder="어떤 기능이 있으면 좋을지 자유롭게 적어주세요. (글쓴이는 익명으로 표시됩니다)"
+      style="width:100%;min-height:70px;padding:9px 10px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;margin-bottom:8px">${esc(st.newText||"")}</textarea>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button id="fboard-submit" ${st.busy?"disabled":""} style="border:1px solid #00838F;background:${st.busy?"#ccc":"#00838F"};color:#fff;border-radius:8px;padding:8px 16px;font-size:12.5px;font-weight:700">${st.busy?"등록 중...":"익명으로 등록"}</button>
+      ${st.msg?`<span style="font-size:11px;color:${/실패|오류/.test(st.msg)?"#C62828":"#2E7D32"}">${esc(st.msg)}</span>`:""}
+    </div>
+  </div>`;
+
+  if(st.status === "idle" || st.status === "loading"){
+    return head + newForm + `<div class="card" style="text-align:center;padding:28px 16px;color:#aaa">⏳ 게시글을 불러오는 중...</div>`;
+  }
+  if(st.status === "error"){
+    return head + newForm + `<div class="card" style="text-align:center;padding:28px 16px;color:#aaa">⚠️ 게시글을 불러오지 못했습니다.</div>`;
+  }
+
+  const posts = st.posts || [];
+  const list = posts.length ? posts.map(p => {
+    const canDelete = admin || p.uid === myUid;
+    const replyOpen = st.replyOpenId === p.postId;
+    return `
+    <div class="card" style="padding:14px 16px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+        <div style="min-width:0">
+          <div style="font-size:11.5px;color:#00838F;font-weight:700">${featureBoardAuthorLabel()}</div>
+          <div style="font-size:13px;color:#333;line-height:1.6;margin-top:4px;white-space:pre-wrap">${esc(p.text)}</div>
+          <div style="font-size:10px;color:#aaa;margin-top:6px">${esc((p.createdAt||"").slice(0,16).replace("T"," "))}</div>
+        </div>
+        ${canDelete ? `<button class="fboard-del-btn" data-uid="${esc(p.uid)}" data-post="${esc(p.postId)}" style="font-size:10px;border:1px solid #eee;border-radius:5px;background:#fff;color:#bbb;padding:3px 8px;flex-shrink:0">삭제</button>` : ""}
+      </div>
+      ${(p.replies||[]).length ? `
+      <div style="margin-top:10px;padding-top:10px;border-top:1px dashed #eee">
+        ${p.replies.map(r => `
+        <div style="margin-bottom:8px;padding:8px 10px;background:${r.isAdminReply?"#E8F5E9":"#FAFAFA"};border-radius:8px">
+          <div style="font-size:11px;font-weight:700;color:${r.isAdminReply?"#2E7D32":"#666"}">${featureBoardReplyLabel(r.isAdminReply)}</div>
+          <div style="font-size:12.5px;color:#333;line-height:1.6;margin-top:3px;white-space:pre-wrap">${esc(r.text)}</div>
+        </div>`).join("")}
+      </div>` : ""}
+      <div style="margin-top:8px">
+        <button class="fboard-reply-toggle" data-uid="${esc(p.uid)}" data-post="${esc(p.postId)}" style="font-size:10.5px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#666;padding:4px 9px">${replyOpen?"답글 취소":"💬 답글 달기"}</button>
+        ${replyOpen ? `
+        <div style="margin-top:8px">
+          <textarea id="fboard-reply-text" placeholder="답글을 입력하세요"
+            style="width:100%;min-height:50px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:6px">${esc(st.replyText||"")}</textarea>
+          <button class="fboard-reply-submit" data-uid="${esc(p.uid)}" data-post="${esc(p.postId)}" ${st.busy?"disabled":""} style="border:1px solid #00838F;background:${st.busy?"#ccc":"#00838F"};color:#fff;border-radius:7px;padding:6px 12px;font-size:11.5px;font-weight:700">${st.busy?"등록 중...":"답글 등록"}</button>
+        </div>` : ""}
+      </div>
+    </div>`;
+  }).join("") : `<div class="card" style="text-align:center;padding:28px 16px;color:#aaa">아직 등록된 요청이 없습니다. 첫 요청을 남겨보세요!</div>`;
+
+  return head + newForm + list;
 }
 
 // 내 농장에 맞는 약품 찾기 — 축종 → 카테고리 → 구체적 증상 순으로 좁혀가는
@@ -4965,6 +5549,29 @@ function renderPremiumTab(){
     if(selfCheckPkgState.status === "idle") fetchSelfCheckDiseases();
     return renderPremiumGateHeader() + logoutBar + renderSelfCheckPanel();
   }
+  // 최수의사의 온라인 학습(카드 학습) 화면
+  if(premiumState.view === "study"){
+    if(studyCardsState.status === "idle") fetchStudyCards();
+    return renderPremiumGateHeader() + logoutBar + renderStudyPanel();
+  }
+  // 자동 문자 발송 신청 화면 (회원용)
+  if(premiumState.view === "smssub"){
+    if(smsSubState.status === "idle") fetchMySmsSubscription();
+    return renderPremiumGateHeader() + logoutBar + renderSmsSubPanel();
+  }
+  // 자동 문자 발송 관리 화면 — 관리자가 아니면 메뉴로 돌려보낸다.
+  if(premiumState.view === "smsadmin"){
+    if(!isBoardAdmin()){ premiumState.view = "menu"; }
+    else {
+      if(smsAdminState.status === "idle") fetchAllSmsSubscriptions();
+      return renderPremiumGateHeader() + logoutBar + renderSmsAdminPanel();
+    }
+  }
+  // 유료회원 기능요청 게시판 — 승인된 회원 전체가 볼 수 있는 공개 게시판.
+  if(premiumState.view === "feature_board"){
+    if(featureBoardState.status === "idle") fetchFeatureRequests();
+    return renderPremiumGateHeader() + logoutBar + renderFeatureBoardPanel();
+  }
   // 온라인 상담·온라인 진단·온라인 컨설팅 — 셋 다 PREMIUM_BOARDS에 정의된
   // 같은 회원별 비공개 게시판 구조라 화면도 하나(renderBoardPanel)를 같이 쓴다.
   if(PREMIUM_BOARDS[premiumState.view]){
@@ -4984,9 +5591,12 @@ function renderPremiumTab(){
   // 기본 화면 — 유료서비스 메뉴 목록. 회원관리는 관리자(ghToken 보유자)에게만
   // 보인다 — PREMIUM_ITEMS 배열 자체에는 안 넣는다(로그인 전 미리보기
   // renderPremiumPreview()도 같은 배열을 쓰는데, 거기서도 안 보여야 하므로).
-  const menuItems = ghToken()
+  let menuItems = ghToken()
     ? PREMIUM_ITEMS.concat([{ key:"members", icon:"👤", title:"회원관리", desc:"이름·전화번호·가입일·만료일을 관리합니다. (관리자 전용)", color:"#37474F" }])
     : PREMIUM_ITEMS;
+  if(isBoardAdmin()){
+    menuItems = menuItems.concat([{ key:"smsadmin", icon:"📋", title:"자동 문자 발송 관리", desc:"발송 주기가 된 신청자를 확인하고 문자 내용을 준비합니다. (관리자 전용)", color:"#0277BD" }]);
+  }
   return renderPremiumGateHeader() + logoutBar + `
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
     ${menuItems.map(it=>`
@@ -9416,6 +10026,221 @@ function attachEvents(){
     if(r.ok) disinfectTabState.formKey = undefined;
     render();
   };
+
+  // 자동 문자 발송 신청 (회원용)
+  const smssubBackBtn = document.getElementById("smssub-back-btn");
+  if(smssubBackBtn) smssubBackBtn.onclick = ()=>{ premiumState.view = "menu"; render(); };
+  document.querySelectorAll(".smssub-menu-btn").forEach(b=>b.onclick=()=>{
+    if(!smsSubState.data) smsSubState.data = {};
+    smsSubState.data.menu = b.dataset.menu;
+    render();
+  });
+  document.querySelectorAll(".smssub-interval-btn").forEach(b=>b.onclick=()=>{
+    if(!smsSubState.data) smsSubState.data = {};
+    smsSubState.data.interval = b.dataset.interval;
+    render();
+  });
+  const smssubSaveBtn = document.getElementById("smssub-save");
+  if(smssubSaveBtn) smssubSaveBtn.onclick = async ()=>{
+    const cur = smsSubState.data || {};
+    const phone = (document.getElementById("smssub-phone")?.value || "").trim();
+    if(!cur.menu){ alert("받고 싶은 정보를 선택하세요."); return; }
+    if(!cur.interval){ alert("수신 주기를 선택하세요."); return; }
+    if(!phone){ alert("수신 전화번호를 입력하세요."); return; }
+    smsSubState.busy = true; smsSubState.msg = "저장 중..."; render();
+    const r = await saveMySmsSubscription({ menu:cur.menu, interval:cur.interval, phone, active:true, lastSentAt:cur.lastSentAt||null });
+    smsSubState.busy = false;
+    smsSubState.msg = r.ok ? "저장 완료 — 다음 발송 주기부터 반영됩니다" : ("저장 실패: " + r.error);
+    render();
+  };
+  const smssubStopBtn = document.getElementById("smssub-stop");
+  if(smssubStopBtn) smssubStopBtn.onclick = async ()=>{
+    if(!confirm("자동 문자 발송 신청을 해지할까요?")) return;
+    smsSubState.busy = true; render();
+    const r = await saveMySmsSubscription(Object.assign({}, smsSubState.data, { active:false }));
+    smsSubState.busy = false;
+    smsSubState.msg = r.ok ? "해지되었습니다" : ("해지 실패: " + r.error);
+    render();
+  };
+
+  // 자동 문자 발송 관리 (관리자 전용)
+  const smsadminBackBtn = document.getElementById("smsadmin-back-btn");
+  if(smsadminBackBtn) smsadminBackBtn.onclick = ()=>{ premiumState.view = "menu"; render(); };
+  document.querySelectorAll(".smsadmin-prepare-btn").forEach(b=>b.onclick=async ()=>{
+    const uid = b.dataset.uid;
+    const cfg = smsAdminState.list.find(c=>c.uid===uid);
+    if(!cfg) return;
+    const digest = buildSmsDigestText(cfg.menu);
+    const text = `[농장동물 컨설팅 안내]\n수신: ${cfg.phone}\n\n${digest}`;
+    try { await navigator.clipboard.writeText(text); alert("문자 내용을 클립보드에 복사했습니다.\n문자 앱에 붙여넣어 발송해 주세요."); }
+    catch(e){ prompt("아래 내용을 복사해 문자 앱에 붙여넣어 주세요:", text); }
+    smsAdminState.msg = "발송 처리 중..."; render();
+    const r = await writeSmsSubscription(uid, Object.assign({}, cfg, { lastSentAt:new Date().toISOString() }));
+    smsAdminState.msg = r.ok ? "마지막 발송일을 오늘로 기록했습니다" : ("기록 실패: " + r.error);
+    if(r.ok) await fetchAllSmsSubscriptions(); else render();
+  });
+
+  // 최수의사의 온라인 학습(카드 학습)
+  const studyBackBtn = document.getElementById("study-back-btn");
+  if(studyBackBtn) studyBackBtn.onclick = ()=>{ premiumState.view = "menu"; render(); };
+  document.querySelectorAll(".study-deck-open").forEach(b=>b.onclick=(e)=>{
+    if(e.target.closest("button")) return;
+    studyNavState.deckKey = b.dataset.deck;
+    studyNavState.cardIndex = 0;
+    studyNavState.flipped = false;
+    studyNavState.adminOpen = false;
+    render();
+  });
+  const studyAdminToggle = document.getElementById("study-admin-toggle");
+  if(studyAdminToggle) studyAdminToggle.onclick = ()=>{
+    studyNavState.adminOpen = !studyNavState.adminOpen;
+    studyNavState.deckFormKey = undefined;
+    studyCardsState.msg = "";
+    render();
+  };
+  document.querySelectorAll(".study-deck-edit-btn").forEach(b=>b.onclick=()=>{
+    studyNavState.adminOpen = true;
+    studyNavState.deckFormKey = b.dataset.deck;
+    studyCardsState.msg = "";
+    render();
+  });
+  const sdCancelBtn = document.getElementById("sd-cancel");
+  if(sdCancelBtn) sdCancelBtn.onclick = ()=>{ studyNavState.deckFormKey = undefined; render(); };
+  document.querySelectorAll(".study-deck-del-btn").forEach(b=>b.onclick=async ()=>{
+    const key = b.dataset.deck;
+    const deck = currentStudyDecks().find(d=>d.key===key);
+    if(!deck || !confirm(`"${deck.title}" 덱을 삭제할까요? (카드 ${deck.cards.length}장도 함께 삭제됩니다)`)) return;
+    const decks = currentStudyDecks().filter(d=>d.key!==key);
+    studyCardsState.busy = true; studyCardsState.msg = "발행 중..."; render();
+    const r = await publishStudyDecks(decks, "🎓 학습 덱 삭제: " + deck.title);
+    studyCardsState.busy = false;
+    studyCardsState.msg = r.ok ? "삭제 완료" : ("발행 실패: " + r.error);
+    render();
+  });
+  const sdSaveBtn = document.getElementById("sd-save");
+  if(sdSaveBtn) sdSaveBtn.onclick = async ()=>{
+    const title = (document.getElementById("sd-title")?.value || "").trim();
+    const desc = (document.getElementById("sd-desc")?.value || "").trim();
+    if(!title){ alert("덱 제목을 입력하세요."); return; }
+    const decks = currentStudyDecks().slice();
+    const editKey = studyNavState.deckFormKey;
+    if(editKey){
+      const idx = decks.findIndex(d=>d.key===editKey);
+      if(idx>=0) decks[idx] = Object.assign({}, decks[idx], { title, desc });
+    } else {
+      decks.push({ key:newStudyKey("d"), title, desc, cards:[] });
+    }
+    studyCardsState.busy = true; studyCardsState.msg = "발행 중..."; render();
+    const r = await publishStudyDecks(decks, "🎓 학습 덱 " + (editKey?"수정":"추가") + ": " + title);
+    studyCardsState.busy = false;
+    studyCardsState.msg = r.ok ? "발행 완료 — 모두에게 반영됩니다" : ("발행 실패: " + r.error);
+    if(r.ok) studyNavState.deckFormKey = undefined;
+    render();
+  };
+  const studyDeckBackBtn = document.getElementById("study-deck-back-btn");
+  if(studyDeckBackBtn) studyDeckBackBtn.onclick = ()=>{ studyNavState.deckKey = null; studyNavState.adminOpen = false; render(); };
+  const flipCard = document.getElementById("study-flip-card");
+  if(flipCard) flipCard.onclick = ()=>{ studyNavState.flipped = !studyNavState.flipped; render(); };
+  const studyPrevBtn = document.getElementById("study-prev-btn");
+  if(studyPrevBtn) studyPrevBtn.onclick = ()=>{ studyNavState.cardIndex = Math.max(0, studyNavState.cardIndex-1); studyNavState.flipped = false; render(); };
+  const studyNextBtn = document.getElementById("study-next-btn");
+  if(studyNextBtn) studyNextBtn.onclick = ()=>{ studyNavState.cardIndex += 1; studyNavState.flipped = false; render(); };
+  const studyCardAdminToggle = document.getElementById("study-card-admin-toggle");
+  if(studyCardAdminToggle) studyCardAdminToggle.onclick = ()=>{
+    studyNavState.adminOpen = !studyNavState.adminOpen;
+    studyNavState.cardFormKey = undefined;
+    studyCardsState.msg = "";
+    render();
+  };
+  document.querySelectorAll(".study-card-edit-btn").forEach(b=>b.onclick=()=>{
+    studyNavState.adminOpen = true;
+    studyNavState.cardFormKey = b.dataset.card;
+    studyCardsState.msg = "";
+    render();
+  });
+  const scCancelBtn = document.getElementById("sc-cancel");
+  if(scCancelBtn) scCancelBtn.onclick = ()=>{ studyNavState.cardFormKey = undefined; render(); };
+  document.querySelectorAll(".study-card-del-btn").forEach(b=>b.onclick=async ()=>{
+    const cardKey = b.dataset.card;
+    const deck = currentStudyDecks().find(d=>d.key===studyNavState.deckKey);
+    if(!deck) return;
+    const card = deck.cards.find(c=>c.key===cardKey);
+    if(!card || !confirm(`"${card.front}" 카드를 삭제할까요?`)) return;
+    const decks = currentStudyDecks().map(d => d.key!==deck.key ? d : Object.assign({}, d, { cards: d.cards.filter(c=>c.key!==cardKey) }));
+    studyCardsState.busy = true; studyCardsState.msg = "발행 중..."; render();
+    const r = await publishStudyDecks(decks, "🎓 카드 삭제: " + card.front.slice(0,20));
+    studyCardsState.busy = false;
+    studyCardsState.msg = r.ok ? "삭제 완료" : ("발행 실패: " + r.error);
+    if(r.ok && studyNavState.cardIndex >= deck.cards.length-1) studyNavState.cardIndex = Math.max(0, deck.cards.length-2);
+    render();
+  });
+  const scSaveBtn = document.getElementById("sc-save");
+  if(scSaveBtn) scSaveBtn.onclick = async ()=>{
+    const front = (document.getElementById("sc-front")?.value || "").trim();
+    const back = (document.getElementById("sc-back")?.value || "").trim();
+    const fileInput = document.getElementById("sc-image");
+    const file = fileInput && fileInput.files && fileInput.files[0];
+    if(!front){ alert("앞면 내용을 입력하세요."); return; }
+    const deck = currentStudyDecks().find(d=>d.key===studyNavState.deckKey);
+    if(!deck) return;
+    const editKey = studyNavState.cardFormKey;
+    const cardKey = editKey || newStudyKey("c");
+    studyCardsState.busy = true; studyCardsState.msg = "발행 중..."; render();
+    let imageUrl = editKey ? (deck.cards.find(c=>c.key===editKey)||{}).imageUrl : undefined;
+    if(file){
+      try { imageUrl = await uploadStudyCardImage(cardKey, file); }
+      catch(e){ studyCardsState.busy = false; studyCardsState.msg = "이미지 업로드 실패: " + (e.message||e); render(); return; }
+    }
+    const decks = currentStudyDecks().map(d => d.key!==deck.key ? d : Object.assign({}, d, {
+      cards: editKey
+        ? d.cards.map(c=>c.key===editKey?Object.assign({},c,{front,back,imageUrl}):c)
+        : d.cards.concat([{ key:cardKey, front, back, imageUrl }]),
+    }));
+    const r = await publishStudyDecks(decks, "🎓 카드 " + (editKey?"수정":"추가") + ": " + front.slice(0,20));
+    studyCardsState.busy = false;
+    studyCardsState.msg = r.ok ? "발행 완료 — 모두에게 반영됩니다" : ("발행 실패: " + r.error);
+    if(r.ok) studyNavState.cardFormKey = undefined;
+    render();
+  };
+
+  // 유료회원 기능요청 게시판
+  const fboardBackBtn = document.getElementById("fboard-back-btn");
+  if(fboardBackBtn) fboardBackBtn.onclick = ()=>{ premiumState.view = "menu"; render(); };
+  const fboardNewText = document.getElementById("fboard-new-text");
+  if(fboardNewText) fboardNewText.oninput = ()=>{ featureBoardState.newText = fboardNewText.value; };
+  const fboardSubmit = document.getElementById("fboard-submit");
+  if(fboardSubmit) fboardSubmit.onclick = async ()=>{
+    const text = (document.getElementById("fboard-new-text")?.value || "").trim();
+    if(!text){ alert("내용을 입력하세요."); return; }
+    featureBoardState.busy = true; featureBoardState.msg = "등록 중..."; render();
+    const r = await submitFeatureRequest(text);
+    featureBoardState.busy = false;
+    if(r.ok){ featureBoardState.newText = ""; featureBoardState.msg = ""; await fetchFeatureRequests(); }
+    else { featureBoardState.msg = "등록 실패: " + r.error; render(); }
+  };
+  document.querySelectorAll(".fboard-del-btn").forEach(b=>b.onclick=async ()=>{
+    if(!confirm("이 요청을 삭제할까요?")) return;
+    const r = await deleteFeatureRequest(b.dataset.uid, b.dataset.post);
+    if(r.ok) await fetchFeatureRequests();
+    else alert("삭제 실패: " + r.error);
+  });
+  document.querySelectorAll(".fboard-reply-toggle").forEach(b=>b.onclick=()=>{
+    const postId = b.dataset.post;
+    featureBoardState.replyOpenId = featureBoardState.replyOpenId === postId ? null : postId;
+    featureBoardState.replyText = "";
+    render();
+  });
+  const fboardReplyText = document.getElementById("fboard-reply-text");
+  if(fboardReplyText) fboardReplyText.oninput = ()=>{ featureBoardState.replyText = fboardReplyText.value; };
+  document.querySelectorAll(".fboard-reply-submit").forEach(b=>b.onclick=async ()=>{
+    const text = (document.getElementById("fboard-reply-text")?.value || "").trim();
+    if(!text){ alert("답글 내용을 입력하세요."); return; }
+    featureBoardState.busy = true; render();
+    const r = await submitFeatureReply(b.dataset.uid, b.dataset.post, text);
+    featureBoardState.busy = false;
+    if(r.ok){ featureBoardState.replyOpenId = null; featureBoardState.replyText = ""; await fetchFeatureRequests(); }
+    else { alert("답글 등록 실패: " + r.error); render(); }
+  });
 
   // 내 농장에 맞는 약품 찾기 (축종 → 카테고리 → 증상 좁혀가는 마법사)
   const finderBackBtn = document.getElementById("finder-back-btn");

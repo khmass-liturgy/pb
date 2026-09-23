@@ -57,14 +57,40 @@ service firebase.storage {
       allow read, write: if isAdmin();
     }
 
-    // 유료 콘텐츠(상황별 처방·계절별 패키지·농장 맞춤 찾기·자가진단) —
-    // 예전엔 공개 GitHub 저장소에 있어서 로그인 없이도 URL만 알면 누구나
-    // 볼 수 있었다. 승인된 회원(또는 관리자)만 읽을 수 있게 여기로 옮긴다.
-    // 쓰기(발행)는 관리자만 — 이제 이 콘텐츠들은 GitHub PAT이 아니라
-    // Firebase 관리자 계정으로 발행한다.
+    // 유료 콘텐츠(상황별 처방·계절별 패키지·농장 맞춤 찾기·자가진단·질병별
+    // 소독제·온라인 학습 카드) — 예전엔 공개 GitHub 저장소에 있어서 로그인
+    // 없이도 URL만 알면 누구나 볼 수 있었다. 승인된 회원(또는 관리자)만
+    // 읽을 수 있게 여기로 옮긴다. 쓰기(발행)는 관리자만 — 이제 이 콘텐츠들은
+    // GitHub PAT이 아니라 Firebase 관리자 계정으로 발행한다. 카드 학습
+    // 이미지(premium_content/study_card_images/{cardKey}.jpg)도 dataset을
+    // "study_card_images"로 두면 같은 규칙을 그대로 탄다.
     match /premium_content/{dataset}/{fileName} {
       allow read: if isApprovedMember() || isAdmin();
       allow write: if isAdmin();
+    }
+
+    // 유료회원 기능요청 게시판 — 상담·진단·컨설팅(premium_board)과 달리
+    // 글쓴이 본인+관리자만 보는 게 아니라 "승인된 회원 전체"가 서로의 글과
+    // 답글을 볼 수 있는 공개 게시판이다(단, 화면에서는 글쓴이를 "익명"으로
+    // 표시 — 실제 uid/이메일은 Storage 경로에만 남아 있고 화면 어디에도
+    // 노출하지 않는다). 글(post.json)은 uid를 경로에 포함시켜 본인+관리자만
+    // 고치거나 지울 수 있고, 답글(replies/{replyId})은 승인된 회원 누구나
+    // 새로 달 수 있다(경로에 uid가 없어 회원 간 상호 삭제까지는 못 막지만,
+    // 유료회원만 들어오는 소규모 게시판이라 감수한다).
+    match /feature_requests/{uid} {
+      allow list: if isApprovedMember() || isAdmin();
+    }
+    match /feature_requests/{uid}/{postId} {
+      allow list: if isApprovedMember() || isAdmin();
+      match /post.json {
+        allow read: if isApprovedMember() || isAdmin();
+        allow write: if isOwner(uid) || isAdmin();
+      }
+      match /replies/{replyId} {
+        allow list: if isApprovedMember() || isAdmin();
+        allow read: if isApprovedMember() || isAdmin();
+        allow write: if isApprovedMember() || isAdmin();
+      }
     }
 
     // 그 외 경로는 전부 차단(기본값과 동일하지만 명시적으로 남긴다).
