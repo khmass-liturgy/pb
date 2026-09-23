@@ -642,6 +642,7 @@ const PREMIUM_ITEMS = [
   { key:"treatment", icon:"💉", title:"상황별 처방(투약) 패키지", desc:"육계·산란계 농장 상황을 고르면 그에 맞는 투약(처방) 프로그램을 보여드립니다. 상황은 계속 추가됩니다.", color:"#C62828" },
   { key:"seasonal", icon:"🗓️", title:"계절별 투약(관리) 패키지", desc:"봄·여름·가을·겨울 시기별로 챙겨야 할 투약(백신)과 사양관리 주의사항을 안내합니다.", color:"#795548" },
   { key:"finder", icon:"🎯", title:"내 농장에 맞는 약품 찾기", desc:"축종과 문제 증상을 단계별로 선택하면 진단·원인 분석과 추천 처방을 보여드립니다.", color:"#283593" },
+  { key:"disinfect", icon:"🧴", title:"질병별 소독제 선택과 소독요령", desc:"질병을 고르면 그에 맞는 소독제 선택 기준과 소독요령을 단계별로 안내합니다.", color:"#00695C" },
   { key:"selfcheck", icon:"🐔", title:"온라인 자가진단", desc:"닭 해부도에서 장기를 클릭하면 그 장기의 기능과 흔히 나타나는 질병을 보여드립니다.", color:"#AD1457" },
   { key:"consult", icon:"💬", title:"온라인 상담", desc:"농장 현안(사양·환기·질병 등)을 질문하면 최동명 수의사가 답변합니다. 사진 첨부 가능, 답변은 작성자만 볼 수 있습니다.", color:"#1565C0" },
   { key:"diagnosis", icon:"🔍", title:"온라인 진단", desc:"닭의 외부모습·분변상태·부검사진(기관지·간·신장·소장)을 올리면 최동명 수의사가 직접 진단합니다.", color:"#2E7D32" },
@@ -812,6 +813,178 @@ async function publishTreatmentPackages(packages, message){
     };
     await writePremiumContentJson("treatment_packages", body);
     treatmentPkgState.data = body;
+    return { ok:true };
+  } catch(e) {
+    return { ok:false, error: e.message || String(e) };
+  }
+}
+
+// ── 질병별 소독제 선택과 소독요령 ─────────────────────────────────────────────
+// 질병 하나마다 "소독제 선택 기준"(성상별로 어떤 소독제 계열이 잘 듣는지)과
+// "소독요령"(청소→소독→건조 등 실제 절차)을 각각 단계 목록으로 담아둔다 —
+// treatmentProgramToText/FromText를 그대로 재사용해 "제목|설명" 줄 입력을
+// 배열로 바꾼다(계절별 패키지의 투약/사양관리 두 목록 구조와 동일).
+// 육계·산란계 구분 없이 질병명 기준의 단일 목록이라 상황별 처방과 달리
+// species 탭이 없다 — 목록이 늘어나면 그때 가서 탭/검색을 추가하면 된다.
+// Firebase Storage(premium_content/disease_disinfectants/latest.json)에 두고
+// 승인된 회원+관리자만 읽을 수 있게 한다. 새로 만든 데이터셋이라 예전
+// 공개 저장소에 옮겨올 내용이 없으므로 migrateOldPremiumJson은 쓰지 않는다.
+// 대신 Storage에 아직 아무것도 발행되지 않은 최초 상태(파일이 없어 404)에는
+// 아래 기본 8종(전염성기관지염·인플루엔자·감보로병·괴사성 장염·콕시듐증·
+// 아데노바이러스 감염증·기타 바이러스성/세균성 질병)을 그대로 보여준다 —
+// 관리자가 화면에서 한 번이라도 저장하면 그 내용이 Storage에 실제로
+// 발행되어 그때부터는 정상 fetch가 그 내용을 돌려준다.
+const DEFAULT_DISEASE_DISINFECTANTS = [
+  { key:"ib", disease:"전염성기관지염(IB)",
+    disinfectants:[
+      { step:"병원체 특성", detail:"외피(envelope)를 가진 RNA 바이러스로 대부분의 소독제에 비교적 잘 듣습니다." },
+      { step:"추천 계열", detail:"차아염소산나트륨(염소계), 요오드제(iodophor), 제4급암모늄화합물(QAC), 페놀류 중 택1 이상" },
+      { step:"사용 농도 참고", detail:"제품 표시농도(대개 유효염소 0.1~0.5%, 요오드제 1:200~1:300 희석) 준수, 저온기에는 접촉시간을 늘림" },
+    ],
+    procedure:[
+      { step:"1단계 사전 청소", detail:"깔짚·분변 등 유기물을 완전히 제거 후 고압세척(유기물이 남으면 소독효과가 크게 떨어짐)" },
+      { step:"2단계 세제 세척", detail:"중성세제로 표면 기름때·유기물 잔여물을 제거하고 충분히 헹굼" },
+      { step:"3단계 소독제 살포", detail:"선택한 소독제를 표시농도로 희석해 바닥·벽·환기구까지 고르게 분무" },
+      { step:"4단계 접촉시간 확보", detail:"제품 권장 접촉시간(보통 10~30분) 동안 마르지 않게 유지" },
+      { step:"5단계 건조·환기", detail:"자연건조 후 재입식 전 최소 24~48시간 환기" },
+    ],
+    caution:"소독 전 유기물 제거가 최우선입니다. 저온기에는 소독제 효력이 떨어지므로 접촉시간을 늘리거나 온수 희석을 고려하고, 축산용으로 등록된 제품인지 확인 후 라벨 지시를 따르세요." },
+  { key:"ai", disease:"인플루엔자(AI)",
+    disinfectants:[
+      { step:"병원체 특성", detail:"외피(envelope)를 가진 RNA 바이러스로 지질막이 소독제에 취약해 상대적으로 쉽게 불활화됩니다." },
+      { step:"추천 계열", detail:"차아염소산나트륨(염소계), 제4급암모늄화합물, 구연산 등 유기산, 과산화수소·과초산계(peroxygen)" },
+      { step:"사용 농도 참고", detail:"국가 가축전염병 방역지침(AI 소독제 지정 목록)에 따른 제품·농도를 우선 사용" },
+    ],
+    procedure:[
+      { step:"1단계 사전 청소", detail:"깔짚·분변·사료 잔재를 완전히 제거 후 고압세척" },
+      { step:"2단계 소독제 살포", detail:"지정 소독제를 방역지침 농도로 축사 내·외부, 기자재, 출입 차량까지 도포" },
+      { step:"3단계 접촉시간 확보", detail:"최소 10분 이상(제품별 권장시간 준수) 습윤 상태 유지" },
+      { step:"4단계 반복 소독", detail:"발생 농장·인근 지역은 방역당국 지침에 따라 일정 주기로 반복 소독" },
+      { step:"5단계 인원·차량 통제", detail:"소독조·발판소독조를 출입구에 설치해 교차오염 차단" },
+    ],
+    caution:"AI는 가축전염병예방법상 신고대상 질병입니다 — 의심 시 즉시 방역당국(가축방역기관)에 신고하고, 반드시 국가 지정 소독제·지침을 따르세요. 이 내용은 참고용이며 법정 방역조치를 대체하지 않습니다." },
+  { key:"ibd", disease:"감보로병(IBD, Gumboro)",
+    disinfectants:[
+      { step:"병원체 특성", detail:"외피가 없는(non-enveloped) 이중나선 RNA 바이러스로 환경 저항성이 매우 강해 일반 소독제로는 잘 죽지 않습니다." },
+      { step:"추천 계열", detail:"포름알데히드(훈증), 글루타르알데히드, 과산화수소·과초산계(peroxygen), 고농도 차아염소산나트륨 — 비외피 바이러스 효능이 표기된 제품" },
+      { step:"사용 농도 참고", detail:"제품 라벨의 \"비외피 바이러스(non-enveloped virus)\" 또는 \"IBDV\" 효능 표시 농도를 사용 — 일반 세균용 저농도로는 불충분" },
+    ],
+    procedure:[
+      { step:"1단계 사전 청소", detail:"유기물을 철저히 제거(비외피 바이러스는 유기물 속에서 오래 생존)" },
+      { step:"2단계 고압세척·건조", detail:"세척 후 표면을 충분히 건조" },
+      { step:"3단계 강화 소독", detail:"비외피 바이러스 효능이 표기된 소독제를 표시농도보다 낮추지 않고 도포" },
+      { step:"4단계 접촉시간 연장", detail:"일반 소독보다 긴 접촉시간(30분 이상) 확보" },
+      { step:"5단계 훈증(선택)", detail:"밀폐 가능한 축사는 전문가 지도 하에 포름알데히드 가스 훈증을 추가로 고려" },
+      { step:"6단계 충분한 공백기", detail:"재입식 전 공백기간을 다른 질병보다 길게(가능하면 2~3주 이상) 확보" },
+    ],
+    caution:"감보로병 바이러스는 소독제 저항성이 강한 대표 사례입니다. 반드시 \"비외피 바이러스\" 또는 \"IBDV\" 효능시험 자료가 있는 제품을 선택하고, 포름알데히드 훈증은 독성이 있어 안전수칙을 지키며 전문가와 상의하세요." },
+  { key:"ne", disease:"괴사성 장염(Necrotic Enteritis)",
+    disinfectants:[
+      { step:"병원체 특성", detail:"아포(spore)를 형성하는 세균(Clostridium perfringens)으로, 아포 상태에서는 일반 소독제에 강한 저항성을 가집니다." },
+      { step:"추천 계열", detail:"글루타르알데히드-제4급암모늄 복합제, 과초산(peracetic acid), 고농도 차아염소산나트륨 등 \"아포 소독(sporicidal)\" 효능 표기 제품" },
+      { step:"사용 농도 참고", detail:"아포균 효능시험 자료가 있는 농도·접촉시간을 준수 — 일반 세균용 저농도로는 아포를 죽이지 못함" },
+    ],
+    procedure:[
+      { step:"1단계 사전 청소", detail:"깔짚·분변을 완전히 제거(아포는 유기물·깔짚에서 장기간 생존)" },
+      { step:"2단계 세척·건조", detail:"고압세척 후 충분히 건조" },
+      { step:"3단계 아포 소독제 도포", detail:"sporicidal 표기 제품을 표시농도로 바닥·급이기·급수라인까지 도포" },
+      { step:"4단계 접촉시간 확보", detail:"제품 권장시간(대개 일반 소독보다 김)을 유지" },
+      { step:"5단계 급수라인 별도 관리", detail:"과산화수소계 등으로 음수라인 내부도 별도 소독" },
+    ],
+    caution:"아포는 열·건조·소독제에 매우 강해 \"sporicidal(아포살균)\" 표기가 없는 일반 소독제는 효과가 제한적입니다. 사료 내 관리·프로바이오틱 등 사양적 예방과 병행하세요." },
+  { key:"cocci", disease:"콕시듐증(Coccidiosis)",
+    disinfectants:[
+      { step:"병원체 특성", detail:"Eimeria 오오시스트(oocyst)는 두꺼운 벽을 가져 대부분의 화학 소독제에 저항성이 매우 강합니다." },
+      { step:"추천 계열", detail:"암모니아수(7% 내외), 크레졸·크레실산계, 생석회(수산화칼슘), 고온 스팀·화염소독 — 오오시스트 사멸 효능이 검증된 방법 위주" },
+      { step:"사용 농도 참고", detail:"일반 QAC·요오드제·염소계는 오오시스트에 거의 효과가 없으므로 사용하지 않습니다." },
+    ],
+    procedure:[
+      { step:"1단계 완전 건조", detail:"깔짚·분변을 완전히 제거하고 바닥을 최대한 건조(오오시스트는 습한 환경에서 포자형성·생존)" },
+      { step:"2단계 고온 처리", detail:"가능하면 화염소독기로 바닥·틈새를 고온 처리" },
+      { step:"3단계 화학 소독", detail:"암모니아수 또는 크레졸계를 표시농도로 도포, 충분한 접촉시간 확보" },
+      { step:"4단계 생석회 살포", detail:"통로·외부 지역은 생석회를 살포해 건조·알칼리 환경 조성" },
+      { step:"5단계 배수·환기 개선", detail:"재발 방지를 위해 급수라인 누수·바닥 배수 문제를 함께 점검" },
+    ],
+    caution:"콕시듐증은 소독만으로 완전히 통제하기 어려워 사양관리(깔짚 건조 유지, 사육밀도)와 항콕시듐제·백신 프로그램을 병행해야 합니다. 일반 소독제 위주로 관리하면 재발이 반복될 수 있습니다." },
+  { key:"adeno", disease:"아데노바이러스 감염증(봉입체간염 등)",
+    disinfectants:[
+      { step:"병원체 특성", detail:"외피가 없는(non-enveloped) DNA 바이러스로 환경 저항성이 중간~강한 편입니다." },
+      { step:"추천 계열", detail:"글루타르알데히드, 포름알데히드, 과산화수소·과초산계, 고농도 요오드제/차아염소산나트륨 — 비외피 바이러스 효능 표기 제품" },
+      { step:"사용 농도 참고", detail:"일반 세균용보다 높은 농도·긴 접촉시간이 필요(제품 라벨의 비외피 바이러스 항목 확인)" },
+    ],
+    procedure:[
+      { step:"1단계 사전 청소", detail:"유기물(분변·혈액 등)을 완전히 제거" },
+      { step:"2단계 세척·건조", detail:"고압세척 후 건조" },
+      { step:"3단계 강화 소독", detail:"비외피 바이러스 효능이 표기된 제품을 표시농도로 도포" },
+      { step:"4단계 접촉시간 확보", detail:"20~30분 이상 습윤 상태 유지" },
+      { step:"5단계 종란·부화장 위생", detail:"수직감염 예방을 위해 종란 소독(포름알데히드 훈증 등)도 함께 관리" },
+    ],
+    caution:"아데노바이러스는 종란을 통한 수직감염 가능성이 있어 축사 소독뿐 아니라 종란·부화장 위생 관리도 함께 신경 써야 합니다." },
+  { key:"virus_etc", disease:"기타 바이러스성 질병",
+    disinfectants:[
+      { step:"병원체 특성 확인 먼저", detail:"외피 유무에 따라 소독제 감수성이 크게 달라지므로, 원인 바이러스가 확인되면 외피(enveloped)/비외피(non-enveloped) 여부부터 확인합니다." },
+      { step:"외피 바이러스인 경우", detail:"차아염소산나트륨, 요오드제, 제4급암모늄화합물, 페놀류 등 대부분의 범용 소독제로 충분" },
+      { step:"비외피 바이러스인 경우", detail:"글루타르알데히드, 포름알데히드, 과산화수소·과초산계 등 \"비외피 바이러스\" 효능이 검증된 제품 사용" },
+    ],
+    procedure:[
+      { step:"1단계 사전 청소", detail:"유기물 완전 제거 후 고압세척" },
+      { step:"2단계 소독제 선택", detail:"위 기준에 따라 소독제 계열 선택" },
+      { step:"3단계 소독제 도포", detail:"표시농도로 전체 표면에 고르게 도포" },
+      { step:"4단계 접촉시간 확보", detail:"제품 권장 접촉시간 준수(비외피 바이러스는 더 길게)" },
+      { step:"5단계 건조 후 재입식", detail:"충분히 건조·환기 후 재입식" },
+    ],
+    caution:"원인체가 명확하지 않은 경우, 가장 저항성이 강한 비외피 바이러스 기준으로 소독 프로그램을 잡는 것이 안전합니다." },
+  { key:"bacteria_etc", disease:"기타 세균성 질병",
+    disinfectants:[
+      { step:"병원체 특성 확인 먼저", detail:"아포 형성균 여부(예: Clostridium, Bacillus)에 따라 필요한 소독 강도가 달라집니다." },
+      { step:"일반 세균(아포 미형성)", detail:"제4급암모늄화합물, 요오드제, 차아염소산나트륨, 페놀류 등 범용 소독제로 충분" },
+      { step:"아포 형성균인 경우", detail:"글루타르알데히드-QAC 복합제, 과초산계 등 \"아포살균(sporicidal)\" 표기 제품 사용" },
+    ],
+    procedure:[
+      { step:"1단계 사전 청소", detail:"유기물 제거 후 고압세척" },
+      { step:"2단계 소독제 선택·도포", detail:"원인균 특성에 맞는 계열을 표시농도로 도포" },
+      { step:"3단계 접촉시간 확보", detail:"제품 권장시간 준수(아포균은 더 길게)" },
+      { step:"4단계 급수·급이 라인 관리", detail:"필요 시 음수소독제로 급수라인 내부도 함께 관리" },
+      { step:"5단계 건조 후 재입식", detail:"충분히 건조 후 재입식" },
+    ],
+    caution:"세균성 질병은 항생제 감수성 검사 결과에 따라 치료 방향이 달라질 수 있으므로, 소독과 함께 수의사 진단을 받으시기 바랍니다." },
+];
+let diseaseDisinfectState = { status:"idle", data:null, busy:false, msg:"" };
+
+async function fetchDiseaseDisinfectants(){
+  if(diseaseDisinfectState.status === "loading") return;
+  diseaseDisinfectState.status = "loading";
+  try {
+    const j = await fetchPremiumContentJson("disease_disinfectants");
+    j.items = Array.isArray(j.items) ? j.items : [];
+    diseaseDisinfectState.data = j;
+    diseaseDisinfectState.status = "done";
+  } catch(e){
+    console.warn("질병별 소독제/소독요령 로딩 실패(최초 미발행 상태로 간주, 기본 목록 표시):", e);
+    diseaseDisinfectState.data = { items: DEFAULT_DISEASE_DISINFECTANTS };
+    diseaseDisinfectState.status = "done";
+  }
+  if(premiumState.view === "disinfect") render();
+}
+
+function currentDiseaseDisinfectants(){
+  return (diseaseDisinfectState.data && diseaseDisinfectState.data.items) || [];
+}
+
+function newDisinfectKey(){
+  return "d" + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+}
+
+async function publishDiseaseDisinfectants(items, message){
+  try {
+    const body = {
+      updated: new Date().toISOString().slice(0,16).replace("T"," ") + " UTC",
+      by: PICK_BY,
+      note: "질병별 소독제 선택과 소독요령 — 화면에서 저장하면 이 파일이 갱신되고 승인된 회원 모두에게 같은 내용이 보입니다.",
+      items: items,
+    };
+    await writePremiumContentJson("disease_disinfectants", body);
+    diseaseDisinfectState.data = body;
     return { ok:true };
   } catch(e) {
     return { ok:false, error: e.message || String(e) };
@@ -3685,6 +3858,7 @@ function renderResearchPanel(){
 // ── 상황별 처방(투약) 패키지 화면 ────────────────────────────────────────────
 let treatmentTabState = { species: "broiler", openKey: null, adminOpen: false, formKey: undefined };
 let seasonalTabState = { season: "spring", openKey: null, adminOpen: false, formKey: undefined };
+let disinfectTabState = { openKey: null, adminOpen: false, formKey: undefined };
 
 // 관리(추가/편집) 폼에 넣을 값 — null이면 새로 추가하는 중, 객체면 그 항목을 편집 중.
 // 프로그램 단계는 "제목|설명" 한 줄씩 textarea로 입력받아 저장할 때 배열로 바꾼다
@@ -4067,6 +4241,102 @@ function renderSeasonalPanel(){
   <div style="font-size:9px;color:#aaa;line-height:1.6;margin-top:6px">
     ※ 항생제·백신 등 실제 투약은 반드시 수의사 처방·지도를 거쳐 진행하세요. 계절·지역·농장 여건에 따라
     시기가 달라질 수 있어 참고용 프로그램입니다. 새로운 내용은 계속 추가됩니다.
+  </div>`;
+}
+
+// ── 질병별 소독제 선택과 소독요령 화면 ────────────────────────────────────────
+// species/season 탭 없이 질병명 기준 단일 목록만 있어, 상황별 처방·계절별
+// 패키지보다 화면이 한 단계 더 단순하다(탭 버튼 없이 바로 카드 목록).
+function renderDisinfectPanel(){
+  const head = `
+  <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+    <div>
+      <div class="display" style="font-size:16px;margin-bottom:3px">🧴 질병별 소독제 선택과 소독요령</div>
+      <div style="font-size:11px;color:#aaa">질병을 고르면 소독제 선택 기준과 소독요령을 단계별로 보여드립니다</div>
+    </div>
+    <button id="disinfect-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button>
+  </div>`;
+
+  const st = diseaseDisinfectState;
+  if(st.status === "idle" || st.status === "loading"){
+    return head + `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⏳ 질병 목록을 불러오는 중...</div>`;
+  }
+  if(!st.data){
+    return head + `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⚠️ 질병 목록을 불러오지 못했습니다.</div>`;
+  }
+
+  const admin = isBoardAdmin();
+  const list = currentDiseaseDisinfectants();
+  const cards = list.length ? list.map(p => {
+    const open = disinfectTabState.openKey === p.key;
+    return `
+    <div class="card" style="border-top:4px solid #00695C;margin-bottom:10px;padding:16px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+        <div class="disinfect-toggle" data-key="${p.key}" style="cursor:pointer;flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:800;color:#333">${esc(p.disease)}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
+          <span class="disinfect-toggle" data-key="${p.key}" style="cursor:pointer;font-size:11px;color:#00695C;font-weight:700;white-space:nowrap">${open?"접기 ▲":"내용 보기 ▼"}</span>
+          ${admin ? `
+          <div style="white-space:nowrap">
+            <button class="disinfect-edit-btn" data-key="${p.key}" style="font-size:10px;border:1px solid #00695C;border-radius:5px;background:#fff;color:#00695C;padding:3px 8px;margin-right:4px">편집</button>
+            <button class="disinfect-del-btn" data-key="${p.key}" style="font-size:10px;border:1px solid #eee;border-radius:5px;background:#fff;color:#bbb;padding:3px 8px">삭제</button>
+          </div>` : ""}
+        </div>
+      </div>
+      ${open ? `
+      <div style="margin-top:12px;padding-top:12px;border-top:1px dashed #eee">
+        <div style="font-size:11.5px;font-weight:700;color:#00695C;margin-bottom:6px">🧪 소독제 선택 기준</div>
+        ${p.disinfectants.length ? p.disinfectants.map(s => `
+        <div style="margin-bottom:9px">
+          <div style="font-size:12.5px;font-weight:700;color:#333">${esc(s.step)}</div>
+          <div style="font-size:12.5px;color:#444;line-height:1.6;margin-top:2px">${esc(s.detail)}</div>
+        </div>`).join("") : `<div style="font-size:12px;color:#aaa;margin-bottom:9px">등록된 내용이 없습니다.</div>`}
+        <div style="font-size:11.5px;font-weight:700;color:#00695C;margin:12px 0 6px">🧼 소독요령</div>
+        ${p.procedure.length ? p.procedure.map(s => `
+        <div style="margin-bottom:9px">
+          <div style="font-size:12.5px;font-weight:700;color:#333">${esc(s.step)}</div>
+          <div style="font-size:12.5px;color:#444;line-height:1.6;margin-top:2px">${esc(s.detail)}</div>
+        </div>`).join("") : `<div style="font-size:12px;color:#aaa">등록된 내용이 없습니다.</div>`}
+        ${p.caution ? `<div style="font-size:11px;color:#8D6E00;background:#FFF8E1;border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.6">⚠️ ${esc(p.caution)}</div>` : ""}
+      </div>` : ""}
+    </div>`;
+  }).join("") : `<div class="card" style="text-align:center;padding:28px 16px;color:#aaa">아직 등록된 질병이 없습니다.${admin?"":" 곧 추가됩니다."}</div>`;
+
+  const editing = disinfectTabState.formKey && list.find(p=>p.key===disinfectTabState.formKey);
+  const adminBox = !admin ? "" : `
+  <div style="margin-top:16px;border-top:1px dashed #eee;padding-top:12px">
+    <button id="disinfect-admin-toggle" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:3px 9px">${disinfectTabState.adminOpen?"관리 닫기":"⚙ 관리"}</button>
+    ${diseaseDisinfectState.msg?`<span style="font-size:11px;margin-left:8px;color:${/실패|오류|않|없/.test(diseaseDisinfectState.msg)?"#C62828":"#2E7D32"}">${esc(diseaseDisinfectState.msg)}</span>`:""}
+    ${disinfectTabState.adminOpen ? `
+    <div style="margin-top:9px;background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">
+      <div style="font-size:11px;font-weight:700;color:#7A5C00;margin-bottom:8px">${editing?"질병 수정: "+esc(editing.disease):"새 질병 추가"}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+        <input id="dz-disease" type="text" placeholder="질병명 (예: 전염성기관지염(IB))" value="${esc(editing?editing.disease:"")}"
+          style="flex:1;min-width:180px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />
+      </div>
+      <div style="font-size:10px;color:#888;margin-bottom:3px">🧪 소독제 선택 기준 — 한 줄에 한 항목씩, '제목|설명' 형식</div>
+      <textarea id="dz-disinfectants" placeholder="예) 병원체 특성|외피가 없는 바이러스라 저항성이 강함"
+        style="width:100%;min-height:90px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:6px">${esc(editing?treatmentProgramToText(editing.disinfectants):"")}</textarea>
+      <div style="font-size:10px;color:#888;margin-bottom:3px">🧼 소독요령 — 같은 형식</div>
+      <textarea id="dz-procedure" placeholder="예) 1단계 사전 청소|유기물을 완전히 제거 후 고압세척"
+        style="width:100%;min-height:110px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:6px">${esc(editing?treatmentProgramToText(editing.procedure):"")}</textarea>
+      <textarea id="dz-caution" placeholder="주의사항"
+        style="width:100%;min-height:50px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:8px">${esc(editing?editing.caution:"")}</textarea>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <button id="dz-save" ${diseaseDisinfectState.busy?"disabled":""} style="border:1px solid #B8860B;background:${diseaseDisinfectState.busy?"#ccc":"#B8860B"};color:#fff;border-radius:7px;padding:7px 15px;font-size:12px;font-weight:600">${diseaseDisinfectState.busy?"발행 중...":(editing?"수정 발행":"추가 발행")}</button>
+        ${editing?`<button id="dz-cancel" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:6px 10px">취소</button>`:""}
+      </div>
+    </div>` : ""}
+  </div>`;
+
+  return head + `
+  ${cards}
+  ${adminBox}
+  <div style="font-size:9px;color:#aaa;line-height:1.6;margin-top:6px">
+    ※ 여기 나온 소독제는 성상(계열/성분군) 기준 안내이며, 실제 사용 제품은 축산용으로 등록된 제품인지 확인하고
+    라벨의 사용농도·접촉시간을 따르세요. 가축전염병예방법상 신고대상 질병(AI 등)은 방역당국 지침이 우선합니다.
+    새로운 질병은 계속 추가됩니다.
   </div>`;
 }
 
@@ -4653,6 +4923,11 @@ function renderPremiumTab(){
   if(premiumState.view === "finder"){
     if(finderPkgState.status === "idle") fetchFarmFinderCases();
     return renderPremiumGateHeader() + logoutBar + renderFarmFinderPanel();
+  }
+  // 질병별 소독제 선택과 소독요령 화면
+  if(premiumState.view === "disinfect"){
+    if(diseaseDisinfectState.status === "idle") fetchDiseaseDisinfectants();
+    return renderPremiumGateHeader() + logoutBar + renderDisinfectPanel();
   }
   // 온라인 자가진단 화면
   if(premiumState.view === "selfcheck"){
@@ -9045,6 +9320,68 @@ function attachEvents(){
     seasonalPkgState.busy = false;
     seasonalPkgState.msg = r.ok ? "발행 완료 — 모두에게 반영됩니다" : ("발행 실패: " + r.error);
     if(r.ok) seasonalTabState.formKey = undefined;
+    render();
+  };
+
+  // 질병별 소독제 선택과 소독요령
+  const disinfectBackBtn = document.getElementById("disinfect-back-btn");
+  if(disinfectBackBtn) disinfectBackBtn.onclick = ()=>{ premiumState.view = "menu"; render(); };
+  document.querySelectorAll(".disinfect-toggle").forEach(b=>b.onclick=()=>{
+    const key = b.dataset.key;
+    disinfectTabState.openKey = disinfectTabState.openKey === key ? null : key;
+    render();
+  });
+  const disinfectAdminToggle = document.getElementById("disinfect-admin-toggle");
+  if(disinfectAdminToggle) disinfectAdminToggle.onclick = ()=>{
+    disinfectTabState.adminOpen = !disinfectTabState.adminOpen;
+    disinfectTabState.formKey = undefined;
+    diseaseDisinfectState.msg = "";
+    render();
+  };
+  document.querySelectorAll(".disinfect-edit-btn").forEach(b=>b.onclick=()=>{
+    disinfectTabState.adminOpen = true;
+    disinfectTabState.formKey = b.dataset.key;
+    diseaseDisinfectState.msg = "";
+    render();
+  });
+  const disinfectCancelBtn = document.getElementById("dz-cancel");
+  if(disinfectCancelBtn) disinfectCancelBtn.onclick = ()=>{ disinfectTabState.formKey = undefined; render(); };
+
+  document.querySelectorAll(".disinfect-del-btn").forEach(b=>b.onclick=async ()=>{
+    const key = b.dataset.key;
+    const item = currentDiseaseDisinfectants().find(p=>p.key===key);
+    if(!item || !confirm(`"${item.disease}" 항목을 삭제할까요?`)) return;
+    const next = currentDiseaseDisinfectants().filter(p=>p.key!==key);
+    diseaseDisinfectState.busy = true; diseaseDisinfectState.msg = "발행 중..."; render();
+    const r = await publishDiseaseDisinfectants(next, "🧴 질병별 소독제/소독요령 삭제: " + item.disease);
+    diseaseDisinfectState.busy = false;
+    diseaseDisinfectState.msg = r.ok ? "삭제 완료 — 모두에게 반영됩니다" : ("발행 실패: " + r.error);
+    if(r.ok && disinfectTabState.openKey===key) disinfectTabState.openKey = null;
+    render();
+  });
+
+  const disinfectSaveBtn = document.getElementById("dz-save");
+  if(disinfectSaveBtn) disinfectSaveBtn.onclick = async ()=>{
+    const disease = (document.getElementById("dz-disease")?.value || "").trim();
+    const disinfectants = treatmentProgramFromText(document.getElementById("dz-disinfectants")?.value);
+    const procedure = treatmentProgramFromText(document.getElementById("dz-procedure")?.value);
+    const caution = (document.getElementById("dz-caution")?.value || "").trim();
+    if(!disease){ alert("질병명을 입력하세요."); return; }
+    if(!disinfectants.length && !procedure.length){ alert("소독제 선택 기준 또는 소독요령을 한 줄 이상 입력하세요. ('제목|설명' 형식)"); return; }
+
+    const items = currentDiseaseDisinfectants().slice();
+    const editKey = disinfectTabState.formKey;
+    if(editKey){
+      const idx = items.findIndex(p=>p.key===editKey);
+      if(idx>=0) items[idx] = Object.assign({}, items[idx], { disease, disinfectants, procedure, caution });
+    } else {
+      items.push({ key:newDisinfectKey(), disease, disinfectants, procedure, caution });
+    }
+    diseaseDisinfectState.busy = true; diseaseDisinfectState.msg = "발행 중..."; render();
+    const r = await publishDiseaseDisinfectants(items, "🧴 질병별 소독제/소독요령 " + (editKey?"수정":"추가") + ": " + disease);
+    diseaseDisinfectState.busy = false;
+    diseaseDisinfectState.msg = r.ok ? "발행 완료 — 모두에게 반영됩니다" : ("발행 실패: " + r.error);
+    if(r.ok) disinfectTabState.formKey = undefined;
     render();
   };
 
