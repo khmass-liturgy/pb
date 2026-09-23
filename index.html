@@ -85,12 +85,17 @@
      모바일에서는 고정 폭을 줄여서 억지로 맞추지 않고, 콘텐츠의
      우선순위에 따라 헤더/카드/표를 재배치한다. */
   html { overflow-x: hidden; }
-  .livestock-price-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
-  .livestock-price-card { min-width: 0; }
-  .livestock-price-card__content, .livestock-price-card__body { min-width: 0; flex: 1 1 auto; }
-  .livestock-price-card__label { overflow-wrap: anywhere; }
-  .livestock-price-card__value { white-space: nowrap; }
-  .livestock-price-card__date { flex: 0 0 auto; }
+  /* main이 900px로 제한돼 있어서, 화면이 아무리 넓어져도 4열 그리드의 카드
+     한 칸은 항상 좁다 — 뷰포트 기준 미디어쿼리로는 못 잡아서 가로형(아이콘·
+     라벨·값 좌측 / 날짜 우측) 대신 세로 스택형을 기본값으로 고정한다. */
+  .livestock-price-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .livestock-price-card { min-width: 0; display: block !important; padding: 11px !important; border-radius: 10px !important; }
+  .livestock-price-card__content, .livestock-price-card__body { min-width: 0; display: block !important; }
+  .livestock-price-card__icon { display: block !important; font-size: 21px !important; }
+  .livestock-price-card__label { overflow-wrap: anywhere; display: block !important; font-size: 11px !important; line-height: 1.35; }
+  .livestock-price-card__value { white-space: nowrap; display: block !important; font-size: 19px !important; margin-top: 3px; }
+  .livestock-price-card__value span { font-size: 10px !important; }
+  .livestock-price-card__date { flex: 0 0 auto; display: block !important; margin-top: 7px; text-align: left !important; font-size: 9px !important; line-height: 1.35; }
   .livestock-history-mobile { display: none; }
   .livestock-history-scroll { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
@@ -113,14 +118,6 @@
     .price-card { padding: 11px 10px; border-radius: 11px; }
     .board-grid { grid-template-columns: 1fr; gap: 10px; }
     .board-card { padding: 14px; }
-    .livestock-price-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-    .livestock-price-card { display: block !important; padding: 11px !important; border-radius: 10px !important; }
-    .livestock-price-card__content, .livestock-price-card__body { display: block !important; }
-    .livestock-price-card__icon { display: block !important; font-size: 21px !important; }
-    .livestock-price-card__label { display: block !important; font-size: 11px !important; line-height: 1.35; }
-    .livestock-price-card__value { display: block !important; font-size: 19px !important; margin-top: 3px; }
-    .livestock-price-card__value span { font-size: 10px !important; }
-    .livestock-price-card__date { display: block !important; margin-top: 7px; text-align: left !important; font-size: 9px !important; line-height: 1.35; }
     .livestock-price-heading { align-items: flex-start !important; }
     .livestock-price-heading .livestock-price-actions { width: 100%; justify-content: flex-end; }
     .livestock-price-heading .livestock-price-actions a,
@@ -5498,7 +5495,7 @@ function renderJungchuPriceCard(){
       <div class="livestock-price-card__content" style="display:flex;align-items:center;gap:10px;min-width:0">
         <span class="livestock-price-card__icon" style="font-size:25px;flex:0 0 auto">🐣</span>
         <div class="livestock-price-card__body" style="min-width:0">
-          <div class="livestock-price-card__label" style="font-size:12px;color:#777;font-weight:700">산란계 중추 <span style="font-weight:400">협회</span></div>
+          <div class="livestock-price-card__label" style="font-size:12px;color:#777;font-weight:700">산란계 중추</div>
           <div class="livestock-price-card__value" style="font-size:16px;color:#1B7A3E;font-weight:800">그래프 보기 ↗</div>
         </div>
       </div>
@@ -5511,12 +5508,12 @@ function renderJungchuPriceCard(){
     <div class="livestock-price-card__content" style="display:flex;align-items:center;gap:10px">
       <span class="livestock-price-card__icon" style="font-size:25px">🐣</span>
       <div class="livestock-price-card__body">
-        <div class="livestock-price-card__label" style="font-size:12px;color:#777;font-weight:700">산란계 중추 <span style="font-weight:400">협회</span></div>
+        <div class="livestock-price-card__label" style="font-size:12px;color:#777;font-weight:700">산란계 중추</div>
         <div class="livestock-price-card__value" style="font-size:22px;color:#1B7A3E;font-weight:800">${d.latest.toLocaleString()}<span style="font-size:11px;color:#888;font-weight:400;margin-left:3px">원/마리</span></div>
         ${d.numbers_stale?`<div style="font-size:11px;color:#E65100;margin-top:3px">⚠️ 최신 확인 실패, 이전 값</div>`:""}
       </div>
     </div>
-    <div class="livestock-price-card__date" style="font-size:10px;color:#aaa;text-align:right">${esc(monthLabel)}<br>협회 발표(OCR)</div>
+    <div class="livestock-price-card__date" style="font-size:10px;color:#aaa;text-align:right">${esc(monthLabel)}</div>
   </a>`;
 }
 
