@@ -848,6 +848,7 @@ const DEFAULT_DISEASE_DISINFECTANTS = [
       { step:"4단계 접촉시간 확보", detail:"제품 권장 접촉시간(보통 10~30분) 동안 마르지 않게 유지" },
       { step:"5단계 건조·환기", detail:"자연건조 후 재입식 전 최소 24~48시간 환기" },
     ],
+    products:[],
     caution:"소독 전 유기물 제거가 최우선입니다. 저온기에는 소독제 효력이 떨어지므로 접촉시간을 늘리거나 온수 희석을 고려하고, 축산용으로 등록된 제품인지 확인 후 라벨 지시를 따르세요." },
   { key:"ai", disease:"인플루엔자(AI)",
     disinfectants:[
@@ -862,6 +863,7 @@ const DEFAULT_DISEASE_DISINFECTANTS = [
       { step:"4단계 반복 소독", detail:"발생 농장·인근 지역은 방역당국 지침에 따라 일정 주기로 반복 소독" },
       { step:"5단계 인원·차량 통제", detail:"소독조·발판소독조를 출입구에 설치해 교차오염 차단" },
     ],
+    products:[],
     caution:"AI는 가축전염병예방법상 신고대상 질병입니다 — 의심 시 즉시 방역당국(가축방역기관)에 신고하고, 반드시 국가 지정 소독제·지침을 따르세요. 이 내용은 참고용이며 법정 방역조치를 대체하지 않습니다." },
   { key:"ibd", disease:"감보로병(IBD, Gumboro)",
     disinfectants:[
@@ -877,6 +879,7 @@ const DEFAULT_DISEASE_DISINFECTANTS = [
       { step:"5단계 훈증(선택)", detail:"밀폐 가능한 축사는 전문가 지도 하에 포름알데히드 가스 훈증을 추가로 고려" },
       { step:"6단계 충분한 공백기", detail:"재입식 전 공백기간을 다른 질병보다 길게(가능하면 2~3주 이상) 확보" },
     ],
+    products:[],
     caution:"감보로병 바이러스는 소독제 저항성이 강한 대표 사례입니다. 반드시 \"비외피 바이러스\" 또는 \"IBDV\" 효능시험 자료가 있는 제품을 선택하고, 포름알데히드 훈증은 독성이 있어 안전수칙을 지키며 전문가와 상의하세요." },
   { key:"ne", disease:"괴사성 장염(Necrotic Enteritis)",
     disinfectants:[
@@ -891,6 +894,7 @@ const DEFAULT_DISEASE_DISINFECTANTS = [
       { step:"4단계 접촉시간 확보", detail:"제품 권장시간(대개 일반 소독보다 김)을 유지" },
       { step:"5단계 급수라인 별도 관리", detail:"과산화수소계 등으로 음수라인 내부도 별도 소독" },
     ],
+    products:[],
     caution:"아포는 열·건조·소독제에 매우 강해 \"sporicidal(아포살균)\" 표기가 없는 일반 소독제는 효과가 제한적입니다. 사료 내 관리·프로바이오틱 등 사양적 예방과 병행하세요." },
   { key:"cocci", disease:"콕시듐증(Coccidiosis)",
     disinfectants:[
@@ -905,6 +909,7 @@ const DEFAULT_DISEASE_DISINFECTANTS = [
       { step:"4단계 생석회 살포", detail:"통로·외부 지역은 생석회를 살포해 건조·알칼리 환경 조성" },
       { step:"5단계 배수·환기 개선", detail:"재발 방지를 위해 급수라인 누수·바닥 배수 문제를 함께 점검" },
     ],
+    products:[],
     caution:"콕시듐증은 소독만으로 완전히 통제하기 어려워 사양관리(깔짚 건조 유지, 사육밀도)와 항콕시듐제·백신 프로그램을 병행해야 합니다. 일반 소독제 위주로 관리하면 재발이 반복될 수 있습니다." },
   { key:"adeno", disease:"아데노바이러스 감염증(봉입체간염 등)",
     disinfectants:[
@@ -919,6 +924,7 @@ const DEFAULT_DISEASE_DISINFECTANTS = [
       { step:"4단계 접촉시간 확보", detail:"20~30분 이상 습윤 상태 유지" },
       { step:"5단계 종란·부화장 위생", detail:"수직감염 예방을 위해 종란 소독(포름알데히드 훈증 등)도 함께 관리" },
     ],
+    products:[],
     caution:"아데노바이러스는 종란을 통한 수직감염 가능성이 있어 축사 소독뿐 아니라 종란·부화장 위생 관리도 함께 신경 써야 합니다." },
   { key:"virus_etc", disease:"기타 바이러스성 질병",
     disinfectants:[
@@ -933,6 +939,7 @@ const DEFAULT_DISEASE_DISINFECTANTS = [
       { step:"4단계 접촉시간 확보", detail:"제품 권장 접촉시간 준수(비외피 바이러스는 더 길게)" },
       { step:"5단계 건조 후 재입식", detail:"충분히 건조·환기 후 재입식" },
     ],
+    products:[],
     caution:"원인체가 명확하지 않은 경우, 가장 저항성이 강한 비외피 바이러스 기준으로 소독 프로그램을 잡는 것이 안전합니다." },
   { key:"bacteria_etc", disease:"기타 세균성 질병",
     disinfectants:[
@@ -947,6 +954,7 @@ const DEFAULT_DISEASE_DISINFECTANTS = [
       { step:"4단계 급수·급이 라인 관리", detail:"필요 시 음수소독제로 급수라인 내부도 함께 관리" },
       { step:"5단계 건조 후 재입식", detail:"충분히 건조 후 재입식" },
     ],
+    products:[],
     caution:"세균성 질병은 항생제 감수성 검사 결과에 따라 치료 방향이 달라질 수 있으므로, 소독과 함께 수의사 진단을 받으시기 바랍니다." },
 ];
 let diseaseDisinfectState = { status:"idle", data:null, busy:false, msg:"" };
@@ -3873,6 +3881,20 @@ function treatmentProgramFromText(text){
   }).filter(s=>s.step);
 }
 
+// 질병별 소독제 화면의 "추천 소독제 제품" 목록 전용 — 위와 같은 한 줄 textarea
+// 입력 방식이지만 필드가 셋(제품명|회사명|용법·용량)이라 별도 인코더를 둔다.
+// 실제 제품명·회사명·용법용량은 관리자가 직접 확인해서 입력하는 값이며,
+// 코드에 미리 채워두지 않는다(검증되지 않은 상표명을 임의로 노출하지 않기 위해).
+function disinfectProductsToText(products){
+  return (products||[]).map(p => `${p.name}|${p.company||""}|${p.usage||""}`).join("\n");
+}
+function disinfectProductsFromText(text){
+  return String(text||"").split("\n").map(l=>l.trim()).filter(Boolean).map(line=>{
+    const parts = line.split("|");
+    return { name: (parts[0]||"").trim(), company: (parts[1]||"").trim(), usage: (parts[2]||"").trim() };
+  }).filter(p=>p.name);
+}
+
 // ── 회원관리 화면 (관리자 전용) ───────────────────────────────────────────
 // 비밀번호는 여기 안 둔다 — Firebase는 비밀번호를 해시로만 갖고 있어 애초에
 // 다시 읽어올 방법이 없고, 설령 있어도 평문으로 어딘가(GitHub 커밋 포함)에
@@ -4292,6 +4314,12 @@ function renderDisinfectPanel(){
           <div style="font-size:12.5px;font-weight:700;color:#333">${esc(s.step)}</div>
           <div style="font-size:12.5px;color:#444;line-height:1.6;margin-top:2px">${esc(s.detail)}</div>
         </div>`).join("") : `<div style="font-size:12px;color:#aaa;margin-bottom:9px">등록된 내용이 없습니다.</div>`}
+        <div style="font-size:11.5px;font-weight:700;color:#00695C;margin:12px 0 6px">💊 추천 소독제 제품</div>
+        ${(p.products&&p.products.length) ? p.products.map(pr => `
+        <div style="margin-bottom:8px;padding:8px 10px;background:#F1F8F6;border-radius:8px">
+          <div style="font-size:12.5px;font-weight:700;color:#333">${esc(pr.name)}${pr.company?` <span style="font-size:11px;color:#888;font-weight:400">${esc(pr.company)}</span>`:""}</div>
+          ${pr.usage?`<div style="font-size:12px;color:#444;line-height:1.6;margin-top:2px">${esc(pr.usage)}</div>`:""}
+        </div>`).join("") : `<div style="font-size:12px;color:#aaa;margin-bottom:9px">등록된 제품이 없습니다.</div>`}
         <div style="font-size:11.5px;font-weight:700;color:#00695C;margin:12px 0 6px">🧼 소독요령</div>
         ${p.procedure.length ? p.procedure.map(s => `
         <div style="margin-bottom:9px">
@@ -4318,7 +4346,10 @@ function renderDisinfectPanel(){
       <div style="font-size:10px;color:#888;margin-bottom:3px">🧪 소독제 선택 기준 — 한 줄에 한 항목씩, '제목|설명' 형식</div>
       <textarea id="dz-disinfectants" placeholder="예) 병원체 특성|외피가 없는 바이러스라 저항성이 강함"
         style="width:100%;min-height:90px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:6px">${esc(editing?treatmentProgramToText(editing.disinfectants):"")}</textarea>
-      <div style="font-size:10px;color:#888;margin-bottom:3px">🧼 소독요령 — 같은 형식</div>
+      <div style="font-size:10px;color:#888;margin-bottom:3px">💊 추천 소독제 제품 — 한 줄에 한 제품씩, '제품명|회사명|용법·용량' 형식</div>
+      <textarea id="dz-products" placeholder="예) OO소독제|OO바이오|1:200 희석 후 분무, 접촉시간 10분"
+        style="width:100%;min-height:80px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:6px">${esc(editing?disinfectProductsToText(editing.products):"")}</textarea>
+      <div style="font-size:10px;color:#888;margin-bottom:3px">🧼 소독요령 — '제목|설명' 형식</div>
       <textarea id="dz-procedure" placeholder="예) 1단계 사전 청소|유기물을 완전히 제거 후 고압세척"
         style="width:100%;min-height:110px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:6px">${esc(editing?treatmentProgramToText(editing.procedure):"")}</textarea>
       <textarea id="dz-caution" placeholder="주의사항"
@@ -9364,6 +9395,7 @@ function attachEvents(){
   if(disinfectSaveBtn) disinfectSaveBtn.onclick = async ()=>{
     const disease = (document.getElementById("dz-disease")?.value || "").trim();
     const disinfectants = treatmentProgramFromText(document.getElementById("dz-disinfectants")?.value);
+    const products = disinfectProductsFromText(document.getElementById("dz-products")?.value);
     const procedure = treatmentProgramFromText(document.getElementById("dz-procedure")?.value);
     const caution = (document.getElementById("dz-caution")?.value || "").trim();
     if(!disease){ alert("질병명을 입력하세요."); return; }
@@ -9373,9 +9405,9 @@ function attachEvents(){
     const editKey = disinfectTabState.formKey;
     if(editKey){
       const idx = items.findIndex(p=>p.key===editKey);
-      if(idx>=0) items[idx] = Object.assign({}, items[idx], { disease, disinfectants, procedure, caution });
+      if(idx>=0) items[idx] = Object.assign({}, items[idx], { disease, disinfectants, products, procedure, caution });
     } else {
-      items.push({ key:newDisinfectKey(), disease, disinfectants, procedure, caution });
+      items.push({ key:newDisinfectKey(), disease, disinfectants, products, procedure, caution });
     }
     diseaseDisinfectState.busy = true; diseaseDisinfectState.msg = "발행 중..."; render();
     const r = await publishDiseaseDisinfectants(items, "🧴 질병별 소독제/소독요령 " + (editKey?"수정":"추가") + ": " + disease);
