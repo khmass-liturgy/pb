@@ -1258,32 +1258,19 @@ function newFeatureRequestId(){
 function featureBoardAuthorLabel(){ return "👤 익명 회원"; }
 function featureBoardReplyLabel(isAdminReply){ return isAdminReply ? "🩺 관리자 답변" : "👤 익명 회원"; }
 
+// 브라우저에서 firebase.storage()의 getDownloadURL()+fetch()로 비공개
+// 파일을 직접 읽으면, 인증엔 성공해도 Firebase가 실제 내용을
+// storage.googleapis.com 서명 URL로 리다이렉트하는데 그 응답엔 CORS
+// 허용 헤더가 없어 브라우저가 항상 막는다(클라이언트 코드로 우회 불가능한
+// 브라우저 CORS 정책 자체의 한계) — 그래서 목록 조회를 서버(Cloud Function
+// getFeatureRequests, functions/index.js)에 맡긴다. 글쓰기/삭제는 응답
+// 본문을 다시 읽을 필요가 없어 기존처럼 클라이언트에서 직접 한다.
 async function fetchFeatureRequests(){
   featureBoardState.status = "loading";
   try {
-    const listing = await withStorageTimeout(firebase.storage().ref("feature_requests").listAll());
-    console.log("fetchFeatureRequests: uid 폴더", listing.prefixes.length, "개");
-    const posts = [];
-    for(const uidPrefix of listing.prefixes){
-      const postListing = await withStorageTimeout(uidPrefix.listAll());
-      console.log("fetchFeatureRequests:", uidPrefix.name, "글", postListing.prefixes.length, "개");
-      for(const postPrefix of postListing.prefixes){
-        const post = await readBoardJson(postPrefix.child("post.json"));
-        if(!post) continue;
-        const replies = [];
-        try {
-          const replyListing = await withStorageTimeout(postPrefix.child("replies").listAll());
-          for(const replyRef of replyListing.items){
-            const reply = await readBoardJson(replyRef);
-            if(reply) replies.push(reply);
-          }
-        } catch(e){ /* 답글이 아직 없으면 폴더 자체가 없어 listAll이 비어있게 온다 */ }
-        replies.sort((a,b) => (a.at||"").localeCompare(b.at||""));
-        posts.push(Object.assign({}, post, { uid: uidPrefix.name, postId: postPrefix.name, replies }));
-      }
-    }
-    posts.sort((a,b) => (b.createdAt||"").localeCompare(a.createdAt||""));
-    featureBoardState.posts = posts;
+    const fn = firebase.app().functions().httpsCallable("getFeatureRequests");
+    const res = await withStorageTimeout(fn(), 15000);
+    featureBoardState.posts = (res.data && res.data.posts) || [];
     featureBoardState.status = "done";
   } catch(e){
     console.warn("기능요청 게시판 로딩 실패:", e);
@@ -1811,20 +1798,23 @@ async function readBoardJson(ref){
 }
 
 // premium_content/{dataset}/latest.json 공용 읽기/쓰기 — storage.rules에서
-// 승인된 회원+관리자만 읽고, 관리자만 쓸 수 있다. 상황별 처방·계절별
-// 패키지·농장 맞춤 찾기·자가진단 4개 데이터셋이 전부 이 두 함수로 읽고/
-// 쓴다(예전엔 공개 GitHub 저장소였는데, 로그인 없이 URL만 알면 누구나
-// 볼 수 있는 문제가 있어 여기로 옮겼다). readBoardJson과 달리 실패를
-// 삼키지 않고 그대로 던진다 — 각 fetch*Packages()가 상태를 error로
+// 승인된 회원+관리자만 읽고, 관리자만 쓸 수 있다(예전엔 공개 GitHub
+// 저장소였는데, 로그인 없이 URL만 알면 누구나 볼 수 있는 문제가 있어
+// 여기로 옮겼다). 읽기는 브라우저에서 firebase.storage()의
+// getDownloadURL()+fetch()로 직접 하면, 인증에 성공해도 Firebase가 실제
+// 내용을 storage.googleapis.com 서명 URL로 리다이렉트하는데 그 응답엔
+// CORS 허용 헤더가 없어 브라우저가 항상 막는다(클라이언트 코드로 우회
+// 불가능한 브라우저 CORS 정책 자체의 한계) — 그래서 서버(Cloud Function
+// getPremiumContent, functions/index.js)에 맡긴다. readBoardJson과 달리
+// 실패를 삼키지 않고 그대로 던진다 — 각 fetch*Packages()가 상태를 error로
 // 표시할 수 있어야 하므로.
 function premiumContentPath(dataset){
   return "premium_content/" + dataset + "/latest.json";
 }
 async function fetchPremiumContentJson(dataset){
-  const url = await withStorageTimeout(firebase.storage().ref(premiumContentPath(dataset)).getDownloadURL());
-  const resp = await authedStorageFetch(url);
-  if(!resp.ok) throw new Error("HTTP " + resp.status);
-  return await resp.json();
+  const fn = firebase.app().functions().httpsCallable("getPremiumContent");
+  const res = await withStorageTimeout(fn({ dataset }), 15000);
+  return res.data && res.data.data;
 }
 async function writePremiumContentJson(dataset, body){
   await withStorageTimeout(firebase.storage().ref(premiumContentPath(dataset))

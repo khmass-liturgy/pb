@@ -17,12 +17,21 @@ const admin = require("firebase-admin");
 admin.initializeApp();
 
 const ADMIN_EMAILS = ["trsumun@gmail.com", "trsumun@daum.net"];
+const STORAGE_BUCKET = "chicken-dx.firebasestorage.app";
 
 function assertAdmin(request) {
   const email = request.auth && request.auth.token && request.auth.token.email;
   if (!email || !ADMIN_EMAILS.includes(String(email).toLowerCase())) {
     throw new HttpsError("permission-denied", "관리자만 사용할 수 있습니다.");
   }
+}
+
+function isApprovedOrAdmin(request) {
+  const token = request.auth && request.auth.token;
+  if (!token) return false;
+  if (token.approved === true) return true;
+  const email = token.email;
+  return !!(email && ADMIN_EMAILS.includes(String(email).toLowerCase()));
 }
 
 // 기존 계정이 있으면 지우고, 새 비밀번호로 다시 만든다. "🔑 비밀번호 재설정"
@@ -86,5 +95,71 @@ exports.setMemberApproval = onCall(async (request) => {
     return { ok: true };
   } catch (e) {
     throw new HttpsError("internal", e.message || String(e));
+  }
+});
+
+// 브라우저에서 firebase.storage()의 getDownloadURL()+fetch()로 비공개 파일을
+// 직접 읽으면, 인증(Authorization 헤더)까지는 성공해도 Firebase가 실제 파일
+// 내용을 storage.googleapis.com의 서명된 URL로 리다이렉트하는데 그 응답에는
+// CORS 허용 헤더가 없어 브라우저가 항상 막아버린다 — 권한 문제가 아니라
+// 브라우저 CORS 정책 자체의 한계라 클라이언트 코드로는 우회할 수 없다.
+// 그래서 승인회원 전용 JSON은 서버(Admin SDK, CORS·rules 둘 다 적용 안 받음)
+// 에서 대신 읽어 내용을 응답으로 그대로 돌려준다.
+
+// 유료회원 기능요청 게시판 전체(글+답글)를 읽어 돌려준다.
+exports.getFeatureRequests = onCall(async (request) => {
+  if (!isApprovedOrAdmin(request)) {
+    throw new HttpsError("permission-denied", "승인된 회원만 볼 수 있습니다.");
+  }
+  const bucket = admin.storage().bucket(STORAGE_BUCKET);
+  const [files] = await bucket.getFiles({ prefix: "feature_requests/" });
+  const posts = {};
+  for (const file of files) {
+    const parts = file.name.split("/");
+    if (parts.length === 4 && parts[3] === "post.json") {
+      const uid = parts[1], postId = parts[2];
+      try {
+        const [buf] = await file.download();
+        const post = JSON.parse(buf.toString("utf-8"));
+        posts[uid + "/" + postId] = Object.assign({}, post, { uid, postId, replies: [] });
+      } catch (e) { /* 손상된 글은 건너뛴다 */ }
+    }
+  }
+  for (const file of files) {
+    const parts = file.name.split("/");
+    if (parts.length === 5 && parts[3] === "replies") {
+      const key = parts[1] + "/" + parts[2];
+      if (!posts[key]) continue;
+      try {
+        const [buf] = await file.download();
+        posts[key].replies.push(JSON.parse(buf.toString("utf-8")));
+      } catch (e) { /* 손상된 답글은 건너뛴다 */ }
+    }
+  }
+  const list = Object.values(posts);
+  list.forEach((p) => p.replies.sort((a, b) => (a.at || "").localeCompare(b.at || "")));
+  list.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+  return { posts: list };
+});
+
+// premium_content/{dataset}/latest.json(상황별 처방·계절별 패키지·농장 맞춤
+// 찾기·자가진단·질병별 소독제·온라인 학습 카드 등)도 같은 이유로 대신 읽어준다.
+exports.getPremiumContent = onCall(async (request) => {
+  if (!isApprovedOrAdmin(request)) {
+    throw new HttpsError("permission-denied", "승인된 회원만 볼 수 있습니다.");
+  }
+  const { dataset } = request.data || {};
+  if (!dataset || typeof dataset !== "string" || !/^[a-zA-Z0-9_]+$/.test(dataset)) {
+    throw new HttpsError("invalid-argument", "dataset이 필요합니다.");
+  }
+  const bucket = admin.storage().bucket(STORAGE_BUCKET);
+  const file = bucket.file("premium_content/" + dataset + "/latest.json");
+  const [exists] = await file.exists();
+  if (!exists) throw new HttpsError("not-found", "아직 발행된 내용이 없습니다.");
+  try {
+    const [buf] = await file.download();
+    return { data: JSON.parse(buf.toString("utf-8")) };
+  } catch (e) {
+    throw new HttpsError("internal", "저장된 내용을 읽지 못했습니다.");
   }
 });
