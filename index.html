@@ -1775,12 +1775,28 @@ function withStorageTimeout(promise, ms){
   ]);
 }
 
+// getDownloadURL()이 주는 URL은 storage.rules가 요구하는 로그인 정보
+// (request.auth)를 같이 실어 보내야 통과한다 — 그냥 fetch(url)만 하면
+// 익명 요청이 되어, 관리자든 승인회원이든 rules가 request.auth != null을
+// 요구하는 모든 파일(premium_content, feature_requests 등)에서 항상 403이
+// 난다(다운로드 토큰 자체가 rules를 우회해주지 않는다). Firebase Storage
+// REST API가 요구하는 "Authorization: Firebase <ID 토큰>" 헤더를 붙여
+// 인증된 요청으로 만든다.
+async function authedStorageFetch(url){
+  const headers = {};
+  const user = firebase.auth().currentUser;
+  if(user){
+    try { headers.Authorization = "Firebase " + await user.getIdToken(); } catch(e){}
+  }
+  return fetch(url, { headers });
+}
+
 // Storage 참조가 가리키는 JSON 파일을 읽는다. 파일이 아직 없으면(답변 전
 // reply.json 등) null — 에러로 취급하지 않는다.
 async function readBoardJson(ref){
   try {
     const url = await withStorageTimeout(ref.getDownloadURL());
-    const resp = await fetch(url);
+    const resp = await authedStorageFetch(url);
     if(!resp.ok) return null;
     return await resp.json();
   } catch(e){
@@ -1800,7 +1816,7 @@ function premiumContentPath(dataset){
 }
 async function fetchPremiumContentJson(dataset){
   const url = await withStorageTimeout(firebase.storage().ref(premiumContentPath(dataset)).getDownloadURL());
-  const resp = await fetch(url);
+  const resp = await authedStorageFetch(url);
   if(!resp.ok) throw new Error("HTTP " + resp.status);
   return await resp.json();
 }
