@@ -77,6 +77,9 @@ service firebase.storage {
     // 고치거나 지울 수 있고, 답글(replies/{replyId})은 승인된 회원 누구나
     // 새로 달 수 있다(경로에 uid가 없어 회원 간 상호 삭제까지는 못 막지만,
     // 유료회원만 들어오는 소규모 게시판이라 감수한다).
+    match /feature_requests {
+      allow list: if isApprovedMember() || isAdmin();
+    }
     match /feature_requests/{uid} {
       allow list: if isApprovedMember() || isAdmin();
     }
