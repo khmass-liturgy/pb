@@ -1262,9 +1262,11 @@ async function fetchFeatureRequests(){
   featureBoardState.status = "loading";
   try {
     const listing = await withStorageTimeout(firebase.storage().ref("feature_requests").listAll());
+    console.log("fetchFeatureRequests: uid 폴더", listing.prefixes.length, "개");
     const posts = [];
     for(const uidPrefix of listing.prefixes){
       const postListing = await withStorageTimeout(uidPrefix.listAll());
+      console.log("fetchFeatureRequests:", uidPrefix.name, "글", postListing.prefixes.length, "개");
       for(const postPrefix of postListing.prefixes){
         const post = await readBoardJson(postPrefix.child("post.json"));
         if(!post) continue;
@@ -1797,9 +1799,13 @@ async function readBoardJson(ref){
   try {
     const url = await withStorageTimeout(ref.getDownloadURL());
     const resp = await authedStorageFetch(url);
-    if(!resp.ok) return null;
+    if(!resp.ok){
+      console.warn("readBoardJson 실패:", ref.fullPath, "HTTP", resp.status, await resp.text().catch(()=>"" ));
+      return null;
+    }
     return await resp.json();
   } catch(e){
+    console.warn("readBoardJson 예외:", ref.fullPath, e);
     return null;
   }
 }
