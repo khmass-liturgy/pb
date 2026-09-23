@@ -5539,7 +5539,7 @@ function renderPoultryPriceLine(){
       caption:"발표전일 기준"},
     {icon:"🐣",label:"산란계 병아리",sub:"초생추",value:chick?.latest,unit:"원/마리",color:"#F9A825",date:chick?.rows?.[0]?.date,
       caption:"전월 실적(월 공시)"},
-    {icon:"🐔",label:"산란노계",sub:"폐계",value:oldHen?.latest,unit:"원/마리",color:"#8D6E63",date:oldHen?.rows?.[0]?.date,
+    {icon:"🐔",label:"산란성계",sub:"",value:oldHen?.latest,unit:"원/마리",color:"#8D6E63",date:oldHen?.rows?.[0]?.date,
       caption:"전주 실적(주 공시)"},
   ].map(item=>`
     <div class="livestock-price-card" style="min-width:0;background:#fff;border:1px solid #eee;border-radius:12px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between">
