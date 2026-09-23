@@ -1877,22 +1877,20 @@ async function submitBoardReply(boardType, uid, postId, text){
   }
 }
 
-// 본인이 쓴 글 목록(회원용) — premium_board/{boardType}/{내 uid}/ 아래를 나열한다.
+// 본인이 쓴 글 목록(회원용) — premium_board/{boardType}/{내 uid}/ 아래를
+// 나열한다. post.json·reply.json은 (readBoardJson 주석에 적은 이유로)
+// 클라이언트 fetch()로는 CORS 때문에 못 읽으므로 서버(Cloud Function
+// getBoardPosts, functions/index.js)에 맡긴다. 사진(photos/*)은 <img
+// src>로 그대로 쓰는데, <img>는 fetch()와 달리 CORS 없이도 렌더링되므로
+// 이 문제를 안 겪는다 — post.json·reply.json 본문만 옮겼다.
 async function fetchMyBoardPosts(boardType){
   const user = premiumState.user;
   if(!user || boardState.status[boardType] === "loading") return;
   boardState.status[boardType] = "loading";
   try {
-    const listing = await withStorageTimeout(firebase.storage().ref("premium_board/" + boardType + "/" + user.uid).listAll());
-    const posts = [];
-    for(const prefix of listing.prefixes){
-      const post = await readBoardJson(prefix.child("post.json"));
-      if(!post) continue;
-      post.reply = await readBoardJson(prefix.child("reply.json"));
-      posts.push(post);
-    }
-    posts.sort((a,b) => (b.createdAt||"").localeCompare(a.createdAt||""));
-    boardState.posts[boardType] = posts;
+    const fn = firebase.app().functions().httpsCallable("getBoardPosts");
+    const res = await withStorageTimeout(fn({ boardType, scope:"mine" }), 15000);
+    boardState.posts[boardType] = (res.data && res.data.posts) || [];
     boardState.status[boardType] = "done";
   } catch(e){
     console.warn("내 글 목록 로딩 실패:", e);
@@ -1901,26 +1899,14 @@ async function fetchMyBoardPosts(boardType){
   if(premiumState.view === boardType) render();
 }
 
-// 관리자용: 전체 회원의 글을 나열한다(uid 폴더 → 글 폴더 순으로 두 단계 listAll).
-// 회원 수가 적은 서비스라 이렇게 매번 직접 나열해도 충분히 빠르다.
+// 관리자용: 전체 회원의 글을 나열한다 — 마찬가지로 getBoardPosts에 맡긴다.
 async function fetchInboxBoardPosts(boardType){
   if(boardState.inboxStatus[boardType] === "loading") return;
   boardState.inboxStatus[boardType] = "loading";
   try {
-    const uidListing = await withStorageTimeout(firebase.storage().ref("premium_board/" + boardType).listAll());
-    const posts = [];
-    for(const uidPrefix of uidListing.prefixes){
-      const postListing = await withStorageTimeout(uidPrefix.listAll());
-      for(const postPrefix of postListing.prefixes){
-        const post = await readBoardJson(postPrefix.child("post.json"));
-        if(!post) continue;
-        post.uid = uidPrefix.name;
-        post.reply = await readBoardJson(postPrefix.child("reply.json"));
-        posts.push(post);
-      }
-    }
-    posts.sort((a,b) => (b.createdAt||"").localeCompare(a.createdAt||""));
-    boardState.inboxPosts[boardType] = posts;
+    const fn = firebase.app().functions().httpsCallable("getBoardPosts");
+    const res = await withStorageTimeout(fn({ boardType, scope:"inbox" }), 15000);
+    boardState.inboxPosts[boardType] = (res.data && res.data.posts) || [];
     boardState.inboxStatus[boardType] = "done";
   } catch(e){
     console.warn("게시글함 로딩 실패:", e);

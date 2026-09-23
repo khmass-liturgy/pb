@@ -163,3 +163,65 @@ exports.getPremiumContent = onCall(async (request) => {
     throw new HttpsError("internal", "저장된 내용을 읽지 못했습니다.");
   }
 });
+
+const BOARD_TYPES = ["diagnosis", "consult", "consulting"];
+
+// 온라인 상담·진단·컨설팅(premium_board/{boardType}/{uid}/{postId}/
+// post.json·reply.json) — 회원용("mine": 내 글만)과 관리자용("inbox":
+// 전체 회원 글) 둘 다 이 함수 하나로 처리한다. 사진 파일(photos/*)은
+// post.json 안의 getDownloadURL() 링크를 <img src>로 그대로 쓰는데,
+// <img> 태그는 fetch()와 달리 CORS 없이도 렌더링되므로 여기서 같이
+// 내려줄 필요는 없다 — post.json·reply.json 본문만 이 문제(리다이렉트
+// CORS)를 겪는다.
+exports.getBoardPosts = onCall(async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
+  const { boardType, scope } = request.data || {};
+  if (!BOARD_TYPES.includes(boardType)) {
+    throw new HttpsError("invalid-argument", "잘못된 게시판입니다.");
+  }
+  const email = request.auth.token && request.auth.token.email;
+  const isAdmin = !!(email && ADMIN_EMAILS.includes(String(email).toLowerCase()));
+  const bucket = admin.storage().bucket(STORAGE_BUCKET);
+
+  async function readJsonFile(path) {
+    const file = bucket.file(path);
+    const [exists] = await file.exists();
+    if (!exists) return null;
+    try {
+      const [buf] = await file.download();
+      return JSON.parse(buf.toString("utf-8"));
+    } catch (e) {
+      return null;
+    }
+  }
+
+  const prefix = scope === "inbox"
+    ? `premium_board/${boardType}/`
+    : `premium_board/${boardType}/${request.auth.uid}/`;
+  if (scope === "inbox" && !isAdmin) {
+    throw new HttpsError("permission-denied", "관리자만 볼 수 있습니다.");
+  }
+
+  const [files] = await bucket.getFiles({ prefix });
+  const posts = {};
+  for (const file of files) {
+    const parts = file.name.split("/"); // premium_board/{boardType}/{uid}/{postId}/post.json
+    if (parts.length === 5 && parts[4] === "post.json") {
+      const key = parts[2] + "/" + parts[3];
+      const post = await readJsonFile(file.name);
+      if (post) posts[key] = Object.assign({}, post, { uid: parts[2] });
+    }
+  }
+  for (const file of files) {
+    const parts = file.name.split("/");
+    if (parts.length === 5 && parts[4] === "reply.json") {
+      const key = parts[2] + "/" + parts[3];
+      if (!posts[key]) continue;
+      const reply = await readJsonFile(file.name);
+      if (reply) posts[key].reply = reply;
+    }
+  }
+  const list = Object.values(posts);
+  list.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+  return { posts: list };
+});
