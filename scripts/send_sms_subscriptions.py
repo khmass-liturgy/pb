@@ -36,6 +36,9 @@ KST = timezone(timedelta(hours=9))
 INTERVAL_DAYS = {"daily": 1, "weekly": 7, "monthly": 30}
 SENDER_PHONE = "01091508844"  # 최동명 수의사 대표번호 (010-9150-8844)
 RESEARCH_PAPERS_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/research_papers/latest.json"
+POULTRY_PRICE_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/poultry_price/latest.json"
+BROILER_PRICE_TODAY_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/broiler_price_today/latest.json"
+BRIEFING_NEWS_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/news/briefing.json"
 SEASON_LABELS = {"spring": "🌸 봄", "summer": "☀️ 여름", "fall": "🍂 가을", "winter": "❄️ 겨울"}
 
 
@@ -125,7 +128,54 @@ def build_digest(bucket, menu):
                 lines.extend("- " + p.get("title", "") for p in sub)
         return "\n".join(lines)
 
+    if menu == "poultry_price":
+        lines = ["[📊 양계 산지시세]"]
+        try:
+            with urllib.request.urlopen(POULTRY_PRICE_URL, timeout=10) as r:
+                pp = json.loads(r.read().decode("utf-8"))
+            egg = pp.get("egg") or {}
+            if isinstance(egg.get("latest"), int):
+                lines.append(f"🥚 계란({egg.get('grade','특란')}): {egg['latest']:,}{egg.get('unit','원/10개')}")
+        except Exception:
+            pass
+        try:
+            with urllib.request.urlopen(BROILER_PRICE_TODAY_URL, timeout=10) as r:
+                bt = json.loads(r.read().decode("utf-8"))
+            rows = bt.get("rows") or []
+            if rows:
+                lines.append(f"🐔 육계 금일시세({bt.get('date_label','')})")
+                for row in rows:
+                    today = row.get("today")
+                    val = f"{today:,}" if isinstance(today, int) else "-"
+                    spec = f"({row['spec']})" if row.get("spec") else ""
+                    lines.append(f"- {row.get('grade','')}{spec}: {val}{row.get('unit','')}")
+        except Exception:
+            pass
+        if len(lines) == 1:
+            return "[📊 양계 산지시세]\n아직 수집된 시세가 없습니다."
+        return "\n".join(lines)
+
+    if menu == "briefing":
+        try:
+            with urllib.request.urlopen(BRIEFING_NEWS_URL, timeout=10) as r:
+                nb = json.loads(r.read().decode("utf-8"))
+        except Exception:
+            nb = {}
+        sources = nb.get("sources") or {}
+        lines = ["[📋 뉴스정보 브리핑]"]
+        found = False
+        for key, label in (("chuksan", "축산신문"), ("econ", "경제"), ("policy", "정책")):
+            items = (sources.get(key) or {}).get("items") or []
+            if items:
+                found = True
+                lines.append("")
+                lines.append(f"▶ {label} — {items[0].get('title','')}")
+        if not found:
+            return "[📋 뉴스정보 브리핑]\n아직 수집된 뉴스가 없습니다."
+        return "\n".join(lines)
+
     return ""
+
 
 
 def send_sms(relay_url, relay_secret, phone, content):

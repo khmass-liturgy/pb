@@ -1024,6 +1024,8 @@ const SMS_SUBSCRIBABLE_MENUS = [
   { key:"seasonal", label:"🗓️ 계절별 투약(관리) 패키지" },
   { key:"research", label:"📚 기술탐구" },
   { key:"treatment", label:"💉 상황별 처방(투약) 패키지" },
+  { key:"poultry_price", label:"📊 양계 산지시세" },
+  { key:"briefing", label:"📋 뉴스정보" },
 ];
 const SMS_INTERVALS = [
   { key:"daily", label:"매일", days:1 },
@@ -1142,6 +1144,31 @@ function buildSmsDigestText(menuKey){
       const list = treatmentPackagesFor(sp);
       if(list.length) lines.push("", sp==="broiler"?"🐔 육계":"🥚 산란계", ...list.map(p=>"- "+p.title));
     });
+    return lines.join("\n");
+  }
+  if(menuKey === "poultry_price"){
+    const egg = poultryPriceState.data && poultryPriceState.data.egg;
+    const bt = broilerPriceTodayState.data;
+    const lines = ["[📊 양계 산지시세]"];
+    if(egg && Number.isInteger(egg.latest)){
+      lines.push(`🥚 계란(${egg.grade||"특란"}): ${egg.latest.toLocaleString()}${egg.unit||"원/10개"}`);
+    }
+    if(bt && Array.isArray(bt.rows) && bt.rows.length){
+      lines.push(`🐔 육계 금일시세(${bt.date_label||""})`);
+      bt.rows.forEach(r => lines.push(`- ${r.grade||""}${r.spec?"("+r.spec+")":""}: ${Number.isInteger(r.today)?r.today.toLocaleString():"-"}${r.unit||""}`));
+    }
+    if(lines.length === 1) return "[📊 양계 산지시세]\n아직 수집된 시세가 없습니다.";
+    return lines.join("\n");
+  }
+  if(menuKey === "briefing"){
+    const groups = [["chuksan","축산신문"], ["econ","경제"], ["policy","정책"]];
+    const lines = ["[📋 뉴스정보 브리핑]"];
+    let found = false;
+    groups.forEach(([key,label]) => {
+      const items = noticesState[key] || [];
+      if(items.length){ found = true; lines.push("", "▶ " + label + " — " + items[0].title); }
+    });
+    if(!found) return "[📋 뉴스정보 브리핑]\n아직 수집된 뉴스가 없습니다.";
     return lines.join("\n");
   }
   return "";
@@ -4742,6 +4769,9 @@ function renderSmsAdminPanel(){
   if(treatmentPkgState.status === "idle") fetchTreatmentPackages();
   if(seasonalPkgState.status === "idle") fetchSeasonalPackages();
   if(researchPapersState.status === "idle") fetchResearchPapers();
+  if(poultryPriceState.status === "idle") fetchPoultryPrices();
+  if(broilerPriceTodayState.status === "idle") fetchBroilerPriceToday();
+  if(noticesState.status === "idle") fetchNotices();
 
   const st = smsAdminState;
   if(st.status === "idle" || st.status === "loading"){
