@@ -28,6 +28,11 @@ jobs:
         run: pip install requests xlrd
 
       - name: 배합사료 생산실적 수집
+        # 농식품부가 해외 IP를 막아, 자동 문자 발송과 같은 국내 중계 서버(sms-relay)의
+        # /fetch-mafra 경로로 받는다 — 같은 두 시크릿을 재사용한다.
+        env:
+          SMS_RELAY_URL: ${{ secrets.SMS_RELAY_URL }}
+          SMS_RELAY_SECRET: ${{ secrets.SMS_RELAY_SECRET }}
         run: python scripts/fetch_feed_production.py
 
       - name: 결과 검증

@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 from datetime import datetime, timedelta, timezone
@@ -43,6 +44,17 @@ PROXY_URLS = [
 ]
 OLE2_MAGIC = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"   # .xls(BIFF) 파일 시그니처
 
+# 농식품부는 해외 IP 접속을 막아 GitHub Actions(미국)에서도, 해외 공개 프록시에서도
+# 접속이 안 된다(ConnectTimeout / 522). 그래서 자동 문자 발송용으로 이미 쓰는 국내
+# 리전 중계 서버(farm-pro/sms-relay, Oracle Cloud VM)의 /fetch-mafra 경로로 받는다 —
+# 같은 두 시크릿(SMS_RELAY_URL = …/send-sms, SMS_RELAY_SECRET)을 재사용한다. 이 서버는
+# 배합사료 게시판(bbs/home/789)의 목록·글·첨부 주소만 허용한다.
+# 시크릿이 없으면(로컬 실행 등) 직접 요청부터 한다. 공개 저장소라 Actions 로그가
+# 공개되므로 중계 서버 주소는 출력하지 않는다.
+_RELAY_URL = os.environ.get("SMS_RELAY_URL", "").strip()
+_RELAY_SECRET = os.environ.get("SMS_RELAY_SECRET", "").strip()
+RELAY_FETCH = (re.sub(r"/send-sms/?$", "", _RELAY_URL) + "/fetch-mafra") if _RELAY_URL and _RELAY_SECRET else None
+
 # "2025년 8월 배합사료 생산 실적 및 가격 통계(수정)", "…생산실적 및 통계" 등 표기가 섞여 있다.
 TITLE_RE = re.compile(r"(\d{4})\s*년\s*(\d{1,2})\s*월\s*배합사료\s*생산\s*실적")
 POST_RE = re.compile(r'href="(/bbs/home/789/(\d+)/artclView\.do)"[^>]*>([\s\S]*?)</a>')
@@ -63,25 +75,37 @@ GROUPS = {
 ALL_ROWS = [name for names in GROUPS.values() for name in names]
 
 
+def _candidates(url: str):
+    """(요청 주소, 헤더, 로그용 이름) — 국내 중계 서버 → 직접 → 공개 CORS 프록시 순."""
+    if RELAY_FETCH:
+        yield (f"{RELAY_FETCH}?url={quote(url, safe='')}",
+               {**HEADERS, "Authorization": f"Bearer {_RELAY_SECRET}"}, "국내 중계 서버")
+    yield url, HEADERS, url[:70]
+    for factory in PROXY_URLS:
+        proxied = factory(url)
+        yield proxied, HEADERS, proxied[:70]
+
+
 def _get(url: str, binary: bool = False):
-    """직접 요청 실패 시 공개 CORS 프록시로 재시도(다른 fetch 스크립트와 동일한 관례).
-    프록시가 오류 페이지를 200으로 돌려주는 경우가 있어 바이너리는 .xls 시그니처까지 확인한다."""
-    for candidate in [url] + [factory(url) for factory in PROXY_URLS]:
+    """프록시가 오류 페이지를 200으로 돌려주는 경우가 있어 바이너리는 .xls 시그니처까지 확인한다."""
+    for candidate, headers, name in _candidates(url):
         try:
-            resp = requests.get(candidate, headers=HEADERS, timeout=30)
+            resp = requests.get(candidate, headers=headers, timeout=30)
             if not resp.ok:
-                print(f"  HTTP {resp.status_code}: {candidate[:70]}")
+                print(f"  HTTP {resp.status_code}: {name}")
                 continue
             if binary:
                 if resp.content.startswith(OLE2_MAGIC):
                     return resp.content
-                print(f"  .xls가 아닌 응답({len(resp.content)}bytes): {candidate[:70]}")
+                print(f"  .xls가 아닌 응답({len(resp.content)}bytes): {name}")
                 continue
             resp.encoding = "utf-8"
             if resp.text:
                 return resp.text
         except requests.RequestException as exc:
-            print(f"  요청 실패({candidate[:70]}): {type(exc).__name__}: {exc}")
+            # 예외 메시지에 요청 주소가 들어가므로 중계 서버일 때는 유형만 남긴다.
+            detail = type(exc).__name__ if name == "국내 중계 서버" else f"{type(exc).__name__}: {exc}"
+            print(f"  요청 실패({name}): {detail}")
     return None
 
 
