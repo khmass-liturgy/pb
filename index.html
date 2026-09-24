@@ -153,7 +153,7 @@
 <body>
 <div id="app"></div>
 
-<!-- 유료서비스 회원 로그인(구글/이메일)용 Firebase Auth. -->
+<!-- 유료서비스 회원 로그인(이메일/비밀번호)용 Firebase Auth. -->
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <!-- 회원관리 화면의 "삭제"·"비밀번호 재설정"이 부르는 Cloud Functions(functions/)용.
@@ -605,7 +605,7 @@ async function fetchResearchPapers(){
   if(state.tab === "premium") render();
 }
 
-// ── 유료서비스 로그인(Firebase Auth: 구글 / 이메일)·승인 상태 ──────────────
+// ── 유료서비스 로그인(Firebase Auth: 이메일/비밀번호)·승인 상태 ──────────────
 // TODO: Firebase 콘솔 > 프로젝트 설정 > 일반 탭에서 발급받은 값으로 교체하세요.
 // Authentication 메뉴에서 "Google", "이메일/비밀번호" 로그인 제공업체를 켜야 동작합니다.
 const FIREBASE_CONFIG = {
@@ -1619,15 +1619,6 @@ function isPremiumApproved(){
   if(!user) return false;
   if(user.email && premiumState.approvedEmails.includes(user.email.toLowerCase())) return true;
   return false;
-}
-
-function premiumSignInGoogle(){
-  if(!firebaseReady){ alert("Firebase 설정이 아직 완료되지 않았습니다."); return; }
-  const provider = new firebase.auth.GoogleAuthProvider();
-  firebase.auth().signInWithPopup(provider).catch(e => {
-    console.warn("구글 로그인 실패:", e);
-    alert("로그인에 실패했습니다: " + (e.message || e));
-  });
 }
 
 // 이메일/비밀번호 계정은 회원이 직접 만들지 않는다 — 관리자가 Firebase 콘솔
@@ -5514,10 +5505,8 @@ function renderPremiumTab(){
     <div class="card" style="text-align:center;padding:32px 16px">
       <div style="font-size:30px;margin-bottom:10px">🔒</div>
       <div class="display" style="font-size:15px;margin-bottom:8px">승인된 회원만 이용할 수 있습니다</div>
-      <div style="font-size:12px;color:#888;margin-bottom:20px;line-height:1.7">구글 계정은 로그인하면 바로 가입됩니다.<br>이메일 계정은 회원가입 없이, 관리자에게 전달받은 아이디(이메일)·비밀번호로 로그인해 주세요.<br>로그인 후에도 관리자 승인 전까지는 상담·진단·컨설팅 내용을 볼 수 없습니다.</div>
+      <div style="font-size:12px;color:#888;margin-bottom:20px;line-height:1.7">계좌 입금 후 입금자명을 문자로 전송하면 유료회원 아이디·비밀번호를 발급하여 전달해 드립니다.<br>전달받은 아이디(이메일)·비밀번호로 로그인해 주세요.<br>로그인 후에도 관리자 승인 전까지는 상담·진단·컨설팅 내용을 볼 수 없습니다.</div>
       <div style="display:flex;gap:14px;justify-content:center;align-items:center;flex-wrap:wrap;margin-bottom:14px">
-        <button id="btn-premium-google" style="border:1px solid #ddd;border-radius:10px;background:#fff;color:#333;padding:12px 24px;font-size:13px;font-weight:600">🔵 Google로 로그인/가입</button>
-        <span style="font-size:12px;color:#bbb">또는</span>
         <button id="btn-premium-email" style="border:1px solid #1a2744;border-radius:10px;background:#fff;color:#1a2744;padding:12px 24px;font-size:13px;font-weight:600">🔑 아이디/비밀번호 로그인</button>
       </div>
       <div style="margin-top:12px">
@@ -9823,8 +9812,6 @@ function attachEvents(){
   document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
 
   // 유료서비스: 로그인/로그아웃
-  const pgBtn = document.getElementById("btn-premium-google");
-  if(pgBtn) pgBtn.onclick = premiumSignInGoogle;
   const peBtn = document.getElementById("btn-premium-email");
   if(peBtn) peBtn.onclick = premiumSignInEmail;
   const prBtn = document.getElementById("btn-premium-reset");
