@@ -1,0 +1,70 @@
+name: 배합사료 생산실적 수집
+
+on:
+  schedule:
+    # 농식품부가 매달 20일경 전월 자료를 올리고, 며칠 뒤 "(수정)"본을 다시 올리기도
+    # 한다. 게시일이 정확히 정해져 있지 않아 매일 확인만 하고, 스크립트가 내용이
+    # 그대로면 파일을 다시 쓰지 않으므로 새 자료가 올라온 날에만 커밋된다.
+    # 01:30 UTC = 매일 한국시간 10:30
+    - cron: "30 1 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-feed-production:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Python 설정
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: 패키지 설치
+        run: pip install requests xlrd
+
+      - name: 배합사료 생산실적 수집
+        run: python scripts/fetch_feed_production.py
+
+      - name: 결과 검증
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d = json.loads(Path("feed_production/latest.json").read_text(encoding="utf-8"))
+          y, m = d["latest"]["year"], d["latest"]["month"]
+          cur, prev = d["years"][str(y)], d["years"][str(y - 1)]
+          assert cur["through_month"] == m and 1 <= m <= 12, (cur["through_month"], m)
+          assert prev["through_month"] >= m, ("작년 자료가 올해 최신 달보다 짧음", prev["through_month"], m)
+          # 월 생산량(톤)이 평소 규모에서 크게 벗어나면 표 양식이 바뀌어 엉뚱한 줄을
+          # 읽었을 가능성이 크므로 커밋 전에 막는다.
+          RANGES = {"broiler_starter": (40_000, 250_000), "broiler_finisher": (40_000, 250_000),
+                    "layer_rearing": (5_000, 80_000), "layer_laying": (120_000, 400_000)}
+          for yr in (cur, prev):
+              for key, (lo, hi) in RANGES.items():
+                  for i, v in enumerate(yr["groups"][key][:yr["through_month"]]):
+                      assert v is not None and lo < v < hi, (key, i + 1, v)
+          g = cur["groups"]
+          print("검증 통과:", f"{y}년 {m}월",
+                "육계", format(round(g["broiler_starter"][m-1] + g["broiler_finisher"][m-1]), ","), "톤",
+                "· 산란", format(round(g["layer_laying"][m-1]), ","), "톤",
+                "· 중추", format(round(g["layer_rearing"][m-1]), ","), "톤")
+          PY
+
+      - name: 결과 커밋
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add feed_production/
+          git diff --staged --quiet && echo "변경 없음 (새 자료 미게시)" && exit 0
+          git commit -m "🌾 배합사료 생산실적 갱신 ($(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M KST'))"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin ${GITHUB_REF_NAME} && git push && exit 0
+            echo "푸시 재시도 $i"
+            sleep 5
+          done
+          exit 1

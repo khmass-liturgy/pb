@@ -83,6 +83,7 @@ Each data domain has this shape:
 | Association notices | `scripts/fetch_notices.py` | `notices/notices.json` | fetch-notices.yml | daily 08:00 |
 | 금일 육계시세(대한양계협회 poultry.or.kr) | `scripts/fetch_broiler_price_today.py` | `broiler_price_today/latest.json` | fetch-broiler-price-today.yml | daily 13:20 |
 | 기술탐구 논문(PubMed → Claude API 번역·요약, 유료서비스 전용) | `scripts/fetch_research_papers.py` | `research_papers/latest.json` | fetch-research-papers.yml | weekly Sun 07:10 |
+| 배합사료 생산실적(농식품부 월별 .xls → 육계·산란계 생산잠재력 마릿수 추정) | `scripts/fetch_feed_production.py` | `feed_production/latest.json` | fetch-feed-production.yml | daily 10:30 (commits only when a new month is posted, ~20th) |
 
 `fetch_egg_report.py` and `fetch_egg_price.py` currently have no workflow wired up — check before
 assuming their output is refreshed automatically.
@@ -104,7 +105,8 @@ assuming their output is refreshed automatically.
   concurrently-running workflows (they share this repo and can finish close together).
 - Scripts favor the stdlib (`urllib`, `html.parser.HTMLParser`) over `requests` where possible so
   CI doesn't need extra pip installs; `fetch_market.py` and `fetch_prices.py` are the exceptions
-  (they use `requests`).
+  (they use `requests`), and `fetch_feed_production.py` also needs `xlrd` because the source is
+  a real BIFF `.xls` attachment, not HTML.
 
 ### The SMS dispatch job (not the fetch-script shape above)
 

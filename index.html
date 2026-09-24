@@ -570,6 +570,7 @@ const PRICES_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/mai
 const EGG_REPORT_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/egg_report/latest.json";
 // 산란계 사육 마리수(분기) — mtrace 통계누리 DT_1EO415를 scripts/fetch_layer_stats.py가 모아둔 파일
 const LAYER_STATS_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/layer_stats/latest.json";
+const FEED_PRODUCTION_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/feed_production/latest.json";
 // 산란계 중추가격 — (사)대한산란계협회(kegg.or.kr) 게시판 이미지를 scripts/fetch_jungchu_price.py가 그대로 미러링한 파일.
 // 표가 이미지 한 장으로만 올라오는 자료라 숫자로 파싱하지 않고 이미지 자체를 보여준다(자세한 이유는 스크립트 상단 설명 참고).
 const JUNGCHU_PRICE_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/jungchu_price/latest.json";
@@ -2536,6 +2537,23 @@ async function fetchLayerStats(){
   } catch(e) {
     console.warn("산란계 사육수 로딩 실패:", e);
     layerStatsState.status = "error";
+  }
+  if(state.tab === "price") render();
+}
+
+let feedProdState = { status: "idle", data: null }; // idle|loading|done|error
+
+async function fetchFeedProduction(){
+  if(feedProdState.status === "loading") return;
+  feedProdState.status = "loading";
+  try {
+    const resp = await fetchWithTimeout(FEED_PRODUCTION_JSON_URL + "?t=" + Date.now(), 8000);
+    if(!resp.ok) throw new Error("HTTP " + resp.status);
+    feedProdState.data   = await resp.json();
+    feedProdState.status = "done";
+  } catch(e) {
+    console.warn("배합사료 생산실적 로딩 실패:", e);
+    feedProdState.status = "error";
   }
   if(state.tab === "price") render();
 }
@@ -6040,6 +6058,244 @@ function lsSpeciesCard(key, d){
   </div>`;
 }
 
+// ── 육계·산란계 생산잠재력 (배합사료 생산량 → 마릿수 추정) ─────────────────────
+// 농식품부 「배합사료 생산실적」(scripts/fetch_feed_production.py) 월별 톤수를,
+// 사이트에 이미 있는 품종 표준표의 1수당 사료섭취량으로 나눠 마릿수를 추정한다.
+//  · 육계: 초기+전기+후기 사료 ÷ Ross 308 표준 1수당 누적 섭취량(0~33일)
+//          = 그 달 사료로 키워낸 육계 마릿수(월간 생산). 전기(0~21일)·후기(22~33일)
+//          구간별로 나눈 값도 함께 보여준다 — 둘이 크게 벌어지면 실제 출하일령이
+//          가정과 다르다는 뜻이라 그 자체로 참고가 된다.
+//  · 산란계: 월 사료 ÷ (Hy-Line Brown 표준 1일 섭취량 × 그 달 일수) = 평균 사육 마릿수.
+//          중추는 육성기 전체(어린·중·큰병아리 사료, 1~17주), 산란은 산란전~말기(18~80주).
+// 가정(전환일·출하일령·주령 범위)은 아래 상수만 바꾸면 전체 계산이 따라 바뀐다.
+const FEED_POTENTIAL = {
+  broiler: { starterEndDay:21, shipDay:33 },
+  layer:   { rearingWeeks:[1,17], layingWeeks:[18,80] },
+};
+const FP_PREV_COLOR = "#3F6FA8";   // 작년 선 — 두 품종 색과 대비·색각이상 검증 통과
+const FP_CHARTS = {};             // 차트 id → 시리즈/좌표계 (호버 핸들러가 참조)
+
+function feedPotentialStandards(){
+  const cum = d => lookupBroiler(ROSS308_DATA, d)[3];
+  const starter = cum(FEED_POTENTIAL.broiler.starterEndDay);
+  const total = cum(FEED_POTENTIAL.broiler.shipDay);
+  const avgDaily = ([from, to]) => {
+    let s = 0, n = 0;
+    for(let w = from; w <= to; w++){
+      const { phase, row } = lookupLayerPhase(HYLINE_BROWN_DATA, w);
+      const feed = phase === "rearing" ? row[2] : row[3];
+      if(feed != null){ s += feed; n++; }
+    }
+    return n ? s / n : null;
+  };
+  return {
+    broilerStarterG: starter, broilerFinisherG: total - starter, broilerTotalG: total,
+    layerRearingG: avgDaily(FEED_POTENTIAL.layer.rearingWeeks),
+    layerLayingG: avgDaily(FEED_POTENTIAL.layer.layingWeeks),
+  };
+}
+
+function fpBirds(n){
+  if(n == null) return "-";
+  if(n >= 1e8){
+    const man = Math.round((n % 1e8) / 1e4);
+    return `${Math.floor(n / 1e8)}억${man ? " " + man.toLocaleString() + "만" : ""}`;
+  }
+  return `${Math.round(n / 1e4).toLocaleString()}만`;
+}
+const fpTon = t => t == null ? "-" : `${(t / 1e4).toFixed(1)}만 톤`;
+const fpPct = (a, b) => (a == null || !b) ? null : (a - b) / b * 100;
+function fpDiffBirds(a, b){
+  if(a == null || b == null) return "";
+  const d = a - b;
+  return `${d >= 0 ? "+" : "−"}${fpBirds(Math.abs(d))} 마리`;
+}
+
+function fpChart(id, o){
+  const W = 320, H = 148, L = 44, R = 34, T = 12, B = 22;
+  const step = (W - L - R) / 11;
+  const vals = [...o.cur, ...o.prev].filter(v => v != null);
+  let lo = Math.min(...vals), hi = Math.max(...vals);
+  const pad = (hi - lo) * 0.18 || hi * 0.05;
+  lo -= pad; hi += pad;
+  const x = i => L + i * step;
+  const y = v => T + (hi - v) / (hi - lo) * (H - T - B);
+  const path = arr => arr.map((v, i) => v == null ? null : [x(i), y(v)]).filter(Boolean)
+    .map((p, k) => (k ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ");
+  const lastIdx = o.cur.reduce((a, v, i) => v != null ? i : a, 0);
+  const prevEnd = o.prev.reduce((a, v, i) => v != null ? i : a, 0);
+  FP_CHARTS[id] = { ...o, lastIdx, geo: { W, L, step, x } };
+
+  const ticks = [0.15, 0.5, 0.85].map(t => lo + (hi - lo) * t);
+  const grid = ticks.map(v => `
+    <line x1="${L}" x2="${W - R}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" stroke="#EEEEEE" stroke-width="1"/>
+    <text x="${L - 5}" y="${(y(v) + 3).toFixed(1)}" text-anchor="end" font-size="8.5" fill="#999">${fpBirds(v)}</text>`).join("");
+  const months = [0, 2, 4, 6, 8, 10].map(i =>
+    `<text x="${x(i).toFixed(1)}" y="${H - 6}" text-anchor="middle" font-size="8.5" fill="#999">${i + 1}월</text>`).join("");
+  // 끝 라벨: 올해는 최신 달 오른쪽, 작년은 12월 오른쪽. 같은 x에서 겹치면 위아래로 벌린다.
+  let yCur = y(o.cur[lastIdx]), yPrev = y(o.prev[prevEnd]);
+  if(lastIdx === prevEnd && Math.abs(yCur - yPrev) < 11){
+    const mid = (yCur + yPrev) / 2, up = yCur <= yPrev;
+    yCur = mid + (up ? -6 : 6); yPrev = mid + (up ? 6 : -6);
+  }
+  const endLabel = (i, yy, txt) =>
+    `<text x="${(x(i) + 6).toFixed(1)}" y="${(yy + 3).toFixed(1)}" font-size="9" font-weight="700" fill="#555">${txt}</text>`;
+  return `
+  <div style="position:relative">
+    <svg class="fp-chart" data-id="${id}" viewBox="0 0 ${W} ${H}" width="100%" tabindex="0" role="img"
+      aria-label="${esc(o.label)} 월별 추이(${o.prevYear}년·${o.curYear}년). 좌우 화살표로 월 이동, 표로 보기에서 전체 값 확인"
+      style="display:block;touch-action:pan-y;cursor:crosshair;outline-offset:2px">
+      ${grid}
+      <line class="fp-cross" x1="0" x2="0" y1="${T}" y2="${H - B}" stroke="#9E9E9E" stroke-width="1" style="visibility:hidden"/>
+      <path d="${path(o.prev)}" fill="none" stroke="${FP_PREV_COLOR}" stroke-width="2" stroke-dasharray="5 4" stroke-linejoin="round" stroke-linecap="round"/>
+      <path d="${path(o.cur)}" fill="none" stroke="${o.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      ${o.prev[lastIdx] != null ? `<circle cx="${x(lastIdx).toFixed(1)}" cy="${y(o.prev[lastIdx]).toFixed(1)}" r="4" fill="${FP_PREV_COLOR}" stroke="#fff" stroke-width="2"/>` : ""}
+      <circle cx="${x(lastIdx).toFixed(1)}" cy="${y(o.cur[lastIdx]).toFixed(1)}" r="4.5" fill="${o.color}" stroke="#fff" stroke-width="2"/>
+      ${endLabel(prevEnd, yPrev, o.prevYear)}
+      ${endLabel(lastIdx, yCur, o.curYear)}
+      ${months}
+    </svg>
+    <div class="fp-tip" style="position:absolute;top:2px;left:0;visibility:hidden;pointer-events:none;background:#fff;border:1px solid #E3E3E3;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.08);padding:7px 9px;font-size:11px;min-width:124px;z-index:2"></div>
+  </div>`;
+}
+
+function fpLegend(color, curYear, prevYear){
+  const key = (c, dash) => `<span style="display:inline-block;width:16px;border-top:2px ${dash ? "dashed" : "solid"} ${c};vertical-align:middle;margin-right:4px"></span>`;
+  return `<div style="display:flex;gap:12px;font-size:10.5px;color:#666;margin:10px 0 2px">
+    <span>${key(color, false)}${curYear}년</span><span>${key(FP_PREV_COLOR, true)}${prevYear}년</span></div>`;
+}
+
+function fpTable(o){
+  const rows = o.cur.map((v, i) => {
+    const p = o.prev[i], pct = fpPct(v, p);
+    return `<tr style="border-top:1px solid #F3F3F3">
+      <td style="padding:3px 4px;color:#888">${i + 1}월</td>
+      <td style="padding:3px 4px;text-align:right;font-variant-numeric:tabular-nums">${fpBirds(p)}</td>
+      <td style="padding:3px 4px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700">${fpBirds(v)}</td>
+      <td style="padding:3px 4px;text-align:right">${pct == null ? "-" : lsDelta(pct)}</td></tr>`;
+  }).join("");
+  return `
+  <details style="margin-top:4px">
+    <summary style="font-size:10.5px;color:#888;cursor:pointer">표로 보기</summary>
+    <table style="width:100%;border-collapse:collapse;margin-top:6px;font-size:10.5px;color:#333">
+      <thead><tr style="color:#999">
+        <th style="text-align:left;font-weight:500;padding:3px 4px">월</th>
+        <th style="text-align:right;font-weight:500;padding:3px 4px">${o.prevYear}년</th>
+        <th style="text-align:right;font-weight:500;padding:3px 4px">${o.curYear}년</th>
+        <th style="text-align:right;font-weight:500;padding:3px 4px">증감</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </details>`;
+}
+
+function renderFeedPotentialPanel(){
+  const TITLE = "📈 육계·산란계 생산잠재력";
+  const d = feedProdState;
+  const shell = inner => `
+  <div class="card" style="margin-bottom:16px;border-top:4px solid #1a2744">
+    <div class="display" style="font-size:15px;margin-bottom:2px">${TITLE}</div>
+    <div style="font-size:11px;color:#999;margin-bottom:10px">배합사료 생산량을 품종 표준 사료섭취량으로 나눠 추정한 마릿수</div>
+    ${inner}
+  </div>`;
+  if(d.status === "loading" || d.status === "idle")
+    return shell(`<div style="text-align:center;padding:18px;color:#aaa">⏳ 불러오는 중...</div>`);
+  const r = d.data;
+  const cy = r && r.latest && r.latest.year, m = r && r.latest && r.latest.month;
+  const cur = r && r.years && r.years[String(cy)], prv = r && r.years && r.years[String(cy - 1)];
+  if(d.status === "error" || !cur || !prv)
+    return shell(`<div style="text-align:center;padding:12px;color:#aaa;font-size:12px">데이터 없음 — 매월 20일경 갱신<br>
+      <a href="https://www.mafra.go.kr/bbs/home/789/artclList.do" target="_blank" rel="noopener" style="color:#1a2744;font-size:11px">🌾 농식품부 배합사료 생산실적 바로가기</a></div>`);
+
+  const std = feedPotentialStandards();
+  const days = (yr, i) => new Date(yr, i + 1, 0).getDate();
+  const series = (yd, yr) => {
+    const g = yd.groups;
+    return {
+      broiler: g.broiler_starter.map((s, i) => s == null || g.broiler_finisher[i] == null ? null : (s + g.broiler_finisher[i]) * 1e6 / std.broilerTotalG),
+      broilerByStarter: g.broiler_starter.map(s => s == null ? null : s * 1e6 / std.broilerStarterG),
+      broilerByFinisher: g.broiler_finisher.map(s => s == null ? null : s * 1e6 / std.broilerFinisherG),
+      laying: g.layer_laying.map((t, i) => t == null ? null : t * 1e6 / (std.layerLayingG * days(yr, i))),
+      rearing: g.layer_rearing.map((t, i) => t == null ? null : t * 1e6 / (std.layerRearingG * days(yr, i))),
+    };
+  };
+  const S = series(cur, cy), P = series(prv, cy - 1);
+  const i = m - 1;
+  const sum = (arr, n) => arr.slice(0, n).reduce((a, v) => a + (v || 0), 0);
+  const ytdBroiler = [sum(S.broiler, m), sum(P.broiler, m)];
+  const ytdLaying = [sum(S.laying, m) / m, sum(P.laying, m) / m];
+  const gC = cur.groups, gP = prv.groups;
+
+  const hero = (label, a, b, big) => `
+    <div style="font-size:11px;color:#666;font-weight:700">${label}</div>
+    <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-top:2px">
+      <span style="font-size:${big ? 26 : 19}px;font-weight:900;color:#222;font-variant-numeric:tabular-nums;line-height:1.2">${fpBirds(a)}<span style="font-size:${big ? 13 : 11}px;font-weight:600;color:#666"> 마리</span></span>
+      ${lsDelta(fpPct(a, b))}
+    </div>
+    <div style="font-size:10.5px;color:#888;margin-top:1px">전년 동월 ${fpBirds(b)} · ${fpDiffBirds(a, b)}</div>`;
+
+  const card = (key, inner) => {
+    const s = LS_SPECIES[key];
+    return `
+    <div style="flex:1 1 300px;min-width:0;border:1px solid ${s.bar};border-radius:10px;padding:12px 14px;background:#fff">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+        <span style="font-size:17px">${s.icon}</span>
+        <span style="font-size:13px;font-weight:800;color:${s.color}">${s.name}</span>
+      </div>
+      ${inner}
+    </div>`;
+  };
+
+  const broilerChart = { color: LS_SPECIES.broiler.color, cur: S.broiler, prev: P.broiler, curYear: cy, prevYear: cy - 1, label: "월간 육계 생산 마릿수(추정)" };
+  const layerChart   = { color: LS_SPECIES.layer.color,   cur: S.laying,  prev: P.laying,  curYear: cy, prevYear: cy - 1, label: "산란계 사육 마릿수(추정)" };
+
+  const broilerCard = card("broiler", `
+    ${hero("월간 육계 생산 마릿수 (추정)", S.broiler[i], P.broiler[i], true)}
+    <div style="font-size:10.5px;color:#888;margin-top:4px">전기 사료 기준 ${fpBirds(S.broilerByStarter[i])} · 후기 사료 기준 ${fpBirds(S.broilerByFinisher[i])}</div>
+    ${fpLegend(broilerChart.color, cy, cy - 1)}
+    ${fpChart("fp-broiler", broilerChart)}
+    ${fpTable(broilerChart)}
+    <div style="border-top:1px dashed ${LS_SPECIES.broiler.bar};margin-top:8px;padding-top:7px;font-size:11px;color:#555;line-height:1.7">
+      1~${m}월 누계 <b>${fpBirds(ytdBroiler[0])}</b> 마리 ${lsDelta(fpPct(...ytdBroiler))}<br>
+      <span style="color:#888">${m}월 육계 사료 ${fpTon(gC.broiler_starter[i] + gC.broiler_finisher[i])}
+        (전기 ${fpTon(gC.broiler_starter[i])} · 후기 ${fpTon(gC.broiler_finisher[i])}) ${lsDelta(fpPct(gC.broiler_starter[i] + gC.broiler_finisher[i], gP.broiler_starter[i] + gP.broiler_finisher[i]))}</span>
+    </div>`);
+
+  const layerCard = card("layer", `
+    ${hero("산란계 사육 마릿수 · 산란 중 (추정)", S.laying[i], P.laying[i], true)}
+    <div style="margin-top:8px;padding-top:8px;border-top:1px solid #F5F5F5">
+      ${hero("중추(육성계) 마릿수 (추정)", S.rearing[i], P.rearing[i], false)}
+    </div>
+    ${fpLegend(layerChart.color, cy, cy - 1)}
+    ${fpChart("fp-layer", layerChart)}
+    ${fpTable(layerChart)}
+    <div style="border-top:1px dashed ${LS_SPECIES.layer.bar};margin-top:8px;padding-top:7px;font-size:11px;color:#555;line-height:1.7">
+      1~${m}월 평균 <b>${fpBirds(ytdLaying[0])}</b> 마리 ${lsDelta(fpPct(...ytdLaying))}<br>
+      <span style="color:#888">${m}월 사료 산란 ${fpTon(gC.layer_laying[i])} ${lsDelta(fpPct(gC.layer_laying[i], gP.layer_laying[i]))}
+        · 육성 ${fpTon(gC.layer_rearing[i])} ${lsDelta(fpPct(gC.layer_rearing[i], gP.layer_rearing[i]))}</span>
+    </div>`);
+
+  const kg = g => (g / 1000).toFixed(3); // 소수 둘째 자리로 반올림하면 1.16+1.70=2.85처럼 합이 안 맞아 보인다
+  return shell(`
+    <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+      <span style="font-size:11px;background:#EEF1F7;color:#1a2744;border-radius:10px;padding:2px 9px;font-weight:600">${cy}년 ${m}월 기준</span>
+      <span style="font-size:10px;color:#aaa">증감은 전년 동월(${cy - 1}년 ${m}월) 대비</span>
+      ${r.stale ? `<span style="font-size:10px;color:#E65100;background:#FFF3E0;border-radius:9px;padding:2px 7px">수집 실패 · 이전 자료</span>` : ""}
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">${broilerCard}${layerCard}</div>
+    <div style="font-size:9.5px;color:#999;line-height:1.7;margin-top:10px">
+      ※ 추정 기준 — 육계: Ross 308 표준 1수당 전기(0~${FEED_POTENTIAL.broiler.starterEndDay}일, 초기 포함) ${kg(std.broilerStarterG)}kg
+      + 후기(~${FEED_POTENTIAL.broiler.shipDay}일 출하) ${kg(std.broilerFinisherG)}kg = ${kg(std.broilerTotalG)}kg으로 월 육계 사료를 나눈 값.
+      산란계: Hy-Line Brown 표준 1일 섭취량 산란기(${FEED_POTENTIAL.layer.layingWeeks.join("~")}주) 평균 ${std.layerLayingG.toFixed(1)}g,
+      육성기(${FEED_POTENTIAL.layer.rearingWeeks.join("~")}주) 평균 ${std.layerRearingG.toFixed(1)}g × 해당 월 일수로 나눈 값.
+      배합사료 생산량 기준이라 자가배합·수입사료는 빠지고, 실제 사육 성적에 따라 차이가 날 수 있는 참고용 추정치입니다.
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-top:8px">
+      <div style="font-size:9px;color:#bbb">출처: ${esc(r.source || "")} · ${esc(cur.file || "")} · 수집 ${esc(r.updated || "")}</div>
+      <a href="${esc(cur.post_url || r.url || "")}" target="_blank" rel="noopener"
+         style="font-size:11px;color:#1a2744;border:1px solid #1a2744;border-radius:6px;padding:4px 9px;text-decoration:none">원문 ↗</a>
+    </div>`);
+}
+
 function renderLayerStatsPanel(){
   const TITLE = "🐔 산란계·육계 사육 통계";
   const d = layerStatsState;
@@ -6678,6 +6934,7 @@ function renderPriceTab(){
   return `
   ${renderPoultryPriceLine()}
   ${renderBroilerPriceTodayPanel()}
+  ${renderFeedPotentialPanel()}
   ${renderLayerStatsPanel()}
   ${renderEggSupplyPanel()}`;
 }
@@ -11207,6 +11464,70 @@ function attachEvents(){
   const fcTargetReset = document.getElementById("fc-target-reset");
   if(fcTargetReset) fcTargetReset.onclick = ()=>{ farmCompareState.broiler.target = ""; render(); };
 
+  // 생산잠재력 차트 — 세로 기준선이 가장 가까운 달에 붙고, 툴팁 하나에 두 해 값을
+  // 함께 보여준다. 키보드는 포커스 시 최신 달, 좌우 화살표로 이동.
+  document.querySelectorAll(".fp-chart").forEach(svg => {
+    const o = FP_CHARTS[svg.dataset.id];
+    if(!o) return;
+    const tip = svg.parentElement.querySelector(".fp-tip");
+    const cross = svg.querySelector(".fp-cross");
+    const show = idx => {
+      const xs = o.geo.x(idx);
+      cross.setAttribute("x1", xs); cross.setAttribute("x2", xs);
+      cross.style.visibility = "visible";
+      tip.replaceChildren();
+      const head = document.createElement("div");
+      head.textContent = `${idx + 1}월`;
+      head.style.cssText = "font-weight:700;color:#555;margin-bottom:3px";
+      tip.appendChild(head);
+      [[o.cur[idx], o.curYear, o.color, "solid"], [o.prev[idx], o.prevYear, FP_PREV_COLOR, "dashed"]].forEach(([v, yr, c, dash]) => {
+        const row = document.createElement("div");
+        row.style.cssText = "display:flex;align-items:center;gap:6px;margin-top:2px;white-space:nowrap";
+        const key = document.createElement("span");
+        key.style.cssText = `display:inline-block;width:14px;border-top:2px ${dash} ${c}`;
+        const val = document.createElement("b");
+        val.textContent = v == null ? "-" : fpBirds(v) + " 마리";
+        val.style.cssText = "color:#222;font-variant-numeric:tabular-nums";
+        const lab = document.createElement("span");
+        lab.textContent = `${yr}년`;
+        lab.style.color = "#888";
+        row.append(key, val, lab);
+        tip.appendChild(row);
+      });
+      const pct = fpPct(o.cur[idx], o.prev[idx]);
+      if(pct != null){
+        const yoy = document.createElement("div");
+        yoy.textContent = `전년 대비 ${pct >= 0 ? "+" : "−"}${Math.abs(pct).toFixed(1)}%`;
+        yoy.style.cssText = "color:#555;margin-top:4px;border-top:1px solid #F0F0F0;padding-top:3px";
+        tip.appendChild(yoy);
+      }
+      tip.style.visibility = "visible";
+      const w = svg.getBoundingClientRect().width;
+      const px = xs / o.geo.W * w;
+      let left = px + 10;
+      if(left + tip.offsetWidth > w) left = px - tip.offsetWidth - 10;
+      tip.style.left = Math.max(0, left) + "px";
+    };
+    const hide = () => { cross.style.visibility = "hidden"; tip.style.visibility = "hidden"; };
+    const idxAt = e => {
+      const rect = svg.getBoundingClientRect();
+      const vx = (e.clientX - rect.left) / rect.width * o.geo.W;
+      return Math.max(0, Math.min(11, Math.round((vx - o.geo.L) / o.geo.step)));
+    };
+    let focusIdx = o.lastIdx;
+    svg.onpointermove = e => show(idxAt(e));
+    svg.onpointerdown = e => show(idxAt(e));
+    svg.onpointerleave = hide;
+    svg.onfocus = () => show(focusIdx);
+    svg.onblur = hide;
+    svg.onkeydown = e => {
+      if(e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      e.preventDefault();
+      focusIdx = Math.max(0, Math.min(11, focusIdx + (e.key === "ArrowRight" ? 1 : -1)));
+      show(focusIdx);
+    };
+  });
+
   // 육계 생산지수 계산기 — 입력값 5개, 값이 바뀌면(포커스 빠질 때) 다시 계산한다
   const piIds = { "pi-placed":"placed", "pi-shipped":"shipped", "pi-days":"days", "pi-feed":"feedKg", "pi-weight":"totalWeightKg" };
   Object.keys(piIds).forEach(id => {
@@ -11586,6 +11907,7 @@ fetchBroilerPriceToday();
 // 주간 계란 수급 정보 (GitHub Actions 매주 화요일 업데이트)
 fetchEggReport();
 fetchLayerStats();
+fetchFeedProduction();
 fetchJungchuPrice();
 fetchHpaiRisk();
 fetchMonthlyPicks();
