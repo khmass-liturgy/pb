@@ -8704,6 +8704,224 @@ function renderMgmtPointsPanel(){
   </div>`;
 }
 
+// ── 내 농장 성적 ↔ 표준성적 비교 ─────────────────────────────────────────────
+// 위에서 고른 축종·품종·일령(주령)의 사양매뉴얼 표준값을 기준으로, 농가가
+// 입력한 실제 성적이 얼마나 차이 나는지 항목별로 판정한다. render()가 매번
+// 전체 DOM을 다시 그리므로 입력칸은 oninput에서 값만 저장하고(재렌더를 하면
+// 다음 칸을 누르는 순간 포커스가 끊긴다), "비교하기" 버튼이나 Enter로만
+// 결과를 다시 그린다.
+let farmCompareState = {
+  broiler: { target:"", weight:"" },
+  layer:   { layRate:"", weight:"", eggWeight:"", feed:"", water:"" },
+};
+
+function fcNum(v){
+  const n = parseFloat(String(v == null ? "" : v).replace(/,/g,""));
+  return isNaN(n) ? null : n;
+}
+
+// th = [정상, 주의, 점검필요] 경계(%, 산란율은 %p). mode "higher"는 표준보다
+// 낮을 때만 나쁨(체중·산란율), "band"는 위아래 어느 쪽으로 벗어나도 나쁨
+// (성계 체중은 과체중이면 지방간, 음수량은 많아도 고온·누수·설사 신호).
+function fcVerdict(dev, mode, th){
+  const a = mode === "band" ? Math.abs(dev) : -dev;
+  if(a <= th[0]) return { key:"ok",    icon:"🟢", label:"정상",     color:"#2E7D32", bg:"#E8F5E9" };
+  if(a <= th[1]) return { key:"warn",  icon:"🟡", label:"주의",     color:"#B8860B", bg:"#FFF8E1" };
+  if(a <= th[2]) return { key:"check", icon:"🟠", label:"점검 필요", color:"#E65100", bg:"#FFF3E0" };
+  return            { key:"bad",   icon:"🔴", label:"이상",     color:"#C62828", bg:"#FFEBEE" };
+}
+
+const FC_HINTS = {
+  broilerWeight: { low:"사료·음수 섭취량, 육추 온도, 사육밀도, 장 건강(콕시듐·괴사성 장염)을 점검하세요." },
+  layRate:   { low:"점등시간 변화, 사료 영양(칼슘·단백질), 스트레스(고온·소음), 질병(IB·EDS)을 점검하세요." },
+  weight:    { low:"사료 섭취 부족이나 배합을 점검하세요 — 저체중은 산란 지속성과 난중에 영향을 줍니다.",
+               high:"과체중은 지방간 위험이 있어 급여량·에너지 수준을 점검하세요." },
+  eggWeight: { low:"단백질·메티오닌·리놀레산 섭취와 체중을 점검하세요.",
+               high:"대란 비율이 높으면 난각이 약해질 수 있어 칼슘 공급을 점검하세요." },
+  feed:      { low:"고온 스트레스, 급이기 고장, 물 공급 부족을 먼저 점검하세요.",
+               high:"저온(보온 부족), 사료 흘림, 쥐 피해 여부를 점검하세요." },
+  water:     { low:"급수라인 막힘·수압·수온을 점검하세요 — 음수량 감소는 질병의 초기 신호일 수 있습니다.",
+               high:"고온 스트레스, 급수라인 누수, 설사(질병) 여부를 점검하세요." },
+};
+
+// 내 체중이 표준표의 몇 일령 수준인지 — "표준보다 며칠 늦다"로 바꿔 보여주면
+// 퍼센트보다 현장에서 훨씬 직관적으로 받아들여진다.
+function broilerEquivDay(data, weight){
+  let best = null;
+  for(const r of data){
+    if(r[1] == null) continue;
+    if(!best || Math.abs(r[1]-weight) < Math.abs(best[1]-weight)) best = r;
+  }
+  return best ? best[0] : null;
+}
+
+function fcInputBox(o){
+  return `
+  <div style="background:#fafafa;border:1px solid #eee;border-radius:10px;padding:10px 12px;min-width:0">
+    <div style="font-size:11px;color:#666;font-weight:700;margin-bottom:5px">${o.label}</div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <input class="fc-input" data-sp="${o.sp}" data-field="${o.field}" type="number" inputmode="decimal" step="any"
+        value="${esc(String(o.value == null ? "" : o.value))}" placeholder="${esc(o.placeholder||"")}"
+        style="flex:1;min-width:0;width:100%;border:1px solid #ddd;border-radius:8px;padding:8px 9px;font-size:15px;font-weight:700;box-sizing:border-box;background:#fff" />
+      <span style="font-size:11px;color:#888;white-space:nowrap">${o.unit}</span>
+    </div>
+    ${o.note ? `<div style="font-size:10px;color:#999;margin-top:5px;line-height:1.5">${o.note}</div>` : ""}
+  </div>`;
+}
+
+function fcResultCard(f, mine){
+  if(f.std == null){
+    return `
+    <div style="border:1px solid #eee;border-radius:10px;padding:11px 12px;background:#fafafa">
+      <div style="font-size:12.5px;font-weight:800;color:#555">${f.label}</div>
+      <div style="font-size:11px;color:#999;margin-top:4px">이 품종 매뉴얼에 표준값이 없어 비교할 수 없습니다</div>
+    </div>`;
+  }
+  const diff = mine - f.std;
+  const rel = diff / f.std * 100;
+  const dev = f.pp ? diff : rel;
+  const v = fcVerdict(dev, f.mode, f.th);
+  const fmt = n => f.dec ? n.toFixed(f.dec) : Math.round(n).toLocaleString();
+  const sign = diff > 0 ? "+" : diff < 0 ? "−" : "±";
+  const pos = Math.max(2, Math.min(98, 50 + dev / 30 * 50)); // 트랙 양끝 = 표준 ±30(%·%p)
+  const hint = v.key === "ok" ? "" : ((FC_HINTS[f.hint] || {})[diff < 0 ? "low" : "high"] || "");
+  return `
+  <div style="border:1px solid ${v.bg};border-left:4px solid ${v.color};border-radius:10px;padding:11px 12px;background:#fff;min-width:0">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:6px">
+      <div style="font-size:12.5px;font-weight:800;color:#333">${f.label}</div>
+      <span style="font-size:10.5px;font-weight:700;color:${v.color};background:${v.bg};border-radius:20px;padding:2px 8px;white-space:nowrap">${v.icon} ${v.label}</span>
+    </div>
+    <div style="font-size:11px;color:#888;margin-top:6px">표준 <b style="color:#555">${fmt(f.std)}${f.unit}</b>${f.est ? ' <span style="font-size:9px;color:#aaa">(사료량 환산)</span>' : ''} → 내 농장 <b style="color:#333">${fmt(mine)}${f.unit}</b></div>
+    <div style="font-size:18px;font-weight:800;color:${v.color};margin-top:3px">${sign}${fmt(Math.abs(diff))}${f.pp ? "%p" : f.unit}
+      <span style="font-size:11px;font-weight:600">(표준 대비 ${sign}${Math.abs(rel).toFixed(1)}%)</span></div>
+    <div style="position:relative;height:8px;background:#f0f0f0;border-radius:4px;margin:10px 0 3px">
+      <div style="position:absolute;left:${Math.min(50,pos)}%;width:${Math.abs(pos-50)}%;top:0;bottom:0;background:${v.color};opacity:.75;border-radius:4px"></div>
+      <div style="position:absolute;left:50%;top:-3px;bottom:-3px;width:2px;background:#1a2744;transform:translateX(-1px)"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:9px;color:#bbb"><span>낮음</span><span>표준</span><span>높음</span></div>
+    ${hint ? `<div style="font-size:10.5px;color:#666;background:#FAFAFA;border-radius:6px;padding:6px 8px;margin-top:7px;line-height:1.55">💡 ${hint}</div>` : ""}
+  </div>`;
+}
+
+function renderFarmComparePanel(breed, age){
+  const isBroiler = consultState.species === "broiler";
+  const s = farmCompareState[isBroiler ? "broiler" : "layer"];
+  const head = `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:3px">
+      <div class="display" style="font-size:15px">📝 내 농장 성적 비교</div>
+      <span style="font-size:10.5px;color:#888;background:#F3F5F9;border-radius:20px;padding:3px 9px">${esc(breed.name)} · ${age}${isBroiler ? "일령" : "주령"} 표준 기준</span>
+    </div>
+    <div style="font-size:11px;color:#999;margin-bottom:12px">내 농장 수치만 입력하면 표준성적과 얼마나 차이 나는지 바로 계산해 드립니다 (위에서 품종·${isBroiler ? "일령" : "주령"}을 바꾸면 기준도 함께 바뀝니다)</div>`;
+  const buttons = `
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:2px 0 14px">
+      <button id="fc-compare-btn" style="border:none;border-radius:9px;background:#1a2744;color:#F9C74F;padding:10px 20px;font-size:13px;font-weight:800;cursor:pointer">📊 비교하기</button>
+      <button id="fc-reset-btn" style="border:1px solid #ddd;border-radius:9px;background:#fff;color:#888;padding:9px 14px;font-size:12px;font-weight:600;cursor:pointer">입력 지우기</button>
+      <span style="font-size:10.5px;color:#aaa">입력 후 Enter를 눌러도 됩니다</span>
+    </div>`;
+  const footnote = `
+    <div style="font-size:9.5px;color:#aaa;line-height:1.6;margin-top:10px">
+      ※ 정상·주의·점검 필요·이상은 표준 대비 편차로 나눈 참고용 구간입니다. 계군 상태·계사 환경·측정 방법에 따라 달라질 수 있으니,
+      이상 항목이 계속되면 온라인 상담·진단을 이용해 주세요.
+    </div>`;
+
+  let body;
+  if(isBroiler){
+    const std = lookupBroiler(breed.data, age)[1];
+    const overridden = s.target !== "" && fcNum(s.target) != null;
+    const target = overridden ? fcNum(s.target) : std;
+    const mine = fcNum(s.weight);
+    const targetNote = overridden && target !== std
+      ? `표준 ${std.toLocaleString()}g과 다름 · <button id="fc-target-reset" style="border:none;background:none;color:#1565C0;font-size:10px;text-decoration:underline;cursor:pointer;padding:0">표준값으로</button>`
+      : `${esc(breed.name)} 표준값 · 계열사 목표가 다르면 바꿔 입력`;
+    const inputs = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:10px">
+      ${fcInputBox({ sp:"broiler", field:"target", label:"🎯 목표체중", unit:"g", value: overridden ? s.target : std, note: targetNote })}
+      ${fcInputBox({ sp:"broiler", field:"weight", label:"🐔 내 농장 체중", unit:"g", value: s.weight, placeholder:"예) 1520", note:"표본 계측 평균 체중" })}
+    </div>`;
+    let result = `<div style="font-size:11.5px;color:#aaa;text-align:center;padding:14px;background:#fafafa;border-radius:10px">내 농장 체중을 입력하고 <b>비교하기</b>를 누르세요</div>`;
+    if(mine != null && target){
+      const pct = mine / target * 100;
+      const v = fcVerdict(pct - 100, "higher", [3,7,12]);
+      const eq = broilerEquivDay(breed.data, mine);
+      const last = breed.data[breed.data.length-1];
+      const dd = eq != null ? eq - age : null;
+      const eqTxt = eq == null ? ""
+        : mine > last[1] ? `표준 ${last[0]}일령 체중보다도 무겁습니다`
+        : dd === 0 ? "표준과 같은 성장 속도입니다"
+        : dd < 0 ? `표준보다 약 <b>${-dd}일 늦은</b> 성장입니다`
+        : `표준보다 약 <b>${dd}일 빠른</b> 성장입니다`;
+      result = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
+        <div style="border-radius:10px;padding:14px;background:${v.bg};text-align:center">
+          <div style="font-size:11px;color:#666;font-weight:700">목표 달성률</div>
+          <div style="font-size:34px;font-weight:900;color:${v.color};line-height:1.2;margin-top:2px">${pct.toFixed(1)}<span style="font-size:16px">%</span></div>
+          <div style="font-size:12px;font-weight:700;color:${v.color}">${v.icon} ${v.label}</div>
+          ${eq != null ? `<div style="font-size:11px;color:#555;margin-top:8px;line-height:1.6">내 체중은 ${esc(breed.name)} 표준의 <b>${eq}일령</b> 수준 —<br>${eqTxt}</div>` : ""}
+        </div>
+        ${fcResultCard({ label:"⚖️ 체중", unit:"g", std:target, dec:0, mode:"higher", th:[3,7,12], hint:"broilerWeight" }, mine)}
+      </div>`;
+    }
+    body = inputs + buttons + result;
+  } else {
+    const { phase, row } = lookupLayerPhase(breed.data, age);
+    let stdLay = null, stdW, stdEgg = null, stdFeed, stdWater;
+    if(phase === "rearing") [, stdW, stdFeed, stdWater] = row;
+    else [, stdLay, stdW, stdFeed, stdWater, stdEgg] = row;
+    let waterEst = false;
+    if(stdWater == null){
+      const r = waterRangeFromFeed("layer", stdFeed, null);
+      if(r){ stdWater = (r.lo + r.hi) / 2; waterEst = true; }
+    }
+    const fields = [
+      { field:"layRate",   label:"🥚 산란율",       unit:"%",  std:stdLay,   dec:1, mode:"higher", pp:true, th:[3,7,12],   hint:"layRate",   prodOnly:true, ph:"예) 92.5" },
+      { field:"weight",    label:"⚖️ 체중",         unit:"g",  std:stdW,     dec:0, mode:"band",   th:[5,10,15], hint:"weight",    ph:"예) 1950" },
+      { field:"eggWeight", label:"🥚 난중",         unit:"g",  std:stdEgg,   dec:1, mode:"band",   th:[3,6,10],  hint:"eggWeight", prodOnly:true, ph:"예) 61.5" },
+      { field:"feed",      label:"🌾 일일 사료섭취", unit:"g",  std:stdFeed,  dec:0, mode:"band",   th:[5,10,15], hint:"feed",      ph:"예) 112" },
+      { field:"water",     label:"💧 일일 음수량",   unit:"ml", std:stdWater, dec:0, mode:"band",   th:[10,15,25], hint:"water",    ph:"예) 210", est:waterEst },
+    ].filter(f => !(phase === "rearing" && f.prodOnly));
+    const fmtStd = f => f.std == null ? "표준값 미공개" : `표준 ${f.dec ? f.std.toFixed(f.dec) : Math.round(f.std).toLocaleString()}${f.unit}${f.est ? " (환산)" : ""}`;
+    const rearingNote = phase === "rearing"
+      ? `<div style="font-size:11px;color:#7B1FA2;background:#F5EEF9;border-radius:8px;padding:8px 10px;margin-bottom:10px">육성기(산란 전)라 산란율·난중은 비교하지 않습니다 — ${breed.data.production[0][0]}주령 이후(산란기)를 고르면 5개 항목을 모두 비교합니다.</div>`
+      : "";
+    const inputs = `
+    ${rearingNote}
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:10px">
+      ${fields.map(f => fcInputBox({ sp:"layer", field:f.field, label:f.label, unit:f.unit + (f.field==="feed"||f.field==="water" ? "/수" : ""), value:s[f.field], placeholder:f.ph, note:fmtStd(f) })).join("")}
+    </div>`;
+    const entered = fields.map(f => ({ f, mine: fcNum(s[f.field]) })).filter(x => x.mine != null);
+    let result = `<div style="font-size:11.5px;color:#aaa;text-align:center;padding:14px;background:#fafafa;border-radius:10px">알고 있는 항목만 입력해도 됩니다 — 입력한 항목만 비교합니다</div>`;
+    if(entered.length){
+      const judged = entered.filter(x => x.f.std != null).map(x => {
+        const diff = x.mine - x.f.std;
+        return fcVerdict(x.f.pp ? diff : diff / x.f.std * 100, x.f.mode, x.f.th).key;
+      });
+      const cnt = k => judged.filter(j => j === k).length;
+      const worst = cnt("bad") ? "bad" : cnt("check") ? "check" : cnt("warn") ? "warn" : "ok";
+      const summaryMsg = !judged.length ? "비교할 수 있는 표준값이 없습니다."
+        : worst === "ok" ? "입력한 항목이 모두 표준 범위 안에 있습니다 👍"
+        : worst === "warn" ? "대체로 양호합니다 — 🟡 주의 항목을 지켜봐 주세요."
+        : "🟠·🔴 항목부터 먼저 점검하세요.";
+      const summary = `
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;background:#F3F5F9;border-radius:10px;padding:10px 12px;margin-bottom:10px">
+        <div style="font-size:12.5px;font-weight:800;color:#1a2744">${summaryMsg}</div>
+        <div style="font-size:11px;color:#555;white-space:nowrap">🟢 ${cnt("ok")} · 🟡 ${cnt("warn")} · 🟠 ${cnt("check")} · 🔴 ${cnt("bad")}</div>
+      </div>`;
+      result = summary + `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
+        ${entered.map(x => fcResultCard(x.f, x.mine)).join("")}
+      </div>`;
+    }
+    body = inputs + buttons + result;
+  }
+
+  return `
+  <div class="card" style="border-top:5px solid #1a2744;margin-bottom:16px">
+    ${head}
+    ${body}
+    ${footnote}
+  </div>`;
+}
+
 function renderConsultTab(){
   const sp = CONSULT_BREEDS[consultState.species];
   if(consultState.breed && !sp.breeds[consultState.breed]) consultState.breed = Object.keys(sp.breeds)[0];
@@ -8853,6 +9071,7 @@ function renderConsultTab(){
 
   ${ageInput}
   ${card}
+  ${renderFarmComparePanel(breed, age)}
   ${renderIntakePanel()}
   ${renderWetBulbPanel()}
   ${renderDewPointPanel()}
@@ -10947,6 +11166,22 @@ function attachEvents(){
     const v = parseInt(e.target.value,10);
     if(!isNaN(v)){ consultState.age = v; render(); }
   };
+
+  // 내 농장 성적 비교 — 입력 중에는 값만 저장(재렌더 X), 비교하기/Enter로 결과 갱신
+  document.querySelectorAll(".fc-input").forEach(el=>{
+    el.oninput = ()=>{ farmCompareState[el.dataset.sp][el.dataset.field] = el.value; };
+    el.onkeydown = (e)=>{ if(e.key === "Enter"){ e.preventDefault(); render(); } };
+  });
+  const fcCompareBtn = document.getElementById("fc-compare-btn");
+  if(fcCompareBtn) fcCompareBtn.onclick = ()=>render();
+  const fcResetBtn = document.getElementById("fc-reset-btn");
+  if(fcResetBtn) fcResetBtn.onclick = ()=>{
+    const cur = farmCompareState[consultState.species];
+    Object.keys(cur).forEach(k => cur[k] = "");
+    render();
+  };
+  const fcTargetReset = document.getElementById("fc-target-reset");
+  if(fcTargetReset) fcTargetReset.onclick = ()=>{ farmCompareState.broiler.target = ""; render(); };
 
   // 육계 생산지수 계산기 — 입력값 5개, 값이 바뀌면(포커스 빠질 때) 다시 계산한다
   const piIds = { "pi-placed":"placed", "pi-shipped":"shipped", "pi-days":"days", "pi-feed":"feedKg", "pi-weight":"totalWeightKg" };
