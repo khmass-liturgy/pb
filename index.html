@@ -645,6 +645,7 @@ const PREMIUM_ITEMS = [
   { key:"disinfect", icon:"🧴", title:"질병별 소독제 선택과 소독요령", desc:"질병을 고르면 그에 맞는 소독제 선택 기준과 소독요령을 단계별로 안내합니다.", color:"#00695C" },
   { key:"selfcheck", icon:"🐔", title:"온라인 자가진단", desc:"닭 해부도에서 장기를 클릭하면 그 장기의 기능과 흔히 나타나는 질병을 보여드립니다.", color:"#AD1457" },
   { key:"study", icon:"🎓", title:"최수의사의 온라인 학습(카드 학습)", desc:"수의사가 올린 카드형 학습자료(앞면/뒷면)로 필요할 때마다 학습할 수 있습니다.", color:"#4527A0" },
+  { key:"faq", icon:"❓", title:"농장에서 많이 궁금해 하는 질문", desc:"농장에서 자주 묻는 질문과 답변을 카드로 모아뒀습니다. 카드를 누르면 답변이 펼쳐집니다.", color:"#5D4037" },
   { key:"smssub", icon:"📱", title:"자동 문자 발송 신청", desc:"계절별 투약 패키지·기술탐구·상황별 처방 중 원하는 정보를 정해진 주기로 문자 알림 신청합니다.", color:"#0277BD" },
   { key:"feature_board", icon:"💡", title:"기능 요청 게시판", desc:"필요한 기능을 자유롭게 제안해 주세요. 작성자는 다른 회원에게 익명으로 표시됩니다.", color:"#00838F" },
   { key:"consult", icon:"💬", title:"온라인 상담", desc:"농장 현안(사양·환기·질병 등)을 질문하면 최동명 수의사가 답변합니다. 사진 첨부 가능, 답변은 작성자만 볼 수 있습니다.", color:"#1565C0" },
@@ -996,6 +997,78 @@ async function publishDiseaseDisinfectants(items, message){
     };
     await writePremiumContentJson("disease_disinfectants", body);
     diseaseDisinfectState.data = body;
+    return { ok:true };
+  } catch(e) {
+    return { ok:false, error: e.message || String(e) };
+  }
+}
+
+// ── 농장에서 많이 궁금해 하는 질문 ───────────────────────────────────────────
+// 질문·답변 카드 목록 하나뿐인 가장 단순한 구조 — 질병별 소독제(disease_
+// disinfectants)와 같은 패턴을 그대로 따른다. Firebase Storage(premium_
+// content/farm_faq/latest.json)에 두고 승인된 회원+관리자만 읽을 수 있게
+// 한다. 새로 만든 데이터셋이라 예전 공개 저장소에 옮겨올 내용이 없으므로
+// migrateOldPremiumJson은 쓰지 않는다 — 대신 Storage에 아직 아무것도
+// 발행되지 않은 최초 상태(파일이 없어 404)에는 아래 기본 질문들을 그대로
+// 보여준다. 관리자가 화면에서 한 번이라도 저장하면 그 내용이 Storage에
+// 실제로 발행되어 그때부터는 정상 fetch가 그 내용을 돌려준다.
+const DEFAULT_FARM_FAQ = [
+  { key:"faq-mortality", question:"육계 초기(1~7일령) 폐사율이 갑자기 높아졌어요. 가장 먼저 뭘 확인해야 하나요?",
+    answer:"온도(초기 33~34℃ 유지)·습도·환기 상태를 가장 먼저 확인하세요. 입식 직후 폐사는 온도 관리 실패나 탈수(초기 음수 유도 실패)가 원인인 경우가 많습니다. 다음으로 병아리 상태(제대염, 난황흡수 불량)와 사료·물 공급 위치가 충분히 접근하기 쉬운지도 점검하세요." },
+  { key:"faq-eggdrop", question:"산란율이 며칠 사이 급격히 떨어졌어요. 어떤 원인을 의심해야 하나요?",
+    answer:"전염성기관지염(IB)·산란저하증후군(EDS) 등 바이러스성 질병, 스트레스(온도 급변·소음·백신 접종), 사료 배합 변경, 조명시간 변화 등을 순서대로 점검하세요. 동시에 폐사·호흡기 증상이 함께 있는지도 확인이 필요합니다." },
+  { key:"faq-summer", question:"여름철 폭염기에 가장 신경 써야 할 관리 포인트는 무엇인가요?",
+    answer:"환기량(풍속)을 늘려 체감온도를 낮추고, 사육밀도를 낮추는 것이 우선입니다. 음수량이 늘어나므로 급수라인 유량을 충분히 확보하고, 사료는 서늘한 시간대(새벽·야간)에 급이량을 늘리는 방식으로 조정하면 도움이 됩니다." },
+  { key:"faq-winter", question:"겨울철에 환기와 보온을 동시에 맞추기가 어려운데 어떻게 해야 하나요?",
+    answer:"최소환기량(암모니아·이산화탄소 농도 기준)은 아무리 추워도 반드시 확보해야 합니다. 보온을 위해 환기를 줄이기보다는, 입기구 위치·각도를 조정해 찬 공기가 계군에 직접 닿지 않게 하면서 필요한 환기량을 유지하는 방식을 권장합니다." },
+  { key:"faq-vaccine", question:"백신 프로그램은 꼭 정해진 대로만 해야 하나요? 바꿔도 되나요?",
+    answer:"지역·계열사·과거 발병 이력에 따라 조정이 필요할 수 있습니다. 다만 임의로 바꾸기보다는 인근 지역 발병 동향과 항체가(항체검사) 결과를 바탕으로 담당 수의사와 상의해 조정하는 것을 권장합니다." },
+  { key:"faq-fcr", question:"사료요구율(FCR)이 예전보다 나빠졌어요. 어떤 순서로 점검해야 하나요?",
+    answer:"① 사료 배합·품질 변경 여부 ② 급이기 고장·사료 흘림 ③ 질병(특히 아급성 장염·콕시듐증) ④ 음수량·수질 ⑤ 온도·환기(스트레스로 인한 사료효율 저하) 순으로 점검하면 원인을 좁혀가기 좋습니다." },
+  { key:"faq-withdrawal", question:"약품 휴약기간을 꼭 지켜야 하나요? 며칠 정도 지나면 괜찮나요?",
+    answer:"휴약기간은 잔류물질이 식품 안전 기준 이하로 낮아지는 데 필요한 최소 기간으로, 제품·성분마다 다릅니다. 임의로 단축하면 안 되고, 정확한 기간은 이 앱의 '약품조회 및 휴약기간 검색' 메뉴에서 제품명으로 검색해 확인하시기 바랍니다." },
+  { key:"faq-litter", question:"깔짚은 얼마나 자주 교체하거나 관리해야 하나요?",
+    answer:"매 batch(입식~출하)마다 완전 교체가 원칙이며, 사육 중에는 물이 새거나 뭉친 부분을 수시로 뒤집거나 보충해 습한 상태가 오래 지속되지 않게 관리하는 것이 중요합니다. 깔짚이 젖으면 암모니아 발생과 콕시듐증 위험이 크게 늘어납니다." },
+  { key:"faq-consult", question:"우리 농장 상황을 직접 보고 상담받고 싶은데 어떻게 하나요?",
+    answer:"유료서비스의 '온라인 상담'(간단 질문), '온라인 진단'(사진 첨부해 진단 요청), '온라인 컨설팅'(농장 현황을 바탕으로 맞춤 프로그램 작성) 메뉴를 이용하시면 최동명 수의사가 직접 답변해 드립니다." },
+];
+let faqState = { status:"idle", data:null, busy:false, msg:"", adminOpen:false, formKey:undefined };
+let faqNavState = { open:{} };
+
+async function fetchFarmFaq(){
+  if(faqState.status === "loading") return;
+  faqState.status = "loading";
+  try {
+    const j = await fetchPremiumContentJson("farm_faq");
+    j.items = Array.isArray(j.items) ? j.items : [];
+    faqState.data = j;
+    faqState.status = "done";
+  } catch(e){
+    console.warn("농장 자주 묻는 질문 로딩 실패(최초 미발행 상태로 간주, 기본 목록 표시):", e);
+    faqState.data = { items: DEFAULT_FARM_FAQ };
+    faqState.status = "done";
+  }
+  if(premiumState.view === "faq") render();
+}
+
+function currentFarmFaq(){
+  return (faqState.data && faqState.data.items) || [];
+}
+
+function newFaqKey(){
+  return "faq" + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+}
+
+async function publishFarmFaq(items, message){
+  try {
+    const body = {
+      updated: new Date().toISOString().slice(0,16).replace("T"," ") + " UTC",
+      by: PICK_BY,
+      note: "농장에서 많이 궁금해 하는 질문 — 화면(유료서비스 → 농장에서 많이 궁금해 하는 질문, 관리자만 편집)에서 저장하면 이 파일이 갱신되고 승인된 회원 모두에게 같은 내용이 보입니다.",
+      items: items,
+    };
+    await writePremiumContentJson("farm_faq", body);
+    faqState.data = body;
     return { ok:true };
   } catch(e) {
     return { ok:false, error: e.message || String(e) };
@@ -4692,6 +4765,75 @@ function renderDisinfectPanel(){
   </div>`;
 }
 
+// ── 농장에서 많이 궁금해 하는 질문 화면 ───────────────────────────────────────
+function renderFarmFaqPanel(){
+  const head = `
+  <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+    <div>
+      <div class="display" style="font-size:16px;margin-bottom:3px">❓ 농장에서 많이 궁금해 하는 질문</div>
+      <div style="font-size:11px;color:#aaa">카드를 누르면 답변이 펼쳐집니다</div>
+    </div>
+    <button id="faq-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button>
+  </div>`;
+
+  const st = faqState;
+  if(st.status === "idle" || st.status === "loading"){
+    return head + `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⏳ 질문 목록을 불러오는 중...</div>`;
+  }
+  if(!st.data){
+    return head + `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⚠️ 질문 목록을 불러오지 못했습니다.</div>`;
+  }
+
+  const admin = isBoardAdmin();
+  const items = currentFarmFaq();
+  const cards = items.length ? `
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px">
+    ${items.map(it => {
+      const open = !!faqNavState.open[it.key];
+      return `
+      <div class="card faq-card" data-key="${esc(it.key)}" style="cursor:pointer;border-top:4px solid #5D4037;padding:16px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+          <div style="display:flex;gap:8px;align-items:flex-start;min-width:0">
+            <span style="font-size:16px;flex-shrink:0">❓</span>
+            <div style="font-size:13.5px;font-weight:700;color:#333;line-height:1.5">${esc(it.question)}</div>
+          </div>
+          ${admin ? `
+          <div style="white-space:nowrap;flex-shrink:0">
+            <button class="faq-edit-btn" data-key="${esc(it.key)}" style="font-size:10px;border:1px solid #5D4037;border-radius:5px;background:#fff;color:#5D4037;padding:3px 8px;margin-right:4px">편집</button>
+            <button class="faq-del-btn" data-key="${esc(it.key)}" style="font-size:10px;border:1px solid #eee;border-radius:5px;background:#fff;color:#bbb;padding:3px 8px">삭제</button>
+          </div>` : ""}
+        </div>
+        ${open ? `
+        <div style="margin-top:10px;padding-top:10px;border-top:1px dashed #eee;display:flex;gap:8px;align-items:flex-start">
+          <span style="font-size:16px;flex-shrink:0">💡</span>
+          <div style="font-size:12.5px;color:#555;line-height:1.7;white-space:pre-wrap">${esc(it.answer)}</div>
+        </div>` : `<div style="font-size:10.5px;color:#bbb;margin-top:8px">눌러서 답변 보기 ▾</div>`}
+      </div>`;
+    }).join("")}
+  </div>` : `<div class="card" style="text-align:center;padding:28px 16px;color:#aaa">아직 등록된 질문이 없습니다.${admin?"":" 곧 추가됩니다."}</div>`;
+
+  const editing = faqState.formKey && items.find(it=>it.key===faqState.formKey);
+  const adminBox = !admin ? "" : `
+  <div style="margin-top:16px;border-top:1px dashed #eee;padding-top:12px">
+    <button id="faq-admin-toggle" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:3px 9px">${faqState.adminOpen?"관리 닫기":"⚙ 관리"}</button>
+    ${faqState.msg?`<span style="font-size:11px;margin-left:8px;color:${/실패|오류|않|없/.test(faqState.msg)?"#C62828":"#2E7D32"}">${esc(faqState.msg)}</span>`:""}
+    ${faqState.adminOpen ? `
+    <div style="margin-top:9px;background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">
+      <div style="font-size:11px;font-weight:700;color:#7A5C00;margin-bottom:8px">${editing?"질문 수정":"새 질문 추가"}</div>
+      <input id="faq-question" type="text" placeholder="질문" value="${esc(editing?editing.question:"")}"
+        style="width:100%;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;margin-bottom:6px;box-sizing:border-box" />
+      <textarea id="faq-answer" placeholder="답변"
+        style="width:100%;min-height:90px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:8px">${esc(editing?editing.answer:"")}</textarea>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <button id="faq-save" ${faqState.busy?"disabled":""} style="border:1px solid #B8860B;background:${faqState.busy?"#ccc":"#B8860B"};color:#fff;border-radius:7px;padding:7px 15px;font-size:12px;font-weight:600">${faqState.busy?"발행 중...":(editing?"수정 발행":"추가 발행")}</button>
+        ${editing?`<button id="faq-cancel" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:6px 10px">취소</button>`:""}
+      </div>
+    </div>` : ""}
+  </div>`;
+
+  return head + cards + adminBox;
+}
+
 // ── 자동 문자 발송 신청 화면 (회원용) ─────────────────────────────────────────
 function renderSmsSubPanel(){
   const head = `
@@ -5579,6 +5721,11 @@ function renderPremiumTab(){
   if(premiumState.view === "study"){
     if(studyCardsState.status === "idle") fetchStudyCards();
     return renderPremiumGateHeader() + logoutBar + renderStudyPanel();
+  }
+  // 농장에서 많이 궁금해 하는 질문 화면
+  if(premiumState.view === "faq"){
+    if(faqState.status === "idle") fetchFarmFaq();
+    return renderPremiumGateHeader() + logoutBar + renderFarmFaqPanel();
   }
   // 자동 문자 발송 신청 화면 (회원용)
   if(premiumState.view === "smssub"){
@@ -10048,6 +10195,65 @@ function attachEvents(){
     diseaseDisinfectState.busy = false;
     diseaseDisinfectState.msg = r.ok ? "발행 완료 — 모두에게 반영됩니다" : ("발행 실패: " + r.error);
     if(r.ok) disinfectTabState.formKey = undefined;
+    render();
+  };
+
+  // 농장에서 많이 궁금해 하는 질문
+  const faqBackBtn = document.getElementById("faq-back-btn");
+  if(faqBackBtn) faqBackBtn.onclick = ()=>{ premiumState.view = "menu"; render(); };
+  document.querySelectorAll(".faq-card").forEach(b=>b.onclick=(e)=>{
+    if(e.target.closest("button")) return; // 편집/삭제 버튼 클릭은 카드 펼침과 분리
+    const key = b.dataset.key;
+    faqNavState.open[key] = !faqNavState.open[key];
+    render();
+  });
+  const faqAdminToggle = document.getElementById("faq-admin-toggle");
+  if(faqAdminToggle) faqAdminToggle.onclick = ()=>{
+    faqState.adminOpen = !faqState.adminOpen;
+    faqState.formKey = undefined;
+    faqState.msg = "";
+    render();
+  };
+  document.querySelectorAll(".faq-edit-btn").forEach(b=>b.onclick=()=>{
+    faqState.adminOpen = true;
+    faqState.formKey = b.dataset.key;
+    faqState.msg = "";
+    render();
+  });
+  const faqCancelBtn = document.getElementById("faq-cancel");
+  if(faqCancelBtn) faqCancelBtn.onclick = ()=>{ faqState.formKey = undefined; render(); };
+  document.querySelectorAll(".faq-del-btn").forEach(b=>b.onclick=async ()=>{
+    const key = b.dataset.key;
+    const item = currentFarmFaq().find(it=>it.key===key);
+    if(!item || !confirm(`"${item.question}" 질문을 삭제할까요?`)) return;
+    const next = currentFarmFaq().filter(it=>it.key!==key);
+    faqState.busy = true; faqState.msg = "발행 중..."; render();
+    const r = await publishFarmFaq(next, "❓ 자주 묻는 질문 삭제: " + item.question.slice(0,20));
+    faqState.busy = false;
+    faqState.msg = r.ok ? "삭제 완료 — 모두에게 반영됩니다" : ("발행 실패: " + r.error);
+    delete faqNavState.open[key];
+    render();
+  });
+  const faqSaveBtn = document.getElementById("faq-save");
+  if(faqSaveBtn) faqSaveBtn.onclick = async ()=>{
+    const question = (document.getElementById("faq-question")?.value || "").trim();
+    const answer = (document.getElementById("faq-answer")?.value || "").trim();
+    if(!question){ alert("질문을 입력하세요."); return; }
+    if(!answer){ alert("답변을 입력하세요."); return; }
+
+    const items = currentFarmFaq().slice();
+    const editKey = faqState.formKey;
+    if(editKey){
+      const idx = items.findIndex(it=>it.key===editKey);
+      if(idx>=0) items[idx] = Object.assign({}, items[idx], { question, answer });
+    } else {
+      items.push({ key:newFaqKey(), question, answer });
+    }
+    faqState.busy = true; faqState.msg = "발행 중..."; render();
+    const r = await publishFarmFaq(items, "❓ 자주 묻는 질문 " + (editKey?"수정":"추가") + ": " + question.slice(0,20));
+    faqState.busy = false;
+    faqState.msg = r.ok ? "발행 완료 — 모두에게 반영됩니다" : ("발행 실패: " + r.error);
+    if(r.ok) faqState.formKey = undefined;
     render();
   };
 
