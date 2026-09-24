@@ -175,6 +175,19 @@
 const WEEK_DAYS = ["일","월","화","수","목","금","토"];
 function getLast7Days(){ const days=[]; for(let i=6;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); days.push(d); } return days; }
 function fmtDate(d){ return `${d.getMonth()+1}/${d.getDate()}(${WEEK_DAYS[d.getDay()]})`; }
+// 음력 — 브라우저 내장 한국 전통 역법(ICU "dangi", 한국 표준시 기준 천문 계산)을
+// 쓴다. 한국천문연구원 공표값(설날·추석·2025년 윤6월 경계 등)과 일치함을 확인했다.
+// 이 역법을 모르는 브라우저는 조용히 양력으로 되돌아가 "음력"이라며 양력 날짜를
+// 보여줄 수 있으므로, 실제로 dangi로 계산됐을 때만 표시한다. 윤달은 "윤6"처럼 온다.
+let _lunarFmt = null;
+function fmtLunar(d){
+  try {
+    _lunarFmt = _lunarFmt || new Intl.DateTimeFormat("ko-KR-u-ca-dangi", { month:"numeric", day:"numeric", timeZone:"Asia/Seoul" });
+    if(_lunarFmt.resolvedOptions().calendar !== "dangi") return "";
+    const p = Object.fromEntries(_lunarFmt.formatToParts(d).map(x => [x.type, x.value]));
+    return p.month && p.day ? `음력 ${p.month}월 ${p.day}일` : "";
+  } catch(_) { return ""; }
+}
 function fmtFull(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
 function seedRand(seed){ let s=seed; return ()=>{ s=(s*1664525+1013904223)&0xffffffff; return (s>>>0)/0xffffffff; }; }
 function genWeekData(){
@@ -5854,7 +5867,10 @@ function renderHeader(){
         </div>
       </div>
       <div class="hd-right" style="display:flex;align-items:center;gap:14px">
-        <div class="hd-date" style="font-size:24px;font-weight:800;color:#F9C74F;line-height:1.1;font-variant-numeric:tabular-nums;white-space:nowrap">${fmtDate(now)}</div>
+        <div style="text-align:right">
+          <div class="hd-date" style="font-size:24px;font-weight:800;color:#F9C74F;line-height:1.1;font-variant-numeric:tabular-nums;white-space:nowrap">${fmtDate(now)}</div>
+          ${fmtLunar(now) ? `<div style="font-size:11px;color:#fff;opacity:.75;margin-top:3px;white-space:nowrap">${fmtLunar(now)}</div>` : ""}
+        </div>
         ${renderHeaderSolarTerm(now)}
       </div>
     </div>
