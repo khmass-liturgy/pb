@@ -8785,6 +8785,7 @@ function fcResultCard(f, mine){
   const sign = diff > 0 ? "+" : diff < 0 ? "−" : "±";
   const pos = Math.max(2, Math.min(98, 50 + dev / 30 * 50)); // 트랙 양끝 = 표준 ±30(%·%p)
   const hint = v.key === "ok" ? "" : ((FC_HINTS[f.hint] || {})[diff < 0 ? "low" : "high"] || "");
+  const alertOn = fcAlertOn(f, mine);
   return `
   <div style="border:1px solid ${v.bg};border-left:4px solid ${v.color};border-radius:10px;padding:11px 12px;background:#fff;min-width:0">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:6px">
@@ -8799,8 +8800,19 @@ function fcResultCard(f, mine){
       <div style="position:absolute;left:50%;top:-3px;bottom:-3px;width:2px;background:#1a2744;transform:translateX(-1px)"></div>
     </div>
     <div style="display:flex;justify-content:space-between;font-size:9px;color:#bbb"><span>낮음</span><span>표준</span><span>높음</span></div>
+    ${alertOn ? `<div style="font-size:11.5px;font-weight:800;color:#fff;background:#C62828;border-radius:7px;padding:8px 10px;margin-top:8px;line-height:1.55">🚨 ${f.alert.msg}</div>` : ""}
     ${hint ? `<div style="font-size:10.5px;color:#666;background:#FAFAFA;border-radius:6px;padding:6px 8px;margin-top:7px;line-height:1.55">💡 ${hint}</div>` : ""}
   </div>`;
+}
+
+// 산란율·난중은 표준 대비 20% 이상 떨어지면 일반 판정(🔴 이상)과 별도로
+// 즉시 점검이 필요한 경고를 띄운다. "표준 대비 %"(상대 비율) 기준 — 카드에
+// 표시되는 수치와 같다. 산란율이 표준보다 높은 건(조기 산란 시작 등) 질병
+// 신호가 아니므로 떨어진 경우에만 본다.
+function fcAlertOn(f, mine){
+  if(!f.alert || f.std == null || mine == null) return false;
+  const rel = Math.round((mine - f.std) / f.std * 1000) / 10; // 카드 표시값과 같은 소수 첫째 자리
+  return rel <= -f.alert.dropPct;
 }
 
 function renderFarmComparePanel(breed, age){
@@ -8873,9 +8885,11 @@ function renderFarmComparePanel(breed, age){
       if(r){ stdWater = (r.lo + r.hi) / 2; waterEst = true; }
     }
     const fields = [
-      { field:"layRate",   label:"🥚 산란율",       unit:"%",  std:stdLay,   dec:1, mode:"higher", pp:true, th:[3,7,12],   hint:"layRate",   prodOnly:true, ph:"예) 92.5" },
+      { field:"layRate",   label:"🥚 산란율",       unit:"%",  std:stdLay,   dec:1, mode:"higher", pp:true, th:[3,7,12],   hint:"layRate",   prodOnly:true, ph:"예) 92.5",
+        alert:{ dropPct:20, msg:"산란율이 표준 대비 20% 이상 떨어졌습니다 — 질병의 징후일 수 있으니 즉시 점검이 필요합니다." } },
       { field:"weight",    label:"⚖️ 체중",         unit:"g",  std:stdW,     dec:0, mode:"band",   th:[5,10,15], hint:"weight",    ph:"예) 1950" },
-      { field:"eggWeight", label:"🥚 난중",         unit:"g",  std:stdEgg,   dec:1, mode:"band",   th:[3,6,10],  hint:"eggWeight", prodOnly:true, ph:"예) 61.5" },
+      { field:"eggWeight", label:"🥚 난중",         unit:"g",  std:stdEgg,   dec:1, mode:"band",   th:[3,6,10],  hint:"eggWeight", prodOnly:true, ph:"예) 61.5",
+        alert:{ dropPct:20, msg:"난중이 표준 대비 20% 이상 떨어졌습니다 — 사료섭취량 회복을 위한 점검이 필요합니다." } },
       { field:"feed",      label:"🌾 일일 사료섭취", unit:"g",  std:stdFeed,  dec:0, mode:"band",   th:[5,10,15], hint:"feed",      ph:"예) 112" },
       { field:"water",     label:"💧 일일 음수량",   unit:"ml", std:stdWater, dec:0, mode:"band",   th:[10,15,25], hint:"water",    ph:"예) 210", est:waterEst },
     ].filter(f => !(phase === "rearing" && f.prodOnly));
@@ -8897,13 +8911,19 @@ function renderFarmComparePanel(breed, age){
       });
       const cnt = k => judged.filter(j => j === k).length;
       const worst = cnt("bad") ? "bad" : cnt("check") ? "check" : cnt("warn") ? "warn" : "ok";
+      const alerts = entered.filter(x => fcAlertOn(x.f, x.mine)).map(x => x.f.alert.msg);
       const summaryMsg = !judged.length ? "비교할 수 있는 표준값이 없습니다."
+        : alerts.length ? "🚨 즉시 점검이 필요한 항목이 있습니다."
         : worst === "ok" ? "입력한 항목이 모두 표준 범위 안에 있습니다 👍"
         : worst === "warn" ? "대체로 양호합니다 — 🟡 주의 항목을 지켜봐 주세요."
         : "🟠·🔴 항목부터 먼저 점검하세요.";
-      const summary = `
+      const alertBanner = alerts.length ? `
+      <div style="background:#C62828;color:#fff;border-radius:10px;padding:10px 12px;margin-bottom:10px">
+        ${alerts.map(m => `<div style="font-size:12.5px;font-weight:800;line-height:1.6">🚨 ${m}</div>`).join("")}
+      </div>` : "";
+      const summary = alertBanner + `
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;background:#F3F5F9;border-radius:10px;padding:10px 12px;margin-bottom:10px">
-        <div style="font-size:12.5px;font-weight:800;color:#1a2744">${summaryMsg}</div>
+        <div style="font-size:12.5px;font-weight:800;color:${alerts.length ? "#C62828" : "#1a2744"}">${summaryMsg}</div>
         <div style="font-size:11px;color:#555;white-space:nowrap">🟢 ${cnt("ok")} · 🟡 ${cnt("warn")} · 🟠 ${cnt("check")} · 🔴 ${cnt("bad")}</div>
       </div>`;
       result = summary + `
