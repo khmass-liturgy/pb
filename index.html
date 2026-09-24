@@ -8805,9 +8805,9 @@ function fcResultCard(f, mine){
   </div>`;
 }
 
-// 산란율·난중은 표준 대비 20% 이상 떨어지면 일반 판정(🔴 이상)과 별도로
-// 즉시 점검이 필요한 경고를 띄운다. "표준 대비 %"(상대 비율) 기준 — 카드에
-// 표시되는 수치와 같다. 산란율이 표준보다 높은 건(조기 산란 시작 등) 질병
+// 육계 체중·산란율·난중은 표준 대비 15% 이상 떨어지면 일반 판정(🔴 이상)과
+// 별도로 즉시 점검이 필요한 경고를 띄운다. "표준 대비 %"(상대 비율) 기준 —
+// 카드에 표시되는 수치와 같다. 표준보다 높은 건(조기 산란 시작 등) 질병
 // 신호가 아니므로 떨어진 경우에만 본다.
 function fcAlertOn(f, mine){
   if(!f.alert || f.std == null || mine == null) return false;
@@ -8862,7 +8862,11 @@ function renderFarmComparePanel(breed, age){
         : dd === 0 ? "표준과 같은 성장 속도입니다"
         : dd < 0 ? `표준보다 약 <b>${-dd}일 늦은</b> 성장입니다`
         : `표준보다 약 <b>${dd}일 빠른</b> 성장입니다`;
-      result = `
+      const weightField = { label:"⚖️ 체중", unit:"g", std:target, dec:0, mode:"higher", th:[3,7,12], hint:"broilerWeight",
+        alert:{ dropPct:15, msg:"체중이 표준 대비 15% 이상 떨어졌습니다 — 성장 지연이 심하므로 사료·음수 섭취와 질병(장염 등) 여부를 즉시 점검하세요." } };
+      const broilerAlert = fcAlertOn(weightField, mine) ? `
+      <div style="background:#C62828;color:#fff;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:12.5px;font-weight:800;line-height:1.6">🚨 ${weightField.alert.msg}</div>` : "";
+      result = broilerAlert + `
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
         <div style="border-radius:10px;padding:14px;background:${v.bg};text-align:center">
           <div style="font-size:11px;color:#666;font-weight:700">목표 달성률</div>
@@ -8870,7 +8874,7 @@ function renderFarmComparePanel(breed, age){
           <div style="font-size:12px;font-weight:700;color:${v.color}">${v.icon} ${v.label}</div>
           ${eq != null ? `<div style="font-size:11px;color:#555;margin-top:8px;line-height:1.6">내 체중은 ${esc(breed.name)} 표준의 <b>${eq}일령</b> 수준 —<br>${eqTxt}</div>` : ""}
         </div>
-        ${fcResultCard({ label:"⚖️ 체중", unit:"g", std:target, dec:0, mode:"higher", th:[3,7,12], hint:"broilerWeight" }, mine)}
+        ${fcResultCard(weightField, mine)}
       </div>`;
     }
     body = inputs + buttons + result;
@@ -8886,10 +8890,10 @@ function renderFarmComparePanel(breed, age){
     }
     const fields = [
       { field:"layRate",   label:"🥚 산란율",       unit:"%",  std:stdLay,   dec:1, mode:"higher", pp:true, th:[3,7,12],   hint:"layRate",   prodOnly:true, ph:"예) 92.5",
-        alert:{ dropPct:20, msg:"산란율이 표준 대비 20% 이상 떨어졌습니다 — 질병의 징후일 수 있으니 즉시 점검이 필요합니다." } },
+        alert:{ dropPct:15, msg:"산란율이 표준 대비 15% 이상 떨어졌습니다 — 질병의 징후일 수 있으니 즉시 점검이 필요합니다." } },
       { field:"weight",    label:"⚖️ 체중",         unit:"g",  std:stdW,     dec:0, mode:"band",   th:[5,10,15], hint:"weight",    ph:"예) 1950" },
       { field:"eggWeight", label:"🥚 난중",         unit:"g",  std:stdEgg,   dec:1, mode:"band",   th:[3,6,10],  hint:"eggWeight", prodOnly:true, ph:"예) 61.5",
-        alert:{ dropPct:20, msg:"난중이 표준 대비 20% 이상 떨어졌습니다 — 사료섭취량 회복을 위한 점검이 필요합니다." } },
+        alert:{ dropPct:15, msg:"난중이 표준 대비 15% 이상 떨어졌습니다 — 사료섭취량 회복을 위한 점검이 필요합니다." } },
       { field:"feed",      label:"🌾 일일 사료섭취", unit:"g",  std:stdFeed,  dec:0, mode:"band",   th:[5,10,15], hint:"feed",      ph:"예) 112" },
       { field:"water",     label:"💧 일일 음수량",   unit:"ml", std:stdWater, dec:0, mode:"band",   th:[10,15,25], hint:"water",    ph:"예) 210", est:waterEst },
     ].filter(f => !(phase === "rearing" && f.prodOnly));
