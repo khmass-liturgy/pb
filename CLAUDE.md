@@ -39,8 +39,8 @@ Two pieces are **not** static, both Firebase, both under the 유료서비스 tab
   matches MD-82 airliners, which is why the vision step exists). Cards store the pick as
   `backImage` with artist/license/source so the back face can show the attribution CC BY requires;
   the 온라인 자가진단 screen calls the same function with `kind:"selfcheck"` (disease name + organ)
-  and stores the admin's pick as each disease's `image`. Self-check items 21–25 (벼슬·정강이·
-  깃털·활력·임상증상) have no hotspot on the anatomy picture (`sign:true` in `BODY_PARTS`) and ship
+  and stores the admin's pick as each disease's `image`. Self-check items 21–26 (벼슬·정강이·
+  깃털·활력·임상증상·분변상태) have no hotspot on the anatomy picture (`sign:true` in `BODY_PARTS`) and ship
   a default disease list in `SELF_CHECK_SEED` that shows until an admin publishes it.
   These need the Firebase secret `ANTHROPIC_API_KEY` (a separate key from the GitHub Actions secret
   of the same name used by `fetch_research_papers.py`; set with
