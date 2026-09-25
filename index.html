@@ -1113,10 +1113,12 @@ async function generateAiDraft(kind, text, context){
 // 학습 카드 뒷면 대표 증상 사진 — AI가 위키미디어 공용(Commons)에서 자유 이용
 // 사진 후보를 찾아 직접 보고 한 장을 추천한다(functions/index.js findCardImage).
 // 돌려받는 값: { ok, visual, candidates:[{title,page,full,thumb,license,licenseUrl,artist}], chosen, reason }
-async function findCardImage(front, back, context){
+// kind "selfcheck"이면 front=질병명, back=주요 증상, context=장기 이름으로 받아
+// 그 장기의 병변 사진을 우선 고른다(온라인 자가진단 질병 대표 사진).
+async function findCardImage(front, back, context, kind){
   try {
     const fn = firebase.app().functions().httpsCallable("findCardImage", { timeout: 180000 });
-    const res = await fn({ front, back: back || "", context: context || "" });
+    const res = await fn({ front, back: back || "", context: context || "", kind: kind || "card" });
     return Object.assign({ ok:true, candidates:[], chosen:-1 }, res.data || {});
   } catch(e){
     return { ok:false, error: e.message || String(e) };
@@ -1620,7 +1622,84 @@ const BODY_PARTS = [
   { key:"kidney", num:18, label:"신장", x:67, y:31 },
   { key:"ovary", num:19, label:"난소", x:56, y:31 },
   { key:"oviduct", num:20, label:"난관", x:67, y:20 },
+  // 21~25는 해부도 속 장기가 아니라 겉으로 관찰하는 부위·전신 상태라 그림 위 번호(x,y)가
+  // 없다 — 화면에서는 "외부 관찰·전신 상태" 버튼 묶음으로만 보이고, "기능" 대신
+  // "관찰 포인트"라고 표시한다(sign:true).
+  { key:"comb", num:21, label:"벼슬·육수", sign:true },
+  { key:"shank", num:22, label:"정강이", sign:true },
+  { key:"feather", num:23, label:"깃털", sign:true },
+  { key:"vitality", num:24, label:"활력", sign:true },
+  { key:"clinical", num:25, label:"임상증상", sign:true },
 ];
+
+// 21~25번 항목의 기본 관찰 포인트·질병 목록. 자가진단 데이터(Storage self_check)는
+// 관리자만 발행할 수 있어서, 아직 발행 전이면 이 기본 목록을 모두에게 보여 주고
+// 관리자에게는 "기본 목록 발행" 버튼을 띄워 편집 가능한 데이터로 저장하게 한다.
+// 임상증상(clinical)은 질병이 아니라 "증상 → 의심 질병" 묶음으로 적는다.
+const SELF_CHECK_SEED = {
+  comb: {
+    func: "벼슬과 육수는 체온 조절을 돕고 성 성숙·산란 상태를 보여 줍니다. 색(선홍·창백·검푸름), 붓기, 딱지·결절, 끝부분 괴사를 살펴보세요.",
+    diseases: [
+      { name:"고병원성 조류인플루엔자(HPAI)", note:"벼슬·육수가 검푸르게 변하고(청색증) 붓거나 출혈, 폐사 급증. 법정 가축전염병 — 의심되면 즉시 방역기관(1588-9060)에 신고하세요." },
+      { name:"뉴캣슬병(강병원성)", note:"벼슬·육수 청색증과 얼굴 부종, 호흡기·신경 증상, 녹색 설사, 산란 급감. 법정 가축전염병 — 의심되면 즉시 신고하세요." },
+      { name:"계두(피부형)", note:"벼슬·육수·눈 주위에 사마귀 같은 결절이 생기고 딱지가 앉음. 모기가 옮기며 여름~가을에 많음." },
+      { name:"가금 콜레라(만성형)", note:"육수가 한쪽 또는 양쪽으로 붓고 딱딱해지며 고름이 참. 급성형은 급사와 벼슬 청색증." },
+      { name:"전염성 코라이자", note:"얼굴·육수 부종, 끈적한 콧물과 악취, 눈 감김. 산란율 저하." },
+      { name:"백선(곰팡이성 피부염)", note:"벼슬에 흰 가루(비듬)가 앉은 듯한 병변이 퍼짐." },
+      { name:"빈혈(닭진드기 흡혈·기생충 등)", note:"벼슬·육수가 창백해짐. 야간 흡혈하는 닭진드기(와구모), 콕시듐·내부기생충, 휴산기에도 창백해질 수 있음." },
+      { name:"동상", note:"겨울철 벼슬·육수 끝이 하얗게 되었다가 검게 괴사. 계사 보온·습도 관리로 예방." },
+    ],
+  },
+  shank: {
+    func: "정강이는 체중을 지탱하고, 노란 색소로 영양·산란 상태를 보여 줍니다(산란이 이어지면 색이 빠짐). 비늘 상태, 관절 붓기, 발바닥 상처, 걸음걸이를 살펴보세요.",
+    diseases: [
+      { name:"마렉병(신경형)", note:"다리·날개 마비, 한 다리는 앞으로 한 다리는 뒤로 뻗은 자세가 특징. 주로 8~20주령 이후 발생." },
+      { name:"비늘다리진드기증", note:"정강이 비늘이 들뜨고 두꺼워지며 딱지가 생김. 진드기가 비늘 밑에 파고듦." },
+      { name:"바이러스성 관절염(레오바이러스)", note:"비절(발목) 관절과 힘줄이 붓고 파행, 심하면 힘줄 파열. 육계·종계에서 문제." },
+      { name:"마이코플라스마 활막염(MS)", note:"관절·발바닥이 붓고 다리를 절음. 산란계에서는 난각 끝 이상(난각첨부 이상)도 나타남." },
+      { name:"포도상구균증(관절염·범블풋)", note:"발바닥 종기(범블풋)나 관절 화농으로 파행. 깔짚·횃대 상처로 감염." },
+      { name:"족저피부염(발바닥 피부염)", note:"젖은 깔짚에 오래 닿아 발바닥이 헐고 검게 궤양. 깔짚 수분 관리가 핵심." },
+      { name:"구루병·다리 약증(영양성)", note:"칼슘·인·비타민D 부족으로 다리뼈가 휘고 물러짐. 성장기 병아리에서 발생." },
+      { name:"경골연골이형성증(육계)", note:"정강이뼈 위쪽 성장판에 연골이 쌓여 다리가 휘고 절음. 빠르게 크는 육계에서 발생." },
+    ],
+  },
+  feather: {
+    func: "깃털은 체온을 유지하고 피부를 보호합니다. 빠짐·부서짐, 쪼인 자국, 곤두섬, 깃털 기부의 알·벌레를 살펴보세요. 정상 털갈이(환우)와 구별이 필요합니다.",
+    diseases: [
+      { name:"깃털 쪼기·카니발리즘", note:"등·꼬리·항문 주위 깃털이 빠지고 상처. 밀사, 강한 조명, 메티오닌·염분 등 영양 부족, 무료함이 원인." },
+      { name:"닭이(외부기생충)", note:"깃털 기부에 흰 알 덩어리, 깃털 손상과 가려움으로 불안해함." },
+      { name:"닭진드기(와구모)·북방가금진드기", note:"깃털 사이·항문 주위에서 진드기 관찰, 흡혈로 빈혈과 산란 저하. 와구모는 낮에는 틈에 숨어 있다 밤에 흡혈." },
+      { name:"마렉병(피부형)", note:"깃털 모낭이 결절처럼 부어오름. 도계장에서 폐기 원인이 되기도 함." },
+      { name:"흡수불량증후군(육계)", note:"깃털 발육 불량(날개깃이 헝클어짐), 성장 부진·체중 불균일. 초기 병아리 장관 감염이 원인." },
+      { name:"영양 결핍(판토텐산·비오틴·아연 등)", note:"깃털이 거칠고 쉽게 부서지며 발육 불량. 사료 배합·보관 상태를 점검." },
+      { name:"깃털 곤두섬(전신 질병의 신호)", note:"깃털을 부풀리고 웅크림 — 콕시듐증·전염성F낭병 등 전신 질병이나 추위를 의심." },
+    ],
+  },
+  vitality: {
+    func: "활력은 건강 이상을 가장 먼저 보여 주는 신호입니다. 사료·물 섭취량, 움직임, 웅크림·눈 감음, 한곳에 몰려 있는 모습, 울음소리를 살펴보세요.",
+    diseases: [
+      { name:"고병원성 조류인플루엔자(HPAI)", note:"급격한 침울·사료 섭취 감소와 함께 폐사가 빠르게 늘어남. 법정 가축전염병 — 의심되면 즉시 방역기관(1588-9060)에 신고하세요." },
+      { name:"뉴캣슬병", note:"침울과 함께 호흡기·신경 증상(목 비틀림), 녹색 설사. 법정 가축전염병 — 의심되면 즉시 신고하세요." },
+      { name:"전염성 F낭병(감보로병)", note:"3~6주령에 갑자기 웅크리고 깃털이 곤두서며 흰 물설사, 항문 쪼기. 회복 후에도 면역이 떨어짐." },
+      { name:"콕시듐증", note:"웅크림, 깃털 곤두섬, 혈변 또는 점액변, 사료 섭취 감소. 젖은 깔짚에서 잘 번짐." },
+      { name:"괴사성 장염", note:"육계에서 갑자기 침울해지고 짧은 기간에 폐사, 짙은 색 설사. 콕시듐 감염 뒤 잘 생김." },
+      { name:"추백리·가금티푸스(살모넬라)", note:"병아리가 웅크리고 흰 설사로 항문이 막힘(추백리), 성계는 침울·빈혈·폐사(가금티푸스). 가금티푸스는 법정 가축전염병." },
+      { name:"열사병(고온 스트레스)", note:"입을 벌리고 헐떡이며 날개를 벌리고 늘어짐, 사료 섭취 감소와 폐사. 환기·음수·밀사를 점검." },
+    ],
+  },
+  clinical: {
+    func: "눈에 띄는 증상에서 출발해 의심할 질병을 찾아봅니다. 여러 질병이 비슷한 증상을 보이므로 확진은 수의사의 부검·검사로 해야 합니다.",
+    diseases: [
+      { name:"호흡기 증상(기침·재채기·콧물·헐떡임)", note:"의심 질병: 전염성기관지염(IB), 뉴캣슬병(ND), 마이코플라스마(MG), 전염성후두기관염(ILT), 전염성 코라이자, 저병원성 AI, 조류메타뉴모바이러스." },
+      { name:"신경 증상(목 비틀림·마비·떨림)", note:"의심 질병: 뉴캣슬병, 마렉병(마비), 조류뇌척수염(AE, 병아리 머리·목 떨림), 보툴리누스 중독(목 늘어짐), 비타민E·셀레늄 결핍(뇌연화증)." },
+      { name:"설사(흰색·녹색·혈변)", note:"의심 질병: 콕시듐증(혈변), 추백리·가금티푸스(흰 설사), 뉴캣슬병(녹색 설사), 괴사성 장염, 전염성 F낭병(흰 물설사)." },
+      { name:"산란 이상(산란율 저하·연각란·기형란)", note:"의심 질병: 전염성기관지염(IB), 산란저하증후군(EDS), 뉴캣슬병, 조류인플루엔자, 마이코플라스마(MG·MS), 고온 스트레스·사료 문제." },
+      { name:"얼굴·눈 주위 부종", note:"의심 질병: 전염성 코라이자, 가금 콜레라, 마이코플라스마(MG, 안와하동 부종), 두부종대증후군(조류메타뉴모바이러스)." },
+      { name:"급격한 폐사 증가", note:"의심 질병: 고병원성 조류인플루엔자, 뉴캣슬병, 가금 콜레라, 괴사성 장염, 열사병. HPAI·뉴캣슬병이 의심되면 즉시 방역기관(1588-9060)에 신고하세요." },
+      { name:"성장 불량·체중 불균일(육계)", note:"의심 질병: 흡수불량증후군, 콕시듐증, 전염성 F낭병·닭전염성빈혈(CIA)으로 인한 면역저하, 사양관리 문제(온도·급수·밀사)." },
+    ],
+  },
+};
 function bodyPartLabel(key){
   const p = BODY_PARTS.find(p=>p.key===key);
   return p ? p.label : key;
@@ -1635,6 +1714,10 @@ let selfCheckPkgState = { status:"idle", data:null, busy:false, msg:"" };
 // finderNavState보다 단순하다. functionFormOpen은 "기능 설명 편집" 폼을
 // 따로 여닫기 위한 상태(새 질병 추가 폼과는 별개).
 let selfCheckNavState = { part:null, adminOpen:false, formKey:undefined, functionFormOpen:false };
+// 질병별 대표 사진 찾기(관리자 전용) — 발행 전까지 화면에만 두는 임시 상태. 키는 질병 key.
+// cands: AI가 찾아 온 후보 {list, chosen}, pick: 관리자가 고른 후보 번호(-1이면 선택 없음),
+// busy: 찾는 중, note: 안내 문구, batch: "사진 없는 질병 자동 찾기" 진행 상황.
+let selfCheckImgState = { cands:{}, pick:{}, busy:{}, note:{}, batch:null };
 
 async function fetchSelfCheckDiseases(){
   if(selfCheckPkgState.status === "loading") return;
@@ -1667,10 +1750,26 @@ function currentOrganFunctions(){
   return (selfCheckPkgState.data && selfCheckPkgState.data.organFunctions) || {};
 }
 function organFunctionFor(part){
-  return currentOrganFunctions()[part] || "";
+  return currentOrganFunctions()[part] || (SELF_CHECK_SEED[part] ? SELF_CHECK_SEED[part].func : "");
 }
 function selfCheckDiseasesFor(part){
   return currentSelfCheckDiseases().filter(d => d.part === part);
+}
+// 기본 목록(SELF_CHECK_SEED)이 있는 항목인데 아직 저장된 질병이 하나도 없으면 true.
+function selfCheckSeedPending(part){
+  return !!SELF_CHECK_SEED[part] && !selfCheckDiseasesFor(part).length;
+}
+// 발행 전인 기본 목록을 한꺼번에 발행한다(관리자) — 질병 목록과, 저장값이 없는 관찰 포인트까지.
+async function publishSelfCheckSeed(){
+  const parts = Object.keys(SELF_CHECK_SEED).filter(selfCheckSeedPending);
+  if(!parts.length) return { ok:true, n:0 };
+  const added = [];
+  parts.forEach(p => SELF_CHECK_SEED[p].diseases.forEach(d => added.push({ key:newSelfCheckKey(), part:p, name:d.name, note:d.note })));
+  const funcs = Object.assign({}, currentOrganFunctions());
+  parts.forEach(p => { if(!funcs[p]) funcs[p] = SELF_CHECK_SEED[p].func; });
+  const r = await publishSelfCheckContent(currentSelfCheckDiseases().concat(added), funcs,
+    "🐔 온라인 자가진단 기본 목록 추가: " + parts.map(bodyPartLabel).join("·"));
+  return Object.assign({ n: added.length }, r);
 }
 function newSelfCheckKey(){
   return "d" + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
@@ -1701,6 +1800,56 @@ function publishSelfCheckDiseases(diseases, message){
 function publishOrganFunction(part, text, message){
   const next = Object.assign({}, currentOrganFunctions(), { [part]: text });
   return publishSelfCheckContent(currentSelfCheckDiseases(), next, message);
+}
+
+// 질병 하나의 대표 사진 후보 찾기(관리자) — 학습 카드와 같은 서버 함수를 "selfcheck"로
+// 불러 장기 이름까지 넘긴다. 찾기만 하고 발행하지 않는다(AI 추천은 미리 선택만 해 둔다).
+async function selfCheckFindImage(key, inBatch){
+  const s = selfCheckImgState;
+  const d = currentSelfCheckDiseases().find(x=>x.key===key);
+  if(!d || s.busy[key] || (s.batch && !inBatch)) return;
+  s.busy[key] = true; s.note[key] = ""; render();
+  const r = await findCardImage(d.name, d.note || "", bodyPartLabel(d.part), "selfcheck");
+  s.busy[key] = false;
+  if(!r.ok){
+    delete s.cands[key]; delete s.pick[key];
+    s.note[key] = "사진 찾기 실패: " + r.error;
+  } else {
+    const list = r.candidates || [];
+    const chosen = (r.chosen >= 0 && list[r.chosen]) ? r.chosen : -1;
+    // 후보가 없어도 빈 결과를 남겨 둔다 — "사진 없는 질병 찾기"가 같은 질병을 매번 다시 찾지 않게.
+    s.cands[key] = { list, chosen };
+    s.pick[key] = chosen;
+    s.note[key] = !r.visual ? "사진으로 보여 줄 대표 증상이 없는 항목이라 찾지 않았습니다."
+      : !list.length ? "위키미디어 공용에 맞는 사진이 없습니다."
+      : chosen >= 0 ? "✨ AI 추천: " + (r.reason || "대표 증상이 보이는 사진입니다.") + " 확인 후 저장하세요."
+      : "AI가 딱 맞는 사진을 찾지 못했습니다" + (r.reason ? " (" + r.reason + ")" : "") + ". 후보 중에서 골라 주세요.";
+  }
+  render();
+}
+
+// 관리자가 고른 후보를 질병의 image로 저장(발행) — 여러 질병을 한 번에 저장할 수 있다.
+async function selfCheckSaveImages(keys){
+  const s = selfCheckImgState;
+  if(selfCheckPkgState.busy) return;
+  const picks = {};
+  keys.forEach(k => {
+    const c = s.cands[k], p = s.pick[k];
+    if(c && p >= 0 && c.list[p]) picks[k] = cardCandToBackImage(c.list[p]); // 카드 뒷면과 같은 모양으로 저장
+  });
+  const n = Object.keys(picks).length;
+  if(!n) return;
+  const next = currentSelfCheckDiseases().map(d => picks[d.key] ? Object.assign({}, d, { image: picks[d.key] }) : d);
+  selfCheckPkgState.busy = true; selfCheckPkgState.msg = "발행 중..."; render();
+  const r = await publishSelfCheckDiseases(next, "🐔 온라인 자가진단 대표 사진 " + n + "개 저장");
+  selfCheckPkgState.busy = false;
+  if(r.ok){
+    Object.keys(picks).forEach(k => { delete s.cands[k]; delete s.pick[k]; delete s.note[k]; });
+    selfCheckPkgState.msg = `대표 사진 ${n}개를 저장했습니다 — 모두에게 반영됩니다`;
+  } else {
+    selfCheckPkgState.msg = "발행 실패: " + r.error;
+  }
+  render();
 }
 
 // "만료일이 없으면 계속 승인" / "만료일이 있으면 그 날짜(포함)까지만 승인".
@@ -5028,13 +5177,17 @@ function renderSmsAdminPanel(){
 }
 
 // ── 최수의사의 온라인 학습(카드 학습) 화면 ────────────────────────────────────
-// 뒷면 이미지 출처 표시 — Commons 사진은 작성자·라이선스·출처를 밝혀야 한다(CC BY 계열).
-// 관리자가 직접 올린 사진은 표시하지 않는다.
-function studyBackImageCredit(img){
+// 대표 사진 출처 표시 — Commons 사진은 작성자·라이선스·출처를 밝혀야 한다(CC BY 계열).
+// 관리자가 직접 올린 사진은 표시하지 않는다. 학습 카드 뒷면과 자가진단 질병에 같이 쓴다.
+function commonsImageCredit(img){
   if(!img || img.source !== "commons") return "";
   const who = img.page ? `<a href="${esc(img.page)}" target="_blank" rel="noopener" style="color:#999">${esc(img.artist||"작성자 미상")}</a>` : esc(img.artist||"작성자 미상");
   const lic = img.licenseUrl ? `<a href="${esc(img.licenseUrl)}" target="_blank" rel="noopener" style="color:#999">${esc(img.license||"")}</a>` : esc(img.license||"");
-  return ` · 사진: ${who}, ${lic} (위키미디어 공용)`;
+  return `사진: ${who}, ${lic} (위키미디어 공용)`;
+}
+function studyBackImageCredit(img){
+  const c = commonsImageCredit(img);
+  return c ? " · " + c : "";
 }
 
 function renderStudyPanel(){
@@ -5420,7 +5573,7 @@ function renderSelfCheckPanel(){
   <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
     <div>
       <div class="display" style="font-size:16px;margin-bottom:3px">🐔 온라인 자가진단</div>
-      <div style="font-size:11px;color:#aaa">닭 해부도에서 장기를 클릭하면 그 장기의 기능과 흔히 나타나는 질병을 보여드립니다</div>
+      <div style="font-size:11px;color:#aaa">닭 해부도에서 장기를 클릭하면 그 장기의 기능과 흔히 나타나는 질병을 보여드립니다. 벼슬·정강이·깃털·활력·임상증상으로도 찾아볼 수 있습니다</div>
     </div>
     <button id="selfcheck-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button>
   </div>`;
@@ -5439,7 +5592,7 @@ function renderSelfCheckPanel(){
   // 번호 핫스팟을 %(이미지 가로세로 대비 비율)로 겹쳐 그린다 — 이미지가
   // 반응형으로 커지고 작아져도 항상 같은 장기 위에 오도록 절대좌표가 아니라
   // % 위치를 쓴다.
-  const hotspots = BODY_PARTS.map(p => {
+  const hotspots = BODY_PARTS.filter(p => !p.sign).map(p => {
     const selected = nav.part === p.key;
     return `<button class="selfcheck-hotspot" data-part="${p.key}" title="${esc(p.num+". "+p.label)}"
       style="position:absolute;left:${p.x}%;top:${p.y}%;transform:translate(-50%,-50%);width:26px;height:26px;border-radius:50%;
@@ -5453,41 +5606,65 @@ function renderSelfCheckPanel(){
       <img src="self_check/chicken_anatomy.jpg" alt="닭 내장 해부도" style="width:100%;height:auto;display:block" />
       ${hotspots}
     </div>
-    <div style="font-size:11px;color:#888;margin-top:6px;text-align:center">${nav.part?("선택됨: "+esc(bodyPartByKey(nav.part).num+". "+bodyPartLabel(nav.part))):"그림의 번호를 클릭하거나 아래 목록에서 장기를 골라보세요"}</div>
+    <div style="font-size:11px;color:#888;margin-top:6px;text-align:center">${nav.part?("선택됨: "+esc(bodyPartByKey(nav.part).num+". "+bodyPartLabel(nav.part))):"그림의 번호를 클릭하거나 아래 목록에서 장기·관찰 항목을 골라보세요"}</div>
   </div>`;
 
-  const chips = `
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px;margin-bottom:16px">
-    ${BODY_PARTS.map(p => `
+  const chip = p => `
     <button class="selfcheck-part-btn" data-part="${p.key}"
-      style="border:2px solid ${nav.part===p.key?"#AD1457":"#eee"};background:${nav.part===p.key?"#AD1457":"#fff"};color:${nav.part===p.key?"#fff":"#333"};border-radius:9px;padding:8px 6px;font-size:11.5px;font-weight:700;cursor:pointer">${p.num}. ${esc(p.label)}</button>`).join("")}
+      style="border:2px solid ${nav.part===p.key?"#AD1457":"#eee"};background:${nav.part===p.key?"#AD1457":"#fff"};color:${nav.part===p.key?"#fff":"#333"};border-radius:9px;padding:8px 6px;font-size:11.5px;font-weight:700;cursor:pointer">${p.num}. ${esc(p.label)}</button>`;
+  const chips = `
+  <div style="font-size:11px;font-weight:700;color:#666;margin-bottom:6px">🫀 장기 (해부도 번호)</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px;margin-bottom:12px">
+    ${BODY_PARTS.filter(p => !p.sign).map(chip).join("")}
+  </div>
+  <div style="font-size:11px;font-weight:700;color:#666;margin-bottom:6px">👀 외부 관찰·전신 상태</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px;margin-bottom:16px">
+    ${BODY_PARTS.filter(p => p.sign).map(chip).join("")}
   </div>`;
 
   let resultBody = "";
   if(nav.part){
-    const list = selfCheckDiseasesFor(nav.part);
+    const partInfo = bodyPartByKey(nav.part);
+    const isSign = !!partInfo.sign;
+    // 21~25번처럼 기본 목록(SELF_CHECK_SEED)이 있는데 아직 발행 전이면 그 목록을 보여 준다.
+    // 발행 전 항목은 저장된 데이터가 아니라서 편집·삭제·사진 관리 버튼을 달지 않는다.
+    const seedMode = selfCheckSeedPending(nav.part);
+    const list = seedMode
+      ? SELF_CHECK_SEED[nav.part].diseases.map((d,i) => ({ key:"seed"+i, part:nav.part, name:d.name, note:d.note, seed:true }))
+      : selfCheckDiseasesFor(nav.part);
     const func = organFunctionFor(nav.part);
     resultBody = `
     <div style="border-top:1px dashed #eee;padding-top:14px">
-      <div class="display" style="font-size:14px;margin-bottom:10px">${esc(bodyPartByKey(nav.part).num+". "+bodyPartLabel(nav.part))}</div>
+      <div class="display" style="font-size:14px;margin-bottom:10px">${esc(partInfo.num+". "+bodyPartLabel(nav.part))}</div>
       <div class="card" style="border-top:4px solid #37474F;margin-bottom:10px;padding:12px 16px">
-        <div style="font-size:11px;font-weight:700;color:#37474F;margin-bottom:4px">🔧 기능</div>
+        <div style="font-size:11px;font-weight:700;color:#37474F;margin-bottom:4px">${isSign?"👀 관찰 포인트":"🔧 기능"}</div>
         <div style="font-size:12.5px;color:#444;line-height:1.6">${func?esc(func):`<span style="color:#aaa">등록된 설명이 없습니다.${admin?"":""}</span>`}</div>
       </div>
-      <div style="font-size:11px;font-weight:700;color:#666;margin:12px 0 8px">🩺 이 장기에서 흔히 나타나는 질병</div>
+      <div style="font-size:11px;font-weight:700;color:#666;margin:12px 0 8px">${nav.part==="clinical"?"🩺 증상별로 의심할 질병":(isSign?"🩺 여기서 문제가 되는 질병":"🩺 이 장기에서 흔히 나타나는 질병")}</div>
+      ${admin && seedMode ? `
+      <div style="background:#FFF8E1;border:1px solid #FFE082;border-radius:8px;padding:9px 11px;margin-bottom:8px;font-size:11px;color:#7A5C00;line-height:1.6">
+        📋 아래는 기본 목록입니다(아직 발행 전 — 회원에게도 이대로 보입니다). 발행하면 질병별 편집·삭제와 대표 사진 관리를 할 수 있습니다.
+        <div style="margin-top:6px"><button id="selfcheck-seed-btn" ${selfCheckPkgState.busy?"disabled":""} style="border:1px solid #B8860B;background:${selfCheckPkgState.busy?"#ccc":"#B8860B"};color:#fff;border-radius:7px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer">${selfCheckPkgState.busy?"발행 중...":`기본 목록 발행 (${Object.keys(SELF_CHECK_SEED).filter(selfCheckSeedPending).map(k=>bodyPartByKey(k).num+"번").join("·")})`}</button></div>
+      </div>` : ""}
+      ${admin && !seedMode ? renderSelfCheckImgBatchBar(list) : ""}
       ${list.length ? list.map(d => `
       <div class="card" style="border-top:4px solid #AD1457;margin-bottom:8px;padding:12px 16px">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+          ${d.image && d.image.url ? `<a href="${esc(d.image.url)}" target="_blank" rel="noopener" title="눌러서 크게 보기" style="flex-shrink:0;display:block">
+            <img src="${esc(d.image.thumb||d.image.url)}" alt="${esc(d.name)} 대표 사진" loading="lazy" style="width:88px;height:66px;object-fit:cover;border-radius:7px;display:block;border:1px solid #eee" />
+          </a>` : ""}
           <div style="flex:1;min-width:0">
             <div style="font-size:13.5px;font-weight:800;color:#333">${esc(d.name)}</div>
             <div style="font-size:12px;color:#666;margin-top:3px;line-height:1.6">${esc(d.note)}</div>
+            ${d.image && d.image.source === "commons" ? `<div style="font-size:9.5px;color:#aaa;margin-top:4px;line-height:1.5">${commonsImageCredit(d.image)}</div>` : ""}
           </div>
-          ${admin ? `
+          ${admin && !d.seed ? `
           <div style="white-space:nowrap;flex-shrink:0">
             <button class="selfcheck-edit-btn" data-key="${d.key}" style="font-size:10px;border:1px solid #AD1457;border-radius:5px;background:#fff;color:#AD1457;padding:3px 8px;margin-right:4px">편집</button>
             <button class="selfcheck-del-btn" data-key="${d.key}" style="font-size:10px;border:1px solid #eee;border-radius:5px;background:#fff;color:#bbb;padding:3px 8px">삭제</button>
           </div>` : ""}
         </div>
+        ${admin && !d.seed ? renderSelfCheckImgAdmin(d) : ""}
       </div>`).join("") : `<div class="card" style="padding:24px 16px;color:#aaa;text-align:center">등록된 질병이 없습니다.${admin?"":" 곧 추가됩니다."}</div>`}
       ${renderSelfCheckAdminBox(admin)}
     </div>`;
@@ -5503,6 +5680,54 @@ function renderSelfCheckPanel(){
   </div>`;
 }
 
+// 장기별 "사진 없는 질병 자동 찾기" + "고른 사진 모두 저장" 막대(관리자 전용).
+// 찾기는 발행하지 않는다 — 후보와 AI 추천만 채워 두고, 저장은 관리자가 확인 후 누른다.
+function renderSelfCheckImgBatchBar(list){
+  const s = selfCheckImgState;
+  const noImg = list.filter(d => !d.image && !s.cands[d.key]).length;
+  const picked = list.filter(d => s.cands[d.key] && s.pick[d.key] >= 0).length;
+  if(!noImg && !picked && !s.batch) return "";
+  const btn = "border-radius:7px;padding:5px 11px;font-size:11px;font-weight:700;cursor:pointer";
+  return `
+  <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+    ${(noImg || s.batch) ? `<button id="scimg-batch-btn" ${s.batch||selfCheckPkgState.busy?"disabled":""} style="border:1px solid #6A1B9A;background:${s.batch?"#EEE":"#F6EFFA"};color:#6A1B9A;${btn}">${s.batch?`🖼️ 찾는 중 ${s.batch.done}/${s.batch.total}`:`🖼️ 사진 없는 질병 ${noImg}개 대표 사진 찾기`}</button>` : ""}
+    ${picked ? `<button id="scimg-save-all-btn" ${s.batch||selfCheckPkgState.busy?"disabled":""} style="border:1px solid #2E7D32;background:#2E7D32;color:#fff;${btn}">✅ 고른 사진 ${picked}개 모두 저장</button>` : ""}
+  </div>`;
+}
+
+// 질병 카드 아래의 대표 사진 관리(관리자 전용) — 찾기/다시 찾기/빼기, 후보 목록, 저장.
+function renderSelfCheckImgAdmin(d){
+  const s = selfCheckImgState;
+  const c = s.cands[d.key];
+  const busy = !!s.busy[d.key];
+  const pick = s.pick[d.key];
+  const lock = busy || !!s.batch || selfCheckPkgState.busy;
+  const note = s.note[d.key] || (busy ? "AI가 사진 후보를 찾아 직접 보고 고르는 중입니다... (보통 20~40초)" : "");
+  const small = "font-size:10px;border-radius:5px;padding:3px 8px;cursor:pointer";
+  return `
+  <div style="margin-top:8px;border-top:1px dashed #F3D6E3;padding-top:7px">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+      <button class="scimg-find-btn" data-key="${d.key}" ${lock?"disabled":""} style="border:1px solid #6A1B9A;background:${busy?"#EEE":"#fff"};color:#6A1B9A;${small}">${busy?"🖼️ 찾는 중...":(d.image||c?"🖼️ 사진 다시 찾기":"🖼️ 대표 사진 찾기")}</button>
+      ${d.image ? `<button class="scimg-clear-btn" data-key="${d.key}" ${lock?"disabled":""} style="border:1px solid #ddd;background:#fff;color:#888;${small}">사진 빼기</button>` : ""}
+      ${note ? `<span style="font-size:10.5px;color:${/실패/.test(note)?"#C62828":"#6A1B9A"};line-height:1.5">${esc(note)}</span>` : ""}
+    </div>
+    ${c && c.list.length ? `
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:6px;margin-top:7px">
+      ${c.list.map((x,i) => `
+      <button class="scimg-cand" data-key="${d.key}" data-idx="${i}" title="${esc(x.title)}" style="position:relative;padding:0;border:2px solid ${pick===i?"#6A1B9A":"#eee"};border-radius:7px;background:#fff;overflow:hidden;cursor:pointer">
+        <img src="${esc(x.thumb)}" alt="" loading="lazy" style="display:block;width:100%;height:64px;object-fit:cover" />
+        ${i===c.chosen?`<span style="position:absolute;top:3px;left:3px;background:#6A1B9A;color:#fff;font-size:9px;font-weight:700;border-radius:4px;padding:1px 4px">AI 추천</span>`:""}
+        <span style="display:block;font-size:9px;color:#999;padding:2px 3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(x.license)}</span>
+      </button>`).join("")}
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px">
+      <button class="scimg-save-btn" data-key="${d.key}" ${pick==null||pick<0||lock?"disabled":""} style="border:1px solid #2E7D32;background:${pick==null||pick<0||lock?"#ccc":"#2E7D32"};color:#fff;border-radius:7px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer">이 사진으로 저장</button>
+      <button class="scimg-close-btn" data-key="${d.key}" style="border:1px solid #ddd;background:#fff;color:#888;${small}">후보 닫기</button>
+      <span style="font-size:9.5px;color:#aaa">후보를 누르면 선택이 바뀝니다</span>
+    </div>` : ""}
+  </div>`;
+}
+
 function renderSelfCheckAdminBox(admin){
   if(!admin || !selfCheckNavState.part) return "";
   const nav = selfCheckNavState;
@@ -5514,7 +5739,7 @@ function renderSelfCheckAdminBox(admin){
     ${selfCheckPkgState.msg?`<span style="font-size:11px;margin-left:8px;color:${/실패|오류|않|없/.test(selfCheckPkgState.msg)?"#C62828":"#2E7D32"}">${esc(selfCheckPkgState.msg)}</span>`:""}
     ${nav.adminOpen ? `
     <div style="margin-top:9px;background:#F1F4F6;border:1px solid #DCE3E7;border-radius:9px;padding:10px;margin-bottom:10px">
-      <div style="font-size:11px;font-weight:700;color:#37474F;margin-bottom:8px">🔧 "${esc(bodyPartLabel(nav.part))}" 기능 설명 편집</div>
+      <div style="font-size:11px;font-weight:700;color:#37474F;margin-bottom:8px">${bodyPartByKey(nav.part).sign?"👀":"🔧"} "${esc(bodyPartLabel(nav.part))}" ${bodyPartByKey(nav.part).sign?"관찰 포인트":"기능 설명"} 편집</div>
       <textarea id="sc-function" placeholder="이 장기의 기능을 설명해주세요"
         style="width:100%;min-height:54px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:8px">${esc(organFunctionFor(nav.part))}</textarea>
       <button id="sc-function-save" ${selfCheckPkgState.busy?"disabled":""} style="border:1px solid #37474F;background:${selfCheckPkgState.busy?"#ccc":"#37474F"};color:#fff;border-radius:7px;padding:6px 14px;font-size:11.5px;font-weight:600">${selfCheckPkgState.busy?"발행 중...":"기능 설명 저장"}</button>
@@ -11523,11 +11748,12 @@ function attachEvents(){
 
     const diseases = currentSelfCheckDiseases().slice();
     const editKey = selfCheckNavState.formKey;
+    const newKey = editKey ? null : newSelfCheckKey();
     if(editKey){
       const idx = diseases.findIndex(d=>d.key===editKey);
       if(idx>=0) diseases[idx] = Object.assign({}, diseases[idx], { part, name, note });
     } else {
-      diseases.push({ key:newSelfCheckKey(), part, name, note });
+      diseases.push({ key:newKey, part, name, note });
     }
     selfCheckPkgState.busy = true; selfCheckPkgState.msg = "발행 중..."; render();
     const r = await publishSelfCheckDiseases(diseases, "🐔 온라인 자가진단 " + (editKey?"수정":"추가") + ": " + name);
@@ -11538,6 +11764,67 @@ function attachEvents(){
       selfCheckNavState.part = part;
     }
     render();
+    // 새로 추가한 질병은 바로 대표 사진 후보를 찾아 둔다 — 저장은 관리자가 골라서 누른다.
+    if(r.ok && newKey) selfCheckFindImage(newKey);
+  };
+
+  const selfCheckSeedBtn = document.getElementById("selfcheck-seed-btn");
+  if(selfCheckSeedBtn) selfCheckSeedBtn.onclick = async ()=>{
+    if(selfCheckPkgState.busy) return;
+    selfCheckPkgState.busy = true; selfCheckPkgState.msg = "발행 중..."; render();
+    const r = await publishSelfCheckSeed();
+    selfCheckPkgState.busy = false;
+    selfCheckPkgState.msg = r.ok ? `기본 목록 ${r.n}개를 발행했습니다 — 이제 편집·삭제와 대표 사진 찾기를 할 수 있습니다` : ("발행 실패: " + r.error);
+    render();
+  };
+
+  // 질병별 대표 사진 — AI가 위키미디어 공용에서 후보를 찾아 한 장을 추천하고, 관리자가 골라 저장한다.
+  document.querySelectorAll(".scimg-find-btn").forEach(b=>b.onclick=()=>selfCheckFindImage(b.dataset.key));
+  document.querySelectorAll(".scimg-cand").forEach(b=>b.onclick=()=>{
+    selfCheckImgState.pick[b.dataset.key] = +b.dataset.idx;
+    render();
+  });
+  document.querySelectorAll(".scimg-close-btn").forEach(b=>b.onclick=()=>{
+    const k = b.dataset.key, s = selfCheckImgState;
+    delete s.cands[k]; delete s.pick[k]; delete s.note[k];
+    render();
+  });
+  document.querySelectorAll(".scimg-save-btn").forEach(b=>b.onclick=()=>selfCheckSaveImages([b.dataset.key]));
+  const selfCheckImgSaveAllBtn = document.getElementById("scimg-save-all-btn");
+  if(selfCheckImgSaveAllBtn) selfCheckImgSaveAllBtn.onclick = ()=>selfCheckSaveImages(selfCheckDiseasesFor(selfCheckNavState.part).map(d=>d.key));
+  document.querySelectorAll(".scimg-clear-btn").forEach(b=>b.onclick=async ()=>{
+    const d = currentSelfCheckDiseases().find(x=>x.key===b.dataset.key);
+    if(!d || !confirm(`"${d.name}"의 대표 사진을 뺄까요?`)) return;
+    const next = currentSelfCheckDiseases().map(x => {
+      if(x.key !== d.key) return x;
+      const copy = Object.assign({}, x); delete copy.image; return copy;
+    });
+    selfCheckPkgState.busy = true; selfCheckPkgState.msg = "발행 중..."; render();
+    const r = await publishSelfCheckDiseases(next, "🐔 온라인 자가진단 대표 사진 삭제: " + d.name);
+    selfCheckPkgState.busy = false;
+    selfCheckPkgState.msg = r.ok ? "사진을 뺐습니다 — 모두에게 반영됩니다" : ("발행 실패: " + r.error);
+    render();
+  });
+  const selfCheckImgBatchBtn = document.getElementById("scimg-batch-btn");
+  if(selfCheckImgBatchBtn) selfCheckImgBatchBtn.onclick = async ()=>{
+    const s = selfCheckImgState;
+    if(s.batch) return;
+    const targets = selfCheckDiseasesFor(selfCheckNavState.part).filter(d => !d.image && !s.cands[d.key]);
+    if(!targets.length) return;
+    const mins = Math.max(1, Math.ceil(targets.length * 30 / 2 / 60));
+    if(!confirm(`사진이 없는 질병 ${targets.length}개의 대표 사진 후보를 AI가 찾습니다(약 ${mins}분).\n\n찾기만 하고 바로 발행하지는 않습니다. 끝나면 AI 추천을 확인하고 "고른 사진 모두 저장"을 눌러 주세요.\n\n시작할까요?`)) return;
+    s.batch = { done:0, total: targets.length };
+    render();
+    let next = 0;
+    const worker = async ()=>{
+      while(next < targets.length){
+        await selfCheckFindImage(targets[next++].key, true);
+        s.batch.done++;
+        render();
+      }
+    };
+    try { await Promise.all([worker(), worker()]); }
+    finally { s.batch = null; render(); }
   };
 
   // 온라인 상담·진단·컨설팅 (회원별 비공개 게시판)

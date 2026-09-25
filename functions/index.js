@@ -282,23 +282,27 @@ exports.generateAiDraft = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds:
   return { text: draft, model: response.model };
 });
 
-// ── 학습 카드 뒷면 대표 증상 사진 ─────────────────────────────────────────────
-// ① AI가 카드 내용으로 Commons 영어 검색어를 정하고 ② Commons에서 자유 이용 사진
+// ── 대표 증상 사진(학습 카드 뒷면 · 온라인 자가진단 질병) ────────────────────
+// kind "card"는 학습 카드(앞면·뒷면·덱 주제), "selfcheck"는 자가진단 질병(질병명·
+// 주요 증상·장기)을 front/back/context로 받는다.
+// ① AI가 내용으로 Commons 영어 검색어를 정하고 ② Commons에서 자유 이용 사진
 // 후보를 모은 뒤 ③ AI가 후보 사진을 직접 보고 대표 증상이 보이는 한 장을 고른다.
 // Commons 검색 결과에는 이름만 비슷한 엉뚱한 사진(예: "MD" → 비행기 MD-82)이 섞이기
 // 때문에 ③을 거친다. 결과는 관리 화면에 후보로 보여 주고, 발행은 관리자가 한다.
-const IMAGE_QUERY_SYSTEM = `양계(닭) 온라인 학습 플래시카드의 뒷면에 붙일 "대표 증상·병변 사진"을 Wikimedia Commons에서 찾기 위한 영어 검색어를 정합니다.
+const IMAGE_QUERY_SYSTEM = `양계(닭) 교육 자료 — 온라인 학습 플래시카드나 온라인 자가진단의 질병 설명 — 에 붙일 "대표 증상·병변 사진"을 Wikimedia Commons에서 찾기 위한 영어 검색어를 정합니다.
 
-- 카드가 질병·증상·병변·기생충·해충처럼 사진 한 장으로 보여 줄 수 있는 내용이면 visual을 true로 하고, 영어 검색어를 2~3개 씁니다.
-- 첫 검색어는 질병이나 대상의 영어 이름과 축종(예: "Newcastle disease chicken"), 나머지는 카드에 나온 대표 증상·병변을 구체적으로 씁니다(예: "chicken torticollis", "Newcastle disease conjunctiva"). 검색어마다 2~4단어로 짧게 씁니다.
+- 내용이 질병·증상·병변·기생충·해충처럼 사진 한 장으로 보여 줄 수 있는 것이면 visual을 true로 하고, 영어 검색어를 2~3개 씁니다.
+- 첫 검색어는 질병이나 대상의 영어 이름과 축종(예: "Newcastle disease chicken"), 나머지는 내용에 나온 대표 증상·병변을 구체적으로 씁니다(예: "chicken torticollis", "Newcastle disease conjunctiva"). 검색어마다 2~4단어로 짧게 씁니다.
+- 장기(부위)가 주어지면 그 장기의 병변을 검색어 하나에 넣습니다(예: "fatty liver hemorrhagic syndrome liver").
 - 약어는 풀어 씁니다(MD → Marek's disease, IB → infectious bronchitis). 약어만 쓰면 엉뚱한 사진이 검색됩니다.
 - 사양관리 수치, 법규·제도, 경영, 약품 계열처럼 사진으로 보여 줄 대표 증상이 없는 내용이면 visual을 false로 하고 queries는 빈 배열로 둡니다.
-- 닭이 아닌 축종(돼지·소 등) 카드면 그 축종의 영어 이름을 붙입니다.`;
+- 닭이 아닌 축종(돼지·소 등)에 관한 내용이면 그 축종의 영어 이름을 붙입니다.`;
 
-const IMAGE_PICK_SYSTEM = `양계 전문 수의사가 만든 온라인 학습 플래시카드의 뒷면에 붙일 "대표 증상·병변 사진"을 후보 중에서 한 장 고릅니다. 각 후보 사진 앞에 번호와 Wikimedia Commons 파일 이름이 있고, 마지막에 카드 내용이 있습니다.
+const IMAGE_PICK_SYSTEM = `양계 전문 수의사가 만든 교육 자료(온라인 학습 플래시카드 또는 온라인 자가진단의 질병 설명)에 붙일 "대표 증상·병변 사진"을 후보 중에서 한 장 고릅니다. 각 후보 사진 앞에 번호와 Wikimedia Commons 파일 이름이 있고, 마지막에 자료 내용이 있습니다.
 
-- 카드가 말하는 질병·증상의 대표 소견이 실제로 눈에 보이는 사진을 고릅니다. 살아 있는 개체의 증상 사진을 먼저, 없으면 부검 병변 사진을 고릅니다.
-- 카드가 병원체 자체의 모양을 묻는 게 아니라면 전자현미경 사진이나 생활사·구조 도식은 고르지 않습니다. 지도, 사람이 주인공인 사진, 카드와 관계없는 사진도 고르지 않습니다.
+- 자료가 말하는 질병·증상의 대표 소견이 실제로 눈에 보이는 사진을 고릅니다. 살아 있는 개체의 증상 사진을 먼저, 없으면 부검 병변 사진을 고릅니다.
+- 장기(부위)가 주어지면 그 장기의 병변이나 그 장기와 관련된 증상이 보이는 사진을 우선합니다.
+- 내용이 병원체 자체의 모양에 관한 것이 아니라면 전자현미경 사진이나 생활사·구조 도식은 고르지 않습니다. 지도, 사람이 주인공인 사진, 자료와 관계없는 사진도 고르지 않습니다.
 - 파일 이름보다 사진에 실제로 보이는 내용을 기준으로 판단합니다.
 - 알맞은 사진이 없으면 choice를 -1로 둡니다. 억지로 고르지 않습니다.
 - reason에는 고른 사진에 무엇이 보이는지(고르지 않았다면 그 이유)를 한국어 한 문장으로 씁니다.`;
@@ -329,8 +333,11 @@ exports.findCardImage = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 1
   const front = String(data.front || "").trim().slice(0, 500);
   const back = String(data.back || "").trim().slice(0, 1000);
   const context = String(data.context || "").trim().slice(0, 200);
-  if (!front) throw new HttpsError("invalid-argument", "앞면을 먼저 입력하세요.");
-  const cardText = (context ? `덱 주제: ${context}\n` : "") + `앞면: ${front}` + (back ? `\n뒷면: ${back}` : "");
+  const selfcheck = data.kind === "selfcheck";
+  if (!front) throw new HttpsError("invalid-argument", selfcheck ? "질병명을 먼저 입력하세요." : "앞면을 먼저 입력하세요.");
+  const cardText = selfcheck
+    ? (context ? `장기(부위): ${context}\n` : "") + `질병: ${front}` + (back ? `\n주요 증상·특징: ${back}` : "")
+    : (context ? `덱 주제: ${context}\n` : "") + `앞면: ${front}` + (back ? `\n뒷면: ${back}` : "");
 
   const plan = responseJson(await callClaude({
     system: IMAGE_QUERY_SYSTEM,
@@ -352,7 +359,7 @@ exports.findCardImage = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 1
     content.push({ type: "image", source: { type: "base64", media_type: images[i].media_type, data: images[i].data } });
   });
   if (!content.length) return { visual: true, queries, candidates, chosen: -1, reason: "후보 사진을 불러오지 못했습니다." };
-  content.push({ type: "text", text: `카드 내용\n${cardText}` });
+  content.push({ type: "text", text: `자료 내용\n${cardText}` });
 
   const pick = responseJson(await callClaude({
     system: IMAGE_PICK_SYSTEM,
