@@ -15,6 +15,7 @@ const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const Anthropic = require("@anthropic-ai/sdk");
+const { findCommonsCandidates, fetchCandidateImage } = require("./commons");
 
 // Claude API 키는 Firebase 비밀값으로만 둔다(브라우저에 절대 노출되지 않게).
 // 등록: firebase functions:secrets:set ANTHROPIC_API_KEY
@@ -203,33 +204,35 @@ const CARD_SYSTEM_PROMPT = `당신은 현장 양계 전문 수의사가 만든 �
 앞면: 뉴캣슬병의 대표 증상은?
 뒷면: 호흡기 증상(기침·헐떡임), 신경 증상(목 비틀림·마비), 산란율 급감, 녹색 설사`;
 
+const DECK_SYSTEM_PROMPT = `당신은 현장 양계 전문 수의사가 만든 온라인 학습용 플래시카드 덱(카드 묶음)의 설명을 씁니다. 덱 목록 화면에서 제목 아래에 보이는 짧은 소개글이고, 읽는 사람은 양계 농장주와 농장 관리자입니다.
+
+- 한국어 존댓말로 1~2문장만 씁니다. 이 덱으로 무엇을 익히게 되는지, 농장에서 어떤 때 도움이 되는지를 담습니다.
+- 화면에 그대로 표시되는 평문이라 마크다운은 쓰지 않습니다. 제목을 다시 옮겨 적지 말고 설명만 씁니다.
+- 덱에 이미 들어 있는 카드 앞면 목록이 주어지면 그 내용을 반영하고, 목록에 없는 내용을 다룬다고 쓰지 않습니다.
+
+예시
+덱 제목: 호흡기 질병 기초
+설명: 뉴캣슬병·전염성기관지염·마이코플라스마 등 닭 호흡기 질병의 대표 증상과 구별 포인트를 카드로 익힙니다. 계군에서 기침·콧물이 보일 때 먼저 의심할 질병을 빠르게 떠올리는 데 도움이 됩니다.`;
+
+// contextLabel: 함께 넘기는 참고 정보의 이름(없으면 안 붙인다). contextMax: 그 길이 한도.
 const AI_DRAFT_KINDS = {
-  faq:  { system: FAQ_SYSTEM_PROMPT,  label: "질문" },
-  card: { system: CARD_SYSTEM_PROMPT, label: "앞면" },
+  faq:  { system: FAQ_SYSTEM_PROMPT,  label: "질문",    contextLabel: "",               contextMax: 0 },
+  card: { system: CARD_SYSTEM_PROMPT, label: "앞면",    contextLabel: "덱 주제",         contextMax: 200 },
+  deck: { system: DECK_SYSTEM_PROMPT, label: "덱 제목", contextLabel: "이 덱의 카드 앞면", contextMax: 1500 },
 };
 
-exports.generateAiDraft = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 120 }, async (request) => {
-  assertAdmin(request);
-  const data = request.data || {};
-  const kind = AI_DRAFT_KINDS[data.kind];
-  if (!kind) throw new HttpsError("invalid-argument", "kind는 faq 또는 card여야 합니다.");
-  const text = String(data.text || "").trim();
-  const context = String(data.context || "").trim().slice(0, 200);
-  if (!text) throw new HttpsError("invalid-argument", `${kind.label}을 입력하세요.`);
-  if (text.length > 500) throw new HttpsError("invalid-argument", `${kind.label}이 너무 깁니다(500자 이내).`);
-
-  const userContent = (context ? `덱 주제: ${context}\n` : "") + `${kind.label}: ${text}`;
+// Claude 호출 공통부. 안전 분류기가 거절하면 서버가 권장 모델로 자동 재시도하고
+// (fallbacks: "default"), SDK 오류는 관리 화면에 그대로 보여 줄 한국어 메시지로 바꾼다.
+async function callClaude(params) {
   const client = new Anthropic({ apiKey: ANTHROPIC_API_KEY.value() });
   let response;
   try {
-    // 안전 분류기가 거절하면 서버가 권장 모델로 자동 재시도(fallbacks: "default").
     response = await client.beta.messages.create({
       model: "claude-opus-5",
       max_tokens: 16000,
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",
-      system: kind.system,
-      messages: [{ role: "user", content: userContent }],
+      ...params,
     });
   } catch (e) {
     if (e instanceof Anthropic.AuthenticationError) {
@@ -244,11 +247,120 @@ exports.generateAiDraft = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds:
     throw new HttpsError("internal", e.message || String(e));
   }
   if (response.stop_reason === "refusal") {
-    throw new HttpsError("failed-precondition", "AI가 이 내용에는 초안을 만들지 않았습니다. 직접 작성해 주세요.");
+    throw new HttpsError("failed-precondition", "AI가 이 내용은 처리하지 않았습니다. 직접 작성해 주세요.");
   }
-  const draft = response.content.filter((b) => b.type === "text").map((b) => b.text).join("").trim();
+  return response;
+}
+
+function responseText(response) {
+  return response.content.filter((b) => b.type === "text").map((b) => b.text).join("").trim();
+}
+
+// output_config.format(json_schema)으로 받은 응답을 객체로 읽는다.
+function responseJson(response) {
+  try {
+    return JSON.parse(responseText(response));
+  } catch (e) {
+    throw new HttpsError("internal", "AI 응답을 읽지 못했습니다. 다시 시도해 주세요.");
+  }
+}
+
+exports.generateAiDraft = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 120 }, async (request) => {
+  assertAdmin(request);
+  const data = request.data || {};
+  const kind = AI_DRAFT_KINDS[data.kind];
+  if (!kind) throw new HttpsError("invalid-argument", "kind는 faq, card, deck 중 하나여야 합니다.");
+  const text = String(data.text || "").trim();
+  const context = String(data.context || "").trim().slice(0, kind.contextMax);
+  if (!text) throw new HttpsError("invalid-argument", `${kind.label}을 입력하세요.`);
+  if (text.length > 500) throw new HttpsError("invalid-argument", `${kind.label}이 너무 깁니다(500자 이내).`);
+
+  const userContent = (context && kind.contextLabel ? `${kind.contextLabel}: ${context}\n` : "") + `${kind.label}: ${text}`;
+  const response = await callClaude({ system: kind.system, messages: [{ role: "user", content: userContent }] });
+  const draft = responseText(response);
   if (!draft) throw new HttpsError("internal", "AI 초안이 비어 있습니다. 다시 시도해 주세요.");
   return { text: draft, model: response.model };
+});
+
+// ── 학습 카드 뒷면 대표 증상 사진 ─────────────────────────────────────────────
+// ① AI가 카드 내용으로 Commons 영어 검색어를 정하고 ② Commons에서 자유 이용 사진
+// 후보를 모은 뒤 ③ AI가 후보 사진을 직접 보고 대표 증상이 보이는 한 장을 고른다.
+// Commons 검색 결과에는 이름만 비슷한 엉뚱한 사진(예: "MD" → 비행기 MD-82)이 섞이기
+// 때문에 ③을 거친다. 결과는 관리 화면에 후보로 보여 주고, 발행은 관리자가 한다.
+const IMAGE_QUERY_SYSTEM = `양계(닭) 온라인 학습 플래시카드의 뒷면에 붙일 "대표 증상·병변 사진"을 Wikimedia Commons에서 찾기 위한 영어 검색어를 정합니다.
+
+- 카드가 질병·증상·병변·기생충·해충처럼 사진 한 장으로 보여 줄 수 있는 내용이면 visual을 true로 하고, 영어 검색어를 2~3개 씁니다.
+- 첫 검색어는 질병이나 대상의 영어 이름과 축종(예: "Newcastle disease chicken"), 나머지는 카드에 나온 대표 증상·병변을 구체적으로 씁니다(예: "chicken torticollis", "Newcastle disease conjunctiva"). 검색어마다 2~4단어로 짧게 씁니다.
+- 약어는 풀어 씁니다(MD → Marek's disease, IB → infectious bronchitis). 약어만 쓰면 엉뚱한 사진이 검색됩니다.
+- 사양관리 수치, 법규·제도, 경영, 약품 계열처럼 사진으로 보여 줄 대표 증상이 없는 내용이면 visual을 false로 하고 queries는 빈 배열로 둡니다.
+- 닭이 아닌 축종(돼지·소 등) 카드면 그 축종의 영어 이름을 붙입니다.`;
+
+const IMAGE_PICK_SYSTEM = `양계 전문 수의사가 만든 온라인 학습 플래시카드의 뒷면에 붙일 "대표 증상·병변 사진"을 후보 중에서 한 장 고릅니다. 각 후보 사진 앞에 번호와 Wikimedia Commons 파일 이름이 있고, 마지막에 카드 내용이 있습니다.
+
+- 카드가 말하는 질병·증상의 대표 소견이 실제로 눈에 보이는 사진을 고릅니다. 살아 있는 개체의 증상 사진을 먼저, 없으면 부검 병변 사진을 고릅니다.
+- 카드가 병원체 자체의 모양을 묻는 게 아니라면 전자현미경 사진이나 생활사·구조 도식은 고르지 않습니다. 지도, 사람이 주인공인 사진, 카드와 관계없는 사진도 고르지 않습니다.
+- 파일 이름보다 사진에 실제로 보이는 내용을 기준으로 판단합니다.
+- 알맞은 사진이 없으면 choice를 -1로 둡니다. 억지로 고르지 않습니다.
+- reason에는 고른 사진에 무엇이 보이는지(고르지 않았다면 그 이유)를 한국어 한 문장으로 씁니다.`;
+
+const IMAGE_QUERY_SCHEMA = {
+  type: "object",
+  properties: {
+    visual: { type: "boolean" },
+    queries: { type: "array", items: { type: "string" } },
+  },
+  required: ["visual", "queries"],
+  additionalProperties: false,
+};
+
+const IMAGE_PICK_SCHEMA = {
+  type: "object",
+  properties: {
+    choice: { type: "integer" },
+    reason: { type: "string" },
+  },
+  required: ["choice", "reason"],
+  additionalProperties: false,
+};
+
+exports.findCardImage = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 180, memory: "512MiB" }, async (request) => {
+  assertAdmin(request);
+  const data = request.data || {};
+  const front = String(data.front || "").trim().slice(0, 500);
+  const back = String(data.back || "").trim().slice(0, 1000);
+  const context = String(data.context || "").trim().slice(0, 200);
+  if (!front) throw new HttpsError("invalid-argument", "앞면을 먼저 입력하세요.");
+  const cardText = (context ? `덱 주제: ${context}\n` : "") + `앞면: ${front}` + (back ? `\n뒷면: ${back}` : "");
+
+  const plan = responseJson(await callClaude({
+    system: IMAGE_QUERY_SYSTEM,
+    messages: [{ role: "user", content: cardText }],
+    output_config: { format: { type: "json_schema", schema: IMAGE_QUERY_SCHEMA } },
+  }));
+  const queries = (Array.isArray(plan.queries) ? plan.queries : []).map((q) => String(q).trim()).filter(Boolean).slice(0, 3);
+  if (!plan.visual || !queries.length) return { visual: false, queries: [], candidates: [], chosen: -1, reason: "" };
+
+  const candidates = await findCommonsCandidates(queries, 8);
+  if (!candidates.length) return { visual: true, queries, candidates: [], chosen: -1, reason: "" };
+
+  // 받아지지 않은 사진은 AI 판독에서만 빼고, 후보 목록에는 남겨 관리자가 직접 고를 수 있게 한다.
+  const images = await Promise.all(candidates.map((c) => fetchCandidateImage(c).catch(() => null)));
+  const content = [];
+  candidates.forEach((c, i) => {
+    if (!images[i]) return;
+    content.push({ type: "text", text: `후보 ${i}: ${c.title}` });
+    content.push({ type: "image", source: { type: "base64", media_type: images[i].media_type, data: images[i].data } });
+  });
+  if (!content.length) return { visual: true, queries, candidates, chosen: -1, reason: "후보 사진을 불러오지 못했습니다." };
+  content.push({ type: "text", text: `카드 내용\n${cardText}` });
+
+  const pick = responseJson(await callClaude({
+    system: IMAGE_PICK_SYSTEM,
+    messages: [{ role: "user", content }],
+    output_config: { format: { type: "json_schema", schema: IMAGE_PICK_SCHEMA } },
+  }));
+  const chosen = Number.isInteger(pick.choice) && images[pick.choice] ? pick.choice : -1;
+  return { visual: true, queries, candidates, chosen, reason: String(pick.reason || "").slice(0, 200) };
 });
 
 const BOARD_TYPES = ["diagnosis", "consult", "consulting"];

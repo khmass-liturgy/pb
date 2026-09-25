@@ -31,6 +31,16 @@ Two pieces are **not** static, both Firebase, both under the 유료서비스 tab
   Auth account requires Admin SDK privileges the browser's client SDK doesn't have. Guarded by
   checking the caller's verified Firebase ID token email against `ADMIN_EMAILS` in
   `functions/index.js` — no separate secret. Deploy with `firebase deploy --only functions`.
+  It also holds the admin-only AI helpers for the 관리 screens: `generateAiDraft` (Claude writes a
+  draft FAQ answer / study-card back / study-deck description into the form — never publishes) and
+  `findCardImage` (Claude picks Commons search terms, `functions/commons.js` gathers free-license
+  CC0/PD/CC BY/CC BY-SA candidates from Wikimedia Commons, then Claude looks at the thumbnails and
+  picks the one that shows the card's representative sign — Commons results are noisy, e.g. "MD"
+  matches MD-82 airliners, which is why the vision step exists). Cards store the pick as
+  `backImage` with artist/license/source so the back face can show the attribution CC BY requires.
+  These need the Firebase secret `ANTHROPIC_API_KEY` (a separate key from the GitHub Actions secret
+  of the same name used by `fetch_research_papers.py`; set with
+  `firebase functions:secrets:set ANTHROPIC_API_KEY --project chicken-dx`).
 - `storage.rules` guards Firebase Storage, used for two things that can't go through the
   public-GitHub-commit pattern below because the data is private, not public content:
   - the 온라인 진단/상담/컨설팅 boards (`PREMIUM_BOARDS` in index.html) store member-submitted

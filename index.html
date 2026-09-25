@@ -1110,6 +1110,24 @@ async function generateAiDraft(kind, text, context){
   }
 }
 
+// 학습 카드 뒷면 대표 증상 사진 — AI가 위키미디어 공용(Commons)에서 자유 이용
+// 사진 후보를 찾아 직접 보고 한 장을 추천한다(functions/index.js findCardImage).
+// 돌려받는 값: { ok, visual, candidates:[{title,page,full,thumb,license,licenseUrl,artist}], chosen, reason }
+async function findCardImage(front, back, context){
+  try {
+    const fn = firebase.app().functions().httpsCallable("findCardImage", { timeout: 180000 });
+    const res = await fn({ front, back: back || "", context: context || "" });
+    return Object.assign({ ok:true, candidates:[], chosen:-1 }, res.data || {});
+  } catch(e){
+    return { ok:false, error: e.message || String(e) };
+  }
+}
+// 카드에 저장하는 뒷면 이미지 모양. Commons 사진은 CC BY 계열 저작자 표시 조건 때문에
+// 작성자·라이선스·출처 주소를 함께 저장해 카드에 표시한다.
+function cardCandToBackImage(c){
+  return { url: c.full, thumb: c.thumb, page: c.page, title: c.title, artist: c.artist, license: c.license, licenseUrl: c.licenseUrl, source: "commons" };
+}
+
 // ── 자동 문자 발송 신청 ───────────────────────────────────────────────────────
 // 회원이 "어떤 메뉴 정보를, 얼마나 자주" 받고 싶은지 여기서 설정만 저장한다.
 // 실제 발송은 이 화면(브라우저)이 아니라 매일 실행되는 GitHub Actions
@@ -4315,7 +4333,12 @@ let disinfectTabState = { openKey: null, adminOpen: false, formKey: undefined };
 // cardDraft/cardDraftFile: 카드 폼 입력값과 고른 이미지 — AI 뒷면 초안을 기다리는 동안
 // render()가 폼을 다시 그려도 입력·선택한 파일이 사라지지 않게 보관한다.
 let studyNavState = { deckKey: null, cardIndex: 0, flipped: false, adminOpen: false, deckFormKey: undefined, cardFormKey: undefined,
-                      cardDraft: null, cardDraftFile: null, cardAiBusy: false, cardAiDraft: false };
+                      cardDraft: null, cardDraftFile: null, cardAiBusy: false, cardAiDraft: false,
+                      // 뒷면 대표 이미지: cardBackImg가 undefined면 편집 중인 카드의 기존 이미지 유지,
+                      // null이면 뺌, 객체면 새로 고른 이미지. cardImgCands는 AI가 찾아 온 후보.
+                      cardBackImg: undefined, cardBackFile: null, cardImgBusy: false, cardImgCands: null, cardImgNote: "",
+                      imgBatch: null,
+                      deckDraft: null, deckAiBusy: false, deckAiDraft: false };
 
 // 관리(추가/편집) 폼에 넣을 값 — null이면 새로 추가하는 중, 객체면 그 항목을 편집 중.
 // 프로그램 단계는 "제목|설명" 한 줄씩 textarea로 입력받아 저장할 때 배열로 바꾼다
@@ -5005,6 +5028,15 @@ function renderSmsAdminPanel(){
 }
 
 // ── 최수의사의 온라인 학습(카드 학습) 화면 ────────────────────────────────────
+// 뒷면 이미지 출처 표시 — Commons 사진은 작성자·라이선스·출처를 밝혀야 한다(CC BY 계열).
+// 관리자가 직접 올린 사진은 표시하지 않는다.
+function studyBackImageCredit(img){
+  if(!img || img.source !== "commons") return "";
+  const who = img.page ? `<a href="${esc(img.page)}" target="_blank" rel="noopener" style="color:#999">${esc(img.artist||"작성자 미상")}</a>` : esc(img.artist||"작성자 미상");
+  const lic = img.licenseUrl ? `<a href="${esc(img.licenseUrl)}" target="_blank" rel="noopener" style="color:#999">${esc(img.license||"")}</a>` : esc(img.license||"");
+  return ` · 사진: ${who}, ${lic} (위키미디어 공용)`;
+}
+
 function renderStudyPanel(){
   const head = `
   <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
@@ -5041,6 +5073,10 @@ function renderStudyPanel(){
     </div>`).join("") : `<div class="card" style="text-align:center;padding:28px 16px;color:#aaa">아직 등록된 학습자료가 없습니다.${admin?"":" 곧 추가됩니다."}</div>`;
 
     const editingDeck = nav.deckFormKey && decks.find(d=>d.key===nav.deckFormKey);
+    const dDft = nav.deckDraft;
+    const dtVal = dDft ? dDft.title : (editingDeck ? editingDeck.title : "");
+    const ddVal = dDft ? dDft.desc : (editingDeck ? (editingDeck.desc||"") : "");
+    const dLock = nav.deckAiBusy ? "disabled" : "";
     const adminBox = !admin ? "" : `
     <div style="margin-top:16px;border-top:1px dashed #eee;padding-top:12px">
       <button id="study-admin-toggle" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:3px 9px">${nav.adminOpen?"관리 닫기":"⚙ 관리"}</button>
@@ -5048,12 +5084,17 @@ function renderStudyPanel(){
       ${nav.adminOpen ? `
       <div style="margin-top:9px;background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">
         <div style="font-size:11px;font-weight:700;color:#7A5C00;margin-bottom:8px">${editingDeck?"덱 수정: "+esc(editingDeck.title):"새 덱 추가"}</div>
-        <input id="sd-title" type="text" placeholder="덱 제목 (예: 호흡기 질병 기초)" value="${esc(editingDeck?editingDeck.title:"")}"
+        <input id="sd-title" type="text" placeholder="덱 제목 (예: 호흡기 질병 기초)" value="${esc(dtVal)}" ${dLock}
           style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;margin-bottom:6px;box-sizing:border-box" />
-        <textarea id="sd-desc" placeholder="덱 설명"
-          style="width:100%;min-height:50px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:8px">${esc(editingDeck?editingDeck.desc:"")}</textarea>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:5px">
+          <span style="font-size:10.5px;color:#888">설명 — 제목을 쓰고 넘어가면 AI가 소개글을 채웁니다</span>
+          <button id="sd-ai-btn" ${nav.deckAiBusy||studyCardsState.busy?"disabled":""} style="border:1px solid #6A1B9A;background:${nav.deckAiBusy?"#EEE":"#F6EFFA"};color:#6A1B9A;border-radius:7px;padding:5px 11px;font-size:11.5px;font-weight:700;cursor:pointer">${nav.deckAiBusy?"✨ 작성 중...":(ddVal.trim()?"✨ AI로 다시 작성":"✨ AI 설명 작성")}</button>
+        </div>
+        <textarea id="sd-desc" placeholder="덱 설명" ${dLock}
+          style="width:100%;min-height:50px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:6px">${esc(ddVal)}</textarea>
+        ${nav.deckAiDraft ? `<div style="font-size:10.5px;color:#6A1B9A;background:#F6EFFA;border-radius:6px;padding:6px 8px;margin:0 0 8px;line-height:1.5">✨ AI가 쓴 설명 초안입니다 — 내용을 확인·수정한 뒤 발행하세요.</div>` : ""}
         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-          <button id="sd-save" ${studyCardsState.busy?"disabled":""} style="border:1px solid #B8860B;background:${studyCardsState.busy?"#ccc":"#B8860B"};color:#fff;border-radius:7px;padding:7px 15px;font-size:12px;font-weight:600">${studyCardsState.busy?"발행 중...":(editingDeck?"수정 발행":"추가 발행")}</button>
+          <button id="sd-save" ${studyCardsState.busy||nav.deckAiBusy?"disabled":""} style="border:1px solid #B8860B;background:${studyCardsState.busy||nav.deckAiBusy?"#ccc":"#B8860B"};color:#fff;border-radius:7px;padding:7px 15px;font-size:12px;font-weight:600">${studyCardsState.busy?"발행 중...":(editingDeck?"수정 발행":"추가 발행")}</button>
           ${editingDeck?`<button id="sd-cancel" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:6px 10px">취소</button>`:""}
         </div>
       </div>` : ""}
@@ -5081,6 +5122,12 @@ function renderStudyPanel(){
       <img src="${esc(card.imageUrl)}" alt="" style="max-width:100%;max-height:160px;border-radius:8px" />
       <div style="font-size:9.5px;color:#999;margin-top:3px">🔍 눌러서 크게 보기</div>
     </a>` : ""}
+    ${(nav.flipped && card.backImage && card.backImage.url) ? `<div style="margin-bottom:12px;max-width:100%">
+      <a href="${esc(card.backImage.url)}" target="_blank" rel="noopener" class="study-card-image-link" style="display:block" title="눌러서 크게 보기">
+        <img src="${esc(card.backImage.url)}" alt="${esc(card.backImage.title||"대표 증상 사진")}" loading="lazy" style="max-width:100%;max-height:220px;border-radius:8px" />
+      </a>
+      <div style="font-size:9.5px;color:#999;margin-top:3px;line-height:1.5">🔍 사진을 누르면 크게 보기${studyBackImageCredit(card.backImage)}</div>
+    </div>` : ""}
     <div style="font-size:15px;font-weight:800;color:#333;line-height:1.6;white-space:pre-wrap">${esc(nav.flipped ? card.back : card.front)}</div>
     <div style="font-size:10.5px;color:#aaa;margin-top:14px">${nav.flipped?"다시 눌러 앞면 보기":"눌러서 정답 보기"}</div>
   </div>
@@ -5094,15 +5141,50 @@ function renderStudyPanel(){
   const fVal = cDft ? cDft.front : (editingCard ? editingCard.front : "");
   const bVal = cDft ? cDft.back : (editingCard ? editingCard.back : "");
   const cLock = nav.cardAiBusy ? "disabled" : "";
+  // 뒷면 대표 이미지 — 새로 고른 것(nav.cardBackImg)이 있으면 그것, 없으면 편집 중인 카드의 기존 이미지.
+  const curBackImg = nav.cardBackImg !== undefined ? nav.cardBackImg : (editingCard ? (editingCard.backImage||null) : null);
+  const imgCands = nav.cardImgCands;
+  const noBackImgCount = cardsArr.filter(c=>!c.backImage).length;
+  const backImgSection = `
+        <div style="border:1px solid #E6DDF0;background:#FBF9FD;border-radius:8px;padding:8px;margin-bottom:8px">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+            <span style="font-size:10.5px;color:#888">뒷면 대표 이미지 — AI가 자유 이용 사진(위키미디어 공용)에서 골라 줍니다</span>
+            <button id="sc-img-btn" ${nav.cardImgBusy||nav.cardAiBusy||studyCardsState.busy?"disabled":""} style="border:1px solid #6A1B9A;background:${nav.cardImgBusy?"#EEE":"#fff"};color:#6A1B9A;border-radius:7px;padding:5px 11px;font-size:11.5px;font-weight:700;cursor:pointer">${nav.cardImgBusy?"🖼️ 찾는 중...":(curBackImg||imgCands?"🖼️ 다시 찾기":"🖼️ 대표 이미지 찾기")}</button>
+          </div>
+          ${nav.cardBackFile ? `<div style="font-size:11px;color:#4527A0;margin-bottom:6px">📎 <b>${esc(nav.cardBackFile.name)}</b> — 직접 올린 사진을 씁니다 <button id="sc-img-clear" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:2px 7px;margin-left:4px">빼기</button></div>`
+            : curBackImg ? `<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:6px">
+            <img src="${esc(curBackImg.thumb||curBackImg.url)}" alt="" style="width:88px;height:66px;object-fit:cover;border-radius:6px;border:2px solid #6A1B9A;flex-shrink:0" />
+            <div style="min-width:0;font-size:10.5px;color:#666;line-height:1.5">
+              <b style="color:#6A1B9A">뒷면에 넣을 사진</b><br>
+              <span style="word-break:break-all">${esc(curBackImg.title||"직접 올린 사진")}</span>${curBackImg.license?`<br><span style="color:#999">${esc(curBackImg.artist||"작성자 미상")} · ${esc(curBackImg.license)}</span>`:""}
+              <div><button id="sc-img-clear" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:2px 7px;margin-top:3px">빼기</button></div>
+            </div>
+          </div>` : `<div style="font-size:10.5px;color:#aaa;margin-bottom:6px">${nav.cardImgBusy?"AI가 사진 후보를 찾아 직접 보고 고르는 중입니다... (보통 20~40초)":"아직 넣은 사진이 없습니다."}</div>`}
+          ${nav.cardImgNote ? `<div style="font-size:10.5px;color:#6A1B9A;margin-bottom:6px;line-height:1.5">${esc(nav.cardImgNote)}</div>` : ""}
+          ${imgCands && imgCands.list.length ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:6px;margin-bottom:6px">
+            ${imgCands.list.map((c,i)=>{ const sel = curBackImg && !nav.cardBackFile && curBackImg.page===c.page; return `
+            <button class="sc-img-cand" data-idx="${i}" title="${esc(c.title)}" style="position:relative;padding:0;border:2px solid ${sel?"#6A1B9A":"#eee"};border-radius:7px;background:#fff;overflow:hidden;cursor:pointer">
+              <img src="${esc(c.thumb)}" alt="" loading="lazy" style="display:block;width:100%;height:64px;object-fit:cover" />
+              ${i===imgCands.chosen?`<span style="position:absolute;top:3px;left:3px;background:#6A1B9A;color:#fff;font-size:9px;font-weight:700;border-radius:4px;padding:1px 4px">AI 추천</span>`:""}
+              <span style="display:block;font-size:9px;color:#999;padding:2px 3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.license)}</span>
+            </button>`; }).join("")}
+          </div><div style="font-size:9.5px;color:#aaa;margin-bottom:6px">다른 후보를 누르면 그 사진으로 바뀝니다. 사진을 새 탭에서 크게 보려면 발행 후 카드에서 누르세요.</div>` : ""}
+          <div style="font-size:10px;color:#888;margin-bottom:3px">또는 직접 올리기(내 농장 사진 등 — 올린 사진이 우선)</div>
+          <input type="file" accept="image/*" id="sc-back-image" ${cLock} style="width:100%;font-size:11.5px" />
+        </div>`;
   const cardAdminBox = !admin ? "" : `
   <div style="margin-top:18px;border-top:1px dashed #eee;padding-top:12px">
     <button id="study-card-admin-toggle" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:3px 9px">${nav.adminOpen?"카드 관리 닫기":"⚙ 카드 관리"}</button>
     ${studyCardsState.msg?`<span style="font-size:11px;margin-left:8px;color:${/실패|오류/.test(studyCardsState.msg)?"#C62828":"#2E7D32"}">${esc(studyCardsState.msg)}</span>`:""}
     ${nav.adminOpen ? `
     <div style="margin-top:9px">
+      ${cardsArr.length ? `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:0 8px 6px">
+        <span style="font-size:10.5px;color:#888">🖼️ 뒷면 이미지 ${cardsArr.length-noBackImgCount} / ${cardsArr.length}장</span>
+        ${noBackImgCount ? `<button id="sc-img-batch" ${studyCardsState.busy||nav.imgBatch?"disabled":""} style="border:1px solid #6A1B9A;background:${nav.imgBatch?"#EEE":"#F6EFFA"};color:#6A1B9A;border-radius:7px;padding:5px 11px;font-size:11px;font-weight:700;cursor:pointer">${nav.imgBatch?`🖼️ 채우는 중 ${nav.imgBatch.done}/${nav.imgBatch.total}`:`🖼️ 이미지 없는 카드 ${noBackImgCount}장 자동 채우기`}</button>` : ""}
+      </div>` : ""}
       ${cardsArr.map((c,i) => `
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 8px;border-bottom:1px solid #f2f2f2;font-size:12px">
-        <span style="min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${i+1}. ${esc(c.front)}</span>
+        <span style="min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${i+1}. ${c.backImage?`<span title="뒷면 이미지 있음">🖼️</span> `:""}${esc(c.front)}</span>
         <span style="flex-shrink:0"><button class="study-card-edit-btn" data-card="${c.key}" style="font-size:10px;border:1px solid #4527A0;border-radius:5px;background:#fff;color:#4527A0;padding:3px 8px;margin-right:4px">편집</button><button class="study-card-del-btn" data-card="${c.key}" style="font-size:10px;border:1px solid #eee;border-radius:5px;background:#fff;color:#bbb;padding:3px 8px">삭제</button></span>
       </div>`).join("")}
       <div style="margin-top:10px;background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">
@@ -5116,10 +5198,11 @@ function renderStudyPanel(){
         <textarea id="sc-back" placeholder="뒷면 (답/설명)" ${cLock}
           style="width:100%;min-height:70px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:6px">${esc(bVal)}</textarea>
         ${nav.cardAiDraft ? `<div style="font-size:10.5px;color:#6A1B9A;background:#F6EFFA;border-radius:6px;padding:6px 8px;margin:0 0 8px;line-height:1.5">✨ AI가 쓴 뒷면 초안입니다 — 내용을 확인·수정한 뒤 발행하세요.</div>` : ""}
-        <div style="font-size:10px;color:#888;margin-bottom:4px">이미지(선택)${editingCard&&editingCard.imageUrl?" — 새 파일을 고르지 않으면 기존 이미지 유지":""}${nav.cardDraftFile?` · <b style="color:#4527A0">📎 ${esc(nav.cardDraftFile.name)} 선택됨</b>`:""}</div>
+        ${backImgSection}
+        <div style="font-size:10px;color:#888;margin-bottom:4px">앞면 이미지(선택 — 문제로 보여 줄 사진)${editingCard&&editingCard.imageUrl?" — 새 파일을 고르지 않으면 기존 이미지 유지":""}${nav.cardDraftFile?` · <b style="color:#4527A0">📎 ${esc(nav.cardDraftFile.name)} 선택됨</b>`:""}</div>
         <input type="file" accept="image/*" id="sc-image" ${cLock} style="width:100%;font-size:11.5px;margin-bottom:8px" />
         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-          <button id="stc-save" ${studyCardsState.busy||nav.cardAiBusy?"disabled":""} style="border:1px solid #B8860B;background:${studyCardsState.busy||nav.cardAiBusy?"#ccc":"#B8860B"};color:#fff;border-radius:7px;padding:7px 15px;font-size:12px;font-weight:600">${studyCardsState.busy?"발행 중...":(editingCard?"수정 발행":"추가 발행")}</button>
+          <button id="stc-save" ${studyCardsState.busy||nav.cardAiBusy||nav.cardImgBusy?"disabled":""} style="border:1px solid #B8860B;background:${studyCardsState.busy||nav.cardAiBusy||nav.cardImgBusy?"#ccc":"#B8860B"};color:#fff;border-radius:7px;padding:7px 15px;font-size:12px;font-weight:600">${studyCardsState.busy?"발행 중...":(editingCard?"수정 발행":"추가 발행")}</button>
           ${editingCard?`<button id="stc-cancel" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:6px 10px">취소</button>`:""}
         </div>
       </div>
@@ -10911,21 +10994,64 @@ function attachEvents(){
     studyNavState.adminOpen = false;
     render();
   });
+  const deckResetForm = ()=>{ studyNavState.deckDraft = null; studyNavState.deckAiDraft = false; };
   const studyAdminToggle = document.getElementById("study-admin-toggle");
   if(studyAdminToggle) studyAdminToggle.onclick = ()=>{
     studyNavState.adminOpen = !studyNavState.adminOpen;
     studyNavState.deckFormKey = undefined;
     studyCardsState.msg = "";
+    deckResetForm();
     render();
   };
   document.querySelectorAll(".study-deck-edit-btn").forEach(b=>b.onclick=()=>{
     studyNavState.adminOpen = true;
     studyNavState.deckFormKey = b.dataset.deck;
     studyCardsState.msg = "";
+    deckResetForm();
     render();
   });
   const sdCancelBtn = document.getElementById("sd-cancel");
-  if(sdCancelBtn) sdCancelBtn.onclick = ()=>{ studyNavState.deckFormKey = undefined; render(); };
+  if(sdCancelBtn) sdCancelBtn.onclick = ()=>{ studyNavState.deckFormKey = undefined; deckResetForm(); render(); };
+
+  // AI 덱 설명 초안 — 제목을 쓰고 칸을 벗어날 때 설명이 비어 있으면 자동으로, 또는 버튼으로.
+  // 기존 덱을 고치는 중이면 그 덱의 카드 앞면 목록을 같이 넘겨 실제 내용에 맞게 쓰게 한다.
+  const sdTitle = document.getElementById("sd-title");
+  const sdDesc = document.getElementById("sd-desc");
+  const deckSyncDraft = ()=>{
+    const t = document.getElementById("sd-title"), d = document.getElementById("sd-desc");
+    if(t || d) studyNavState.deckDraft = { title: t ? t.value : "", desc: d ? d.value : "" };
+  };
+  const deckRunAi = async ()=>{
+    if(studyNavState.deckAiBusy) return;
+    deckSyncDraft();
+    if(!studyNavState.deckDraft) return;
+    const title = studyNavState.deckDraft.title.trim();
+    if(!title){ alert("덱 제목을 먼저 입력하세요."); return; }
+    const editing = studyNavState.deckFormKey && currentStudyDecks().find(d=>d.key===studyNavState.deckFormKey);
+    const fronts = editing ? (editing.cards||[]).map(c=>c.front).join(" / ") : "";
+    studyNavState.deckAiBusy = true; studyCardsState.msg = "✨ AI가 덱 설명을 쓰는 중... (보통 10~30초)"; render();
+    const r = await generateAiDraft("deck", title, fronts);
+    studyNavState.deckAiBusy = false;
+    if(!studyNavState.deckDraft){ render(); return; } // 기다리는 사이 폼을 닫았으면 버린다
+    if(r.ok){
+      studyNavState.deckDraft = { title, desc: r.text };
+      studyNavState.deckAiDraft = true;
+      studyCardsState.msg = "AI 설명 초안을 넣었습니다 — 확인·수정한 뒤 발행하세요";
+    } else {
+      studyCardsState.msg = "AI 초안 실패: " + r.error;
+    }
+    render();
+  };
+  if(sdTitle){
+    sdTitle.oninput = deckSyncDraft;
+    sdTitle.onchange = ()=>{ if(sdTitle.value.trim() && !(sdDesc && sdDesc.value.trim())) deckRunAi(); };
+  }
+  if(sdDesc) sdDesc.oninput = deckSyncDraft;
+  const sdAiBtn = document.getElementById("sd-ai-btn");
+  if(sdAiBtn) sdAiBtn.onclick = ()=>{
+    if(sdDesc && sdDesc.value.trim() && !confirm("지금 설명을 AI 초안으로 바꿀까요?")) return;
+    deckRunAi();
+  };
   document.querySelectorAll(".study-deck-del-btn").forEach(b=>b.onclick=async ()=>{
     const key = b.dataset.deck;
     const deck = currentStudyDecks().find(d=>d.key===key);
@@ -10954,14 +11080,15 @@ function attachEvents(){
     const r = await publishStudyDecks(decks, "🎓 학습 덱 " + (editKey?"수정":"추가") + ": " + title);
     studyCardsState.busy = false;
     studyCardsState.msg = r.ok ? "발행 완료 — 모두에게 반영됩니다" : ("발행 실패: " + r.error);
-    if(r.ok) studyNavState.deckFormKey = undefined;
+    if(r.ok){ studyNavState.deckFormKey = undefined; deckResetForm(); }
     render();
   };
   const studyDeckBackBtn = document.getElementById("study-deck-back-btn");
   if(studyDeckBackBtn) studyDeckBackBtn.onclick = ()=>{ studyNavState.deckKey = null; studyNavState.adminOpen = false; render(); };
   const flipCard = document.getElementById("study-flip-card");
   if(flipCard) flipCard.onclick = (e)=>{
-    if(e.target.closest(".study-card-image-link")) return; // 이미지를 새 탭에서 원본 크기로 열 때는 뒤집지 않는다
+    // 이미지를 새 탭에서 크게 볼 때나 사진 출처 링크를 누를 때는 뒤집지 않는다
+    if(e.target.closest("a")) return;
     studyNavState.flipped = !studyNavState.flipped; render();
   };
   const studyPrevBtn = document.getElementById("study-prev-btn");
@@ -10970,6 +11097,7 @@ function attachEvents(){
   if(studyNextBtn) studyNextBtn.onclick = ()=>{ studyNavState.cardIndex += 1; studyNavState.flipped = false; render(); };
   const cardResetForm = ()=>{
     studyNavState.cardDraft = null; studyNavState.cardDraftFile = null; studyNavState.cardAiDraft = false;
+    studyNavState.cardBackImg = undefined; studyNavState.cardBackFile = null; studyNavState.cardImgCands = null; studyNavState.cardImgNote = "";
   };
   const studyCardAdminToggle = document.getElementById("study-card-admin-toggle");
   if(studyCardAdminToggle) studyCardAdminToggle.onclick = ()=>{
@@ -10994,22 +11122,71 @@ function attachEvents(){
   const scFront = document.getElementById("sc-front");
   const scBack = document.getElementById("sc-back");
   const scImage = document.getElementById("sc-image");
-  const cardSyncDraft = ()=>{ studyNavState.cardDraft = { front: scFront ? scFront.value : "", back: scBack ? scBack.value : "" }; };
+  // 칸은 매번 새로 찾는다 — AI 초안 뒤 이미지 찾기처럼 render()를 거친 뒤 이어서 불리면
+  // 이 attachEvents 때 잡아 둔 칸(scFront/scBack)은 이미 화면에서 빠진 옛 칸이다.
+  const cardSyncDraft = ()=>{
+    const f = document.getElementById("sc-front"), b = document.getElementById("sc-back");
+    if(f || b) studyNavState.cardDraft = { front: f ? f.value : "", back: b ? b.value : "" };
+  };
   const cardRunAi = async ()=>{
     if(studyNavState.cardAiBusy) return;
     cardSyncDraft();
+    if(!studyNavState.cardDraft) return;
     const front = studyNavState.cardDraft.front.trim();
     if(!front){ alert("앞면을 먼저 입력하세요."); return; }
     const deck = currentStudyDecks().find(d=>d.key===studyNavState.deckKey);
     studyNavState.cardAiBusy = true; studyCardsState.msg = "✨ AI가 뒷면을 쓰는 중... (보통 10~30초)"; render();
     const r = await generateAiDraft("card", front, deck ? deck.title : "");
     studyNavState.cardAiBusy = false;
+    if(!studyNavState.cardDraft){ render(); return; } // 기다리는 사이 폼을 닫았으면 버린다
     if(r.ok){
       studyNavState.cardDraft = { front, back: r.text };
       studyNavState.cardAiDraft = true;
       studyCardsState.msg = "AI 뒷면 초안을 넣었습니다 — 확인·수정한 뒤 발행하세요";
     } else {
       studyCardsState.msg = "AI 초안 실패: " + r.error;
+    }
+    render();
+    // 뒷면을 채운 김에 대표 이미지도 찾는다 — 이미 사진이 있거나, 직접 뺐거나, 이미 찾아 둔 경우는 건너뛴다.
+    if(r.ok && !cardHasBackImage() && studyNavState.cardBackImg !== null && !studyNavState.cardImgCands) cardRunImg();
+  };
+  const cardHasBackImage = ()=>{
+    if(studyNavState.cardBackFile || studyNavState.cardBackImg) return true;
+    if(studyNavState.cardBackImg === null) return false;
+    const deck = currentStudyDecks().find(d=>d.key===studyNavState.deckKey);
+    const editing = deck && studyNavState.cardFormKey && deck.cards.find(c=>c.key===studyNavState.cardFormKey);
+    return !!(editing && editing.backImage);
+  };
+  // 뒷면 대표 이미지 찾기 — AI가 고른 사진이 있으면 바로 선택해 두고, 후보는 목록으로 보여 준다.
+  const cardRunImg = async ()=>{
+    if(studyNavState.cardImgBusy) return;
+    cardSyncDraft();
+    if(!studyNavState.cardDraft) return;
+    const { front, back } = studyNavState.cardDraft;
+    if(!front.trim()){ alert("앞면을 먼저 입력하세요."); return; }
+    const deck = currentStudyDecks().find(d=>d.key===studyNavState.deckKey);
+    studyNavState.cardImgBusy = true; studyNavState.cardImgNote = "";
+    studyCardsState.msg = "🖼️ AI가 대표 이미지를 찾는 중... (보통 20~40초)"; render();
+    const r = await findCardImage(front.trim(), back.trim(), deck ? deck.title : "");
+    studyNavState.cardImgBusy = false;
+    if(!studyNavState.cardDraft){ render(); return; } // 기다리는 사이 폼을 닫았으면 버린다
+    if(!r.ok){ studyCardsState.msg = "이미지 찾기 실패: " + r.error; render(); return; }
+    const list = r.candidates || [];
+    studyNavState.cardImgCands = { list, chosen: r.chosen };
+    if(!r.visual){
+      studyNavState.cardImgNote = "사진으로 보여 줄 대표 증상이 없는 내용이라 사진을 찾지 않았습니다. 필요하면 직접 올려 주세요.";
+      studyCardsState.msg = "";
+    } else if(!list.length){
+      studyNavState.cardImgNote = "위키미디어 공용에 맞는 사진이 없습니다. 직접 올려 주세요.";
+      studyCardsState.msg = "";
+    } else if(r.chosen >= 0 && list[r.chosen]){
+      studyNavState.cardBackImg = cardCandToBackImage(list[r.chosen]);
+      studyNavState.cardBackFile = null;
+      studyNavState.cardImgNote = "✨ AI 추천: " + (r.reason || "대표 증상이 보이는 사진입니다.");
+      studyCardsState.msg = "대표 이미지를 골랐습니다 — 확인한 뒤 발행하세요";
+    } else {
+      studyNavState.cardImgNote = "AI가 딱 맞는 사진을 찾지 못했습니다" + (r.reason ? " (" + r.reason + ")" : "") + ". 아래 후보 중에서 고르거나 직접 올려 주세요.";
+      studyCardsState.msg = "";
     }
     render();
   };
@@ -11023,6 +11200,78 @@ function attachEvents(){
   if(scAiBtn) scAiBtn.onclick = ()=>{
     if(scBack && scBack.value.trim() && !confirm("지금 뒷면을 AI 초안으로 바꿀까요?")) return;
     cardRunAi();
+  };
+  const scImgBtn = document.getElementById("sc-img-btn");
+  if(scImgBtn) scImgBtn.onclick = ()=>{ cardRunImg(); };
+  document.querySelectorAll(".sc-img-cand").forEach(b=>b.onclick=()=>{
+    const c = studyNavState.cardImgCands && studyNavState.cardImgCands.list[+b.dataset.idx];
+    if(!c) return;
+    cardSyncDraft();
+    studyNavState.cardBackImg = cardCandToBackImage(c);
+    studyNavState.cardBackFile = null;
+    render();
+  });
+  const scImgClear = document.getElementById("sc-img-clear");
+  if(scImgClear) scImgClear.onclick = ()=>{
+    cardSyncDraft();
+    studyNavState.cardBackImg = null; studyNavState.cardBackFile = null;
+    render();
+  };
+  const scBackImage = document.getElementById("sc-back-image");
+  if(scBackImage) scBackImage.onchange = ()=>{
+    cardSyncDraft();
+    studyNavState.cardBackFile = (scBackImage.files && scBackImage.files[0]) || null;
+    render();
+  };
+
+  // 이미지 없는 카드 일괄 채우기 — 카드마다 AI가 고른 사진(추천이 있을 때만)을 넣고 한 번에 발행한다.
+  // 두 장씩 동시에 찾는다(한 장 20~40초). 맞는 사진이 없는 카드는 그대로 둔다.
+  const scImgBatch = document.getElementById("sc-img-batch");
+  if(scImgBatch) scImgBatch.onclick = async ()=>{
+    if(studyNavState.imgBatch || studyCardsState.busy) return;
+    const deck = currentStudyDecks().find(d=>d.key===studyNavState.deckKey);
+    if(!deck) return;
+    const targets = deck.cards.filter(c=>!c.backImage);
+    if(!targets.length) return;
+    const mins = Math.max(1, Math.ceil(targets.length * 30 / 2 / 60));
+    if(!confirm(`뒷면 이미지가 없는 카드 ${targets.length}장에 AI가 고른 대표 사진을 넣고 바로 발행합니다.\n\n약 ${mins}분 걸립니다. 끝난 뒤 카드를 넘겨 보며 확인하고, 맞지 않는 사진은 편집에서 바꾸거나 뺄 수 있습니다.\n\n시작할까요?`)) return;
+    studyNavState.imgBatch = { done:0, total: targets.length };
+    studyCardsState.busy = true; studyCardsState.msg = `🖼️ 대표 이미지 찾는 중 0/${targets.length}`; render();
+    const found = {};
+    let none = 0, failed = 0, firstErr = "", next = 0;
+    const worker = async ()=>{
+      while(next < targets.length){
+        const c = targets[next++];
+        const r = await findCardImage(c.front, c.back, deck.title);
+        if(r.ok && r.chosen >= 0 && r.candidates && r.candidates[r.chosen]) found[c.key] = cardCandToBackImage(r.candidates[r.chosen]);
+        else if(r.ok) none++;
+        else { failed++; if(!firstErr) firstErr = r.error; }
+        studyNavState.imgBatch.done++;
+        studyCardsState.msg = `🖼️ 대표 이미지 찾는 중 ${studyNavState.imgBatch.done}/${targets.length}`;
+        render();
+      }
+    };
+    try {
+      await Promise.all([worker(), worker()]);
+      const n = Object.keys(found).length;
+      const tail = (none ? ` · ${none}장은 맞는 사진 없음` : "") + (failed ? ` · ${failed}장 실패(${firstErr})` : "");
+      if(!n){
+        studyCardsState.msg = "넣을 사진을 찾지 못했습니다" + tail;
+      } else {
+        // 기다리는 동안 바뀐 내용을 덮지 않게 최신 덱 목록에 사진만 끼워 넣는다.
+        const decks = currentStudyDecks().map(d => d.key!==deck.key ? d : Object.assign({}, d, {
+          cards: d.cards.map(c => (found[c.key] && !c.backImage) ? Object.assign({}, c, { backImage: found[c.key] }) : c),
+        }));
+        studyCardsState.msg = "발행 중...";
+        render();
+        const pr = await publishStudyDecks(decks, "🎓 카드 뒷면 대표 이미지 " + n + "장 추가: " + deck.title);
+        studyCardsState.msg = pr.ok ? `${n}장에 대표 이미지를 넣어 발행했습니다${tail} — 카드를 넘겨 확인하세요` : ("발행 실패: " + pr.error);
+      }
+    } finally {
+      studyNavState.imgBatch = null;
+      studyCardsState.busy = false;
+      render();
+    }
   };
   document.querySelectorAll(".study-card-del-btn").forEach(b=>b.onclick=async ()=>{
     const cardKey = b.dataset.card;
@@ -11057,10 +11306,19 @@ function attachEvents(){
       try { imageUrl = await uploadStudyCardImage(cardKey, file); }
       catch(e){ studyCardsState.busy = false; studyCardsState.msg = "이미지 업로드 실패: " + (e.message||e); render(); return; }
     }
+    // 뒷면 대표 이미지: 직접 올린 사진 > 새로 고른 사진(null이면 뺌) > 편집 중인 카드의 기존 사진.
+    let backImage = studyNavState.cardBackImg !== undefined
+      ? studyNavState.cardBackImg
+      : (editKey ? (deck.cards.find(c=>c.key===editKey)||{}).backImage : undefined);
+    if(studyNavState.cardBackFile){
+      try { backImage = { url: await uploadStudyCardImage(cardKey + "_back", studyNavState.cardBackFile), source: "upload" }; }
+      catch(e){ studyCardsState.busy = false; studyCardsState.msg = "뒷면 이미지 업로드 실패: " + (e.message||e); render(); return; }
+    }
+    backImage = backImage || undefined; // null(뺌)은 저장하지 않는다 — JSON에서 키가 빠진다
     const decks = currentStudyDecks().map(d => d.key!==deck.key ? d : Object.assign({}, d, {
       cards: editKey
-        ? d.cards.map(c=>c.key===editKey?Object.assign({},c,{front,back,imageUrl}):c)
-        : d.cards.concat([{ key:cardKey, front, back, imageUrl }]),
+        ? d.cards.map(c=>c.key===editKey?Object.assign({},c,{front,back,imageUrl,backImage}):c)
+        : d.cards.concat([{ key:cardKey, front, back, imageUrl, backImage }]),
     }));
     const r = await publishStudyDecks(decks, "🎓 카드 " + (editKey?"수정":"추가") + ": " + front.slice(0,20));
     studyCardsState.busy = false;
