@@ -12,7 +12,13 @@
 // 된다(재배포 필요).
 
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
+const Anthropic = require("@anthropic-ai/sdk");
+
+// Claude API 키는 Firebase 비밀값으로만 둔다(브라우저에 절대 노출되지 않게).
+// 등록: firebase functions:secrets:set ANTHROPIC_API_KEY
+const ANTHROPIC_API_KEY = defineSecret("ANTHROPIC_API_KEY");
 
 admin.initializeApp();
 
@@ -162,6 +168,87 @@ exports.getPremiumContent = onCall(async (request) => {
   } catch (e) {
     throw new HttpsError("internal", "저장된 내용을 읽지 못했습니다.");
   }
+});
+
+// 관리 화면의 AI 초안 두 가지 — "농장에서 많이 궁금해 하는 질문"(faq) 답변과
+// "최수의사의 온라인 학습"(card) 카드 뒷면. 초안은 수의사가 검토·수정한 뒤에만
+// 발행되므로(index.html은 폼에 채워 넣기만 하고 발행하지 않는다) 여기서는 문체와
+// 안전선(처방·신고대상 질병)만 잡아 준다.
+const FAQ_SYSTEM_PROMPT = `당신은 현장 양계 전문 수의사가 운영하는 농장동물 컨설팅 서비스(유료회원 대상)의 "농장에서 많이 궁금해 하는 질문" 답변 초안을 씁니다. 초안은 수의사가 검토·수정한 뒤 게시되고, 읽는 사람은 육계·산란계·토종닭 농장주입니다.
+
+답변 방식
+- 한국어 존댓말로, 농장에서 바로 확인하고 실행할 수 있는 내용을 3~5문장 정도로 씁니다. 원인이 여러 가지면 먼저 확인할 순서대로 짚어 줍니다.
+- 화면에 그대로 표시되는 평문이라 마크다운(제목, 굵게, 목록 기호)은 쓰지 않습니다. 순서를 나열할 때는 ①②③ 정도만 씁니다.
+- 질문을 다시 옮겨 적거나 인사말을 붙이지 말고 답변 본문만 씁니다.
+
+지켜야 할 것
+- 항생제 등 동물용의약품은 계열·성분군 수준까지만 언급하고 제품명·용량을 정해 주지 않습니다. 약이 필요한 상황이면 담당 수의사의 진단·처방을 받도록 안내합니다(국내 수의사처방제 대상).
+- 고병원성 AI·뉴캣슬병 등 가축전염병예방법상 신고대상 질병이 의심되는 상황이면 즉시 가축방역기관에 신고하도록 안내합니다.
+- 확실하지 않은 수치는 지어내지 말고, 품종·일령·계사 환경에 따라 달라진다고 밝힙니다.
+- 농장동물 사양·질병·방역과 관계없는 질문이면 이 서비스에서 다루는 범위가 아니라고 한 문장으로만 답합니다.
+
+답변 예시(문체 참고)
+질문: 산란율이 며칠 사이 급격히 떨어졌어요. 어떤 원인을 의심해야 하나요?
+답변: 전염성기관지염(IB)·산란저하증후군(EDS) 등 바이러스성 질병, 스트레스(온도 급변·소음·백신 접종), 사료 배합 변경, 조명시간 변화 등을 순서대로 점검하세요. 동시에 폐사·호흡기 증상이 함께 있는지도 확인이 필요합니다.`;
+
+const CARD_SYSTEM_PROMPT = `당신은 현장 양계 전문 수의사가 만든 온라인 학습용 플래시카드의 뒷면을 씁니다. 앞면에는 질문이나 용어가 있고, 뒷면에는 그 답이나 설명이 들어갑니다. 읽는 사람은 양계 농장주와 농장 관리자입니다.
+
+- 한국어로 간단명료하게, 1~3문장이나 짧은 핵심어 나열로 씁니다. 카드 한 장을 보고 바로 기억할 수 있을 만큼 짧아야 합니다.
+- 화면에 그대로 표시되는 평문이라 마크다운은 쓰지 않습니다. 앞면을 다시 옮겨 적지 말고 답만 씁니다.
+- 약품은 계열·성분군 수준까지만 쓰고 제품명·용량은 쓰지 않습니다.
+- 확실하지 않은 수치는 지어내지 않습니다.
+- 덱 주제가 주어지면 그 맥락에 맞춰 답합니다.
+
+예시
+앞면: 뉴캣슬병의 대표 증상은?
+뒷면: 호흡기 증상(기침·헐떡임), 신경 증상(목 비틀림·마비), 산란율 급감, 녹색 설사`;
+
+const AI_DRAFT_KINDS = {
+  faq:  { system: FAQ_SYSTEM_PROMPT,  label: "질문" },
+  card: { system: CARD_SYSTEM_PROMPT, label: "앞면" },
+};
+
+exports.generateAiDraft = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 120 }, async (request) => {
+  assertAdmin(request);
+  const data = request.data || {};
+  const kind = AI_DRAFT_KINDS[data.kind];
+  if (!kind) throw new HttpsError("invalid-argument", "kind는 faq 또는 card여야 합니다.");
+  const text = String(data.text || "").trim();
+  const context = String(data.context || "").trim().slice(0, 200);
+  if (!text) throw new HttpsError("invalid-argument", `${kind.label}을 입력하세요.`);
+  if (text.length > 500) throw new HttpsError("invalid-argument", `${kind.label}이 너무 깁니다(500자 이내).`);
+
+  const userContent = (context ? `덱 주제: ${context}\n` : "") + `${kind.label}: ${text}`;
+  const client = new Anthropic({ apiKey: ANTHROPIC_API_KEY.value() });
+  let response;
+  try {
+    // 안전 분류기가 거절하면 서버가 권장 모델로 자동 재시도(fallbacks: "default").
+    response = await client.beta.messages.create({
+      model: "claude-opus-5",
+      max_tokens: 16000,
+      betas: ["server-side-fallback-2026-07-01"],
+      fallbacks: "default",
+      system: kind.system,
+      messages: [{ role: "user", content: userContent }],
+    });
+  } catch (e) {
+    if (e instanceof Anthropic.AuthenticationError) {
+      throw new HttpsError("failed-precondition", "Claude API 키가 올바르지 않습니다 — Firebase 비밀값 ANTHROPIC_API_KEY를 확인하세요.");
+    }
+    if (e instanceof Anthropic.RateLimitError) {
+      throw new HttpsError("resource-exhausted", "요청이 많아 잠시 뒤 다시 시도해 주세요.");
+    }
+    if (e instanceof Anthropic.APIError) {
+      throw new HttpsError("internal", `Claude API 오류(${e.status ?? "연결"}): ${e.message}`);
+    }
+    throw new HttpsError("internal", e.message || String(e));
+  }
+  if (response.stop_reason === "refusal") {
+    throw new HttpsError("failed-precondition", "AI가 이 내용에는 초안을 만들지 않았습니다. 직접 작성해 주세요.");
+  }
+  const draft = response.content.filter((b) => b.type === "text").map((b) => b.text).join("").trim();
+  if (!draft) throw new HttpsError("internal", "AI 초안이 비어 있습니다. 다시 시도해 주세요.");
+  return { text: draft, model: response.model };
 });
 
 const BOARD_TYPES = ["diagnosis", "consult", "consulting"];

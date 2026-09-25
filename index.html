@@ -1049,7 +1049,10 @@ const DEFAULT_FARM_FAQ = [
   { key:"faq-consult", question:"우리 농장 상황을 직접 보고 상담받고 싶은데 어떻게 하나요?",
     answer:"유료서비스의 '온라인 상담'(간단 질문), '온라인 진단'(사진 첨부해 진단 요청), '온라인 컨설팅'(농장 현황을 바탕으로 맞춤 프로그램 작성) 메뉴를 이용하시면 최동명 수의사가 직접 답변해 드립니다." },
 ];
-let faqState = { status:"idle", data:null, busy:false, msg:"", adminOpen:false, formKey:undefined };
+// draft: 관리 폼에 입력 중인 질문·답변. render()가 화면 전체를 다시 그리므로 AI 초안을
+// 기다리는 동안이나 다시 그릴 때 입력이 사라지지 않게 여기에 보관한다.
+let faqState = { status:"idle", data:null, busy:false, msg:"", adminOpen:false, formKey:undefined,
+                 draft:null, aiBusy:false, aiDraft:false };
 let faqNavState = { open:{} };
 
 async function fetchFarmFaq(){
@@ -1088,6 +1091,21 @@ async function publishFarmFaq(items, message){
     faqState.data = body;
     return { ok:true };
   } catch(e) {
+    return { ok:false, error: e.message || String(e) };
+  }
+}
+
+// AI 초안 — Cloud Function generateAiDraft(관리자 전용, Claude API 키는 서버의
+// Firebase 비밀값에만 있음). kind "faq"는 자주 묻는 질문 답변, "card"는 온라인 학습
+// 카드 뒷면(간단명료). 폼에 채워 넣기만 하고 발행은 하지 않는다 — 수의사가
+// 검토·수정한 뒤 직접 발행한다.
+async function generateAiDraft(kind, text, context){
+  try {
+    const fn = firebase.app().functions().httpsCallable("generateAiDraft", { timeout: 120000 });
+    const res = await fn({ kind, text, context: context || "" });
+    const draft = (res.data && res.data.text) || "";
+    return draft ? { ok:true, text: draft } : { ok:false, error:"빈 초안이 왔습니다" };
+  } catch(e){
     return { ok:false, error: e.message || String(e) };
   }
 }
@@ -4294,7 +4312,10 @@ let disinfectTabState = { openKey: null, adminOpen: false, formKey: undefined };
 // 학습 화면 내비게이션 — deckKey가 없으면 덱 목록, 있으면 그 덱의 카드
 // 뷰어(cardIndex번째 카드, flipped면 뒷면 표시 중). deckFormKey/cardFormKey는
 // 관리자가 덱/카드를 추가·편집할 때 쓰는 폼 상태다(둘 다 undefined면 새로 추가).
-let studyNavState = { deckKey: null, cardIndex: 0, flipped: false, adminOpen: false, deckFormKey: undefined, cardFormKey: undefined };
+// cardDraft/cardDraftFile: 카드 폼 입력값과 고른 이미지 — AI 뒷면 초안을 기다리는 동안
+// render()가 폼을 다시 그려도 입력·선택한 파일이 사라지지 않게 보관한다.
+let studyNavState = { deckKey: null, cardIndex: 0, flipped: false, adminOpen: false, deckFormKey: undefined, cardFormKey: undefined,
+                      cardDraft: null, cardDraftFile: null, cardAiBusy: false, cardAiDraft: false };
 
 // 관리(추가/편집) 폼에 넣을 값 — null이면 새로 추가하는 중, 객체면 그 항목을 편집 중.
 // 프로그램 단계는 "제목|설명" 한 줄씩 textarea로 입력받아 저장할 때 배열로 바꾼다
@@ -4847,6 +4868,10 @@ function renderFarmFaqPanel(){
   </div>` : `<div class="card" style="text-align:center;padding:28px 16px;color:#aaa">아직 등록된 질문이 없습니다.${admin?"":" 곧 추가됩니다."}</div>`;
 
   const editing = faqState.formKey && items.find(it=>it.key===faqState.formKey);
+  const dft = faqState.draft;
+  const qVal = dft ? dft.question : (editing ? editing.question : "");
+  const aVal = dft ? dft.answer : (editing ? editing.answer : "");
+  const lock = faqState.aiBusy ? "disabled" : "";
   const adminBox = !admin ? "" : `
   <div style="margin-top:16px;border-top:1px dashed #eee;padding-top:12px">
     <button id="faq-admin-toggle" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:3px 9px">${faqState.adminOpen?"관리 닫기":"⚙ 관리"}</button>
@@ -4854,12 +4879,17 @@ function renderFarmFaqPanel(){
     ${faqState.adminOpen ? `
     <div style="margin-top:9px;background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">
       <div style="font-size:11px;font-weight:700;color:#7A5C00;margin-bottom:8px">${editing?"질문 수정":"새 질문 추가"}</div>
-      <input id="faq-question" type="text" placeholder="질문" value="${esc(editing?editing.question:"")}"
-        style="width:100%;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;margin-bottom:6px;box-sizing:border-box" />
-      <textarea id="faq-answer" placeholder="답변"
-        style="width:100%;min-height:90px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:8px">${esc(editing?editing.answer:"")}</textarea>
+      <input id="faq-question" type="text" placeholder="질문" value="${esc(qVal)}" ${lock}
+        style="width:100%;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;margin-bottom:8px;box-sizing:border-box" />
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:5px">
+        <span style="font-size:10.5px;color:#888">답변 — 비워 두고 발행을 누르면 AI가 초안을 채웁니다</span>
+        <button id="faq-ai-btn" ${faqState.aiBusy||faqState.busy?"disabled":""} style="border:1px solid #6A1B9A;background:${faqState.aiBusy?"#EEE":"#F6EFFA"};color:#6A1B9A;border-radius:7px;padding:5px 11px;font-size:11.5px;font-weight:700;cursor:pointer">${faqState.aiBusy?"✨ 작성 중...":(aVal.trim()?"✨ AI로 다시 작성":"✨ AI 답변 작성")}</button>
+      </div>
+      <textarea id="faq-answer" placeholder="답변" ${lock}
+        style="width:100%;min-height:110px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:8px">${esc(aVal)}</textarea>
+      ${faqState.aiDraft ? `<div style="font-size:10.5px;color:#6A1B9A;background:#F6EFFA;border-radius:6px;padding:6px 8px;margin:-2px 0 8px;line-height:1.5">✨ AI가 쓴 초안입니다 — 사실관계와 약품·처방 관련 내용을 꼭 확인·수정한 뒤 발행하세요.</div>` : ""}
       <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-        <button id="faq-save" ${faqState.busy?"disabled":""} style="border:1px solid #B8860B;background:${faqState.busy?"#ccc":"#B8860B"};color:#fff;border-radius:7px;padding:7px 15px;font-size:12px;font-weight:600">${faqState.busy?"발행 중...":(editing?"수정 발행":"추가 발행")}</button>
+        <button id="faq-save" ${faqState.busy||faqState.aiBusy?"disabled":""} style="border:1px solid #B8860B;background:${faqState.busy||faqState.aiBusy?"#ccc":"#B8860B"};color:#fff;border-radius:7px;padding:7px 15px;font-size:12px;font-weight:600">${faqState.busy?"발행 중...":(editing?"수정 발행":"추가 발행")}</button>
         ${editing?`<button id="faq-cancel" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:6px 10px">취소</button>`:""}
       </div>
     </div>` : ""}
@@ -5060,6 +5090,10 @@ function renderStudyPanel(){
   </div>`;
 
   const editingCard = nav.cardFormKey && cardsArr.find(c=>c.key===nav.cardFormKey);
+  const cDft = nav.cardDraft;
+  const fVal = cDft ? cDft.front : (editingCard ? editingCard.front : "");
+  const bVal = cDft ? cDft.back : (editingCard ? editingCard.back : "");
+  const cLock = nav.cardAiBusy ? "disabled" : "";
   const cardAdminBox = !admin ? "" : `
   <div style="margin-top:18px;border-top:1px dashed #eee;padding-top:12px">
     <button id="study-card-admin-toggle" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:3px 9px">${nav.adminOpen?"카드 관리 닫기":"⚙ 카드 관리"}</button>
@@ -5073,14 +5107,19 @@ function renderStudyPanel(){
       </div>`).join("")}
       <div style="margin-top:10px;background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">
         <div style="font-size:11px;font-weight:700;color:#7A5C00;margin-bottom:8px">${editingCard?"카드 수정":"새 카드 추가"}</div>
-        <textarea id="sc-front" placeholder="앞면 (질문/용어)"
-          style="width:100%;min-height:50px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:6px">${esc(editingCard?editingCard.front:"")}</textarea>
-        <textarea id="sc-back" placeholder="뒷면 (답/설명)"
-          style="width:100%;min-height:70px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:6px">${esc(editingCard?editingCard.back:"")}</textarea>
-        <div style="font-size:10px;color:#888;margin-bottom:4px">이미지(선택)${editingCard&&editingCard.imageUrl?" — 새 파일을 고르지 않으면 기존 이미지 유지":""}</div>
-        <input type="file" accept="image/*" id="sc-image" style="width:100%;font-size:11.5px;margin-bottom:8px" />
+        <textarea id="sc-front" placeholder="앞면 (질문/용어)" ${cLock}
+          style="width:100%;min-height:50px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:8px">${esc(fVal)}</textarea>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:5px">
+          <span style="font-size:10.5px;color:#888">뒷면 — 앞면을 쓰고 넘어가면 AI가 간단명료하게 채웁니다</span>
+          <button id="sc-ai-btn" ${nav.cardAiBusy||studyCardsState.busy?"disabled":""} style="border:1px solid #6A1B9A;background:${nav.cardAiBusy?"#EEE":"#F6EFFA"};color:#6A1B9A;border-radius:7px;padding:5px 11px;font-size:11.5px;font-weight:700;cursor:pointer">${nav.cardAiBusy?"✨ 작성 중...":(bVal.trim()?"✨ AI로 다시 작성":"✨ AI 뒷면 작성")}</button>
+        </div>
+        <textarea id="sc-back" placeholder="뒷면 (답/설명)" ${cLock}
+          style="width:100%;min-height:70px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:6px">${esc(bVal)}</textarea>
+        ${nav.cardAiDraft ? `<div style="font-size:10.5px;color:#6A1B9A;background:#F6EFFA;border-radius:6px;padding:6px 8px;margin:0 0 8px;line-height:1.5">✨ AI가 쓴 뒷면 초안입니다 — 내용을 확인·수정한 뒤 발행하세요.</div>` : ""}
+        <div style="font-size:10px;color:#888;margin-bottom:4px">이미지(선택)${editingCard&&editingCard.imageUrl?" — 새 파일을 고르지 않으면 기존 이미지 유지":""}${nav.cardDraftFile?` · <b style="color:#4527A0">📎 ${esc(nav.cardDraftFile.name)} 선택됨</b>`:""}</div>
+        <input type="file" accept="image/*" id="sc-image" ${cLock} style="width:100%;font-size:11.5px;margin-bottom:8px" />
         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-          <button id="stc-save" ${studyCardsState.busy?"disabled":""} style="border:1px solid #B8860B;background:${studyCardsState.busy?"#ccc":"#B8860B"};color:#fff;border-radius:7px;padding:7px 15px;font-size:12px;font-weight:600">${studyCardsState.busy?"발행 중...":(editingCard?"수정 발행":"추가 발행")}</button>
+          <button id="stc-save" ${studyCardsState.busy||nav.cardAiBusy?"disabled":""} style="border:1px solid #B8860B;background:${studyCardsState.busy||nav.cardAiBusy?"#ccc":"#B8860B"};color:#fff;border-radius:7px;padding:7px 15px;font-size:12px;font-weight:600">${studyCardsState.busy?"발행 중...":(editingCard?"수정 발행":"추가 발행")}</button>
           ${editingCard?`<button id="stc-cancel" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:6px 10px">취소</button>`:""}
         </div>
       </div>
@@ -10721,21 +10760,57 @@ function attachEvents(){
     faqNavState.open[key] = !faqNavState.open[key];
     render();
   });
+  const faqResetForm = ()=>{ faqState.draft = null; faqState.aiDraft = false; };
   const faqAdminToggle = document.getElementById("faq-admin-toggle");
   if(faqAdminToggle) faqAdminToggle.onclick = ()=>{
     faqState.adminOpen = !faqState.adminOpen;
     faqState.formKey = undefined;
     faqState.msg = "";
+    faqResetForm();
     render();
   };
   document.querySelectorAll(".faq-edit-btn").forEach(b=>b.onclick=()=>{
     faqState.adminOpen = true;
     faqState.formKey = b.dataset.key;
     faqState.msg = "";
+    faqResetForm();
     render();
   });
   const faqCancelBtn = document.getElementById("faq-cancel");
-  if(faqCancelBtn) faqCancelBtn.onclick = ()=>{ faqState.formKey = undefined; render(); };
+  if(faqCancelBtn) faqCancelBtn.onclick = ()=>{ faqState.formKey = undefined; faqResetForm(); render(); };
+
+  // AI 답변 초안 — 입력값은 draft에 담아 두고(재렌더 때 사라지지 않게), 질문 칸을
+  // 벗어날 때 답변이 비어 있으면 자동으로, 또는 버튼으로 초안을 채운다.
+  const faqQ = document.getElementById("faq-question");
+  const faqA = document.getElementById("faq-answer");
+  const faqSyncDraft = ()=>{ faqState.draft = { question: faqQ ? faqQ.value : "", answer: faqA ? faqA.value : "" }; };
+  const faqRunAi = async ()=>{
+    if(faqState.aiBusy) return;
+    faqSyncDraft();
+    const question = faqState.draft.question.trim();
+    if(!question){ alert("질문을 먼저 입력하세요."); return; }
+    faqState.aiBusy = true; faqState.msg = "✨ AI가 답변 초안을 쓰는 중... (보통 10~30초)"; render();
+    const r = await generateAiDraft("faq", question);
+    faqState.aiBusy = false;
+    if(r.ok){
+      faqState.draft = { question, answer: r.text };
+      faqState.aiDraft = true;
+      faqState.msg = "AI 초안을 넣었습니다 — 확인·수정한 뒤 발행하세요";
+    } else {
+      faqState.msg = "AI 초안 실패: " + r.error;
+    }
+    render();
+  };
+  if(faqQ){
+    faqQ.oninput = faqSyncDraft;
+    faqQ.onchange = ()=>{ if(faqQ.value.trim() && !(faqA && faqA.value.trim())) faqRunAi(); };
+  }
+  if(faqA) faqA.oninput = faqSyncDraft;
+  const faqAiBtn = document.getElementById("faq-ai-btn");
+  if(faqAiBtn) faqAiBtn.onclick = ()=>{
+    if(faqA && faqA.value.trim() && !confirm("지금 답변을 AI 초안으로 바꿀까요?")) return;
+    faqRunAi();
+  };
   document.querySelectorAll(".faq-del-btn").forEach(b=>b.onclick=async ()=>{
     const key = b.dataset.key;
     const item = currentFarmFaq().find(it=>it.key===key);
@@ -10753,7 +10828,8 @@ function attachEvents(){
     const question = (document.getElementById("faq-question")?.value || "").trim();
     const answer = (document.getElementById("faq-answer")?.value || "").trim();
     if(!question){ alert("질문을 입력하세요."); return; }
-    if(!answer){ alert("답변을 입력하세요."); return; }
+    // 답변이 비어 있으면 발행하지 않고 AI 초안부터 채운다 — 확인 후 다시 발행.
+    if(!answer){ faqRunAi(); return; }
 
     const items = currentFarmFaq().slice();
     const editKey = faqState.formKey;
@@ -10767,7 +10843,7 @@ function attachEvents(){
     const r = await publishFarmFaq(items, "❓ 자주 묻는 질문 " + (editKey?"수정":"추가") + ": " + question.slice(0,20));
     faqState.busy = false;
     faqState.msg = r.ok ? "발행 완료 — 모두에게 반영됩니다" : ("발행 실패: " + r.error);
-    if(r.ok) faqState.formKey = undefined;
+    if(r.ok){ faqState.formKey = undefined; faqResetForm(); }
     render();
   };
 
@@ -10892,21 +10968,62 @@ function attachEvents(){
   if(studyPrevBtn) studyPrevBtn.onclick = ()=>{ studyNavState.cardIndex = Math.max(0, studyNavState.cardIndex-1); studyNavState.flipped = false; render(); };
   const studyNextBtn = document.getElementById("study-next-btn");
   if(studyNextBtn) studyNextBtn.onclick = ()=>{ studyNavState.cardIndex += 1; studyNavState.flipped = false; render(); };
+  const cardResetForm = ()=>{
+    studyNavState.cardDraft = null; studyNavState.cardDraftFile = null; studyNavState.cardAiDraft = false;
+  };
   const studyCardAdminToggle = document.getElementById("study-card-admin-toggle");
   if(studyCardAdminToggle) studyCardAdminToggle.onclick = ()=>{
     studyNavState.adminOpen = !studyNavState.adminOpen;
     studyNavState.cardFormKey = undefined;
     studyCardsState.msg = "";
+    cardResetForm();
     render();
   };
   document.querySelectorAll(".study-card-edit-btn").forEach(b=>b.onclick=()=>{
     studyNavState.adminOpen = true;
     studyNavState.cardFormKey = b.dataset.card;
     studyCardsState.msg = "";
+    cardResetForm();
     render();
   });
   const scCancelBtn = document.getElementById("stc-cancel");
-  if(scCancelBtn) scCancelBtn.onclick = ()=>{ studyNavState.cardFormKey = undefined; render(); };
+  if(scCancelBtn) scCancelBtn.onclick = ()=>{ studyNavState.cardFormKey = undefined; cardResetForm(); render(); };
+
+  // AI 뒷면 초안 — 앞면을 쓰고 칸을 벗어날 때 뒷면이 비어 있으면 자동으로, 또는 버튼으로.
+  // 덱 제목을 주제로 같이 넘겨 맥락에 맞게 쓰게 한다.
+  const scFront = document.getElementById("sc-front");
+  const scBack = document.getElementById("sc-back");
+  const scImage = document.getElementById("sc-image");
+  const cardSyncDraft = ()=>{ studyNavState.cardDraft = { front: scFront ? scFront.value : "", back: scBack ? scBack.value : "" }; };
+  const cardRunAi = async ()=>{
+    if(studyNavState.cardAiBusy) return;
+    cardSyncDraft();
+    const front = studyNavState.cardDraft.front.trim();
+    if(!front){ alert("앞면을 먼저 입력하세요."); return; }
+    const deck = currentStudyDecks().find(d=>d.key===studyNavState.deckKey);
+    studyNavState.cardAiBusy = true; studyCardsState.msg = "✨ AI가 뒷면을 쓰는 중... (보통 10~30초)"; render();
+    const r = await generateAiDraft("card", front, deck ? deck.title : "");
+    studyNavState.cardAiBusy = false;
+    if(r.ok){
+      studyNavState.cardDraft = { front, back: r.text };
+      studyNavState.cardAiDraft = true;
+      studyCardsState.msg = "AI 뒷면 초안을 넣었습니다 — 확인·수정한 뒤 발행하세요";
+    } else {
+      studyCardsState.msg = "AI 초안 실패: " + r.error;
+    }
+    render();
+  };
+  if(scFront){
+    scFront.oninput = cardSyncDraft;
+    scFront.onchange = ()=>{ if(scFront.value.trim() && !(scBack && scBack.value.trim())) cardRunAi(); };
+  }
+  if(scBack) scBack.oninput = cardSyncDraft;
+  if(scImage) scImage.onchange = ()=>{ studyNavState.cardDraftFile = (scImage.files && scImage.files[0]) || null; };
+  const scAiBtn = document.getElementById("sc-ai-btn");
+  if(scAiBtn) scAiBtn.onclick = ()=>{
+    if(scBack && scBack.value.trim() && !confirm("지금 뒷면을 AI 초안으로 바꿀까요?")) return;
+    cardRunAi();
+  };
   document.querySelectorAll(".study-card-del-btn").forEach(b=>b.onclick=async ()=>{
     const cardKey = b.dataset.card;
     const deck = currentStudyDecks().find(d=>d.key===studyNavState.deckKey);
@@ -10926,8 +11043,10 @@ function attachEvents(){
     const front = (document.getElementById("sc-front")?.value || "").trim();
     const back = (document.getElementById("sc-back")?.value || "").trim();
     const fileInput = document.getElementById("sc-image");
-    const file = fileInput && fileInput.files && fileInput.files[0];
+    const file = (fileInput && fileInput.files && fileInput.files[0]) || studyNavState.cardDraftFile;
     if(!front){ alert("앞면 내용을 입력하세요."); return; }
+    // 뒷면이 비어 있으면 발행하지 않고 AI 초안부터 채운다 — 확인 후 다시 발행.
+    if(!back){ cardRunAi(); return; }
     const deck = currentStudyDecks().find(d=>d.key===studyNavState.deckKey);
     if(!deck) return;
     const editKey = studyNavState.cardFormKey;
@@ -10946,7 +11065,7 @@ function attachEvents(){
     const r = await publishStudyDecks(decks, "🎓 카드 " + (editKey?"수정":"추가") + ": " + front.slice(0,20));
     studyCardsState.busy = false;
     studyCardsState.msg = r.ok ? "발행 완료 — 모두에게 반영됩니다" : ("발행 실패: " + r.error);
-    if(r.ok) studyNavState.cardFormKey = undefined;
+    if(r.ok){ studyNavState.cardFormKey = undefined; cardResetForm(); }
     render();
   };
 
