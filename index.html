@@ -4194,19 +4194,45 @@ function qiaDetailInfo(link){
   return job;
 }
 
-// ── 결과 표 표시용 거르기 — 양계 농장용이라 휴약기간의 소·돼지 항목은 빼고,
-// 포장단위는 500g·1kg·1L만 보여 준다. 저장된 원문(r._휴약기간·r._포장)은 그대로 둔다.
-const WD_SPECIES = "소|돼지|닭|알|계란|산란계|육계|종계|오리|가금|착유우|우유|송아지|젖소|한우|육우|비육우|개|말|양|염소|메추리|칠면조|꿀벌|어류";
+// ── 결과 표 표시용 거르기 — 휴약기간은 축종을 골라 검색했으면 그 축종 것만, 아니면
+// 양계 농장용이라 소·돼지 항목을 뺀다. 포장단위는 500g·1kg·1L만 보여 준다.
+// 저장된 원문(r._휴약기간·r._포장)은 그대로 둔다.
+const WD_SPECIES = "소|돼지|닭|알|계란|산란계|육계|종계|병아리|오리|가금|착유우|우유|송아지|젖소|한우|육우|비육우|개|고양이|말|양|염소|메추리|칠면조|꿀벌|어류";
 const WD_DROP_SPECIES = /^(?:소|돼지|착유우|우유|송아지|젖소|한우|육우|비육우)$/;
+// 휴약기간 항목 이름 → 축종(DRUG_SPECIES key). 닭·오리는 알(식용란) 휴약기간도 같이 본다.
+const WD_SPECIES_GROUPS = {
+  chicken: /^(?:닭|알|계란|산란계|육계|종계|병아리|가금)$/,
+  duck:    /^(?:오리|알|가금)$/,
+  pig:     /^돼지$/,
+  cattle:  /^(?:소|착유우|우유|송아지|젖소|한우|육우|비육우)$/,
+  dog:     /^개$/,
+  cat:     /^고양이$/,
+  horse:   /^말$/,
+  bee:     /^꿀벌$/,
+  fish:    /^어류$/,
+};
 // 조각 맨 앞의 축종 이름들("돼지, 닭 :", "돼지.소 -", "3) 알")과 나머지를 나눈다.
 const WD_HEAD_RE = new RegExp(`^((?:${WD_SPECIES})(?:\\s*[,·.및와]\\s*(?:${WD_SPECIES}))*)(?=[\\s,·.:：\\-–(]|$)(.*)$`);
-function drugWithdrawalForPoultry(text){
+// onlySp(축종 key)를 주면 그 축종 항목만 남기고, 없으면 소·돼지 항목만 뺀다.
+// 축종 이름이 안 붙은 줄("5일", "배합사료 첨가시 7일")은 앞 항목을 따라가고, 맨 앞이면 남긴다.
+function drugWithdrawalForPoultry(text, onlySp){
   if(!text) return { text: "", onlyDropped: false };
+  const keepName = onlySp && WD_SPECIES_GROUPS[onlySp]
+    ? (n => WD_SPECIES_GROUPS[onlySp].test(n))
+    : (n => !WD_DROP_SPECIES.test(n));
   // 한 단락 안에 "닭 - 5일, 돼지.소 - 없음"이나 "…28일 2) 닭 : 7일"처럼 이어 붙은 경우도 조각낸다.
   const sp = `(?:${WD_SPECIES})(?:\\s*[,·.]\\s*(?:${WD_SPECIES}))*\\s*[:：\\-–]`;
+  // 단, "돼지, 닭 : 5일"처럼 쉼표 앞이 축종 이름뿐이면 한 항목이므로 다시 붙인다.
+  const namesOnly = new RegExp(`^(?:${WD_SPECIES})(?:\\s*[,·.및와]\\s*(?:${WD_SPECIES}))*$`);
+  const splitRe = new RegExp(`,\\s*(?=${sp})|\\s(?=\\(?\\d+\\)\\s*${sp})`);
   const pieces = String(text)
     .split(/\s+\/\s+|\s+·\s+/)
-    .flatMap(seg => seg.split(new RegExp(`,\\s*(?=${sp})|\\s(?=\\(?\\d+\\)\\s*${sp})`)))
+    .flatMap(seg => seg.split(splitRe).reduce((out, part) => {
+      const prev = out[out.length - 1];
+      if(prev !== undefined && namesOnly.test(prev.replace(/^[-–·•※\s]*(?:\(?\d+\)|\d+\.|[가-힣]\))?\s*/, "").trim())) out[out.length - 1] = prev + ", " + part;
+      else out.push(part);
+      return out;
+    }, []))
     .map(x => x.trim()).filter(Boolean);
   let dropping = false, dropped = 0;
   const kept = [];
@@ -4215,13 +4241,13 @@ function drugWithdrawalForPoultry(text){
     const m = body.match(WD_HEAD_RE);
     if(m){
       const names = m[1].split(/\s*[,·.및와]\s*/).filter(Boolean);
-      const stay = names.filter(n => !WD_DROP_SPECIES.test(n));
-      if(!stay.length){ dropping = true; dropped++; continue; }   // 소·돼지만 → 뺀다(딸린 "가) …"도)
+      const stay = names.filter(keepName);
+      if(!stay.length){ dropping = true; dropped++; continue; }   // 뺄 축종만 → 뺀다(딸린 "가) …"도)
       dropping = false;
       kept.push(stay.length === names.length ? body : stay.join(", ") + m[2]);
       continue;
     }
-    if(dropping){ dropped++; continue; }                          // 앞의 소·돼지 항목에 딸린 줄
+    if(dropping){ dropped++; continue; }                          // 앞의 뺀 축종 항목에 딸린 줄
     kept.push(piece.replace(/^[-–·•\s]+/, "") || piece);           // "가) 3일" 같은 하위 번호는 살린다
   }
   // 원문이 "닭 / : / 2일"처럼 쪼개져 있으면 "닭 : 2일"로 붙인다.
@@ -4663,6 +4689,8 @@ function renderDrugSearchPanel(){
   const modeBtn = (m, label) => `<button class="drug-mode-btn" data-mode="${m}"
     style="flex:1 1 56px;border:2px solid ${drugState.mode===m?"#00838F":"#eee"};background:${drugState.mode===m?"#00838F":"#fff"};color:${drugState.mode===m?"#fff":"#333"};border-radius:9px;padding:8px 6px;font-size:12px;font-weight:700;cursor:pointer">${label}</button>`;
 
+  // 축종을 골라 검색했으면 휴약기간은 그 축종 것만 보여 준다(고르지 않았으면 소·돼지만 뺀다).
+  const wdOnlySp = (useMode && drugState.use && drugState.use.sp) ? DRUG_SPECIES.find(x => x.key === drugState.use.sp) : null;
   const rowsHtml = drugState.rows.map((r, i) => {
     let wdCell;
     if(r.품목구분 && r.품목구분.includes("외품")){
@@ -4670,13 +4698,13 @@ function renderDrugSearchPanel(){
     } else if(r._wdStatus === "loading"){
       wdCell = `<span style="font-size:11px;color:#888">조회중...</span>`;
     } else if(r._wdStatus === "done"){
-      const pw = drugWithdrawalForPoultry(r._휴약기간);
+      const pw = drugWithdrawalForPoultry(r._휴약기간, wdOnlySp ? wdOnlySp.key : "");
       wdCell = r._wdErr
         ? `<span style="color:#C62828;font-size:11px">조회 오류</span>`
         : (pw.text
             ? `<span style="font-size:12px;font-weight:700;color:#00695C">${esc(pw.text)}</span>`
             : pw.onlyDropped
-              ? `<span style="color:#aaa;font-size:11px">소·돼지 휴약기간만 표기됨</span>`
+              ? `<span style="color:#aaa;font-size:11px">${wdOnlySp ? esc(wdOnlySp.label) + " 휴약기간 표기 없음(다른 축종만 표기)" : "소·돼지 휴약기간만 표기됨"}</span>`
               : `<span style="color:#E65100;font-size:11px">표기 확인 필요</span>`);
     } else if(r.링크){
       wdCell = `<button class="drug-wd-btn" data-idx="${i}" style="border:1px solid #00838F;border-radius:7px;background:#fff;color:#00838F;padding:3px 9px;font-size:10px;font-weight:700;cursor:pointer">조회</button>`;
@@ -4755,7 +4783,7 @@ function renderDrugSearchPanel(){
           <th style="padding:7px 8px;text-align:left;font-size:10px;color:#888;font-weight:600">업체명</th>
           <th style="padding:7px 8px;text-align:left;font-size:10px;color:#888;font-weight:600">주성분</th>
           <th style="padding:7px 8px;text-align:left;font-size:10px;color:#888;font-weight:600">포장단위<br><span style="font-weight:400">(500g·1kg·1L)</span></th>
-          <th style="padding:7px 8px;text-align:left;font-size:10px;color:#00838F;font-weight:600">휴약기간 <span style="font-weight:400;color:#888">(소·돼지 제외)</span></th>
+          <th style="padding:7px 8px;text-align:left;font-size:10px;color:#00838F;font-weight:600">휴약기간 <span style="font-weight:400;color:#888">(${wdOnlySp ? esc(wdOnlySp.label) + "만" : "소·돼지 제외"})</span></th>
         </tr></thead>
         <tbody>${rowsHtml}</tbody>
       </table></div>
