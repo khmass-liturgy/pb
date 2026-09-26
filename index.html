@@ -151,6 +151,8 @@
     [style*="grid-template-columns:1fr 1fr 1fr"] { grid-template-columns: 1fr !important; }
   }
   /* ── 브리핑 마크다운 스타일 ── */
+/* 약품조회 결과 표 — 열 폭을 고정 비율(colgroup)로 두므로 긴 낱말·영문명은 칸 안에서 줄바꿈 */
+.drug-result-table td{overflow-wrap:anywhere;vertical-align:top}
 </style>
 </head>
 <body>
@@ -4424,6 +4426,8 @@ function wdExtractPeriod(html){
   // 문자로 된 소제목("가./나./바./사." 등)은 축종별 하위 항목과 표기가 겹칠 일이 없어
   // 그대로 "새 소제목"의 확실한 신호로 쓴다.
   const isLetteredHeading = t => /^[가-힣]\s*\.\s*\S/.test(t);
+  // 휴약기간 다음에 흔히 오는 단락 제목들 — 여기서부터는 휴약기간이 아니다.
+  const WD_NEXT_SECTION = /^(?:※\s*)?(?:저장상의?\s*주의|저장\s*방법|보관\s*방법|기타\s*주의|권고\s*사항|사용상의?\s*주의|일반적\s*주의|포장\s*단위|유효\s*기간)/;
   // "바. 휴약기간" 처럼 소제목 한 줄로 끝나기도 하고, "1) 휴약기간 : 없음" / "바. 휴약기간 - 돼지 : 14일"
   // 처럼 소제목 뒤에 값이 바로 붙어 한 줄에 나오기도 한다 → 접두어만 매치해 나머지를 분리
   // "...휴약기간을 준수하지..." 같은 [권고사항] 속 문장은 조사가 바로 붙으므로
@@ -4443,12 +4447,25 @@ function wdExtractPeriod(html){
     // 하위 항목으로 보고 문자 소제목이 나올 때만 멈춘다. 두 경우 다 번호 하나만으로는
     // 소제목·하위항목을 구분할 수 없어서 나온 판단 기준이다.
     const headingNum = numberOf(t);
+    const nextText = from => {
+      for(let k = from; k < paras.length; k++){
+        const v = paras[k].textContent.replace(/\s+/g, " ").trim();
+        if(v) return v;
+      }
+      return "";
+    };
     for(let j = i + 1; j < paras.length; j++){
       const u = paras[j].textContent.replace(/\s+/g, " ").trim();
       if(!u) continue;
       if(u.startsWith("[")) break;
       if(isLetteredHeading(u)) break;
       if(headingNum != null && numberOf(u) === headingNum + 1) break;
+      // 다음 단락 제목("저장상의 주의사항"·"권고사항" 등)이 번호 없이 나오면 멈춘다.
+      if(WD_NEXT_SECTION.test(u)) break;
+      // "바." 처럼 글자 번호만 한 줄에 따로 있고 그다음 줄이 단락 제목인 문서도 있다
+      // (골든암피실린·오레오100 등) — 이걸 못 잡으면 주의사항 전체가 휴약기간에 섞인다.
+      if(/^[가-힣]\s*\.$/.test(u) && WD_NEXT_SECTION.test(nextText(j + 1))) break;
+      if(u === "※") continue; // 권고사항 앞에 홀로 붙는 기호
       lines.push(u);
     }
     if(lines.length) sections.push(lines.join(" / "));
@@ -4669,7 +4686,11 @@ function renderDrugSearchPanel(){
     resultBody = `
       ${fuzzyBanner}
       <div style="font-size:11px;color:#aaa;margin-bottom:8px">${infoLine}</div>
-      <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:720px;font-size:12px">
+      <div style="overflow-x:auto"><table class="drug-result-table" style="width:100%;border-collapse:collapse;min-width:780px;font-size:12px;table-layout:fixed">
+        <colgroup>
+          <col style="width:17%"><col style="width:8%"><col style="width:7%"><col style="width:9%">
+          <col style="width:9%"><col style="width:7%"><col style="width:43%">
+        </colgroup>
         <thead><tr style="border-bottom:2px solid #eee">
           <th style="padding:7px 8px;text-align:left;font-size:10px;color:#888;font-weight:600">제품명</th>
           <th style="padding:7px 8px;text-align:left;font-size:10px;color:#888;font-weight:600">업체명</th>
