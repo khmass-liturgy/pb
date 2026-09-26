@@ -4194,6 +4194,59 @@ function qiaDetailInfo(link){
   return job;
 }
 
+// ── 결과 표 표시용 거르기 — 양계 농장용이라 휴약기간의 소·돼지 항목은 빼고,
+// 포장단위는 500g·1kg·1L만 보여 준다. 저장된 원문(r._휴약기간·r._포장)은 그대로 둔다.
+const WD_SPECIES = "소|돼지|닭|알|계란|산란계|육계|종계|오리|가금|착유우|우유|송아지|젖소|한우|육우|비육우|개|말|양|염소|메추리|칠면조|꿀벌|어류";
+const WD_DROP_SPECIES = /^(?:소|돼지|착유우|우유|송아지|젖소|한우|육우|비육우)$/;
+// 조각 맨 앞의 축종 이름들("돼지, 닭 :", "돼지.소 -", "3) 알")과 나머지를 나눈다.
+const WD_HEAD_RE = new RegExp(`^((?:${WD_SPECIES})(?:\\s*[,·.및와]\\s*(?:${WD_SPECIES}))*)(?=[\\s,·.:：\\-–(]|$)(.*)$`);
+function drugWithdrawalForPoultry(text){
+  if(!text) return { text: "", onlyDropped: false };
+  // 한 단락 안에 "닭 - 5일, 돼지.소 - 없음"이나 "…28일 2) 닭 : 7일"처럼 이어 붙은 경우도 조각낸다.
+  const sp = `(?:${WD_SPECIES})(?:\\s*[,·.]\\s*(?:${WD_SPECIES}))*\\s*[:：\\-–]`;
+  const pieces = String(text)
+    .split(/\s+\/\s+|\s+·\s+/)
+    .flatMap(seg => seg.split(new RegExp(`,\\s*(?=${sp})|\\s(?=\\(?\\d+\\)\\s*${sp})`)))
+    .map(x => x.trim()).filter(Boolean);
+  let dropping = false, dropped = 0;
+  const kept = [];
+  for(const piece of pieces){
+    const body = piece.replace(/^[-–·•※\s]*(?:\(?\d+\)|\d+\.|[가-힣]\))?\s*/, "");
+    const m = body.match(WD_HEAD_RE);
+    if(m){
+      const names = m[1].split(/\s*[,·.및와]\s*/).filter(Boolean);
+      const stay = names.filter(n => !WD_DROP_SPECIES.test(n));
+      if(!stay.length){ dropping = true; dropped++; continue; }   // 소·돼지만 → 뺀다(딸린 "가) …"도)
+      dropping = false;
+      kept.push(stay.length === names.length ? body : stay.join(", ") + m[2]);
+      continue;
+    }
+    if(dropping){ dropped++; continue; }                          // 앞의 소·돼지 항목에 딸린 줄
+    kept.push(piece.replace(/^[-–·•\s]+/, "") || piece);           // "가) 3일" 같은 하위 번호는 살린다
+  }
+  // 원문이 "닭 / : / 2일"처럼 쪼개져 있으면 "닭 : 2일"로 붙인다.
+  const joined = kept.join(" / ").replace(/\s*\/\s*[:：]\s*\/\s*/g, " : ");
+  return { text: joined, onlyDropped: !kept.length && dropped > 0 };
+}
+// 포장단위에서 500g·1kg·1L만 골라 낸다("1,000g"·"1 리터/병"·"1000mL"·"lkg" 같은 표기도 맞춘다).
+function drugStandardPacks(text){
+  const t = String(text || "")
+    .replace(/(\d),(\d{3})(?!\d)/g, "$1$2")          // 1,000g → 1000g
+    .replace(/(^|[^0-9A-Za-z])[lI]\s*(kg|L)\b/g, "$11$2");  // lkg(1kg 오타) → 1kg
+  const found = new Set();
+  const re = /(\d+(?:\.\d+)?)\s*(kg|㎏|킬로그램|킬로|g|그램|mL|ml|㎖|밀리리터|L|ℓ|리터)(?![a-zA-Z])/g;
+  let m;
+  while((m = re.exec(t))){
+    const n = parseFloat(m[1]), u = m[2];
+    const grams = /^(kg|㎏|킬로그램|킬로)$/.test(u) ? n * 1000 : /^(g|그램)$/.test(u) ? n : null;
+    const ml = /^(L|ℓ|리터)$/.test(u) ? n * 1000 : /^(mL|ml|㎖|밀리리터)$/.test(u) ? n : null;
+    if(grams === 500) found.add("500g");
+    if(grams === 1000) found.add("1kg");
+    if(ml === 1000) found.add("1L");
+  }
+  return ["500g", "1kg", "1L"].filter(x => found.has(x));
+}
+
 // 효능효과에서 검색어 주변만 잘라 보여 준다(검색어는 강조).
 function drugEfficacySnippet(text, term){
   if(!text) return "";
@@ -4617,11 +4670,14 @@ function renderDrugSearchPanel(){
     } else if(r._wdStatus === "loading"){
       wdCell = `<span style="font-size:11px;color:#888">조회중...</span>`;
     } else if(r._wdStatus === "done"){
+      const pw = drugWithdrawalForPoultry(r._휴약기간);
       wdCell = r._wdErr
         ? `<span style="color:#C62828;font-size:11px">조회 오류</span>`
-        : (r._휴약기간
-            ? `<span style="font-size:12px;font-weight:700;color:#00695C">${esc(r._휴약기간)}</span>`
-            : `<span style="color:#E65100;font-size:11px">표기 확인 필요</span>`);
+        : (pw.text
+            ? `<span style="font-size:12px;font-weight:700;color:#00695C">${esc(pw.text)}</span>`
+            : pw.onlyDropped
+              ? `<span style="color:#aaa;font-size:11px">소·돼지 휴약기간만 표기됨</span>`
+              : `<span style="color:#E65100;font-size:11px">표기 확인 필요</span>`);
     } else if(r.링크){
       wdCell = `<button class="drug-wd-btn" data-idx="${i}" style="border:1px solid #00838F;border-radius:7px;background:#fff;color:#00838F;padding:3px 9px;font-size:10px;font-weight:700;cursor:pointer">조회</button>`;
     } else {
@@ -4636,10 +4692,13 @@ function renderDrugSearchPanel(){
         ? `<a href="${esc(r.링크)}" target="_blank" rel="noopener" style="color:#1565C0;font-weight:700;text-decoration:none">${esc(r.제품명||"")} ↗</a>`
         : `<strong>${esc(r.제품명||"")}</strong>`}${useInfo}</td>
       <td style="padding:7px 8px">${esc(r.업체명||"")}</td>
-      <td style="padding:7px 8px"><span style="font-size:10px;padding:2px 7px;border-radius:6px;background:${r.품목구분==="동물용의약품"?"#E3F2FD":"#F1F8E9"};color:${r.품목구분==="동물용의약품"?"#1565C0":"#558B2F"}">${esc(r.품목구분||"")}</span></td>
       <td style="padding:7px 8px;color:#666">${r.주성분 ? esc(r.주성분) : `<span style="color:#ccc;font-size:11px">정보 없음</span>`}</td>
-      <td style="padding:7px 8px;color:#444;font-size:11.5px;max-width:150px">${r._포장 ? esc(r._포장) : (r._wdStatus === "loading" ? `<span style="font-size:11px;color:#888">조회중...</span>` : `<span style="color:#ccc;font-size:11px">-</span>`)}</td>
-      <td style="padding:7px 8px;color:#aaa;font-size:11px">${esc(r.허가일||"")}</td>
+      <td style="padding:7px 8px;color:#444;font-size:11.5px">${(() => {
+        if(r._wdStatus === "loading" && !r._포장) return `<span style="font-size:11px;color:#888">조회중...</span>`;
+        const packs = drugStandardPacks(r._포장);
+        // 500g·1kg·1L 규격이 없으면 "-"(전체 규격은 마우스를 올리면 보인다)
+        return packs.length ? `<b>${packs.join(", ")}</b>` : `<span style="color:#ccc;font-size:11px" title="${esc(r._포장 || "")}">-</span>`;
+      })()}</td>
       <td style="padding:7px 8px">${wdCell}</td>
     </tr>`;
   }).join("");
@@ -4686,19 +4745,17 @@ function renderDrugSearchPanel(){
     resultBody = `
       ${fuzzyBanner}
       <div style="font-size:11px;color:#aaa;margin-bottom:8px">${infoLine}</div>
-      <div style="overflow-x:auto"><table class="drug-result-table" style="width:100%;border-collapse:collapse;min-width:780px;font-size:12px;table-layout:fixed">
+      <div style="overflow-x:auto"><table class="drug-result-table" style="width:100%;border-collapse:collapse;min-width:640px;font-size:12px;table-layout:fixed">
         <colgroup>
-          <col style="width:17%"><col style="width:8%"><col style="width:7%"><col style="width:9%">
-          <col style="width:9%"><col style="width:7%"><col style="width:43%">
+          <!-- 제품명 22%·업체명 10.5%(이전 17%·8%에서 30% 넓힘), 나머지는 주성분·포장단위·휴약기간 -->
+          <col style="width:22%"><col style="width:10.5%"><col style="width:13%"><col style="width:10.5%"><col style="width:44%">
         </colgroup>
         <thead><tr style="border-bottom:2px solid #eee">
           <th style="padding:7px 8px;text-align:left;font-size:10px;color:#888;font-weight:600">제품명</th>
           <th style="padding:7px 8px;text-align:left;font-size:10px;color:#888;font-weight:600">업체명</th>
-          <th style="padding:7px 8px;text-align:left;font-size:10px;color:#888;font-weight:600">구분</th>
           <th style="padding:7px 8px;text-align:left;font-size:10px;color:#888;font-weight:600">주성분</th>
-          <th style="padding:7px 8px;text-align:left;font-size:10px;color:#888;font-weight:600">포장단위</th>
-          <th style="padding:7px 8px;text-align:left;font-size:10px;color:#888;font-weight:600">허가일</th>
-          <th style="padding:7px 8px;text-align:left;font-size:10px;color:#00838F;font-weight:600">휴약기간</th>
+          <th style="padding:7px 8px;text-align:left;font-size:10px;color:#888;font-weight:600">포장단위<br><span style="font-weight:400">(500g·1kg·1L)</span></th>
+          <th style="padding:7px 8px;text-align:left;font-size:10px;color:#00838F;font-weight:600">휴약기간 <span style="font-weight:400;color:#888">(소·돼지 제외)</span></th>
         </tr></thead>
         <tbody>${rowsHtml}</tbody>
       </table></div>
