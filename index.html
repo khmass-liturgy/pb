@@ -4117,16 +4117,33 @@ const DRUG_SPECIES = [
 // 증상·질병 사전 — 초성으로 고를 수 있게(ㅎㅎㄱ → 호흡기) 효능효과에 자주 쓰이는 말을 모았다.
 // 사전에 없는 말도 글자로 입력하면 그대로 검색한다.
 const DRUG_SYMPTOM_TERMS = [
-  "호흡기","호흡기병","만성호흡기병","마이코플라스마","마이코플라즈마","기관지염","폐렴","흉막폐렴","위축성비염","비염",
-  "설사","세균성 설사","장염","괴사성 장염","대장균","대장균증","살모넬라","추백리","가금티푸스","콕시듐",
-  "클로스트리디움","포도상구균","연쇄상구균","파스튜렐라","가금콜레라","전염성코라이자","회장염","돼지적리","부종병","유행성설사",
-  "유방염","자궁내막염","부제병","관절염","피부염","창상","화농","농양","기생충","내부기생충",
-  "외부기생충","회충","조충","진드기","옴","구충","곰팡이","진균","곰팡이독소","스트레스",
-  "열스트레스","산란율","산란저하","난각","성장촉진","사료효율","증체","비타민","전해질","탈수",
-  "식욕부진","간기능","통풍","해열","진통","소염","빈혈","뉴캣슬병","조류인플루엔자","전염성기관지염",
-  "전염성후두기관염","마렉병","감보로","전염성F낭병","계두","뇌척수염","흑두병","소독",
+  "호흡기","호흡기병","만성호흡기병","마이코플라즈마","마이코플라스마","기관지염","기낭염","폐렴","흉막폐렴","위축성비염","비염",
+  "코라이자","전염성코라이자","설사","세균성 설사","장염","괴사성 장염","대장균","대장균증","살모넬라","추백리","가금티푸스","콕시듐",
+  "클로스트리디움","포도상구균","연쇄상구균","파스튜렐라","가금콜레라","패혈증","장독혈증","렙토스피라","회장염","돼지적리","부종병","유행성설사",
+  "유방염","자궁내막염","부제병","관절염","활막염","피부염","결막염","창상","화농","농양","기생충","내부기생충",
+  "외부기생충","회충","조충","진드기","와구모","옴","구충","곰팡이","진균","곰팡이독소","스트레스","항스트레스",
+  "열스트레스","산란율","산란저하","난각","난질","성장촉진","사료효율","증체","육질","면역","소화","비타민","결핍증","전해질","탈수",
+  "식욕","식욕부진","간기능","간염","통풍","골연증","구루병","해열","진통","소염","빈혈","뉴캣슬병","조류인플루엔자","전염성기관지염",
+  "전염성후두기관염","마렉병","감보로","전염성F낭병","계두","뇌척수염","흑두병","류코싸이토준","소독",
 ];
-const DRUG_SYMPTOM_QUICK = ["호흡기","설사","대장균","콕시듐","마이코플라스마","살모넬라","괴사성 장염","기생충","진드기","스트레스","산란저하","관절염"];
+// 사람이 흔히 쓰는 표기와 QIA 효능효과에 실제로 쓰인 표기가 다른 말 — 검색할 때는 오른쪽으로 찾는다.
+// (가금 대상 제품 395개 효능효과 표본에서 "마이코플라스마" 2건 대 "마이코플라즈마" 58건,
+// "괴사성 장염" 1건 대 "괴사성장염" 3건 — 띄어쓰기가 섞여 "괴사성"으로 찾는다.)
+const DRUG_SYMPTOM_ALIAS = {
+  "마이코플라스마": "마이코플라즈마",
+  "괴사성 장염": "괴사성",
+  "전염성코라이자": "코라이자",
+};
+// 입력칸이 비었을 때 보여 주는 "자주 찾는 증상" — QIA 효능효과(적응증) 표본(닭·돼지·오리·가금
+// 대상 499개, 수출용 제외, 2026-09)에서 가금 대상 제품에 많이 나온 말을 분야별·빈도순으로 묶었다.
+const DRUG_SYMPTOM_QUICK_GROUPS = [
+  { label:"호흡기",       terms:["호흡기","폐렴","마이코플라즈마","기관지염","코라이자","만성호흡기병","기낭염"] },
+  { label:"소화기·장",    terms:["설사","대장균","콕시듐","살모넬라","장염","괴사성 장염","소화"] },
+  { label:"세균·바이러스", terms:["파스튜렐라","뉴캣슬병","연쇄상구균","전염성기관지염","포도상구균","조류인플루엔자"] },
+  { label:"생산성·영양",  terms:["사료효율","성장촉진","산란율","면역","스트레스","비타민","증체","산란저하","난각","전해질","탈수","간기능"] },
+  { label:"기생충·기타",  terms:["기생충","해열","회충","관절염","진드기"] },
+];
+const DRUG_SYMPTOM_QUICK = DRUG_SYMPTOM_QUICK_GROUPS.flatMap(g => g.terms);
 
 // 한 글자씩 비교 — 입력 글자가 초성(ㄱ~ㅎ)이면 대상 글자의 초성과, 아니면 글자 그대로 비교.
 // 그래서 "ㅎㅎㄱ", "호ㅎ기", "호흡" 모두 "호흡기"에 맞는다. 맞는 위치(없으면 -1)를 돌려준다.
@@ -4304,7 +4321,7 @@ async function searchDrugUse(){
   if(drugState.mode === "species" && !sp){
     drugState.status = "error"; drugState.error = "축종을 골라 주세요"; render(); return;
   }
-  const term = sym || sp.term;
+  const term = (sym && DRUG_SYMPTOM_ALIAS[sym]) || sym || sp.term;
   drugState.query = term; drugState.page = 1; drugState.fuzzy = false;
   drugState.rows = []; drugState.total = 0; drugState.rawCount = 0; drugState.excluded = 0;
   drugState.use = { term, sp: sp ? sp.key : "", qiaPage: 0, qiaTotal: 0, scanned: 0 };
@@ -4675,12 +4692,22 @@ function renderDrugUseForm(){
 
 // 증상 후보 칩 — 입력할 때마다 이 부분만 다시 그린다(입력칸이 포커스를 잃지 않게).
 function renderDrugSuggestions(){
-  const list = drugSymptomSuggestions(drugState.symptom, 12);
   const typed = String(drugState.symptom || "").trim();
+  const chipOf = t => `<button class="drug-sugg-chip" data-term="${esc(t)}" style="border:1px solid ${t===typed?"#00838F":"#B2DFDB"};background:${t===typed?"#00838F":"#E0F2F1"};color:${t===typed?"#fff":"#00695C"};border-radius:14px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer">${esc(t)}</button>`;
+  if(!typed || DRUG_SYMPTOM_QUICK.includes(typed)){
+    // 입력이 없거나 자주 찾는 증상 칩을 눌러 검색한 뒤면 분야별 묶음을 그대로 보여 준다.
+    return `<div style="font-size:10.5px;color:#888;margin-bottom:5px">자주 찾는 증상 <span style="color:#bbb">— QIA 효능효과(적응증)에 많이 나오는 순</span></div>
+    ${DRUG_SYMPTOM_QUICK_GROUPS.map(g => `
+    <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-bottom:5px">
+      <span style="font-size:10px;color:#999;min-width:66px">${esc(g.label)}</span>
+      ${g.terms.map(chipOf).join("")}
+    </div>`).join("")}`;
+  }
+  const list = drugSymptomSuggestions(drugState.symptom, 12);
   if(!list.length) return `<div style="font-size:11px;color:#aaa">맞는 증상이 사전에 없습니다 — 글자로 입력하면 그대로 검색합니다</div>`;
   return `<div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
-    <span style="font-size:10.5px;color:#888">${typed ? "추천" : "자주 찾는 증상"}</span>
-    ${list.map(t => `<button class="drug-sugg-chip" data-term="${esc(t)}" style="border:1px solid ${t===typed?"#00838F":"#B2DFDB"};background:${t===typed?"#00838F":"#E0F2F1"};color:${t===typed?"#fff":"#00695C"};border-radius:14px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer">${esc(t)}</button>`).join("")}
+    <span style="font-size:10.5px;color:#888">추천</span>
+    ${list.map(chipOf).join("")}
   </div>`;
 }
 
