@@ -4110,9 +4110,6 @@ const DRUG_SPECIES = [
   { key:"cattle",  label:"소",   term:"소",   re:/(?:^|[^가-힣0-9])소(?:의|와)?(?![가-힣])|송아지|젖소|한우|육우|착유우|반추/ },
   { key:"dog",     label:"개",   term:"개",   re:/(?:^|[^가-힣0-9])개(?:의|와)?(?![가-힣])|애완견|반려견|강아지|자견|(?:^|[^가-힣0-9])견(?![가-힣])/ },
   { key:"cat",     label:"고양이", term:"고양이", re:/고양이|애완묘|반려묘/ },
-  { key:"horse",   label:"말",   term:"말",   re:/(?:^|[^가-힣0-9])말(?:의|과)?(?![가-힣])|경주마|망아지/ },
-  { key:"bee",     label:"꿀벌", term:"꿀벌", re:/꿀벌|봉군|양봉/ },
-  { key:"fish",    label:"어류", term:"어류", re:/어류|넙치|광어|조피볼락|우럭|송어|연어|뱀장어|잉어|참돔|양식어/ },
 ];
 // 증상·질병 사전 — 초성으로 고를 수 있게(ㅎㅎㄱ → 호흡기) 효능효과에 자주 쓰이는 말을 모았다.
 // 사전에 없는 말도 글자로 입력하면 그대로 검색한다.
@@ -4224,9 +4221,6 @@ const WD_SPECIES_GROUPS = {
   cattle:  /^(?:소|착유우|우유|송아지|젖소|한우|육우|비육우)$/,
   dog:     /^개$/,
   cat:     /^고양이$/,
-  horse:   /^말$/,
-  bee:     /^꿀벌$/,
-  fish:    /^어류$/,
 };
 // 조각 맨 앞의 축종 이름들("돼지, 닭 :", "돼지.소 -", "3) 알")과 나머지를 나눈다.
 const WD_HEAD_RE = new RegExp(`^((?:${WD_SPECIES})(?:\\s*[,·.및와]\\s*(?:${WD_SPECIES}))*)(?=[\\s,·.:：\\-–(]|$)(.*)$`);
@@ -4694,21 +4688,22 @@ function renderDrugUseForm(){
 function renderDrugSuggestions(){
   const typed = String(drugState.symptom || "").trim();
   const chipOf = t => `<button class="drug-sugg-chip" data-term="${esc(t)}" style="border:1px solid ${t===typed?"#00838F":"#B2DFDB"};background:${t===typed?"#00838F":"#E0F2F1"};color:${t===typed?"#fff":"#00695C"};border-radius:14px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer">${esc(t)}</button>`;
-  if(!typed || DRUG_SYMPTOM_QUICK.includes(typed)){
-    // 입력이 없거나 자주 찾는 증상 칩을 눌러 검색한 뒤면 분야별 묶음을 그대로 보여 준다.
-    return `<div style="font-size:10.5px;color:#888;margin-bottom:5px">자주 찾는 증상 <span style="color:#bbb">— QIA 효능효과(적응증)에 많이 나오는 순</span></div>
+  // 자주 찾는 증상(분야별 묶음)은 입력 중에도 늘 보여 준다 — 입력한 글자에 맞는 후보는 그 위에 따로.
+  const quick = `<div style="font-size:10.5px;color:#888;margin-bottom:5px">자주 찾는 증상 <span style="color:#bbb">— QIA 효능효과(적응증)에 많이 나오는 순</span></div>
     ${DRUG_SYMPTOM_QUICK_GROUPS.map(g => `
     <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-bottom:5px">
       <span style="font-size:10px;color:#999;min-width:66px">${esc(g.label)}</span>
       ${g.terms.map(chipOf).join("")}
     </div>`).join("")}`;
-  }
+  if(!typed || DRUG_SYMPTOM_QUICK.includes(typed)) return quick;
   const list = drugSymptomSuggestions(drugState.symptom, 12);
-  if(!list.length) return `<div style="font-size:11px;color:#aaa">맞는 증상이 사전에 없습니다 — 글자로 입력하면 그대로 검색합니다</div>`;
-  return `<div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
+  const matched = list.length
+    ? `<div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
     <span style="font-size:10.5px;color:#888">추천</span>
     ${list.map(chipOf).join("")}
-  </div>`;
+  </div>`
+    : `<div style="font-size:11px;color:#aaa">맞는 증상이 사전에 없습니다 — 글자로 입력하면 그대로 검색합니다</div>`;
+  return matched + `<div style="margin-top:9px;padding-top:8px;border-top:1px dashed #e5e5e5">${quick}</div>`;
 }
 
 function renderDrugSearchPanel(){
