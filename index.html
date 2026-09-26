@@ -654,7 +654,7 @@ let premiumState = {
 // PREMIUM_BOARDS(아래)에 정의된 같은 구조(회원별 비공개 게시판)를 쓴다 —
 // icon·title·desc·color는 메뉴 카드/미리보기에 공통으로 쓰이므로 여기 그대로 둔다.
 const PREMIUM_ITEMS = [
-  { key:"drug", icon:"💊", title:"약품조회 및 휴약기간 검색", desc:"동물용의약품을 제품명·업체명·성분명으로 검색하고, 축종별 휴약기간을 QIA 공식 데이터로 바로 확인합니다.", color:"#00838F" },
+  { key:"drug", icon:"💊", title:"약품조회 및 휴약기간 검색", desc:"동물용의약품을 제품명·업체명·성분명·축종·증상으로 검색하고, 축종별 휴약기간을 QIA 공식 데이터로 바로 확인합니다.", color:"#00838F" },
   { key:"research", icon:"📚", title:"기술탐구", desc:"질병논문·사양관리기술·컨설팅도구 최신 국제논문 5편씩을 매주 한글로 번역·요약해 드립니다.", color:"#6A1B9A" },
   { key:"treatment", icon:"💉", title:"상황별 처방(투약) 패키지", desc:"육계·산란계 농장 상황을 고르면 그에 맞는 투약(처방) 프로그램을 보여드립니다. 상황은 계속 추가됩니다.", color:"#C62828" },
   { key:"seasonal", icon:"🗓️", title:"계절별 투약(관리) 패키지", desc:"봄·여름·가을·겨울 시기별로 챙겨야 할 투약(백신)과 사양관리 주의사항을 안내합니다.", color:"#795548" },
@@ -4055,7 +4055,10 @@ function renderBriefingTab(){
 const QIA_BASE = "https://medi.qia.go.kr";
 
 let drugState = {
-  mode: "name",   // name | entp | ingr — 제품명/업체명/성분명 검색
+  mode: "name",   // name | entp | ingr | species | symptom — 제품명/업체명/성분명/축종별/증상별 검색
+  species: "chicken", // 축종별·증상별 검색의 축종(DRUG_SPECIES key, ""면 전체)
+  symptom: "",        // 축종별·증상별 검색의 증상·질병 키워드(QIA 효능효과 본문 검색어)
+  use: null,          // 축종별·증상별 검색 진행 상황 { term, sp, qiaPage, qiaTotal, scanned }
   kind: "",       // indutyClassCode 필터 ("" 전체 | "A0" 의약품)
   query: "",
   page: 1,
@@ -4067,8 +4070,16 @@ let drugState = {
   loadingMore: false,
 };
 
+function isDrugUseMode(mode){ return mode === "species" || mode === "symptom"; }
 function setDrugMode(mode){
+  // 이름 검색(제품·업체·성분)과 쓰임새 검색(축종·증상)은 결과를 불러오는 방식이 달라
+  // 둘 사이를 오갈 때는 결과를 비운다.
+  if(isDrugUseMode(mode) !== isDrugUseMode(drugState.mode)){
+    drugState.rows = []; drugState.total = 0; drugState.status = "idle"; drugState.error = "";
+    drugState.use = null; drugState.query = ""; drugState.fuzzy = false;
+  }
   drugState.mode = mode;
+  if(mode === "species" && !drugState.species) drugState.species = "chicken";
   render();
 }
 
@@ -4076,6 +4087,181 @@ function drugModePlaceholder(){
   return drugState.mode === "name" ? "제품명을 입력하세요 (예: 이보멕)"
     : drugState.mode === "entp" ? "업체명을 입력하세요 (예: 베링거)"
     : "성분명을 입력하세요 (예: 이버멕틴)";
+}
+
+// ── 축종별·증상별 검색 ─────────────────────────────────────────────────────
+// QIA 상세검색에는 축종 칸이 없고, 효능효과 본문 검색(eeDocData)은 한 번에 문구
+// 하나만 받는다("닭 호흡기"는 붙은 문구로만 찾아 0건). 그래서 증상·질병(없으면 축종
+// 이름)으로 효능효과를 검색한 뒤, 결과마다 상세 페이지의 효능효과에서 대상동물을
+// 읽어 축종으로 거른다. 상세 페이지는 빠르고(15건 동시 0.3초 안팎) 같은 페이지에서
+// 휴약기간도 읽을 수 있어 "조회" 버튼 없이 바로 채운다. 효능효과 검색 자체는 QIA
+// 서버에서 한 페이지(15건)에 7초 안팎 걸려 3페이지씩 동시에 불러온다.
+// re: 효능효과 본문에서 그 축종이 대상인지 판단하는 규칙. 한 글자 이름(소·개·말)은
+// "소독·감소·1개·분말"처럼 다른 낱말 속에 흔히 섞여 앞뒤가 한글이 아닐 때만 인정한다.
+// term: 증상 없이 축종만으로 찾을 때 QIA에 넘기는 효능효과 검색어.
+const DRUG_SPECIES = [
+  { key:"chicken", label:"닭",   term:"닭",   re:/닭|가금|산란계|육계|종계|병아리|초생추|브로일러/ },
+  { key:"duck",    label:"오리", term:"오리", re:/오리|가금/ },
+  { key:"pig",     label:"돼지", term:"돼지", re:/돼지|자돈|모돈|비육돈|양돈|육성돈/ },
+  { key:"cattle",  label:"소",   term:"소",   re:/(?:^|[^가-힣0-9])소(?:의|와)?(?![가-힣])|송아지|젖소|한우|육우|착유우|반추/ },
+  { key:"dog",     label:"개",   term:"개",   re:/(?:^|[^가-힣0-9])개(?:의|와)?(?![가-힣])|애완견|반려견|강아지|자견|(?:^|[^가-힣0-9])견(?![가-힣])/ },
+  { key:"cat",     label:"고양이", term:"고양이", re:/고양이|애완묘|반려묘/ },
+  { key:"horse",   label:"말",   term:"말",   re:/(?:^|[^가-힣0-9])말(?:의|과)?(?![가-힣])|경주마|망아지/ },
+  { key:"bee",     label:"꿀벌", term:"꿀벌", re:/꿀벌|봉군|양봉/ },
+  { key:"fish",    label:"어류", term:"어류", re:/어류|넙치|광어|조피볼락|우럭|송어|연어|뱀장어|잉어|참돔|양식어/ },
+];
+// 증상·질병 사전 — 초성으로 고를 수 있게(ㅎㅎㄱ → 호흡기) 효능효과에 자주 쓰이는 말을 모았다.
+// 사전에 없는 말도 글자로 입력하면 그대로 검색한다.
+const DRUG_SYMPTOM_TERMS = [
+  "호흡기","호흡기병","만성호흡기병","마이코플라스마","마이코플라즈마","기관지염","폐렴","흉막폐렴","위축성비염","비염",
+  "설사","세균성 설사","장염","괴사성 장염","대장균","대장균증","살모넬라","추백리","가금티푸스","콕시듐",
+  "클로스트리디움","포도상구균","연쇄상구균","파스튜렐라","가금콜레라","전염성코라이자","회장염","돼지적리","부종병","유행성설사",
+  "유방염","자궁내막염","부제병","관절염","피부염","창상","화농","농양","기생충","내부기생충",
+  "외부기생충","회충","조충","진드기","옴","구충","곰팡이","진균","곰팡이독소","스트레스",
+  "열스트레스","산란율","산란저하","난각","성장촉진","사료효율","증체","비타민","전해질","탈수",
+  "식욕부진","간기능","통풍","해열","진통","소염","빈혈","뉴캣슬병","조류인플루엔자","전염성기관지염",
+  "전염성후두기관염","마렉병","감보로","전염성F낭병","계두","뇌척수염","흑두병","소독",
+];
+const DRUG_SYMPTOM_QUICK = ["호흡기","설사","대장균","콕시듐","마이코플라스마","살모넬라","괴사성 장염","기생충","진드기","스트레스","산란저하","관절염"];
+
+// 한 글자씩 비교 — 입력 글자가 초성(ㄱ~ㅎ)이면 대상 글자의 초성과, 아니면 글자 그대로 비교.
+// 그래서 "ㅎㅎㄱ", "호ㅎ기", "호흡" 모두 "호흡기"에 맞는다. 맞는 위치(없으면 -1)를 돌려준다.
+function choseongMatchIndex(term, input){
+  const t = String(term).replace(/\s+/g, ""), q = String(input).replace(/\s+/g, "");
+  if(!q || q.length > t.length) return -1;
+  const same = (tc, qc) => tc === qc || (/[ㄱ-ㅎ]/.test(qc) && toChoseong(tc) === qc);
+  for(let i = 0; i + q.length <= t.length; i++){
+    let ok = true;
+    for(let k = 0; k < q.length; k++){ if(!same(t[i+k], q[k])){ ok = false; break; } }
+    if(ok) return i;
+  }
+  return -1;
+}
+// 입력에 맞는 증상 후보 — 앞에서 맞는 것, 짧은 것부터. 입력이 없으면 자주 찾는 증상.
+function drugSymptomSuggestions(input, max){
+  const q = String(input || "").trim();
+  if(!q) return DRUG_SYMPTOM_QUICK.slice(0, max || 12);
+  return DRUG_SYMPTOM_TERMS
+    .map(t => ({ t, i: choseongMatchIndex(t, q) }))
+    .filter(x => x.i >= 0)
+    .sort((a, b) => a.i - b.i || a.t.length - b.t.length)
+    .slice(0, max || 12)
+    .map(x => x.t);
+}
+
+// 동시에 n개씩만 실행하는 map — QIA에 한꺼번에 수십 건을 보내지 않으려고.
+async function qiaMapLimit(items, n, fn){
+  let next = 0;
+  await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => {
+    while(next < items.length){ const k = next++; await fn(items[k], k); }
+  }));
+}
+
+// 상세 페이지에서 효능효과 본문·대상동물·휴약기간을 읽는다(링크별로 한 번만).
+const qiaDetailCache = new Map();
+function qiaDetailInfo(link){
+  if(qiaDetailCache.has(link)) return qiaDetailCache.get(link);
+  const job = (async () => {
+    const res = await fetch(link);
+    if(!res.ok) throw new Error("상세 조회 실패 (" + res.status + ")");
+    const html = await res.text();
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const text = ((doc.body && doc.body.textContent) || "").replace(/\s+/g, " ");
+    // 상세 페이지 본문은 "효능효과 효능효과 폴딩 버튼 …(본문)… 용법용량 용법 용량 폴딩 버튼" 순서다.
+    const m = text.match(/효능\s*효과(?:\s*효능\s*효과)?(?:\s*폴딩\s*버튼)?\s*(.*?)\s*용법\s*용량/);
+    const efficacy = m ? m[1].slice(0, 1500) : "";
+    return { efficacy, species: DRUG_SPECIES.filter(sp => sp.re.test(efficacy)).map(sp => sp.key), wd: wdExtractPeriod(html) };
+  })();
+  qiaDetailCache.set(link, job);
+  job.catch(() => qiaDetailCache.delete(link));
+  return job;
+}
+
+// 효능효과에서 검색어 주변만 잘라 보여 준다(검색어는 강조).
+function drugEfficacySnippet(text, term){
+  if(!text) return "";
+  const i = term ? text.indexOf(term) : -1;
+  const start = i < 0 ? 0 : Math.max(0, i - 30);
+  const end = i < 0 ? 90 : i + term.length + 60;
+  const cut = text.slice(start, end);
+  const body = i < 0 ? esc(cut)
+    : esc(cut.slice(0, i - start)) + `<b style="color:#00838F">${esc(term)}</b>` + esc(cut.slice(i - start + term.length));
+  return (start > 0 ? "…" : "") + body + (end < text.length ? "…" : "");
+}
+
+// 축종별·증상별 검색 시작 — 초성만 입력했으면 사전에서 첫 후보로 바꿔 검색한다.
+async function searchDrugUse(){
+  const sp = DRUG_SPECIES.find(x => x.key === drugState.species) || null;
+  let sym = String(drugState.symptom || "").trim();
+  if(sym && /[ㄱ-ㅎㅏ-ㅣ]/.test(sym)){
+    const pick = drugSymptomSuggestions(sym, 1)[0];
+    if(!pick){
+      drugState.status = "error";
+      drugState.error = `"${sym}"에 맞는 증상을 찾지 못했어요 — 아래 목록에서 고르거나 글자로 입력해 주세요`;
+      render(); return;
+    }
+    sym = pick; drugState.symptom = pick;
+  }
+  if(drugState.mode === "symptom" && !sym){
+    drugState.status = "error"; drugState.error = "증상·질병을 입력하거나 아래 목록에서 골라 주세요"; render(); return;
+  }
+  if(drugState.mode === "species" && !sp){
+    drugState.status = "error"; drugState.error = "축종을 골라 주세요"; render(); return;
+  }
+  const term = sym || sp.term;
+  drugState.query = term; drugState.page = 1; drugState.fuzzy = false;
+  drugState.rows = []; drugState.total = 0;
+  drugState.use = { term, sp: sp ? sp.key : "", qiaPage: 0, qiaTotal: 0, scanned: 0 };
+  drugState.status = "loading"; drugState.error = "";
+  render();
+  try {
+    // 축종으로 거르면 첫 묶음에 남는 게 없을 수 있어, 결과가 나올 때까지 최대 3묶음(45건×3)을 본다.
+    for(let round = 0; round < 3; round++){
+      await loadDrugUsePages();
+      if(drugState.rows.length || drugState.use.scanned >= drugState.use.qiaTotal) break;
+      render();
+    }
+    drugState.status = "done";
+  } catch(e){
+    drugState.status = "error";
+    drugState.error = "조회 실패: " + e.message + " — 농림축산검역본부(QIA) 서버 연결에 문제가 있을 수 있습니다";
+    console.error(e);
+  }
+  render();
+}
+
+// 효능효과 검색 결과 3페이지를 동시에 받아, 상세 정보를 붙이고 축종으로 거른다.
+async function loadDrugUsePages(){
+  const u = drugState.use;
+  const lastPage = u.qiaTotal ? Math.ceil(u.qiaTotal / 15) : Infinity;
+  const pages = [1, 2, 3].map(k => u.qiaPage + k).filter(pg => pg <= lastPage);
+  if(!pages.length) return;
+  const results = await Promise.all(pages.map(pg => fetchQiaSearch(u.term, pg, "ee").catch(err => ({ rows: [], total: 0, err }))));
+  if(results.every(r => r.err)) throw results[0].err;
+  u.qiaTotal = Math.max(u.qiaTotal, ...results.map(r => r.total || 0));
+  u.qiaPage += pages.length;
+  const rows = results.flatMap(r => r.rows);
+  u.scanned += rows.length;
+  await qiaMapLimit(rows, 6, async r => {
+    if(!r.링크) return;
+    try {
+      const info = await qiaDetailInfo(r.링크);
+      r._효능 = info.efficacy; r._대상 = info.species;
+      r._휴약기간 = info.wd; r._wdStatus = "done";
+    } catch(e){ r._detailErr = true; }
+  });
+  const keep = u.sp ? rows.filter(r => r._대상 && r._대상.includes(u.sp)) : rows;
+  const seen = new Set(drugState.rows.map(r => r.링크));
+  keep.forEach(r => { if(!r.링크 || !seen.has(r.링크)){ seen.add(r.링크); drugState.rows.push(r); } });
+  drugState.total = drugState.rows.length;
+}
+
+async function loadMoreDrugUse(){
+  if(drugState.loadingMore || !drugState.use) return;
+  drugState.loadingMore = true; render();
+  try { await loadDrugUsePages(); }
+  catch(e){ alert("추가 조회 실패: " + e.message); }
+  drugState.loadingMore = false; render();
 }
 
 // QIA 검색결과 HTML 표를 파싱한다 — QIA는 API가 아니라 검색결과 페이지를
@@ -4106,10 +4292,13 @@ function parseQiaHtml(html){
   return { rows, total };
 }
 
-async function fetchQiaSearch(term, page){
+// field: name | entp | ingr | ee(효능효과 본문) — 생략하면 지금 검색 방식(drugState.mode)을 따른다.
+async function fetchQiaSearch(term, page, field){
+  field = field || drugState.mode;
   const params = new URLSearchParams({ page: String(page), searchDivision: "detail" });
-  if(drugState.mode === "name") params.set("itemName", term);
-  else if(drugState.mode === "entp") params.set("entpName", term);
+  if(field === "name") params.set("itemName", term);
+  else if(field === "entp") params.set("entpName", term);
+  else if(field === "ee") params.set("eeDocData", term); // 효능효과 본문 — 축종별·증상별 검색
   else params.set("ingrMainName", term); // 성분명 — QIA 폼에는 노출 안 되는 비공식 파라미터
   if(drugState.kind) params.set("indutyClassCode", drugState.kind);
   const res = await fetch(QIA_BASE + "/searchMedicine?" + params.toString());
@@ -4323,9 +4512,54 @@ async function loadDrugWithdrawal(i){
   render();
 }
 
+function renderDrugKindSelect(){
+  return `<select id="drug-kind" style="border:1px solid #ddd;border-radius:9px;padding:10px 10px;font-size:12px;color:#555">
+        <option value="" ${drugState.kind===""?"selected":""}>전체</option>
+        <option value="A0" ${drugState.kind==="A0"?"selected":""}>의약품</option>
+      </select>`;
+}
+
+// 축종별·증상별 검색 입력 — 축종 칩 + 증상 입력(초성 가능) + 증상 후보 칩.
+// 축종별은 축종이 필수·증상은 선택, 증상별은 증상이 필수·축종은 선택(전체 가능).
+function renderDrugUseForm(){
+  const speciesMode = drugState.mode === "species";
+  const chip = (key, label) => {
+    const on = drugState.species === key;
+    return `<button class="drug-species-chip" data-sp="${key}" style="border:2px solid ${on?"#00838F":"#e5e5e5"};background:${on?"#00838F":"#fff"};color:${on?"#fff":"#444"};border-radius:16px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer">${esc(label)}</button>`;
+  };
+  const speciesRow = `
+    <div style="font-size:11px;font-weight:700;color:#555;margin-bottom:5px">축종 ${speciesMode?"":"<span style=\"font-weight:400;color:#aaa\">(선택 — 고르면 그 축종 대상 제품만)</span>"}</div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:11px">
+      ${speciesMode ? "" : chip("", "전체")}${DRUG_SPECIES.map(sp => chip(sp.key, sp.label)).join("")}
+    </div>`;
+  const symptomRow = `
+    <div style="font-size:11px;font-weight:700;color:#555;margin-bottom:5px">증상·질병 ${speciesMode?"<span style=\"font-weight:400;color:#aaa\">(선택)</span>":""} <span style="font-weight:400;color:#aaa">— 초성으로도 찾아요 (예: ㅎㅎㄱ → 호흡기, ㅋㅅㄷ → 콕시듐)</span></div>
+    <div style="display:flex;gap:8px;margin-bottom:7px;flex-wrap:wrap">
+      <input id="drug-sym" type="search" value="${esc(drugState.symptom)}" placeholder="예: 호흡기, 설사, ㄷㅈㄱ" autocomplete="off"
+        style="flex:1;min-width:160px;padding:10px 12px;border:1px solid #ddd;border-radius:9px;font-size:13px" />
+      ${renderDrugKindSelect()}
+      <button id="drug-use-search-btn" style="border:none;border-radius:9px;background:#00838F;color:#fff;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer">검색</button>
+    </div>
+    <div id="drug-sugg" style="margin-bottom:10px">${renderDrugSuggestions()}</div>`;
+  return (speciesMode ? speciesRow + symptomRow : symptomRow + speciesRow) + `
+    <div style="font-size:11px;color:#aaa;margin-bottom:14px;line-height:1.6">QIA 효능효과(적응증) 본문에서 찾습니다 · QIA 서버 검색에 10초 안팎 걸립니다 · 대상동물과 휴약기간은 각 제품 상세 정보에서 자동으로 읽어옵니다</div>`;
+}
+
+// 증상 후보 칩 — 입력할 때마다 이 부분만 다시 그린다(입력칸이 포커스를 잃지 않게).
+function renderDrugSuggestions(){
+  const list = drugSymptomSuggestions(drugState.symptom, 12);
+  const typed = String(drugState.symptom || "").trim();
+  if(!list.length) return `<div style="font-size:11px;color:#aaa">맞는 증상이 사전에 없습니다 — 글자로 입력하면 그대로 검색합니다</div>`;
+  return `<div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
+    <span style="font-size:10.5px;color:#888">${typed ? "추천" : "자주 찾는 증상"}</span>
+    ${list.map(t => `<button class="drug-sugg-chip" data-term="${esc(t)}" style="border:1px solid ${t===typed?"#00838F":"#B2DFDB"};background:${t===typed?"#00838F":"#E0F2F1"};color:${t===typed?"#fff":"#00695C"};border-radius:14px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer">${esc(t)}</button>`).join("")}
+  </div>`;
+}
+
 function renderDrugSearchPanel(){
+  const useMode = isDrugUseMode(drugState.mode);
   const modeBtn = (m, label) => `<button class="drug-mode-btn" data-mode="${m}"
-    style="flex:1;border:2px solid ${drugState.mode===m?"#00838F":"#eee"};background:${drugState.mode===m?"#00838F":"#fff"};color:${drugState.mode===m?"#fff":"#333"};border-radius:9px;padding:8px 6px;font-size:12px;font-weight:700;cursor:pointer">${label}</button>`;
+    style="flex:1 1 56px;border:2px solid ${drugState.mode===m?"#00838F":"#eee"};background:${drugState.mode===m?"#00838F":"#fff"};color:${drugState.mode===m?"#fff":"#333"};border-radius:9px;padding:8px 6px;font-size:12px;font-weight:700;cursor:pointer">${label}</button>`;
 
   const rowsHtml = drugState.rows.map((r, i) => {
     let wdCell;
@@ -4344,10 +4578,14 @@ function renderDrugSearchPanel(){
     } else {
       wdCell = `<span style="color:#ccc">-</span>`;
     }
+    // 축종별·증상별 검색 결과는 상세 정보에서 읽은 효능효과(검색어 주변)와 대상동물을 제품명 밑에 보여 준다.
+    const useInfo = (useMode && (r._효능 || (r._대상 && r._대상.length))) ? `
+        ${r._효능 ? `<div style="font-size:10.5px;color:#777;margin-top:3px;line-height:1.5;max-width:260px">${drugEfficacySnippet(r._효능, drugState.use && drugState.use.term)}</div>` : ""}
+        ${r._대상 && r._대상.length ? `<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:4px">${r._대상.map(k => { const sp = DRUG_SPECIES.find(x=>x.key===k); const on = drugState.use && drugState.use.sp === k; return `<span style="font-size:9.5px;padding:1px 6px;border-radius:8px;background:${on?"#00838F":"#ECEFF1"};color:${on?"#fff":"#546E7A"}">${esc(sp ? sp.label : k)}</span>`; }).join("")}</div>` : ""}` : "";
     return `<tr style="border-bottom:1px solid #f2f2f2">
       <td style="padding:7px 8px">${r.링크
         ? `<a href="${esc(r.링크)}" target="_blank" rel="noopener" style="color:#1565C0;font-weight:700;text-decoration:none">${esc(r.제품명||"")} ↗</a>`
-        : `<strong>${esc(r.제품명||"")}</strong>`}</td>
+        : `<strong>${esc(r.제품명||"")}</strong>`}${useInfo}</td>
       <td style="padding:7px 8px">${esc(r.업체명||"")}</td>
       <td style="padding:7px 8px"><span style="font-size:10px;padding:2px 7px;border-radius:6px;background:${r.품목구분==="동물용의약품"?"#E3F2FD":"#F1F8E9"};color:${r.품목구분==="동물용의약품"?"#1565C0":"#558B2F"}">${esc(r.품목구분||"")}</span></td>
       <td style="padding:7px 8px;color:#666">${r.주성분 ? esc(r.주성분) : `<span style="color:#ccc;font-size:11px">정보 없음</span>`}</td>
@@ -4356,9 +4594,15 @@ function renderDrugSearchPanel(){
     </tr>`;
   }).join("");
 
-  const hasMore = !drugState.fuzzy && drugState.rows.length < drugState.total;
+  const u = drugState.use;
+  const hasMore = useMode
+    ? !!(u && u.scanned < u.qiaTotal)
+    : (!drugState.fuzzy && drugState.rows.length < drugState.total);
+  const moreLabel = useMode && u
+    ? `더 찾아보기 (QIA ${u.qiaTotal.toLocaleString()}건 중 ${u.scanned.toLocaleString()}건 확인)`
+    : `더 보기 (${drugState.rows.length} / ${drugState.total})`;
   const moreBtn = hasMore
-    ? `<button id="drug-more-btn" ${drugState.loadingMore?"disabled":""} style="width:100%;margin-top:10px;border:1px solid #ddd;border-radius:9px;background:#fff;color:#555;padding:10px;font-size:12px;font-weight:600;cursor:pointer">${drugState.loadingMore?"불러오는 중...":`더 보기 (${drugState.rows.length} / ${drugState.total})`}</button>`
+    ? `<button id="drug-more-btn" ${drugState.loadingMore?"disabled":""} style="width:100%;margin-top:10px;border:1px solid #ddd;border-radius:9px;background:#fff;color:#555;padding:10px;font-size:12px;font-weight:600;cursor:pointer">${drugState.loadingMore?"불러오는 중... (10초 안팎)":moreLabel}</button>`
     : "";
 
   const fuzzyBanner = drugState.fuzzy
@@ -4367,21 +4611,26 @@ function renderDrugSearchPanel(){
       </div>`
     : "";
 
-  const infoLine = drugState.rows.length === 0 ? "" : drugState.fuzzy
+  const useSp = u && u.sp ? DRUG_SPECIES.find(x => x.key === u.sp) : null;
+  const infoLine = drugState.rows.length === 0 ? "" : (useMode && u)
+    ? `효능효과에 "${esc(u.term)}"이(가) 들어간 QIA 제품 ${u.qiaTotal.toLocaleString()}건 중 ${u.scanned.toLocaleString()}건 확인${useSp?` → ${esc(useSp.label)} 대상 ${drugState.rows.length}건`:""} · 대상동물·휴약기간은 각 제품 상세 정보에서 자동으로 읽었습니다`
+    : drugState.fuzzy
     ? `유사 검색 결과 ${drugState.rows.length}건 · 제품명 클릭시 공식 상세정보(새창)`
     : `QIA 공식 데이터 · 총 ${drugState.total.toLocaleString()}건 중 ${drugState.rows.length}건 표시 · 제품명 클릭시 공식 상세정보(새창)`;
 
   let resultBody;
   if(drugState.status === "idle"){
-    resultBody = `<div style="text-align:center;padding:24px;color:#aaa;font-size:12px">제품명·업체명·성분명으로 검색해보세요</div>`;
+    resultBody = `<div style="text-align:center;padding:24px;color:#aaa;font-size:12px">${useMode?(drugState.mode==="species"?"축종을 고르면 그 축종에 쓰는 약품을 찾아드려요 — 증상을 함께 넣으면 더 좁혀집니다":"증상·질병을 입력하거나 골라 보세요 — 축종을 고르면 그 축종 대상 제품만 보여드려요"):"제품명·업체명·성분명으로 검색해보세요"}</div>`;
   } else if(drugState.status === "loading"){
-    resultBody = `<div style="text-align:center;padding:24px;color:#aaa;font-size:12px">⏳ 조회 중...</div>`;
+    resultBody = `<div style="text-align:center;padding:24px;color:#aaa;font-size:12px">${useMode?`⏳ QIA 효능효과에서 "${esc(drugState.query)}" 검색 중... (10초 안팎)${u && u.scanned ? ` · ${u.scanned}건 확인` : ""}`:"⏳ 조회 중..."}</div>`;
   } else if(drugState.status === "fuzzy-loading"){
     resultBody = `<div style="text-align:center;padding:24px;color:#aaa;font-size:12px">⏳ 정확한 일치 결과가 없어 비슷한 이름을 찾는 중...</div>`;
   } else if(drugState.status === "error"){
     resultBody = `<div style="text-align:center;padding:24px;color:#C62828;font-size:12px">${esc(drugState.error)}</div>`;
   } else if(!drugState.rows.length){
-    resultBody = `<div style="text-align:center;padding:24px;color:#aaa;font-size:12px">검색 결과가 없습니다</div>`;
+    resultBody = `<div style="text-align:center;padding:24px;color:#aaa;font-size:12px">${(useMode && u)
+      ? (u.qiaTotal ? `효능효과에 "${esc(u.term)}"이(가) 들어간 제품 ${u.qiaTotal.toLocaleString()}건 중 ${u.scanned.toLocaleString()}건을 확인했지만 ${useSp?esc(useSp.label)+" 대상 제품이 없습니다":"결과가 없습니다"}` : `효능효과에 "${esc(u.term)}"이(가) 들어간 제품이 없습니다`)
+      : "검색 결과가 없습니다"}</div>${moreBtn}`;
   } else {
     resultBody = `
       ${fuzzyBanner}
@@ -4410,17 +4659,15 @@ function renderDrugSearchPanel(){
   </div>
 
   <div class="card" style="border-top:5px solid #00838F">
-    <div style="display:flex;gap:8px;margin-bottom:10px">${modeBtn("name","제품명")}${modeBtn("entp","업체명")}${modeBtn("ingr","성분명")}</div>
+    <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">${modeBtn("name","제품명")}${modeBtn("entp","업체명")}${modeBtn("ingr","성분명")}${modeBtn("species","축종별")}${modeBtn("symptom","증상별")}</div>
+    ${useMode ? renderDrugUseForm() : `
     <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
       <input id="drug-q" type="search" value="${esc(drugState.query)}" placeholder="${drugModePlaceholder()}"
         style="flex:1;min-width:160px;padding:10px 12px;border:1px solid #ddd;border-radius:9px;font-size:13px" />
-      <select id="drug-kind" style="border:1px solid #ddd;border-radius:9px;padding:10px 10px;font-size:12px;color:#555">
-        <option value="" ${drugState.kind===""?"selected":""}>전체</option>
-        <option value="A0" ${drugState.kind==="A0"?"selected":""}>의약품</option>
-      </select>
+      ${renderDrugKindSelect()}
       <button id="drug-search-btn" style="border:none;border-radius:9px;background:#00838F;color:#fff;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer">검색</button>
     </div>
-    <div style="font-size:11px;color:#aaa;margin-bottom:14px">오타나 초성이 섞여도 비슷한 이름을 찾아드려요 (예: '이버ㅁㅌ') · 휴약기간은 각 결과의 "조회" 버튼으로 확인하세요</div>
+    <div style="font-size:11px;color:#aaa;margin-bottom:14px">오타나 초성이 섞여도 비슷한 이름을 찾아드려요 (예: '이버ㅁㅌ') · 휴약기간은 각 결과의 "조회" 버튼으로 확인하세요</div>`}
     <div id="drug-result">${resultBody}</div>
   </div>
 
@@ -12092,13 +12339,45 @@ function attachEvents(){
   if(drugKindSel){
     drugKindSel.onchange = ()=>{
       drugState.kind = drugKindSel.value;
-      if(drugState.query) searchDrug(drugState.query);
+      if(isDrugUseMode(drugState.mode)){ if(drugState.use) searchDrugUse(); }
+      else if(drugState.query) searchDrug(drugState.query);
     };
   }
   const drugSearchBtn = document.getElementById("drug-search-btn");
   if(drugSearchBtn) drugSearchBtn.onclick = ()=> searchDrug(document.getElementById("drug-q").value);
   const drugMoreBtn = document.getElementById("drug-more-btn");
-  if(drugMoreBtn) drugMoreBtn.onclick = loadMoreDrug;
+  if(drugMoreBtn) drugMoreBtn.onclick = isDrugUseMode(drugState.mode) ? loadMoreDrugUse : loadMoreDrug;
+  // 축종별·증상별 검색
+  const bindDrugSuggestions = ()=>{
+    document.querySelectorAll(".drug-sugg-chip").forEach(b=>b.onclick=()=>{
+      drugState.symptom = b.dataset.term;
+      searchDrugUse();
+    });
+  };
+  bindDrugSuggestions();
+  const drugSymInput = document.getElementById("drug-sym");
+  if(drugSymInput){
+    drugSymInput.oninput = ()=>{
+      drugState.symptom = drugSymInput.value;
+      const box = document.getElementById("drug-sugg");
+      if(box){ box.innerHTML = renderDrugSuggestions(); bindDrugSuggestions(); }
+    };
+    drugSymInput.onkeydown = (e)=>{ if(e.key==="Enter"){ drugState.symptom = drugSymInput.value; searchDrugUse(); } };
+  }
+  const drugUseSearchBtn = document.getElementById("drug-use-search-btn");
+  if(drugUseSearchBtn) drugUseSearchBtn.onclick = ()=>{
+    const inp = document.getElementById("drug-sym");
+    if(inp) drugState.symptom = inp.value;
+    searchDrugUse();
+  };
+  document.querySelectorAll(".drug-species-chip").forEach(b=>b.onclick=()=>{
+    const inp = document.getElementById("drug-sym");
+    if(inp) drugState.symptom = inp.value;
+    drugState.species = b.dataset.sp;
+    // 축종별은 축종만으로 바로 찾고, 증상별은 증상이 있을 때만 다시 찾는다.
+    if(drugState.mode === "species" || String(drugState.symptom||"").trim()) searchDrugUse();
+    else render();
+  });
   document.querySelectorAll(".drug-wd-btn").forEach(b=>b.onclick=()=>loadDrugWithdrawal(parseInt(b.dataset.idx,10)));
 
   // 공지 갱신 버튼
