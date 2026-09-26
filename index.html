@@ -4059,6 +4059,8 @@ let drugState = {
   species: "chicken", // 축종별·증상별 검색의 축종(DRUG_SPECIES key, ""면 전체)
   symptom: "",        // 축종별·증상별 검색의 증상·질병 키워드(QIA 효능효과 본문 검색어)
   use: null,          // 축종별·증상별 검색 진행 상황 { term, sp, qiaPage, qiaTotal, scanned }
+  rawCount: 0,        // QIA에서 받아 온 건수(수출용을 빼기 전) — "더 보기" 판단용
+  excluded: 0,        // 결과에서 뺀 수출용 제품 수
   kind: "",       // indutyClassCode 필터 ("" 전체 | "A0" 의약품)
   query: "",
   page: 1,
@@ -4157,7 +4159,17 @@ async function qiaMapLimit(items, n, fn){
   }));
 }
 
-// 상세 페이지에서 효능효과 본문·대상동물·휴약기간을 읽는다(링크별로 한 번만).
+// 수출 전용 품목(국내 유통 안 됨)은 결과에서 뺀다 — 제품명의 "수출용"이나 영문명의 "export only".
+function isExportOnlyDrug(r){
+  return /수출용/.test(r.제품명 || "") || /export\s*only/i.test(r.제품영문명 || "");
+}
+function dropExportOnly(rows){
+  const kept = rows.filter(r => !isExportOnlyDrug(r));
+  drugState.excluded += rows.length - kept.length;
+  return kept;
+}
+
+// 상세 페이지에서 효능효과 본문·대상동물·휴약기간·포장단위를 읽는다(링크별로 한 번만).
 const qiaDetailCache = new Map();
 function qiaDetailInfo(link){
   if(qiaDetailCache.has(link)) return qiaDetailCache.get(link);
@@ -4170,7 +4182,10 @@ function qiaDetailInfo(link){
     // 상세 페이지 본문은 "효능효과 효능효과 폴딩 버튼 …(본문)… 용법용량 용법 용량 폴딩 버튼" 순서다.
     const m = text.match(/효능\s*효과(?:\s*효능\s*효과)?(?:\s*폴딩\s*버튼)?\s*(.*?)\s*용법\s*용량/);
     const efficacy = m ? m[1].slice(0, 1500) : "";
-    return { efficacy, species: DRUG_SPECIES.filter(sp => sp.re.test(efficacy)).map(sp => sp.key), wd: wdExtractPeriod(html) };
+    // 포장단위는 상세 정보 표의 "포장단위" 제목칸(th) 바로 옆 칸에 있다.
+    const packTh = [...doc.querySelectorAll("th, dt")].find(el => el.textContent.replace(/\s+/g, "").startsWith("포장단위"));
+    const pack = packTh && packTh.nextElementSibling ? packTh.nextElementSibling.textContent.replace(/\s+/g, " ").trim().slice(0, 200) : "";
+    return { efficacy, species: DRUG_SPECIES.filter(sp => sp.re.test(efficacy)).map(sp => sp.key), wd: wdExtractPeriod(html), pack };
   })();
   qiaDetailCache.set(link, job);
   job.catch(() => qiaDetailCache.delete(link));
@@ -4210,7 +4225,7 @@ async function searchDrugUse(){
   }
   const term = sym || sp.term;
   drugState.query = term; drugState.page = 1; drugState.fuzzy = false;
-  drugState.rows = []; drugState.total = 0;
+  drugState.rows = []; drugState.total = 0; drugState.rawCount = 0; drugState.excluded = 0;
   drugState.use = { term, sp: sp ? sp.key : "", qiaPage: 0, qiaTotal: 0, scanned: 0 };
   drugState.status = "loading"; drugState.error = "";
   render();
@@ -4240,20 +4255,26 @@ async function loadDrugUsePages(){
   if(results.every(r => r.err)) throw results[0].err;
   u.qiaTotal = Math.max(u.qiaTotal, ...results.map(r => r.total || 0));
   u.qiaPage += pages.length;
-  const rows = results.flatMap(r => r.rows);
-  u.scanned += rows.length;
-  await qiaMapLimit(rows, 6, async r => {
-    if(!r.링크) return;
-    try {
-      const info = await qiaDetailInfo(r.링크);
-      r._효능 = info.efficacy; r._대상 = info.species;
-      r._휴약기간 = info.wd; r._wdStatus = "done";
-    } catch(e){ r._detailErr = true; }
-  });
+  const all = results.flatMap(r => r.rows);
+  u.scanned += all.length;
+  const rows = dropExportOnly(all);
+  await attachDrugDetails(rows);
   const keep = u.sp ? rows.filter(r => r._대상 && r._대상.includes(u.sp)) : rows;
   const seen = new Set(drugState.rows.map(r => r.링크));
   keep.forEach(r => { if(!r.링크 || !seen.has(r.링크)){ seen.add(r.링크); drugState.rows.push(r); } });
   drugState.total = drugState.rows.length;
+}
+
+// 결과 행에 상세 정보(휴약기간·포장단위, 축종·증상 검색이면 효능효과·대상동물)를 붙인다.
+// 실패한 행은 "조회" 버튼으로 다시 시도할 수 있게 상태를 비워 둔다.
+async function attachDrugDetails(rows){
+  await qiaMapLimit(rows.filter(r => r.링크), 6, async r => {
+    try {
+      const info = await qiaDetailInfo(r.링크);
+      r._효능 = info.efficacy; r._대상 = info.species; r._포장 = info.pack;
+      r._휴약기간 = info.wd; r._wdStatus = "done"; r._wdErr = false;
+    } catch(e){ r._detailErr = true; r._wdStatus = undefined; }
+  });
 }
 
 async function loadMoreDrugUse(){
@@ -4451,25 +4472,31 @@ async function searchDrug(q){
   drugState.query = q;
   drugState.page = 1;
   drugState.fuzzy = false;
+  drugState.rawCount = 0; drugState.excluded = 0;
   drugState.status = "loading";
   drugState.error = "";
   render();
   try {
     const { rows, total } = await fetchQiaSearch(q, 1);
     if(rows.length){
-      drugState.rows = rows;
+      drugState.rawCount = rows.length;
+      drugState.rows = dropExportOnly(rows);
       drugState.total = total;
       drugState.fuzzy = false;
     } else {
       // 정확히 일치하는 결과가 없음 → 비슷한 키워드로 재조회
       drugState.status = "fuzzy-loading";
       render();
-      const fuzzyRows = await fuzzySearchDrug(q);
+      const fuzzyRows = dropExportOnly(await fuzzySearchDrug(q));
       drugState.rows = fuzzyRows;
       drugState.total = fuzzyRows.length;
       drugState.fuzzy = true;
     }
+    // 결과를 먼저 보여 주고, 휴약기간·포장단위는 상세 정보에서 이어서 채운다.
+    drugState.rows.forEach(r => { if(r.링크) r._wdStatus = "loading"; });
     drugState.status = "done";
+    render();
+    await attachDrugDetails(drugState.rows);
   } catch(e){
     drugState.status = "error";
     drugState.error = "조회 실패: " + e.message + " — 농림축산검역본부(QIA) 서버 연결에 문제가 있을 수 있습니다";
@@ -4485,7 +4512,13 @@ async function loadMoreDrug(){
   render();
   try {
     const { rows } = await fetchQiaSearch(drugState.query, drugState.page);
-    drugState.rows = drugState.rows.concat(rows);
+    drugState.rawCount += rows.length;
+    const kept = dropExportOnly(rows);
+    drugState.rows = drugState.rows.concat(kept);
+    kept.forEach(r => { if(r.링크) r._wdStatus = "loading"; });
+    drugState.loadingMore = false;
+    render();
+    await attachDrugDetails(kept);
   } catch(e){
     drugState.page -= 1;
     alert("추가 조회 실패: " + e.message);
@@ -4501,9 +4534,8 @@ async function loadDrugWithdrawal(i){
   r._wdStatus = "loading";
   render();
   try {
-    const res = await fetch(r.링크);
-    const html = await res.text();
-    r._휴약기간 = wdExtractPeriod(html);
+    const info = await qiaDetailInfo(r.링크);
+    r._휴약기간 = info.wd; r._포장 = info.pack; r._wdErr = false;
   } catch(e){
     r._휴약기간 = "";
     r._wdErr = true;
@@ -4542,7 +4574,7 @@ function renderDrugUseForm(){
     </div>
     <div id="drug-sugg" style="margin-bottom:10px">${renderDrugSuggestions()}</div>`;
   return (speciesMode ? speciesRow + symptomRow : symptomRow + speciesRow) + `
-    <div style="font-size:11px;color:#aaa;margin-bottom:14px;line-height:1.6">QIA 효능효과(적응증) 본문에서 찾습니다 · QIA 서버 검색에 10초 안팎 걸립니다 · 대상동물과 휴약기간은 각 제품 상세 정보에서 자동으로 읽어옵니다</div>`;
+    <div style="font-size:11px;color:#aaa;margin-bottom:14px;line-height:1.6">QIA 효능효과(적응증) 본문에서 찾습니다 · QIA 서버 검색에 10초 안팎 걸립니다 · 대상동물·휴약기간·포장단위는 각 제품 상세 정보에서 자동으로 읽어옵니다 · 수출용 제품은 제외합니다</div>`;
 }
 
 // 증상 후보 칩 — 입력할 때마다 이 부분만 다시 그린다(입력칸이 포커스를 잃지 않게).
@@ -4589,6 +4621,7 @@ function renderDrugSearchPanel(){
       <td style="padding:7px 8px">${esc(r.업체명||"")}</td>
       <td style="padding:7px 8px"><span style="font-size:10px;padding:2px 7px;border-radius:6px;background:${r.품목구분==="동물용의약품"?"#E3F2FD":"#F1F8E9"};color:${r.품목구분==="동물용의약품"?"#1565C0":"#558B2F"}">${esc(r.품목구분||"")}</span></td>
       <td style="padding:7px 8px;color:#666">${r.주성분 ? esc(r.주성분) : `<span style="color:#ccc;font-size:11px">정보 없음</span>`}</td>
+      <td style="padding:7px 8px;color:#444;font-size:11.5px;max-width:150px">${r._포장 ? esc(r._포장) : (r._wdStatus === "loading" ? `<span style="font-size:11px;color:#888">조회중...</span>` : `<span style="color:#ccc;font-size:11px">-</span>`)}</td>
       <td style="padding:7px 8px;color:#aaa;font-size:11px">${esc(r.허가일||"")}</td>
       <td style="padding:7px 8px">${wdCell}</td>
     </tr>`;
@@ -4597,10 +4630,10 @@ function renderDrugSearchPanel(){
   const u = drugState.use;
   const hasMore = useMode
     ? !!(u && u.scanned < u.qiaTotal)
-    : (!drugState.fuzzy && drugState.rows.length < drugState.total);
+    : (!drugState.fuzzy && drugState.rawCount < drugState.total);
   const moreLabel = useMode && u
     ? `더 찾아보기 (QIA ${u.qiaTotal.toLocaleString()}건 중 ${u.scanned.toLocaleString()}건 확인)`
-    : `더 보기 (${drugState.rows.length} / ${drugState.total})`;
+    : `더 보기 (${drugState.rawCount} / ${drugState.total})`;
   const moreBtn = hasMore
     ? `<button id="drug-more-btn" ${drugState.loadingMore?"disabled":""} style="width:100%;margin-top:10px;border:1px solid #ddd;border-radius:9px;background:#fff;color:#555;padding:10px;font-size:12px;font-weight:600;cursor:pointer">${drugState.loadingMore?"불러오는 중... (10초 안팎)":moreLabel}</button>`
     : "";
@@ -4612,11 +4645,12 @@ function renderDrugSearchPanel(){
     : "";
 
   const useSp = u && u.sp ? DRUG_SPECIES.find(x => x.key === u.sp) : null;
-  const infoLine = drugState.rows.length === 0 ? "" : (useMode && u)
+  const exclNote = drugState.excluded ? ` · 수출용 ${drugState.excluded}건 제외` : "";
+  const infoLine = drugState.rows.length === 0 ? "" : ((useMode && u)
     ? `효능효과에 "${esc(u.term)}"이(가) 들어간 QIA 제품 ${u.qiaTotal.toLocaleString()}건 중 ${u.scanned.toLocaleString()}건 확인${useSp?` → ${esc(useSp.label)} 대상 ${drugState.rows.length}건`:""} · 대상동물·휴약기간은 각 제품 상세 정보에서 자동으로 읽었습니다`
     : drugState.fuzzy
     ? `유사 검색 결과 ${drugState.rows.length}건 · 제품명 클릭시 공식 상세정보(새창)`
-    : `QIA 공식 데이터 · 총 ${drugState.total.toLocaleString()}건 중 ${drugState.rows.length}건 표시 · 제품명 클릭시 공식 상세정보(새창)`;
+    : `QIA 공식 데이터 · 총 ${drugState.total.toLocaleString()}건 중 ${drugState.rawCount}건 불러옴 · 제품명 클릭시 공식 상세정보(새창)`) + exclNote;
 
   let resultBody;
   if(drugState.status === "idle"){
@@ -4630,17 +4664,18 @@ function renderDrugSearchPanel(){
   } else if(!drugState.rows.length){
     resultBody = `<div style="text-align:center;padding:24px;color:#aaa;font-size:12px">${(useMode && u)
       ? (u.qiaTotal ? `효능효과에 "${esc(u.term)}"이(가) 들어간 제품 ${u.qiaTotal.toLocaleString()}건 중 ${u.scanned.toLocaleString()}건을 확인했지만 ${useSp?esc(useSp.label)+" 대상 제품이 없습니다":"결과가 없습니다"}` : `효능효과에 "${esc(u.term)}"이(가) 들어간 제품이 없습니다`)
-      : "검색 결과가 없습니다"}</div>${moreBtn}`;
+      : (drugState.excluded ? `수출용 제품 ${drugState.excluded}건만 있어 제외했습니다` : "검색 결과가 없습니다")}</div>${moreBtn}`;
   } else {
     resultBody = `
       ${fuzzyBanner}
       <div style="font-size:11px;color:#aaa;margin-bottom:8px">${infoLine}</div>
-      <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:640px;font-size:12px">
+      <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:720px;font-size:12px">
         <thead><tr style="border-bottom:2px solid #eee">
           <th style="padding:7px 8px;text-align:left;font-size:10px;color:#888;font-weight:600">제품명</th>
           <th style="padding:7px 8px;text-align:left;font-size:10px;color:#888;font-weight:600">업체명</th>
           <th style="padding:7px 8px;text-align:left;font-size:10px;color:#888;font-weight:600">구분</th>
           <th style="padding:7px 8px;text-align:left;font-size:10px;color:#888;font-weight:600">주성분</th>
+          <th style="padding:7px 8px;text-align:left;font-size:10px;color:#888;font-weight:600">포장단위</th>
           <th style="padding:7px 8px;text-align:left;font-size:10px;color:#888;font-weight:600">허가일</th>
           <th style="padding:7px 8px;text-align:left;font-size:10px;color:#00838F;font-weight:600">휴약기간</th>
         </tr></thead>
@@ -4667,7 +4702,7 @@ function renderDrugSearchPanel(){
       ${renderDrugKindSelect()}
       <button id="drug-search-btn" style="border:none;border-radius:9px;background:#00838F;color:#fff;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer">검색</button>
     </div>
-    <div style="font-size:11px;color:#aaa;margin-bottom:14px">오타나 초성이 섞여도 비슷한 이름을 찾아드려요 (예: '이버ㅁㅌ') · 휴약기간은 각 결과의 "조회" 버튼으로 확인하세요</div>`}
+    <div style="font-size:11px;color:#aaa;margin-bottom:14px">오타나 초성이 섞여도 비슷한 이름을 찾아드려요 (예: '이버ㅁㅌ') · 휴약기간·포장단위는 각 제품 상세 정보에서 자동으로 읽어옵니다 · 수출용 제품은 제외합니다</div>`}
     <div id="drug-result">${resultBody}</div>
   </div>
 
