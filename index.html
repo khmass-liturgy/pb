@@ -93,6 +93,36 @@
   .board-link:hover { filter: brightness(0.96); }
   .hidden { display: none !important; }
 
+  /* 유료서비스 메뉴 — 가로형 리스트 카드(왼쪽 테마색 원 안 아이콘, 제목·설명, 끝의 ›).
+     --c는 메뉴 테마색, --bg는 같은 색을 옅게(8자리 hex 알파) 깐 아이콘 배경. 넓은 화면은 두 줄,
+     좁은 화면은 한 줄. .compact는 로그인 전 미리보기용으로 조금 작게. */
+  .pm-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+  .pm-item {
+    display: flex; align-items: center; gap: 13px; width: 100%; text-align: left; color: inherit; font: inherit;
+    background: #fff; border: 1px solid #ececec; border-radius: 14px; padding: 13px 14px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.05);
+  }
+  button.pm-item { cursor: pointer; transition: transform .12s, box-shadow .12s, border-color .12s; }
+  button.pm-item:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,0,0,0.08); border-color: var(--c); }
+  button.pm-item:active { transform: translateY(0); }
+  button.pm-item:focus-visible { outline: 2px solid var(--c); outline-offset: 2px; }
+  .pm-icon {
+    flex: 0 0 46px; width: 46px; height: 46px; border-radius: 50%; background: var(--bg);
+    display: flex; align-items: center; justify-content: center; font-size: 23px; line-height: 1;
+  }
+  .pm-text { flex: 1; min-width: 0; }
+  .pm-title { display: block; font-size: 14px; font-weight: 700; color: #222; line-height: 1.35; }
+  .pm-desc {
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    font-size: 11.5px; color: #777; line-height: 1.5; margin-top: 3px;
+  }
+  .pm-chev { flex: 0 0 auto; font-size: 24px; font-weight: 700; color: var(--c); line-height: 1; margin-left: 2px; }
+  .pm-list.compact { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
+  .pm-list.compact .pm-item { padding: 10px 12px; gap: 11px; box-shadow: none; }
+  .pm-list.compact .pm-icon { flex-basis: 38px; width: 38px; height: 38px; font-size: 19px; }
+  .pm-list.compact .pm-title { font-size: 12.5px; }
+  .pm-list.compact .pm-desc { font-size: 10.5px; }
+
   /* 온라인 자가진단: 닭 그림 위 클릭 가능한 부위(hotspot) */
   .selfcheck-hotspot { cursor: pointer; transition: transform 0.1s; }
   .selfcheck-hotspot:hover { transform: translate(-50%,-50%) scale(1.15) !important; }
@@ -6442,12 +6472,11 @@ function renderPremiumPreview(){
       <div style="font-size:11px;color:#888;font-weight:700">가입하면 이런 메뉴를 이용할 수 있어요</div>
       <span style="font-size:9.5px;color:#2E7D32;background:#E8F5E9;border-radius:20px;padding:3px 9px;font-weight:700;white-space:nowrap">🆕 새로운 메뉴가 계속 업데이트됩니다</span>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
+    <div class="pm-list compact">
       ${PREMIUM_ITEMS.map(it=>`
-      <div style="border:1px solid #eee;border-radius:12px;padding:14px 12px;border-top:4px solid ${it.color}">
-        <div style="font-size:22px;margin-bottom:6px">${it.icon}</div>
-        <div style="font-size:12.5px;font-weight:700;color:#333;margin-bottom:4px">${it.title}</div>
-        <div style="font-size:10.5px;color:#888;line-height:1.5">${it.desc}</div>
+      <div class="pm-item" style="--c:${it.color};--bg:${it.color}1f">
+        <span class="pm-icon">${it.icon}</span>
+        <span class="pm-text"><span class="pm-title">${it.title}</span><span class="pm-desc">${it.desc}</span></span>
       </div>`).join("")}
     </div>
   </div>`;
@@ -6598,14 +6627,16 @@ function renderPremiumTab(){
     menuItems = menuItems.concat([{ key:"smsadmin", icon:"📋", title:"자동 문자 발송 관리", desc:"발송 주기가 된 신청자를 확인하고 문자 내용을 준비합니다. (관리자 전용)", color:"#0277BD" }]);
   }
   return renderPremiumGateHeader() + logoutBar + `
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
-    ${menuItems.map(it=>`
-    <div class="card premium-item-card ${it.key?"premium-item-btn":""}" ${it.key?`data-key="${it.key}"`:""}
-      style="text-align:center;padding:22px 14px;border-top:4px solid ${it.color};${it.key?"cursor:pointer":""}">
-      <div style="font-size:30px;margin-bottom:8px">${it.icon}</div>
-      <div class="display" style="font-size:15px;color:${it.color};margin-bottom:6px">${it.title}</div>
-      <div style="font-size:12px;color:#666;line-height:1.6">${it.desc}</div>
-      ${it.key ? `<div style="font-size:10px;color:${it.color};font-weight:700;margin-top:8px">바로가기 →</div>` : ""}
+  <div class="pm-list">
+    ${menuItems.map(it => it.key ? `
+    <button type="button" class="pm-item premium-item-btn" data-key="${it.key}" style="--c:${it.color};--bg:${it.color}1f">
+      <span class="pm-icon">${it.icon}</span>
+      <span class="pm-text"><span class="pm-title">${it.title}</span><span class="pm-desc">${it.desc}</span></span>
+      <span class="pm-chev" aria-hidden="true">›</span>
+    </button>` : `
+    <div class="pm-item" style="--c:${it.color};--bg:${it.color}1f">
+      <span class="pm-icon">${it.icon}</span>
+      <span class="pm-text"><span class="pm-title">${it.title}</span><span class="pm-desc">${it.desc}</span></span>
     </div>`).join("")}
   </div>
   <div style="margin-top:14px;font-size:11px;color:#aaa;text-align:center">위 메뉴는 계속 추가됩니다. 궁금한 점은 010-9150-8844로 문의해 주세요.</div>`;
