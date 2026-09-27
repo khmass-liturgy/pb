@@ -42,6 +42,22 @@
      막고 대신 옆으로 스크롤되게 한다(모바일 브레이크포인트와 동일한 방식). */
   .tabs { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
   .tabs::-webkit-scrollbar { display: none; }
+  /* 탭 줄이 넘쳐 옆으로 밀릴 때 가려진 쪽을 알려 주는 ‹ › 화살표(setupTabArrows가
+     .can-left/.can-right를 붙여 필요한 쪽만 보인다). 누르면 그쪽으로 넘어간다. */
+  .tabs-wrap { position: relative; }
+  .tabs-arrow {
+    position: absolute; top: 0; bottom: 3px; width: 38px; z-index: 2; border: none; padding: 0;
+    display: flex; align-items: center; color: #fff; opacity: 0; pointer-events: none; transition: opacity .15s;
+  }
+  .tabs-arrow span {
+    width: 24px; height: 24px; border-radius: 50%; background: rgba(255,255,255,0.22);
+    display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 700; line-height: 1;
+  }
+  .tabs-arrow:hover span { background: rgba(255,255,255,0.35); }
+  .tabs-arrow.left { left: 0; justify-content: flex-start; padding-left: 2px; background: linear-gradient(90deg, rgba(26,39,68,0.97) 45%, rgba(26,39,68,0)); }
+  .tabs-arrow.right { right: 0; justify-content: flex-end; padding-right: 2px; background: linear-gradient(270deg, rgba(44,62,107,0.97) 45%, rgba(44,62,107,0)); }
+  .tabs-wrap.can-left .tabs-arrow.left, .tabs-wrap.can-right .tabs-arrow.right { opacity: 1; pointer-events: auto; }
+  header.embedded .tabs-arrow { top: 8px; }
   /* iframe으로 다른 화면 안에 들어가 있을 때는 제목 줄(.header-top)을 빼고 탭만 남긴다.
      제목 줄이 없으면 탭이 위 모서리에 딱 붙으므로 그만큼 여백을 대신 준다. */
   header.embedded .tabs { padding-top: 8px; }
@@ -111,7 +127,9 @@
     .hd-date { font-size: 19px !important; }
     .hd-term-name { font-size: 15px !important; }
     .header-top > div:last-child { flex: 0 0 auto; font-size: 11px !important; }
-    .tabs { width: calc(100% + 20px); margin-left: -10px; padding: 0 6px; gap: 2px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+    /* 헤더 좌우 여백까지 탭 줄을 넓힌다 — 화살표가 탭 줄 양 끝에 붙도록 감싸는 쪽(.tabs-wrap)을 넓힌다. */
+    .tabs-wrap { width: calc(100% + 20px); margin-left: -10px; }
+    .tabs { width: 100%; padding: 0 6px; gap: 2px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
     .tabs::-webkit-scrollbar { display: none; }
     .tab { flex: 0 0 auto; white-space: nowrap; padding: 8px 11px; font-size: 11px; }
     main { width: 100%; padding: 12px 8px 28px; }
@@ -137,7 +155,7 @@
     /* 고정 3·7열 레이아웃도 모바일에서는 카드형으로 흐르게 한다. */
     [style*="grid-template-columns:1fr 1fr 1fr"] { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
     [style*="grid-template-columns:repeat(7,1fr)"] { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 6px !important; }
-    .header-top + .tabs + * { max-width: 100%; }
+    .header-top + .tabs-wrap + * { max-width: 100%; }
   }
 
   @media (max-width: 380px) {
@@ -6649,6 +6667,8 @@ function renderHeader(){
         ${renderHeaderSolarTerm(now)}
       </div>
     </div>
+    <div class="tabs-wrap">
+    <button class="tabs-arrow left" type="button" aria-label="앞쪽 메뉴 보기" tabindex="-1"><span>‹</span></button>
     <div class="tabs">
       <button class="tab ${state.tab==="price"||state.tab==="pig"||state.tab==="livestock"?"active":""}" data-tab="price">📊 양계 시세-통계</button>
       <button class="tab ${state.tab==="weather"?"active":""}" data-tab="weather">🌤️ 날씨</button>
@@ -6658,6 +6678,8 @@ function renderHeader(){
       <button class="tab ${state.tab==="hpai"?"active":""}" data-tab="hpai">🦠 AI 발생예측통계</button>
       <button class="tab ${state.tab==="briefing"?"active":""}" data-tab="briefing">📋 뉴스정보</button>
       <button class="tab ${state.tab==="premium"?"active":""}" data-tab="premium">💼 유료서비스</button>
+    </div>
+    <button class="tabs-arrow right" type="button" aria-label="뒤쪽 메뉴 보기" tabindex="-1"><span>›</span></button>
     </div>
   </div></header>`;
 }
@@ -11242,8 +11264,44 @@ function switchTab(tab){
     try { history.replaceState(null, "", "#"+tab); } catch(e){}
 }
 
+// 상단 탭 줄 화살표 — 넘쳐서 가려진 쪽이 있을 때만 ‹ ›를 보이고, 누르면 그쪽으로 넘긴다.
+// render()가 헤더를 새로 그리면 탭 줄 스크롤이 맨 앞으로 돌아가므로 위치를 기억해 되살리고,
+// 선택된 탭이 가려져 있으면 보이는 곳으로 옮긴다.
+let tabsScrollLeft = 0;
+function updateTabArrows(){
+  const wrap = document.querySelector(".tabs-wrap");
+  const bar = wrap && wrap.querySelector(".tabs");
+  if(!bar) return;
+  const max = bar.scrollWidth - bar.clientWidth;
+  wrap.classList.toggle("can-left", bar.scrollLeft > 2);
+  wrap.classList.toggle("can-right", bar.scrollLeft < max - 2);
+}
+function setupTabArrows(){
+  const wrap = document.querySelector(".tabs-wrap");
+  const bar = wrap && wrap.querySelector(".tabs");
+  if(!bar) return;
+  bar.scrollLeft = tabsScrollLeft;
+  const active = bar.querySelector(".tab.active");
+  if(active){
+    const pad = 40; // 화살표에 가리지 않을 만큼 띄운다
+    const br = bar.getBoundingClientRect(), ar = active.getBoundingClientRect();
+    if(ar.left < br.left + pad) bar.scrollLeft -= (br.left + pad - ar.left);
+    else if(ar.right > br.right - pad) bar.scrollLeft += (ar.right - (br.right - pad));
+  }
+  tabsScrollLeft = bar.scrollLeft;
+  bar.onscroll = () => { tabsScrollLeft = bar.scrollLeft; updateTabArrows(); };
+  wrap.querySelectorAll(".tabs-arrow").forEach(btn => btn.onclick = () => {
+    const dir = btn.classList.contains("left") ? -1 : 1;
+    bar.scrollBy({ left: dir * Math.max(120, bar.clientWidth * 0.7), behavior: "smooth" });
+    setTimeout(updateTabArrows, 450); // 스크롤 이벤트를 못 받는 경우에 대비해 끝난 뒤 한 번 더
+  });
+  updateTabArrows();
+}
+window.addEventListener("resize", updateTabArrows);
+
 function attachEvents(){
   document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
+  setupTabArrows();
   const headerSolarTerm = document.getElementById("header-solar-term");
   if(headerSolarTerm) headerSolarTerm.onclick = ()=>switchTab("weather");
 
