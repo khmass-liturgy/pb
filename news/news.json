@@ -1,5 +1,5 @@
 {
-  "updated": "2026-09-26 10:11 KST",
+  "updated": "2026-09-27 10:05 KST",
   "channels": {
     "livestock": {
       "label": "축산·농업",
@@ -23,23 +23,24 @@
     },
     "economy": {
       "label": "경제",
-      "items": [],
-      "count": 0
+      "items": [
+        {
+          "title": "3高 다시 꿈틀…연말 경제 흔드는 금리·환율·유가 변수 - 뉴스1",
+          "link": "https://news.google.com/rss/articles/CBMiWkFVX3lxTE84WUlyenQtcXBSRzdVNHd3RFNvMVlmbGg5aHJ6cmllV0ZXenlzal9Id3V5YThLXzEzUlV3akVvQzVwbGx5SWtaTS0zNEdCa09zWHg3WTlFb2l0QdIBWkFVX3lxTE84WUlyenQtcXBSRzdVNHd3RFNvMVlmbGg5aHJ6cmllV0ZXenlzal9Id3V5YThLXzEzUlV3akVvQzVwbGx5SWtaTS0zNEdCa09zWHg3WTlFb2l0QQ?oc=5",
+          "date": "09/27 06:15",
+          "source": "뉴스1"
+        }
+      ],
+      "count": 1
     },
     "world": {
       "label": "국제",
       "items": [
         {
-          "title": "시진핑 \"중국 부흥과 미국 MAGA는 양립 가능…세계에도 이익\" - JTBC",
-          "link": "https://news.google.com/rss/articles/CBMiVEFVX3lxTE1sdnRKeGRNdWlxZXk5UGNTck8wYkYwV0ItbkVuMjBrUmpGdHVBZ0JWNnVTUVNROVFJemduNkc0VnNjOWJQeXVmUW1CRmJ0NkZJOFd1bw?oc=5",
-          "date": "09/24 10:07",
-          "source": "JTBC"
-        },
-        {
-          "title": "미국과 중국 간의 G2 모델은 세계 질서의 판도를 어떻게 바꾸고 있는가? - Vietnam.vn",
-          "link": "https://news.google.com/rss/articles/CBMilAFBVV95cUxOZDk1RG1YdDJTb0haTWVSYlpWMmxnNWVzenNRcmFMR2JMblVRMHdoSEpERl8tYkd2WXB4WDFMZkxGU1FQOUgxdlNaVmJxQWVka3RMcU50RUdMMHFJX1JFbjN3NTdMYzVpSXJYbUpYRUE4UHNmSng5THVFXzFNR3ZsZjNSbXFrQ0JkdVh4cUlaTFRkN1dp?oc=5",
-          "date": "09/25 14:10",
-          "source": "Vietnam.vn"
+          "title": "세계 최상위 AI 인재들, 미국보다 중국 선호… 한국 4위 - v.daum.net",
+          "link": "https://news.google.com/rss/articles/CBMiRkFVX3lxTE5HWXJ3ZFBGWUEyZUtra2E1RmNPa3JJMUVyRGpPUnl2czVhWk5FdU1fbWhIbnNlWHlDMzhVS1d3cTlaZFRlbmc?oc=5",
+          "date": "09/26 17:48",
+          "source": "v.daum.net"
         },
         {
           "title": "미국 주도 세계질서 흔들리나…다극화 시대, 한국 외교의 공간 커진다 - K-Radio 우리방송",
@@ -54,7 +55,7 @@
           "source": "OhmyNews"
         }
       ],
-      "count": 4
+      "count": 3
     }
   }
 }
