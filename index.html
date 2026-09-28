@@ -4113,6 +4113,7 @@ let drugState = {
   rawCount: 0,        // QIA에서 받아 온 건수(수출용을 빼기 전) — "더 보기" 판단용
   excluded: 0,        // 결과에서 뺀 수출용 제품 수
   kind: "",       // indutyClassCode 필터 ("" 전체 | "A0" 의약품)
+  formFilter: null,  // 제형 필터(drugFormCategory()가 돌려주는 값, 예: "산제"·"액제"·"첨가제") — null이면 전체
   query: "",
   page: 1,
   total: 0,
@@ -4236,6 +4237,38 @@ function dropExportOnly(rows){
 
 // 상세 페이지에서 효능효과 본문·대상동물·휴약기간·포장단위를 읽는다(링크별로 한 번만).
 const qiaDetailCache = new Map();
+// QIA 상세 페이지의 "성상" 항목에서 제형을 읽는다. 검색 화면에 제형을 직접
+// 고를 수 있는 항목이 없어(품목구분은 의약품/의약외품 구분일 뿐 제형이 아니다)
+// 상세 페이지 본문에서 뽑아내야 한다. 표기 방식이 제품마다 셋으로 갈린다:
+//   ① "1) 제형 : 산제 2) 성상 : ..." — 라벨이 붙은 경우(가장 흔함)
+//   ② "1) 액제 2) 백색 또는 미황색의 현탁액" — 라벨 없이 첫 항목이 제형인 경우
+//   ③ "백색내지 미황색 과립"처럼 성상에 제형 언급이 아예 없는 경우 —
+//      이때는 그 아래 "제조방법" 문구("OO제 제법에 준하여/따라 제조한다")에서 찾는다
+// 대한약전 표준 제형만 화이트리스트로 인정한다 — 아니면 "첨가제"·"방부제"처럼
+// 제형이 아닌 다른 "~제" 낱말을 잘못 집어낼 수 있어서다.
+const DRUG_FORM_WHITELIST = [
+  "산제","액제","주사제","정제","캅셀제","과립제","시럽제","연고제","유제","현탁제",
+  "점안제","점이제","좌제","첩부제","도포제","분무제","훈증제","훈연제","크림제","겔제",
+];
+function parseDrugForm(formText, fullText){
+  formText = formText || ""; fullText = fullText || "";
+  let m = formText.match(/제형\s*[:：]\s*([가-힣]{1,6}제)/);
+  if(!m) m = formText.match(/^(?:\d\)|가\.)\s*([가-힣]{1,6}제)(?=\s|\d\)|가\.|$)/);
+  if(m && DRUG_FORM_WHITELIST.includes(m[1])) return m[1];
+  // "준하여"가 "준하 여"처럼 태그 경계 때문에 중간에 공백이 끼어 나오는 페이지가
+  // 있어(예: 파워믹스 플러스) 뒤에 붙는 동사는 요구하지 않는다 — "OO제 제법에"라는
+  // 어구 자체가 이미 제조방법 문단에서만 나오는 고정 표현이라 이것만으로 충분하다.
+  m = fullText.match(/([가-힣]{1,6}제)\s*(?:의\s*)?제법에/);
+  if(m && DRUG_FORM_WHITELIST.includes(m[1])) return m[1];
+  return null;
+}
+// QIA에는 "사료첨가제·프리믹스"를 담는 별도 제형이 없다(공식 제형은 보통 "산제"로
+// 등록된다) — 실무에서 쓰는 "첨가제" 구분은 제품명으로 판단한다.
+function drugFormCategory(r){
+  if(/프리믹스|배합사료첨가제|사료첨가제/.test(r.제품명 || "")) return "첨가제";
+  return r._제형 || null;
+}
+
 function qiaDetailInfo(link){
   if(qiaDetailCache.has(link)) return qiaDetailCache.get(link);
   const job = (async () => {
@@ -4247,10 +4280,13 @@ function qiaDetailInfo(link){
     // 상세 페이지 본문은 "효능효과 효능효과 폴딩 버튼 …(본문)… 용법용량 용법 용량 폴딩 버튼" 순서다.
     const m = text.match(/효능\s*효과(?:\s*효능\s*효과)?(?:\s*폴딩\s*버튼)?\s*(.*?)\s*용법\s*용량/);
     const efficacy = m ? m[1].slice(0, 1500) : "";
-    // 포장단위는 상세 정보 표의 "포장단위" 제목칸(th) 바로 옆 칸에 있다.
+    // 포장단위·성상(제형)은 상세 정보 표의 제목칸(th) 바로 옆 칸에 있다.
     const packTh = [...doc.querySelectorAll("th, dt")].find(el => el.textContent.replace(/\s+/g, "").startsWith("포장단위"));
     const pack = packTh && packTh.nextElementSibling ? packTh.nextElementSibling.textContent.replace(/\s+/g, " ").trim().slice(0, 200) : "";
-    return { efficacy, species: DRUG_SPECIES.filter(sp => sp.re.test(efficacy)).map(sp => sp.key), wd: wdExtractPeriod(html), pack };
+    const formTh = [...doc.querySelectorAll("th, dt")].find(el => el.textContent.replace(/\s+/g, "").startsWith("성상"));
+    const formText = formTh && formTh.nextElementSibling ? formTh.nextElementSibling.textContent.replace(/\s+/g, " ").trim() : "";
+    const form = parseDrugForm(formText, text);
+    return { efficacy, species: DRUG_SPECIES.filter(sp => sp.re.test(efficacy)).map(sp => sp.key), wd: wdExtractPeriod(html), pack, form };
   })();
   qiaDetailCache.set(link, job);
   job.catch(() => qiaDetailCache.delete(link));
@@ -4366,7 +4402,7 @@ async function searchDrugUse(){
   }
   const term = (sym && DRUG_SYMPTOM_ALIAS[sym]) || sym || sp.term;
   drugState.query = term; drugState.page = 1; drugState.fuzzy = false;
-  drugState.rows = []; drugState.total = 0; drugState.rawCount = 0; drugState.excluded = 0;
+  drugState.rows = []; drugState.total = 0; drugState.rawCount = 0; drugState.excluded = 0; drugState.formFilter = null;
   drugState.use = { term, sp: sp ? sp.key : "", qiaPage: 0, qiaTotal: 0, scanned: 0 };
   drugState.status = "loading"; drugState.error = "";
   render();
@@ -4412,7 +4448,7 @@ async function attachDrugDetails(rows){
   await qiaMapLimit(rows.filter(r => r.링크), 6, async r => {
     try {
       const info = await qiaDetailInfo(r.링크);
-      r._효능 = info.efficacy; r._대상 = info.species; r._포장 = info.pack;
+      r._효능 = info.efficacy; r._대상 = info.species; r._포장 = info.pack; r._제형 = info.form;
       r._휴약기간 = info.wd; r._wdStatus = "done"; r._wdErr = false;
     } catch(e){ r._detailErr = true; r._wdStatus = undefined; }
   });
@@ -4628,7 +4664,7 @@ async function searchDrug(q){
   drugState.query = q;
   drugState.page = 1;
   drugState.fuzzy = false;
-  drugState.rawCount = 0; drugState.excluded = 0;
+  drugState.rawCount = 0; drugState.excluded = 0; drugState.formFilter = null;
   drugState.status = "loading";
   drugState.error = "";
   render();
@@ -4691,7 +4727,7 @@ async function loadDrugWithdrawal(i){
   render();
   try {
     const info = await qiaDetailInfo(r.링크);
-    r._휴약기간 = info.wd; r._포장 = info.pack; r._wdErr = false;
+    r._휴약기간 = info.wd; r._포장 = info.pack; r._제형 = info.form; r._wdErr = false;
   } catch(e){
     r._휴약기간 = "";
     r._wdErr = true;
@@ -4762,7 +4798,28 @@ function renderDrugSearchPanel(){
 
   // 축종을 골라 검색했으면 휴약기간은 그 축종 것만 보여 준다(고르지 않았으면 소·돼지만 뺀다).
   const wdOnlySp = (useMode && drugState.use && drugState.use.sp) ? DRUG_SPECIES.find(x => x.key === drugState.use.sp) : null;
-  const rowsHtml = drugState.rows.map((r, i) => {
+
+  // 제형 필터 — QIA 검색화면 자체에는 제형 항목이 없어 상세 정보에서 읽은 값(r._제형)과
+  // 제품명 기반의 "첨가제" 판정(drugFormCategory)으로 화면에서만 거른다. 아직 상세
+  // 정보를 못 읽은 행(_제형이 undefined, 조회중)은 셈에서 빼서 로딩 중에 칩이 깜빡이지
+  // 않게 하고, 상세 조회가 아예 안 되는 행(_제형이 null 확정)은 "전체"에서만 보인다.
+  const formCounts = new Map();
+  drugState.rows.forEach(r => {
+    const cat = drugFormCategory(r);
+    if(cat) formCounts.set(cat, (formCounts.get(cat) || 0) + 1);
+  });
+  const formChips = [...formCounts.entries()].sort((a, b) => b[1] - a[1]);
+  if(drugState.formFilter && !formCounts.has(drugState.formFilter)) drugState.formFilter = null;
+  const formFilterBar = formChips.length ? `
+  <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+    <span style="font-size:10.5px;color:#888">제형별 보기</span>
+    <button class="drug-form-btn" data-form="" style="border:1px solid ${!drugState.formFilter?"#00838F":"#ddd"};background:${!drugState.formFilter?"#00838F":"#fff"};color:${!drugState.formFilter?"#fff":"#555"};border-radius:14px;padding:4px 11px;font-size:11px;font-weight:700;cursor:pointer">전체 ${drugState.rows.length}</button>
+    ${formChips.map(([cat, n]) => `<button class="drug-form-btn" data-form="${esc(cat)}" style="border:1px solid ${drugState.formFilter===cat?"#00838F":"#ddd"};background:${drugState.formFilter===cat?"#00838F":"#fff"};color:${drugState.formFilter===cat?"#fff":"#555"};border-radius:14px;padding:4px 11px;font-size:11px;font-weight:700;cursor:pointer">${esc(cat)} ${n}</button>`).join("")}
+  </div>` : "";
+  const shownRows = drugState.formFilter ? drugState.rows.filter(r => drugFormCategory(r) === drugState.formFilter) : drugState.rows;
+
+  const rowsHtml = shownRows.map((r) => {
+    const i = drugState.rows.indexOf(r); // "조회" 버튼은 필터 여부와 무관하게 원래 배열의 자리를 가리켜야 한다
     let wdCell;
     if(r.품목구분 && r.품목구분.includes("외품")){
       wdCell = `<span style="color:#aaa;font-size:11px">해당없음</span>`;
@@ -4821,11 +4878,12 @@ function renderDrugSearchPanel(){
 
   const useSp = u && u.sp ? DRUG_SPECIES.find(x => x.key === u.sp) : null;
   const exclNote = drugState.excluded ? ` · 수출용 ${drugState.excluded}건 제외` : "";
+  const formNote = drugState.formFilter ? ` · 제형 필터 "${esc(drugState.formFilter)}" 적용 중(${shownRows.length}건 표시)` : "";
   const infoLine = drugState.rows.length === 0 ? "" : ((useMode && u)
     ? `효능효과에 "${esc(u.term)}"이(가) 들어간 QIA 제품 ${u.qiaTotal.toLocaleString()}건 중 ${u.scanned.toLocaleString()}건 확인${useSp?` → ${esc(useSp.label)} 대상 ${drugState.rows.length}건`:""} · 대상동물·휴약기간은 각 제품 상세 정보에서 자동으로 읽었습니다`
     : drugState.fuzzy
     ? `유사 검색 결과 ${drugState.rows.length}건 · 제품명 클릭시 공식 상세정보(새창)`
-    : `QIA 공식 데이터 · 총 ${drugState.total.toLocaleString()}건 중 ${drugState.rawCount}건 불러옴 · 제품명 클릭시 공식 상세정보(새창)`) + exclNote;
+    : `QIA 공식 데이터 · 총 ${drugState.total.toLocaleString()}건 중 ${drugState.rawCount}건 불러옴 · 제품명 클릭시 공식 상세정보(새창)`) + exclNote + formNote;
 
   let resultBody;
   if(drugState.status === "idle"){
@@ -4843,7 +4901,9 @@ function renderDrugSearchPanel(){
   } else {
     resultBody = `
       ${fuzzyBanner}
+      ${formFilterBar}
       <div style="font-size:11px;color:#aaa;margin-bottom:8px">${infoLine}</div>
+      ${!shownRows.length ? `<div style="text-align:center;padding:20px;color:#aaa;font-size:12px">제형 필터 "${esc(drugState.formFilter)}"에 맞는 제품이 없습니다</div>` : `
       <div style="overflow-x:auto"><table class="drug-result-table" style="width:100%;border-collapse:collapse;min-width:640px;font-size:12px;table-layout:fixed">
         <colgroup>
           <!-- 제품명 22%·업체명 10.5%(이전 17%·8%에서 30% 넓힘), 나머지는 주성분·포장단위·휴약기간 -->
@@ -4857,7 +4917,7 @@ function renderDrugSearchPanel(){
           <th style="padding:7px 8px;text-align:left;font-size:10px;color:#00838F;font-weight:600">휴약기간 <span style="font-weight:400;color:#888">(${wdOnlySp ? esc(wdOnlySp.label) + "만" : "소·돼지 제외"})</span></th>
         </tr></thead>
         <tbody>${rowsHtml}</tbody>
-      </table></div>
+      </table></div>`}
       ${moreBtn}`;
   }
 
@@ -13033,6 +13093,10 @@ function attachEvents(){
 
   // 약품조회 및 휴약기간 검색
   document.querySelectorAll(".drug-mode-btn").forEach(b=>b.onclick=()=>setDrugMode(b.dataset.mode));
+  document.querySelectorAll(".drug-form-btn").forEach(b=>b.onclick=()=>{
+    drugState.formFilter = b.dataset.form || null; // "전체" 칩은 data-form=""
+    render();
+  });
   const drugQInput = document.getElementById("drug-q");
   if(drugQInput){
     drugQInput.onkeydown = (e)=>{ if(e.key==="Enter") searchDrug(drugQInput.value); };
