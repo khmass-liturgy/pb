@@ -1029,6 +1029,76 @@ const DEFAULT_DISEASE_DISINFECTANTS = [
     products:[],
     caution:"세균성 질병은 항생제 감수성 검사 결과에 따라 치료 방향이 달라질 수 있으므로, 소독과 함께 수의사 진단을 받으시기 바랍니다." },
 ];
+// 세균(세포벽·세포막을 가진 단일 구조) vs 외피 바이러스(지질막이 있어 계면활성제에
+// 약함) vs 비외피 바이러스(단백질 캡시드만 있어 저항성이 강함)를 한눈에 비교하는
+// 모식도. 정적 SVG라 이 파일 안에 문자열로 직접 둔다(별도 이미지 호스팅 불필요).
+const DISINFECT_DIAGRAM_SVG = `<svg viewBox="0 0 700 250" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;max-width:560px;display:block;margin:10px auto">
+  <text x="120" y="18" text-anchor="middle" font-size="12.5" font-weight="700" fill="#00695C">세균</text>
+  <rect x="55" y="28" width="130" height="170" rx="60" fill="#E0F2F1" stroke="#00695C" stroke-width="2.5"/>
+  <rect x="68" y="40" width="104" height="146" rx="48" fill="#B2DFDB" stroke="#4DB6AC" stroke-width="1.5"/>
+  <ellipse cx="120" cy="113" rx="30" ry="19" fill="#004D40"/>
+  <text x="120" y="117" text-anchor="middle" font-size="9" fill="#fff">DNA</text>
+  <text x="120" y="212" text-anchor="middle" font-size="9.5" fill="#333" font-weight="700">세포벽·세포막</text>
+  <text x="120" y="226" text-anchor="middle" font-size="8.5" fill="#00695C">막 파괴·단백질 변성으로 사멸</text>
+
+  <text x="350" y="18" text-anchor="middle" font-size="12.5" font-weight="700" fill="#1565C0">외피 바이러스</text>
+  <circle cx="350" cy="113" r="72" fill="#BBDEFB" stroke="#1565C0" stroke-width="2.5" stroke-dasharray="6 4"/>
+  <circle cx="350" cy="113" r="46" fill="#64B5F6" stroke="#1976D2" stroke-width="1.5"/>
+  <circle cx="350" cy="113" r="16" fill="#0D47A1"/>
+  <text x="350" y="212" text-anchor="middle" font-size="9.5" fill="#333" font-weight="700">지질외피(envelope)</text>
+  <text x="350" y="226" text-anchor="middle" font-size="8.5" fill="#1565C0">알코올·계면활성제에 취약 → 쉽게 불활화</text>
+
+  <text x="580" y="18" text-anchor="middle" font-size="12.5" font-weight="700" fill="#C62828">비외피 바이러스</text>
+  <polygon points="580,55 616,80 616,130 580,155 544,130 544,80" fill="#FFCDD2" stroke="#C62828" stroke-width="2.5"/>
+  <circle cx="580" cy="105" r="16" fill="#B71C1C"/>
+  <text x="580" y="212" text-anchor="middle" font-size="9.5" fill="#333" font-weight="700">단백질 캡시드만(외피 없음)</text>
+  <text x="580" y="226" text-anchor="middle" font-size="8.5" fill="#C62828">저항성 강함 → 산화제·알데히드 필요</text>
+</svg>`;
+
+// 질병별 목록과 별개로, 소독 자체에 대한 일반 원리·절차를 다루는 고정 카드
+// 4종. 질병마다 달라지는 내용이 아니라 이 화면에서만 쓰는 정적 참고자료라
+// DEFAULT_DISEASE_DISINFECTANTS처럼 관리자 편집·Storage 발행 대상으로 두지
+// 않고 그냥 상수로 둔다.
+const GENERAL_DISINFECT_GUIDE = [
+  { key:"concept", icon:"📖", title:"소독의 기본개념",
+    sections:[
+      { step:"소독이란", detail:"병원체(세균·바이러스·곰팡이 등)의 수를 감염을 일으키지 못하는 안전한 수준까지 줄이는 것입니다. 모든 미생물을 완전히 없애는 \"멸균(sterilization)\"과는 다른 개념으로, 농장에서는 현실적으로 소독 수준의 관리를 목표로 합니다." },
+      { step:"소독의 3요소", detail:"① 세척(유기물 제거) ② 소독제 선택과 정확한 희석농도 ③ 충분한 접촉시간(contact time). 이 셋 중 하나라도 빠지면 효과가 크게 떨어집니다." },
+      { step:"유기물이 최대의 적", detail:"분변·깔짚·먼지 같은 유기물이 남아있으면 소독제가 유기물과 먼저 반응해 소모되거나, 병원체를 물리적으로 감싸 보호합니다. 소독제를 뿌리기 전 청소·세척을 반드시 먼저 끝내야 합니다." },
+      { step:"병원체별 저항성 순서", detail:"일반세균·외피 바이러스 < 곰팡이·비외피 바이러스 < 세균 아포(Clostridium 등) < 원충 오오시스트(콕시듐 등) 순으로 소독제에 대한 저항성이 강해집니다. 같은 소독제라도 대상에 따라 효과 차이가 큽니다." },
+      { step:"온도·pH·물 경도의 영향", detail:"저온에서는 화학반응 속도가 느려져 효과가 떨어지므로 접촉시간을 늘리거나 온수를 사용합니다. 차아염소산나트륨 등 일부 소독제는 물이 오염되거나 경도가 높으면 효력이 떨어집니다." },
+    ] },
+  { key:"principle", icon:"🔬", title:"살균·살바이러스의 원리",
+    intro:"소독제는 병원체의 구조적 약점을 공격해 불활화시킵니다. 세균과 바이러스는 구조가 달라 소독제에 대한 감수성도 다릅니다 — 아래 모식도로 구조 차이를 먼저 보세요.",
+    diagram:true,
+    sections:[
+      { step:"세균을 죽이는 원리", detail:"세포벽·세포막을 파괴하거나(계면활성제·알코올), 단백질을 변성시키거나(알데히드·산화제), DNA·효소 기능을 막아 증식을 정지시킵니다." },
+      { step:"외피 바이러스(enveloped virus)", detail:"바이러스 표면이 숙주세포에서 유래한 지질막(envelope)으로 싸여 있어, 계면활성제·알코올·비누 성분만으로도 막이 쉽게 파괴되어 비교적 쉽게 불활화됩니다. (예: 인플루엔자, 뉴캐슬병, 전염성기관지염)" },
+      { step:"비외피 바이러스(non-enveloped virus)", detail:"지질막 없이 단백질 껍질(캡시드)만으로 이루어져 있어 계면활성제에 강한 저항성을 가집니다. 산화제(염소계·과산화수소·과초산)나 알데히드계처럼 단백질 자체를 변성·산화시키는 소독제가 필요합니다. (예: 감보로병, 아데노바이러스)" },
+      { step:"소독제 작용기전 요약", detail:"① 산화(염소계·과산화수소·과초산): 세포막·단백질을 산화시켜 파괴 ② 단백질 변성(알데히드·알코올): 단백질 구조를 응고시켜 기능 정지 ③ 계면활성(QAC 등): 지질막을 용해·분산 ④ 삼투압(생석회 등): 수분을 빼앗아 건조·불활화" },
+    ] },
+  { key:"with_birds", icon:"🐔", title:"닭이 있을 때 기본 소독절차",
+    sections:[
+      { step:"사용 가능한 방식", detail:"음수소독(급수라인 내부 세균막 제거·소독), 저자극 분무소독(계사 내 공간·환경 소독), 발판소독조·차량소독기(출입 시 교차오염 차단) 위주로 진행합니다." },
+      { step:"소독제 선택 기준", detail:"닭에 직접 노출되므로 자극성·독성이 낮고 축산용으로 등록된 저자극 소독제(요오드제, 저농도 QAC 등)를 사용하고, 포름알데히드·고농도 염소계처럼 호흡기 자극이 강한 제품은 피합니다." },
+      { step:"음수소독 요령", detail:"급이·급수 라인 내 바이오필름 제거용 소독제(과산화수소계 등)를 정기적으로 투여하고, 생백신 투여 전후에는 반드시 중단합니다(백신 불활화 방지)." },
+      { step:"분무소독 요령", detail:"사료·물에 직접 닿지 않게 미세 분무기로 계사 상부·공기 중을 대상으로 분무하며, 닭이 놀라 스트레스를 받지 않도록 서서히 진행합니다." },
+      { step:"출입 통제", detail:"사람·차량·기자재의 발판소독조, 손소독, 전용 작업복·장화 착용을 상시 유지해 외부 병원체 유입을 차단합니다." },
+    ],
+    caution:"닭이 있는 상태에서는 고농도·자극성 소독제나 훈증소독(포름알데히드 가스 등)을 사용하지 않습니다." },
+  { key:"without_birds", icon:"🚪", title:"닭이 없을 때 기본 소독절차(공백기)",
+    sections:[
+      { step:"1단계 반출 직후 건조 청소", detail:"깔짚·분변·잔여 사료를 완전히 반출하고 빗자루·스크래퍼로 큰 이물질을 먼저 제거합니다." },
+      { step:"2단계 고압세척", detail:"중성세제로 유기물·기름때를 씻어내고 바닥·벽·천장·환기구·급이급수 설비까지 구석구석 세척합니다." },
+      { step:"3단계 건조", detail:"세척 후 충분히 건조시켜 물기로 소독제가 희석되어 효과가 떨어지는 것을 방지합니다." },
+      { step:"4단계 소독제 도포", detail:"질병·상황에 맞는 소독제를 표시농도로 바닥·벽·기자재까지 고르게 도포합니다(필요시 훈증 병행)." },
+      { step:"5단계 접촉시간 확보", detail:"제품 권장 접촉시간(보통 10~30분, 비외피 바이러스는 그 이상) 동안 마르지 않게 유지합니다." },
+      { step:"6단계 재건조·환기", detail:"소독 후 재입식 전까지 자연건조 및 환기를 충분히 진행합니다." },
+      { step:"7단계 공백기 확보", detail:"질병력에 따라 최소 1~2주 이상(비외피 바이러스·아포균 이력이 있으면 2~3주 이상) 공백기간을 두고 재입식합니다." },
+    ],
+    caution:"닭이 없는 공백기는 병원체 순환고리를 끊는 가장 확실한 기회입니다. 소독제 접촉만큼 청소·건조·공백기간이 실제 효과를 좌우합니다." },
+];
+
 let diseaseDisinfectState = { status:"idle", data:null, busy:false, msg:"" };
 
 async function fetchDiseaseDisinfectants(){
@@ -5012,7 +5082,7 @@ function renderResearchPanel(){
 // ── 상황별 처방(투약) 패키지 화면 ────────────────────────────────────────────
 let treatmentTabState = { species: "broiler", openKey: null, adminOpen: false, formKey: undefined };
 let seasonalTabState = { season: "spring", openKey: null, adminOpen: false, formKey: undefined };
-let disinfectTabState = { openKey: null, adminOpen: false, formKey: undefined };
+let disinfectTabState = { openKey: null, adminOpen: false, formKey: undefined, generalOpenKey: null };
 // 학습 화면 내비게이션 — deckKey가 없으면 덱 목록, 있으면 그 덱의 카드
 // 뷰어(cardIndex번째 카드, flipped면 뒷면 표시 중). deckFormKey/cardFormKey는
 // 관리자가 덱/카드를 추가·편집할 때 쓰는 폼 상태다(둘 다 undefined면 새로 추가).
@@ -5427,6 +5497,34 @@ function renderSeasonalPanel(){
 // ── 질병별 소독제 선택과 소독요령 화면 ────────────────────────────────────────
 // species/season 탭 없이 질병명 기준 단일 목록만 있어, 상황별 처방·계절별
 // 패키지보다 화면이 한 단계 더 단순하다(탭 버튼 없이 바로 카드 목록).
+// GENERAL_DISINFECT_GUIDE 카드 4종을 질병별 목록과 같은 토글 카드 UI로 그린다
+// (편집/삭제 버튼 없음 — 정적 참고자료라 관리자 편집 대상이 아니다).
+function renderGeneralDisinfectCards(){
+  return GENERAL_DISINFECT_GUIDE.map(g => {
+    const open = disinfectTabState.generalOpenKey === g.key;
+    return `
+    <div class="card" style="border-top:4px solid #B8860B;margin-bottom:10px;padding:16px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+        <div class="disinfect-general-toggle" data-key="${g.key}" style="cursor:pointer;flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:800;color:#333">${g.icon} ${esc(g.title)}</div>
+        </div>
+        <span class="disinfect-general-toggle" data-key="${g.key}" style="cursor:pointer;font-size:11px;color:#B8860B;font-weight:700;white-space:nowrap;flex-shrink:0">${open?"접기 ▲":"내용 보기 ▼"}</span>
+      </div>
+      ${open ? `
+      <div style="margin-top:12px;padding-top:12px;border-top:1px dashed #eee">
+        ${g.intro ? `<div style="font-size:12.5px;color:#555;line-height:1.6;margin-bottom:10px">${esc(g.intro)}</div>` : ""}
+        ${g.diagram ? DISINFECT_DIAGRAM_SVG : ""}
+        ${g.sections.map(s => `
+        <div style="margin-bottom:9px">
+          <div style="font-size:12.5px;font-weight:700;color:#333">${esc(s.step)}</div>
+          <div style="font-size:12.5px;color:#444;line-height:1.6;margin-top:2px">${esc(s.detail)}</div>
+        </div>`).join("")}
+        ${g.caution ? `<div style="font-size:11px;color:#8D6E00;background:#FFF8E1;border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.6">⚠️ ${esc(g.caution)}</div>` : ""}
+      </div>` : ""}
+    </div>`;
+  }).join("");
+}
+
 function renderDisinfectPanel(){
   const head = `
   <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
@@ -5520,6 +5618,9 @@ function renderDisinfectPanel(){
   </div>`;
 
   return head + `
+  <div style="font-size:12px;font-weight:800;color:#B8860B;margin:4px 0 8px">📘 일반적인 소독요령(기본 개념)</div>
+  ${renderGeneralDisinfectCards()}
+  <div style="font-size:12px;font-weight:800;color:#00695C;margin:18px 0 8px">🦠 질병별 소독제 선택과 소독요령</div>
   ${cards}
   ${adminBox}
   <div style="font-size:9px;color:#aaa;line-height:1.6;margin-top:6px">
@@ -11982,6 +12083,11 @@ function attachEvents(){
   document.querySelectorAll(".disinfect-toggle").forEach(b=>b.onclick=()=>{
     const key = b.dataset.key;
     disinfectTabState.openKey = disinfectTabState.openKey === key ? null : key;
+    render();
+  });
+  document.querySelectorAll(".disinfect-general-toggle").forEach(b=>b.onclick=()=>{
+    const key = b.dataset.key;
+    disinfectTabState.generalOpenKey = disinfectTabState.generalOpenKey === key ? null : key;
     render();
   });
   const disinfectAdminToggle = document.getElementById("disinfect-admin-toggle");
