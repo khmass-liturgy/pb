@@ -883,9 +883,16 @@ const LAYER_REARING_STAGES = [
 ];
 
 const LAYER_PRODUCTION_STAGES = [
-  { key:"phase1", label:"산란전기(Phase 1)", age:"19주령~정점", req:"단백질 18.50g · 칼슘 4.10g · 유효인 0.42g · 라이신 0.97g · 메티오닌 0.48g (수당/일)" },
-  { key:"phase2", label:"산란중기(Phase 2)", age:"약 50~70주령", req:"단백질 18.00g · 칼슘 4.40g · 유효인 0.40g · 라이신 0.94g · 메티오닌 0.47g (수당/일)" },
-  { key:"phase3", label:"산란후기(Phase 3)", age:"약 70주령 이후", req:"단백질 17.00g · 칼슘 4.50g · 유효인 0.38g · 라이신 0.91g · 메티오닌 0.45g (수당/일)" },
+  { key:"phase1", label:"산란전기(Phase 1)", age:"19주령~정점", protein:"18.50 g", ca:"4.10 g", ap:"0.42 g", lys:"0.97 g", met:"0.48 g", color:"#4FC3F7" },
+  { key:"phase2", label:"산란중기(Phase 2)", age:"약 50~70주령", protein:"18.00 g", ca:"4.40 g", ap:"0.40 g", lys:"0.94 g", met:"0.47 g", color:"#29B6F6" },
+  { key:"phase3", label:"산란후기(Phase 3)", age:"약 70주령 이후", protein:"17.00 g", ca:"4.50 g", ap:"0.38 g", lys:"0.91 g", met:"0.45 g", color:"#0288D1" },
+];
+const LAYER_PRODUCTION_COLS = [
+  { key:"protein", label:"단백질(g/일)" },
+  { key:"ca", label:"칼슘(g/일)" },
+  { key:"ap", label:"유효인(g/일)" },
+  { key:"lys", label:"라이신(g/일)" },
+  { key:"met", label:"메티오닌(g/일)" },
 ];
 
 let feedStandardState = { species: "broiler" };
@@ -965,12 +972,9 @@ function renderFeedStandardPanel(){
     </div>
     <div class="card" style="padding:16px">
       <div style="font-size:13px;font-weight:800;color:#333;margin-bottom:10px">🥚 산란계 산란기 단계별 1일 영양요구량(수당)</div>
-      ${LAYER_PRODUCTION_STAGES.map(s=>`
-      <div style="margin-bottom:9px">
-        <div style="font-size:12.5px;font-weight:700;color:#388E3C">${esc(s.label)} <span style="font-weight:400;color:#888;font-size:11px">(${esc(s.age)})</span></div>
-        <div style="font-size:12px;color:#444;line-height:1.6;margin-top:2px">${esc(s.req)}</div>
-      </div>`).join("")}
-      <div style="font-size:9.5px;color:#aaa;margin-top:8px;line-height:1.6">출처: LOHMANN BROWN-CLASSIC Management Guide — 일일 사료 섭취량(약 110g/수/일) 기준 요구량입니다. 실제 섭취량이 다르면 사료 내 농도(%)를 그에 맞게 조정해야 합니다.</div>
+      ${renderFeedStageRow(LAYER_PRODUCTION_STAGES)}
+      ${renderFeedSpecTable(LAYER_PRODUCTION_STAGES, LAYER_PRODUCTION_COLS)}
+      <div style="font-size:9.5px;color:#aaa;margin-top:10px;line-height:1.6">출처: LOHMANN BROWN-CLASSIC Management Guide — 일일 사료 섭취량(약 110g/수/일) 기준 요구량입니다. 실제 섭취량이 다르면 사료 내 농도(%)를 그에 맞게 조정해야 합니다.</div>
     </div>`;
   }
 
