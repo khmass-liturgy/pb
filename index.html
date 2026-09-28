@@ -5908,19 +5908,19 @@ function renderStudyPanel(){
 
   const viewer = !card ? `<div class="card" style="text-align:center;padding:28px 16px;color:#aaa">아직 등록된 카드가 없습니다.</div>` : `
   <div style="font-size:11px;color:#888;margin-bottom:8px;text-align:center">카드 ${nav.cardIndex+1} / ${cardsArr.length}</div>
-  <div id="study-flip-card" style="cursor:pointer;background:#fff;border:1px solid #eee;border-radius:14px;padding:28px 20px;min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.04)">
+  <div id="study-flip-card" style="cursor:pointer;background:${nav.flipped?"linear-gradient(135deg,#FFF8E1,#FFECB3)":"linear-gradient(135deg,#5E35B1,#4527A0)"};border:1px solid ${nav.flipped?"#F9D871":"#4527A0"};border-radius:14px;padding:28px 20px;min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,0.12)">
     ${(!nav.flipped && card.imageUrl) ? `<a href="${esc(card.imageUrl)}" target="_blank" rel="noopener" class="study-card-image-link" style="display:block;margin-bottom:12px" title="눌러서 원본 크기로 보기">
       <img src="${esc(card.imageUrl)}" alt="" style="max-width:100%;max-height:160px;border-radius:8px" />
-      <div style="font-size:9.5px;color:#999;margin-top:3px">🔍 눌러서 크게 보기</div>
+      <div style="font-size:9.5px;color:#E0D6F5;margin-top:3px">🔍 눌러서 크게 보기</div>
     </a>` : ""}
     ${(nav.flipped && card.backImage && card.backImage.url) ? `<div style="margin-bottom:12px;max-width:100%">
       <a href="${esc(card.backImage.url)}" target="_blank" rel="noopener" class="study-card-image-link" style="display:block" title="눌러서 크게 보기">
         <img src="${esc(card.backImage.url)}" alt="${esc(card.backImage.title||"대표 증상 사진")}" loading="lazy" style="max-width:100%;max-height:220px;border-radius:8px" />
       </a>
-      <div style="font-size:9.5px;color:#999;margin-top:3px;line-height:1.5">🔍 사진을 누르면 크게 보기${studyBackImageCredit(card.backImage)}</div>
+      <div style="font-size:9.5px;color:#8D6E00;margin-top:3px;line-height:1.5">🔍 사진을 누르면 크게 보기${studyBackImageCredit(card.backImage)}</div>
     </div>` : ""}
-    <div style="font-size:15px;font-weight:800;color:#333;line-height:1.6;white-space:pre-wrap">${esc(nav.flipped ? card.back : card.front)}</div>
-    <div style="font-size:10.5px;color:#aaa;margin-top:14px">${nav.flipped?"다시 눌러 앞면 보기":"눌러서 정답 보기"}</div>
+    <div style="font-size:${nav.flipped?"15px":"30px"};font-weight:800;color:${nav.flipped?"#5C4400":"#fff"};line-height:1.6;white-space:pre-wrap">${esc(nav.flipped ? card.back : card.front)}</div>
+    <div style="font-size:10.5px;color:${nav.flipped?"#B8860B":"#D8CCF0"};margin-top:14px">${nav.flipped?"다시 눌러 앞면 보기":"눌러서 정답 보기"}</div>
   </div>
   <div style="display:flex;justify-content:space-between;gap:8px;margin-top:14px">
     <button id="study-prev-btn" ${nav.cardIndex===0?"disabled":""} style="flex:1;border:1px solid #ddd;border-radius:8px;background:#fff;color:${nav.cardIndex===0?"#ccc":"#333"};padding:10px;font-size:12.5px;font-weight:700">← 이전</button>
