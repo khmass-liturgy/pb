@@ -99,16 +99,18 @@
   .pm-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
   .pm-item {
     display: flex; align-items: center; gap: 13px; width: 100%; text-align: left; color: inherit; font: inherit;
-    background: #fff; border: 1px solid #ececec; border-radius: 14px; padding: 13px 14px;
-    box-shadow: 0 1px 6px rgba(0,0,0,0.05);
+    background: linear-gradient(135deg, var(--bg), #fff 65%);
+    border: 1px solid #eee; border-left: 5px solid var(--c); border-radius: 14px; padding: 13px 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
   }
   button.pm-item { cursor: pointer; transition: transform .12s, box-shadow .12s, border-color .12s; }
-  button.pm-item:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,0,0,0.08); border-color: var(--c); }
+  button.pm-item:hover { transform: translateY(-1px); box-shadow: 0 5px 16px rgba(0,0,0,0.1); border-color: var(--c); }
   button.pm-item:active { transform: translateY(0); }
   button.pm-item:focus-visible { outline: 2px solid var(--c); outline-offset: 2px; }
   .pm-icon {
-    flex: 0 0 46px; width: 46px; height: 46px; border-radius: 50%; background: var(--bg);
+    flex: 0 0 46px; width: 46px; height: 46px; border-radius: 50%; background: var(--c);
     display: flex; align-items: center; justify-content: center; font-size: 23px; line-height: 1;
+    box-shadow: 0 2px 6px var(--bg);
   }
   .pm-text { flex: 1; min-width: 0; }
   .pm-title { display: block; font-size: 14px; font-weight: 700; color: #222; line-height: 1.35; }
