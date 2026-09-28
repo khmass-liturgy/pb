@@ -709,6 +709,7 @@ const PREMIUM_ITEMS = [
   { key:"treatment", icon:"💉", title:"상황별 처방(투약) 패키지", desc:"육계·산란계 농장 상황을 고르면 그에 맞는 투약(처방) 프로그램을 보여드립니다. 상황은 계속 추가됩니다.", color:"#C62828" },
   { key:"seasonal", icon:"🗓️", title:"계절별 투약(관리) 패키지", desc:"봄·여름·가을·겨울 시기별로 챙겨야 할 투약(백신)과 사양관리 주의사항을 안내합니다.", color:"#795548" },
   { key:"finder", icon:"🎯", title:"내 농장에 맞는 약품 찾기", desc:"축종과 문제 증상을 단계별로 선택하면 진단·원인 분석과 추천 처방을 보여드립니다.", color:"#283593" },
+  { key:"ventfinder", icon:"💨", title:"내 농장에 맞는 환기량 찾기", desc:"오늘 날씨와 계사 조건을 넣으면 최소 환기량과 환기팬 가동시간을 계산해 드립니다.", color:"#0288D1" },
   { key:"disinfect", icon:"🧴", title:"질병별 소독제 선택과 소독요령", desc:"질병을 고르면 그에 맞는 소독제 선택 기준과 소독요령을 단계별로 안내합니다.", color:"#00695C" },
   { key:"selfcheck", icon:"🐔", title:"온라인 자가진단", desc:"닭 해부도에서 장기를 클릭하면 그 장기의 기능과 흔히 나타나는 질병을 보여드립니다.", color:"#AD1457" },
   { key:"study", icon:"🎓", title:"최수의사의 온라인 학습(카드 학습)", desc:"수의사가 올린 카드형 학습자료(앞면/뒷면)로 필요할 때마다 학습할 수 있습니다.", color:"#4527A0" },
@@ -3224,7 +3225,7 @@ async function fetchNews(channelId){
 // ── Open-Meteo 날씨 연동 ───────────────────────────────────────────────────
 async function fetchWeather(lat, lng, name){
   weatherState.status="loading"; weatherState.locationName=name;
-  if(state.tab==="weather" || state.tab==="vent" || state.tab==="disease") render();
+  if(state.tab==="weather" || state.tab==="vent" || state.tab==="disease" || state.tab==="premium") render();
   try {
     const fcstUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max,relative_humidity_2m_mean&hourly=temperature_2m,weathercode,precipitation,windspeed_10m,relativehumidity_2m&timezone=Asia%2FSeoul&forecast_days=7&windspeed_unit=ms`;
     const fcstResp = await fetchWithTimeout(fcstUrl, 10000);
@@ -3278,10 +3279,10 @@ async function fetchWeather(lat, lng, name){
   } catch(e){
     console.error("날씨 조회 실패:", e);
     weatherState.status="error";
-    if(state.tab==="weather" || state.tab==="vent" || state.tab==="disease") render();
+    if(state.tab==="weather" || state.tab==="vent" || state.tab==="disease" || state.tab==="premium") render();
     return;
   }
-  if(state.tab==="weather" || state.tab==="vent" || state.tab==="disease") render();
+  if(state.tab==="weather" || state.tab==="vent" || state.tab==="disease" || state.tab==="premium") render();
 
   // 작년 같은 주 비교는 부가 정보라 별도로 받는다 — archive-api.open-meteo.com이
   // 사용자 네트워크에 따라 아주 느리거나(수십 초) 아예 막히는 경우가 있는데,
@@ -3310,7 +3311,7 @@ async function fetchWeather(lat, lng, name){
   } catch(e){
     console.warn("작년 비교 날씨 로딩 실패(예보는 정상 표시됨):", e);
   }
-  if(state.tab==="weather" || state.tab==="vent" || state.tab==="disease") render();
+  if(state.tab==="weather" || state.tab==="vent" || state.tab==="disease" || state.tab==="premium") render();
 }
 
 async function searchLocation(query){
@@ -6563,6 +6564,18 @@ function renderPremiumTab(){
     if(finderPkgState.status === "idle") fetchFarmFinderCases();
     return renderPremiumGateHeader() + logoutBar + renderFarmFinderPanel();
   }
+  // 내 농장에 맞는 환기량 찾기 화면 — premium_content를 따로 안 쓰고(약품조회처럼
+  // 외부 데이터를 즉석 조회), 이 계산에 쓰는 사양표·오늘 날씨는 이미 무료 탭(육계/
+  // 산란계 컨설팅·날씨)이 쓰는 데이터라 승인 전에도 화면 자체는 볼 수 있지만
+  // renderPremiumGateHeader가 승인 전엔 가입 안내로 대체한다.
+  if(premiumState.view === "ventfinder"){
+    // vent/weather/disease 탭과 같은 방식 — 저장된 위치가 있으면 오늘 날씨를 미리 받아온다.
+    if(weatherState.status === "idle"){
+      const saved = loadWeatherLocation();
+      if(saved) fetchWeather(saved.lat, saved.lng, saved.name);
+    }
+    return renderPremiumGateHeader() + logoutBar + renderVentFinderPanel();
+  }
   // 질병별 소독제 선택과 소독요령 화면
   if(premiumState.view === "disinfect"){
     if(diseaseDisinfectState.status === "idle") fetchDiseaseDisinfectants();
@@ -9517,9 +9530,10 @@ function calcHumidityRatio(tempC, rh){
   return 622*e/(P-e); // g/kg
 }
 
-function calcVentilationRate(feedIntakeG, targetTempC, outTempC, outRH){
-  // targetTempC: 계사 내부 목표온도(사양단계별) / 내부 목표습도는 UGA 권장 60%로 가정
+function calcVentilationRate(feedIntakeG, targetTempC, outTempC, outRH, targetRH){
+  // targetTempC: 계사 내부 목표온도(사양단계별) / targetRH를 안 주면 UGA 권장 60%로 가정
   if(feedIntakeG==null || targetTempC==null || outTempC==null || outRH==null) return null;
+  if(targetRH==null) targetRH = 60;
   const WATER_FEED_RATIO = 2.1; // UGA: 사료 1파운드당 물 약 1쿼트 ≈ 사료 무게의 2.1배
   const MOISTURE_TO_AIR_FRACTION = 0.8; // UGA: 마신 물의 약 80%가 깔짚·공기 중 수분으로 남음
   const AIR_DENSITY = 1.2; // kg 건조공기/m³ (표준 근사치)
@@ -9527,7 +9541,7 @@ function calcVentilationRate(feedIntakeG, targetTempC, outTempC, outRH){
   const waterG = feedIntakeG * WATER_FEED_RATIO;
   const moistureG = waterG * MOISTURE_TO_AIR_FRACTION;
 
-  const wIn = calcHumidityRatio(targetTempC, 60);
+  const wIn = calcHumidityRatio(targetTempC, targetRH);
   const wOut = calcHumidityRatio(outTempC, outRH);
   const diff = wIn - wOut; // g/kg
 
@@ -9540,15 +9554,15 @@ function calcVentilationRate(feedIntakeG, targetTempC, outTempC, outRH){
   return { ineffective:false, waterG, moistureG, cfmPerBird, m3hrPerBird, wIn, wOut };
 }
 
-// 현재 선택된 종/품종/일령 기준 "오늘의 사료섭취량(g/일/마리)"을 구한다.
+// 종/품종/일령을 받아 "오늘의 사료섭취량(g/일/마리)"을 구한다(환기량 찾기 계산기도 같이 쓴다).
 // 육계 데이터는 누적사료만 저장돼 있어 전날과의 차이로 일일 섭취량을 역산한다.
-function getFeedIntakeForCurrent(){
-  const sp = CONSULT_BREEDS[consultState.species];
-  const breedKey = consultState.breed || Object.keys(sp.breeds)[0];
-  const breed = sp.breeds[breedKey];
-  const age = consultState.age;
+function getFeedIntakeFor(species, breedKey, age){
+  const sp = CONSULT_BREEDS[species];
+  if(!sp) return null;
+  const breed = sp.breeds[breedKey] || sp.breeds[Object.keys(sp.breeds)[0]];
+  if(!breed) return null;
 
-  if(consultState.species==="broiler"){
+  if(species==="broiler"){
     const rows = breed.data;
     const today = rows.find(r=>r[0]===age);
     const yest = rows.find(r=>r[0]===age-1);
@@ -9557,10 +9571,17 @@ function getFeedIntakeForCurrent(){
     return today[3]-yest[3];
   } else {
     const {row} = lookupLayerPhase(breed.data, age);
+    if(!row) return null;
     // 육성기 row:[wk,bw,fi,wtr,mort] / 산란기 row:[wk,hd,bw,fi,wtr,ew,mort]
     const fi = row.length===5 ? row[2] : row[3];
     return fi ?? null;
   }
+}
+// 무료 "육계/산란계 컨설팅" 탭에서 지금 고른 종/품종/일령 기준.
+function getFeedIntakeForCurrent(){
+  const sp = CONSULT_BREEDS[consultState.species];
+  const breedKey = consultState.breed || Object.keys(sp.breeds)[0];
+  return getFeedIntakeFor(consultState.species, breedKey, consultState.age);
 }
 
 function renderVentCalcPanel(){
@@ -9611,6 +9632,246 @@ function renderVentCalcPanel(){
       실제 필요 환기량은 계사 밀폐도·사육밀도·설비에 따라 달라질 수 있는 참고치입니다.
     </div>
   </div>`;
+}
+
+
+// ── 내 농장에 맞는 환기량 찾기(유료서비스) ─────────────────────────────────
+// 위 습도수지 계산(calcVentilationRate)을 그대로 재사용하되, ① 사육 마리수·보유
+// 환기팬을 더 받아 "농장 전체" 단위(㎥/시간, 필요 팬 대수, 5분 주기 타이머 가동초)
+// 까지 계산하고 ② 오늘 날씨·목표온습도를 화면에서 바로 조정할 수 있게 한 것이다.
+// species/breed/age는 무료 "육계/산란계 컨설팅" 탭(consultState)과 같은 사양표를
+// 쓰지만 상태는 따로 둔다 — 여기서 바꿔도 그 탭에는 영향이 없어야 하므로.
+// outT/outRH/inT가 null이면 "자동"(오늘 날씨·사양표 목표온도)이고, 사용자가 값을
+// 입력하면 그 값을 우선한다.
+let ventFinderState = {
+  species:"broiler", breed:"ross308", age:7,
+  headcount:10000,
+  outT:null, outRH:null, inT:null, inRH:60,
+  fanCapacity:30000, fanCount:4,   // 팬 1대당 풍량(㎥/시간), 보유 대수
+};
+
+function vfWeatherToday(){
+  const fc = weatherState.forecast || [];
+  return fc.length ? fc[0] : null;
+}
+
+function renderVentFinderPanel(){
+  const sp = CONSULT_BREEDS[ventFinderState.species];
+  if(ventFinderState.breed && !sp.breeds[ventFinderState.breed]) ventFinderState.breed = Object.keys(sp.breeds)[0];
+  const breedKey = ventFinderState.breed || Object.keys(sp.breeds)[0];
+  const breed = sp.breeds[breedKey];
+  const isBroiler = ventFinderState.species === "broiler";
+  const ageLabel = isBroiler ? "일령" : "주령";
+  const maxAge = isBroiler ? breed.maxDay : breed.maxWeek;
+  const minAge = isBroiler ? 0 : 1;
+  const age = Math.max(minAge, Math.min(ventFinderState.age, maxAge));
+
+  const head = `
+  <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+    <div>
+      <div class="display" style="font-size:16px;margin-bottom:3px">💨 내 농장에 맞는 환기량 찾기</div>
+      <div style="font-size:11px;color:#aaa">오늘 날씨와 계사 조건을 넣으면 최소 환기량과 환기팬 가동시간을 계산해 드립니다</div>
+    </div>
+    <button id="vf-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button>
+  </div>`;
+
+  // 숫자 입력칸 — 값·단위를 한 줄에 우측정렬로 보여주는 공용 조각.
+  const numField = (id, val, unit, placeholder) => `
+    <div style="display:flex;align-items:center;gap:6px;background:#fafafa;border-radius:10px;padding:9px 11px">
+      <input type="number" inputmode="decimal" id="${id}" value="${val!=null?val:""}" placeholder="${placeholder||""}"
+        style="flex:1;min-width:0;border:none;background:transparent;font-size:15px;font-weight:700;color:#222;text-align:right" />
+      <span style="font-size:11px;color:#888;white-space:nowrap">${unit}</span>
+    </div>`;
+
+  // ── 우리 계군 ──
+  const speciesBtns = Object.entries(CONSULT_BREEDS).map(([key,v])=>`
+    <button class="vf-species-btn" data-species="${key}"
+      style="flex:1;border:2px solid ${ventFinderState.species===key?"#0288D1":"#eee"};background:${ventFinderState.species===key?"#0288D1":"#fff"};color:${ventFinderState.species===key?"#fff":"#333"};border-radius:10px;padding:10px 6px;font-size:13px;font-weight:700;cursor:pointer">
+      ${v.icon} ${v.label}
+    </button>`).join("");
+  const breedBtns = Object.entries(sp.breeds).map(([key,b])=>`
+    <button class="vf-breed-btn" data-breed="${key}"
+      style="flex:1 1 auto;min-width:110px;border:2px solid ${breedKey===key?"#0288D1":"#eee"};background:${breedKey===key?"#0288D1":"#fff"};color:${breedKey===key?"#fff":"#333"};border-radius:10px;padding:9px 8px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">
+      ${b.name}
+    </button>`).join("");
+
+  const flockCard = `
+  <div class="card" style="border-top:5px solid #0288D1;margin-bottom:14px">
+    <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:8px">🐔 우리 계군</div>
+    <div style="display:flex;gap:8px;margin-bottom:10px">${speciesBtns}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">${breedBtns}</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;background:#fafafa;border-radius:12px;padding:12px 14px">
+      <div style="font-size:12px;color:#666;font-weight:600;white-space:nowrap">${ageLabel}</div>
+      <input type="range" id="vf-age-slider" min="${minAge}" max="${maxAge}" value="${age}" style="flex:1;min-width:0" />
+      <input type="number" id="vf-age-number" min="${minAge}" max="${maxAge}" value="${age}"
+        style="width:56px;flex:0 0 auto;border:1px solid #ddd;border-radius:8px;padding:6px 6px;font-size:14px;text-align:center" />
+      <div style="font-size:12px;color:#888;white-space:nowrap">${ageLabel}</div>
+    </div>
+    <div>
+      <div style="font-size:10.5px;color:#666;font-weight:600;margin-bottom:4px">사육 마리수</div>
+      ${numField("vf-headcount", ventFinderState.headcount, "마리")}
+    </div>
+  </div>`;
+
+  // ── 오늘 계사 안팎 조건 ──
+  const wxToday = vfWeatherToday();
+  const hasLoc = !!loadWeatherLocation();
+  const wxNote = weatherState.status === "loading"
+    ? "⏳ 오늘 날씨를 불러오는 중입니다..."
+    : !hasLoc
+      ? "위치가 설정되어 있지 않습니다 — 🌤️ 날씨 메뉴에서 위치를 설정하면 자동으로 채워집니다. 지금은 아래 값을 직접 입력해 주세요."
+      : wxToday
+        ? `${esc(weatherState.locationName||"")} 오늘 예보 기준으로 채워 두었습니다. 계사 앞 온습도계 실측값이 있으면 그 값으로 바꿔 주세요.`
+        : "오늘 날씨를 아직 불러오지 못했습니다 — 아래 값을 직접 입력해 주세요.";
+
+  const outT = ventFinderState.outT!=null ? ventFinderState.outT : (wxToday ? wxToday.tMax : null);
+  const outRH = ventFinderState.outRH!=null ? ventFinderState.outRH : (wxToday ? wxToday.hum : null);
+  const stdInT = getTargetTempForAge(ventFinderState.species, age);
+  const inT = ventFinderState.inT!=null ? ventFinderState.inT : stdInT;
+  const inRH = ventFinderState.inRH!=null ? ventFinderState.inRH : 60;
+
+  const weatherCard = `
+  <div class="card" style="border-top:5px solid #0288D1;margin-bottom:14px">
+    <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:3px">🌡️ 오늘 계사 안팎 조건</div>
+    <div style="font-size:10.5px;color:#999;margin-bottom:10px;line-height:1.6">${wxNote}</div>
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-bottom:6px">
+      <div>
+        <div style="font-size:10.5px;color:#0277BD;font-weight:700;margin-bottom:4px">🌥️ 바깥 기온</div>
+        ${numField("vf-outT", outT, "°C", "예: 25")}
+      </div>
+      <div>
+        <div style="font-size:10.5px;color:#0277BD;font-weight:700;margin-bottom:4px">🌥️ 바깥 습도</div>
+        ${numField("vf-outRH", outRH, "%", "예: 60")}
+      </div>
+    </div>
+    <div style="margin-bottom:10px;min-height:20px">
+      ${(ventFinderState.outT!=null || ventFinderState.outRH!=null) ? `<button id="vf-out-reset" style="font-size:10px;border:1px solid #ddd;border-radius:12px;background:#fff;color:#888;padding:3px 10px;cursor:pointer">↺ 오늘 날씨 값으로 되돌리기</button>` : ""}
+    </div>
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px">
+      <div>
+        <div style="font-size:10.5px;color:#00838F;font-weight:700;margin-bottom:4px">🏠 계사 목표 기온</div>
+        ${numField("vf-inT", inT, "°C")}
+        <div style="font-size:9.5px;color:#aaa;margin-top:3px">${esc(breed.name)} 사양표 ${age}${ageLabel} 목표: ${stdInT!=null?stdInT+"°C":"-"}</div>
+      </div>
+      <div>
+        <div style="font-size:10.5px;color:#00838F;font-weight:700;margin-bottom:4px">🏠 계사 목표 습도</div>
+        ${numField("vf-inRH", inRH, "%")}
+        <div style="font-size:9.5px;color:#aaa;margin-top:3px">권장범위 50~70%의 중간값(기본 60%)</div>
+      </div>
+    </div>
+  </div>`;
+
+  // ── 보유 환기팬 ──
+  const fanCard = `
+  <div class="card" style="border-top:5px solid #0288D1;margin-bottom:14px">
+    <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:8px">🌀 보유 환기팬</div>
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px">
+      <div>
+        <div style="font-size:10.5px;color:#666;font-weight:600;margin-bottom:4px">팬 1대당 풍량</div>
+        ${numField("vf-fan-capacity", ventFinderState.fanCapacity, "㎥/시간")}
+        <div style="font-size:9.5px;color:#aaa;margin-top:3px">팬 명판(사양)에 적힌 풍량 표기값</div>
+      </div>
+      <div>
+        <div style="font-size:10.5px;color:#666;font-weight:600;margin-bottom:4px">보유 대수</div>
+        ${numField("vf-fan-count", ventFinderState.fanCount, "대")}
+      </div>
+    </div>
+  </div>`;
+
+  // ── 계산 결과 ──
+  let resultCard;
+  if(outT==null || outRH==null || inT==null){
+    resultCard = `
+    <div class="card" style="border-top:5px solid #ccc;text-align:center;padding:26px 16px;color:#aaa;font-size:12px">
+      바깥 기온·습도, 계사 목표 기온을 모두 입력하면 계산됩니다.
+    </div>`;
+  } else {
+    const feedG = getFeedIntakeFor(ventFinderState.species, breedKey, age);
+    if(feedG==null){
+      resultCard = `
+      <div class="card" style="border-top:5px solid #ccc;text-align:center;padding:26px 16px;color:#aaa;font-size:12px">
+        ${esc(breed.name)} 사양표에 ${age}${ageLabel} 자료가 없습니다 — ${ageLabel}을 조정해 보세요.
+      </div>`;
+    } else {
+      const r = calcVentilationRate(feedG, inT, outT, outRH, inRH);
+      if(!r || r.ineffective){
+        resultCard = `
+        <div class="card" style="border-top:5px solid #C62828">
+          <div style="background:#FFEBEE;border-left:4px solid #C62828;border-radius:8px;padding:12px 14px">
+            <div style="font-size:12px;font-weight:700;color:#B71C1C;margin-bottom:4px">⚠️ 환기만으로는 수분 제거가 어려운 조건</div>
+            <div style="font-size:11.5px;color:#333;line-height:1.7">바깥 공기가 목표 계사 조건보다 절대습도 기준으로 더 습합니다. 환기를 늘려도 수분이 잘 빠지지 않고 오히려 들어올 수 있습니다 — 제습·난방을 함께 검토하세요.</div>
+          </div>
+        </div>`;
+      } else {
+        const headcount = Math.max(0, ventFinderState.headcount || 0);
+        const fanCap = Math.max(0, ventFinderState.fanCapacity || 0);
+        const fanCount = Math.max(0, ventFinderState.fanCount || 0);
+        const totalM3h = r.m3hrPerBird * headcount;      // 농장 전체 필요 환기량(㎥/시간)
+        const totalM3min = totalM3h / 60;
+        const haveFans = fanCap > 0 && fanCount > 0;
+        const ownM3h = haveFans ? fanCap * fanCount : 0;   // 보유 팬 총 풍량(㎥/시간)
+        const needFans = fanCap > 0 ? Math.ceil(totalM3h / fanCap) : null;
+        const duty = haveFans ? totalM3h / ownM3h : null;  // 가동률(1=100%)
+        const shortage = duty != null && duty > 1;
+        const CYCLE_SEC = 300; // 5분 주기 — 국내 환경제어기 타이머 환기에서 흔히 쓰는 기본 주기
+        const onSec = (haveFans && !shortage) ? Math.round(duty * CYCLE_SEC) : null;
+        const offSec = onSec != null ? CYCLE_SEC - onSec : null;
+
+        const fanBox = fanCap <= 0
+          ? `<div style="font-size:11px;color:#aaa;text-align:center;padding:10px 0;margin-bottom:6px">팬 1대당 풍량을 입력하면 필요 대수·가동시간까지 계산해 드립니다</div>`
+          : `
+          <div style="background:${!haveFans?"#F5F5F5":shortage?"#FFF3E0":"#E8F5E9"};border-radius:10px;padding:12px 13px;margin-bottom:10px">
+            ${!haveFans ? `
+            <div style="font-size:11.5px;color:#555;line-height:1.8">보유 대수를 입력하면 가동률·팬 가동시간까지 계산해 드립니다. (참고: 팬 1대 기준으로 필요한 최소 대수는 <b>${needFans}대</b>입니다.)</div>
+            ` : `
+            <div style="font-size:11px;font-weight:700;color:${shortage?"#E65100":"#1B5E20"};margin-bottom:6px">${shortage?"⚠️ 보유 팬으로 부족할 수 있습니다":"✅ 보유 팬으로 충분합니다"}</div>
+            <div style="font-size:11.5px;color:#333;line-height:1.8">보유 팬 총 풍량 <b>${ownM3h.toLocaleString()} ㎥/시간</b>(${fanCap.toLocaleString()}㎥/시간 × ${fanCount}대) 대비
+            가동률 <b>${Math.round(duty*100)}%</b>${shortage?` — 최소 <b>${needFans}대</b>가 필요합니다.`:""}</div>
+            ${!shortage ? `
+            <div style="margin-top:9px;padding-top:9px;border-top:1px dashed rgba(0,0,0,0.08);font-size:11.5px;color:#333;line-height:1.8">
+              ⏱️ <b>5분(300초) 주기</b>로 타이머 환기를 한다면 — 팬 <b>${onSec}초 가동 / ${offSec}초 정지</b>
+            </div>` : ""}
+            `}
+          </div>`;
+
+        resultCard = `
+        <div class="card" style="border-top:5px solid #0288D1">
+          <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:3px">💨 계산 결과</div>
+          <div style="font-size:10px;color:#aaa;margin-bottom:12px">${esc(breed.name)} ${age}${ageLabel}·사료섭취 ${Math.round(feedG)}g/일·마리 기준 — 습도수지 방식(UGA Czarick·Fairchild)</div>
+
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-bottom:10px">
+            <div style="background:#E1F5FE;border-radius:10px;padding:11px 12px">
+              <div style="font-size:10px;color:#01579B">농장 전체 필요 환기량</div>
+              <div style="font-size:19px;font-weight:800;color:#01579B">${Math.round(totalM3h).toLocaleString()} <span style="font-size:11px;font-weight:600">㎥/시간</span></div>
+              <div style="font-size:9px;color:#888;margin-top:2px">= ${totalM3min.toFixed(1)} ㎥/분 · 마리당 ${r.m3hrPerBird.toFixed(3)} ㎥/시간</div>
+            </div>
+            <div style="background:#E1F5FE;border-radius:10px;padding:11px 12px">
+              <div style="font-size:10px;color:#01579B">제거해야 할 수분(전체)</div>
+              <div style="font-size:19px;font-weight:800;color:#01579B">${(r.moistureG*headcount/1000).toLocaleString(undefined,{maximumFractionDigits:1})} <span style="font-size:11px;font-weight:600">kg/일</span></div>
+              <div style="font-size:9px;color:#888;margin-top:2px">일일 음수량의 80% (마리당 ${Math.round(r.moistureG)} g)</div>
+            </div>
+          </div>
+
+          ${fanBox}
+
+          <div style="background:#fafafa;border-radius:8px;padding:9px 12px;font-size:10px;color:#666;line-height:1.7">
+            계사 목표: ${inT}°C·습도${inRH}% → 습도함량 ${r.wIn.toFixed(2)} g/kg &nbsp;|&nbsp;
+            바깥: ${outT}°C·습도${outRH}% → 습도함량 ${r.wOut.toFixed(2)} g/kg
+          </div>
+        </div>`;
+      }
+    }
+  }
+
+  const footnote = `
+  <div style="font-size:9px;color:#aaa;line-height:1.7;margin-top:10px">
+    ※ UGA 익스텐션(Czarick·Fairchild)의 습도수지(moisture balance) 계산법 — "사료 1파운드당 물 약 1쿼트(≈사료 무게의 2.1배), 그중 80%가 깔짚·공기 중 수분으로 남는다"는 기준과
+    표준 습도함량(humidity ratio) 계산을 결합했습니다. 전체 사육수·보유 팬 대수를 곱해 농장 단위로, 5분 주기 타이머 가동시간은
+    국내 현장 환경제어기에서 흔히 쓰는 방식으로 환산했습니다.
+    실제 필요 환기량은 계사 밀폐도·단열·사육밀도·설비 상태에 따라 달라질 수 있는 참고치이며, 최소환기량(암모니아·이산화탄소 기준)을 밑돌지 않도록 확인하세요.
+  </div>`;
+
+  return head + flockCard + weatherCard + fanCard + resultCard + footnote;
 }
 
 // ── 일령(주령)별 음수량·사료섭취량 표 ────────────────────────────────────────
@@ -12107,6 +12368,41 @@ function attachEvents(){
     if(r.ok){ featureBoardState.replyOpenId = null; featureBoardState.replyText = ""; await fetchFeatureRequests(); }
     else { alert("답글 등록 실패: " + r.error); render(); }
   });
+
+  // 내 농장에 맞는 환기량 찾기
+  const vfBackBtn = document.getElementById("vf-back-btn");
+  if(vfBackBtn) vfBackBtn.onclick = ()=>{ premiumState.view = "menu"; render(); };
+  document.querySelectorAll(".vf-species-btn").forEach(b=>b.onclick=()=>{
+    ventFinderState.species = b.dataset.species;
+    ventFinderState.breed = null; // 품종은 해당 축종의 첫 품종으로 자동 전환
+    ventFinderState.age = ventFinderState.species==="broiler" ? 7 : 25;
+    ventFinderState.inT = null; // 목표온도를 직접 입력해 뒀어도 축종이 바뀌면 새 사양표 기준으로 되돌린다
+    render();
+  });
+  document.querySelectorAll(".vf-breed-btn").forEach(b=>b.onclick=()=>{
+    ventFinderState.breed = b.dataset.breed;
+    render();
+  });
+  const vfAgeSlider = document.getElementById("vf-age-slider");
+  const vfAgeNumber = document.getElementById("vf-age-number");
+  if(vfAgeSlider) vfAgeSlider.onchange = (e)=>{ ventFinderState.age = parseInt(e.target.value,10); render(); };
+  if(vfAgeNumber) vfAgeNumber.onchange = (e)=>{ const v=parseInt(e.target.value,10); if(!isNaN(v)){ ventFinderState.age=v; render(); } };
+  const vfHeadcount = document.getElementById("vf-headcount");
+  if(vfHeadcount) vfHeadcount.onchange = (e)=>{ const v=parseFloat(e.target.value); ventFinderState.headcount = isNaN(v)?0:v; render(); };
+  const vfOutT = document.getElementById("vf-outT");
+  if(vfOutT) vfOutT.onchange = (e)=>{ const v=e.target.value.trim(); ventFinderState.outT = v===""?null:parseFloat(v); render(); };
+  const vfOutRH = document.getElementById("vf-outRH");
+  if(vfOutRH) vfOutRH.onchange = (e)=>{ const v=e.target.value.trim(); ventFinderState.outRH = v===""?null:parseFloat(v); render(); };
+  const vfOutReset = document.getElementById("vf-out-reset");
+  if(vfOutReset) vfOutReset.onclick = ()=>{ ventFinderState.outT = null; ventFinderState.outRH = null; render(); };
+  const vfInT = document.getElementById("vf-inT");
+  if(vfInT) vfInT.onchange = (e)=>{ const v=e.target.value.trim(); ventFinderState.inT = v===""?null:parseFloat(v); render(); };
+  const vfInRH = document.getElementById("vf-inRH");
+  if(vfInRH) vfInRH.onchange = (e)=>{ const v=e.target.value.trim(); ventFinderState.inRH = v===""?null:parseFloat(v); render(); };
+  const vfFanCapacity = document.getElementById("vf-fan-capacity");
+  if(vfFanCapacity) vfFanCapacity.onchange = (e)=>{ const v=parseFloat(e.target.value); ventFinderState.fanCapacity = isNaN(v)?0:v; render(); };
+  const vfFanCount = document.getElementById("vf-fan-count");
+  if(vfFanCount) vfFanCount.onchange = (e)=>{ const v=parseFloat(e.target.value); ventFinderState.fanCount = isNaN(v)?0:v; render(); };
 
   // 내 농장에 맞는 약품 찾기 (축종 → 카테고리 → 증상 좁혀가는 마법사)
   const finderBackBtn = document.getElementById("finder-back-btn");
