@@ -720,6 +720,7 @@ const PREMIUM_ITEMS = [
   { key:"faq", icon:"❓", title:"농장에서 많이 궁금해 하는 질문", desc:"농장에서 자주 묻는 질문과 답변을 카드로 모아뒀습니다. 카드를 누르면 답변이 펼쳐집니다.", color:"#5D4037", category:"질문·학습·교육" },
   { key:"study", icon:"🎓", title:"최수의사의 온라인 학습(카드 학습)", desc:"수의사가 올린 카드형 학습자료(앞면/뒷면)로 필요할 때마다 학습할 수 있습니다.", color:"#4527A0", category:"질문·학습·교육" },
   { key:"research", icon:"📚", title:"최신 기술탐구", desc:"질병논문·사양관리기술·컨설팅도구 최신 국제논문 5편씩을 매주 한글로 번역·요약해 드립니다.", color:"#6A1B9A", category:"질문·학습·교육" },
+  { key:"magazine", icon:"📰", title:"양계잡지 학습정보", desc:"양계 전문지 지면을 사진으로 올리면 사진과 글을 분리해 게시판처럼 보여드립니다.", color:"#455A64", category:"질문·학습·교육" },
   { key:"feature_board", icon:"💡", title:"기능 요청 게시판", desc:"필요한 기능을 자유롭게 제안해 주세요. 작성자는 다른 회원에게 익명으로 표시됩니다.", color:"#00838F", category:"게시판·기타" },
   { key:"consult", icon:"💬", title:"온라인 상담", desc:"농장 현안(사양·환기·질병 등)을 질문하면 최동명 수의사가 답변합니다. 사진 첨부 가능, 답변은 작성자만 볼 수 있습니다.", color:"#1565C0", category:"게시판·기타" },
   { key:"consulting", icon:"📈", title:"온라인 컨설팅", desc:"농장 운영·질병 현황을 바탕으로 맞춤 투약·백신 프로그램을 작성해 드립니다. 답변은 작성자만 볼 수 있습니다.", color:"#E65100", category:"게시판·기타" },
@@ -855,6 +856,168 @@ function renderMoltGuidePanel(){
   <div style="font-size:9px;color:#aaa;line-height:1.6;margin-top:6px">
     ※ 실제 병아리를 구입한 육종회사·사료회사의 최신 공식 가이드가 우선합니다. 이 카드는 각 회사가 발표한 자료를 참고용으로 정리한 것이며,
     세대(strain) 개량이나 발행 시점에 따라 구체적인 수치가 바뀔 수 있습니다.
+  </div>`;
+}
+
+// ── 양계잡지 학습정보 ─────────────────────────────────────────────────────────
+// 관리자가 양계 전문지 지면 사진을 올리면 서버(Cloud Function
+// extractMagazineText, functions/index.js)가 Claude Vision으로 글자를 옮겨
+// 적어 돌려주고, 관리자가 그 결과를 확인·수정한 뒤 발행한다. 발행된 자료는
+// 다른 premium_content 데이터셋(질병별 소독제·FAQ 등)과 같은 패턴으로
+// Firebase Storage(premium_content/magazine_notes/latest.json)에 저장되고,
+// 승인된 회원 전체가 게시판처럼 목록에서 사진+본문을 본다. 사진 파일은
+// premium_content/magazine_notes_images/{id}.jpg에 별도로 올린다(같은
+// storage.rules의 premium_content/{dataset}/{fileName} 패턴을 그대로 탄다).
+let magazineState = { status:"idle", data:null, busy:false, msg:"" };
+let magazineNavState = { openId:null, adminOpen:false, file:null, previewUrl:"", ocrBusy:false, draftTitle:"", draftText:"" };
+
+async function fetchMagazineNotes(){
+  if(magazineState.status === "loading") return;
+  magazineState.status = "loading";
+  try {
+    const j = await fetchPremiumContentJson("magazine_notes");
+    j.items = Array.isArray(j.items) ? j.items : [];
+    magazineState.data = j;
+    magazineState.status = "done";
+  } catch(e){
+    console.warn("양계잡지 학습정보 로딩 실패(최초 미발행 상태로 간주, 빈 목록 표시):", e);
+    magazineState.data = { items: [] };
+    magazineState.status = "done";
+  }
+  if(premiumState.view === "magazine") render();
+}
+
+function currentMagazineNotes(){
+  return (magazineState.data && magazineState.data.items) || [];
+}
+
+function newMagazineId(){
+  return "m" + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+}
+
+async function publishMagazineNotes(items){
+  try {
+    const body = {
+      updated: new Date().toISOString().slice(0,16).replace("T"," ") + " UTC",
+      by: PICK_BY,
+      note: "양계잡지 학습정보 — 화면에서 저장하면 이 파일이 갱신되고 승인된 회원 모두에게 같은 내용이 보입니다.",
+      items: items,
+    };
+    await writePremiumContentJson("magazine_notes", body);
+    magazineState.data = body;
+    return { ok:true };
+  } catch(e){
+    return { ok:false, error: e.message || String(e) };
+  }
+}
+
+// File을 순수 base64(데이터 URL의 "data:...;base64," 접두어를 뗀 부분)로 읽는다
+// — Cloud Function은 이 문자열을 그대로 Claude Vision 이미지 블록에 넣는다.
+function readFileAsBase64(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result || "";
+      const idx = result.indexOf(",");
+      resolve(idx >= 0 ? result.slice(idx + 1) : result);
+    };
+    reader.onerror = () => reject(reader.error || new Error("파일을 읽지 못했습니다."));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function runMagazineOcr(){
+  const file = magazineNavState.file;
+  if(!file){ magazineState.msg = "사진을 먼저 선택하세요."; render(); return; }
+  magazineNavState.ocrBusy = true; magazineState.msg = "✨ AI가 사진 속 글자를 읽는 중... (보통 20~40초)"; render();
+  try {
+    const base64 = await readFileAsBase64(file);
+    const fn = firebase.app().functions().httpsCallable("extractMagazineText");
+    const res = await withStorageTimeout(fn({ imageBase64: base64, mediaType: file.type || "image/jpeg" }), 60000);
+    const data = res.data || {};
+    if(!data.ok){
+      magazineState.msg = "이 사진에서는 읽을 만한 글자를 찾지 못했습니다 — 직접 입력해 주세요.";
+    } else {
+      magazineNavState.draftTitle = data.title || "";
+      magazineNavState.draftText = data.text || "";
+      magazineState.msg = "글자를 옮겨 적었습니다 — 확인·수정한 뒤 발행하세요";
+    }
+  } catch(e){
+    magazineState.msg = "글자 추출 실패: " + (e.message || String(e));
+  }
+  magazineNavState.ocrBusy = false; render();
+}
+
+function renderMagazinePanel(){
+  const head = `
+  <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+    <div>
+      <div class="display" style="font-size:16px;margin-bottom:3px">📰 양계잡지 학습정보</div>
+      <div style="font-size:11px;color:#aaa">양계 전문지 지면을 사진으로 올리면 사진과 글을 분리해 보여드립니다</div>
+    </div>
+    <button id="magazine-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button>
+  </div>`;
+
+  const st = magazineState;
+  if(st.status === "idle" || st.status === "loading"){
+    return head + `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⏳ 불러오는 중...</div>`;
+  }
+  const admin = isBoardAdmin();
+  const items = currentMagazineNotes().slice().sort((a,b) => (b.createdAt||"").localeCompare(a.createdAt||""));
+
+  const list = items.length ? items.map(it => {
+    const open = magazineNavState.openId === it.id;
+    return `
+    <div class="card" style="border-top:4px solid #455A64;margin-bottom:10px;padding:14px 16px">
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div class="magazine-toggle" data-id="${esc(it.id)}" style="cursor:pointer;display:flex;gap:12px;flex:1;min-width:0">
+          ${it.imageUrl ? `<img src="${esc(it.imageUrl)}" style="width:64px;height:64px;object-fit:cover;border-radius:8px;flex-shrink:0" />` : ""}
+          <div style="min-width:0">
+            <div style="font-size:14px;font-weight:800;color:#333">${esc(it.title || "(제목 없음)")}</div>
+            <div style="font-size:10.5px;color:#999;margin-top:3px">${esc((it.createdAt||"").slice(0,10))}</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
+          <span class="magazine-toggle" data-id="${esc(it.id)}" style="cursor:pointer;font-size:11px;color:#455A64;font-weight:700;white-space:nowrap">${open?"접기 ▲":"보기 ▼"}</span>
+          ${admin ? `<button class="magazine-del-btn" data-id="${esc(it.id)}" style="font-size:10px;border:1px solid #eee;border-radius:5px;background:#fff;color:#bbb;padding:3px 8px">삭제</button>` : ""}
+        </div>
+      </div>
+      ${open ? `
+      <div style="margin-top:12px;padding-top:12px;border-top:1px dashed #eee">
+        ${it.imageUrl ? `<a href="${esc(it.imageUrl)}" target="_blank" rel="noopener" style="display:block;margin-bottom:10px" title="눌러서 원본 크기로 보기"><img src="${esc(it.imageUrl)}" style="max-width:100%;border-radius:8px" /></a>` : ""}
+        <div style="font-size:12.5px;color:#333;white-space:pre-wrap;line-height:1.7">${esc(it.text || "")}</div>
+      </div>` : ""}
+    </div>`;
+  }).join("") : `<div class="card" style="text-align:center;padding:28px 16px;color:#aaa">아직 등록된 자료가 없습니다.${admin?"":" 곧 추가됩니다."}</div>`;
+
+  const adminBox = !admin ? "" : `
+  <div style="margin-top:16px;border-top:1px dashed #eee;padding-top:12px">
+    <button id="magazine-admin-toggle" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:3px 9px">${magazineNavState.adminOpen?"관리 닫기":"⚙ 새 자료 올리기"}</button>
+    ${magazineState.msg?`<span style="font-size:11px;margin-left:8px;color:${/실패|찾지/.test(magazineState.msg)?"#C62828":"#2E7D32"}">${esc(magazineState.msg)}</span>`:""}
+    ${magazineNavState.adminOpen ? `
+    <div style="margin-top:9px;background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">
+      <div style="font-size:11px;font-weight:700;color:#7A5C00;margin-bottom:8px">새 학습정보 올리기</div>
+      <input type="file" accept="image/*" id="magazine-file-input" style="width:100%;font-size:11.5px;margin-bottom:8px" />
+      ${magazineNavState.previewUrl ? `<img src="${esc(magazineNavState.previewUrl)}" style="max-width:100%;max-height:220px;border-radius:8px;margin-bottom:8px;display:block" />` : ""}
+      <button id="magazine-ocr-btn" ${(magazineNavState.ocrBusy || !magazineNavState.file) ? "disabled" : ""} style="border:1px solid #6A1B9A;background:${magazineNavState.ocrBusy?"#EEE":"#F6EFFA"};color:#6A1B9A;border-radius:7px;padding:5px 11px;font-size:11.5px;font-weight:700;cursor:pointer;margin-bottom:8px">${magazineNavState.ocrBusy?"✨ 읽는 중...":"✨ 사진에서 글자 추출(OCR)"}</button>
+      <div style="font-size:10px;color:#888;margin-bottom:3px">제목</div>
+      <input type="text" id="magazine-title-input" value="${esc(magazineNavState.draftTitle)}" placeholder="예) 여름철 온도스트레스 관리 포인트"
+        style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;margin-bottom:8px" />
+      <div style="font-size:10px;color:#888;margin-bottom:3px">본문</div>
+      <textarea id="magazine-text-input" placeholder="OCR로 추출된 글자, 또는 직접 입력"
+        style="width:100%;min-height:140px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:8px">${esc(magazineNavState.draftText)}</textarea>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button id="magazine-save-btn" ${magazineState.busy?"disabled":""} style="border:1px solid #B8860B;background:${magazineState.busy?"#ccc":"#B8860B"};color:#fff;border-radius:7px;padding:7px 15px;font-size:12px;font-weight:600">${magazineState.busy?"발행 중...":"발행"}</button>
+        <button id="magazine-cancel-btn" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:6px 10px">취소</button>
+      </div>
+    </div>` : ""}
+  </div>`;
+
+  return head + `
+  ${list}
+  ${adminBox}
+  <div style="font-size:9px;color:#aaa;line-height:1.6;margin-top:6px">
+    ※ 사진 속 글자는 AI가 옮겨 적은 것이라 오탈자·판독 오류가 있을 수 있습니다. 발행 전 관리자가 확인·수정합니다.
   </div>`;
 }
 
@@ -6881,6 +7044,11 @@ function renderPremiumTab(){
   if(premiumState.view === "moltguide"){
     return renderPremiumGateHeader() + logoutBar + renderMoltGuidePanel();
   }
+  // 양계잡지 학습정보 화면
+  if(premiumState.view === "magazine"){
+    if(magazineState.status === "idle") fetchMagazineNotes();
+    return renderPremiumGateHeader() + logoutBar + renderMagazinePanel();
+  }
   // 온라인 자가진단 화면
   if(premiumState.view === "selfcheck"){
     if(selfCheckPkgState.status === "idle") fetchSelfCheckDiseases();
@@ -12228,6 +12396,87 @@ function attachEvents(){
     moltGuideState.openKey = moltGuideState.openKey === key ? null : key;
     render();
   });
+  // 양계잡지 학습정보
+  const magazineBackBtn = document.getElementById("magazine-back-btn");
+  if(magazineBackBtn) magazineBackBtn.onclick = ()=>{ premiumState.view = "menu"; render(); };
+  document.querySelectorAll(".magazine-toggle").forEach(b=>b.onclick=()=>{
+    const id = b.dataset.id;
+    magazineNavState.openId = magazineNavState.openId === id ? null : id;
+    render();
+  });
+  document.querySelectorAll(".magazine-del-btn").forEach(b=>b.onclick=async ()=>{
+    const id = b.dataset.id;
+    const item = currentMagazineNotes().find(x=>x.id===id);
+    if(!item || !confirm(`"${item.title || "이 자료"}"를 삭제할까요?`)) return;
+    const next = currentMagazineNotes().filter(x=>x.id!==id);
+    magazineState.busy = true; magazineState.msg = "삭제 중..."; render();
+    const r = await publishMagazineNotes(next);
+    magazineState.busy = false;
+    magazineState.msg = r.ok ? "삭제 완료" : ("삭제 실패: " + r.error);
+    if(r.ok && magazineNavState.openId===id) magazineNavState.openId = null;
+    render();
+  });
+  const magazineAdminToggle = document.getElementById("magazine-admin-toggle");
+  if(magazineAdminToggle) magazineAdminToggle.onclick = ()=>{
+    magazineNavState.adminOpen = !magazineNavState.adminOpen;
+    magazineState.msg = "";
+    render();
+  };
+  const magazineFileInput = document.getElementById("magazine-file-input");
+  if(magazineFileInput) magazineFileInput.onchange = ()=>{
+    const file = magazineFileInput.files && magazineFileInput.files[0];
+    if(!file) return;
+    magazineNavState.file = file;
+    magazineNavState.previewUrl = URL.createObjectURL(file);
+    magazineNavState.draftTitle = ""; magazineNavState.draftText = "";
+    magazineState.msg = "";
+    render();
+  };
+  const magazineOcrBtn = document.getElementById("magazine-ocr-btn");
+  if(magazineOcrBtn) magazineOcrBtn.onclick = ()=> runMagazineOcr();
+  const magazineCancelBtn = document.getElementById("magazine-cancel-btn");
+  if(magazineCancelBtn) magazineCancelBtn.onclick = ()=>{
+    magazineNavState.file = null; magazineNavState.previewUrl = "";
+    magazineNavState.draftTitle = ""; magazineNavState.draftText = "";
+    magazineNavState.adminOpen = false;
+    magazineState.msg = "";
+    render();
+  };
+  const magazineSaveBtn = document.getElementById("magazine-save-btn");
+  if(magazineSaveBtn) magazineSaveBtn.onclick = async ()=>{
+    const title = (document.getElementById("magazine-title-input")?.value || "").trim();
+    const text = (document.getElementById("magazine-text-input")?.value || "").trim();
+    const file = magazineNavState.file;
+    if(!title){ alert("제목을 입력하세요."); return; }
+    if(!text){ alert("본문을 입력하세요."); return; }
+    magazineState.busy = true; magazineState.msg = "발행 중..."; render();
+    try {
+      const id = newMagazineId();
+      let imageUrl = "";
+      if(file){
+        const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g,"") || "jpg";
+        const ref = firebase.storage().ref("premium_content/magazine_notes_images/" + id + "." + ext);
+        await withStorageTimeout(ref.put(file), 30000);
+        imageUrl = await withStorageTimeout(ref.getDownloadURL());
+      }
+      const items = currentMagazineNotes().slice();
+      items.push({ id, title, text, imageUrl, createdAt: new Date().toISOString() });
+      const r = await publishMagazineNotes(items);
+      magazineState.busy = false;
+      if(r.ok){
+        magazineState.msg = "발행 완료 — 모두에게 반영됩니다";
+        magazineNavState.file = null; magazineNavState.previewUrl = "";
+        magazineNavState.draftTitle = ""; magazineNavState.draftText = "";
+        magazineNavState.adminOpen = false;
+      } else {
+        magazineState.msg = "발행 실패: " + r.error;
+      }
+    } catch(e){
+      magazineState.busy = false;
+      magazineState.msg = "발행 실패: " + (e.message || String(e));
+    }
+    render();
+  };
   const disinfectAdminToggle = document.getElementById("disinfect-admin-toggle");
   if(disinfectAdminToggle) disinfectAdminToggle.onclick = ()=>{
     disinfectTabState.adminOpen = !disinfectTabState.adminOpen;
