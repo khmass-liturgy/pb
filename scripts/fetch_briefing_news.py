@@ -20,6 +20,8 @@ from email.utils import parsedate_to_datetime
 
 import requests
 
+from translation_glossary import apply_glossary
+
 KST = timezone(timedelta(hours=9))
 
 HEADERS = {
@@ -262,7 +264,7 @@ def translate_en_to_ko(text, session):
         try:
             ko = fn(text, session)
             if ko:
-                return ko
+                return apply_glossary(ko)
         except Exception as e:
             print("        번역 실패(%s): %s" % (name, e))
     return None

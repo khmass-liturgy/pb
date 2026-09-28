@@ -37,6 +37,8 @@ from pathlib import Path
 
 import requests
 
+from translation_glossary import apply_glossary
+
 KST = timezone(timedelta(hours=9))
 OUT_PATH = Path("poultry_disease/diseases.json")
 
@@ -238,7 +240,7 @@ def translate(text, session):
             out = (fn(text, session) or "").strip()
             if out:
                 _tr_stats[name] = _tr_stats.get(name, 0) + 1
-                return out
+                return apply_glossary(out)
         except Exception:
             pass
     _tr_stats["실패"] = _tr_stats.get("실패", 0) + 1

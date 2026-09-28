@@ -25,6 +25,8 @@ from typing import Any
 
 import requests
 
+from translation_glossary import apply_glossary
+
 KST = timezone(timedelta(hours=9))
 OUTPUT_PATH = Path("research_papers/latest.json")
 HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; pb-research-papers/1.0)"}
@@ -144,7 +146,9 @@ def translate_and_summarize(articles: list[dict[str, str]]) -> list[dict[str, st
     prompt = (
         "다음은 가금류(육계/산란계) 관련 최신 학술논문들의 영문 제목과 초록입니다. "
         "각 논문마다 아래 JSON 배열 형식으로만 한국어 결과를 출력하세요. "
-        "다른 설명 문장 없이 JSON 배열 하나만 출력합니다.\n\n"
+        "다른 설명 문장 없이 JSON 배열 하나만 출력합니다. "
+        "용어는 국내 수의·방역 현장에서 실제로 쓰는 정식 명칭을 쓰세요 "
+        "(예: avian influenza/bird flu는 '조류독감'이 아니라 '조류인플루엔자').\n\n"
         '형식: [{"title_ko": "한글 제목", '
         '"summary_ko": "3~5문장. 연구 설계(대상·표본수·기간·방법)와 핵심 수치 결과를 반드시 포함"}, ...]\n\n'
         f"논문 목록:\n{numbered}"
@@ -208,10 +212,12 @@ def build_category(key: str, meta: dict[str, str]) -> dict[str, Any] | None:
     papers = []
     for i, art in enumerate(articles):
         tr = translated[i] if translated else {}
+        # 프롬프트에 용어 지침을 넣어도 모델이 가끔 놓칠 수 있어, 다른 두 번역
+        # 스크립트와 같은 용어집을 사후 적용으로 한 번 더 통과시킨다(이중 방어).
         papers.append({
             "title_en": art["title_en"],
-            "title_ko": tr.get("title_ko") or art["title_en"],
-            "summary_ko": tr.get("summary_ko") or "(번역 실패 — 영문 초록 참고) " + art["abstract_en"][:200],
+            "title_ko": apply_glossary(tr.get("title_ko")) or art["title_en"],
+            "summary_ko": apply_glossary(tr.get("summary_ko")) or "(번역 실패 — 영문 초록 참고) " + art["abstract_en"][:200],
             "journal": art["journal"],
             "pub_date": art["pub_date"],
             "author": art["author"],

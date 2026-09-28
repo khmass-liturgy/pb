@@ -121,6 +121,18 @@ assuming their output is refreshed automatically.
   CI doesn't need extra pip installs; `fetch_market.py` and `fetch_prices.py` are the exceptions
   (they use `requests`), and `fetch_feed_production.py` also needs `xlrd` because the source is
   a real BIFF `.xls` attachment, not HTML.
+- Three scripts translate English source content to Korean:
+  `fetch_briefing_news.py` (해외 양계질병 news titles, free Google Translate/MyMemory endpoints),
+  `fetch_poultry_diseases.py` (The Poultry Site disease articles, same endpoints), and
+  `fetch_research_papers.py` (PubMed abstracts, via the Claude API). All three import
+  `scripts/translation_glossary.py` and pass every translated string through
+  `apply_glossary()` before saving, so a fix to a mistranslated/non-standard term (e.g. "bird
+  flu" → "조류독감" instead of the correct "조류인플루엔자") only needs to be added once in that
+  file to apply everywhere. It also fixes the Korean particle right after a replaced term
+  (이/가, 은/는, 을/를, 과/와, 으로/로, and the 이- copula contractions like 이다/이라는) to match
+  the new word's 받침. This is the one place scripts import from each other — it works because
+  each workflow invokes its script as `python scripts/fetch_*.py`, which puts `scripts/` itself
+  on `sys.path`.
 
 ### The SMS dispatch job (not the fetch-script shape above)
 
