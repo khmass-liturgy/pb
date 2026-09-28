@@ -4252,7 +4252,7 @@ const DRUG_FORM_WHITELIST = [
 ];
 function parseDrugForm(formText, fullText){
   formText = formText || ""; fullText = fullText || "";
-  let m = formText.match(/제형\s*[:：]\s*([가-힣]{1,6}제)/);
+  let m = formText.match(/제\s*형\s*[:：]\s*([가-힣]{1,6}제)/); // "제 형"처럼 글자 사이 공백이 끼는 표기(예: 원클린액)도 잡는다
   if(!m) m = formText.match(/^(?:\d\)|가\.)\s*([가-힣]{1,6}제)(?=\s|\d\)|가\.|$)/);
   if(m && DRUG_FORM_WHITELIST.includes(m[1])) return m[1];
   // "준하여"가 "준하 여"처럼 태그 경계 때문에 중간에 공백이 끼어 나오는 페이지가
