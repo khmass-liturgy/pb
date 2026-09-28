@@ -1,5 +1,5 @@
 {
-  "updated": "2026-09-27 11:52 KST",
+  "updated": "2026-09-28 11:52 KST",
   "stale": {},
   "egg": {
     "label": "계란 산지가격",
@@ -83,10 +83,6 @@
       {
         "date": "2026-08-28",
         "value": 2140
-      },
-      {
-        "date": "2026-08-27",
-        "value": 2170
       }
     ]
   },
@@ -172,10 +168,6 @@
       {
         "date": "2026-08-28",
         "value": 2160
-      },
-      {
-        "date": "2026-08-27",
-        "value": 2228
       }
     ]
   },
@@ -258,10 +250,6 @@
       },
       {
         "date": "2026-08-28",
-        "value": 2100
-      },
-      {
-        "date": "2026-08-27",
         "value": 2100
       }
     ]
@@ -402,12 +390,6 @@
         "large": 2100,
         "medium": null,
         "small": null
-      },
-      {
-        "date": "2026-08-27",
-        "large": 2100,
-        "medium": null,
-        "small": null
       }
     ]
   },
@@ -448,6 +430,12 @@
       }
     },
     "rows": [
+      {
+        "date": "2026-09-28",
+        "female_calf": null,
+        "male_calf": null,
+        "farm_receipt_600kg": null
+      },
       {
         "date": "2026-09-23",
         "female_calf": null,
@@ -579,12 +567,6 @@
         "female_calf": 3818,
         "male_calf": 5405,
         "farm_receipt_600kg": 8264
-      },
-      {
-        "date": "2026-08-27",
-        "female_calf": 3810,
-        "male_calf": 5326,
-        "farm_receipt_600kg": 8376
       }
     ]
   },
