@@ -732,7 +732,10 @@ function renderPremiumMenuItems(items, mode){
   let html = "", lastCategory = null;
   items.forEach(it => {
     if(it.category && it.category !== lastCategory){
-      html += `<div style="font-size:11.5px;font-weight:800;color:#555;margin:${lastCategory?"18px":"0"} 0 8px 2px">${esc(it.category)}</div>`;
+      // .pm-list는 grid라 폭이 좁은 div는 카드들 사이 빈 칸에 끼어 들어가
+      // 순서가 흐트러져 보인다 — grid-column을 전체 폭으로 강제해 항상
+      // 새 줄에서 시작하고, 그 아래 카드들이 실제로 이 제목 밑에 모이게 한다.
+      html += `<div style="grid-column:1/-1;font-size:11.5px;font-weight:800;color:#555;margin:${lastCategory?"18px":"0"} 0 2px 2px">${esc(it.category)}</div>`;
       lastCategory = it.category;
     }
     html += (mode === "menu" && it.key) ? `
