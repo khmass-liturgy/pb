@@ -709,7 +709,7 @@ const PREMIUM_ITEMS = [
   { key:"treatment", icon:"💉", title:"상황별 처방(투약) 패키지", desc:"육계·산란계 농장 상황을 고르면 그에 맞는 투약(처방) 프로그램을 보여드립니다. 상황은 계속 추가됩니다.", color:"#C62828" },
   { key:"seasonal", icon:"🗓️", title:"계절별 투약(관리) 패키지", desc:"봄·여름·가을·겨울 시기별로 챙겨야 할 투약(백신)과 사양관리 주의사항을 안내합니다.", color:"#795548" },
   { key:"finder", icon:"🎯", title:"내 농장에 맞는 약품 찾기", desc:"축종과 문제 증상을 단계별로 선택하면 진단·원인 분석과 추천 처방을 보여드립니다.", color:"#283593" },
-  { key:"ventfinder", icon:"💨", title:"내 농장에 맞는 환기량 찾기", desc:"오늘 날씨와 계사 조건을 넣으면 최소 환기량과 환기팬 가동시간을 계산해 드립니다.", color:"#0288D1" },
+  { key:"ventfinder", icon:"💨", title:"내 농장에 맞는 환기량 찾기", desc:"오늘 날씨·계사 조건을 넣으면 최소환기량(습도 조절)과 최대환기량(터널·냉각)을 계산해 드립니다.", color:"#0288D1" },
   { key:"disinfect", icon:"🧴", title:"질병별 소독제 선택과 소독요령", desc:"질병을 고르면 그에 맞는 소독제 선택 기준과 소독요령을 단계별로 안내합니다.", color:"#00695C" },
   { key:"selfcheck", icon:"🐔", title:"온라인 자가진단", desc:"닭 해부도에서 장기를 클릭하면 그 장기의 기능과 흔히 나타나는 질병을 보여드립니다.", color:"#AD1457" },
   { key:"study", icon:"🎓", title:"최수의사의 온라인 학습(카드 학습)", desc:"수의사가 올린 카드형 학습자료(앞면/뒷면)로 필요할 때마다 학습할 수 있습니다.", color:"#4527A0" },
@@ -9644,16 +9644,33 @@ function renderVentCalcPanel(){
 // outT/outRH/inT가 null이면 "자동"(오늘 날씨·사양표 목표온도)이고, 사용자가 값을
 // 입력하면 그 값을 우선한다.
 let ventFinderState = {
+  mode:"min",  // "min"(최소환기 — 습도·암모니아 관리) | "max"(최대환기 — 터널풍속 냉각)
   species:"broiler", breed:"ross308", age:7,
   headcount:10000,
   outT:null, outRH:null, inT:null, inRH:60,
-  fanCapacity:30000, fanCount:4,   // 팬 1대당 풍량(㎥/시간), 보유 대수
+  fanCapacity:30000, fanCount:4,   // 팬 1대당 풍량(㎥/시간), 보유 대수 — 두 모드가 함께 쓴다
+  // 최대환기(터널) 모드 입력값. 기본값(폭 12.2m·천장고 2.9m)은 UGA poultryventilation.com
+  // 자료의 실제 예시(40ft×9.5ft 계사, 600ft/min에 약 23만 cfm 필요)를 그대로 미터로 옮긴 값이라
+  // 그 예시로 계산 결과를 바로 검산해 볼 수 있다.
+  houseWidth:12.2, ceilingHeight:2.9, tunnelFpm:600,
 };
 
 function vfWeatherToday(){
   const fc = weatherState.forecast || [];
   return fc.length ? fc[0] : null;
 }
+
+// ── 최대환기(터널환기) 목표풍속 — UGA poultryventilation.com "Basic Tunnel Fan Selection
+// Criteria"(Vol.38 No.5)에 실린 4개 지점만 쓴다(그 사이·바깥 값은 자료에 없어 임의로 만들지
+// 않는다). 정압(spLoIn~spHiIn, 인치 수주)은 "팬을 그 정압에서의 풍량 기준으로 골라야 실제로
+// 이 풍속이 나온다"는 자료의 핵심 조언을 위한 것 — 0Pa(무압) 표기만 보고 고르면 안 된다.
+const TUNNEL_SPEED_OPTIONS = [
+  { fpm:500, ms:2.54, spLoIn:0.09, spHiIn:0.12 },
+  { fpm:600, ms:3.05, spLoIn:0.12, spHiIn:0.15 },
+  { fpm:700, ms:3.56, spLoIn:0.15, spHiIn:0.18 },
+  { fpm:800, ms:4.06, spLoIn:0.18, spHiIn:0.21 },
+];
+const PA_PER_INCH_WC = 249.089;
 
 function renderVentFinderPanel(){
   const sp = CONSULT_BREEDS[ventFinderState.species];
@@ -9670,7 +9687,7 @@ function renderVentFinderPanel(){
   <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
     <div>
       <div class="display" style="font-size:16px;margin-bottom:3px">💨 내 농장에 맞는 환기량 찾기</div>
-      <div style="font-size:11px;color:#aaa">오늘 날씨와 계사 조건을 넣으면 최소 환기량과 환기팬 가동시간을 계산해 드립니다</div>
+      <div style="font-size:11px;color:#aaa">최소환기(습도 조절)와 최대환기(터널·냉각)를 골라 계산할 수 있습니다</div>
     </div>
     <button id="vf-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button>
   </div>`;
@@ -9682,6 +9699,20 @@ function renderVentFinderPanel(){
         style="flex:1;min-width:0;border:none;background:transparent;font-size:15px;font-weight:700;color:#222;text-align:right" />
       <span style="font-size:11px;color:#888;white-space:nowrap">${unit}</span>
     </div>`;
+
+  // ── 최소환기/최대환기 모드 ──
+  const isMax = ventFinderState.mode === "max";
+  const modeBtns = `
+  <div style="display:flex;gap:8px;margin-bottom:14px">
+    <button class="vf-mode-btn" data-mode="min"
+      style="flex:1;border:2px solid ${!isMax?"#0288D1":"#eee"};background:${!isMax?"#0288D1":"#fff"};color:${!isMax?"#fff":"#333"};border-radius:10px;padding:10px 8px;font-size:12.5px;font-weight:700;cursor:pointer;line-height:1.5">
+      💧 최소환기<br><span style="font-size:9.5px;font-weight:500;opacity:.85">습도·암모니아 관리(추운 날)</span>
+    </button>
+    <button class="vf-mode-btn" data-mode="max"
+      style="flex:1;border:2px solid ${isMax?"#0288D1":"#eee"};background:${isMax?"#0288D1":"#fff"};color:${isMax?"#fff":"#333"};border-radius:10px;padding:10px 8px;font-size:12.5px;font-weight:700;cursor:pointer;line-height:1.5">
+      🌪️ 최대환기(터널)<br><span style="font-size:9.5px;font-weight:500;opacity:.85">체감온도 냉각(더운 날)</span>
+    </button>
+  </div>`;
 
   // ── 우리 계군 ──
   const speciesBtns = Object.entries(CONSULT_BREEDS).map(([key,v])=>`
@@ -9711,6 +9742,35 @@ function renderVentFinderPanel(){
       <div style="font-size:10.5px;color:#666;font-weight:600;margin-bottom:4px">사육 마리수</div>
       ${numField("vf-headcount", ventFinderState.headcount, "마리")}
     </div>
+  </div>`;
+
+  // ── 계사 크기(최대환기·터널 모드 전용) ──
+  // 터널환기량은 "목표풍속 × 계사 단면적(폭×천장고)"으로만 정해지고 계사 길이·마리수와는
+  // 무관하다(UGA 자료 원문: "tunnel fan capacity required... is determined by fan capacity
+  // and house cross-sectional area and not by house length") — 그래서 이 모드에서는
+  // 우리 계군 카드(축종·품종·일령) 대신 계사 크기만 받는다.
+  const speedChips = TUNNEL_SPEED_OPTIONS.map(o => `
+    <button class="vf-speed-btn" data-fpm="${o.fpm}"
+      style="flex:1 1 auto;min-width:84px;border:2px solid ${ventFinderState.tunnelFpm===o.fpm?"#0288D1":"#eee"};background:${ventFinderState.tunnelFpm===o.fpm?"#0288D1":"#fff"};color:${ventFinderState.tunnelFpm===o.fpm?"#fff":"#333"};border-radius:10px;padding:9px 6px;font-size:12px;font-weight:700;cursor:pointer;line-height:1.5">
+      ${o.ms.toFixed(2)} m/s<br><span style="font-size:9.5px;font-weight:500;opacity:.85">${o.fpm}ft/min</span>
+    </button>`).join("");
+  const houseSizeCard = `
+  <div class="card" style="border-top:5px solid #0288D1;margin-bottom:14px">
+    <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:8px">🏠 계사 크기</div>
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-bottom:8px">
+      <div>
+        <div style="font-size:10.5px;color:#666;font-weight:600;margin-bottom:4px">계사 폭</div>
+        ${numField("vf-house-width", ventFinderState.houseWidth, "m")}
+      </div>
+      <div>
+        <div style="font-size:10.5px;color:#666;font-weight:600;margin-bottom:4px">평균 천장고</div>
+        ${numField("vf-ceiling-height", ventFinderState.ceilingHeight, "m")}
+      </div>
+    </div>
+    <div style="font-size:9.5px;color:#aaa;margin-bottom:12px">최대환기(터널)량은 계사 단면적(폭×천장고)으로 정해지고 계사 <b>길이와는 무관</b>합니다 — 폭·천장고가 같으면 계사가 길든 짧든 필요 환기량은 같습니다.</div>
+    <div style="font-size:10.5px;color:#666;font-weight:600;margin-bottom:6px">목표 터널풍속</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">${speedChips}</div>
+    <div style="font-size:9.5px;color:#aaa;margin-top:6px">대형육계(3.4~3.9kg 출하) 기준 600ft/min 이상이 400ft/min보다 증체·사료효율이 뚜렷이 좋아진다는 연구 결과가 있습니다(미국 농무부 미시시피주립대 연구)</div>
   </div>`;
 
   // ── 오늘 계사 안팎 조건 ──
@@ -9787,7 +9847,73 @@ function renderVentFinderPanel(){
     </details>
   </div>`;
 
-  // ── 계산 결과 ──
+  // ── 계산 결과: 최대환기(터널) 모드 ──
+  const speedOpt = TUNNEL_SPEED_OPTIONS.find(o => o.fpm === ventFinderState.tunnelFpm) || TUNNEL_SPEED_OPTIONS[1];
+  let maxResultCard;
+  {
+    const width = ventFinderState.houseWidth, height = ventFinderState.ceilingHeight;
+    if(width==null || height==null || width<=0 || height<=0){
+      maxResultCard = `
+      <div class="card" style="border-top:5px solid #ccc;text-align:center;padding:26px 16px;color:#aaa;font-size:12px">
+        계사 폭·천장고를 입력하면 계산됩니다.
+      </div>`;
+    } else {
+      const area = width * height;
+      const totalM3h = speedOpt.ms * area * 3600;
+      const totalM3min = totalM3h / 60;
+      const fanCap = Math.max(0, ventFinderState.fanCapacity || 0);
+      const fanCount = Math.max(0, ventFinderState.fanCount || 0);
+      const haveFans = fanCap > 0 && fanCount > 0;
+      const ownM3h = haveFans ? fanCap * fanCount : 0;
+      const needFans = fanCap > 0 ? Math.ceil(totalM3h / fanCap) : null;
+      const duty = haveFans ? totalM3h / ownM3h : null;
+      const shortage = duty != null && duty > 1;
+      const spLoPa = Math.round(speedOpt.spLoIn * PA_PER_INCH_WC);
+      const spHiPa = Math.round(speedOpt.spHiIn * PA_PER_INCH_WC);
+
+      const fanBox = fanCap <= 0
+        ? `<div style="font-size:11px;color:#aaa;text-align:center;padding:10px 0;margin-bottom:6px">팬 1대당 풍량을 입력하면 필요 대수를 계산해 드립니다</div>`
+        : `
+        <div style="background:${!haveFans?"#F5F5F5":shortage?"#FFF3E0":"#E8F5E9"};border-radius:10px;padding:12px 13px;margin-bottom:10px">
+          ${!haveFans ? `
+          <div style="font-size:11.5px;color:#555;line-height:1.8">보유 대수를 입력하면 충분한지 계산해 드립니다. (참고: 팬 1대 기준 필요 대수는 <b>${needFans}대</b>)</div>
+          ` : `
+          <div style="font-size:11px;font-weight:700;color:${shortage?"#E65100":"#1B5E20"};margin-bottom:6px">${shortage?"⚠️ 보유 팬으로 목표 풍속에 못 미칠 수 있습니다":"✅ 보유 팬으로 목표 풍속을 낼 수 있습니다"}</div>
+          <div style="font-size:11.5px;color:#333;line-height:1.8">보유 팬 총 풍량 <b>${ownM3h.toLocaleString()} ㎥/시간</b>(${fanCap.toLocaleString()}㎥/시간 × ${fanCount}대) 대비
+          가동률 <b>${Math.round(duty*100)}%</b>${shortage?` — 최소 <b>${needFans}대</b>가 필요합니다.`:" — 전량 가동 시 목표 풍속을 낼 수 있습니다."}</div>
+          `}
+        </div>`;
+
+      maxResultCard = `
+      <div class="card" style="border-top:5px solid #0288D1">
+        <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:3px">🌪️ 계산 결과</div>
+        <div style="font-size:10px;color:#aaa;margin-bottom:12px">계사 단면적 ${area.toFixed(1)}㎡(폭 ${width}m×천장고 ${height}m) 기준 — UGA poultryventilation.com 자료</div>
+
+        <div style="background:#E1F5FE;border-radius:10px;padding:11px 12px;margin-bottom:10px">
+          <div style="font-size:10px;color:#01579B">목표 ${speedOpt.fpm}ft/min(${speedOpt.ms.toFixed(2)}m/s)에 필요한 최대환기량</div>
+          <div style="font-size:19px;font-weight:800;color:#01579B">${Math.round(totalM3h).toLocaleString()} <span style="font-size:11px;font-weight:600">㎥/시간</span></div>
+          <div style="font-size:9px;color:#888;margin-top:2px">= ${Math.round(totalM3min).toLocaleString()} ㎥/분</div>
+        </div>
+
+        <div style="background:#FFF8E1;border-radius:10px;padding:11px 12px;margin-bottom:10px">
+          <div style="font-size:10.5px;color:#7A5C00;font-weight:700;margin-bottom:3px">📐 팬을 고를 때 기준 정압</div>
+          <div style="font-size:11.5px;color:#5C4400;line-height:1.7">이 풍속을 실제로 내려면 팬을 <b>${speedOpt.spLoIn.toFixed(2)}~${speedOpt.spHiIn.toFixed(2)}인치 수주(≈${spLoPa}~${spHiPa}Pa)</b> 정압에서의 풍량 기준으로 골라야 합니다. "무압(0Pa)" 표기 최댓값만 보고 고르면 실제로는 이보다 못 미칩니다 — 위 팬 명판 안내의 ③번을 참고하세요.</div>
+        </div>
+
+        ${fanBox}
+      </div>`;
+    }
+  }
+  const maxFootnote = `
+  <div style="font-size:9px;color:#aaa;line-height:1.7;margin-top:10px">
+    ※ UGA poultryventilation.com(Michael Czarick)의 "Basic Tunnel Fan Selection Criteria"(Vol.38 No.5)와
+    "What Does it Take to Keep Large Broilers Cool During Hot Weather?"(Vol.19 No.11) 자료를 기준으로 했습니다.
+    필요 환기량 = 목표 풍속 × 계사 단면적(폭×천장고)이며, 자료의 실제 사례(폭 12.2m·천장고 2.9m 계사에서 600ft/min에
+    약 23만 cfm 필요)로 검산했습니다. 정압 구간은 500~800ft/min 범위에서 실측된 값이며, 실제 필요 팬 대수는
+    계사 밀폐도·패드·입기구 상태에 따라 달라질 수 있는 참고치입니다.
+  </div>`;
+
+  // ── 계산 결과: 최소환기 모드 ──
   let resultCard;
   if(outT==null || outRH==null || inT==null){
     resultCard = `
@@ -9811,7 +9937,7 @@ function renderVentFinderPanel(){
             <div style="font-size:11.5px;color:#333;line-height:1.8">
               바깥 공기가 계사 목표 조건보다 절대습도 기준으로 더 습해서, 환기를 늘려도 수분이 잘 빠지지 않고 오히려 들어올 수 있는 상태입니다.
               ${!isBroiler ? `산란계는 성계 목표온도가 <b>${inT}°C</b>로 낮아(육계 초기 목표온도 30°C대와 달리) 봄~가을 낮 시간대에는 바깥 기온이 이보다 높거나 비슷해 이 상태가 자주 나타납니다 — 계산이 잘못된 게 아니라, 지금 조건에서는 <b>최소환기(습도 조절)가 아니라 냉방·터널환기</b>로 접근할 시기라는 뜻입니다.` : ""}
-              ${outT>=inT ? `바깥 기온(${outT}°C)이 계사 목표기온(${inT}°C)보다 <b>높거나 같습니다</b> — 이럴 때는 🌤️ 날씨 메뉴의 체감온도·쿨링패드 계산을 참고해 냉방 위주로 판단하세요.` : "제습·난방을 함께 검토하세요."}
+              ${outT>=inT ? `바깥 기온(${outT}°C)이 계사 목표기온(${inT}°C)보다 <b>높거나 같습니다</b> — 이럴 때는 위 <b>🌪️ 최대환기(터널)</b> 모드로 바꿔 계산해 보세요.` : "제습·난방을 함께 검토하세요."}
               기온이 더 낮은 새벽 시간대 값을 넣으면 최소환기량이 계산됩니다.
             </div>
           </div>
@@ -9885,7 +10011,9 @@ function renderVentFinderPanel(){
     실제 필요 환기량은 계사 밀폐도·단열·사육밀도·설비 상태에 따라 달라질 수 있는 참고치이며, 최소환기량(암모니아·이산화탄소 기준)을 밑돌지 않도록 확인하세요.
   </div>`;
 
-  return head + flockCard + weatherCard + fanCard + resultCard + footnote;
+  return head + modeBtns + (isMax
+    ? houseSizeCard + fanCard + maxResultCard + maxFootnote
+    : flockCard + weatherCard + fanCard + resultCard + footnote);
 }
 
 // ── 일령(주령)별 음수량·사료섭취량 표 ────────────────────────────────────────
@@ -12417,6 +12545,18 @@ function attachEvents(){
   if(vfFanCapacity) vfFanCapacity.onchange = (e)=>{ const v=parseFloat(e.target.value); ventFinderState.fanCapacity = isNaN(v)?0:v; render(); };
   const vfFanCount = document.getElementById("vf-fan-count");
   if(vfFanCount) vfFanCount.onchange = (e)=>{ const v=parseFloat(e.target.value); ventFinderState.fanCount = isNaN(v)?0:v; render(); };
+  document.querySelectorAll(".vf-mode-btn").forEach(b=>b.onclick=()=>{
+    ventFinderState.mode = b.dataset.mode;
+    render();
+  });
+  document.querySelectorAll(".vf-speed-btn").forEach(b=>b.onclick=()=>{
+    ventFinderState.tunnelFpm = parseInt(b.dataset.fpm, 10);
+    render();
+  });
+  const vfHouseWidth = document.getElementById("vf-house-width");
+  if(vfHouseWidth) vfHouseWidth.onchange = (e)=>{ const v=e.target.value.trim(); ventFinderState.houseWidth = v===""?null:parseFloat(v); render(); };
+  const vfCeilingHeight = document.getElementById("vf-ceiling-height");
+  if(vfCeilingHeight) vfCeilingHeight.onchange = (e)=>{ const v=e.target.value.trim(); ventFinderState.ceilingHeight = v===""?null:parseFloat(v); render(); };
 
   // 내 농장에 맞는 약품 찾기 (축종 → 카테고리 → 증상 좁혀가는 마법사)
   const finderBackBtn = document.getElementById("finder-back-btn");
