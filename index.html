@@ -717,6 +717,7 @@ const PREMIUM_ITEMS = [
   { key:"vaccine", icon:"🛡️", title:"백신관리 프로그램", desc:"육계·산란계 일령별 백신 접종 프로그램을 관리자가 만들어 단계별로 보여드립니다.", color:"#3949AB", category:"백신관리" },
   { key:"ventfinder", icon:"💨", title:"내 농장에 맞는 환기량 찾기", desc:"오늘 날씨·계사 조건을 넣으면 최소환기량(습도 조절)과 최대환기량(터널·냉각)을 계산해 드립니다.", color:"#0288D1", category:"사양관리" },
   { key:"moltguide", icon:"🪶", title:"산란계 환우 프로그램(육종회사별)", desc:"하이라인·로만 등 육종회사가 권장하는 품종별 인위환우(강제환우) 프로그램을 비교해 보여드립니다.", color:"#00695C", category:"사양관리" },
+  { key:"feedstandard", icon:"🌾", title:"내 농장의 사료영양 관리", desc:"육계·산란계 사육단계별 국제 사료 영양 표준(에너지·단백질·칼슘 등)과 평균 사료 교체일령을 한눈에 보여드립니다.", color:"#F57F17", category:"사양관리" },
   { key:"selfcheck", icon:"🐔", title:"온라인 자가진단", desc:"닭 해부도에서 장기를 클릭하면 그 장기의 기능과 흔히 나타나는 질병을 보여드립니다.", color:"#AD1457", category:"진단" },
   { key:"diagnosis", icon:"🔍", title:"온라인 진단", desc:"닭의 외부모습·분변상태·부검사진(기관지·간·신장·소장)을 올리면 최동명 수의사가 직접 진단합니다. 사진·진단 내용은 작성자만 볼 수 있습니다.", color:"#2E7D32", category:"진단" },
   { key:"faq", icon:"❓", title:"농장에서 많이 궁금해 하는 질문", desc:"농장에서 자주 묻는 질문과 답변을 카드로 모아뒀습니다. 카드를 누르면 답변이 펼쳐집니다.", color:"#5D4037", category:"질문·학습·교육" },
@@ -860,6 +861,122 @@ function renderMoltGuidePanel(){
     ※ 실제 병아리를 구입한 육종회사·사료회사의 최신 공식 가이드가 우선합니다. 이 카드는 각 회사가 발표한 자료를 참고용으로 정리한 것이며,
     세대(strain) 개량이나 발행 시점에 따라 구체적인 수치가 바뀔 수 있습니다.
   </div>`;
+}
+
+// ── 사료 영양 표준표(육계·산란계) ─────────────────────────────────────────────
+// 환우 프로그램 카드와 같은 이유로 정적 상수로 둔다 — 육종·사료회사가 공식
+// 발표한 수치를 그대로 옮긴 참고자료라 관리자 편집 대상이 아니다.
+// 출처: 육계 - Aviagen Ross 308 Broiler Nutrition Specifications 2022
+// (출하체중 2.0kg 미만 기준, Table 1). 산란계 육성기 - LOHMANN
+// BROWN-CLASSIC Management Guide(Lohmann Breeders) Table 5. 산란계
+// 산란기 1일 요구량 - 같은 가이드 Table 10~12(일일 사료 섭취량 110g 기준).
+const BROILER_FEED_STAGES = [
+  { key:"starter", label:"전기(Starter)", age:"0~10일령", me:"2,975 kcal/kg (12.4MJ)", cp:"23.0%", ca:"0.95%", ap:"0.50%", lys:"1.32%", met:"0.55%", color:"#FFB74D" },
+  { key:"grower", label:"중기(Grower)", age:"11~24일령", me:"3,050 kcal/kg (12.8MJ)", cp:"21.5%", ca:"0.75%", ap:"0.42%", lys:"1.18%", met:"0.51%", color:"#FF9800" },
+  { key:"finisher", label:"후기(Finisher)", age:"25일령~출하", me:"3,100 kcal/kg (13.0MJ)", cp:"19.5%", ca:"0.65%", ap:"0.36%", lys:"1.08%", met:"0.48%", color:"#F57C00" },
+];
+
+const LAYER_REARING_STAGES = [
+  { key:"grower", label:"육성전기(Grower)", age:"1~8주령", me:"2,750~2,800 kcal/kg", cp:"17.5~18.5%", ca:"1.00%", ap:"0.45%", lys:"1.01%", met:"0.46%", color:"#81C784" },
+  { key:"developer", label:"육성후기(Developer)", age:"9~17주령", me:"2,700~2,750 kcal/kg", cp:"15.0~15.5%", ca:"0.90%", ap:"0.37%", lys:"0.66%", met:"0.31%", color:"#4CAF50" },
+  { key:"prelayer", label:"산란전기(Pre-Layer)", age:"18주령~산란율5%", me:"2,700~2,750 kcal/kg", cp:"17.5%", ca:"2.00~2.50%", ap:"0.40%", lys:"0.84%", met:"0.42%", color:"#388E3C" },
+];
+
+const LAYER_PRODUCTION_STAGES = [
+  { key:"phase1", label:"산란전기(Phase 1)", age:"19주령~정점", req:"단백질 18.50g · 칼슘 4.10g · 유효인 0.42g · 라이신 0.97g · 메티오닌 0.48g (수당/일)" },
+  { key:"phase2", label:"산란중기(Phase 2)", age:"약 50~70주령", req:"단백질 18.00g · 칼슘 4.40g · 유효인 0.40g · 라이신 0.94g · 메티오닌 0.47g (수당/일)" },
+  { key:"phase3", label:"산란후기(Phase 3)", age:"약 70주령 이후", req:"단백질 17.00g · 칼슘 4.50g · 유효인 0.38g · 라이신 0.91g · 메티오닌 0.45g (수당/일)" },
+];
+
+let feedStandardState = { species: "broiler" };
+
+// stages를 색깔 박스+화살표로 이어 "언제 사료를 바꾸는지"를 한눈에 보여준다.
+function renderFeedStageRow(stages){
+  return `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
+    ${stages.map((s,i) => `
+    <div style="flex:1;min-width:130px;background:${s.color};border-radius:12px;padding:14px 12px;color:#fff;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.14)">
+      <div style="font-size:13px;font-weight:800">${esc(s.label)}</div>
+      <div style="font-size:11px;margin-top:4px;opacity:0.95">${esc(s.age)}</div>
+    </div>
+    ${i<stages.length-1 ? `<div style="flex:0 0 auto;font-size:20px;color:#bbb">→</div>` : ""}`).join("")}
+  </div>`;
+}
+
+function renderFeedSpecTable(stages, cols){
+  return `<div style="overflow-x:auto">
+  <table style="width:100%;border-collapse:collapse;min-width:520px;font-size:12px">
+    <thead><tr style="border-bottom:2px solid #eee">
+      <th style="padding:7px 8px;text-align:left;font-size:10.5px;color:#888;font-weight:600">단계</th>
+      ${cols.map(c=>`<th style="padding:7px 8px;text-align:left;font-size:10.5px;color:#888;font-weight:600">${esc(c.label)}</th>`).join("")}
+    </tr></thead>
+    <tbody>
+      ${stages.map(s => `<tr style="border-bottom:1px solid #f2f2f2">
+        <td style="padding:7px 8px;font-weight:700;color:#333">${esc(s.label)}</td>
+        ${cols.map(c=>`<td style="padding:7px 8px;color:#444">${esc(s[c.key])}</td>`).join("")}
+      </tr>`).join("")}
+    </tbody>
+  </table></div>`;
+}
+
+const FEED_SPEC_COLS = [
+  { key:"me", label:"대사에너지" },
+  { key:"cp", label:"조단백질" },
+  { key:"ca", label:"칼슘" },
+  { key:"ap", label:"유효인" },
+  { key:"lys", label:"라이신" },
+  { key:"met", label:"메티오닌" },
+];
+
+function renderFeedStandardPanel(){
+  const head = `
+  <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+    <div>
+      <div class="display" style="font-size:16px;margin-bottom:3px">🌾 내 농장의 사료영양 관리</div>
+      <div style="font-size:11px;color:#aaa">사육단계별 국제 사료 영양 표준과 평균 사료 교체일령을 보여드립니다</div>
+    </div>
+    <button id="feedstd-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button>
+  </div>`;
+
+  const sp = feedStandardState.species;
+  const speciesBtns = [
+    { key:"broiler", label:"🐔 육계" },
+    { key:"layer", label:"🥚 산란계" },
+  ].map(s => `
+    <button class="feedstd-species-btn" data-species="${s.key}"
+      style="flex:1;border:2px solid ${sp===s.key?"#F57F17":"#eee"};background:${sp===s.key?"#F57F17":"#fff"};color:${sp===s.key?"#fff":"#333"};border-radius:10px;padding:10px 6px;font-size:13px;font-weight:700;cursor:pointer">${s.label}</button>`).join("");
+
+  let body;
+  if(sp === "broiler"){
+    body = `
+    <div class="card" style="padding:16px;margin-bottom:14px">
+      <div style="font-size:13px;font-weight:800;color:#333;margin-bottom:10px">🐔 육계 사육단계별 사료 교체(평균 일령)</div>
+      ${renderFeedStageRow(BROILER_FEED_STAGES)}
+      ${renderFeedSpecTable(BROILER_FEED_STAGES, FEED_SPEC_COLS)}
+      <div style="font-size:9.5px;color:#aaa;margin-top:10px;line-height:1.6">출처: Aviagen Ross 308 Broiler Nutrition Specifications 2022(출하체중 2.0kg 미만 기준) — 계열사·품종·목표 출하체중에 따라 실제 배합은 달라질 수 있습니다.</div>
+    </div>`;
+  } else {
+    body = `
+    <div class="card" style="padding:16px;margin-bottom:14px">
+      <div style="font-size:13px;font-weight:800;color:#333;margin-bottom:10px">🥚 산란계 육성단계별 사료 교체(평균 주령)</div>
+      ${renderFeedStageRow(LAYER_REARING_STAGES)}
+      ${renderFeedSpecTable(LAYER_REARING_STAGES, FEED_SPEC_COLS)}
+      <div style="font-size:10.5px;color:#8D6E00;background:#FFF8E1;border-radius:8px;padding:8px 10px;margin-top:10px;line-height:1.6">⚠️ 초생추 사료(Starter, 1~3주)는 육성전기(Grower) 사료만으로 표준체중에 못 미칠 때만 추가로 씁니다 — 보통은 육성전기 사료부터 바로 시작합니다.</div>
+      <div style="font-size:9.5px;color:#aaa;margin-top:8px;line-height:1.6">출처: LOHMANN BROWN-CLASSIC Management Guide(Lohmann Breeders)</div>
+    </div>
+    <div class="card" style="padding:16px">
+      <div style="font-size:13px;font-weight:800;color:#333;margin-bottom:10px">🥚 산란계 산란기 단계별 1일 영양요구량(수당)</div>
+      ${LAYER_PRODUCTION_STAGES.map(s=>`
+      <div style="margin-bottom:9px">
+        <div style="font-size:12.5px;font-weight:700;color:#388E3C">${esc(s.label)} <span style="font-weight:400;color:#888;font-size:11px">(${esc(s.age)})</span></div>
+        <div style="font-size:12px;color:#444;line-height:1.6;margin-top:2px">${esc(s.req)}</div>
+      </div>`).join("")}
+      <div style="font-size:9.5px;color:#aaa;margin-top:8px;line-height:1.6">출처: LOHMANN BROWN-CLASSIC Management Guide — 일일 사료 섭취량(약 110g/수/일) 기준 요구량입니다. 실제 섭취량이 다르면 사료 내 농도(%)를 그에 맞게 조정해야 합니다.</div>
+    </div>`;
+  }
+
+  return head + `
+  <div style="display:flex;gap:8px;margin-bottom:14px">${speciesBtns}</div>
+  ${body}`;
 }
 
 // ── 양계잡지 학습정보 ─────────────────────────────────────────────────────────
@@ -7345,6 +7462,10 @@ function renderPremiumTab(){
   if(premiumState.view === "moltguide"){
     return renderPremiumGateHeader() + logoutBar + renderMoltGuidePanel();
   }
+  // 사료 영양 표준표(육계·산란계) 화면 — 정적 상수라 Storage fetch가 필요 없다.
+  if(premiumState.view === "feedstandard"){
+    return renderPremiumGateHeader() + logoutBar + renderFeedStandardPanel();
+  }
   // 양계잡지 학습정보 화면
   if(premiumState.view === "magazine"){
     if(magazineState.status === "idle") fetchMagazineNotes();
@@ -12705,6 +12826,13 @@ function attachEvents(){
   document.querySelectorAll(".moltguide-toggle").forEach(b=>b.onclick=()=>{
     const key = b.dataset.key;
     moltGuideState.openKey = moltGuideState.openKey === key ? null : key;
+    render();
+  });
+  // 사료 영양 표준표(육계·산란계)
+  const feedstdBackBtn = document.getElementById("feedstd-back-btn");
+  if(feedstdBackBtn) feedstdBackBtn.onclick = ()=>{ premiumState.view = "menu"; render(); };
+  document.querySelectorAll(".feedstd-species-btn").forEach(b=>b.onclick=()=>{
+    feedStandardState.species = b.dataset.species;
     render();
   });
   // 양계잡지 학습정보
