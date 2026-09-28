@@ -725,6 +725,17 @@ const PREMIUM_ITEMS = [
   { key:"smssub", icon:"📱", title:"자동 문자 발송 신청", desc:"계절별 투약 패키지·기술탐구·상황별 처방 중 원하는 정보를 정해진 주기로 문자 알림 신청합니다.", color:"#0277BD", category:"게시판·기타" },
 ];
 
+// 카테고리 큰 제목마다 다른 색을 준다 — 묶음별로 한눈에 구분되게. 목록에
+// 없는(향후 추가될) category는 CSS 기본색(#555)로 그냥 둔다.
+const PREMIUM_CATEGORY_COLORS = {
+  "약품·투약·소독": "#00838F",
+  "사양관리": "#0288D1",
+  "진단": "#2E7D32",
+  "질문·학습·교육": "#6A1B9A",
+  "게시판·기타": "#D84315",
+  "관리자 전용": "#37474F",
+};
+
 // PREMIUM_ITEMS(+회원관리 등 관리자 전용 추가 항목)를 category가 바뀔 때마다
 // 큰 제목을 끼워 넣어 그린다. mode:"preview"는 로그인 전 미리보기라 항상 클릭
 // 불가(div)로, mode:"menu"는 로그인 후 화면이라 item.key가 있는 항목만
@@ -737,7 +748,8 @@ function renderPremiumMenuItems(items, mode){
       // .pm-list는 grid라 폭이 좁은 div는 카드들 사이 빈 칸에 끼어 들어가
       // 순서가 흐트러져 보인다 — grid-column을 전체 폭으로 강제해 항상
       // 새 줄에서 시작하고, 그 아래 카드들이 실제로 이 제목 밑에 모이게 한다.
-      html += `<div style="grid-column:1/-1;font-size:11.5px;font-weight:800;color:#555;margin:${lastCategory?"18px":"0"} 0 2px 2px">${esc(it.category)}</div>`;
+      const catColor = PREMIUM_CATEGORY_COLORS[it.category] || "#555";
+      html += `<div style="grid-column:1/-1;font-size:23px;font-weight:800;color:${catColor};margin:${lastCategory?"26px":"0"} 0 4px 2px">${esc(it.category)}</div>`;
       lastCategory = it.category;
     }
     html += (mode === "menu" && it.key) ? `
