@@ -713,6 +713,7 @@ const PREMIUM_ITEMS = [
   { key:"seasonal", icon:"🗓️", title:"계절별 투약(관리) 패키지", desc:"봄·여름·가을·겨울 시기별로 챙겨야 할 투약(백신)과 사양관리 주의사항을 안내합니다.", color:"#795548", category:"약품·투약·소독" },
   { key:"finder", icon:"🎯", title:"내 농장에 맞는 약품 찾기", desc:"축종과 문제 증상을 단계별로 선택하면 진단·원인 분석과 추천 처방을 보여드립니다.", color:"#283593", category:"약품·투약·소독" },
   { key:"disinfect", icon:"🧴", title:"질병별 소독제 선택과 소독요령", desc:"질병을 고르면 그에 맞는 소독제 선택 기준과 소독요령을 단계별로 안내합니다.", color:"#00695C", category:"약품·투약·소독" },
+  { key:"newproducts", icon:"🆕", title:"신제품 소식", desc:"항생제·영양제·백신·기타로 나눠 새로 나온 제품 정보를 카드 학습 형태로 보여드립니다.", color:"#C2185B", category:"약품·투약·소독" },
   { key:"vaccine", icon:"🛡️", title:"백신관리 프로그램", desc:"육계·산란계 일령별 백신 접종 프로그램을 관리자가 만들어 단계별로 보여드립니다.", color:"#3949AB", category:"백신관리" },
   { key:"ventfinder", icon:"💨", title:"내 농장에 맞는 환기량 찾기", desc:"오늘 날씨·계사 조건을 넣으면 최소환기량(습도 조절)과 최대환기량(터널·냉각)을 계산해 드립니다.", color:"#0288D1", category:"사양관리" },
   { key:"moltguide", icon:"🪶", title:"산란계 환우 프로그램(육종회사별)", desc:"하이라인·로만 등 육종회사가 권장하는 품종별 인위환우(강제환우) 프로그램을 비교해 보여드립니다.", color:"#00695C", category:"사양관리" },
@@ -1164,6 +1165,152 @@ function renderVaccinePanel(){
     ※ 백신 프로그램은 지역·계열사·농장 발병 이력에 따라 달라질 수 있는 참고 자료입니다. 실제 접종은 반드시 담당 수의사와 상의해 조정하세요.
     새로운 프로그램은 계속 추가됩니다.
   </div>`;
+}
+
+// ── 약품·투약·소독: 신제품 소식(항생제·영양제·백신·기타) ─────────────────────
+// 카드 학습(study cards)과 같은 "덱 → 카드 뒤집기" 화면 구조를 그대로 빌려
+// 쓰되, 덱은 관리자가 자유롭게 만드는 게 아니라 이 네 종류로 고정한다
+// (요청이 "항생제/영양제/백신/기타"로 못박혀 있어서다). 카드 뒷면 이미지도
+// 카드학습처럼 Wikimedia Commons에서 AI가 찾아오는 게 아니라 — 실제 판매
+// 중인 국내 제품 사진이 Commons에 있을 리 없으므로 — 관리자가 제품 사진을
+// 직접 올린다(양계잡지 학습정보와 같은 파일 업로드 방식).
+const NEW_PRODUCT_DECKS = [
+  { key:"antibiotic", icon:"💊", title:"항생제" },
+  { key:"nutrient", icon:"🧪", title:"영양제" },
+  { key:"vaccine_prod", icon:"🛡️", title:"백신" },
+  { key:"etc", icon:"📦", title:"기타" },
+];
+
+let newProductState = { status:"idle", data:null, busy:false, msg:"" };
+let newProductNavState = { deckKey:null, cardIndex:0, flipped:false, adminOpen:false, formId:undefined, file:null, previewUrl:"", draftName:"", draftInfo:"" };
+
+async function fetchNewProducts(){
+  if(newProductState.status === "loading") return;
+  newProductState.status = "loading";
+  try {
+    const j = await fetchPremiumContentJson("new_products");
+    j.items = Array.isArray(j.items) ? j.items : [];
+    newProductState.data = j;
+    newProductState.status = "done";
+  } catch(e){
+    console.warn("신제품 소식 로딩 실패(최초 미발행 상태로 간주, 빈 목록 표시):", e);
+    newProductState.data = { items: [] };
+    newProductState.status = "done";
+  }
+  if(premiumState.view === "newproducts") render();
+}
+
+function currentNewProducts(){
+  return (newProductState.data && newProductState.data.items) || [];
+}
+function newProductsForDeck(deckKey){
+  return currentNewProducts().filter(x => x.deck === deckKey).sort((a,b) => (b.createdAt||"").localeCompare(a.createdAt||""));
+}
+function newNewProductId(){
+  return "np" + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+}
+
+async function publishNewProducts(items){
+  try {
+    const body = {
+      updated: new Date().toISOString().slice(0,16).replace("T"," ") + " UTC",
+      by: PICK_BY,
+      note: "약품·투약·소독 - 신제품 소식(항생제·영양제·백신·기타) — 화면에서 저장하면 이 파일이 갱신되고 승인된 회원 모두에게 같은 내용이 보입니다.",
+      items: items,
+    };
+    await writePremiumContentJson("new_products", body);
+    newProductState.data = body;
+    return { ok:true };
+  } catch(e){
+    return { ok:false, error: e.message || String(e) };
+  }
+}
+
+function resetNewProductForm(){
+  const nav = newProductNavState;
+  nav.formId = undefined; nav.file = null; nav.previewUrl = "";
+  nav.draftName = ""; nav.draftInfo = "";
+}
+
+function renderNewProductPanel(){
+  const head = `
+  <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+    <div>
+      <div class="display" style="font-size:16px;margin-bottom:3px">🆕 신제품 소식</div>
+      <div style="font-size:11px;color:#aaa">항생제·영양제·백신·기타로 나눠 새로 나온 제품 정보를 카드로 보여드립니다</div>
+    </div>
+    <button id="newproduct-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button>
+  </div>`;
+
+  const st = newProductState;
+  if(st.status === "idle" || st.status === "loading"){
+    return head + `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⏳ 불러오는 중...</div>`;
+  }
+  const admin = isBoardAdmin();
+  const nav = newProductNavState;
+
+  if(!nav.deckKey){
+    const deckCards = NEW_PRODUCT_DECKS.map(d => {
+      const count = newProductsForDeck(d.key).length;
+      return `
+      <button type="button" class="newproduct-deck-btn" data-key="${d.key}" style="display:flex;align-items:center;gap:13px;width:100%;text-align:left;border:1px solid #ececec;border-radius:14px;padding:14px 16px;background:#fff;box-shadow:0 1px 6px rgba(0,0,0,.05);cursor:pointer;margin-bottom:10px">
+        <span style="font-size:26px">${d.icon}</span>
+        <span style="flex:1"><span style="display:block;font-size:14px;font-weight:800;color:#333">${esc(d.title)}</span><span style="font-size:11.5px;color:#888">${count}개 제품</span></span>
+        <span style="font-size:22px;color:#C2185B">›</span>
+      </button>`;
+    }).join("");
+    return head + deckCards;
+  }
+
+  const deck = NEW_PRODUCT_DECKS.find(d=>d.key===nav.deckKey);
+  const breadcrumb = `<div style="margin-bottom:12px"><button id="newproduct-deck-back-btn" style="font-size:11px;border:1px solid #ddd;border-radius:6px;background:#fff;color:#666;padding:5px 10px">← 목록</button>
+  <span style="font-size:12.5px;font-weight:700;color:#333;margin-left:8px">${deck.icon} ${esc(deck.title)}</span></div>`;
+
+  const items = newProductsForDeck(nav.deckKey);
+  if(nav.cardIndex >= items.length) nav.cardIndex = 0;
+  const item = items[nav.cardIndex];
+
+  const viewer = !item ? `<div class="card" style="text-align:center;padding:28px 16px;color:#aaa">아직 등록된 제품이 없습니다.${admin?"":" 곧 추가됩니다."}</div>` : `
+  <div style="font-size:11px;color:#888;margin-bottom:8px;text-align:center">제품 ${nav.cardIndex+1} / ${items.length}</div>
+  <div id="newproduct-flip-card" style="cursor:pointer;background:${nav.flipped?"linear-gradient(135deg,#FFF8E1,#FFECB3)":"linear-gradient(135deg,#AD1457,#C2185B)"};border:1px solid ${nav.flipped?"#F9D871":"#AD1457"};border-radius:14px;padding:28px 20px;min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,0.12)">
+    ${item.imageUrl ? `<img src="${esc(item.imageUrl)}" style="max-width:100%;max-height:${nav.flipped?"120px":"160px"};border-radius:8px;margin-bottom:12px" />` : ""}
+    <div style="font-size:${nav.flipped?"14px":"22px"};font-weight:800;color:${nav.flipped?"#5C4400":"#fff"};line-height:1.6;white-space:pre-wrap">${esc(nav.flipped ? (item.info||"") : item.name)}</div>
+    <div style="font-size:10.5px;color:${nav.flipped?"#B8860B":"#F3C6D9"};margin-top:14px">${nav.flipped?"다시 눌러 제품명 보기":"눌러서 제품정보 보기"}</div>
+  </div>
+  <div style="display:flex;justify-content:space-between;gap:8px;margin-top:14px">
+    <button id="newproduct-prev-btn" ${nav.cardIndex===0?"disabled":""} style="flex:1;border:1px solid #ddd;border-radius:8px;background:#fff;color:${nav.cardIndex===0?"#ccc":"#333"};padding:10px;font-size:12.5px;font-weight:700">← 이전</button>
+    <button id="newproduct-next-btn" ${nav.cardIndex>=items.length-1?"disabled":""} style="flex:1;border:1px solid #ddd;border-radius:8px;background:#fff;color:${nav.cardIndex>=items.length-1?"#ccc":"#333"};padding:10px;font-size:12.5px;font-weight:700">다음 →</button>
+  </div>
+  ${admin ? `
+  <div style="display:flex;gap:6px;margin-top:10px">
+    <button id="newproduct-edit-btn" data-id="${esc(item.id)}" style="flex:1;font-size:11px;border:1px solid #C2185B;border-radius:7px;background:#fff;color:#C2185B;padding:7px">편집</button>
+    <button class="newproduct-del-btn" data-id="${esc(item.id)}" style="flex:1;font-size:11px;border:1px solid #eee;border-radius:7px;background:#fff;color:#bbb;padding:7px">삭제</button>
+  </div>` : ""}
+  `;
+
+  const editing = nav.formId && items.find(x=>x.id===nav.formId);
+  const adminBox = !admin ? "" : `
+  <div style="margin-top:16px;border-top:1px dashed #eee;padding-top:12px">
+    <button id="newproduct-admin-toggle" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:3px 9px">${nav.adminOpen?"닫기":"⚙ 새 제품 추가"}</button>
+    ${newProductState.msg?`<span style="font-size:11px;margin-left:8px;color:${/실패/.test(newProductState.msg)?"#C62828":"#2E7D32"}">${esc(newProductState.msg)}</span>`:""}
+    ${nav.adminOpen ? `
+    <div style="margin-top:9px;background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">
+      <div style="font-size:11px;font-weight:700;color:#7A5C00;margin-bottom:8px">${editing?"제품 수정: "+esc(editing.name):"새 제품 추가"} (${deck.title})</div>
+      <input type="file" accept="image/*" id="newproduct-file-input" style="width:100%;font-size:11.5px;margin-bottom:8px" />
+      ${nav.previewUrl ? `<img src="${esc(nav.previewUrl)}" style="max-width:100%;max-height:160px;border-radius:8px;margin-bottom:8px;display:block" />`
+        : (editing && editing.imageUrl ? `<img src="${esc(editing.imageUrl)}" style="max-width:100%;max-height:160px;border-radius:8px;margin-bottom:8px;display:block" />` : "")}
+      <input type="text" id="newproduct-name-input" value="${esc(nav.draftName)}" placeholder="제품명"
+        style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;margin-bottom:8px" />
+      <textarea id="newproduct-info-input" placeholder="제조사·효능·특징 등 제품 정보"
+        style="width:100%;min-height:110px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:8px">${esc(nav.draftInfo)}</textarea>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button id="newproduct-save-btn" ${newProductState.busy?"disabled":""} style="border:1px solid #B8860B;background:${newProductState.busy?"#ccc":"#B8860B"};color:#fff;border-radius:7px;padding:7px 15px;font-size:12px;font-weight:600">${newProductState.busy?"발행 중...":(editing?"수정 발행":"추가 발행")}</button>
+        <button id="newproduct-cancel-btn" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:6px 10px">취소</button>
+      </div>
+    </div>` : ""}
+  </div>`;
+
+  return head + breadcrumb + viewer + adminBox;
 }
 
 // ── 상황별 처방(투약) 패키지 ─────────────────────────────────────────────────
@@ -7199,6 +7346,11 @@ function renderPremiumTab(){
     if(vaccinePkgState.status === "idle") fetchVaccinePrograms();
     return renderPremiumGateHeader() + logoutBar + renderVaccinePanel();
   }
+  // 신제품 소식 화면
+  if(premiumState.view === "newproducts"){
+    if(newProductState.status === "idle") fetchNewProducts();
+    return renderPremiumGateHeader() + logoutBar + renderNewProductPanel();
+  }
   // 온라인 자가진단 화면
   if(premiumState.view === "selfcheck"){
     if(selfCheckPkgState.status === "idle") fetchSelfCheckDiseases();
@@ -12690,6 +12842,123 @@ function attachEvents(){
     vaccinePkgState.busy = false;
     vaccinePkgState.msg = r.ok ? "발행 완료 — 모두에게 반영됩니다" : ("발행 실패: " + r.error);
     if(r.ok) vaccineTabState.formKey = undefined;
+    render();
+  };
+
+  // 신제품 소식(항생제·영양제·백신·기타)
+  const newproductBackBtn = document.getElementById("newproduct-back-btn");
+  if(newproductBackBtn) newproductBackBtn.onclick = ()=>{ premiumState.view = "menu"; render(); };
+  document.querySelectorAll(".newproduct-deck-btn").forEach(b=>b.onclick=()=>{
+    newProductNavState.deckKey = b.dataset.key;
+    newProductNavState.cardIndex = 0; newProductNavState.flipped = false;
+    resetNewProductForm(); newProductNavState.adminOpen = false; newProductState.msg = "";
+    render();
+  });
+  const newproductDeckBackBtn = document.getElementById("newproduct-deck-back-btn");
+  if(newproductDeckBackBtn) newproductDeckBackBtn.onclick = ()=>{
+    newProductNavState.deckKey = null;
+    resetNewProductForm(); newProductNavState.adminOpen = false; newProductState.msg = "";
+    render();
+  };
+  const newproductFlipCard = document.getElementById("newproduct-flip-card");
+  if(newproductFlipCard) newproductFlipCard.onclick = ()=>{ newProductNavState.flipped = !newProductNavState.flipped; render(); };
+  const newproductPrevBtn = document.getElementById("newproduct-prev-btn");
+  if(newproductPrevBtn) newproductPrevBtn.onclick = ()=>{ newProductNavState.cardIndex = Math.max(0, newProductNavState.cardIndex-1); newProductNavState.flipped = false; render(); };
+  const newproductNextBtn = document.getElementById("newproduct-next-btn");
+  if(newproductNextBtn) newproductNextBtn.onclick = ()=>{ newProductNavState.cardIndex += 1; newProductNavState.flipped = false; render(); };
+  const newproductAdminToggle = document.getElementById("newproduct-admin-toggle");
+  if(newproductAdminToggle) newproductAdminToggle.onclick = ()=>{
+    const opening = !newProductNavState.adminOpen;
+    newProductNavState.adminOpen = opening;
+    if(opening) resetNewProductForm();
+    newProductState.msg = "";
+    render();
+  };
+  const newproductEditBtn = document.getElementById("newproduct-edit-btn");
+  if(newproductEditBtn) newproductEditBtn.onclick = ()=>{
+    const id = newproductEditBtn.dataset.id;
+    const item = newProductsForDeck(newProductNavState.deckKey).find(x=>x.id===id);
+    if(!item) return;
+    newProductNavState.adminOpen = true;
+    newProductNavState.formId = id;
+    newProductNavState.file = null; newProductNavState.previewUrl = "";
+    newProductNavState.draftName = item.name || "";
+    newProductNavState.draftInfo = item.info || "";
+    newProductState.msg = "";
+    render();
+  };
+  document.querySelectorAll(".newproduct-del-btn").forEach(b=>b.onclick=async ()=>{
+    const id = b.dataset.id;
+    const item = currentNewProducts().find(x=>x.id===id);
+    if(!item || !confirm(`"${item.name || "이 제품"}"을 삭제할까요?`)) return;
+    const next = currentNewProducts().filter(x=>x.id!==id);
+    newProductState.busy = true; newProductState.msg = "삭제 중..."; render();
+    const r = await publishNewProducts(next);
+    newProductState.busy = false;
+    newProductState.msg = r.ok ? "삭제 완료" : ("삭제 실패: " + r.error);
+    if(r.ok){
+      newProductNavState.cardIndex = Math.max(0, newProductNavState.cardIndex - 1);
+      if(newProductNavState.formId === id) resetNewProductForm();
+    }
+    render();
+  });
+  const newproductFileInput = document.getElementById("newproduct-file-input");
+  if(newproductFileInput) newproductFileInput.onchange = ()=>{
+    const file = newproductFileInput.files && newproductFileInput.files[0];
+    if(!file) return;
+    newProductNavState.file = file;
+    newProductNavState.previewUrl = URL.createObjectURL(file);
+    render();
+  };
+  const newproductCancelBtn = document.getElementById("newproduct-cancel-btn");
+  if(newproductCancelBtn) newproductCancelBtn.onclick = ()=>{
+    resetNewProductForm();
+    newProductNavState.adminOpen = false;
+    newProductState.msg = "";
+    render();
+  };
+  const newproductSaveBtn = document.getElementById("newproduct-save-btn");
+  if(newproductSaveBtn) newproductSaveBtn.onclick = async ()=>{
+    const name = (document.getElementById("newproduct-name-input")?.value || "").trim();
+    const info = (document.getElementById("newproduct-info-input")?.value || "").trim();
+    const file = newProductNavState.file;
+    const editId = newProductNavState.formId;
+    if(!name){ alert("제품명을 입력하세요."); return; }
+    if(!info){ alert("제품 정보를 입력하세요."); return; }
+    newProductState.busy = true; newProductState.msg = "발행 중..."; render();
+    try {
+      const items = currentNewProducts().slice();
+      let imageUrl = "";
+      if(editId){
+        const cur = items.find(x=>x.id===editId);
+        imageUrl = cur ? (cur.imageUrl || "") : "";
+      }
+      if(file){
+        const id = editId || newNewProductId();
+        const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g,"") || "jpg";
+        const ref = firebase.storage().ref("premium_content/new_products_images/" + id + "." + ext);
+        await withStorageTimeout(ref.put(file), 30000);
+        imageUrl = await withStorageTimeout(ref.getDownloadURL());
+      }
+      if(editId){
+        const idx = items.findIndex(x=>x.id===editId);
+        if(idx>=0) items[idx] = Object.assign({}, items[idx], { name, info, imageUrl });
+      } else {
+        items.push({ id:newNewProductId(), deck:newProductNavState.deckKey, name, info, imageUrl, createdAt:new Date().toISOString() });
+      }
+      const r = await publishNewProducts(items);
+      newProductState.busy = false;
+      if(r.ok){
+        newProductState.msg = "발행 완료 — 모두에게 반영됩니다";
+        resetNewProductForm();
+        newProductNavState.adminOpen = false;
+      } else {
+        newProductState.msg = "발행 실패: " + r.error;
+      }
+    } catch(e){
+      newProductState.busy = false;
+      newProductState.msg = "발행 실패: " + (e.message || String(e));
+    }
     render();
   };
 
