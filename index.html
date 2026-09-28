@@ -9798,8 +9798,13 @@ function renderVentFinderPanel(){
         resultCard = `
         <div class="card" style="border-top:5px solid #C62828">
           <div style="background:#FFEBEE;border-left:4px solid #C62828;border-radius:8px;padding:12px 14px">
-            <div style="font-size:12px;font-weight:700;color:#B71C1C;margin-bottom:4px">⚠️ 환기만으로는 수분 제거가 어려운 조건</div>
-            <div style="font-size:11.5px;color:#333;line-height:1.7">바깥 공기가 목표 계사 조건보다 절대습도 기준으로 더 습합니다. 환기를 늘려도 수분이 잘 빠지지 않고 오히려 들어올 수 있습니다 — 제습·난방을 함께 검토하세요.</div>
+            <div style="font-size:12px;font-weight:700;color:#B71C1C;margin-bottom:4px">⚠️ 지금 조건에서는 이 계산(최소환기)이 맞지 않습니다</div>
+            <div style="font-size:11.5px;color:#333;line-height:1.8">
+              바깥 공기가 계사 목표 조건보다 절대습도 기준으로 더 습해서, 환기를 늘려도 수분이 잘 빠지지 않고 오히려 들어올 수 있는 상태입니다.
+              ${!isBroiler ? `산란계는 성계 목표온도가 <b>${inT}°C</b>로 낮아(육계 초기 목표온도 30°C대와 달리) 봄~가을 낮 시간대에는 바깥 기온이 이보다 높거나 비슷해 이 상태가 자주 나타납니다 — 계산이 잘못된 게 아니라, 지금 조건에서는 <b>최소환기(습도 조절)가 아니라 냉방·터널환기</b>로 접근할 시기라는 뜻입니다.` : ""}
+              ${outT>=inT ? `바깥 기온(${outT}°C)이 계사 목표기온(${inT}°C)보다 <b>높거나 같습니다</b> — 이럴 때는 🌤️ 날씨 메뉴의 체감온도·쿨링패드 계산을 참고해 냉방 위주로 판단하세요.` : "제습·난방을 함께 검토하세요."}
+              기온이 더 낮은 새벽 시간대 값을 넣으면 최소환기량이 계산됩니다.
+            </div>
           </div>
         </div>`;
       } else {
