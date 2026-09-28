@@ -1152,7 +1152,29 @@ function renderMagazinePanel(){
 // 상황별 처방의 program과 같은 {step, detail} 목록으로 "일령·백신명|접종
 // 방법·비고" 한 줄씩을 담는다.
 let vaccinePkgState = { status:"idle", data:null, busy:false, msg:"" };
-let vaccineTabState = { species: "broiler", openKey: null, adminOpen: false, formKey: undefined };
+// draftTitle/draftDesc/draftCaution/draftSchedule: 관리자 폼이 열려 있는 동안의
+// 임시 편집 상태. 일정 항목(draftSchedule)을 한 줄씩 추가·삭제할 때마다
+// render()가 다시 불려 입력창이 새로 그려지므로, 제목·설명·주의사항 값을
+// DOM이 아니라 여기 상태로 들고 있어야 행을 추가해도 이미 입력해둔 값이
+// 사라지지 않는다(행 추가·삭제 직전에 syncVaccineDraftFields()로 DOM→상태에
+// 옮겨 담는다). rowEditIndex는 draftSchedule 중 지금 수정 중인 행의 인덱스
+// (null이면 새 행 추가 모드).
+let vaccineTabState = { species: "broiler", openKey: null, adminOpen: false, formKey: undefined,
+  draftTitle: "", draftDesc: "", draftCaution: "", draftSchedule: [], rowEditIndex: null };
+
+function resetVaccineForm(editing){
+  vaccineTabState.draftTitle = editing ? editing.title : "";
+  vaccineTabState.draftDesc = editing ? (editing.desc || "") : "";
+  vaccineTabState.draftCaution = editing ? (editing.caution || "") : "";
+  vaccineTabState.draftSchedule = editing ? editing.schedule.slice() : [];
+  vaccineTabState.rowEditIndex = null;
+}
+
+function syncVaccineDraftFields(){
+  vaccineTabState.draftTitle = (document.getElementById("vp-title")?.value || "");
+  vaccineTabState.draftDesc = (document.getElementById("vp-desc")?.value || "");
+  vaccineTabState.draftCaution = (document.getElementById("vp-caution")?.value || "");
+}
 
 async function fetchVaccinePrograms(){
   if(vaccinePkgState.status === "loading") return;
@@ -1240,17 +1262,33 @@ function renderVaccinePanel(){
       </div>
       ${open ? `
       <div style="margin-top:12px;padding-top:12px;border-top:1px dashed #eee">
-        ${p.schedule.map(s => `
-        <div style="margin-bottom:9px">
-          <div style="font-size:12.5px;font-weight:700;color:#3949AB">${esc(s.step)}</div>
-          <div style="font-size:12.5px;color:#444;line-height:1.6;margin-top:2px">${esc(s.detail)}</div>
-        </div>`).join("")}
-        ${p.caution ? `<div style="font-size:11px;color:#8D6E00;background:#FFF8E1;border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.6">⚠️ ${esc(p.caution)}</div>` : ""}
+        <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;min-width:640px">
+          <thead><tr style="border-bottom:2px solid #eee">
+            <th style="padding:10px 12px;text-align:left;font-size:13px;color:#888;font-weight:700">일령</th>
+            <th style="padding:10px 12px;text-align:left;font-size:13px;color:#888;font-weight:700">백신</th>
+            <th style="padding:10px 12px;text-align:left;font-size:13px;color:#888;font-weight:700">방법</th>
+            <th style="padding:10px 12px;text-align:left;font-size:13px;color:#888;font-weight:700">기타</th>
+          </tr></thead>
+          <tbody>
+            ${p.schedule.map(r => `<tr style="border-bottom:1px solid #f2f2f2">
+              <td style="padding:10px 12px;font-size:22px;font-weight:800;color:#3949AB;white-space:nowrap">${esc(r.age)}</td>
+              <td style="padding:10px 12px;font-size:20px;font-weight:700;color:#333">${esc(r.vaccine)}</td>
+              <td style="padding:10px 12px;font-size:16px;color:#444">${esc(r.method||"-")}</td>
+              <td style="padding:10px 12px;font-size:15px;color:#777">${esc(r.note||"-")}</td>
+            </tr>`).join("")}
+          </tbody>
+        </table>
+        </div>
+        ${p.caution ? `<div style="font-size:13px;color:#8D6E00;background:#FFF8E1;border-radius:8px;padding:10px 12px;margin-top:12px;line-height:1.6">⚠️ ${esc(p.caution)}</div>` : ""}
       </div>` : ""}
     </div>`;
   }).join("") : `<div class="card" style="text-align:center;padding:28px 16px;color:#aaa">아직 등록된 프로그램이 없습니다.${admin?"":" 곧 추가됩니다."}</div>`;
 
   const editing = vaccineTabState.formKey && currentVaccinePrograms().find(p=>p.key===vaccineTabState.formKey);
+  const draftRows = vaccineTabState.draftSchedule || [];
+  const rowEditIdx = vaccineTabState.rowEditIndex;
+  const rowEditing = (rowEditIdx != null) ? draftRows[rowEditIdx] : null;
   const adminBox = !admin ? "" : `
   <div style="margin-top:16px;border-top:1px dashed #eee;padding-top:12px">
     <button id="vaccine-admin-toggle" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:3px 9px">${vaccineTabState.adminOpen?"관리 닫기":"⚙ 관리"}</button>
@@ -1259,21 +1297,63 @@ function renderVaccinePanel(){
     <div style="margin-top:9px;background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">
       <div style="font-size:11px;font-weight:700;color:#7A5C00;margin-bottom:8px">${editing?"프로그램 수정: "+esc(editing.title):"새 프로그램 추가"} (${vaccineTabState.species==="broiler"?"육계":"산란계"})</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
-        <input id="vp-title" type="text" placeholder="프로그램 이름 (예: 육계 표준 백신 프로그램)" value="${esc(editing?editing.title:"")}"
+        <input id="vp-title" type="text" placeholder="프로그램 이름 (예: 육계 표준 백신 프로그램)" value="${esc(vaccineTabState.draftTitle)}"
           style="flex:1;min-width:180px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+        <input id="vp-desc" type="text" placeholder="한 줄 설명 (선택, 예: 무항생제 인증 농장 기준)" value="${esc(vaccineTabState.draftDesc)}"
+          style="flex:1;min-width:180px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />
+      </div>
+
+      <div style="font-size:10px;color:#888;margin-bottom:5px">접종 일정 — 항목을 하나씩 추가·수정합니다</div>
+      ${draftRows.length ? `
+      <div style="overflow-x:auto;margin-bottom:8px">
+      <table style="width:100%;border-collapse:collapse;min-width:480px;font-size:12px">
+        <thead><tr style="border-bottom:1px solid #eee">
+          <th style="padding:5px 6px;text-align:left;font-size:10px;color:#888;font-weight:600">일령</th>
+          <th style="padding:5px 6px;text-align:left;font-size:10px;color:#888;font-weight:600">백신</th>
+          <th style="padding:5px 6px;text-align:left;font-size:10px;color:#888;font-weight:600">방법</th>
+          <th style="padding:5px 6px;text-align:left;font-size:10px;color:#888;font-weight:600">기타</th>
+          <th style="padding:5px 6px"></th>
+        </tr></thead>
+        <tbody>
+          ${draftRows.map((r,i) => `<tr style="border-bottom:1px solid #f5f5f5;${rowEditIdx===i?"background:#FFF3E0":""}">
+            <td style="padding:5px 6px">${esc(r.age)}</td>
+            <td style="padding:5px 6px">${esc(r.vaccine)}</td>
+            <td style="padding:5px 6px">${esc(r.method||"")}</td>
+            <td style="padding:5px 6px">${esc(r.note||"")}</td>
+            <td style="padding:5px 6px;white-space:nowrap">
+              <button class="vp-row-edit-btn" data-idx="${i}" style="font-size:10px;border:1px solid #3949AB;border-radius:4px;background:#fff;color:#3949AB;padding:2px 6px;margin-right:3px">편집</button>
+              <button class="vp-row-del-btn" data-idx="${i}" style="font-size:10px;border:1px solid #eee;border-radius:4px;background:#fff;color:#bbb;padding:2px 6px">삭제</button>
+            </td>
+          </tr>`).join("")}
+        </tbody>
+      </table>
+      </div>` : `<div style="font-size:11px;color:#aaa;margin-bottom:8px">아직 추가된 항목이 없습니다.</div>`}
+
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+        <input id="vp-row-age" type="text" placeholder="일령 (예: 7일령)" value="${esc(rowEditing?rowEditing.age:"")}"
+          style="flex:1;min-width:90px;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px" />
+        <input id="vp-row-vaccine" type="text" placeholder="백신명 (예: 뉴캣슬+전염성기관지염 생백신)" value="${esc(rowEditing?rowEditing.vaccine:"")}"
+          style="flex:2;min-width:160px;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px" />
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
-        <input id="vp-desc" type="text" placeholder="한 줄 설명 (선택, 예: 무항생제 인증 농장 기준)" value="${esc(editing?(editing.desc||""):"")}"
-          style="flex:1;min-width:180px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />
+        <input id="vp-row-method" type="text" placeholder="방법 (예: 점안, 음수, 피하주사)" value="${esc(rowEditing?rowEditing.method:"")}"
+          style="flex:1;min-width:110px;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px" />
+        <input id="vp-row-note" type="text" placeholder="기타 (선택)" value="${esc(rowEditing?rowEditing.note:"")}"
+          style="flex:1;min-width:110px;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px" />
       </div>
-      <div style="font-size:10px;color:#888;margin-bottom:3px">접종 일정 — 한 줄에 한 항목씩, '일령·백신명|접종방법·비고' 형식</div>
-      <textarea id="vp-schedule" placeholder="예) 1일령 — 마렉병(Marek)|부화장에서 피하주사${"\n"}7일령 — 뉴캣슬+전염성기관지염(ND+IB) 생백신|점안 또는 음수 투여"
-        style="width:100%;min-height:130px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:6px">${esc(editing?treatmentProgramToText(editing.schedule):"")}</textarea>
-      <textarea id="vp-caution" placeholder="주의사항 (선택)"
-        style="width:100%;min-height:50px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:8px">${esc(editing?(editing.caution||""):"")}</textarea>
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:12px">
+        <button id="vp-row-add" style="border:1px solid #3949AB;background:#3949AB;color:#fff;border-radius:6px;padding:6px 12px;font-size:11.5px;font-weight:700">${rowEditIdx!=null?"항목 수정":"+ 항목 추가"}</button>
+        ${rowEditIdx!=null?`<button id="vp-row-cancel" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:6px 10px">편집 취소</button>`:""}
+      </div>
+
+      <div style="font-size:10px;color:#888;margin-bottom:3px">주의사항 — 프로그램 맨 아래에 표시됩니다(선택)</div>
+      <textarea id="vp-caution" placeholder="예) 접종 시기·용량은 지역·계열사 지침에 따라 조정될 수 있습니다."
+        style="width:100%;min-height:50px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:8px">${esc(vaccineTabState.draftCaution)}</textarea>
       <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
         <button id="vp-save" ${vaccinePkgState.busy?"disabled":""} style="border:1px solid #B8860B;background:${vaccinePkgState.busy?"#ccc":"#B8860B"};color:#fff;border-radius:7px;padding:7px 15px;font-size:12px;font-weight:600">${vaccinePkgState.busy?"발행 중...":(editing?"수정 발행":"추가 발행")}</button>
-        ${editing?`<button id="vp-cancel" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:6px 10px">취소</button>`:""}
+        <button id="vp-cancel" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:6px 10px">취소</button>
       </div>
     </div>` : ""}
   </div>`;
@@ -12927,6 +13007,9 @@ function attachEvents(){
   document.querySelectorAll(".vaccine-species-btn").forEach(b=>b.onclick=()=>{
     vaccineTabState.species = b.dataset.species;
     vaccineTabState.openKey = null;
+    vaccineTabState.adminOpen = false;
+    vaccineTabState.formKey = undefined;
+    resetVaccineForm(null);
     render();
   });
   document.querySelectorAll(".vaccine-toggle").forEach(b=>b.onclick=()=>{
@@ -12936,19 +13019,30 @@ function attachEvents(){
   });
   const vaccineAdminToggle = document.getElementById("vaccine-admin-toggle");
   if(vaccineAdminToggle) vaccineAdminToggle.onclick = ()=>{
-    vaccineTabState.adminOpen = !vaccineTabState.adminOpen;
+    const opening = !vaccineTabState.adminOpen;
+    vaccineTabState.adminOpen = opening;
     vaccineTabState.formKey = undefined;
+    if(opening) resetVaccineForm(null);
     vaccinePkgState.msg = "";
     render();
   };
   document.querySelectorAll(".vaccine-edit-btn").forEach(b=>b.onclick=()=>{
+    const key = b.dataset.key;
+    const pkg = currentVaccinePrograms().find(p=>p.key===key);
+    if(!pkg) return;
     vaccineTabState.adminOpen = true;
-    vaccineTabState.formKey = b.dataset.key;
+    vaccineTabState.formKey = key;
+    resetVaccineForm(pkg);
     vaccinePkgState.msg = "";
     render();
   });
   const vaccineCancelBtn = document.getElementById("vp-cancel");
-  if(vaccineCancelBtn) vaccineCancelBtn.onclick = ()=>{ vaccineTabState.formKey = undefined; render(); };
+  if(vaccineCancelBtn) vaccineCancelBtn.onclick = ()=>{
+    vaccineTabState.formKey = undefined;
+    vaccineTabState.adminOpen = false;
+    resetVaccineForm(null);
+    render();
+  };
   document.querySelectorAll(".vaccine-del-btn").forEach(b=>b.onclick=async ()=>{
     const key = b.dataset.key;
     const pkg = currentVaccinePrograms().find(p=>p.key===key);
@@ -12961,14 +13055,53 @@ function attachEvents(){
     if(r.ok && vaccineTabState.openKey===key) vaccineTabState.openKey = null;
     render();
   });
+
+  // 접종 일정 항목(일령/백신/방법/기타) 한 줄씩 추가·수정·삭제
+  const vaccineRowAddBtn = document.getElementById("vp-row-add");
+  if(vaccineRowAddBtn) vaccineRowAddBtn.onclick = ()=>{
+    const age = (document.getElementById("vp-row-age")?.value || "").trim();
+    const vaccine = (document.getElementById("vp-row-vaccine")?.value || "").trim();
+    const method = (document.getElementById("vp-row-method")?.value || "").trim();
+    const note = (document.getElementById("vp-row-note")?.value || "").trim();
+    if(!age || !vaccine){ alert("일령과 백신명을 입력하세요."); return; }
+    syncVaccineDraftFields();
+    const rows = vaccineTabState.draftSchedule.slice();
+    if(vaccineTabState.rowEditIndex != null){
+      rows[vaccineTabState.rowEditIndex] = { age, vaccine, method, note };
+    } else {
+      rows.push({ age, vaccine, method, note });
+    }
+    vaccineTabState.draftSchedule = rows;
+    vaccineTabState.rowEditIndex = null;
+    render();
+  };
+  document.querySelectorAll(".vp-row-edit-btn").forEach(b=>b.onclick=()=>{
+    syncVaccineDraftFields();
+    vaccineTabState.rowEditIndex = Number(b.dataset.idx);
+    render();
+  });
+  document.querySelectorAll(".vp-row-del-btn").forEach(b=>b.onclick=()=>{
+    syncVaccineDraftFields();
+    const idx = Number(b.dataset.idx);
+    vaccineTabState.draftSchedule = vaccineTabState.draftSchedule.filter((_,i)=>i!==idx);
+    if(vaccineTabState.rowEditIndex === idx) vaccineTabState.rowEditIndex = null;
+    render();
+  });
+  const vaccineRowCancelBtn = document.getElementById("vp-row-cancel");
+  if(vaccineRowCancelBtn) vaccineRowCancelBtn.onclick = ()=>{
+    syncVaccineDraftFields();
+    vaccineTabState.rowEditIndex = null;
+    render();
+  };
+
   const vaccineSaveBtn = document.getElementById("vp-save");
   if(vaccineSaveBtn) vaccineSaveBtn.onclick = async ()=>{
     const title = (document.getElementById("vp-title")?.value || "").trim();
     const desc = (document.getElementById("vp-desc")?.value || "").trim();
-    const schedule = treatmentProgramFromText(document.getElementById("vp-schedule")?.value);
     const caution = (document.getElementById("vp-caution")?.value || "").trim();
+    const schedule = vaccineTabState.draftSchedule;
     if(!title){ alert("프로그램 이름을 입력하세요."); return; }
-    if(!schedule.length){ alert("접종 일정을 한 줄 이상 입력하세요. ('일령·백신명|접종방법·비고' 형식)"); return; }
+    if(!schedule.length){ alert("접종 일정을 한 항목 이상 추가하세요."); return; }
 
     const programs = currentVaccinePrograms().slice();
     const editKey = vaccineTabState.formKey;
@@ -12981,8 +13114,14 @@ function attachEvents(){
     vaccinePkgState.busy = true; vaccinePkgState.msg = "발행 중..."; render();
     const r = await publishVaccinePrograms(programs);
     vaccinePkgState.busy = false;
-    vaccinePkgState.msg = r.ok ? "발행 완료 — 모두에게 반영됩니다" : ("발행 실패: " + r.error);
-    if(r.ok) vaccineTabState.formKey = undefined;
+    if(r.ok){
+      vaccinePkgState.msg = "발행 완료 — 모두에게 반영됩니다";
+      vaccineTabState.formKey = undefined;
+      vaccineTabState.adminOpen = false;
+      resetVaccineForm(null);
+    } else {
+      vaccinePkgState.msg = "발행 실패: " + r.error;
+    }
     render();
   };
 
