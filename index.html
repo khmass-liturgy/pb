@@ -714,6 +714,7 @@ const PREMIUM_ITEMS = [
   { key:"finder", icon:"🎯", title:"내 농장에 맞는 약품 찾기", desc:"축종과 문제 증상을 단계별로 선택하면 진단·원인 분석과 추천 처방을 보여드립니다.", color:"#283593", category:"약품·투약·소독" },
   { key:"disinfect", icon:"🧴", title:"질병별 소독제 선택과 소독요령", desc:"질병을 고르면 그에 맞는 소독제 선택 기준과 소독요령을 단계별로 안내합니다.", color:"#00695C", category:"약품·투약·소독" },
   { key:"ventfinder", icon:"💨", title:"내 농장에 맞는 환기량 찾기", desc:"오늘 날씨·계사 조건을 넣으면 최소환기량(습도 조절)과 최대환기량(터널·냉각)을 계산해 드립니다.", color:"#0288D1", category:"사양관리" },
+  { key:"moltguide", icon:"🪶", title:"산란계 환우 프로그램(육종회사별)", desc:"하이라인·로만 등 육종회사가 권장하는 품종별 인위환우(강제환우) 프로그램을 비교해 보여드립니다.", color:"#00695C", category:"사양관리" },
   { key:"selfcheck", icon:"🐔", title:"온라인 자가진단", desc:"닭 해부도에서 장기를 클릭하면 그 장기의 기능과 흔히 나타나는 질병을 보여드립니다.", color:"#AD1457", category:"진단" },
   { key:"diagnosis", icon:"🔍", title:"온라인 진단", desc:"닭의 외부모습·분변상태·부검사진(기관지·간·신장·소장)을 올리면 최동명 수의사가 직접 진단합니다. 사진·진단 내용은 작성자만 볼 수 있습니다.", color:"#2E7D32", category:"진단" },
   { key:"faq", icon:"❓", title:"농장에서 많이 궁금해 하는 질문", desc:"농장에서 자주 묻는 질문과 답변을 카드로 모아뒀습니다. 카드를 누르면 답변이 펼쳐집니다.", color:"#5D4037", category:"질문·학습·교육" },
@@ -764,6 +765,86 @@ function renderPremiumMenuItems(items, mode){
     </div>`;
   });
   return html;
+}
+
+// ── 산란계 환우 프로그램(육종회사별) ─────────────────────────────────────────
+// 상황별 처방·계절별 패키지처럼 Firebase Storage에 두고 관리자가 고치는 구조가
+// 아니라, 육종회사(하이라인·로만)가 공식 관리가이드에 실제로 발표한 수치를
+// 그대로 옮겨둔 정적 참고자료다 — 회사마다 실험 결과·세대(strain)에 따라
+// 수치가 바뀔 수 있으므로, 실제 적용 전에는 병아리 구입처의 최신 가이드로
+// 다시 확인하라는 안내를 caution에 넣어둔다.
+// 출처: Hy-Line International "Technical Update: Non-Fasting Molt
+// Recommendations"(2019) / LOHMANN Information Vol.50(1) 2016,
+// "Molting of Laying Hens"(Flock & Anderson, North Carolina 시험 결과).
+const MOLT_PROGRAM_GUIDE = [
+  { key:"principle", icon:"📖", company:"공통 원칙", breed:"환우(換羽)란 무엇인가",
+    sections:[
+      { step:"환우의 목적", detail:"산란 후기(보통 65~75주령)에 일부러 산란을 일시 중단시켜 난관·난소를 쉬게 하고 깃털을 새로 갈게 하는 관리 기법입니다. 이후 산란율·난각질·알끼리 두께가 다시 좋아져 산란 수명을 한 주기 더 연장할 수 있습니다." },
+      { step:"단식(fasting) 환우 vs 비단식(non-fasting) 환우", detail:"과거에는 7~14일간 사료를 완전히 끊는 단식 환우가 흔했지만, 폐사율 증가·면역력 저하·살모넬라 감염 위험 증가가 보고되면서 최근 육종회사들은 사료는 계속 주되 성분을 저에너지·고섬유·무첨가 나트륨으로 바꿔 산란을 멈추게 하는 비단식 환우를 권장합니다. 아래 카드들도 비단식 환우 기준입니다." },
+      { step:"핵심은 목표체중", detail:"환우의 성패는 굶기는 기간이 아니라 \"18주령(육성 종료 시점) 체중 수준까지\"라는 목표체중 감량 폭으로 판단합니다. 갈색 산란계는 산란 전 체중의 20~25%를 넘겨 감량하면 오히려 이후 산란 성적이 나빠진다는 연구 결과가 있습니다." },
+      { step:"물은 항상 자유급수", detail:"사료는 제한하더라도 물은 항상 자유롭게 마실 수 있어야 합니다. 음수 중 나트륨이 100ppm 이상이면 비단식 환우 효과가 떨어진다는 보고가 있어, 급수 위생과 수질도 함께 점검해야 합니다." },
+    ] },
+  { key:"hyline_brown", icon:"🐔", company:"Hy-Line International", breed:"하이라인 브라운(Hy-Line Brown) 비단식 환우 프로그램",
+    intro:"Hy-Line이 공식 기술자료(Technical Update: Non-Fasting Molt Recommendations)로 공개한 일자별 프로그램입니다. 적정 환우 시작 시점은 65~75주령이며, 완전한 산란 중단이 최소 2주 이상 이어져야 환우 후 성적이 가장 좋습니다.",
+    sections:[
+      { step:"환우 7~1일 전", detail:"조명 16→24시간, 기존 산란사료를 그대로 주되 굵은 입자 탄산칼슘을 가는 입자(2mm 이하)로 교체합니다. 환우 4일 전부터는 사료에 소금(NaCl)을 넣지 않습니다." },
+      { step:"환우 0~6일차(체중 감량기)", detail:"조명 6~8시간으로 줄이고, 저에너지·고섬유·무첨가 나트륨의 \"환우 전용 사료\"를 1일 54~64g만 급여합니다. 계사 온도를 27~28℃로 높이면 사료 섭취가 자연히 줄어 체중 감량에 도움이 됩니다. 갈색 산란계는 환우 전 체중의 23%를 넘겨 감량하지 않도록 주의합니다." },
+      { step:"환우 7~17일차(체중 유지기)", detail:"환우 전용 사료를 같은 양(1일 54~64g)으로 유지하며, 감량된 체중을 더 떨어뜨리지 않고 유지하는 데 집중합니다." },
+      { step:"환우 18~19일차", detail:"다시 일반 산란사료로 바꾸되(굵은·가는 입자 탄산칼슘 혼합), 과체중을 막기 위해 1일 64~73g으로 급이량을 제한합니다. 조명은 12~16시간으로 늘립니다." },
+      { step:"환우 20~21일차", detail:"산란사료를 자유급이로 전환하고, 조명 16시간을 유지하며 계사 온도를 26~27℃로 낮춥니다." },
+      { step:"환우 22~24일차(재입식)", detail:"조명 16시간, 자유급이를 유지하며 계사 온도를 평상시 수준(24~25℃)으로 되돌립니다. 이 시점부터 약 2주 전후로 산란이 재개됩니다." },
+    ],
+    caution:"위 수치는 Hy-Line의 공식 자료를 그대로 옮긴 것이지만, 세대(strain)·발행 시점에 따라 갱신될 수 있습니다. 실제 적용 전 병아리 구입처(하이라인코리아 등)나 사료회사를 통해 최신 가이드를 다시 확인하세요." },
+  { key:"lohmann_brown", icon:"🐓", company:"Lohmann Breeders", breed:"로만 브라운(Lohmann Brown) 환우 관련 권장사항",
+    intro:"로만은 하이라인처럼 일자별 표를 별도 공개하지는 않지만, 자체 연구지(LOHMANN Information)에 미국 노스캐롤라이나 산란계 시험 결과를 인용해 목표체중 감량 폭에 대한 근거를 제시하고 있습니다.",
+    sections:[
+      { step:"목표체중 감량 폭", detail:"같은 시험에서 25% 감량군보다 20% 감량군의 환우 후 산란율·수익성이 더 좋았습니다 — 너무 많이 굶기고 체중을 과도하게 빼는 것이 오히려 역효과를 낼 수 있다는 뜻입니다. 로만 브라운도 20% 안팎을 목표로 삼는 것이 무난합니다." },
+      { step:"환우 시작 시점", detail:"시험에서는 69주령에 환우를 시작했습니다 — 하이라인과 마찬가지로 65~75주령 범위가 일반적인 권장 구간입니다." },
+      { step:"환우 방식", detail:"로만도 최근에는 단식 방식보다 사료 조성 변경 중심의 비단식 환우를 권장하는 추세이며, 환우 기간에는 조명 시간도 함께 줄여 산란 중단을 유도합니다." },
+    ],
+    caution:"로만은 일자별 급이·조명 수치를 담은 공식 프로그램표를 홈페이지에 공개하지 않으므로, 정확한 일자별 사료 배합·급이량은 로만코리아(또는 사료회사) 기술지원팀에 직접 문의해 받는 것을 권장합니다." },
+];
+
+function renderMoltGuidePanel(){
+  const head = `
+  <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+    <div>
+      <div class="display" style="font-size:16px;margin-bottom:3px">🪶 산란계 환우 프로그램(육종회사별)</div>
+      <div style="font-size:11px;color:#aaa">하이라인·로만 등 육종회사가 권장하는 품종별 인위환우 프로그램을 비교해 보여드립니다</div>
+    </div>
+    <button id="moltguide-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button>
+  </div>`;
+
+  const cards = MOLT_PROGRAM_GUIDE.map(g => {
+    const open = moltGuideState.openKey === g.key;
+    return `
+    <div class="card" style="border-top:4px solid #00695C;margin-bottom:10px;padding:16px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+        <div class="moltguide-toggle" data-key="${g.key}" style="cursor:pointer;flex:1;min-width:0">
+          <div style="font-size:11px;color:#00695C;font-weight:700">${g.icon} ${esc(g.company)}</div>
+          <div style="font-size:14px;font-weight:800;color:#333;margin-top:2px">${esc(g.breed)}</div>
+        </div>
+        <span class="moltguide-toggle" data-key="${g.key}" style="cursor:pointer;font-size:11px;color:#00695C;font-weight:700;white-space:nowrap;flex-shrink:0">${open?"접기 ▲":"내용 보기 ▼"}</span>
+      </div>
+      ${open ? `
+      <div style="margin-top:12px;padding-top:12px;border-top:1px dashed #eee">
+        ${g.intro ? `<div style="font-size:12.5px;color:#555;line-height:1.6;margin-bottom:10px">${esc(g.intro)}</div>` : ""}
+        ${g.sections.map(s => `
+        <div style="margin-bottom:9px">
+          <div style="font-size:12.5px;font-weight:700;color:#333">${esc(s.step)}</div>
+          <div style="font-size:12.5px;color:#444;line-height:1.6;margin-top:2px">${esc(s.detail)}</div>
+        </div>`).join("")}
+        ${g.caution ? `<div style="font-size:11px;color:#8D6E00;background:#FFF8E1;border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.6">⚠️ ${esc(g.caution)}</div>` : ""}
+      </div>` : ""}
+    </div>`;
+  }).join("");
+
+  return head + `
+  ${cards}
+  <div style="font-size:9px;color:#aaa;line-height:1.6;margin-top:6px">
+    ※ 실제 병아리를 구입한 육종회사·사료회사의 최신 공식 가이드가 우선합니다. 이 카드는 각 회사가 발표한 자료를 참고용으로 정리한 것이며,
+    세대(strain) 개량이나 발행 시점에 따라 구체적인 수치가 바뀔 수 있습니다.
+  </div>`;
 }
 
 // ── 상황별 처방(투약) 패키지 ─────────────────────────────────────────────────
@@ -5128,6 +5209,7 @@ function renderResearchPanel(){
 let treatmentTabState = { species: "broiler", openKey: null, adminOpen: false, formKey: undefined };
 let seasonalTabState = { season: "spring", openKey: null, adminOpen: false, formKey: undefined };
 let disinfectTabState = { openKey: null, adminOpen: false, formKey: undefined, generalOpenKey: null };
+let moltGuideState = { openKey: null };
 // 학습 화면 내비게이션 — deckKey가 없으면 덱 목록, 있으면 그 덱의 카드
 // 뷰어(cardIndex번째 카드, flipped면 뒷면 표시 중). deckFormKey/cardFormKey는
 // 관리자가 덱/카드를 추가·편집할 때 쓰는 폼 상태다(둘 다 undefined면 새로 추가).
@@ -6782,6 +6864,11 @@ function renderPremiumTab(){
   if(premiumState.view === "disinfect"){
     if(diseaseDisinfectState.status === "idle") fetchDiseaseDisinfectants();
     return renderPremiumGateHeader() + logoutBar + renderDisinfectPanel();
+  }
+  // 산란계 환우 프로그램(육종회사별) 화면 — MOLT_PROGRAM_GUIDE가 정적 상수라
+  // 다른 패키지 화면과 달리 Storage fetch가 필요 없다.
+  if(premiumState.view === "moltguide"){
+    return renderPremiumGateHeader() + logoutBar + renderMoltGuidePanel();
   }
   // 온라인 자가진단 화면
   if(premiumState.view === "selfcheck"){
@@ -12120,6 +12207,14 @@ function attachEvents(){
   document.querySelectorAll(".disinfect-general-toggle").forEach(b=>b.onclick=()=>{
     const key = b.dataset.key;
     disinfectTabState.generalOpenKey = disinfectTabState.generalOpenKey === key ? null : key;
+    render();
+  });
+  // 산란계 환우 프로그램(육종회사별)
+  const moltguideBackBtn = document.getElementById("moltguide-back-btn");
+  if(moltguideBackBtn) moltguideBackBtn.onclick = ()=>{ premiumState.view = "menu"; render(); };
+  document.querySelectorAll(".moltguide-toggle").forEach(b=>b.onclick=()=>{
+    const key = b.dataset.key;
+    moltGuideState.openKey = moltGuideState.openKey === key ? null : key;
     render();
   });
   const disinfectAdminToggle = document.getElementById("disinfect-admin-toggle");
