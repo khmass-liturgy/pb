@@ -12343,7 +12343,7 @@ function renderNoticesSection(){
 function renderFooter(){
   const links=allSites().map((s,i)=>`<a href="${esc(s.home)}" target="_blank" rel="noopener" style="color:#aaa">${esc(s.name)}</a>${i<allSites().length-1?" · ":""}`).join("");
   return `
-  <div style="margin-top:20px;font-size:11px;color:#bbb;text-align:center;line-height:1.8">데이터 출처 · ${links}<br>※ 시세는 업계 평균 수준을 반영한 참고 데이터입니다. 정확한 시세·공지는 각 협회 공식 사이트를 확인하세요.</div>`;
+  <div style="margin-top:20px;font-size:11px;color:#bbb;text-align:center;line-height:1.8">데이터 출처 · ${links}<br>※ 시세는 업계 평균 수준을 반영한 참고 데이터입니다. 정확한 시세·공지는 각 협회 공식 사이트를 확인하세요.<br>※ 게시된 내용은 상황에 따라서 다르게 적용될 수 있으며, 처방전이 필요한 항생제의 사용은 반드시 담당 전문 수의사를 통하여 지도를 받으시기 바랍니다.</div>`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
