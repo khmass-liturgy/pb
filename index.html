@@ -713,6 +713,7 @@ const PREMIUM_ITEMS = [
   { key:"seasonal", icon:"🗓️", title:"계절별 투약(관리) 패키지", desc:"봄·여름·가을·겨울 시기별로 챙겨야 할 투약(백신)과 사양관리 주의사항을 안내합니다.", color:"#795548", category:"약품·투약·소독" },
   { key:"finder", icon:"🎯", title:"내 농장에 맞는 약품 찾기", desc:"축종과 문제 증상을 단계별로 선택하면 진단·원인 분석과 추천 처방을 보여드립니다.", color:"#283593", category:"약품·투약·소독" },
   { key:"disinfect", icon:"🧴", title:"질병별 소독제 선택과 소독요령", desc:"질병을 고르면 그에 맞는 소독제 선택 기준과 소독요령을 단계별로 안내합니다.", color:"#00695C", category:"약품·투약·소독" },
+  { key:"vaccine", icon:"🛡️", title:"백신관리 프로그램", desc:"육계·산란계 일령별 백신 접종 프로그램을 관리자가 만들어 단계별로 보여드립니다.", color:"#3949AB", category:"백신관리" },
   { key:"ventfinder", icon:"💨", title:"내 농장에 맞는 환기량 찾기", desc:"오늘 날씨·계사 조건을 넣으면 최소환기량(습도 조절)과 최대환기량(터널·냉각)을 계산해 드립니다.", color:"#0288D1", category:"사양관리" },
   { key:"moltguide", icon:"🪶", title:"산란계 환우 프로그램(육종회사별)", desc:"하이라인·로만 등 육종회사가 권장하는 품종별 인위환우(강제환우) 프로그램을 비교해 보여드립니다.", color:"#00695C", category:"사양관리" },
   { key:"selfcheck", icon:"🐔", title:"온라인 자가진단", desc:"닭 해부도에서 장기를 클릭하면 그 장기의 기능과 흔히 나타나는 질병을 보여드립니다.", color:"#AD1457", category:"진단" },
@@ -731,6 +732,7 @@ const PREMIUM_ITEMS = [
 // 없는(향후 추가될) category는 CSS 기본색(#555)로 그냥 둔다.
 const PREMIUM_CATEGORY_COLORS = {
   "약품·투약·소독": "#00838F",
+  "백신관리": "#3949AB",
   "사양관리": "#0288D1",
   "진단": "#2E7D32",
   "질문·학습·교육": "#6A1B9A",
@@ -1018,6 +1020,149 @@ function renderMagazinePanel(){
   ${adminBox}
   <div style="font-size:9px;color:#aaa;line-height:1.6;margin-top:6px">
     ※ 사진 속 글자는 AI가 옮겨 적은 것이라 오탈자·판독 오류가 있을 수 있습니다. 발행 전 관리자가 확인·수정합니다.
+  </div>`;
+}
+
+// ── 백신관리 프로그램 ─────────────────────────────────────────────────────────
+// 육계·산란계 일령별 백신 접종 프로그램. 상황별 처방(treatment_packages)과
+// 완전히 같은 모양(species로 거르는 목록 + 관리자 CRUD)이라 helper 함수
+// (treatmentProgramToText/FromText)를 그대로 재사용한다 — schedule 배열도
+// 상황별 처방의 program과 같은 {step, detail} 목록으로 "일령·백신명|접종
+// 방법·비고" 한 줄씩을 담는다.
+let vaccinePkgState = { status:"idle", data:null, busy:false, msg:"" };
+let vaccineTabState = { species: "broiler", openKey: null, adminOpen: false, formKey: undefined };
+
+async function fetchVaccinePrograms(){
+  if(vaccinePkgState.status === "loading") return;
+  vaccinePkgState.status = "loading";
+  try {
+    const j = await fetchPremiumContentJson("vaccine_programs");
+    j.programs = Array.isArray(j.programs) ? j.programs : [];
+    vaccinePkgState.data = j;
+    vaccinePkgState.status = "done";
+  } catch(e){
+    console.warn("백신관리 프로그램 로딩 실패(최초 미발행 상태로 간주, 빈 목록 표시):", e);
+    vaccinePkgState.data = { programs: [] };
+    vaccinePkgState.status = "done";
+  }
+  if(premiumState.view === "vaccine") render();
+}
+
+function currentVaccinePrograms(){
+  return (vaccinePkgState.data && vaccinePkgState.data.programs) || [];
+}
+function vaccineProgramsFor(species){
+  return currentVaccinePrograms().filter(p => p.species === species);
+}
+function newVaccineKey(){
+  return "v" + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+}
+
+async function publishVaccinePrograms(programs){
+  try {
+    const body = {
+      updated: new Date().toISOString().slice(0,16).replace("T"," ") + " UTC",
+      by: PICK_BY,
+      note: "백신관리 프로그램(육계·산란계) — 화면에서 저장하면 이 파일이 갱신되고 승인된 회원 모두에게 같은 내용이 보입니다.",
+      programs: programs,
+    };
+    await writePremiumContentJson("vaccine_programs", body);
+    vaccinePkgState.data = body;
+    return { ok:true };
+  } catch(e){
+    return { ok:false, error: e.message || String(e) };
+  }
+}
+
+function renderVaccinePanel(){
+  const head = `
+  <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+    <div>
+      <div class="display" style="font-size:16px;margin-bottom:3px">🛡️ 백신관리 프로그램</div>
+      <div style="font-size:11px;color:#aaa">육계·산란계 일령별 백신 접종 프로그램을 단계별로 보여드립니다</div>
+    </div>
+    <button id="vaccine-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button>
+  </div>`;
+
+  const st = vaccinePkgState;
+  if(st.status === "idle" || st.status === "loading"){
+    return head + `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⏳ 불러오는 중...</div>`;
+  }
+
+  const admin = isBoardAdmin();
+  const speciesBtns = [
+    { key:"broiler", label:"🐔 육계" },
+    { key:"layer", label:"🥚 산란계" },
+  ].map(s => `
+    <button class="vaccine-species-btn" data-species="${s.key}"
+      style="flex:1;border:2px solid ${vaccineTabState.species===s.key?"#3949AB":"#eee"};background:${vaccineTabState.species===s.key?"#3949AB":"#fff"};color:${vaccineTabState.species===s.key?"#fff":"#333"};border-radius:10px;padding:10px 6px;font-size:13px;font-weight:700;cursor:pointer">${s.label}</button>`).join("");
+
+  const list = vaccineProgramsFor(vaccineTabState.species);
+  const cards = list.length ? list.map(p => {
+    const open = vaccineTabState.openKey === p.key;
+    return `
+    <div class="card" style="border-top:4px solid #3949AB;margin-bottom:10px;padding:16px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+        <div class="vaccine-toggle" data-key="${p.key}" style="cursor:pointer;flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:800;color:#333">${esc(p.title)}</div>
+          ${p.desc ? `<div style="font-size:11px;color:#888;margin-top:4px">${esc(p.desc)}</div>` : ""}
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
+          <span class="vaccine-toggle" data-key="${p.key}" style="cursor:pointer;font-size:11px;color:#3949AB;font-weight:700;white-space:nowrap">${open?"접기 ▲":"프로그램 보기 ▼"}</span>
+          ${admin ? `
+          <div style="white-space:nowrap">
+            <button class="vaccine-edit-btn" data-key="${p.key}" style="font-size:10px;border:1px solid #3949AB;border-radius:5px;background:#fff;color:#3949AB;padding:3px 8px;margin-right:4px">편집</button>
+            <button class="vaccine-del-btn" data-key="${p.key}" style="font-size:10px;border:1px solid #eee;border-radius:5px;background:#fff;color:#bbb;padding:3px 8px">삭제</button>
+          </div>` : ""}
+        </div>
+      </div>
+      ${open ? `
+      <div style="margin-top:12px;padding-top:12px;border-top:1px dashed #eee">
+        ${p.schedule.map(s => `
+        <div style="margin-bottom:9px">
+          <div style="font-size:12.5px;font-weight:700;color:#3949AB">${esc(s.step)}</div>
+          <div style="font-size:12.5px;color:#444;line-height:1.6;margin-top:2px">${esc(s.detail)}</div>
+        </div>`).join("")}
+        ${p.caution ? `<div style="font-size:11px;color:#8D6E00;background:#FFF8E1;border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.6">⚠️ ${esc(p.caution)}</div>` : ""}
+      </div>` : ""}
+    </div>`;
+  }).join("") : `<div class="card" style="text-align:center;padding:28px 16px;color:#aaa">아직 등록된 프로그램이 없습니다.${admin?"":" 곧 추가됩니다."}</div>`;
+
+  const editing = vaccineTabState.formKey && currentVaccinePrograms().find(p=>p.key===vaccineTabState.formKey);
+  const adminBox = !admin ? "" : `
+  <div style="margin-top:16px;border-top:1px dashed #eee;padding-top:12px">
+    <button id="vaccine-admin-toggle" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:3px 9px">${vaccineTabState.adminOpen?"관리 닫기":"⚙ 관리"}</button>
+    ${vaccinePkgState.msg?`<span style="font-size:11px;margin-left:8px;color:${/실패|오류|않|없/.test(vaccinePkgState.msg)?"#C62828":"#2E7D32"}">${esc(vaccinePkgState.msg)}</span>`:""}
+    ${vaccineTabState.adminOpen ? `
+    <div style="margin-top:9px;background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">
+      <div style="font-size:11px;font-weight:700;color:#7A5C00;margin-bottom:8px">${editing?"프로그램 수정: "+esc(editing.title):"새 프로그램 추가"} (${vaccineTabState.species==="broiler"?"육계":"산란계"})</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+        <input id="vp-title" type="text" placeholder="프로그램 이름 (예: 육계 표준 백신 프로그램)" value="${esc(editing?editing.title:"")}"
+          style="flex:1;min-width:180px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+        <input id="vp-desc" type="text" placeholder="한 줄 설명 (선택, 예: 무항생제 인증 농장 기준)" value="${esc(editing?(editing.desc||""):"")}"
+          style="flex:1;min-width:180px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />
+      </div>
+      <div style="font-size:10px;color:#888;margin-bottom:3px">접종 일정 — 한 줄에 한 항목씩, '일령·백신명|접종방법·비고' 형식</div>
+      <textarea id="vp-schedule" placeholder="예) 1일령 — 마렉병(Marek)|부화장에서 피하주사${"\n"}7일령 — 뉴캣슬+전염성기관지염(ND+IB) 생백신|점안 또는 음수 투여"
+        style="width:100%;min-height:130px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:6px">${esc(editing?treatmentProgramToText(editing.schedule):"")}</textarea>
+      <textarea id="vp-caution" placeholder="주의사항 (선택)"
+        style="width:100%;min-height:50px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:8px">${esc(editing?(editing.caution||""):"")}</textarea>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <button id="vp-save" ${vaccinePkgState.busy?"disabled":""} style="border:1px solid #B8860B;background:${vaccinePkgState.busy?"#ccc":"#B8860B"};color:#fff;border-radius:7px;padding:7px 15px;font-size:12px;font-weight:600">${vaccinePkgState.busy?"발행 중...":(editing?"수정 발행":"추가 발행")}</button>
+        ${editing?`<button id="vp-cancel" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:6px 10px">취소</button>`:""}
+      </div>
+    </div>` : ""}
+  </div>`;
+
+  return head + `
+  <div style="display:flex;gap:8px;margin-bottom:14px">${speciesBtns}</div>
+  ${cards}
+  ${adminBox}
+  <div style="font-size:9px;color:#aaa;line-height:1.6;margin-top:6px">
+    ※ 백신 프로그램은 지역·계열사·농장 발병 이력에 따라 달라질 수 있는 참고 자료입니다. 실제 접종은 반드시 담당 수의사와 상의해 조정하세요.
+    새로운 프로그램은 계속 추가됩니다.
   </div>`;
 }
 
@@ -7049,6 +7194,11 @@ function renderPremiumTab(){
     if(magazineState.status === "idle") fetchMagazineNotes();
     return renderPremiumGateHeader() + logoutBar + renderMagazinePanel();
   }
+  // 백신관리 프로그램 화면
+  if(premiumState.view === "vaccine"){
+    if(vaccinePkgState.status === "idle") fetchVaccinePrograms();
+    return renderPremiumGateHeader() + logoutBar + renderVaccinePanel();
+  }
   // 온라인 자가진단 화면
   if(premiumState.view === "selfcheck"){
     if(selfCheckPkgState.status === "idle") fetchSelfCheckDiseases();
@@ -12477,6 +12627,72 @@ function attachEvents(){
     }
     render();
   };
+
+  // 백신관리 프로그램
+  const vaccineBackBtn = document.getElementById("vaccine-back-btn");
+  if(vaccineBackBtn) vaccineBackBtn.onclick = ()=>{ premiumState.view = "menu"; render(); };
+  document.querySelectorAll(".vaccine-species-btn").forEach(b=>b.onclick=()=>{
+    vaccineTabState.species = b.dataset.species;
+    vaccineTabState.openKey = null;
+    render();
+  });
+  document.querySelectorAll(".vaccine-toggle").forEach(b=>b.onclick=()=>{
+    const key = b.dataset.key;
+    vaccineTabState.openKey = vaccineTabState.openKey === key ? null : key;
+    render();
+  });
+  const vaccineAdminToggle = document.getElementById("vaccine-admin-toggle");
+  if(vaccineAdminToggle) vaccineAdminToggle.onclick = ()=>{
+    vaccineTabState.adminOpen = !vaccineTabState.adminOpen;
+    vaccineTabState.formKey = undefined;
+    vaccinePkgState.msg = "";
+    render();
+  };
+  document.querySelectorAll(".vaccine-edit-btn").forEach(b=>b.onclick=()=>{
+    vaccineTabState.adminOpen = true;
+    vaccineTabState.formKey = b.dataset.key;
+    vaccinePkgState.msg = "";
+    render();
+  });
+  const vaccineCancelBtn = document.getElementById("vp-cancel");
+  if(vaccineCancelBtn) vaccineCancelBtn.onclick = ()=>{ vaccineTabState.formKey = undefined; render(); };
+  document.querySelectorAll(".vaccine-del-btn").forEach(b=>b.onclick=async ()=>{
+    const key = b.dataset.key;
+    const pkg = currentVaccinePrograms().find(p=>p.key===key);
+    if(!pkg || !confirm(`"${pkg.title}" 프로그램을 삭제할까요?`)) return;
+    const next = currentVaccinePrograms().filter(p=>p.key!==key);
+    vaccinePkgState.busy = true; vaccinePkgState.msg = "발행 중..."; render();
+    const r = await publishVaccinePrograms(next);
+    vaccinePkgState.busy = false;
+    vaccinePkgState.msg = r.ok ? "삭제 완료 — 모두에게 반영됩니다" : ("발행 실패: " + r.error);
+    if(r.ok && vaccineTabState.openKey===key) vaccineTabState.openKey = null;
+    render();
+  });
+  const vaccineSaveBtn = document.getElementById("vp-save");
+  if(vaccineSaveBtn) vaccineSaveBtn.onclick = async ()=>{
+    const title = (document.getElementById("vp-title")?.value || "").trim();
+    const desc = (document.getElementById("vp-desc")?.value || "").trim();
+    const schedule = treatmentProgramFromText(document.getElementById("vp-schedule")?.value);
+    const caution = (document.getElementById("vp-caution")?.value || "").trim();
+    if(!title){ alert("프로그램 이름을 입력하세요."); return; }
+    if(!schedule.length){ alert("접종 일정을 한 줄 이상 입력하세요. ('일령·백신명|접종방법·비고' 형식)"); return; }
+
+    const programs = currentVaccinePrograms().slice();
+    const editKey = vaccineTabState.formKey;
+    if(editKey){
+      const idx = programs.findIndex(p=>p.key===editKey);
+      if(idx>=0) programs[idx] = Object.assign({}, programs[idx], { title, desc, schedule, caution });
+    } else {
+      programs.push({ key:newVaccineKey(), species:vaccineTabState.species, title, desc, schedule, caution });
+    }
+    vaccinePkgState.busy = true; vaccinePkgState.msg = "발행 중..."; render();
+    const r = await publishVaccinePrograms(programs);
+    vaccinePkgState.busy = false;
+    vaccinePkgState.msg = r.ok ? "발행 완료 — 모두에게 반영됩니다" : ("발행 실패: " + r.error);
+    if(r.ok) vaccineTabState.formKey = undefined;
+    render();
+  };
+
   const disinfectAdminToggle = document.getElementById("disinfect-admin-toggle");
   if(disinfectAdminToggle) disinfectAdminToggle.onclick = ()=>{
     disinfectTabState.adminOpen = !disinfectTabState.adminOpen;
