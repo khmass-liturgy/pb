@@ -883,9 +883,9 @@ const LAYER_REARING_STAGES = [
 ];
 
 const LAYER_PRODUCTION_STAGES = [
-  { key:"phase1", label:"산란전기(Phase 1)", age:"19주령~정점", protein:"18.50 g", ca:"4.10 g", ap:"0.42 g", lys:"0.97 g", met:"0.48 g", color:"#4FC3F7" },
-  { key:"phase2", label:"산란중기(Phase 2)", age:"약 50~70주령", protein:"18.00 g", ca:"4.40 g", ap:"0.40 g", lys:"0.94 g", met:"0.47 g", color:"#29B6F6" },
-  { key:"phase3", label:"산란후기(Phase 3)", age:"약 70주령 이후", protein:"17.00 g", ca:"4.50 g", ap:"0.38 g", lys:"0.91 g", met:"0.45 g", color:"#0288D1" },
+  { key:"phase1", label:"산란전기(Phase 1)", age:"19주령~정점", protein:"18.50 g", ca:"4.10 g", ap:"0.42 g", lys:"0.97 g", met:"0.48 g", color:"#66BB6A" },
+  { key:"phase2", label:"산란중기(Phase 2)", age:"약 50~70주령", protein:"18.00 g", ca:"4.40 g", ap:"0.40 g", lys:"0.94 g", met:"0.47 g", color:"#2E7D32" },
+  { key:"phase3", label:"산란후기(Phase 3)", age:"약 70주령 이후", protein:"17.00 g", ca:"4.50 g", ap:"0.38 g", lys:"0.91 g", met:"0.45 g", color:"#1B5E20" },
 ];
 const LAYER_PRODUCTION_COLS = [
   { key:"protein", label:"단백질(g/일)" },
@@ -946,11 +946,11 @@ function renderFeedStandardPanel(){
 
   const sp = feedStandardState.species;
   const speciesBtns = [
-    { key:"broiler", label:"🐔 육계" },
-    { key:"layer", label:"🥚 산란계" },
+    { key:"broiler", label:"🐔 육계", color:"#F57F17" },
+    { key:"layer", label:"🥚 산란계", color:"#2E7D32" },
   ].map(s => `
     <button class="feedstd-species-btn" data-species="${s.key}"
-      style="flex:1;border:2px solid ${sp===s.key?"#F57F17":"#eee"};background:${sp===s.key?"#F57F17":"#fff"};color:${sp===s.key?"#fff":"#333"};border-radius:10px;padding:10px 6px;font-size:13px;font-weight:700;cursor:pointer">${s.label}</button>`).join("");
+      style="flex:1;border:2px solid ${sp===s.key?s.color:"#eee"};background:${sp===s.key?s.color:"#fff"};color:${sp===s.key?"#fff":"#333"};border-radius:10px;padding:10px 6px;font-size:13px;font-weight:700;cursor:pointer">${s.label}</button>`).join("");
 
   let body;
   if(sp === "broiler"){
