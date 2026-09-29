@@ -3697,6 +3697,141 @@ async function fetchHpaiRisk(){
   if(state.tab === "hpai") render();
 }
 
+// ── AI(고병원성 조류인플루엔자) 관련 소식 ────────────────────────────────────
+// WOAH 신고 통계(hpaiState, 위)와 별개로, 관리자가 직접 올리는 소식(일반
+// 정보·최근 발생동향 등) 목록이다. AI관련정보 탭도 로그인 없는 무료 탭이라
+// Firebase premium_content가 아니라, "이달의 질병"과 같은 방식 — 공개
+// GitHub 저장소에 GitHub Contents API로 직접 커밋 — 을 그대로 쓴다. 발행
+// 권한(ghToken)도 "이달의 질병" 관리에서 이미 등록해둔 토큰을 그대로 쓴다.
+// 화면에는 최신순 5건만 보여준다("뉴스정보" 탭과 같은 방식).
+const HPAI_NEWS_PATH = "hpai_news/news.json";
+let hpaiNewsState = { status:"idle", data:null, adminOpen:false, formId:undefined, busy:false, msg:"" };
+
+function newHpaiNewsId(){
+  return "hn" + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+}
+
+async function fetchHpaiNews(){
+  if(hpaiNewsState.status === "loading") return;
+  hpaiNewsState.status = "loading";
+  try {
+    const url = "https://raw.githubusercontent.com/" + PICK_REPO + "/" + PICK_BRANCH + "/" + HPAI_NEWS_PATH;
+    const r = await fetchWithTimeout(url + "?t=" + Date.now(), 8000);
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json();
+    j.items = Array.isArray(j.items) ? j.items : [];
+    hpaiNewsState.data = j;
+    hpaiNewsState.status = "done";
+  } catch(e){
+    console.warn("AI 관련 소식 로딩 실패(최초 미발행 상태로 간주, 빈 목록):", e);
+    hpaiNewsState.data = { items: [] };
+    hpaiNewsState.status = "error";
+  }
+  if(state.tab === "hpai") render();
+}
+
+function currentHpaiNews(){
+  return (hpaiNewsState.data && hpaiNewsState.data.items) || [];
+}
+
+async function publishHpaiNews(items, message){
+  const token = ghToken();
+  if(!token) return { ok:false, error:"발행 권한이 설정되지 않았습니다 — '이달의 질병' 관리에서 먼저 토큰을 등록하세요." };
+  const api = "https://api.github.com/repos/" + PICK_REPO + "/contents/" + HPAI_NEWS_PATH;
+  const head = { "Authorization": "Bearer " + token,
+                 "Accept": "application/vnd.github+json",
+                 "Content-Type": "application/json" };
+  try {
+    let sha = null;
+    const cur = await fetch(api + "?ref=" + PICK_BRANCH + "&t=" + Date.now(), { headers: head });
+    if(cur.ok) sha = (await cur.json()).sha;
+    else if(cur.status === 401) throw new Error("토큰이 거부되었습니다.");
+    else if(cur.status === 403) throw new Error("이 토큰에는 권한이 없습니다.");
+    else if(cur.status === 404) sha = null;
+    else throw new Error("현재 파일 확인 실패 (HTTP " + cur.status + ")");
+
+    const body = {
+      updated: new Date().toISOString().slice(0,16).replace("T"," ") + " UTC",
+      by: PICK_BY,
+      note: "AI(고병원성 조류인플루엔자) 관련 소식 — 화면에서 저장하면 이 파일이 갱신되고 모든 사람에게 같은 내용이 보입니다.",
+      items: items,
+    };
+    const res = await fetch(api, {
+      method: "PUT", headers: head,
+      body: JSON.stringify({
+        message: message || "🦠 AI 관련 소식 갱신",
+        content: b64utf8(JSON.stringify(body, null, 1)),
+        branch: PICK_BRANCH,
+        sha: sha || undefined,
+      }),
+    });
+    if(!res.ok){
+      const t = await res.text();
+      let apiMsg = ""; try { apiMsg = JSON.parse(t).message || ""; } catch(e){}
+      if(res.status === 401) throw new Error("토큰이 올바르지 않거나 만료되었습니다.");
+      if(res.status === 403) throw new Error("발행이 거부됐습니다(HTTP 403)." + (apiMsg?" GitHub 응답: "+apiMsg:""));
+      if(res.status === 409) throw new Error("다른 곳에서 먼저 수정됐습니다. 새로고침 후 다시 시도하세요.");
+      throw new Error("발행 실패 (HTTP " + res.status + ") " + (apiMsg || t.slice(0,120)));
+    }
+    hpaiNewsState.data = body;
+    return { ok:true };
+  } catch(e){
+    return { ok:false, error: e.message || String(e) };
+  }
+}
+
+// 최신순 5건만 카드로 그린다("뉴스정보" 탭과 같은 개수 제한). 관리자(ghToken
+// 보유자)에게만 추가·편집·삭제 UI가 보인다.
+function renderHpaiNewsCard(){
+  const admin = !!ghToken();
+  const items = currentHpaiNews().slice().sort((a,b) => (b.createdAt||"").localeCompare(a.createdAt||"")).slice(0,5);
+  const editing = hpaiNewsState.formId && currentHpaiNews().find(x=>x.id===hpaiNewsState.formId);
+
+  const list = items.length ? items.map(it => `
+    <div style="padding:10px 0;border-bottom:1px solid #f2f2f2">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <div style="min-width:0">
+          <div style="font-size:13px;font-weight:700;color:#333">${it.link ? `<a href="${esc(it.link)}" target="_blank" rel="noopener" style="color:#333;text-decoration:none">${esc(it.title)} ↗</a>` : esc(it.title)}</div>
+          ${it.text ? `<div style="font-size:12px;color:#666;line-height:1.6;margin-top:4px;white-space:pre-wrap">${esc(it.text)}</div>` : ""}
+          <div style="font-size:10px;color:#aaa;margin-top:4px">${esc((it.createdAt||"").slice(0,10))}</div>
+        </div>
+        ${admin ? `
+        <div style="white-space:nowrap;flex-shrink:0">
+          <button class="hpainews-edit-btn" data-id="${esc(it.id)}" style="font-size:10px;border:1px solid #C62828;border-radius:5px;background:#fff;color:#C62828;padding:3px 8px;margin-right:4px">편집</button>
+          <button class="hpainews-del-btn" data-id="${esc(it.id)}" style="font-size:10px;border:1px solid #eee;border-radius:5px;background:#fff;color:#bbb;padding:3px 8px">삭제</button>
+        </div>` : ""}
+      </div>
+    </div>`).join("") : `<div style="text-align:center;padding:16px;color:#aaa;font-size:12px">아직 등록된 소식이 없습니다.${admin?"":" 곧 추가됩니다."}</div>`;
+
+  const adminBox = !admin ? "" : `
+  <div style="margin-top:10px;border-top:1px dashed #eee;padding-top:10px">
+    <button id="hpainews-admin-toggle" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:3px 9px">${hpaiNewsState.adminOpen?"관리 닫기":"⚙ 관리"}</button>
+    ${hpaiNewsState.msg?`<span style="font-size:11px;margin-left:8px;color:${/실패|오류|않|없/.test(hpaiNewsState.msg)?"#C62828":"#2E7D32"}">${esc(hpaiNewsState.msg)}</span>`:""}
+    ${hpaiNewsState.adminOpen ? `
+    <div style="margin-top:9px;background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">
+      <div style="font-size:11px;font-weight:700;color:#7A5C00;margin-bottom:8px">${editing?"소식 수정":"새 소식 추가"}</div>
+      <input id="hn-title" type="text" placeholder="제목" value="${esc(editing?editing.title:"")}"
+        style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;margin-bottom:6px" />
+      <textarea id="hn-text" placeholder="내용(선택) — 최근 발생동향, AI 관련 정보 등"
+        style="width:100%;min-height:80px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:6px">${esc(editing?(editing.text||""):"")}</textarea>
+      <input id="hn-link" type="text" placeholder="출처·원문 링크(선택)" value="${esc(editing?(editing.link||""):"")}"
+        style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;margin-bottom:8px" />
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <button id="hn-save" ${hpaiNewsState.busy?"disabled":""} style="border:1px solid #B8860B;background:${hpaiNewsState.busy?"#ccc":"#B8860B"};color:#fff;border-radius:7px;padding:7px 15px;font-size:12px;font-weight:600">${hpaiNewsState.busy?"발행 중...":(editing?"수정 발행":"추가 발행")}</button>
+        ${editing?`<button id="hn-cancel" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:6px 10px">취소</button>`:""}
+      </div>
+    </div>` : ""}
+  </div>`;
+
+  return `
+  <div class="card" style="margin-bottom:14px;border-top:4px solid #C62828">
+    <div class="display" style="font-size:15px;margin-bottom:4px">🦠 AI 관련 소식</div>
+    <div style="font-size:11px;color:#aaa;margin-bottom:4px">최신 5건만 보여드립니다</div>
+    <div>${list}</div>
+    ${adminBox}
+  </div>`;
+}
+
 let layerStatsState = { status: "idle", data: null }; // idle|loading|done|error
 
 async function fetchLayerStats(){
@@ -4821,12 +4956,13 @@ function hpaiSplitBar(poultry, wild, w){
 }
 
 function renderHpaiTab(){
+  const newsCard = renderHpaiNewsCard();
   const d = hpaiState;
   const shell = inner => `<div class="card" style="margin-bottom:16px">${inner}</div>`;
   if(d.status === "loading" || d.status === "idle")
-    return shell(`<div style="text-align:center;padding:28px;color:#aaa">⏳ 불러오는 중...</div>`);
+    return newsCard + shell(`<div style="text-align:center;padding:28px;color:#aaa">⏳ 불러오는 중...</div>`);
   if(d.status === "error" || !d.data || !d.data.overall)
-    return shell(`<div style="text-align:center;padding:20px;color:#aaa;font-size:12px">
+    return newsCard + shell(`<div style="text-align:center;padding:20px;color:#aaa;font-size:12px">
       데이터를 불러오지 못했습니다.<br>
       <a href="https://wahis.woah.org/#/event-management" target="_blank" rel="noopener"
          style="color:#C62828;font-size:11px">🌐 WOAH WAHIS 바로가기</a></div>`);
@@ -4939,7 +5075,7 @@ function renderHpaiTab(){
       <td style="padding:5px 6px;text-align:right">${hpaiBadge(c.level)}</td>
     </tr>`).join("");
 
-  return `
+  return newsCard + `
   <div class="card" style="margin-bottom:14px;border-top:4px solid #C62828">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
       <div class="display" style="font-size:16px">🦠 고병원성 AI(HPAI) 발생예측통계</div>
@@ -7725,7 +7861,7 @@ function renderHeader(){
       <button class="tab ${state.tab==="vent"?"active":""}" data-tab="vent">🌬️ 환기가이드</button>
       <button class="tab ${state.tab==="consult"?"active":""}" data-tab="consult">🐔🥚 육계/산란계 컨설팅</button>
       <button class="tab ${state.tab==="disease"?"active":""}" data-tab="disease">🩺 양계질병</button>
-      <button class="tab ${state.tab==="hpai"?"active":""}" data-tab="hpai">🦠 AI 발생예측통계</button>
+      <button class="tab ${state.tab==="hpai"?"active":""}" data-tab="hpai">🦠 AI관련정보</button>
       <button class="tab ${state.tab==="briefing"?"active":""}" data-tab="briefing">📋 뉴스정보</button>
       <button class="tab ${state.tab==="premium"?"active":""}" data-tab="premium">💼 유료서비스</button>
     </div>
@@ -12607,6 +12743,56 @@ function attachDiseaseEvents(){
     });
   });
 
+  // ── AI 관련 소식 ──
+  const hpainewsAdminToggle = document.getElementById("hpainews-admin-toggle");
+  if(hpainewsAdminToggle) hpainewsAdminToggle.onclick = ()=>{
+    hpaiNewsState.adminOpen = !hpaiNewsState.adminOpen;
+    hpaiNewsState.formId = undefined;
+    hpaiNewsState.msg = "";
+    render();
+  };
+  document.querySelectorAll(".hpainews-edit-btn").forEach(b=>b.onclick=()=>{
+    hpaiNewsState.adminOpen = true;
+    hpaiNewsState.formId = b.dataset.id;
+    hpaiNewsState.msg = "";
+    render();
+  });
+  const hpainewsCancelBtn = document.getElementById("hn-cancel");
+  if(hpainewsCancelBtn) hpainewsCancelBtn.onclick = ()=>{ hpaiNewsState.formId = undefined; render(); };
+  document.querySelectorAll(".hpainews-del-btn").forEach(b=>b.onclick=async ()=>{
+    const id = b.dataset.id;
+    const item = currentHpaiNews().find(x=>x.id===id);
+    if(!item || !confirm(`"${item.title}" 소식을 삭제할까요?`)) return;
+    const next = currentHpaiNews().filter(x=>x.id!==id);
+    hpaiNewsState.busy = true; hpaiNewsState.msg = "발행 중..."; render();
+    const r = await publishHpaiNews(next, "🦠 AI 관련 소식 삭제: " + item.title);
+    hpaiNewsState.busy = false;
+    hpaiNewsState.msg = r.ok ? "삭제 완료" : ("발행 실패: " + r.error);
+    render();
+  });
+  const hpainewsSaveBtn = document.getElementById("hn-save");
+  if(hpainewsSaveBtn) hpainewsSaveBtn.onclick = async ()=>{
+    const title = (document.getElementById("hn-title")?.value || "").trim();
+    const text = (document.getElementById("hn-text")?.value || "").trim();
+    const link = (document.getElementById("hn-link")?.value || "").trim();
+    if(!title){ alert("제목을 입력하세요."); return; }
+
+    const items = currentHpaiNews().slice();
+    const editId = hpaiNewsState.formId;
+    if(editId){
+      const idx = items.findIndex(x=>x.id===editId);
+      if(idx>=0) items[idx] = Object.assign({}, items[idx], { title, text, link });
+    } else {
+      items.push({ id:newHpaiNewsId(), title, text, link, createdAt:new Date().toISOString() });
+    }
+    hpaiNewsState.busy = true; hpaiNewsState.msg = "발행 중..."; render();
+    const r = await publishHpaiNews(items, "🦠 AI 관련 소식 " + (editId?"수정":"추가") + ": " + title);
+    hpaiNewsState.busy = false;
+    hpaiNewsState.msg = r.ok ? "발행 완료 — 모두에게 반영됩니다" : ("발행 실패: " + r.error);
+    if(r.ok) hpaiNewsState.formId = undefined;
+    render();
+  };
+
   // ── 관리(발행 권한) ──
   const at = document.getElementById("dz-admin-toggle");
   if(at) at.onclick = () => { pickState.adminOpen = !pickState.adminOpen; pickState.msg = ""; render(); };
@@ -14954,6 +15140,7 @@ fetchLayerStats();
 fetchFeedProduction();
 fetchJungchuPrice();
 fetchHpaiRisk();
+fetchHpaiNews();
 fetchMonthlyPicks();
 
 </script>
