@@ -1179,9 +1179,9 @@ function renderMagazinePanel(){
       <div style="font-size:10px;color:#888;margin-bottom:3px">본문</div>
       <textarea id="magazine-text-input" placeholder="OCR로 추출된 글자, 또는 직접 입력"
         style="width:100%;min-height:140px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:8px">${esc(magazineNavState.draftText)}</textarea>
-      <div style="font-size:10px;color:#888;margin-bottom:3px">핵심 요약(쉽게 정리) — OCR 시 자동으로 채워집니다</div>
-      <textarea id="magazine-summary-input" placeholder="예) - 여름철에는 사료섭취량이 줄어 체중이 처질 수 있습니다&#10;- 환기량을 평소보다 늘려 열 스트레스를 줄여주세요"
-        style="width:100%;min-height:90px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:8px">${esc(magazineNavState.draftSummary)}</textarea>
+      <div style="font-size:10px;color:#888;margin-bottom:3px">핵심 요약(짧게, 타이틀 위주) — OCR 시 자동으로 채워집니다</div>
+      <textarea id="magazine-summary-input" placeholder="예) - 여름철 사료섭취 감소&#10;- 환기량 늘려 열 스트레스 완화"
+        style="width:100%;min-height:64px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:8px">${esc(magazineNavState.draftSummary)}</textarea>
       <div style="font-size:10px;color:#888;margin-bottom:3px">자료출처(선택)</div>
       <input type="text" id="magazine-source-input" value="${esc(magazineNavState.draftSource)}" placeholder="예) 월간 양계 2026년 9월호, OO축산신문"
         style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;margin-bottom:8px" />

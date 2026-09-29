@@ -381,7 +381,7 @@ const MAGAZINE_OCR_SYSTEM = `양계 전문지(잡지) 지면을 찍은 사진 1~
 - text에는 본문 글자를 실제 인쇄된 순서대로 옮겨 적습니다. 사진이 여러 장이면 페이지 순서대로 이어서 적고, 사진 설명(캡션)은 해당 위치에 "[사진설명] ..." 형식으로 붙입니다.
 - 광고·목차·페이지 번호처럼 기사 본문이 아닌 요소는 옮기지 않습니다.
 - 글자가 흐리거나 잘려서 정확히 읽을 수 없는 부분은 지어내지 말고 "(판독 불가)"로 표시합니다.
-- summary에는 text의 핵심 내용만 골라, 현장 양계 농가가 바쁜 와중에도 한눈에 이해할 수 있도록 쉬운 말로 정리합니다. 전문용어·수치는 풀어서 설명하고, 요점 3~6개를 각각 짧은 한 문장으로 써서 줄바꿈으로 구분합니다(각 줄 맨 앞에 "- "를 붙입니다). 원문에 없는 내용을 지어내지 않습니다.
+- summary에는 text의 핵심만 아주 짧게 골라냅니다. 완전한 문장이 아니라 헤드라인(제목)처럼 짧은 구(句)로, 요점 2~4개만 추립니다(문장이 길어지지 않게 각 줄은 한글 기준 12~20자 내외로 짧게). 전문용어는 쉬운 말로 바꾸되 서술어를 다 갖춘 문장으로 풀지 말고 핵심 단어 중심으로 씁니다. 각 줄 맨 앞에 "- "를 붙여 줄바꿈으로 구분합니다. 원문에 없는 내용을 지어내지 않습니다.
 - 사진들에 읽을 만한 글자가 거의 없으면(사진 위주 지면 등) ok를 false로 하고 title·text·summary는 모두 빈 문자열로 둡니다.`;
 
 const MAGAZINE_OCR_SCHEMA = {
@@ -423,7 +423,7 @@ exports.extractMagazineText = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeco
     ok: !!result.ok,
     title: String(result.title || "").slice(0, 200),
     text: String(result.text || "").slice(0, 8000),
-    summary: String(result.summary || "").slice(0, 2000),
+    summary: String(result.summary || "").slice(0, 1000),
   };
 });
 
