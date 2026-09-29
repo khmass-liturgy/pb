@@ -1030,6 +1030,13 @@ function currentMagazineNotes(){
   return (magazineState.data && magazineState.data.items) || [];
 }
 
+// 이 기능 초기 버전(단일 사진 imageUrl)으로 이미 발행된 글도 여전히 사진이
+// 보이도록, 새 형식(imageUrls 배열)이 없으면 예전 필드로 대신 채운다.
+function magazineItemImages(it){
+  if(Array.isArray(it.imageUrls) && it.imageUrls.length) return it.imageUrls;
+  return it.imageUrl ? [it.imageUrl] : [];
+}
+
 function newMagazineId(){
   return "m" + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 }
@@ -1107,13 +1114,17 @@ function renderMagazinePanel(){
 
   const list = items.length ? items.map(it => {
     const open = magazineNavState.openId === it.id;
+    const images = magazineItemImages(it);
     return `
     <div class="card" style="border-top:4px solid #455A64;margin-bottom:10px;padding:14px 16px">
       <div style="display:flex;gap:12px;align-items:flex-start">
         <div class="magazine-toggle" data-id="${esc(it.id)}" style="cursor:pointer;display:flex;gap:12px;flex:1;min-width:0">
-          ${(it.imageUrls && it.imageUrls[0]) ? `<img src="${esc(it.imageUrls[0])}" style="width:64px;height:64px;object-fit:cover;border-radius:8px;flex-shrink:0" />` : ""}
+          ${images[0] ? `<img src="${esc(images[0])}" style="width:64px;height:64px;object-fit:cover;border-radius:8px;flex-shrink:0" />` : ""}
           <div style="min-width:0">
-            <div style="font-size:14px;font-weight:800;color:#333">${esc(it.title || "(제목 없음)")}</div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+              <span style="font-size:14px;font-weight:800;color:#333">${esc(it.title || "(제목 없음)")}</span>
+              ${it.source ? `<span style="font-size:10.5px;color:#999;white-space:nowrap;flex-shrink:0">${esc(it.source)}</span>` : ""}
+            </div>
             <div style="font-size:10.5px;color:#999;margin-top:3px">${esc((it.createdAt||"").slice(0,10))}</div>
           </div>
         </div>
@@ -1124,12 +1135,11 @@ function renderMagazinePanel(){
       </div>
       ${open ? `
       <div style="margin-top:12px;padding-top:12px;border-top:1px dashed #eee">
-        ${(it.imageUrls && it.imageUrls.length) ? `
+        ${images.length ? `
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-          ${it.imageUrls.map(url => `<a href="${esc(url)}" target="_blank" rel="noopener" style="display:block" title="눌러서 원본 크기로 보기"><img src="${esc(url)}" style="width:96px;height:96px;object-fit:cover;border-radius:8px" /></a>`).join("")}
+          ${images.map(url => `<a href="${esc(url)}" target="_blank" rel="noopener" style="display:block" title="눌러서 원본 크기로 보기"><img src="${esc(url)}" style="width:96px;height:96px;object-fit:cover;border-radius:8px" /></a>`).join("")}
         </div>` : ""}
         <div style="font-size:12.5px;color:#333;white-space:pre-wrap;line-height:1.7">${esc(it.text || "")}</div>
-        ${it.source ? `<div style="font-size:10.5px;color:#999;margin-top:10px">출처: ${esc(it.source)}</div>` : ""}
       </div>` : ""}
     </div>`;
   }).join("") : `<div class="card" style="text-align:center;padding:28px 16px;color:#aaa">아직 등록된 자료가 없습니다.${admin?"":" 곧 추가됩니다."}</div>`;
