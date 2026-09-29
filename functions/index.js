@@ -375,7 +375,7 @@ exports.findCardImage = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 1
 // 글자만 옮겨 적어 제목·본문으로 나눠 돌려준다. 관리자가 그 결과를 확인·
 // 수정한 뒤 발행하면(index.html 쪽에서 premium_content/magazine_notes에
 // 저장) 승인된 회원 전체가 사진+본문을 게시판처럼 목록에서 본다.
-const MAGAZINE_OCR_SYSTEM = `양계 전문지(잡지) 지면을 찍은 사진 1~5장을 보고, 그 지면에 인쇄된 글자를 그대로 옮겨 적습니다. 사진이 여러 장이면 같은 기사의 연속된 페이지(또는 같은 페이지의 다른 부분)이니, 주어진 순서대로 이어 붙여 하나의 글로 옮겨 적습니다.
+const MAGAZINE_OCR_SYSTEM = `양계 전문지(잡지) 지면을 찍은 사진 1~10장을 보고, 그 지면에 인쇄된 글자를 그대로 옮겨 적습니다. 사진이 여러 장이면 같은 기사의 연속된 페이지(또는 같은 페이지의 다른 부분)이니, 주어진 순서대로 이어 붙여 하나의 글로 옮겨 적습니다.
 
 - title에는 기사·코너 제목을 넣습니다. 제목이 여러 개 보이면 가장 큰(주된) 제목 하나만 고릅니다(사진이 여러 장이어도 title은 하나만).
 - text에는 본문 글자를 실제 인쇄된 순서대로 옮겨 적습니다. 사진이 여러 장이면 페이지 순서대로 이어서 적고, 사진 설명(캡션)은 해당 위치에 "[사진설명] ..." 형식으로 붙입니다.
@@ -394,12 +394,12 @@ const MAGAZINE_OCR_SCHEMA = {
   additionalProperties: false,
 };
 
-exports.extractMagazineText = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 180, memory: "512MiB" }, async (request) => {
+exports.extractMagazineText = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 300, memory: "1GiB" }, async (request) => {
   assertAdmin(request);
   const data = request.data || {};
   const images = Array.isArray(data.images) ? data.images : [];
   if (!images.length) throw new HttpsError("invalid-argument", "사진을 먼저 선택하세요.");
-  if (images.length > 5) throw new HttpsError("invalid-argument", "사진은 5장까지만 올릴 수 있습니다.");
+  if (images.length > 10) throw new HttpsError("invalid-argument", "사진은 10장까지만 올릴 수 있습니다.");
 
   const content = [];
   images.forEach((img, i) => {

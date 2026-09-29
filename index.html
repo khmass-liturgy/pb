@@ -993,7 +993,7 @@ function renderFeedStandardPanel(){
 // premium_content/magazine_notes_images/{id}.jpg에 별도로 올린다(같은
 // storage.rules의 premium_content/{dataset}/{fileName} 패턴을 그대로 탄다).
 let magazineState = { status:"idle", data:null, busy:false, msg:"" };
-// files/previewUrls: 사진은 최대 5장까지, 선택 즉시 미리보기(objectURL)만
+// files/previewUrls: 사진은 최대 10장까지, 선택 즉시 미리보기(objectURL)만
 // 만들고 실제 업로드는 발행(magazine-save-btn) 시점에 한다. draftTitle/
 // draftText/draftSource는 사진 선택·삭제·OCR처럼 폼을 다시 그리는 동작 때마다
 // (syncMagazineDraftFields로) DOM에서 옮겨 담아, 입력해둔 값이 안 날아가게 한다.
@@ -1142,7 +1142,7 @@ function renderMagazinePanel(){
     <div style="margin-top:9px;background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">
       <div style="font-size:11px;font-weight:700;color:#7A5C00;margin-bottom:8px">새 학습정보 올리기</div>
       <input type="file" accept="image/*" multiple id="magazine-file-input" style="width:100%;font-size:11.5px" />
-      <div style="font-size:10px;color:#888;margin:3px 0 8px">사진은 최대 5장까지 올릴 수 있습니다 (${magazineNavState.files.length}/5장 선택됨)</div>
+      <div style="font-size:10px;color:#888;margin:3px 0 8px">사진은 최대 10장까지 올릴 수 있습니다 (${magazineNavState.files.length}/10장 선택됨)</div>
       ${magazineNavState.previewUrls.length ? `
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
         ${magazineNavState.previewUrls.map((url,i) => `
@@ -12982,9 +12982,9 @@ function attachEvents(){
   if(magazineFileInput) magazineFileInput.onchange = ()=>{
     syncMagazineDraftFields();
     let picked = Array.from(magazineFileInput.files || []);
-    if(picked.length > 5){
-      picked = picked.slice(0, 5);
-      magazineState.msg = "사진은 최대 5장까지만 선택할 수 있어 앞의 5장만 선택했습니다.";
+    if(picked.length > 10){
+      picked = picked.slice(0, 10);
+      magazineState.msg = "사진은 최대 10장까지만 선택할 수 있어 앞의 10장만 선택했습니다.";
     } else {
       magazineState.msg = "";
     }
