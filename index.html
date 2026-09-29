@@ -11927,7 +11927,6 @@ function renderVentTab(){
   const speciesInfo = {
     broiler: {label:"육계", icon:"🐔", table:BROILER_TARGET_TEMP, stages:POULTRY_VENT_STAGES, unit:"day"},
     layer:   {label:"산란계", icon:"🥚", table:LAYER_TARGET_TEMP,   stages:POULTRY_VENT_STAGES, unit:"wk"},
-    pig:     {label:"양돈", icon:"🐷", table:PIG_TARGET_TEMP,     stages:SWINE_VENT_STAGES,   unit:"pig"},
   };
   const sp = speciesInfo[ventState.species] || speciesInfo.broiler;
 
@@ -11952,10 +11951,7 @@ function renderVentTab(){
   const humVentIneffective = todayHum != null && todayHum > VENT_HUMIDITY_THRESHOLD
     && diff != null && diff > 0;
 
-  // 유창(커튼형) 돈사는 단열이 약해 목표온도를 1~2°C 높여 잡는 것이 PIC 권장사항
-  const barnNote = ventState.species==="pig" && ventState.barn==="curtain"
-    ? " · 유창(커튼형) 돈사는 단열이 약해 목표온도를 1~2°C 높여 판단하는 것이 PIC 권장사항입니다."
-    : ventState.barn==="curtain"
+  const barnNote = ventState.barn==="curtain"
     ? " · 자연환기(유창) 계사는 바람·일사 영향이 커 아래 3단계 체계를 참고용으로만 활용하세요."
     : "";
 
@@ -12084,7 +12080,7 @@ function renderVentTab(){
   return `
   <div style="margin-bottom:14px">
     <div class="display" style="font-size:16px;margin-bottom:3px">🌬️ 환기가이드</div>
-    <div style="font-size:11px;color:#aaa">Aviagen(가금) · PIC(양돈) 3단계 체계 + Munters 습도 이중제어 로직 — 오늘 날씨·계사구조·사육단계에 맞는 환기방법 추천${barnNote}</div>
+    <div style="font-size:11px;color:#aaa">Aviagen 3단계 체계 + Munters 습도 이중제어 로직 — 오늘 날씨·계사구조·사육단계에 맞는 환기방법 추천${barnNote}</div>
   </div>
 
   <div style="display:flex;gap:8px;margin-bottom:10px">${speciesBtns}</div>
@@ -12103,7 +12099,7 @@ function renderVentTab(){
     PIC「Wean to Finish Guidelines Appendix A」, 미네소타대 확장연구소(L. Jacobson) 자료를 재구성했습니다.
     습도 기준 판정은 글로벌 계사환경제어 1위 업체 Munters의 상업용 컨트롤러(Rotem Trio)가 쓰는
     "온도요구·습도요구 환기량 중 더 큰 값을 따르는" 이중제어 로직과 PIC의 습도 65% 관리 기준을 결합해 구성했습니다.
-    실제 전환 시점은 수치뿐 아니라 계군·돈군의 행동(헐떡임, 웅크림, 피딩 활동 등)을 함께 관찰해 판단하는 것이 원 지침의 핵심입니다.
+    실제 전환 시점은 수치뿐 아니라 계군의 행동(헐떡임, 웅크림, 피딩 활동 등)을 함께 관찰해 판단하는 것이 원 지침의 핵심입니다.
   </div>`;
 }
 
