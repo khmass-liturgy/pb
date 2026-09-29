@@ -11986,8 +11986,9 @@ function renderVentTab(){
   const recommendCard = (() => {
     if(noWeather) return `
       <div class="card" style="text-align:center;padding:28px 16px;margin-bottom:16px">
-        <div style="font-size:28px;margin-bottom:8px">🌤️</div>
-        <div style="font-size:13px;color:#888;margin-bottom:10px">날씨 데이터가 필요합니다. 날씨 탭에서 지역을 먼저 설정해주세요.</div>
+        <div style="font-size:28px;margin-bottom:8px">📍</div>
+        <div style="font-size:13px;color:#888;margin-bottom:14px">오늘 날씨를 알아야 환기 단계를 추천해 드릴 수 있어요.<br>위치를 아직 설정하지 않으셨네요 — 먼저 위치를 찍어주세요.</div>
+        <button id="vent-goto-weather" style="border:none;border-radius:10px;background:#1a2744;color:#fff;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer">🌤️ 날씨 탭에서 위치 설정하기</button>
       </div>`;
 
     const st = sp.stages[recIdx];
@@ -14872,6 +14873,8 @@ function attachEvents(){
     ventState.stageIdx = parseInt(b.dataset.idx,10);
     render();
   });
+  const ventGotoWeatherBtn = document.getElementById("vent-goto-weather");
+  if(ventGotoWeatherBtn) ventGotoWeatherBtn.onclick = ()=> switchTab("weather");
 
   // 육계/산란계 컨설팅: 축종/품종/일령 선택
   document.querySelectorAll(".consult-species-btn").forEach(b=>b.onclick=()=>{
