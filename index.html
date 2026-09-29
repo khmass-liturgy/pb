@@ -772,6 +772,185 @@ function renderPremiumMenuItems(items, mode){
   return html;
 }
 
+// ── 유료서비스 메뉴 화면(초기화면) — 관리자 편집 ─────────────────────────────
+// PREMIUM_ITEMS(위)는 배포판의 기본값(seed)이다. 관리자가 메뉴 편집에서 한 번
+// 이라도 저장하면 premium_menu/items.json(공개 GitHub 파일)이 생기고, 그
+// 뒤로는 이 파일 내용이 PREMIUM_ITEMS를 대신한다. 메뉴 항목은 로그인 전
+// 미리보기 화면(renderPremiumPreview)에도 그대로 노출되는 공개 정보라
+// Firebase premium_content가 아니라 "이달의 질병"과 같은 공개 GitHub
+// Contents API 방식을 쓴다(발행 권한도 같은 ghToken을 그대로 쓴다). 새로
+// 추가한 항목에 key를 비워두거나(안내 전용) 실제 화면과 연결되지 않은 key를
+// 넣으면 카드를 눌러도 메뉴 화면이 그대로 유지된다(premium-item-btn 클릭 시
+// premiumState.view에 그 key를 넣지만, 어떤 if(premiumState.view===...) 블록도
+// 맞지 않으면 그냥 메뉴 화면 기본 분기로 되돌아간다).
+const PREMIUM_MENU_PATH = "premium_menu/items.json";
+// 정보 전용이 아니라 실제 화면과 연결하고 싶을 때 고를 수 있는 기존 기능
+// key 목록 — 관리자가 오타로 없는 key를 입력하는 실수를 막기 위해 드롭다운으로
+// 제공한다(회원관리·자동문자발송관리는 별도로 자동 추가되는 관리자 전용
+// 항목이라 목록에서 뺀다).
+const PREMIUM_MENU_KNOWN_KEYS = [
+  "drug","treatment","seasonal","finder","disinfect","newproducts","vaccine",
+  "ventfinder","moltguide","feedstandard","selfcheck","diagnosis","faq","study",
+  "research","magazine","feature_board","consult","consulting","smssub",
+];
+let premiumMenuState = { status:"idle", data:null, busy:false, msg:"", adminOpen:false, formOpen:false,
+  editIndex:null, draftKey:"", draftIcon:"🆕", draftTitle:"", draftDesc:"", draftColor:"#00838F", draftCategory:"" };
+
+function currentPremiumMenuItems(){
+  const items = premiumMenuState.data && premiumMenuState.data.items;
+  return (Array.isArray(items) && items.length) ? items : PREMIUM_ITEMS;
+}
+
+async function fetchPremiumMenuItems(){
+  if(premiumMenuState.status === "loading") return;
+  premiumMenuState.status = "loading";
+  try {
+    const url = "https://raw.githubusercontent.com/" + PICK_REPO + "/" + PICK_BRANCH + "/" + PREMIUM_MENU_PATH;
+    const r = await fetchWithTimeout(url + "?t=" + Date.now(), 8000);
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json();
+    j.items = Array.isArray(j.items) ? j.items : [];
+    premiumMenuState.data = j;
+    premiumMenuState.status = "done";
+  } catch(e){
+    console.warn("유료서비스 메뉴 편집본 로딩 실패(기본 메뉴로 대체):", e);
+    premiumMenuState.data = null;
+    premiumMenuState.status = "error";
+  }
+  if(state.tab === "premium") render();
+}
+
+async function publishPremiumMenuItems(items, message){
+  const token = ghToken();
+  if(!token) return { ok:false, error:"발행 권한이 설정되지 않았습니다 — '이달의 질병' 관리에서 먼저 토큰을 등록하세요." };
+  const api = "https://api.github.com/repos/" + PICK_REPO + "/contents/" + PREMIUM_MENU_PATH;
+  const head = { "Authorization": "Bearer " + token,
+                 "Accept": "application/vnd.github+json",
+                 "Content-Type": "application/json" };
+  try {
+    let sha = null;
+    const cur = await fetch(api + "?ref=" + PICK_BRANCH + "&t=" + Date.now(), { headers: head });
+    if(cur.ok) sha = (await cur.json()).sha;
+    else if(cur.status === 401) throw new Error("토큰이 거부되었습니다.");
+    else if(cur.status === 403) throw new Error("이 토큰에는 권한이 없습니다.");
+    else if(cur.status === 404) sha = null;
+    else throw new Error("현재 파일 확인 실패 (HTTP " + cur.status + ")");
+
+    const body = {
+      updated: new Date().toISOString().slice(0,16).replace("T"," ") + " UTC",
+      by: PICK_BY,
+      note: "유료서비스 메뉴 초기화면 — 화면에서 저장하면 이 파일이 갱신되고 모든 사람에게 같은 메뉴가 보입니다.",
+      items: items,
+    };
+    const res = await fetch(api, {
+      method: "PUT", headers: head,
+      body: JSON.stringify({
+        message: message || "🗂️ 유료서비스 메뉴 갱신",
+        content: b64utf8(JSON.stringify(body, null, 1)),
+        branch: PICK_BRANCH,
+        sha: sha || undefined,
+      }),
+    });
+    if(!res.ok){
+      const t = await res.text();
+      let apiMsg = ""; try { apiMsg = JSON.parse(t).message || ""; } catch(e){}
+      if(res.status === 401) throw new Error("토큰이 올바르지 않거나 만료되었습니다.");
+      if(res.status === 403) throw new Error("발행이 거부됐습니다(HTTP 403)." + (apiMsg?" GitHub 응답: "+apiMsg:""));
+      if(res.status === 409) throw new Error("다른 곳에서 먼저 수정됐습니다. 새로고침 후 다시 시도하세요.");
+      throw new Error("발행 실패 (HTTP " + res.status + ") " + (apiMsg || t.slice(0,120)));
+    }
+    premiumMenuState.data = body;
+    return { ok:true };
+  } catch(e){
+    return { ok:false, error: e.message || String(e) };
+  }
+}
+
+function resetPremiumMenuForm(item, idx){
+  premiumMenuState.editIndex = (idx != null) ? idx : null;
+  premiumMenuState.draftKey = item ? (item.key || "") : "";
+  premiumMenuState.draftIcon = item ? (item.icon || "") : "🆕";
+  premiumMenuState.draftTitle = item ? (item.title || "") : "";
+  premiumMenuState.draftDesc = item ? (item.desc || "") : "";
+  premiumMenuState.draftColor = item ? (item.color || "#00838F") : "#00838F";
+  premiumMenuState.draftCategory = item ? (item.category || "") : "";
+}
+
+function renderPremiumMenuEditor(){
+  if(!ghToken()) return "";
+  const items = currentPremiumMenuItems();
+  const rows = items.map((it,idx) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 9px;border:1px solid #eee;border-radius:7px;margin-bottom:5px;background:#fff">
+      <span style="font-size:16px;flex-shrink:0">${esc(it.icon||"·")}</span>
+      <div style="min-width:0;flex:1">
+        <div style="font-size:12px;font-weight:700;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(it.title||"(제목 없음)")}</div>
+        <div style="font-size:10px;color:#999">${esc(it.category||"(카테고리 없음)")}${it.key?" · "+esc(it.key):" · 안내 전용"}</div>
+      </div>
+      <div style="display:flex;gap:3px;flex-shrink:0">
+        <button class="pm-edit-up-btn" data-idx="${idx}" ${idx===0?"disabled":""} style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:${idx===0?"#ccc":"#888"};padding:3px 7px">▲</button>
+        <button class="pm-edit-down-btn" data-idx="${idx}" ${idx===items.length-1?"disabled":""} style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:${idx===items.length-1?"#ccc":"#888"};padding:3px 7px">▼</button>
+        <button class="pm-edit-edit-btn" data-idx="${idx}" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#1565C0;padding:3px 7px">수정</button>
+        <button class="pm-edit-del-btn" data-idx="${idx}" style="font-size:10px;border:1px solid #eee;border-radius:5px;background:#fff;color:#bbb;padding:3px 7px">삭제</button>
+      </div>
+    </div>`).join("");
+
+  const keyOptions = [`<option value="">(없음 — 안내 전용 카드)</option>`]
+    .concat(PREMIUM_MENU_KNOWN_KEYS.map(k => {
+      const src = PREMIUM_ITEMS.find(p=>p.key===k);
+      const label = src ? (src.icon + " " + src.title) : k;
+      return `<option value="${esc(k)}" ${premiumMenuState.draftKey===k?"selected":""}>${esc(label)}</option>`;
+    })).join("");
+
+  const categories = Array.from(new Set(items.map(it=>it.category).filter(Boolean)));
+
+  const form = premiumMenuState.formOpen ? `
+    <div style="margin-top:9px;background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">
+      <div style="font-size:11px;font-weight:700;color:#7A5C00;margin-bottom:8px">${premiumMenuState.editIndex!=null?"항목 수정":"새 항목 추가"}</div>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <div style="width:70px">
+          <div style="font-size:10px;color:#888;margin-bottom:3px">아이콘</div>
+          <input type="text" id="pm-edit-icon" value="${esc(premiumMenuState.draftIcon)}" placeholder="🆕" style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:14px;text-align:center" />
+        </div>
+        <div style="flex:1">
+          <div style="font-size:10px;color:#888;margin-bottom:3px">제목</div>
+          <input type="text" id="pm-edit-title" value="${esc(premiumMenuState.draftTitle)}" placeholder="예) 신규 기능 안내" style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />
+        </div>
+      </div>
+      <div style="font-size:10px;color:#888;margin-bottom:3px">설명</div>
+      <textarea id="pm-edit-desc" placeholder="메뉴 카드에 보일 짧은 설명" style="width:100%;min-height:56px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:8px">${esc(premiumMenuState.draftDesc)}</textarea>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <div style="flex:1">
+          <div style="font-size:10px;color:#888;margin-bottom:3px">카테고리(묶음 제목)</div>
+          <input type="text" id="pm-edit-category" list="pm-edit-category-list" value="${esc(premiumMenuState.draftCategory)}" placeholder="예) 사양관리" style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />
+          <datalist id="pm-edit-category-list">${categories.map(c=>`<option value="${esc(c)}"></option>`).join("")}</datalist>
+        </div>
+        <div style="width:100px">
+          <div style="font-size:10px;color:#888;margin-bottom:3px">색상</div>
+          <input type="text" id="pm-edit-color" value="${esc(premiumMenuState.draftColor)}" placeholder="#00838F" style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />
+        </div>
+      </div>
+      <div style="font-size:10px;color:#888;margin-bottom:3px">연결할 기능(선택)</div>
+      <select id="pm-edit-key" style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;margin-bottom:8px">${keyOptions}</select>
+      <div style="font-size:9.5px;color:#aaa;margin-bottom:8px">이미 있는 기능과 연결하려면 위에서 고르세요. 비워두면(안내 전용) 카드를 눌러도 아무 화면도 열리지 않습니다.</div>
+      <div style="display:flex;gap:6px">
+        <button id="pm-edit-save-btn" ${premiumMenuState.busy?"disabled":""} style="border:1px solid #B8860B;background:${premiumMenuState.busy?"#ccc":"#B8860B"};color:#fff;border-radius:7px;padding:7px 15px;font-size:12px;font-weight:600">${premiumMenuState.busy?"저장 중...":"저장"}</button>
+        <button id="pm-edit-cancel-btn" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:6px 10px">취소</button>
+      </div>
+    </div>` : `
+    <button id="pm-edit-add-btn" style="font-size:10px;border:1px solid #B8860B;border-radius:5px;background:#FCFBF6;color:#7A5C00;padding:5px 10px;margin-top:6px">+ 새 항목 추가</button>`;
+
+  return `
+  <div style="margin-top:16px;border-top:1px dashed #eee;padding-top:12px">
+    <button id="pm-edit-toggle" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:3px 9px">${premiumMenuState.adminOpen?"메뉴 편집 닫기":"⚙ 메뉴 편집"}</button>
+    ${premiumMenuState.msg?`<span style="font-size:11px;margin-left:8px;color:${/실패/.test(premiumMenuState.msg)?"#C62828":"#2E7D32"}">${esc(premiumMenuState.msg)}</span>`:""}
+    ${premiumMenuState.adminOpen ? `
+    <div style="margin-top:9px">
+      ${rows}
+      ${form}
+    </div>` : ""}
+  </div>`;
+}
+
 // ── 산란계 환우 프로그램(육종회사별) ─────────────────────────────────────────
 // 상황별 처방·계절별 패키지처럼 Firebase Storage에 두고 관리자가 고치는 구조가
 // 아니라, 육종회사(하이라인·로만)가 공식 관리가이드에 실제로 발표한 수치를
@@ -7763,7 +7942,7 @@ function renderPremiumPreview(){
       <span style="font-size:9.5px;color:#2E7D32;background:#E8F5E9;border-radius:20px;padding:3px 9px;font-weight:700;white-space:nowrap">🆕 새로운 메뉴가 계속 업데이트됩니다</span>
     </div>
     <div class="pm-list compact">
-      ${renderPremiumMenuItems(PREMIUM_ITEMS, "preview")}
+      ${renderPremiumMenuItems(currentPremiumMenuItems(), "preview")}
     </div>
   </div>`;
 }
@@ -7942,9 +8121,10 @@ function renderPremiumTab(){
   // 기본 화면 — 유료서비스 메뉴 목록. 회원관리는 관리자(ghToken 보유자)에게만
   // 보인다 — PREMIUM_ITEMS 배열 자체에는 안 넣는다(로그인 전 미리보기
   // renderPremiumPreview()도 같은 배열을 쓰는데, 거기서도 안 보여야 하므로).
+  if(premiumMenuState.status === "idle") fetchPremiumMenuItems();
   let menuItems = ghToken()
-    ? PREMIUM_ITEMS.concat([{ key:"members", icon:"👤", title:"회원관리", desc:"이름·전화번호·가입일·만료일을 관리합니다. (관리자 전용)", color:"#37474F", category:"관리자 전용" }])
-    : PREMIUM_ITEMS;
+    ? currentPremiumMenuItems().concat([{ key:"members", icon:"👤", title:"회원관리", desc:"이름·전화번호·가입일·만료일을 관리합니다. (관리자 전용)", color:"#37474F", category:"관리자 전용" }])
+    : currentPremiumMenuItems();
   if(isBoardAdmin()){
     menuItems = menuItems.concat([{ key:"smsadmin", icon:"📋", title:"자동 문자 발송 관리", desc:"발송 주기가 된 신청자를 확인하고 문자 내용을 준비합니다. (관리자 전용)", color:"#0277BD", category:"관리자 전용" }]);
   }
@@ -7952,6 +8132,7 @@ function renderPremiumTab(){
   <div class="pm-list">
     ${renderPremiumMenuItems(menuItems, "menu")}
   </div>
+  ${renderPremiumMenuEditor()}
   <div style="margin-top:14px;font-size:11px;color:#aaa;text-align:center">위 메뉴는 계속 추가됩니다. 궁금한 점은 010-9150-8844로 문의해 주세요.</div>`;
 }
 
@@ -13178,6 +13359,94 @@ function attachEvents(){
     premiumState.view = b.dataset.key;
     render();
   });
+
+  // 유료서비스 메뉴 초기화면 — 관리자 편집
+  const pmEditToggle = document.getElementById("pm-edit-toggle");
+  if(pmEditToggle) pmEditToggle.onclick = ()=>{
+    premiumMenuState.adminOpen = !premiumMenuState.adminOpen;
+    premiumMenuState.formOpen = false;
+    premiumMenuState.msg = "";
+    render();
+  };
+  const pmEditAddBtn = document.getElementById("pm-edit-add-btn");
+  if(pmEditAddBtn) pmEditAddBtn.onclick = ()=>{
+    resetPremiumMenuForm(null, null);
+    premiumMenuState.formOpen = true;
+    render();
+  };
+  document.querySelectorAll(".pm-edit-edit-btn").forEach(b=>b.onclick=()=>{
+    const idx = Number(b.dataset.idx);
+    resetPremiumMenuForm(currentPremiumMenuItems()[idx], idx);
+    premiumMenuState.formOpen = true;
+    render();
+  });
+  const pmEditCancelBtn = document.getElementById("pm-edit-cancel-btn");
+  if(pmEditCancelBtn) pmEditCancelBtn.onclick = ()=>{
+    premiumMenuState.formOpen = false;
+    premiumMenuState.editIndex = null;
+    render();
+  };
+  document.querySelectorAll(".pm-edit-up-btn").forEach(b=>b.onclick=async ()=>{
+    const idx = Number(b.dataset.idx);
+    if(idx <= 0) return;
+    const items = currentPremiumMenuItems().slice();
+    [items[idx-1], items[idx]] = [items[idx], items[idx-1]];
+    premiumMenuState.busy = true; premiumMenuState.msg = "저장 중..."; render();
+    const r = await publishPremiumMenuItems(items, "🗂️ 유료서비스 메뉴 순서 변경");
+    premiumMenuState.busy = false;
+    premiumMenuState.msg = r.ok ? "저장 완료" : ("저장 실패: " + r.error);
+    render();
+  });
+  document.querySelectorAll(".pm-edit-down-btn").forEach(b=>b.onclick=async ()=>{
+    const idx = Number(b.dataset.idx);
+    const items = currentPremiumMenuItems().slice();
+    if(idx >= items.length-1) return;
+    [items[idx+1], items[idx]] = [items[idx], items[idx+1]];
+    premiumMenuState.busy = true; premiumMenuState.msg = "저장 중..."; render();
+    const r = await publishPremiumMenuItems(items, "🗂️ 유료서비스 메뉴 순서 변경");
+    premiumMenuState.busy = false;
+    premiumMenuState.msg = r.ok ? "저장 완료" : ("저장 실패: " + r.error);
+    render();
+  });
+  document.querySelectorAll(".pm-edit-del-btn").forEach(b=>b.onclick=async ()=>{
+    const idx = Number(b.dataset.idx);
+    const item = currentPremiumMenuItems()[idx];
+    if(!item || !confirm(`"${item.title || "이 항목"}"을(를) 메뉴에서 삭제할까요?`)) return;
+    const items = currentPremiumMenuItems().filter((_,i)=>i!==idx);
+    premiumMenuState.busy = true; premiumMenuState.msg = "삭제 중..."; render();
+    const r = await publishPremiumMenuItems(items, "🗂️ 유료서비스 메뉴 항목 삭제: " + (item.title||""));
+    premiumMenuState.busy = false;
+    premiumMenuState.msg = r.ok ? "삭제 완료" : ("삭제 실패: " + r.error);
+    render();
+  });
+  const pmEditSaveBtn = document.getElementById("pm-edit-save-btn");
+  if(pmEditSaveBtn) pmEditSaveBtn.onclick = async ()=>{
+    const title = (document.getElementById("pm-edit-title")?.value || "").trim();
+    if(!title){ alert("제목을 입력하세요."); return; }
+    const newItem = {
+      key: (document.getElementById("pm-edit-key")?.value || "").trim() || undefined,
+      icon: (document.getElementById("pm-edit-icon")?.value || "🆕").trim(),
+      title,
+      desc: (document.getElementById("pm-edit-desc")?.value || "").trim(),
+      color: (document.getElementById("pm-edit-color")?.value || "#00838F").trim() || "#00838F",
+      category: (document.getElementById("pm-edit-category")?.value || "").trim(),
+    };
+    const items = currentPremiumMenuItems().slice();
+    if(premiumMenuState.editIndex != null) items[premiumMenuState.editIndex] = newItem;
+    else items.push(newItem);
+    premiumMenuState.busy = true; premiumMenuState.msg = "저장 중..."; render();
+    const r = await publishPremiumMenuItems(items, "🗂️ 유료서비스 메뉴 항목 저장: " + title);
+    premiumMenuState.busy = false;
+    if(r.ok){
+      premiumMenuState.msg = "저장 완료";
+      premiumMenuState.formOpen = false;
+      premiumMenuState.editIndex = null;
+    } else {
+      premiumMenuState.msg = "저장 실패: " + r.error;
+    }
+    render();
+  };
+
   const drugBackBtn = document.getElementById("drug-back-btn");
   if(drugBackBtn) drugBackBtn.onclick = ()=>{ premiumState.view = "menu"; render(); };
 
@@ -15379,6 +15648,7 @@ fetchJungchuPrice();
 fetchHpaiRisk();
 fetchHpaiNews();
 fetchMonthlyPicks();
+fetchPremiumMenuItems();
 
 </script>
 </body>
