@@ -993,7 +993,22 @@ function renderFeedStandardPanel(){
 // premium_content/magazine_notes_images/{id}.jpg에 별도로 올린다(같은
 // storage.rules의 premium_content/{dataset}/{fileName} 패턴을 그대로 탄다).
 let magazineState = { status:"idle", data:null, busy:false, msg:"" };
-let magazineNavState = { openId:null, adminOpen:false, file:null, previewUrl:"", ocrBusy:false, draftTitle:"", draftText:"" };
+// files/previewUrls: 사진은 최대 5장까지, 선택 즉시 미리보기(objectURL)만
+// 만들고 실제 업로드는 발행(magazine-save-btn) 시점에 한다. draftTitle/
+// draftText/draftSource는 사진 선택·삭제·OCR처럼 폼을 다시 그리는 동작 때마다
+// (syncMagazineDraftFields로) DOM에서 옮겨 담아, 입력해둔 값이 안 날아가게 한다.
+let magazineNavState = { openId:null, adminOpen:false, files:[], previewUrls:[], ocrBusy:false, draftTitle:"", draftText:"", draftSource:"" };
+
+function syncMagazineDraftFields(){
+  magazineNavState.draftTitle = (document.getElementById("magazine-title-input")?.value || "");
+  magazineNavState.draftText = (document.getElementById("magazine-text-input")?.value || "");
+  magazineNavState.draftSource = (document.getElementById("magazine-source-input")?.value || "");
+}
+
+function resetMagazineForm(){
+  magazineNavState.files = []; magazineNavState.previewUrls = [];
+  magazineNavState.draftTitle = ""; magazineNavState.draftText = ""; magazineNavState.draftSource = "";
+}
 
 async function fetchMagazineNotes(){
   if(magazineState.status === "loading") return;
@@ -1051,13 +1066,14 @@ function readFileAsBase64(file){
 }
 
 async function runMagazineOcr(){
-  const file = magazineNavState.file;
-  if(!file){ magazineState.msg = "사진을 먼저 선택하세요."; render(); return; }
+  const files = magazineNavState.files;
+  if(!files.length){ magazineState.msg = "사진을 먼저 선택하세요."; render(); return; }
+  syncMagazineDraftFields();
   magazineNavState.ocrBusy = true; magazineState.msg = "✨ AI가 사진 속 글자를 읽는 중... (보통 20~40초)"; render();
   try {
-    const base64 = await readFileAsBase64(file);
+    const images = await Promise.all(files.map(async f => ({ base64: await readFileAsBase64(f), mediaType: f.type || "image/jpeg" })));
     const fn = firebase.app().functions().httpsCallable("extractMagazineText");
-    const res = await withStorageTimeout(fn({ imageBase64: base64, mediaType: file.type || "image/jpeg" }), 60000);
+    const res = await withStorageTimeout(fn({ images }), 90000);
     const data = res.data || {};
     if(!data.ok){
       magazineState.msg = "이 사진에서는 읽을 만한 글자를 찾지 못했습니다 — 직접 입력해 주세요.";
@@ -1095,7 +1111,7 @@ function renderMagazinePanel(){
     <div class="card" style="border-top:4px solid #455A64;margin-bottom:10px;padding:14px 16px">
       <div style="display:flex;gap:12px;align-items:flex-start">
         <div class="magazine-toggle" data-id="${esc(it.id)}" style="cursor:pointer;display:flex;gap:12px;flex:1;min-width:0">
-          ${it.imageUrl ? `<img src="${esc(it.imageUrl)}" style="width:64px;height:64px;object-fit:cover;border-radius:8px;flex-shrink:0" />` : ""}
+          ${(it.imageUrls && it.imageUrls[0]) ? `<img src="${esc(it.imageUrls[0])}" style="width:64px;height:64px;object-fit:cover;border-radius:8px;flex-shrink:0" />` : ""}
           <div style="min-width:0">
             <div style="font-size:14px;font-weight:800;color:#333">${esc(it.title || "(제목 없음)")}</div>
             <div style="font-size:10.5px;color:#999;margin-top:3px">${esc((it.createdAt||"").slice(0,10))}</div>
@@ -1108,8 +1124,12 @@ function renderMagazinePanel(){
       </div>
       ${open ? `
       <div style="margin-top:12px;padding-top:12px;border-top:1px dashed #eee">
-        ${it.imageUrl ? `<a href="${esc(it.imageUrl)}" target="_blank" rel="noopener" style="display:block;margin-bottom:10px" title="눌러서 원본 크기로 보기"><img src="${esc(it.imageUrl)}" style="max-width:100%;border-radius:8px" /></a>` : ""}
+        ${(it.imageUrls && it.imageUrls.length) ? `
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+          ${it.imageUrls.map(url => `<a href="${esc(url)}" target="_blank" rel="noopener" style="display:block" title="눌러서 원본 크기로 보기"><img src="${esc(url)}" style="width:96px;height:96px;object-fit:cover;border-radius:8px" /></a>`).join("")}
+        </div>` : ""}
         <div style="font-size:12.5px;color:#333;white-space:pre-wrap;line-height:1.7">${esc(it.text || "")}</div>
+        ${it.source ? `<div style="font-size:10.5px;color:#999;margin-top:10px">출처: ${esc(it.source)}</div>` : ""}
       </div>` : ""}
     </div>`;
   }).join("") : `<div class="card" style="text-align:center;padding:28px 16px;color:#aaa">아직 등록된 자료가 없습니다.${admin?"":" 곧 추가됩니다."}</div>`;
@@ -1121,15 +1141,26 @@ function renderMagazinePanel(){
     ${magazineNavState.adminOpen ? `
     <div style="margin-top:9px;background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">
       <div style="font-size:11px;font-weight:700;color:#7A5C00;margin-bottom:8px">새 학습정보 올리기</div>
-      <input type="file" accept="image/*" id="magazine-file-input" style="width:100%;font-size:11.5px;margin-bottom:8px" />
-      ${magazineNavState.previewUrl ? `<img src="${esc(magazineNavState.previewUrl)}" style="max-width:100%;max-height:220px;border-radius:8px;margin-bottom:8px;display:block" />` : ""}
-      <button id="magazine-ocr-btn" ${(magazineNavState.ocrBusy || !magazineNavState.file) ? "disabled" : ""} style="border:1px solid #6A1B9A;background:${magazineNavState.ocrBusy?"#EEE":"#F6EFFA"};color:#6A1B9A;border-radius:7px;padding:5px 11px;font-size:11.5px;font-weight:700;cursor:pointer;margin-bottom:8px">${magazineNavState.ocrBusy?"✨ 읽는 중...":"✨ 사진에서 글자 추출(OCR)"}</button>
+      <input type="file" accept="image/*" multiple id="magazine-file-input" style="width:100%;font-size:11.5px" />
+      <div style="font-size:10px;color:#888;margin:3px 0 8px">사진은 최대 5장까지 올릴 수 있습니다 (${magazineNavState.files.length}/5장 선택됨)</div>
+      ${magazineNavState.previewUrls.length ? `
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+        ${magazineNavState.previewUrls.map((url,i) => `
+        <div style="position:relative">
+          <img src="${esc(url)}" style="width:72px;height:72px;object-fit:cover;border-radius:8px;display:block" />
+          <button class="magazine-file-remove-btn" data-idx="${i}" title="이 사진 빼기" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:none;background:#C62828;color:#fff;font-size:11px;line-height:20px;padding:0;cursor:pointer">×</button>
+        </div>`).join("")}
+      </div>` : ""}
+      <button id="magazine-ocr-btn" ${(magazineNavState.ocrBusy || !magazineNavState.files.length) ? "disabled" : ""} style="border:1px solid #6A1B9A;background:${magazineNavState.ocrBusy?"#EEE":"#F6EFFA"};color:#6A1B9A;border-radius:7px;padding:5px 11px;font-size:11.5px;font-weight:700;cursor:pointer;margin-bottom:8px">${magazineNavState.ocrBusy?"✨ 읽는 중...":"✨ 사진에서 글자 추출(OCR)"}</button>
       <div style="font-size:10px;color:#888;margin-bottom:3px">제목</div>
       <input type="text" id="magazine-title-input" value="${esc(magazineNavState.draftTitle)}" placeholder="예) 여름철 온도스트레스 관리 포인트"
         style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;margin-bottom:8px" />
       <div style="font-size:10px;color:#888;margin-bottom:3px">본문</div>
       <textarea id="magazine-text-input" placeholder="OCR로 추출된 글자, 또는 직접 입력"
         style="width:100%;min-height:140px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:8px">${esc(magazineNavState.draftText)}</textarea>
+      <div style="font-size:10px;color:#888;margin-bottom:3px">자료출처(선택)</div>
+      <input type="text" id="magazine-source-input" value="${esc(magazineNavState.draftSource)}" placeholder="예) 월간 양계 2026년 9월호, OO축산신문"
+        style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;margin-bottom:8px" />
       <div style="display:flex;gap:6px;align-items:center">
         <button id="magazine-save-btn" ${magazineState.busy?"disabled":""} style="border:1px solid #B8860B;background:${magazineState.busy?"#ccc":"#B8860B"};color:#fff;border-radius:7px;padding:7px 15px;font-size:12px;font-weight:600">${magazineState.busy?"발행 중...":"발행"}</button>
         <button id="magazine-cancel-btn" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:6px 10px">취소</button>
@@ -12941,26 +12972,39 @@ function attachEvents(){
   });
   const magazineAdminToggle = document.getElementById("magazine-admin-toggle");
   if(magazineAdminToggle) magazineAdminToggle.onclick = ()=>{
-    magazineNavState.adminOpen = !magazineNavState.adminOpen;
+    const opening = !magazineNavState.adminOpen;
+    magazineNavState.adminOpen = opening;
+    if(opening) resetMagazineForm();
     magazineState.msg = "";
     render();
   };
   const magazineFileInput = document.getElementById("magazine-file-input");
   if(magazineFileInput) magazineFileInput.onchange = ()=>{
-    const file = magazineFileInput.files && magazineFileInput.files[0];
-    if(!file) return;
-    magazineNavState.file = file;
-    magazineNavState.previewUrl = URL.createObjectURL(file);
+    syncMagazineDraftFields();
+    let picked = Array.from(magazineFileInput.files || []);
+    if(picked.length > 5){
+      picked = picked.slice(0, 5);
+      magazineState.msg = "사진은 최대 5장까지만 선택할 수 있어 앞의 5장만 선택했습니다.";
+    } else {
+      magazineState.msg = "";
+    }
+    magazineNavState.files = picked;
+    magazineNavState.previewUrls = picked.map(f => URL.createObjectURL(f));
     magazineNavState.draftTitle = ""; magazineNavState.draftText = "";
-    magazineState.msg = "";
     render();
   };
+  document.querySelectorAll(".magazine-file-remove-btn").forEach(b=>b.onclick=()=>{
+    syncMagazineDraftFields();
+    const idx = Number(b.dataset.idx);
+    magazineNavState.files = magazineNavState.files.filter((_,i)=>i!==idx);
+    magazineNavState.previewUrls = magazineNavState.previewUrls.filter((_,i)=>i!==idx);
+    render();
+  });
   const magazineOcrBtn = document.getElementById("magazine-ocr-btn");
   if(magazineOcrBtn) magazineOcrBtn.onclick = ()=> runMagazineOcr();
   const magazineCancelBtn = document.getElementById("magazine-cancel-btn");
   if(magazineCancelBtn) magazineCancelBtn.onclick = ()=>{
-    magazineNavState.file = null; magazineNavState.previewUrl = "";
-    magazineNavState.draftTitle = ""; magazineNavState.draftText = "";
+    resetMagazineForm();
     magazineNavState.adminOpen = false;
     magazineState.msg = "";
     render();
@@ -12969,27 +13013,28 @@ function attachEvents(){
   if(magazineSaveBtn) magazineSaveBtn.onclick = async ()=>{
     const title = (document.getElementById("magazine-title-input")?.value || "").trim();
     const text = (document.getElementById("magazine-text-input")?.value || "").trim();
-    const file = magazineNavState.file;
+    const source = (document.getElementById("magazine-source-input")?.value || "").trim();
+    const files = magazineNavState.files;
     if(!title){ alert("제목을 입력하세요."); return; }
     if(!text){ alert("본문을 입력하세요."); return; }
     magazineState.busy = true; magazineState.msg = "발행 중..."; render();
     try {
       const id = newMagazineId();
-      let imageUrl = "";
-      if(file){
+      const imageUrls = [];
+      for(let i=0;i<files.length;i++){
+        const file = files[i];
         const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g,"") || "jpg";
-        const ref = firebase.storage().ref("premium_content/magazine_notes_images/" + id + "." + ext);
+        const ref = firebase.storage().ref("premium_content/magazine_notes_images/" + id + "_" + (i+1) + "." + ext);
         await withStorageTimeout(ref.put(file), 30000);
-        imageUrl = await withStorageTimeout(ref.getDownloadURL());
+        imageUrls.push(await withStorageTimeout(ref.getDownloadURL()));
       }
       const items = currentMagazineNotes().slice();
-      items.push({ id, title, text, imageUrl, createdAt: new Date().toISOString() });
+      items.push({ id, title, text, source, imageUrls, createdAt: new Date().toISOString() });
       const r = await publishMagazineNotes(items);
       magazineState.busy = false;
       if(r.ok){
         magazineState.msg = "발행 완료 — 모두에게 반영됩니다";
-        magazineNavState.file = null; magazineNavState.previewUrl = "";
-        magazineNavState.draftTitle = ""; magazineNavState.draftText = "";
+        resetMagazineForm();
         magazineNavState.adminOpen = false;
       } else {
         magazineState.msg = "발행 실패: " + r.error;

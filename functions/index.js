@@ -375,13 +375,13 @@ exports.findCardImage = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 1
 // 글자만 옮겨 적어 제목·본문으로 나눠 돌려준다. 관리자가 그 결과를 확인·
 // 수정한 뒤 발행하면(index.html 쪽에서 premium_content/magazine_notes에
 // 저장) 승인된 회원 전체가 사진+본문을 게시판처럼 목록에서 본다.
-const MAGAZINE_OCR_SYSTEM = `양계 전문지(잡지) 한 페이지를 찍은 사진을 보고, 그 지면에 인쇄된 글자를 그대로 옮겨 적습니다.
+const MAGAZINE_OCR_SYSTEM = `양계 전문지(잡지) 지면을 찍은 사진 1~5장을 보고, 그 지면에 인쇄된 글자를 그대로 옮겨 적습니다. 사진이 여러 장이면 같은 기사의 연속된 페이지(또는 같은 페이지의 다른 부분)이니, 주어진 순서대로 이어 붙여 하나의 글로 옮겨 적습니다.
 
-- title에는 그 페이지의 기사·코너 제목을 넣습니다. 제목이 여러 개 보이면 가장 큰(주된) 제목 하나만 고릅니다.
-- text에는 본문 글자를 실제 인쇄된 순서대로 옮겨 적습니다. 사진 설명(캡션)은 본문 끝에 "[사진설명] ..." 형식으로 따로 붙입니다.
+- title에는 기사·코너 제목을 넣습니다. 제목이 여러 개 보이면 가장 큰(주된) 제목 하나만 고릅니다(사진이 여러 장이어도 title은 하나만).
+- text에는 본문 글자를 실제 인쇄된 순서대로 옮겨 적습니다. 사진이 여러 장이면 페이지 순서대로 이어서 적고, 사진 설명(캡션)은 해당 위치에 "[사진설명] ..." 형식으로 붙입니다.
 - 광고·목차·페이지 번호처럼 기사 본문이 아닌 요소는 옮기지 않습니다.
 - 글자가 흐리거나 잘려서 정확히 읽을 수 없는 부분은 지어내지 말고 "(판독 불가)"로 표시합니다.
-- 사진에 읽을 만한 글자가 거의 없으면(사진 위주 지면 등) ok를 false로 하고 title·text는 빈 문자열로 둡니다.`;
+- 사진들에 읽을 만한 글자가 거의 없으면(사진 위주 지면 등) ok를 false로 하고 title·text는 빈 문자열로 둡니다.`;
 
 const MAGAZINE_OCR_SCHEMA = {
   type: "object",
@@ -394,29 +394,33 @@ const MAGAZINE_OCR_SCHEMA = {
   additionalProperties: false,
 };
 
-exports.extractMagazineText = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 120, memory: "512MiB" }, async (request) => {
+exports.extractMagazineText = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 180, memory: "512MiB" }, async (request) => {
   assertAdmin(request);
   const data = request.data || {};
-  const base64 = String(data.imageBase64 || "");
-  const mediaType = String(data.mediaType || "image/jpeg");
-  if (!base64) throw new HttpsError("invalid-argument", "사진을 먼저 선택하세요.");
-  if (base64.length > 8_000_000) throw new HttpsError("invalid-argument", "사진 용량이 너무 큽니다.");
+  const images = Array.isArray(data.images) ? data.images : [];
+  if (!images.length) throw new HttpsError("invalid-argument", "사진을 먼저 선택하세요.");
+  if (images.length > 5) throw new HttpsError("invalid-argument", "사진은 5장까지만 올릴 수 있습니다.");
+
+  const content = [];
+  images.forEach((img, i) => {
+    const base64 = String((img && img.base64) || "");
+    if (!base64) throw new HttpsError("invalid-argument", (i + 1) + "번째 사진을 읽지 못했습니다.");
+    if (base64.length > 8_000_000) throw new HttpsError("invalid-argument", (i + 1) + "번째 사진 용량이 너무 큽니다.");
+    const mediaType = String((img && img.mediaType) || "image/jpeg");
+    if (images.length > 1) content.push({ type: "text", text: (i + 1) + "번째 사진" });
+    content.push({ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } });
+  });
+  content.push({ type: "text", text: "이 지면(들)의 글자를 옮겨 적어 주세요." });
 
   const result = responseJson(await callClaude({
     system: MAGAZINE_OCR_SYSTEM,
-    messages: [{
-      role: "user",
-      content: [
-        { type: "image", source: { type: "base64", media_type: mediaType, data: base64 } },
-        { type: "text", text: "이 지면의 글자를 옮겨 적어 주세요." },
-      ],
-    }],
+    messages: [{ role: "user", content }],
     output_config: { format: { type: "json_schema", schema: MAGAZINE_OCR_SCHEMA } },
   }));
   return {
     ok: !!result.ok,
     title: String(result.title || "").slice(0, 200),
-    text: String(result.text || "").slice(0, 6000),
+    text: String(result.text || "").slice(0, 8000),
   };
 });
 
