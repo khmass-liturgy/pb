@@ -3862,7 +3862,12 @@ async function searchHpaiPortalNews(){
     if(!resp.ok) throw new Error("HTTP " + resp.status);
     const data = await resp.json();
     if(data.status !== "ok") throw new Error(data.message || "검색 오류");
-    hpaiSearchState.results = data.items.map(item => ({
+    const items = data.items.slice().sort((a,b) => {
+      const ta = a.pubDate ? new Date(a.pubDate).getTime() : 0;
+      const tb = b.pubDate ? new Date(b.pubDate).getTime() : 0;
+      return tb - ta;
+    });
+    hpaiSearchState.results = items.map(item => ({
       title: (item.title || "").replace(/<[^>]+>/g, "").trim(),
       link: item.link,
       pubDate: item.pubDate ? item.pubDate.slice(0,10) : "",
