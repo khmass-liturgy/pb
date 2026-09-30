@@ -1404,8 +1404,12 @@ function vaccineSameAge(a, b){
 // 사라지지 않는다(행 추가·삭제 직전에 syncVaccineDraftFields()로 DOM→상태에
 // 옮겨 담는다). rowEditIndex는 draftSchedule 중 지금 수정 중인 행의 인덱스
 // (null이면 새 행 추가 모드).
+// draftRowLink: 백신명 칸 옆 "🔍 검색"으로 고른 제품의 QIA 상세페이지 링크를
+// 임시로 들고 있다가, 항목을 추가·수정할 때 그 행에 같이 저장한다(직접
+// 타이핑한 백신명에는 링크가 없다). 행을 편집할 때는 그 행에 이미 저장된
+// 링크로 다시 채운다.
 let vaccineTabState = { species: "broiler", openKey: null, adminOpen: false, formKey: undefined,
-  draftTitle: "", draftDesc: "", draftCaution: "", draftSchedule: [], rowEditIndex: null };
+  draftTitle: "", draftDesc: "", draftCaution: "", draftSchedule: [], rowEditIndex: null, draftRowLink: "" };
 
 function resetVaccineForm(editing){
   vaccineTabState.draftTitle = editing ? editing.title : "";
@@ -1413,6 +1417,7 @@ function resetVaccineForm(editing){
   vaccineTabState.draftCaution = editing ? (editing.caution || "") : "";
   vaccineTabState.draftSchedule = editing ? sortVaccineSchedule(editing.schedule) : [];
   vaccineTabState.rowEditIndex = null;
+  vaccineTabState.draftRowLink = "";
 }
 
 function syncVaccineDraftFields(){
@@ -1518,7 +1523,7 @@ function renderVaccinePanel(){
           <tbody>
             ${sortVaccineSchedule(p.schedule).map(r => `<tr style="border-bottom:1px solid #f2f2f2">
               <td style="padding:10px 12px;font-size:22px;font-weight:800;color:#3949AB;white-space:nowrap">${esc(r.age)}</td>
-              <td style="padding:10px 12px;font-size:20px;font-weight:700;color:#333">${esc(r.vaccine)}</td>
+              <td style="padding:10px 12px;font-size:20px;font-weight:700;color:#333">${r.link ? `<a href="${esc(r.link)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">${esc(r.vaccine)} ↗</a>` : esc(r.vaccine)}</td>
               <td style="padding:10px 12px;font-size:16px;color:#444">${esc(r.method||"-")}</td>
               <td style="padding:10px 12px;font-size:15px;color:#777">${esc(r.note||"-")}</td>
             </tr>`).join("")}
@@ -6482,13 +6487,23 @@ let studyNavState = { deckKey: null, cardIndex: 0, flipped: false, adminOpen: fa
 // 관리(추가/편집) 폼에 넣을 값 — null이면 새로 추가하는 중, 객체면 그 항목을 편집 중.
 // 프로그램 단계는 "제목|설명" 한 줄씩 textarea로 입력받아 저장할 때 배열로 바꾼다
 // (동적 행 추가 UI보다 훨씬 간단하면서도, 몇 단계든 자유롭게 넣고 뺄 수 있다).
+// "🔍 약품·백신 검색해서 줄 추가"로 고른 제품은 링크(QIA 상세페이지)도 함께
+// 저장한다 — 형식은 "제목|(링크|)설명"으로, 설명 앞에 URL과 그 뒤 "|"가 바로
+// 붙어 있으면 링크로 보고 떼어낸다(옛날에 저장된 "제목|설명" 두 칸짜리 줄은
+// 이 패턴이 없으니 그대로 설명으로 읽혀 하위호환된다).
 function treatmentProgramToText(program){
-  return (program||[]).map(s => `${s.step}|${s.detail}`).join("\n");
+  return (program||[]).map(s => `${s.step}|${s.link ? s.link + "|" : ""}${s.detail}`).join("\n");
 }
 function treatmentProgramFromText(text){
   return String(text||"").split("\n").map(l=>l.trim()).filter(Boolean).map(line=>{
     const idx = line.indexOf("|");
-    return idx===-1 ? { step: line, detail: "" } : { step: line.slice(0,idx).trim(), detail: line.slice(idx+1).trim() };
+    if(idx===-1) return { step: line, detail: "", link: "" };
+    const step = line.slice(0,idx).trim();
+    let rest = line.slice(idx+1);
+    let link = "";
+    const m = rest.match(/^(https?:\/\/[^\s|]+)\|/);
+    if(m){ link = m[1]; rest = rest.slice(m[0].length); }
+    return { step, detail: rest.trim(), link };
   }).filter(s=>s.step);
 }
 
@@ -6752,7 +6767,7 @@ function renderTreatmentPanel(){
       <div style="margin-top:12px;padding-top:12px;border-top:1px dashed #eee">
         ${p.program.map(s => `
         <div style="margin-bottom:9px">
-          <div style="font-size:12.5px;font-weight:700;color:#C62828">${esc(s.step)}</div>
+          <div style="font-size:12.5px;font-weight:700;color:#C62828">${s.link ? `<a href="${esc(s.link)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">${esc(s.step)} ↗</a>` : esc(s.step)}</div>
           <div style="font-size:12.5px;color:#444;line-height:1.6;margin-top:2px">${esc(s.detail)}</div>
         </div>`).join("")}
         <div style="font-size:11px;color:#8D6E00;background:#FFF8E1;border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.6">⚠️ ${esc(p.caution)}</div>
@@ -6846,13 +6861,13 @@ function renderSeasonalPanel(){
         <div style="font-size:11.5px;font-weight:700;color:#795548;margin-bottom:6px">💊 투약(백신) 사항</div>
         ${p.medication.length ? p.medication.map(s => `
         <div style="margin-bottom:9px">
-          <div style="font-size:12.5px;font-weight:700;color:#333">${esc(s.step)}</div>
+          <div style="font-size:12.5px;font-weight:700;color:#333">${s.link ? `<a href="${esc(s.link)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">${esc(s.step)} ↗</a>` : esc(s.step)}</div>
           <div style="font-size:12.5px;color:#444;line-height:1.6;margin-top:2px">${esc(s.detail)}</div>
         </div>`).join("") : `<div style="font-size:12px;color:#aaa;margin-bottom:9px">등록된 내용이 없습니다.</div>`}
         <div style="font-size:11.5px;font-weight:700;color:#795548;margin:12px 0 6px">🌾 사양관리 주의사항</div>
         ${p.husbandry.length ? p.husbandry.map(s => `
         <div style="margin-bottom:9px">
-          <div style="font-size:12.5px;font-weight:700;color:#333">${esc(s.step)}</div>
+          <div style="font-size:12.5px;font-weight:700;color:#333">${s.link ? `<a href="${esc(s.link)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">${esc(s.step)} ↗</a>` : esc(s.step)}</div>
           <div style="font-size:12.5px;color:#444;line-height:1.6;margin-top:2px">${esc(s.detail)}</div>
         </div>`).join("") : `<div style="font-size:12px;color:#aaa">등록된 내용이 없습니다.</div>`}
       </div>` : ""}
@@ -7559,7 +7574,7 @@ function renderFarmFinderPanel(){
         <div style="font-size:11.5px;font-weight:700;color:#666;margin-bottom:5px">추천 처방(투약) 프로그램</div>
         ${(c.program||[]).map(s => `
         <div style="margin-bottom:9px">
-          <div style="font-size:12.5px;font-weight:700;color:#333">${esc(s.step)}</div>
+          <div style="font-size:12.5px;font-weight:700;color:#333">${s.link ? `<a href="${esc(s.link)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">${esc(s.step)} ↗</a>` : esc(s.step)}</div>
           <div style="font-size:12.5px;color:#444;line-height:1.6;margin-top:2px">${esc(s.detail)}</div>
         </div>`).join("")}
         ${c.caution ? `<div style="font-size:11px;color:#8D6E00;background:#FFF8E1;border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.6">⚠️ ${esc(c.caution)}</div>` : ""}
@@ -13579,15 +13594,16 @@ function attachEvents(){
   if(treatmentCancelBtn) treatmentCancelBtn.onclick = ()=>{ treatmentTabState.formKey = undefined; render(); };
 
   // 투약 프로그램 입력칸 아래 "🔍 약품·백신 검색해서 줄 추가" — 약품조회와 같은
-  // QIA 실시간 검색으로 정확한 제품명을 찾아 새 줄로 넣어준다. 그 뒤 "|" 뒤에
-  // 용법·용량 설명만 이어서 입력하면 된다.
+  // QIA 실시간 검색으로 정확한 제품명을 찾아 새 줄로 넣어준다(제품에 QIA 상세
+  // 페이지 링크가 있으면 같이 넣어 뒀다가, 발행 후 화면에서 제목을 누르면 그
+  // 페이지로 바로 가게 한다). 그 뒤 "|" 뒤에 용법·용량 설명만 이어서 입력하면 된다.
   const treatmentProgramDrugSearchBtn = document.getElementById("tp-program-drug-search");
   if(treatmentProgramDrugSearchBtn) treatmentProgramDrugSearchBtn.onclick = ()=>{
     openDrugPicker((r)=>{
       const ta = document.getElementById("tp-program");
       if(!ta) return;
       const prefix = ta.value && !ta.value.endsWith("\n") ? "\n" : "";
-      ta.value += prefix + r.제품명 + "|";
+      ta.value += prefix + r.제품명 + "|" + (r.링크 ? r.링크 + "|" : "");
       ta.focus();
       ta.setSelectionRange(ta.value.length, ta.value.length);
     });
@@ -13604,7 +13620,7 @@ function attachEvents(){
         const ta = document.getElementById(taId);
         if(!ta) return;
         const prefix = ta.value && !ta.value.endsWith("\n") ? "\n" : "";
-        ta.value += prefix + r.제품명 + "|";
+        ta.value += prefix + r.제품명 + "|" + (r.링크 ? r.링크 + "|" : "");
         ta.focus();
         ta.setSelectionRange(ta.value.length, ta.value.length);
       });
@@ -13917,11 +13933,14 @@ function attachEvents(){
 
   // 백신명 입력칸 옆 "🔍 검색" — 약품조회와 같은 QIA 실시간 검색으로 정확한
   // 제품명을 찾아 그대로 채워 넣는다(직접 타이핑하다 생기는 오탈자 방지).
+  // 고른 제품에 QIA 상세페이지 링크가 있으면 draftRowLink에 잠깐 담아뒀다가
+  // "+ 항목 추가"를 누를 때 그 행에 같이 저장한다.
   const vaccineRowVaccineSearchBtn = document.getElementById("vp-row-vaccine-search");
   if(vaccineRowVaccineSearchBtn) vaccineRowVaccineSearchBtn.onclick = ()=>{
     openDrugPicker((r)=>{
       const input = document.getElementById("vp-row-vaccine");
       if(input) input.value = r.제품명;
+      vaccineTabState.draftRowLink = r.링크 || "";
     });
   };
 
@@ -13932,18 +13951,20 @@ function attachEvents(){
     const vaccine = (document.getElementById("vp-row-vaccine")?.value || "").trim();
     const method = (document.getElementById("vp-row-method")?.value || "").trim();
     const note = (document.getElementById("vp-row-note")?.value || "").trim();
+    const link = vaccineTabState.draftRowLink || "";
     if(!age || !vaccine){ alert("일령과 백신명을 입력하세요."); return; }
     syncVaccineDraftFields();
     const rows = vaccineTabState.draftSchedule.slice();
     if(vaccineTabState.rowEditIndex != null){
-      rows[vaccineTabState.rowEditIndex] = { age, vaccine, method, note };
+      rows[vaccineTabState.rowEditIndex] = { age, vaccine, method, note, link };
     } else {
-      rows.push({ age, vaccine, method, note });
+      rows.push({ age, vaccine, method, note, link });
     }
     // 추가·수정할 때마다 일령 순으로 다시 세운다(같은 일령끼리는 기존 순서 유지 —
     // 새 항목은 같은 일령 중 맨 뒤로 간다).
     vaccineTabState.draftSchedule = sortVaccineSchedule(rows);
     vaccineTabState.rowEditIndex = null;
+    vaccineTabState.draftRowLink = "";
     render();
   };
   document.querySelectorAll(".vp-row-up-btn").forEach(b=>b.onclick=()=>{
@@ -13972,7 +13993,9 @@ function attachEvents(){
   });
   document.querySelectorAll(".vp-row-edit-btn").forEach(b=>b.onclick=()=>{
     syncVaccineDraftFields();
-    vaccineTabState.rowEditIndex = Number(b.dataset.idx);
+    const idx = Number(b.dataset.idx);
+    vaccineTabState.rowEditIndex = idx;
+    vaccineTabState.draftRowLink = (vaccineTabState.draftSchedule[idx] && vaccineTabState.draftSchedule[idx].link) || "";
     render();
   });
   document.querySelectorAll(".vp-row-del-btn").forEach(b=>b.onclick=()=>{
@@ -13987,6 +14010,7 @@ function attachEvents(){
   if(vaccineRowCancelBtn) vaccineRowCancelBtn.onclick = ()=>{
     syncVaccineDraftFields();
     vaccineTabState.rowEditIndex = null;
+    vaccineTabState.draftRowLink = "";
     render();
   };
 
