@@ -46,9 +46,13 @@ Two pieces are **not** static, both Firebase, both under the 유료서비스 tab
   of the same name used by `fetch_research_papers.py`; set with
   `firebase functions:secrets:set ANTHROPIC_API_KEY --project chicken-dx`).
   It also holds read proxies for Storage JSON (`getPremiumContent`, `getPublicContent`,
-  `getApprovedMembers`, `getFeatureRequests`, `getBoardPosts`): the browser can't `fetch()` a
-  Storage download URL cross-origin (no CORS headers on the redirect), so reads go through
-  functions while writes still go straight from the client SDK under `storage.rules`.
+  `getApprovedMembers`, `getMemberProfiles`, `getSmsSubscriptions`, `getFeatureRequests`,
+  `getBoardPosts`): the browser can't `fetch()` a private Storage file's download URL
+  cross-origin (the served response is a redirect without CORS headers), so reads go through
+  functions while writes still go straight from the client SDK under `storage.rules`. Don't add
+  new client-side `getDownloadURL()`+`fetch()` reads of JSON — that pattern "saves but vanishes
+  on reload" (it's what broke 회원관리 names and 자동 문자 발송 신청 until they were moved to
+  functions). `<img src>` with a download URL is fine.
 - `storage.rules` guards Firebase Storage, used for two things that can't go through the
   public-GitHub-commit pattern below because the data is private, not public content:
   - the 온라인 진단/상담/컨설팅 boards (`PREMIUM_BOARDS` in index.html) store member-submitted

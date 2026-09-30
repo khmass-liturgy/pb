@@ -1829,17 +1829,19 @@ async function deleteMemberProfile(email){
 }
 // 회원관리 화면을 열 때만 필요한 데이터라(다른 화면·비관리자는 볼 일이
 // 없다) premiumState.members처럼 항상 불러오지 않고 그때 한 번만 가져온다.
+// 읽기는 Cloud Function(getMemberProfiles)을 거친다 — 브라우저에서 비공개
+// 파일을 직접 읽으면 CORS로 막혀, 저장은 되는데 새로고침하면 이름이 사라져
+// 보이던 문제가 있었다.
 async function fetchMemberProfiles(){
   if(memberProfilesState.status === "loading") return;
   memberProfilesState.status = "loading";
   try {
-    const listing = await withStorageTimeout(firebase.storage().ref("premium_members").listAll());
-    const data = {};
-    for(const emailPrefix of listing.prefixes){
-      const profile = await readBoardJson(emailPrefix.child("info.json"));
-      if(profile) data[emailPrefix.name] = profile;
-    }
-    memberProfilesState.data = data;
+    const fn = firebase.app().functions().httpsCallable("getMemberProfiles");
+    const res = await withStorageTimeout(fn({}), 15000);
+    const fetched = (res.data && res.data.profiles) || {};
+    // 불러오는 동안 이 화면에서 저장한 게 있으면(writeMemberProfile이 data에
+    // 먼저 넣어둔다) 그쪽이 더 최신이라 위에 덮는다.
+    memberProfilesState.data = Object.assign({}, fetched, memberProfilesState.data);
     memberProfilesState.status = "done";
   } catch(e){
     console.warn("회원 개인정보 목록 로딩 실패:", e);
@@ -2275,13 +2277,21 @@ function smsSubscriptionPath(uid){
 
 let smsSubState = { status:"idle", data:null, busy:false, msg:"" };
 
+// 읽기는 Cloud Function(getSmsSubscriptions)을 거친다 — 브라우저에서 비공개
+// 파일을 직접 읽으면 CORS로 막혀, 저장한 신청이 새로고침하면 안 보였다.
 async function fetchMySmsSubscription(){
   const user = premiumState.user;
   if(!user) return;
   smsSubState.status = "loading";
-  const data = await readBoardJson(firebase.storage().ref(smsSubscriptionPath(user.uid)));
-  smsSubState.data = data || { menu:"", interval:"", phone:"", active:false };
-  smsSubState.status = "done";
+  try {
+    const fn = firebase.app().functions().httpsCallable("getSmsSubscriptions");
+    const res = await withStorageTimeout(fn({}), 15000);
+    smsSubState.data = (res.data && res.data.mine) || { menu:"", interval:"", phone:"", active:false };
+    smsSubState.status = "done";
+  } catch(e){
+    console.warn("문자 발송 신청 설정 로딩 실패:", e);
+    smsSubState.status = "error";
+  }
   if(premiumState.view === "smssub") render();
 }
 
@@ -2306,9 +2316,8 @@ async function saveMySmsSubscription(cfg){
 
 // ── 자동 문자 발송 관리 (관리자 전용) ─────────────────────────────────────────
 // premium_board/sms_sub 아래 모든 회원의 구독 설정을 훑어 "다음 발송일이
-// 지난" 대상만 골라 보여준다. isAdmin()은 premium_board/{boardType} 레벨의
-// list를 허용하므로 관리자는 전체 uid 목록을 볼 수 있다(회원 본인은 자기
-// 것만 list 가능).
+// 지난" 대상만 골라 보여준다. 전체 목록은 getSmsSubscriptions({all:true})가
+// 관리자에게만 준다.
 let smsAdminState = { status:"idle", list:[], busy:false, msg:"" };
 
 function smsNextDueDate(cfg){
@@ -2324,14 +2333,10 @@ function smsIsDue(cfg){
 async function fetchAllSmsSubscriptions(){
   smsAdminState.status = "loading";
   try {
-    const listing = await withStorageTimeout(firebase.storage().ref("premium_board/sms_sub").listAll());
-    const out = [];
-    for(const uidPrefix of listing.prefixes){
-      const cfg = await readBoardJson(uidPrefix.child("settings/config.json"));
-      if(cfg && cfg.active && cfg.menu && cfg.interval && cfg.phone){
-        out.push(Object.assign({ uid: uidPrefix.name }, cfg));
-      }
-    }
+    const fn = firebase.app().functions().httpsCallable("getSmsSubscriptions");
+    const res = await withStorageTimeout(fn({ all:true }), 15000);
+    const out = ((res.data && res.data.list) || [])
+      .filter(cfg => cfg.active && cfg.menu && cfg.interval && cfg.phone);
     out.sort((a,b) => smsIsDue(b) - smsIsDue(a));
     smsAdminState.list = out;
     smsAdminState.status = "done";
@@ -3177,38 +3182,11 @@ function withStorageTimeout(promise, ms){
   ]);
 }
 
-// getDownloadURL()이 주는 URL은 storage.rules가 요구하는 로그인 정보
-// (request.auth)를 같이 실어 보내야 통과한다 — 그냥 fetch(url)만 하면
-// 익명 요청이 되어, 관리자든 승인회원이든 rules가 request.auth != null을
-// 요구하는 모든 파일(premium_content, feature_requests 등)에서 항상 403이
-// 난다(다운로드 토큰 자체가 rules를 우회해주지 않는다). Firebase Storage도
-// 다른 구글 클라우드 REST API처럼 표준 OAuth 방식인
-// "Authorization: Bearer <ID 토큰>" 헤더로 인증한다.
-async function authedStorageFetch(url){
-  const headers = {};
-  const user = firebase.auth().currentUser;
-  if(user){
-    try { headers.Authorization = "Bearer " + await user.getIdToken(); } catch(e){}
-  }
-  return fetch(url, { headers });
-}
-
-// Storage 참조가 가리키는 JSON 파일을 읽는다. 파일이 아직 없으면(답변 전
-// reply.json 등) null — 에러로 취급하지 않는다.
-async function readBoardJson(ref){
-  try {
-    const url = await withStorageTimeout(ref.getDownloadURL());
-    const resp = await authedStorageFetch(url);
-    if(!resp.ok){
-      console.warn("readBoardJson 실패:", ref.fullPath, "HTTP", resp.status, await resp.text().catch(()=>"" ));
-      return null;
-    }
-    return await resp.json();
-  } catch(e){
-    console.warn("readBoardJson 예외:", ref.fullPath, e);
-    return null;
-  }
-}
+// ※ 비공개 Storage 파일(JSON)을 브라우저에서 getDownloadURL()+fetch()로 직접
+// 읽지 말 것 — 아래 설명대로 CORS로 막혀서, 저장은 되는데 다시 읽으면 빈 값처럼
+// 보인다(회원 이름·문자 발송 신청이 새로고침하면 사라져 보이던 원인). 읽기는
+// 항상 Cloud Function(functions/index.js의 get*)을 거친다. 이미지는 <img src>로
+// 쓰면 CORS와 무관해 다운로드 URL을 그대로 써도 된다.
 
 // premium_content/{dataset}/latest.json 공용 읽기/쓰기 — storage.rules에서
 // 승인된 회원+관리자만 읽고, 관리자만 쓸 수 있다(예전엔 공개 GitHub
@@ -3218,8 +3196,8 @@ async function readBoardJson(ref){
 // 내용을 storage.googleapis.com 서명 URL로 리다이렉트하는데 그 응답엔
 // CORS 허용 헤더가 없어 브라우저가 항상 막는다(클라이언트 코드로 우회
 // 불가능한 브라우저 CORS 정책 자체의 한계) — 그래서 서버(Cloud Function
-// getPremiumContent, functions/index.js)에 맡긴다. readBoardJson과 달리
-// 실패를 삼키지 않고 그대로 던진다 — 각 fetch*Packages()가 상태를 error로
+// getPremiumContent, functions/index.js)에 맡긴다. 실패를 삼키지 않고
+// 그대로 던진다 — 각 fetch*Packages()가 상태를 error로
 // 표시할 수 있어야 하므로.
 function premiumContentPath(dataset){
   return "premium_content/" + dataset + "/latest.json";
@@ -3333,7 +3311,7 @@ async function submitBoardReply(boardType, uid, postId, text){
 }
 
 // 본인이 쓴 글 목록(회원용) — premium_board/{boardType}/{내 uid}/ 아래를
-// 나열한다. post.json·reply.json은 (readBoardJson 주석에 적은 이유로)
+// 나열한다. post.json·reply.json은 (premium_content 읽기 주석에 적은 이유로)
 // 클라이언트 fetch()로는 CORS 때문에 못 읽으므로 서버(Cloud Function
 // getBoardPosts, functions/index.js)에 맡긴다. 사진(photos/*)은 <img
 // src>로 그대로 쓰는데, <img>는 fetch()와 달리 CORS 없이도 렌더링되므로
@@ -6479,6 +6457,7 @@ function renderMemberManagePanel(){
 
   const members = premiumState.members || [];
   const profilesLoading = memberProfilesState.status === "idle" || memberProfilesState.status === "loading";
+  const profilesFailed = memberProfilesState.status === "error";
   const today = new Date().toISOString().slice(0,10);
   const rows = members.length ? members.map(m => {
     const profile = memberProfile(m.email);
@@ -6490,8 +6469,8 @@ function renderMemberManagePanel(){
     <div class="card" style="padding:14px 16px;margin-bottom:8px;border-left:4px solid ${statusLabel.color}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
         <div style="min-width:0">
-          <div style="font-size:13.5px;font-weight:800;color:#333">${profilesLoading?"⏳ 개인정보 불러오는 중...":esc(profile.name||"(이름 미입력)")} <span style="font-size:11px;color:#888;font-weight:400">${esc(m.email)}</span></div>
-          <div style="font-size:11.5px;color:#666;margin-top:3px">${profilesLoading?"":`📞 ${esc(profile.phone||"-")} · 가입 ${esc(profile.joined||"-")}`}</div>
+          <div style="font-size:13.5px;font-weight:800;color:#333">${profilesLoading?"⏳ 개인정보 불러오는 중...":profilesFailed?"(개인정보 불러오기 실패)":esc(profile.name||"(이름 미입력)")} <span style="font-size:11px;color:#888;font-weight:400">${esc(m.email)}</span></div>
+          <div style="font-size:11.5px;color:#666;margin-top:3px">${(profilesLoading||profilesFailed)?"":`📞 ${esc(profile.phone||"-")} · 가입 ${esc(profile.joined||"-")}`}</div>
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
           <span style="font-size:10.5px;color:${statusLabel.color};background:${statusLabel.bg};border-radius:6px;padding:3px 8px;font-weight:700;white-space:nowrap">${statusLabel.text}</span>
@@ -6558,10 +6537,17 @@ function renderMemberManagePanel(){
       </div>
     </div>` : "";
 
+  const profilesFailedNotice = profilesFailed ? `
+  <div style="background:#FFEBEE;border:1px solid #F5C6C6;border-radius:8px;padding:9px 12px;margin-bottom:10px;font-size:11.5px;color:#C62828;line-height:1.6">
+    ⚠️ 이름·전화번호·가입일을 불러오지 못했습니다. 이 상태에서 기존 회원을 수정하면 빈 칸으로 덮어쓰게 되어 수정을 막아두었습니다.
+    <button id="member-profiles-retry" style="margin-left:6px;border:1px solid #C62828;border-radius:6px;background:#fff;color:#C62828;padding:3px 9px;font-size:11px;font-weight:700">다시 불러오기</button>
+  </div>` : "";
+
   return head + `
   ${addBtn}
   ${form}
   ${memberMgmtState.msg?`<div style="font-size:11px;margin-bottom:10px;color:${/실패|오류|없/.test(memberMgmtState.msg)?"#C62828":"#2E7D32"}">${esc(memberMgmtState.msg)}</div>`:""}
+  ${profilesFailedNotice}
   ${rows}
   <div style="font-size:9px;color:#aaa;line-height:1.6;margin-top:10px">
     ※ 비밀번호는 여기서 관리하지 않습니다 — Firebase 콘솔(Authentication → Users)에서 계정을 만들 때 함께 설정하세요.
@@ -6988,6 +6974,13 @@ function renderSmsSubPanel(){
   const st = smsSubState;
   if(st.status === "idle" || st.status === "loading"){
     return head + `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⏳ 신청 현황을 불러오는 중...</div>`;
+  }
+  if(st.status === "error"){
+    return head + `
+    <div class="card" style="text-align:center;padding:32px 16px">
+      <div style="font-size:13px;color:#C62828;margin-bottom:12px">⚠️ 신청 현황을 불러오지 못했습니다.</div>
+      <button id="smssub-retry" style="border:1px solid #0277BD;border-radius:8px;background:#0277BD;color:#fff;padding:8px 16px;font-size:12px;font-weight:700">다시 불러오기</button>
+    </div>`;
   }
   const cfg = st.data || {};
 
@@ -14125,6 +14118,8 @@ function attachEvents(){
   // 자동 문자 발송 신청 (회원용)
   const smssubBackBtn = document.getElementById("smssub-back-btn");
   if(smssubBackBtn) smssubBackBtn.onclick = ()=>{ premiumState.view = "menu"; render(); };
+  const smssubRetry = document.getElementById("smssub-retry");
+  if(smssubRetry) smssubRetry.onclick = ()=>{ smsSubState.status = "idle"; render(); };
   document.querySelectorAll(".smssub-menu-btn").forEach(b=>b.onclick=()=>{
     if(!smsSubState.data) smsSubState.data = {};
     smsSubState.data.menu = b.dataset.menu;
@@ -14947,11 +14942,22 @@ function attachEvents(){
     render();
   };
   document.querySelectorAll(".member-edit-btn").forEach(b=>b.onclick=()=>{
+    // 편집폼은 기존 이름·전화번호·가입일을 채워서 열고, 저장하면 그 값으로
+    // 통째로 덮어쓴다 — 아직 못 불러온 상태로 열면 빈 칸이 채워져 저장 시 기존
+    // 정보가 지워진다.
+    if(memberProfilesState.status !== "done"){
+      alert(memberProfilesState.status === "error"
+        ? "이름·전화번호를 불러오지 못해 수정할 수 없습니다. '다시 불러오기'를 눌러주세요."
+        : "이름·전화번호를 불러오는 중입니다. 잠시 후 다시 눌러주세요.");
+      return;
+    }
     memberMgmtState.formOpen = true;
     memberMgmtState.editEmail = b.dataset.email;
     memberMgmtState.msg = "";
     render();
   });
+  const memberProfilesRetry = document.getElementById("member-profiles-retry");
+  if(memberProfilesRetry) memberProfilesRetry.onclick = ()=>{ memberProfilesState.status = "idle"; fetchMemberProfiles(); render(); };
   document.querySelectorAll(".member-del-btn").forEach(b=>b.onclick=async ()=>{
     // 계정 삭제(되돌릴 수 없음)부터 하므로, 명부 저장이 막힐 상태면 시작도 하지 않는다.
     if(premiumState.status !== "done"){ alert("회원 명부를 아직 불러오지 못했습니다. '다시 불러오기' 후 시도하세요."); return; }
@@ -15012,6 +15018,9 @@ function attachEvents(){
   if(memberSaveBtn) memberSaveBtn.onclick = async ()=>{
     // 새 회원이면 Firebase 계정부터 만드므로, 명부 저장이 막힐 상태면 시작도 하지 않는다.
     if(premiumState.status !== "done"){ alert("회원 명부를 아직 불러오지 못했습니다. '다시 불러오기' 후 시도하세요."); return; }
+    // 기존 회원 수정은 이름·전화번호·가입일을 통째로 덮어쓰므로, 그 값을 제대로
+    // 불러온 상태에서만 허용한다(편집 버튼에서도 막지만 한 번 더 확인).
+    if(memberMgmtState.editEmail && memberProfilesState.status !== "done"){ alert("이름·전화번호를 아직 불러오지 못했습니다. '다시 불러오기' 후 시도하세요."); return; }
     const emailInput = document.getElementById("mm-email");
     const email = (emailInput?.value || "").trim().toLowerCase();
     const name = (document.getElementById("mm-name")?.value || "").trim();

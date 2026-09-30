@@ -212,6 +212,53 @@ exports.getApprovedMembers = onCall(async (request) => {
   return { members: members.filter((m) => String(m.email || "").toLowerCase().trim() === me) };
 });
 
+async function readJsonFile(file) {
+  try {
+    const [buf] = await file.download();
+    return JSON.parse(buf.toString("utf-8"));
+  } catch (e) {
+    return null; // 깨진 파일 하나 때문에 목록 전체가 실패하지 않게 건너뛴다
+  }
+}
+
+// 회원관리 화면의 이름·전화번호·가입일(premium_members/{email}/info.json) —
+// 관리자 전용. 쓰기는 브라우저가 직접 하지만, 읽기는 위와 같은 CORS 이유로
+// 브라우저에서 막히므로 대신 읽어준다. { profiles: { email: {name,phone,joined} } }
+exports.getMemberProfiles = onCall(async (request) => {
+  assertAdmin(request);
+  const bucket = admin.storage().bucket(STORAGE_BUCKET);
+  const [files] = await bucket.getFiles({ prefix: "premium_members/" });
+  const profiles = {};
+  await Promise.all(files.filter((f) => f.name.endsWith("/info.json")).map(async (f) => {
+    const email = f.name.slice("premium_members/".length, -"/info.json".length);
+    const profile = await readJsonFile(f);
+    if (profile) profiles[email] = profile;
+  }));
+  return { profiles };
+});
+
+// 자동 문자 발송 신청 설정(premium_board/sms_sub/{uid}/settings/config.json).
+// 기본은 호출한 회원 본인 설정만({ mine }), 관리자가 all:true로 부르면 전체
+// 신청자 목록({ list })을 준다 — 발송관리 화면용.
+exports.getSmsSubscriptions = onCall(async (request) => {
+  const uid = request.auth && request.auth.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
+  const bucket = admin.storage().bucket(STORAGE_BUCKET);
+  if (request.data && request.data.all) {
+    assertAdmin(request);
+    const [files] = await bucket.getFiles({ prefix: "premium_board/sms_sub/" });
+    const list = [];
+    await Promise.all(files.filter((f) => f.name.endsWith("/settings/config.json")).map(async (f) => {
+      const cfg = await readJsonFile(f);
+      if (cfg) list.push(Object.assign({ uid: f.name.split("/")[2] }, cfg));
+    }));
+    return { list };
+  }
+  const file = bucket.file("premium_board/sms_sub/" + uid + "/settings/config.json");
+  const [exists] = await file.exists();
+  return { mine: exists ? await readJsonFile(file) : null };
+});
+
 // 관리 화면의 AI 초안 두 가지 — "농장에서 많이 궁금해 하는 질문"(faq) 답변과
 // "최수의사의 온라인 학습"(card) 카드 뒷면. 초안은 수의사가 검토·수정한 뒤에만
 // 발행되므로(index.html은 폼에 채워 넣기만 하고 발행하지 않는다) 여기서는 문체와
