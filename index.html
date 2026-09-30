@@ -1635,7 +1635,24 @@ const NEW_PRODUCT_DECKS = [
 ];
 
 let newProductState = { status:"idle", data:null, busy:false, msg:"" };
-let newProductNavState = { deckKey:null, cardIndex:0, flipped:false, adminOpen:false, formId:undefined, file:null, previewUrl:"", draftName:"", draftInfo:"" };
+// files/previewUrls: 사진은 최대 10장까지, 선택 즉시 미리보기(objectURL)만
+// 만들고 실제 업로드는 발행(newproduct-save-btn) 시점에 한다. draftName/
+// draftInfo는 사진 선택·삭제처럼 폼을 다시 그리는 동작 때마다(syncNewProductDraftFields로)
+// DOM에서 옮겨 담아, 입력해둔 값이 안 날아가게 한다. imgIndex는 뷰어에서 지금
+// 보고 있는 사진 번호(제품을 넘기면 0으로 되돌아간다).
+let newProductNavState = { deckKey:null, cardIndex:0, imgIndex:0, flipped:false, adminOpen:false, formId:undefined, files:[], previewUrls:[], draftName:"", draftInfo:"" };
+
+function syncNewProductDraftFields(){
+  newProductNavState.draftName = (document.getElementById("newproduct-name-input")?.value || "");
+  newProductNavState.draftInfo = (document.getElementById("newproduct-info-input")?.value || "");
+}
+
+// 이 기능 초기 버전(단일 사진 imageUrl)으로 이미 등록된 제품도 여전히 사진이
+// 보이도록, 새 형식(imageUrls 배열)이 없으면 예전 필드로 대신 채운다.
+function newProductItemImages(it){
+  if(Array.isArray(it.imageUrls) && it.imageUrls.length) return it.imageUrls;
+  return it.imageUrl ? [it.imageUrl] : [];
+}
 
 async function fetchNewProducts(){
   if(newProductState.status === "loading") return;
@@ -1681,7 +1698,7 @@ async function publishNewProducts(items){
 
 function resetNewProductForm(){
   const nav = newProductNavState;
-  nav.formId = undefined; nav.file = null; nav.previewUrl = "";
+  nav.formId = undefined; nav.files = []; nav.previewUrls = [];
   nav.draftName = ""; nav.draftInfo = "";
 }
 
@@ -1722,11 +1739,20 @@ function renderNewProductPanel(){
   const items = newProductsForDeck(nav.deckKey);
   if(nav.cardIndex >= items.length) nav.cardIndex = 0;
   const item = items[nav.cardIndex];
+  const itemImages = item ? newProductItemImages(item) : [];
+  if(nav.imgIndex >= itemImages.length) nav.imgIndex = Math.max(0, itemImages.length-1);
+  const curImage = itemImages[nav.imgIndex];
 
   const viewer = !item ? `<div class="card" style="text-align:center;padding:28px 16px;color:#aaa">아직 등록된 제품이 없습니다.${admin?"":" 곧 추가됩니다."}</div>` : `
   <div style="font-size:11px;color:#888;margin-bottom:8px;text-align:center">제품 ${nav.cardIndex+1} / ${items.length}</div>
   <div id="newproduct-flip-card" style="cursor:pointer;background:${nav.flipped?"linear-gradient(135deg,#FFF8E1,#FFECB3)":"linear-gradient(135deg,#AD1457,#C2185B)"};border:1px solid ${nav.flipped?"#F9D871":"#AD1457"};border-radius:14px;padding:28px 20px;min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,0.12)">
-    ${item.imageUrl ? `<img src="${esc(item.imageUrl)}" style="max-width:100%;max-height:${nav.flipped?"120px":"160px"};border-radius:8px;margin-bottom:12px" />` : ""}
+    ${curImage ? `
+    <div style="position:relative;display:flex;align-items:center;justify-content:center;width:100%;margin-bottom:${itemImages.length>1?"4px":"12px"}">
+      ${itemImages.length>1 ? `<button class="newproduct-img-prev-btn" type="button" ${nav.imgIndex===0?"disabled":""} style="position:absolute;left:2px;width:26px;height:26px;border-radius:50%;border:none;background:rgba(255,255,255,${nav.imgIndex===0?"0.35":"0.85"});color:#333;font-size:15px;font-weight:800;line-height:26px;padding:0;cursor:${nav.imgIndex===0?"default":"pointer"}">‹</button>` : ""}
+      <img src="${esc(curImage)}" style="max-width:78%;max-height:${nav.flipped?"120px":"160px"};border-radius:8px" />
+      ${itemImages.length>1 ? `<button class="newproduct-img-next-btn" type="button" ${nav.imgIndex>=itemImages.length-1?"disabled":""} style="position:absolute;right:2px;width:26px;height:26px;border-radius:50%;border:none;background:rgba(255,255,255,${nav.imgIndex>=itemImages.length-1?"0.35":"0.85"});color:#333;font-size:15px;font-weight:800;line-height:26px;padding:0;cursor:${nav.imgIndex>=itemImages.length-1?"default":"pointer"}">›</button>` : ""}
+    </div>
+    ${itemImages.length>1 ? `<div style="font-size:9.5px;color:${nav.flipped?"#B8860B":"#F3C6D9"};margin-bottom:8px">📷 ${nav.imgIndex+1} / ${itemImages.length}</div>` : ""}` : ""}
     <div style="font-size:${nav.flipped?"14px":"22px"};font-weight:800;color:${nav.flipped?"#5C4400":"#fff"};line-height:1.6;white-space:pre-wrap">${esc(nav.flipped ? (item.info||"") : item.name)}</div>
     <div style="font-size:10.5px;color:${nav.flipped?"#B8860B":"#F3C6D9"};margin-top:14px">${nav.flipped?"다시 눌러 제품명 보기":"눌러서 제품정보 보기"}</div>
   </div>
@@ -1749,9 +1775,20 @@ function renderNewProductPanel(){
     ${nav.adminOpen ? `
     <div style="margin-top:9px;background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">
       <div style="font-size:11px;font-weight:700;color:#7A5C00;margin-bottom:8px">${editing?"제품 수정: "+esc(editing.name):"새 제품 추가"} (${deck.title})</div>
-      <input type="file" accept="image/*" id="newproduct-file-input" style="width:100%;font-size:11.5px;margin-bottom:8px" />
-      ${nav.previewUrl ? `<img src="${esc(nav.previewUrl)}" style="max-width:100%;max-height:160px;border-radius:8px;margin-bottom:8px;display:block" />`
-        : (editing && editing.imageUrl ? `<img src="${esc(editing.imageUrl)}" style="max-width:100%;max-height:160px;border-radius:8px;margin-bottom:8px;display:block" />` : "")}
+      <input type="file" accept="image/*" multiple id="newproduct-file-input" style="width:100%;font-size:11.5px" />
+      <div style="font-size:10px;color:#888;margin:3px 0 8px">사진은 최대 10장까지 올릴 수 있습니다 (${nav.files.length}/10장 선택됨)</div>
+      ${nav.previewUrls.length ? `
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+        ${nav.previewUrls.map((url,i) => `
+        <div style="position:relative">
+          <img src="${esc(url)}" style="width:72px;height:72px;object-fit:cover;border-radius:8px;display:block" />
+          <button class="newproduct-file-remove-btn" data-idx="${i}" title="이 사진 빼기" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:none;background:#C62828;color:#fff;font-size:11px;line-height:20px;padding:0;cursor:pointer">×</button>
+        </div>`).join("")}
+      </div>` : (editing && newProductItemImages(editing).length ? `
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px">
+        ${newProductItemImages(editing).map(url => `<img src="${esc(url)}" style="width:72px;height:72px;object-fit:cover;border-radius:8px" />`).join("")}
+      </div>
+      <div style="font-size:10px;color:#888;margin-bottom:8px">기존 사진 ${newProductItemImages(editing).length}장 유지 중 — 새 사진을 선택하면 전부 교체됩니다</div>` : "")}
       <input type="text" id="newproduct-name-input" value="${esc(nav.draftName)}" placeholder="제품명"
         style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;margin-bottom:8px" />
       <textarea id="newproduct-info-input" placeholder="제조사·효능·특징 등 제품 정보"
@@ -13917,7 +13954,7 @@ function attachEvents(){
   if(newproductBackBtn) newproductBackBtn.onclick = ()=>{ premiumState.view = "menu"; render(); };
   document.querySelectorAll(".newproduct-deck-btn").forEach(b=>b.onclick=()=>{
     newProductNavState.deckKey = b.dataset.key;
-    newProductNavState.cardIndex = 0; newProductNavState.flipped = false;
+    newProductNavState.cardIndex = 0; newProductNavState.imgIndex = 0; newProductNavState.flipped = false;
     resetNewProductForm(); newProductNavState.adminOpen = false; newProductState.msg = "";
     render();
   });
@@ -13930,9 +13967,19 @@ function attachEvents(){
   const newproductFlipCard = document.getElementById("newproduct-flip-card");
   if(newproductFlipCard) newproductFlipCard.onclick = ()=>{ newProductNavState.flipped = !newProductNavState.flipped; render(); };
   const newproductPrevBtn = document.getElementById("newproduct-prev-btn");
-  if(newproductPrevBtn) newproductPrevBtn.onclick = ()=>{ newProductNavState.cardIndex = Math.max(0, newProductNavState.cardIndex-1); newProductNavState.flipped = false; render(); };
+  if(newproductPrevBtn) newproductPrevBtn.onclick = ()=>{ newProductNavState.cardIndex = Math.max(0, newProductNavState.cardIndex-1); newProductNavState.imgIndex = 0; newProductNavState.flipped = false; render(); };
   const newproductNextBtn = document.getElementById("newproduct-next-btn");
-  if(newproductNextBtn) newproductNextBtn.onclick = ()=>{ newProductNavState.cardIndex += 1; newProductNavState.flipped = false; render(); };
+  if(newproductNextBtn) newproductNextBtn.onclick = ()=>{ newProductNavState.cardIndex += 1; newProductNavState.imgIndex = 0; newProductNavState.flipped = false; render(); };
+  document.querySelectorAll(".newproduct-img-prev-btn").forEach(b=>b.onclick=(e)=>{
+    e.stopPropagation();
+    newProductNavState.imgIndex = Math.max(0, newProductNavState.imgIndex - 1);
+    render();
+  });
+  document.querySelectorAll(".newproduct-img-next-btn").forEach(b=>b.onclick=(e)=>{
+    e.stopPropagation();
+    newProductNavState.imgIndex += 1;
+    render();
+  });
   const newproductAdminToggle = document.getElementById("newproduct-admin-toggle");
   if(newproductAdminToggle) newproductAdminToggle.onclick = ()=>{
     const opening = !newProductNavState.adminOpen;
@@ -13948,7 +13995,7 @@ function attachEvents(){
     if(!item) return;
     newProductNavState.adminOpen = true;
     newProductNavState.formId = id;
-    newProductNavState.file = null; newProductNavState.previewUrl = "";
+    newProductNavState.files = []; newProductNavState.previewUrls = [];
     newProductNavState.draftName = item.name || "";
     newProductNavState.draftInfo = item.info || "";
     newProductState.msg = "";
@@ -13965,18 +14012,32 @@ function attachEvents(){
     newProductState.msg = r.ok ? "삭제 완료" : ("삭제 실패: " + r.error);
     if(r.ok){
       newProductNavState.cardIndex = Math.max(0, newProductNavState.cardIndex - 1);
+      newProductNavState.imgIndex = 0;
       if(newProductNavState.formId === id) resetNewProductForm();
     }
     render();
   });
   const newproductFileInput = document.getElementById("newproduct-file-input");
   if(newproductFileInput) newproductFileInput.onchange = ()=>{
-    const file = newproductFileInput.files && newproductFileInput.files[0];
-    if(!file) return;
-    newProductNavState.file = file;
-    newProductNavState.previewUrl = URL.createObjectURL(file);
+    syncNewProductDraftFields();
+    let picked = Array.from(newproductFileInput.files || []);
+    if(picked.length > 10){
+      picked = picked.slice(0, 10);
+      newProductState.msg = "사진은 최대 10장까지만 선택할 수 있어 앞의 10장만 선택했습니다.";
+    } else {
+      newProductState.msg = "";
+    }
+    newProductNavState.files = picked;
+    newProductNavState.previewUrls = picked.map(f => URL.createObjectURL(f));
     render();
   };
+  document.querySelectorAll(".newproduct-file-remove-btn").forEach(b=>b.onclick=()=>{
+    syncNewProductDraftFields();
+    const idx = Number(b.dataset.idx);
+    newProductNavState.files = newProductNavState.files.filter((_,i)=>i!==idx);
+    newProductNavState.previewUrls = newProductNavState.previewUrls.filter((_,i)=>i!==idx);
+    render();
+  });
   const newproductCancelBtn = document.getElementById("newproduct-cancel-btn");
   if(newproductCancelBtn) newproductCancelBtn.onclick = ()=>{
     resetNewProductForm();
@@ -13988,30 +14049,34 @@ function attachEvents(){
   if(newproductSaveBtn) newproductSaveBtn.onclick = async ()=>{
     const name = (document.getElementById("newproduct-name-input")?.value || "").trim();
     const info = (document.getElementById("newproduct-info-input")?.value || "").trim();
-    const file = newProductNavState.file;
+    const files = newProductNavState.files;
     const editId = newProductNavState.formId;
     if(!name){ alert("제품명을 입력하세요."); return; }
     if(!info){ alert("제품 정보를 입력하세요."); return; }
     newProductState.busy = true; newProductState.msg = "발행 중..."; render();
     try {
       const items = currentNewProducts().slice();
-      let imageUrl = "";
+      let imageUrls = [];
       if(editId){
         const cur = items.find(x=>x.id===editId);
-        imageUrl = cur ? (cur.imageUrl || "") : "";
+        imageUrls = cur ? newProductItemImages(cur) : [];
       }
-      if(file){
+      if(files.length){
         const id = editId || newNewProductId();
-        const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g,"") || "jpg";
-        const ref = firebase.storage().ref("premium_content/new_products_images/" + id + "." + ext);
-        await withStorageTimeout(ref.put(file), 30000);
-        imageUrl = await withStorageTimeout(ref.getDownloadURL());
+        imageUrls = [];
+        for(let i=0;i<files.length;i++){
+          const file = files[i];
+          const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g,"") || "jpg";
+          const ref = firebase.storage().ref("premium_content/new_products_images/" + id + "_" + (i+1) + "." + ext);
+          await withStorageTimeout(ref.put(file), 30000);
+          imageUrls.push(await withStorageTimeout(ref.getDownloadURL()));
+        }
       }
       if(editId){
         const idx = items.findIndex(x=>x.id===editId);
-        if(idx>=0) items[idx] = Object.assign({}, items[idx], { name, info, imageUrl });
+        if(idx>=0) items[idx] = Object.assign({}, items[idx], { name, info, imageUrls });
       } else {
-        items.push({ id:newNewProductId(), deck:newProductNavState.deckKey, name, info, imageUrl, createdAt:new Date().toISOString() });
+        items.push({ id:newNewProductId(), deck:newProductNavState.deckKey, name, info, imageUrls, createdAt:new Date().toISOString() });
       }
       const r = await publishNewProducts(items);
       newProductState.busy = false;
