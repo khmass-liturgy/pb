@@ -59,10 +59,11 @@ Two pieces are **not** static, both Firebase, both under the 유료서비스 tab
     needs) is `member_registry/approved.json`, also admin-only; the browser reads it through the
     `getApprovedMembers` Cloud Function, which returns the whole list to admins and only the
     caller's own entry to everyone else. It used to be `premium/approved.json` in this public repo
-    (readable by anyone); `loadApprovedMembers()` still falls back to that file if the Firebase
-    copy doesn't exist yet or the function call fails, so once the first 회원관리 save has landed in
-    Firebase that legacy file should be deleted from the repo (otherwise the fallback can serve a
-    stale list).
+    (readable by anyone) and was deleted once the list had been migrated, so there is no fallback
+    source any more. Because every save rewrites the whole list and Firebase Storage keeps no
+    history, `publishMembers()` and the 회원관리 save/delete handlers refuse to run unless
+    `premiumState.status === "done"` — saving after a failed load would otherwise overwrite the
+    registry with an empty (or one-member) list and silently drop every other member.
   - `premium_content/{dataset}/latest.json` holds the four premium-only datasets (상황별 처방,
     계절별 패키지, 농장 맞춤 찾기, 온라인 자가진단— `treatment_packages`/`seasonal_packages`/
     `farm_finder`/`self_check`). These used to be public GitHub files like everything else in this

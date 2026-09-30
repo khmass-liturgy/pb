@@ -651,9 +651,8 @@ const EGG_REPORT_SOURCE_URL = "https://www.ekapepia.com/v3/board/list.do?menuSn=
 // 유료서비스 승인 명부(이메일·만료일) — Firebase Storage member_registry/approved.json
 // (관리자만 직접 읽기·쓰기). 브라우저는 Cloud Function getApprovedMembers로 읽는다
 // (관리자는 전체, 일반 회원은 본인 항목만). 예전엔 공개 GitHub 저장소의
-// premium/approved.json이었고, Firebase에 첫 발행 전까지는 그 파일을 대신 읽는다.
+// premium/approved.json이었는데, Firebase로 옮긴 뒤 명단 공개를 막으려고 지웠다.
 const MEMBER_REGISTRY_PATH = "member_registry/approved.json";
-const PREMIUM_LEGACY_APPROVED_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/premium/approved.json";
 // 유료서비스 "기술탐구" — 질병논문/사양관리기술/컨설팅도구 최신 논문(PubMed
 // 원문을 Claude API로 번역·요약). scripts/fetch_research_papers.py가 매주
 // 일요일 GitHub Actions로 갱신한다.
@@ -1782,6 +1781,9 @@ function newTreatmentKey(){
 async function publishMembers(members){
   if(!firebaseReady) return { ok:false, error:"Firebase 설정이 아직 완료되지 않았습니다." };
   if(!isBoardAdmin()) return { ok:false, error:"관리자 계정으로 로그인돼 있지 않습니다." };
+  // 명부를 제대로 불러오지 못한 상태(빈 목록)에서 저장하면 그 목록으로 명부 전체를
+  // 덮어써 다른 회원이 모두 지워진다 — Firebase Storage에는 되돌릴 이력이 없어 막는다.
+  if(premiumState.status !== "done") return { ok:false, error:"회원 명부를 아직 불러오지 못해 저장할 수 없습니다 — '다시 불러오기' 후 시도하세요." };
   try {
     const publicMembers = members.map(m => ({ email: m.email, expires: m.expires || "" }));
     const body = {
@@ -2988,21 +2990,9 @@ function isMemberActiveToday(m){
 let premiumApprovedGen = 0;
 
 async function loadApprovedMembers(){
-  try {
-    const fn = firebase.app().functions().httpsCallable("getApprovedMembers");
-    const res = await withStorageTimeout(fn({}), 15000);
-    return (res.data && res.data.members) || [];
-  } catch(e){
-    // Firebase에 명부가 아직 한 번도 발행 안 됐거나(not-found) 함수가 아직 배포 전이면
-    // (internal) 예전 공개 GitHub 명부로 대체한다 — 여기서 실패로 끝내면 유료회원
-    // 전원이 잠겨버린다. 관리자가 회원관리에서 한 번 저장하면 그 목록째로 Firebase에
-    // 옮겨지고, 그 뒤 예전 GitHub 명부 파일은 지워도 된다.
-    console.warn("승인 명부: Firebase에서 못 읽어 예전 GitHub 명부로 대체:", e.code || e.message || e);
-    const resp = await fetchWithTimeout(PREMIUM_LEGACY_APPROVED_JSON_URL + "?t=" + Date.now(), 8000);
-    if(!resp.ok) throw new Error("HTTP " + resp.status);
-    const data = await resp.json();
-    return Array.isArray(data.members) ? data.members : [];
-  }
+  const fn = firebase.app().functions().httpsCallable("getApprovedMembers");
+  const res = await withStorageTimeout(fn({}), 15000);
+  return (res.data && res.data.members) || [];
 }
 
 async function fetchPremiumApproved(){
@@ -6478,6 +6468,14 @@ function renderMemberManagePanel(){
   if(premiumState.status === "idle" || premiumState.status === "loading"){
     return head + `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⏳ 회원 명부를 불러오는 중...</div>`;
   }
+  if(premiumState.status === "error"){
+    return head + `
+    <div class="card" style="text-align:center;padding:32px 16px">
+      <div style="font-size:13px;color:#C62828;font-weight:700;margin-bottom:8px">⚠️ 회원 명부를 불러오지 못했습니다</div>
+      <div style="font-size:11px;color:#888;line-height:1.7;margin-bottom:14px">이 상태에서 저장하면 다른 회원이 명부에서 지워질 수 있어 편집을 막아두었습니다.</div>
+      <button id="btn-premium-retry" style="border:1px solid #37474F;border-radius:8px;background:#37474F;color:#fff;padding:8px 16px;font-size:12px;font-weight:700">다시 불러오기</button>
+    </div>`;
+  }
 
   const members = premiumState.members || [];
   const profilesLoading = memberProfilesState.status === "idle" || memberProfilesState.status === "loading";
@@ -7944,6 +7942,22 @@ function renderPremiumTab(){
   if(premiumState.status === "idle" || premiumState.status === "loading"){
     return renderPremiumGateHeader() + `
     <div class="card" style="text-align:center;padding:32px 16px;color:#aaa">회원 승인 여부 확인 중...</div>`;
+  }
+  // 승인목록을 못 불러옴(네트워크·서버 오류) — 회원에게 "승인 대기"로 잘못 안내하지
+  // 않는다. 관리자는 isPremiumApproved()가 항상 통과라 여기서 막지 않는다(명부
+  // 편집은 renderMemberManagePanel이 따로 막는다).
+  if(premiumState.status === "error" && !isBoardAdmin()){
+    return renderPremiumGateHeader() + `
+    <div class="card" style="text-align:center;padding:32px 16px">
+      <div style="font-size:30px;margin-bottom:10px">⚠️</div>
+      <div class="display" style="font-size:15px;margin-bottom:8px">회원 승인 여부를 확인하지 못했습니다</div>
+      <div style="font-size:12px;color:#888;margin-bottom:6px">${esc(premiumUserLabel())}</div>
+      <div style="font-size:12px;color:#888;line-height:1.7">일시적인 연결 문제일 수 있습니다. 잠시 후 다시 시도해 주세요.</div>
+      <div style="display:flex;gap:8px;justify-content:center;margin-top:18px">
+        <button id="btn-premium-retry" style="border:1px solid #1a2744;border-radius:8px;background:#1a2744;color:#fff;padding:8px 16px;font-size:12px;font-weight:700">다시 시도</button>
+        <button id="btn-premium-logout" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:8px 16px;font-size:12px">로그아웃</button>
+      </div>
+    </div>`;
   }
   // 로그인은 했지만 승인목록에 없음 — 승인 대기
   if(!isPremiumApproved()){
@@ -13284,6 +13298,8 @@ function attachEvents(){
   if(prBtn) prBtn.onclick = premiumResetPassword;
   const poBtn = document.getElementById("btn-premium-logout");
   if(poBtn) poBtn.onclick = premiumSignOut;
+  const prRetry = document.getElementById("btn-premium-retry");
+  if(prRetry) prRetry.onclick = ()=>{ premiumState.status = "idle"; fetchPremiumApproved(); render(); };
 
   // 유료서비스: 메뉴 카드 클릭 → 하위 화면 이동
   document.querySelectorAll(".premium-item-btn").forEach(b=>b.onclick=()=>{
@@ -14937,6 +14953,8 @@ function attachEvents(){
     render();
   });
   document.querySelectorAll(".member-del-btn").forEach(b=>b.onclick=async ()=>{
+    // 계정 삭제(되돌릴 수 없음)부터 하므로, 명부 저장이 막힐 상태면 시작도 하지 않는다.
+    if(premiumState.status !== "done"){ alert("회원 명부를 아직 불러오지 못했습니다. '다시 불러오기' 후 시도하세요."); return; }
     const email = b.dataset.email;
     const m = (premiumState.members||[]).find(x=>x.email===email);
     if(!m || !confirm(`"${memberProfile(email).name||email}" 회원을 삭제할까요?\nFirebase 계정도 함께 지워집니다.`)) return;
@@ -14992,6 +15010,8 @@ function attachEvents(){
   };
   const memberSaveBtn = document.getElementById("mm-save");
   if(memberSaveBtn) memberSaveBtn.onclick = async ()=>{
+    // 새 회원이면 Firebase 계정부터 만드므로, 명부 저장이 막힐 상태면 시작도 하지 않는다.
+    if(premiumState.status !== "done"){ alert("회원 명부를 아직 불러오지 못했습니다. '다시 불러오기' 후 시도하세요."); return; }
     const emailInput = document.getElementById("mm-email");
     const email = (emailInput?.value || "").trim().toLowerCase();
     const name = (document.getElementById("mm-name")?.value || "").trim();
