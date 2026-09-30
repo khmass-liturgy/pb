@@ -1572,6 +1572,7 @@ function renderVaccinePanel(){
           style="flex:1;min-width:90px;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px" />
         <input id="vp-row-vaccine" type="text" placeholder="백신명 (예: 뉴캣슬+전염성기관지염 생백신)" value="${esc(rowEditing?rowEditing.vaccine:"")}"
           style="flex:2;min-width:160px;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px" />
+        <button id="vp-row-vaccine-search" type="button" style="flex:0 0 auto;font-size:11px;border:1px solid #3949AB;border-radius:6px;background:#fff;color:#3949AB;padding:6px 9px;white-space:nowrap">🔍 검색</button>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
         <input id="vp-row-method" type="text" placeholder="방법 (예: 점안, 음수, 피하주사)" value="${esc(rowEditing?rowEditing.method:"")}"
@@ -6327,6 +6328,135 @@ function renderDrugSearchPanel(){
   </div>`;
 }
 
+// ── 약품·백신 검색해서 선택 (상황별 처방·백신관리 프로그램에서 재사용) ─────────
+// 위 약품조회 화면과 같은 QIA 실시간 검색(fetchQiaSearch/qiaFuzzyCandidates/
+// qiaSimilarity/dropExportOnly)을 그대로 가져다 쓰되, 앱 전체를 다시 그리는
+// 전역 render()는 부르지 않는 별도 오버레이로 띄운다 — 상황별 처방·백신
+// 프로그램 관리 폼은 입력 중인 값(제목·일정 등)을 상태로 동기화해두지 않은
+// 채로 DOM에만 있는 경우가 많아서, render()를 다시 부르면 아직 저장 전인
+// 입력이 날아간다. document.body에 직접 붙이고 자체 이벤트만 다시 건다.
+let drugPickerState = { open:false, query:"", status:"idle", rows:[], error:"", onPick:null };
+
+// fuzzySearchDrug()를 그대로 쓰지 않는 이유: 그 함수는 drugState.mode(마지막으로
+// 약품조회 화면에서 고른 검색 기준)로 유사도 채점 기준을 정하는데, 여기서는
+// 항상 제품명 기준으로 검색하므로 그 전역 상태에 기대지 않는 별도 버전을 둔다.
+async function fuzzySearchDrugByName(q){
+  const candidates = qiaFuzzyCandidates(q);
+  const collected = new Map();
+  let tries = 0;
+  for(const cand of candidates){
+    if(tries >= 6 || collected.size >= 60) break;
+    tries++;
+    try {
+      const { rows } = await fetchQiaSearch(cand, 1, "name");
+      rows.forEach(r => { const key = r.링크 || (r.제품명 + "|" + r.업체명); if(!collected.has(key)) collected.set(key, r); });
+    } catch(e){ /* 후보 하나 실패해도 계속 진행 */ }
+    if(collected.size >= 15) break;
+  }
+  return [...collected.values()]
+    .map(r => ({ ...r, _sim: qiaSimilarity(q, r.제품명) }))
+    .filter(r => r._sim >= 0.3)
+    .sort((a,b) => b._sim - a._sim)
+    .slice(0, 30);
+}
+
+function drugPickerOverlayHtml(){
+  const st = drugPickerState;
+  const body = (st.status === "loading" || st.status === "fuzzy-loading")
+    ? `<div style="text-align:center;padding:24px;color:#aaa;font-size:12px">⏳ QIA에서 검색 중...</div>`
+    : st.status === "error"
+    ? `<div style="text-align:center;padding:24px;color:#C62828;font-size:12px">${esc(st.error)}</div>`
+    : !st.rows.length
+    ? `<div style="text-align:center;padding:24px;color:#aaa;font-size:12px">${st.status==="done"?"검색 결과가 없습니다.":"제품명을 입력하고 검색하세요."}</div>`
+    : st.rows.map((r,i) => `
+      <div class="drug-picker-row" data-idx="${i}" style="padding:10px 14px;border-bottom:1px solid #f2f2f2;cursor:pointer">
+        <div style="font-size:13px;font-weight:700;color:#333">${esc(r.제품명)}</div>
+        <div style="font-size:11px;color:#888;margin-top:2px">${esc(r.업체명||"")}${r.주성분?" · "+esc(r.주성분):""}</div>
+      </div>`).join("");
+
+  return `
+  <div id="drug-picker-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px">
+    <div style="background:#fff;border-radius:14px;width:100%;max-width:480px;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
+      <div style="padding:16px 16px 10px;border-bottom:1px solid #eee;position:sticky;top:0;background:#fff">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div style="font-size:14px;font-weight:800;color:#333">💊 약품·백신 검색</div>
+          <button id="drug-picker-close" type="button" style="border:none;background:none;font-size:18px;color:#999;cursor:pointer;padding:0 4px">✕</button>
+        </div>
+        <div style="display:flex;gap:6px">
+          <input id="drug-picker-input" type="text" placeholder="제품명으로 검색 (예: 이버멕틴)" value="${esc(st.query)}"
+            style="flex:1;padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box" />
+          <button id="drug-picker-search" type="button" style="border:1px solid #00838F;background:#00838F;color:#fff;border-radius:8px;padding:8px 14px;font-size:12.5px;font-weight:700">검색</button>
+        </div>
+      </div>
+      <div>${body}</div>
+      <div style="padding:10px 16px;font-size:9.5px;color:#aaa">QIA(농림축산검역본부) 공식 데이터 · 원하는 제품을 눌러 선택하세요</div>
+    </div>
+  </div>`;
+}
+
+function bindDrugPickerEvents(){
+  const overlay = document.getElementById("drug-picker-overlay");
+  if(!overlay) return;
+  overlay.onclick = (e) => { if(e.target === overlay) closeDrugPicker(); };
+  const closeBtn = document.getElementById("drug-picker-close");
+  if(closeBtn) closeBtn.onclick = closeDrugPicker;
+  const input = document.getElementById("drug-picker-input");
+  if(input){
+    input.focus();
+    input.selectionStart = input.selectionEnd = input.value.length;
+    input.onkeydown = (e) => { if(e.key === "Enter") searchDrugForPicker(input.value); };
+  }
+  const searchBtn = document.getElementById("drug-picker-search");
+  if(searchBtn) searchBtn.onclick = () => searchDrugForPicker(input ? input.value : drugPickerState.query);
+  document.querySelectorAll(".drug-picker-row").forEach(row => row.onclick = () => {
+    const r = drugPickerState.rows[Number(row.dataset.idx)];
+    const onPick = drugPickerState.onPick;
+    closeDrugPicker();
+    if(r && onPick) onPick(r);
+  });
+}
+
+function redrawDrugPicker(){
+  const el = document.getElementById("drug-picker-overlay");
+  if(!el) return;
+  el.outerHTML = drugPickerOverlayHtml();
+  bindDrugPickerEvents();
+}
+
+// onPick(row)의 row는 QIA 검색결과 행(제품명/업체명/주성분/... — parseQiaHtml 참고).
+function openDrugPicker(onPick){
+  if(document.getElementById("drug-picker-overlay")) return; // 이미 열려 있으면 중복으로 안 띄움
+  drugPickerState = { open:true, query:"", status:"idle", rows:[], error:"", onPick };
+  document.body.insertAdjacentHTML("beforeend", drugPickerOverlayHtml());
+  bindDrugPickerEvents();
+}
+function closeDrugPicker(){
+  drugPickerState.open = false;
+  const el = document.getElementById("drug-picker-overlay");
+  if(el) el.remove();
+}
+async function searchDrugForPicker(q){
+  q = (q||"").trim();
+  if(!q) return;
+  drugPickerState.query = q;
+  drugPickerState.status = "loading";
+  redrawDrugPicker();
+  try {
+    const { rows } = await fetchQiaSearch(q, 1, "name");
+    drugPickerState.rows = rows.length ? dropExportOnly(rows) : [];
+    if(!rows.length){
+      drugPickerState.status = "fuzzy-loading";
+      redrawDrugPicker();
+      drugPickerState.rows = dropExportOnly(await fuzzySearchDrugByName(q));
+    }
+    drugPickerState.status = "done";
+  } catch(e){
+    drugPickerState.status = "error";
+    drugPickerState.error = "검색 실패: " + (e.message || e);
+  }
+  redrawDrugPicker();
+}
+
 // 유료서비스 "기술탐구" — 질병논문/사양관리기술/컨설팅도구 각 5편을 탭으로
 // 전환해 보여준다. 원문(영문 제목)은 접었다 펼 수 있게 해서, 필요하면 바로
 // PubMed 원문 링크로도 갈 수 있게 했다.
@@ -6688,7 +6818,8 @@ function renderTreatmentPanel(){
           style="flex:1;min-width:180px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />
       </div>
       <textarea id="tp-program" placeholder="한 줄에 한 단계씩, '단계제목|설명' 형식으로 입력${"\n"}예) 1. 원인 점검|깔짚 습도와 백신 이력을 확인합니다."
-        style="width:100%;min-height:110px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:6px">${esc(editing?treatmentProgramToText(editing.program):"")}</textarea>
+        style="width:100%;min-height:110px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:4px">${esc(editing?treatmentProgramToText(editing.program):"")}</textarea>
+      <button id="tp-program-drug-search" type="button" style="font-size:11px;border:1px solid #C62828;border-radius:6px;background:#fff;color:#C62828;padding:5px 10px;margin-bottom:6px">🔍 약품·백신 검색해서 줄 추가</button>
       <textarea id="tp-caution" placeholder="주의사항"
         style="width:100%;min-height:50px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:8px">${esc(editing?editing.caution:"")}</textarea>
       <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
@@ -13489,6 +13620,21 @@ function attachEvents(){
   const treatmentCancelBtn = document.getElementById("tp-cancel");
   if(treatmentCancelBtn) treatmentCancelBtn.onclick = ()=>{ treatmentTabState.formKey = undefined; render(); };
 
+  // 투약 프로그램 입력칸 아래 "🔍 약품·백신 검색해서 줄 추가" — 약품조회와 같은
+  // QIA 실시간 검색으로 정확한 제품명을 찾아 새 줄로 넣어준다. 그 뒤 "|" 뒤에
+  // 용법·용량 설명만 이어서 입력하면 된다.
+  const treatmentProgramDrugSearchBtn = document.getElementById("tp-program-drug-search");
+  if(treatmentProgramDrugSearchBtn) treatmentProgramDrugSearchBtn.onclick = ()=>{
+    openDrugPicker((r)=>{
+      const ta = document.getElementById("tp-program");
+      if(!ta) return;
+      const prefix = ta.value && !ta.value.endsWith("\n") ? "\n" : "";
+      ta.value += prefix + r.제품명 + "|";
+      ta.focus();
+      ta.setSelectionRange(ta.value.length, ta.value.length);
+    });
+  };
+
   document.querySelectorAll(".treatment-del-btn").forEach(b=>b.onclick=async ()=>{
     const key = b.dataset.key;
     const pkg = currentTreatmentPackages().find(p=>p.key===key);
@@ -13792,6 +13938,16 @@ function attachEvents(){
     if(r.ok && vaccineTabState.openKey===key) vaccineTabState.openKey = null;
     render();
   });
+
+  // 백신명 입력칸 옆 "🔍 검색" — 약품조회와 같은 QIA 실시간 검색으로 정확한
+  // 제품명을 찾아 그대로 채워 넣는다(직접 타이핑하다 생기는 오탈자 방지).
+  const vaccineRowVaccineSearchBtn = document.getElementById("vp-row-vaccine-search");
+  if(vaccineRowVaccineSearchBtn) vaccineRowVaccineSearchBtn.onclick = ()=>{
+    openDrugPicker((r)=>{
+      const input = document.getElementById("vp-row-vaccine");
+      if(input) input.value = r.제품명;
+    });
+  };
 
   // 접종 일정 항목(일령/백신/방법/기타) 한 줄씩 추가·수정·삭제
   const vaccineRowAddBtn = document.getElementById("vp-row-add");
