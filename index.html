@@ -6764,10 +6764,12 @@ function renderSeasonalPanel(){
       </div>
       <div style="font-size:10px;color:#888;margin-bottom:3px">💊 투약(백신) 사항 — 한 줄에 한 항목씩, '제목|설명' 형식</div>
       <textarea id="sp-medication" placeholder="예) 뉴캣슬병 백신 재접종|환절기 면역저하 대비 2주 간격 음수백신"
-        style="width:100%;min-height:90px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:6px">${esc(editing?treatmentProgramToText(editing.medication):"")}</textarea>
+        style="width:100%;min-height:90px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:4px">${esc(editing?treatmentProgramToText(editing.medication):"")}</textarea>
+      <button id="sp-medication-drug-search" type="button" style="font-size:11px;border:1px solid #C62828;border-radius:6px;background:#fff;color:#C62828;padding:5px 10px;margin-bottom:6px">🔍 약품·백신 검색해서 줄 추가</button>
       <div style="font-size:10px;color:#888;margin-bottom:3px">🌾 사양관리 주의사항 — 같은 형식</div>
       <textarea id="sp-husbandry" placeholder="예) 보온·환기 균형|일교차 큰 시기 야간 최소환기량 유지하며 보온"
-        style="width:100%;min-height:90px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:8px">${esc(editing?treatmentProgramToText(editing.husbandry):"")}</textarea>
+        style="width:100%;min-height:90px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:4px">${esc(editing?treatmentProgramToText(editing.husbandry):"")}</textarea>
+      <button id="sp-husbandry-drug-search" type="button" style="font-size:11px;border:1px solid #C62828;border-radius:6px;background:#fff;color:#C62828;padding:5px 10px;margin-bottom:8px">🔍 약품·백신 검색해서 줄 추가</button>
       <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
         <button id="sp-save" ${seasonalPkgState.busy?"disabled":""} style="border:1px solid #B8860B;background:${seasonalPkgState.busy?"#ccc":"#B8860B"};color:#fff;border-radius:7px;padding:7px 15px;font-size:12px;font-weight:600">${seasonalPkgState.busy?"발행 중...":(editing?"수정 발행":"추가 발행")}</button>
         ${editing?`<button id="sp-cancel" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:6px 10px">취소</button>`:""}
@@ -7488,7 +7490,8 @@ function renderFinderAdminBox(admin){
       <textarea id="ff-cause" placeholder="환경·사양관리 원인 분석"
         style="width:100%;min-height:60px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:6px">${esc(editing?editing.cause:"")}</textarea>
       <textarea id="ff-program" placeholder="한 줄에 한 단계씩, '단계제목|설명' 형식${"\n"}예) 1. 원인 점검|환기량과 백신 이력을 확인합니다."
-        style="width:100%;min-height:90px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:6px">${esc(editing?treatmentProgramToText(editing.program):"")}</textarea>
+        style="width:100%;min-height:90px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:4px">${esc(editing?treatmentProgramToText(editing.program):"")}</textarea>
+      <button id="ff-program-drug-search" type="button" style="font-size:11px;border:1px solid #C62828;border-radius:6px;background:#fff;color:#C62828;padding:5px 10px;margin-bottom:6px">🔍 약품·백신 검색해서 줄 추가</button>
       <textarea id="ff-caution" placeholder="주의사항 (선택)"
         style="width:100%;min-height:44px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:8px">${esc(editing?editing.caution||"":"")}</textarea>
       <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
@@ -13480,6 +13483,24 @@ function attachEvents(){
       ta.setSelectionRange(ta.value.length, ta.value.length);
     });
   };
+
+  // 계절별 투약(관리) 패키지·내 농장에 맞는 약품 찾기 — 상황별 처방과 같은
+  // "🔍 약품·백신 검색해서 줄 추가" (openDrugPicker 재사용, textarea id만 다름).
+  ["sp-medication-drug-search", "sp-husbandry-drug-search", "ff-program-drug-search"].forEach(btnId => {
+    const btn = document.getElementById(btnId);
+    if(!btn) return;
+    const taId = btnId.replace("-drug-search", "");
+    btn.onclick = ()=>{
+      openDrugPicker((r)=>{
+        const ta = document.getElementById(taId);
+        if(!ta) return;
+        const prefix = ta.value && !ta.value.endsWith("\n") ? "\n" : "";
+        ta.value += prefix + r.제품명 + "|";
+        ta.focus();
+        ta.setSelectionRange(ta.value.length, ta.value.length);
+      });
+    };
+  });
 
   document.querySelectorAll(".treatment-del-btn").forEach(b=>b.onclick=async ()=>{
     const key = b.dataset.key;
