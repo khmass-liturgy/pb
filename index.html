@@ -1636,15 +1636,43 @@ const NEW_PRODUCT_DECKS = [
 
 let newProductState = { status:"idle", data:null, busy:false, msg:"" };
 // files/previewUrls: 사진은 최대 10장까지, 선택 즉시 미리보기(objectURL)만
-// 만들고 실제 업로드는 발행(newproduct-save-btn) 시점에 한다. draftName/
-// draftInfo는 사진 선택·삭제처럼 폼을 다시 그리는 동작 때마다(syncNewProductDraftFields로)
-// DOM에서 옮겨 담아, 입력해둔 값이 안 날아가게 한다. imgIndex는 뷰어에서 지금
-// 보고 있는 사진 번호(제품을 넘기면 0으로 되돌아간다).
-let newProductNavState = { deckKey:null, cardIndex:0, imgIndex:0, flipped:false, adminOpen:false, formId:undefined, files:[], previewUrls:[], draftName:"", draftInfo:"" };
+// 만들고 실제 업로드는 발행(newproduct-save-btn) 시점에 한다. listOpen이면
+// 카드 뷰어 대신 이 덱의 전체 제품 목록을 보여준다(목록에서 눌러 바로 선택).
+// draftName·draftDoseWaterCustom·draftDoseFeedCustom·draftRemark는 사진
+// 선택·삭제·제형/포장단위/용법용량 버튼 클릭처럼 폼을 다시 그리는 동작
+// 때마다(syncNewProductDraftFields로) DOM에서 옮겨 담아, 입력해둔 값이 안
+// 날아가게 한다. draftFormType·draftPackaging·draftDoseWater·draftDoseFeed는
+// 버튼으로 고르는 값이라 상태에 바로 담는다. imgIndex는 뷰어에서 지금 보고
+// 있는 사진 번호(제품을 넘기면 0으로 되돌아간다).
+let newProductNavState = { deckKey:null, cardIndex:0, imgIndex:0, flipped:false, listOpen:false, adminOpen:false, formId:undefined, files:[], previewUrls:[],
+  draftName:"", draftFormType:"", draftPackaging:[], draftDoseWater:"", draftDoseWaterCustom:"", draftDoseFeed:"", draftDoseFeedCustom:"", draftRemark:"" };
 
 function syncNewProductDraftFields(){
   newProductNavState.draftName = (document.getElementById("newproduct-name-input")?.value || "");
-  newProductNavState.draftInfo = (document.getElementById("newproduct-info-input")?.value || "");
+  newProductNavState.draftDoseWaterCustom = (document.getElementById("np-dose-water-custom")?.value || "");
+  newProductNavState.draftDoseFeedCustom = (document.getElementById("np-dose-feed-custom")?.value || "");
+  newProductNavState.draftRemark = (document.getElementById("np-remark-input")?.value || "");
+}
+
+// 관리자가 고른 제형·포장단위·용법용량·비고를 카드 뒷면에 보일 한 덩어리
+// 텍스트로 합친다 — 항목별로 선택 안 한 줄은 통째로 뺀다(백신·기타 같은
+// 덱에는 포장단위·용법용량이 안 맞을 수 있어서다).
+function newProductInfoText(formType, packaging, doseWater, doseWaterCustom, doseFeed, doseFeedCustom, remark){
+  const lines = [];
+  if(formType) lines.push("제형 : " + formType);
+  if(packaging && packaging.length) lines.push("포장단위 : " + packaging.join(", "));
+  const waterVal = doseWater === "기타" ? (doseWaterCustom||"").trim() : doseWater;
+  const feedVal = doseFeed === "기타" ? (doseFeedCustom||"").trim() : doseFeed;
+  if(waterVal || feedVal){
+    lines.push("용법용량 :");
+    if(waterVal) lines.push("   음수 500리터당 " + waterVal);
+    if(feedVal) lines.push("   사료첨가 톤당 " + feedVal);
+  }
+  if(remark && remark.trim()){
+    if(lines.length) lines.push("");
+    lines.push("기타사항 : " + remark.trim());
+  }
+  return lines.join("\n");
 }
 
 // 이 기능 초기 버전(단일 사진 imageUrl)으로 이미 등록된 제품도 여전히 사진이
@@ -1699,7 +1727,10 @@ async function publishNewProducts(items){
 function resetNewProductForm(){
   const nav = newProductNavState;
   nav.formId = undefined; nav.files = []; nav.previewUrls = [];
-  nav.draftName = ""; nav.draftInfo = "";
+  nav.draftName = ""; nav.draftFormType = ""; nav.draftPackaging = [];
+  nav.draftDoseWater = ""; nav.draftDoseWaterCustom = "";
+  nav.draftDoseFeed = ""; nav.draftDoseFeedCustom = "";
+  nav.draftRemark = "";
 }
 
 function renderNewProductPanel(){
@@ -1743,8 +1774,24 @@ function renderNewProductPanel(){
   if(nav.imgIndex >= itemImages.length) nav.imgIndex = Math.max(0, itemImages.length-1);
   const curImage = itemImages[nav.imgIndex];
 
+  // 목록 보기 — 제품이 많을 때 이전/다음으로 한 장씩 넘기지 않고 바로
+  // 골라서 볼 수 있게, 덱 안의 전체 제품을 썸네일+이름으로 죽 늘어놓는다.
+  const listView = `
+  <div style="margin-bottom:4px">
+    ${items.map((it,i) => {
+      const thumb = newProductItemImages(it)[0];
+      const cur = i === nav.cardIndex;
+      return `<button type="button" class="newproduct-list-item-btn" data-idx="${i}" style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:1px solid ${cur?"#C2185B":"#ececec"};background:${cur?"#FCE4EC":"#fff"};border-radius:10px;padding:8px 10px;margin-bottom:6px;cursor:pointer">
+        ${thumb ? `<img src="${esc(thumb)}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;flex-shrink:0" />` : `<span style="width:40px;height:40px;border-radius:6px;background:#f2f2f2;flex-shrink:0"></span>`}
+        <span style="flex:1;min-width:0;font-size:12.5px;font-weight:700;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(it.name||"(이름 없음)")}</span>
+        ${cur ? `<span style="font-size:10px;color:#C2185B;font-weight:700;flex-shrink:0">보는 중</span>` : ""}
+      </button>`;
+    }).join("")}
+  </div>`;
+
   const viewer = !item ? `<div class="card" style="text-align:center;padding:28px 16px;color:#aaa">아직 등록된 제품이 없습니다.${admin?"":" 곧 추가됩니다."}</div>` : `
   <div style="font-size:11px;color:#888;margin-bottom:8px;text-align:center">제품 ${nav.cardIndex+1} / ${items.length}</div>
+  ${nav.listOpen ? listView : `
   <div id="newproduct-flip-card" style="cursor:pointer;background:${nav.flipped?"linear-gradient(135deg,#FFF8E1,#FFECB3)":"linear-gradient(135deg,#AD1457,#C2185B)"};border:1px solid ${nav.flipped?"#F9D871":"#AD1457"};border-radius:14px;padding:28px 20px;min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,0.12)">
     ${curImage ? `
     <div style="position:relative;display:flex;align-items:center;justify-content:center;width:100%;margin-bottom:${itemImages.length>1?"4px":"12px"}">
@@ -1755,12 +1802,13 @@ function renderNewProductPanel(){
     ${itemImages.length>1 ? `<div style="font-size:9.5px;color:${nav.flipped?"#B8860B":"#F3C6D9"};margin-bottom:8px">📷 ${nav.imgIndex+1} / ${itemImages.length}</div>` : ""}` : ""}
     <div style="font-size:${nav.flipped?"14px":"22px"};font-weight:800;color:${nav.flipped?"#5C4400":"#fff"};line-height:1.6;white-space:pre-wrap">${esc(nav.flipped ? (item.info||"") : item.name)}</div>
     <div style="font-size:10.5px;color:${nav.flipped?"#B8860B":"#F3C6D9"};margin-top:14px">${nav.flipped?"다시 눌러 제품명 보기":"눌러서 제품정보 보기"}</div>
+  </div>`}
+  <div style="display:flex;justify-content:space-between;gap:6px;margin-top:14px">
+    <button id="newproduct-prev-btn" ${(nav.cardIndex===0||nav.listOpen)?"disabled":""} style="flex:1;border:1px solid #ddd;border-radius:8px;background:#fff;color:${(nav.cardIndex===0||nav.listOpen)?"#ccc":"#333"};padding:10px;font-size:12.5px;font-weight:700">← 이전</button>
+    <button id="newproduct-list-toggle-btn" style="flex:1;border:1px solid #C2185B;border-radius:8px;background:${nav.listOpen?"#C2185B":"#fff"};color:${nav.listOpen?"#fff":"#C2185B"};padding:10px;font-size:12.5px;font-weight:700">${nav.listOpen?"목록 닫기":"📋 목록"}</button>
+    <button id="newproduct-next-btn" ${(nav.cardIndex>=items.length-1||nav.listOpen)?"disabled":""} style="flex:1;border:1px solid #ddd;border-radius:8px;background:#fff;color:${(nav.cardIndex>=items.length-1||nav.listOpen)?"#ccc":"#333"};padding:10px;font-size:12.5px;font-weight:700">다음 →</button>
   </div>
-  <div style="display:flex;justify-content:space-between;gap:8px;margin-top:14px">
-    <button id="newproduct-prev-btn" ${nav.cardIndex===0?"disabled":""} style="flex:1;border:1px solid #ddd;border-radius:8px;background:#fff;color:${nav.cardIndex===0?"#ccc":"#333"};padding:10px;font-size:12.5px;font-weight:700">← 이전</button>
-    <button id="newproduct-next-btn" ${nav.cardIndex>=items.length-1?"disabled":""} style="flex:1;border:1px solid #ddd;border-radius:8px;background:#fff;color:${nav.cardIndex>=items.length-1?"#ccc":"#333"};padding:10px;font-size:12.5px;font-weight:700">다음 →</button>
-  </div>
-  ${admin ? `
+  ${admin && !nav.listOpen ? `
   <div style="display:flex;gap:6px;margin-top:10px">
     <button id="newproduct-edit-btn" data-id="${esc(item.id)}" style="flex:1;font-size:11px;border:1px solid #C2185B;border-radius:7px;background:#fff;color:#C2185B;padding:7px">편집</button>
     <button class="newproduct-del-btn" data-id="${esc(item.id)}" style="flex:1;font-size:11px;border:1px solid #eee;border-radius:7px;background:#fff;color:#bbb;padding:7px">삭제</button>
@@ -1791,8 +1839,32 @@ function renderNewProductPanel(){
       <div style="font-size:10px;color:#888;margin-bottom:8px">기존 사진 ${newProductItemImages(editing).length}장 유지 중 — 새 사진을 선택하면 전부 교체됩니다</div>` : "")}
       <input type="text" id="newproduct-name-input" value="${esc(nav.draftName)}" placeholder="제품명"
         style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;margin-bottom:8px" />
-      <textarea id="newproduct-info-input" placeholder="제조사·효능·특징 등 제품 정보"
-        style="width:100%;min-height:110px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:8px">${esc(nav.draftInfo)}</textarea>
+
+      <div style="font-size:10px;color:#888;margin-bottom:3px">제형</div>
+      <div style="display:flex;gap:6px;margin-bottom:8px">
+        ${["액상","첨가제"].map(v => `<button type="button" class="np-form-btn" data-val="${v}" style="flex:1;border:1.5px solid ${nav.draftFormType===v?"#C2185B":"#ddd"};background:${nav.draftFormType===v?"#C2185B":"#fff"};color:${nav.draftFormType===v?"#fff":"#555"};border-radius:7px;padding:7px;font-size:12px;font-weight:700">${v}</button>`).join("")}
+      </div>
+
+      <div style="font-size:10px;color:#888;margin-bottom:3px">포장단위 (해당하는 것 모두 선택)</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+        ${["1L","1kg","5L","5kg","10kg"].map(v => `<button type="button" class="np-pack-btn" data-val="${v}" style="border:1.5px solid ${nav.draftPackaging.includes(v)?"#C2185B":"#ddd"};background:${nav.draftPackaging.includes(v)?"#C2185B":"#fff"};color:${nav.draftPackaging.includes(v)?"#fff":"#555"};border-radius:16px;padding:5px 12px;font-size:11.5px;font-weight:700">${v}</button>`).join("")}
+      </div>
+
+      <div style="font-size:10px;color:#888;margin-bottom:3px">용법용량 — 음수 500리터당</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:${nav.draftDoseWater==="기타"?"6px":"8px"}">
+        ${["100cc","500cc","1L","기타"].map(v => `<button type="button" class="np-dose-water-btn" data-val="${v}" style="border:1.5px solid ${nav.draftDoseWater===v?"#C2185B":"#ddd"};background:${nav.draftDoseWater===v?"#C2185B":"#fff"};color:${nav.draftDoseWater===v?"#fff":"#555"};border-radius:16px;padding:5px 12px;font-size:11.5px;font-weight:700">${v}</button>`).join("")}
+      </div>
+      ${nav.draftDoseWater==="기타" ? `<input type="text" id="np-dose-water-custom" value="${esc(nav.draftDoseWaterCustom)}" placeholder="예) 300cc" style="width:100%;padding:6px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;margin-bottom:8px" />` : ""}
+
+      <div style="font-size:10px;color:#888;margin-bottom:3px">용법용량 — 사료첨가 톤당</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:${nav.draftDoseFeed==="기타"?"6px":"8px"}">
+        ${["1kg","2kg","기타"].map(v => `<button type="button" class="np-dose-feed-btn" data-val="${v}" style="border:1.5px solid ${nav.draftDoseFeed===v?"#C2185B":"#ddd"};background:${nav.draftDoseFeed===v?"#C2185B":"#fff"};color:${nav.draftDoseFeed===v?"#fff":"#555"};border-radius:16px;padding:5px 12px;font-size:11.5px;font-weight:700">${v}</button>`).join("")}
+      </div>
+      ${nav.draftDoseFeed==="기타" ? `<input type="text" id="np-dose-feed-custom" value="${esc(nav.draftDoseFeedCustom)}" placeholder="예) 1.5kg" style="width:100%;padding:6px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;margin-bottom:8px" />` : ""}
+
+      <div style="font-size:10px;color:#888;margin-bottom:3px">기타사항(비고)</div>
+      <textarea id="np-remark-input" placeholder="그 밖에 안내할 내용"
+        style="width:100%;min-height:70px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:8px">${esc(nav.draftRemark)}</textarea>
       <div style="display:flex;gap:6px;align-items:center">
         <button id="newproduct-save-btn" ${newProductState.busy?"disabled":""} style="border:1px solid #B8860B;background:${newProductState.busy?"#ccc":"#B8860B"};color:#fff;border-radius:7px;padding:7px 15px;font-size:12px;font-weight:600">${newProductState.busy?"발행 중...":(editing?"수정 발행":"추가 발행")}</button>
         <button id="newproduct-cancel-btn" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:6px 10px">취소</button>
@@ -13954,13 +14026,14 @@ function attachEvents(){
   if(newproductBackBtn) newproductBackBtn.onclick = ()=>{ premiumState.view = "menu"; render(); };
   document.querySelectorAll(".newproduct-deck-btn").forEach(b=>b.onclick=()=>{
     newProductNavState.deckKey = b.dataset.key;
-    newProductNavState.cardIndex = 0; newProductNavState.imgIndex = 0; newProductNavState.flipped = false;
+    newProductNavState.cardIndex = 0; newProductNavState.imgIndex = 0; newProductNavState.flipped = false; newProductNavState.listOpen = false;
     resetNewProductForm(); newProductNavState.adminOpen = false; newProductState.msg = "";
     render();
   });
   const newproductDeckBackBtn = document.getElementById("newproduct-deck-back-btn");
   if(newproductDeckBackBtn) newproductDeckBackBtn.onclick = ()=>{
     newProductNavState.deckKey = null;
+    newProductNavState.listOpen = false;
     resetNewProductForm(); newProductNavState.adminOpen = false; newProductState.msg = "";
     render();
   };
@@ -13970,6 +14043,13 @@ function attachEvents(){
   if(newproductPrevBtn) newproductPrevBtn.onclick = ()=>{ newProductNavState.cardIndex = Math.max(0, newProductNavState.cardIndex-1); newProductNavState.imgIndex = 0; newProductNavState.flipped = false; render(); };
   const newproductNextBtn = document.getElementById("newproduct-next-btn");
   if(newproductNextBtn) newproductNextBtn.onclick = ()=>{ newProductNavState.cardIndex += 1; newProductNavState.imgIndex = 0; newProductNavState.flipped = false; render(); };
+  const newproductListToggleBtn = document.getElementById("newproduct-list-toggle-btn");
+  if(newproductListToggleBtn) newproductListToggleBtn.onclick = ()=>{ newProductNavState.listOpen = !newProductNavState.listOpen; render(); };
+  document.querySelectorAll(".newproduct-list-item-btn").forEach(b=>b.onclick=()=>{
+    newProductNavState.cardIndex = Number(b.dataset.idx);
+    newProductNavState.imgIndex = 0; newProductNavState.flipped = false; newProductNavState.listOpen = false;
+    render();
+  });
   document.querySelectorAll(".newproduct-img-prev-btn").forEach(b=>b.onclick=(e)=>{
     e.stopPropagation();
     newProductNavState.imgIndex = Math.max(0, newProductNavState.imgIndex - 1);
@@ -13997,7 +14077,16 @@ function attachEvents(){
     newProductNavState.formId = id;
     newProductNavState.files = []; newProductNavState.previewUrls = [];
     newProductNavState.draftName = item.name || "";
-    newProductNavState.draftInfo = item.info || "";
+    newProductNavState.draftFormType = item.formType || "";
+    newProductNavState.draftPackaging = Array.isArray(item.packaging) ? item.packaging.slice() : [];
+    newProductNavState.draftDoseWater = item.doseWater || "";
+    newProductNavState.draftDoseWaterCustom = item.doseWaterCustom || "";
+    newProductNavState.draftDoseFeed = item.doseFeed || "";
+    newProductNavState.draftDoseFeedCustom = item.doseFeedCustom || "";
+    // 이 기능 이전(구조화 필드 없이 자유 텍스트 info만 있던) 제품을 편집할 때는
+    // 그 텍스트가 비고 칸에서라도 사라지지 않도록 옮겨 담는다.
+    const hasStructured = item.formType || (item.packaging && item.packaging.length) || item.doseWater || item.doseFeed;
+    newProductNavState.draftRemark = item.remark != null ? item.remark : (hasStructured ? "" : (item.info || ""));
     newProductState.msg = "";
     render();
   };
@@ -14015,6 +14104,32 @@ function attachEvents(){
       newProductNavState.imgIndex = 0;
       if(newProductNavState.formId === id) resetNewProductForm();
     }
+    render();
+  });
+  // 신제품 소식 — 제형/포장단위/용법용량 버튼 선택 (버튼을 누를 때마다 폼이
+  // 다시 그려지므로, 이미 입력해둔 제품명·비고·직접입력 값이 안 날아가게
+  // 먼저 DOM에서 상태로 옮겨 담는다).
+  document.querySelectorAll(".np-form-btn").forEach(b=>b.onclick=()=>{
+    syncNewProductDraftFields();
+    newProductNavState.draftFormType = newProductNavState.draftFormType === b.dataset.val ? "" : b.dataset.val;
+    render();
+  });
+  document.querySelectorAll(".np-pack-btn").forEach(b=>b.onclick=()=>{
+    syncNewProductDraftFields();
+    const v = b.dataset.val;
+    const arr = newProductNavState.draftPackaging;
+    const i = arr.indexOf(v);
+    if(i>=0) arr.splice(i,1); else arr.push(v);
+    render();
+  });
+  document.querySelectorAll(".np-dose-water-btn").forEach(b=>b.onclick=()=>{
+    syncNewProductDraftFields();
+    newProductNavState.draftDoseWater = newProductNavState.draftDoseWater === b.dataset.val ? "" : b.dataset.val;
+    render();
+  });
+  document.querySelectorAll(".np-dose-feed-btn").forEach(b=>b.onclick=()=>{
+    syncNewProductDraftFields();
+    newProductNavState.draftDoseFeed = newProductNavState.draftDoseFeed === b.dataset.val ? "" : b.dataset.val;
     render();
   });
   const newproductFileInput = document.getElementById("newproduct-file-input");
@@ -14048,11 +14163,18 @@ function attachEvents(){
   const newproductSaveBtn = document.getElementById("newproduct-save-btn");
   if(newproductSaveBtn) newproductSaveBtn.onclick = async ()=>{
     const name = (document.getElementById("newproduct-name-input")?.value || "").trim();
-    const info = (document.getElementById("newproduct-info-input")?.value || "").trim();
+    const formType = newProductNavState.draftFormType;
+    const packaging = newProductNavState.draftPackaging.slice();
+    const doseWater = newProductNavState.draftDoseWater;
+    const doseWaterCustom = (document.getElementById("np-dose-water-custom")?.value || "").trim();
+    const doseFeed = newProductNavState.draftDoseFeed;
+    const doseFeedCustom = (document.getElementById("np-dose-feed-custom")?.value || "").trim();
+    const remark = (document.getElementById("np-remark-input")?.value || "").trim();
+    const info = newProductInfoText(formType, packaging, doseWater, doseWaterCustom, doseFeed, doseFeedCustom, remark);
     const files = newProductNavState.files;
     const editId = newProductNavState.formId;
     if(!name){ alert("제품명을 입력하세요."); return; }
-    if(!info){ alert("제품 정보를 입력하세요."); return; }
+    if(!info){ alert("제형·포장단위·용법용량·기타사항 중 하나 이상을 입력하세요."); return; }
     newProductState.busy = true; newProductState.msg = "발행 중..."; render();
     try {
       const items = currentNewProducts().slice();
@@ -14072,11 +14194,12 @@ function attachEvents(){
           imageUrls.push(await withStorageTimeout(ref.getDownloadURL()));
         }
       }
+      const fields = { name, info, formType, packaging, doseWater, doseWaterCustom, doseFeed, doseFeedCustom, remark, imageUrls };
       if(editId){
         const idx = items.findIndex(x=>x.id===editId);
-        if(idx>=0) items[idx] = Object.assign({}, items[idx], { name, info, imageUrls });
+        if(idx>=0) items[idx] = Object.assign({}, items[idx], fields);
       } else {
-        items.push({ id:newNewProductId(), deck:newProductNavState.deckKey, name, info, imageUrls, createdAt:new Date().toISOString() });
+        items.push(Object.assign({ id:newNewProductId(), deck:newProductNavState.deckKey, createdAt:new Date().toISOString() }, fields));
       }
       const r = await publishNewProducts(items);
       newProductState.busy = false;
