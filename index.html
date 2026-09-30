@@ -1557,6 +1557,8 @@ function renderVaccinePanel(){
             <td style="padding:5px 6px">${esc(r.method||"")}</td>
             <td style="padding:5px 6px">${esc(r.note||"")}</td>
             <td style="padding:5px 6px;white-space:nowrap">
+              <button class="vp-row-up-btn" data-idx="${i}" ${i===0?"disabled":""} style="font-size:10px;border:1px solid #ddd;border-radius:4px;background:#fff;color:${i===0?"#ccc":"#555"};padding:2px 6px;margin-right:2px">▲</button>
+              <button class="vp-row-down-btn" data-idx="${i}" ${i===draftRows.length-1?"disabled":""} style="font-size:10px;border:1px solid #ddd;border-radius:4px;background:#fff;color:${i===draftRows.length-1?"#ccc":"#555"};padding:2px 6px;margin-right:3px">▼</button>
               <button class="vp-row-edit-btn" data-idx="${i}" style="font-size:10px;border:1px solid #3949AB;border-radius:4px;background:#fff;color:#3949AB;padding:2px 6px;margin-right:3px">편집</button>
               <button class="vp-row-del-btn" data-idx="${i}" style="font-size:10px;border:1px solid #eee;border-radius:4px;background:#fff;color:#bbb;padding:2px 6px">삭제</button>
             </td>
@@ -13810,6 +13812,28 @@ function attachEvents(){
     vaccineTabState.rowEditIndex = null;
     render();
   };
+  document.querySelectorAll(".vp-row-up-btn").forEach(b=>b.onclick=()=>{
+    syncVaccineDraftFields();
+    const idx = Number(b.dataset.idx);
+    if(idx <= 0) return;
+    const rows = vaccineTabState.draftSchedule.slice();
+    [rows[idx-1], rows[idx]] = [rows[idx], rows[idx-1]];
+    vaccineTabState.draftSchedule = rows;
+    if(vaccineTabState.rowEditIndex === idx) vaccineTabState.rowEditIndex = idx-1;
+    else if(vaccineTabState.rowEditIndex === idx-1) vaccineTabState.rowEditIndex = idx;
+    render();
+  });
+  document.querySelectorAll(".vp-row-down-btn").forEach(b=>b.onclick=()=>{
+    syncVaccineDraftFields();
+    const idx = Number(b.dataset.idx);
+    const rows = vaccineTabState.draftSchedule.slice();
+    if(idx >= rows.length-1) return;
+    [rows[idx], rows[idx+1]] = [rows[idx+1], rows[idx]];
+    vaccineTabState.draftSchedule = rows;
+    if(vaccineTabState.rowEditIndex === idx) vaccineTabState.rowEditIndex = idx+1;
+    else if(vaccineTabState.rowEditIndex === idx+1) vaccineTabState.rowEditIndex = idx;
+    render();
+  });
   document.querySelectorAll(".vp-row-edit-btn").forEach(b=>b.onclick=()=>{
     syncVaccineDraftFields();
     vaccineTabState.rowEditIndex = Number(b.dataset.idx);
