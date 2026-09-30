@@ -3,9 +3,9 @@
   "post_url": "https://kegg.or.kr/board/view3?Ncode=breed&number=107&keyfield=&keyword=&page=1",
   "list_url": "https://kegg.or.kr/board/sub3?Ncode=breed",
   "image_path": "jungchu_price/latest.jpg",
-  "image_hash": "8ccab5f3897d1ed8e57a1afb006e3487ea19b5eb772fb099d147714944a5ee15",
-  "hash_updated_at": "2026-09-17 09:43 KST",
-  "updated": "2026-09-29 14:38 KST",
+  "image_hash": "5aaba97a39083fd9f7b62ce48389ace38a8f9c6a1c42a4ae6d14d5d95567d174",
+  "hash_updated_at": "2026-09-30 14:27 KST",
+  "updated": "2026-09-30 14:27 KST",
   "rows": [
     {
       "year": 2026,
@@ -16,9 +16,10 @@
         6900,
         6900,
         7020,
+        7400,
         7400
       ],
-      "average": 6797
+      "average": 6873
     },
     {
       "year": 2025,
@@ -113,7 +114,7 @@
   ],
   "latest": 7400,
   "latest_year": 2026,
-  "latest_month": 7,
+  "latest_month": 8,
   "numbers_stale": false,
   "note": "대한산란계협회가 매월 게시하는 산란계 중추가격 표를 OCR로 읽은 값입니다(원본은 표/그래프가 담긴 이미지 한 장으로만 게시됨). 표에 함께 인쇄된 '평균' 값을 체크섬으로 대조해 통과한 경우에만 숫자를 갱신하며, 대조에 실패하면 이전 값을 그대로 유지합니다 — 정확한 원본은 게시글 링크에서 확인하세요.",
   "stale": false
