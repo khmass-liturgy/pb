@@ -45,23 +45,31 @@ Two pieces are **not** static, both Firebase, both under the 유료서비스 tab
   These need the Firebase secret `ANTHROPIC_API_KEY` (a separate key from the GitHub Actions secret
   of the same name used by `fetch_research_papers.py`; set with
   `firebase functions:secrets:set ANTHROPIC_API_KEY --project chicken-dx`).
+  It also holds read proxies for Storage JSON (`getPremiumContent`, `getPublicContent`,
+  `getApprovedMembers`, `getFeatureRequests`, `getBoardPosts`): the browser can't `fetch()` a
+  Storage download URL cross-origin (no CORS headers on the redirect), so reads go through
+  functions while writes still go straight from the client SDK under `storage.rules`.
 - `storage.rules` guards Firebase Storage, used for two things that can't go through the
   public-GitHub-commit pattern below because the data is private, not public content:
   - the 온라인 진단/상담/컨설팅 boards (`PREMIUM_BOARDS` in index.html) store member-submitted
     posts, photos and the vet's replies under `premium_board/{boardType}/{uid}/{postId}/`, readable
     only by that post's owner and admins.
   - `premium_members/{email}/info.json` holds each member's name/phone/join date — admin-only
-    read/write. `premium/approved.json` (public GitHub repo) intentionally keeps only
-    `email`/`expires` (whatever `isPremiumApproved()` needs client-side); it used to also hold
-    name/phone until that was recognized as a PII leak (anyone can read a public repo's files
-    without logging in) and split out here.
+    read/write. The approval list itself (`email`/`expires` only — whatever `isPremiumApproved()`
+    needs) is `member_registry/approved.json`, also admin-only; the browser reads it through the
+    `getApprovedMembers` Cloud Function, which returns the whole list to admins and only the
+    caller's own entry to everyone else. It used to be `premium/approved.json` in this public repo
+    (readable by anyone); `loadApprovedMembers()` still falls back to that file if the Firebase
+    copy doesn't exist yet or the function call fails, so once the first 회원관리 save has landed in
+    Firebase that legacy file should be deleted from the repo (otherwise the fallback can serve a
+    stale list).
   - `premium_content/{dataset}/latest.json` holds the four premium-only datasets (상황별 처방,
     계절별 패키지, 농장 맞춤 찾기, 온라인 자가진단— `treatment_packages`/`seasonal_packages`/
     `farm_finder`/`self_check`). These used to be public GitHub files like everything else in this
     repo, which meant anyone who found the raw URL could read paid content without logging in —
     moved here so only approved members (or admins) can read it, and only admins can write it.
     Approval is checked via a Firebase Auth **custom claim** (`request.auth.token.approved`), since
-    Storage rules can't query `premium/approved.json`'s dynamic member list directly. The
+    Storage rules can't query the approval list's contents directly. The
     `setMemberApproval` Cloud Function sets that claim, called from index.html's member-save handler
     every time a member is added or edited — so a membership's `expires` field only actually takes
     effect at the Storage layer the next time that member's record is saved (not automatically at
@@ -70,11 +78,18 @@ Two pieces are **not** static, both Firebase, both under the 유료서비스 tab
     refresh (up to ~1h) unless index.html forces one via `getIdToken(true)`, which it does right
     after a login is found to be approved.
   - `public_content/{dataset}/latest.json` is the same shape but **world-readable** (admin-only
-    write) — for admin-authored content on the free tabs. Currently only AI 관련 소식
-    (`hpai_news`, photos under `public_content/hpai_news_images/`), which used to be committed to
-    this repo via the GitHub Contents API with a personal access token (`ghToken()`) until that
-    kept failing with 403s. `fetchHpaiNews()` falls back to the old `hpai_news/news.json` in this
-    repo until the first Firebase publish. 이달의 질병 and 회원관리 still publish via `ghToken()`.
+    write) — for admin-authored content shown without login: AI 관련 소식 (`hpai_news`, photos under
+    `public_content/hpai_news_images/`), 이달의 질병 (`monthly_pick`) and the 유료서비스 menu
+    editor's saved menu (`premium_menu`). All three used to be committed to this repo through the
+    GitHub Contents API with a personal access token kept in the admin's browser, until that kept
+    failing with 403s; there is no GitHub-token publishing left in index.html. Reads go through the
+    unauthenticated `getPublicContent` Cloud Function (same CORS reason as `getPremiumContent`),
+    and `fetchPublicContentOrLegacy()` falls back to the old file in this repo
+    (`hpai_news/news.json`, `monthly_pick/picks.json`, `premium_menu/items.json`) until the first
+    Firebase publish of each.
+  - Every write above (and all the admin "⚙ 관리" UI) is gated on `isBoardAdmin()` — the logged-in
+    Firebase account's email being in `BOARD_ADMIN_EMAILS` — so the admin has to be logged in on the
+    유료서비스 tab even to manage content on the free tabs.
   Both paths check the caller's email against a hardcoded admin list — keep it in sync with
   `functions/index.js`'s `ADMIN_EMAILS` when adding/removing an admin. Deploy with
   `firebase deploy --only storage`.

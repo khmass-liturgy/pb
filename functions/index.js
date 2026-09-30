@@ -84,7 +84,7 @@ exports.deleteMemberAccount = onCall(async (request) => {
 // 유료 콘텐츠(상황별 처방·계절별 패키지·농장 맞춤 찾기·자가진단)는 공개
 // GitHub 저장소 대신 Firebase Storage에 두고, storage.rules에서
 // "request.auth.token.approved == true"인 사람만 읽을 수 있게 막는다.
-// 그런데 승인 여부는 premium/approved.json(누가 회원인지)에 있지, Firebase
+// 그런데 승인 여부는 승인 명부(member_registry/approved.json)에 있지, Firebase
 // 계정 자체에는 없다 — 그래서 회원을 추가/수정할 때마다 이 함수로 그 계정의
 // ID 토큰에 approved 커스텀 클레임을 심어준다(index.html의 mm-save
 // 핸들러가 호출). 클레임은 다음 로그인/토큰 갱신 때 반영된다(즉시 반영이
@@ -169,6 +169,47 @@ exports.getPremiumContent = onCall(async (request) => {
   } catch (e) {
     throw new HttpsError("internal", "저장된 내용을 읽지 못했습니다.");
   }
+});
+
+// public_content/{dataset}/latest.json(AI 관련 소식·이달의 질병·유료서비스 메뉴
+// 편집본)도 같은 CORS 이유로 대신 읽어준다. 무료 탭·로그인 전 화면에 보이는
+// 공개 내용이라 로그인을 요구하지 않는다(쓰기는 storage.rules에서 관리자만).
+exports.getPublicContent = onCall(async (request) => {
+  const { dataset } = request.data || {};
+  if (!dataset || typeof dataset !== "string" || !/^[a-zA-Z0-9_]+$/.test(dataset)) {
+    throw new HttpsError("invalid-argument", "dataset이 필요합니다.");
+  }
+  const file = admin.storage().bucket(STORAGE_BUCKET).file("public_content/" + dataset + "/latest.json");
+  const [exists] = await file.exists();
+  if (!exists) throw new HttpsError("not-found", "아직 발행된 내용이 없습니다.");
+  try {
+    const [buf] = await file.download();
+    return { data: JSON.parse(buf.toString("utf-8")) };
+  } catch (e) {
+    throw new HttpsError("internal", "저장된 내용을 읽지 못했습니다.");
+  }
+});
+
+// 유료서비스 승인 명부(member_registry/approved.json — 이메일·만료일만).
+// 예전엔 공개 GitHub 저장소(premium/approved.json)라 누구나 명단 전체를 볼 수
+// 있었다. 이제 관리자에게만 전체를 주고, 일반 로그인 사용자에게는 본인 항목만
+// 준다 — 브라우저(isPremiumApproved)가 알아야 하는 건 "나는 승인됐나"뿐이다.
+exports.getApprovedMembers = onCall(async (request) => {
+  const email = request.auth && request.auth.token && request.auth.token.email;
+  if (!email) throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
+  const file = admin.storage().bucket(STORAGE_BUCKET).file("member_registry/approved.json");
+  const [exists] = await file.exists();
+  if (!exists) throw new HttpsError("not-found", "아직 발행된 명부가 없습니다.");
+  let members;
+  try {
+    const [buf] = await file.download();
+    members = JSON.parse(buf.toString("utf-8")).members || [];
+  } catch (e) {
+    throw new HttpsError("internal", "명부를 읽지 못했습니다.");
+  }
+  const me = String(email).toLowerCase().trim();
+  if (ADMIN_EMAILS.includes(me)) return { members };
+  return { members: members.filter((m) => String(m.email || "").toLowerCase().trim() === me) };
 });
 
 // 관리 화면의 AI 초안 두 가지 — "농장에서 많이 궁금해 하는 질문"(faq) 답변과

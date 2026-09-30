@@ -648,10 +648,12 @@ const HPAI_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/
 // 양계질병 자료 — The Poultry Site 원문을 scripts/fetch_poultry_diseases.py가 한글 번역까지 마쳐둔 파일
 const DISEASE_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/poultry_disease/diseases.json";
 const EGG_REPORT_SOURCE_URL = "https://www.ekapepia.com/v3/board/list.do?menuSn=51&boardInfoNo=0159";
-// 유료서비스 승인회원 목록 — 다른 패널과 같은 방식으로, 승인은 관리자가 이 파일에
-// 이메일을 추가해 커밋·푸시하는 것으로 처리한다(별도 관리자 백엔드 없음).
-const PREMIUM_PATH = "premium/approved.json";
-const PREMIUM_APPROVED_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/" + PREMIUM_PATH;
+// 유료서비스 승인 명부(이메일·만료일) — Firebase Storage member_registry/approved.json
+// (관리자만 직접 읽기·쓰기). 브라우저는 Cloud Function getApprovedMembers로 읽는다
+// (관리자는 전체, 일반 회원은 본인 항목만). 예전엔 공개 GitHub 저장소의
+// premium/approved.json이었고, Firebase에 첫 발행 전까지는 그 파일을 대신 읽는다.
+const MEMBER_REGISTRY_PATH = "member_registry/approved.json";
+const PREMIUM_LEGACY_APPROVED_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/premium/approved.json";
 // 유료서비스 "기술탐구" — 질병논문/사양관리기술/컨설팅도구 최신 논문(PubMed
 // 원문을 Claude API로 번역·요약). scripts/fetch_research_papers.py가 매주
 // 일요일 GitHub Actions로 갱신한다.
@@ -774,16 +776,17 @@ function renderPremiumMenuItems(items, mode){
 
 // ── 유료서비스 메뉴 화면(초기화면) — 관리자 편집 ─────────────────────────────
 // PREMIUM_ITEMS(위)는 배포판의 기본값(seed)이다. 관리자가 메뉴 편집에서 한 번
-// 이라도 저장하면 premium_menu/items.json(공개 GitHub 파일)이 생기고, 그
-// 뒤로는 이 파일 내용이 PREMIUM_ITEMS를 대신한다. 메뉴 항목은 로그인 전
-// 미리보기 화면(renderPremiumPreview)에도 그대로 노출되는 공개 정보라
-// Firebase premium_content가 아니라 "이달의 질병"과 같은 공개 GitHub
-// Contents API 방식을 쓴다(발행 권한도 같은 ghToken을 그대로 쓴다). 새로
+// 이라도 저장하면 public_content/premium_menu/latest.json이 생기고, 그 뒤로는
+// 이 파일 내용이 PREMIUM_ITEMS를 대신한다. 메뉴 항목은 로그인 전 미리보기
+// 화면(renderPremiumPreview)에도 그대로 노출되는 공개 정보라 premium_content가
+// 아니라 누구나 읽을 수 있는 public_content에 둔다(쓰기는 관리자 Firebase
+// 로그인). 예전엔 공개 GitHub 파일(premium_menu/items.json)이었고, Firebase에
+// 첫 발행 전까지는 그 파일을 대신 읽는다. 새로
 // 추가한 항목에 key를 비워두거나(안내 전용) 실제 화면과 연결되지 않은 key를
 // 넣으면 카드를 눌러도 메뉴 화면이 그대로 유지된다(premium-item-btn 클릭 시
 // premiumState.view에 그 key를 넣지만, 어떤 if(premiumState.view===...) 블록도
 // 맞지 않으면 그냥 메뉴 화면 기본 분기로 되돌아간다).
-const PREMIUM_MENU_PATH = "premium_menu/items.json";
+const PREMIUM_MENU_LEGACY_PATH = "premium_menu/items.json";
 // 정보 전용이 아니라 실제 화면과 연결하고 싶을 때 고를 수 있는 기존 기능
 // key 목록 — 관리자가 오타로 없는 key를 입력하는 실수를 막기 위해 드롭다운으로
 // 제공한다(회원관리·자동문자발송관리는 별도로 자동 추가되는 관리자 전용
@@ -804,66 +807,40 @@ function currentPremiumMenuItems(){
 async function fetchPremiumMenuItems(){
   if(premiumMenuState.status === "loading") return;
   premiumMenuState.status = "loading";
-  try {
-    const url = "https://raw.githubusercontent.com/" + PICK_REPO + "/" + PICK_BRANCH + "/" + PREMIUM_MENU_PATH;
-    const r = await fetchWithTimeout(url + "?t=" + Date.now(), 8000);
-    if(!r.ok) throw new Error("HTTP " + r.status);
-    const j = await r.json();
+  const j = await fetchPublicContentOrLegacy("premium_menu", PREMIUM_MENU_LEGACY_PATH);
+  if(j){
     j.items = Array.isArray(j.items) ? j.items : [];
     premiumMenuState.data = j;
     premiumMenuState.status = "done";
-  } catch(e){
-    console.warn("유료서비스 메뉴 편집본 로딩 실패(기본 메뉴로 대체):", e);
+  } else {
     premiumMenuState.data = null;
     premiumMenuState.status = "error";
   }
   if(state.tab === "premium") render();
 }
 
-async function publishPremiumMenuItems(items, message){
-  const token = ghToken();
-  if(!token) return { ok:false, error:"발행 권한이 설정되지 않았습니다 — '이달의 질병' 관리에서 먼저 토큰을 등록하세요." };
-  const api = "https://api.github.com/repos/" + PICK_REPO + "/contents/" + PREMIUM_MENU_PATH;
-  const head = { "Authorization": "Bearer " + token,
-                 "Accept": "application/vnd.github+json",
-                 "Content-Type": "application/json" };
+// 관리자 Firebase 로그인이 필요한 public_content 발행 공통 부분.
+async function publishPublicContent(dataset, body){
+  if(!firebaseReady) return { ok:false, error:"Firebase 설정이 아직 완료되지 않았습니다." };
+  if(!isBoardAdmin()) return { ok:false, error:"관리자 계정으로 로그인돼 있지 않습니다 — 유료서비스 탭에서 관리자 계정으로 로그인한 뒤 다시 시도하세요." };
   try {
-    let sha = null;
-    const cur = await fetch(api + "?ref=" + PICK_BRANCH + "&t=" + Date.now(), { headers: head });
-    if(cur.ok) sha = (await cur.json()).sha;
-    else if(cur.status === 401) throw new Error("토큰이 거부되었습니다.");
-    else if(cur.status === 403) throw new Error("이 토큰에는 권한이 없습니다.");
-    else if(cur.status === 404) sha = null;
-    else throw new Error("현재 파일 확인 실패 (HTTP " + cur.status + ")");
-
-    const body = {
-      updated: new Date().toISOString().slice(0,16).replace("T"," ") + " UTC",
-      by: PICK_BY,
-      note: "유료서비스 메뉴 초기화면 — 화면에서 저장하면 이 파일이 갱신되고 모든 사람에게 같은 메뉴가 보입니다.",
-      items: items,
-    };
-    const res = await fetch(api, {
-      method: "PUT", headers: head,
-      body: JSON.stringify({
-        message: message || "🗂️ 유료서비스 메뉴 갱신",
-        content: b64utf8(JSON.stringify(body, null, 1)),
-        branch: PICK_BRANCH,
-        sha: sha || undefined,
-      }),
-    });
-    if(!res.ok){
-      const t = await res.text();
-      let apiMsg = ""; try { apiMsg = JSON.parse(t).message || ""; } catch(e){}
-      if(res.status === 401) throw new Error("토큰이 올바르지 않거나 만료되었습니다.");
-      if(res.status === 403) throw new Error("발행이 거부됐습니다(HTTP 403)." + (apiMsg?" GitHub 응답: "+apiMsg:""));
-      if(res.status === 409) throw new Error("다른 곳에서 먼저 수정됐습니다. 새로고침 후 다시 시도하세요.");
-      throw new Error("발행 실패 (HTTP " + res.status + ") " + (apiMsg || t.slice(0,120)));
-    }
-    premiumMenuState.data = body;
+    await writePublicContentJson(dataset, body);
     return { ok:true };
   } catch(e){
     return { ok:false, error: e.message || String(e) };
   }
+}
+
+async function publishPremiumMenuItems(items){
+  const body = {
+    updated: new Date().toISOString().slice(0,16).replace("T"," ") + " UTC",
+    by: PICK_BY,
+    note: "유료서비스 메뉴 초기화면 — 화면에서 저장하면 이 파일이 갱신되고 모든 사람에게 같은 메뉴가 보입니다.",
+    items: items,
+  };
+  const r = await publishPublicContent("premium_menu", body);
+  if(r.ok) premiumMenuState.data = body;
+  return r;
 }
 
 function resetPremiumMenuForm(item, idx){
@@ -877,7 +854,7 @@ function resetPremiumMenuForm(item, idx){
 }
 
 function renderPremiumMenuEditor(){
-  if(!ghToken()) return "";
+  if(!isBoardAdmin()) return "";
   const items = currentPremiumMenuItems();
   const rows = items.map((it,idx) => `
     <div style="display:flex;align-items:center;gap:8px;padding:7px 9px;border:1px solid #eee;border-radius:7px;margin-bottom:5px;background:#fff">
@@ -1797,56 +1774,23 @@ function newTreatmentKey(){
   return "t" + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 }
 
-// publishPicks와 똑같은 GitHub Contents API 발행 로직이다(회원 명부는 지금도
-// 공개 저장소에 커밋한다 — 이메일·만료일뿐이라 원래도 개인정보가 아니다).
-// 토큰도 같은 것(ghToken())을 쓰므로 관리자가 "이달의 질병"에서 이미
-// 등록해둔 발행 권한이 여기서도 그대로 통한다.
-//
-// premium/approved.json은 공개 GitHub 저장소라 브라우저에서 로그인 없이도
-// 그대로 읽힌다 — isPremiumApproved()의 클라이언트 승인 체크에 꼭 필요한
-// 이메일·만료일만 여기 남기고, 이름·전화번호·가입일 같은 실제 개인정보는
-// writeMemberProfile()로 Firebase Storage(관리자만 읽기)에 따로 저장한다.
+// 승인 명부 저장 — member_registry/approved.json(storage.rules에서 관리자만 읽기·쓰기).
+// isPremiumApproved()의 승인 체크에 꼭 필요한 이메일·만료일만 여기 남기고,
+// 이름·전화번호·가입일 같은 실제 개인정보는 writeMemberProfile()로 따로 저장한다.
 // 이 함수는 안전을 위해 email/expires 외 필드는 무엇을 넘겨받든 저장 전에
-// 항상 걸러낸다 — 호출하는 쪽에서 실수로 이름·전화번호를 포함해 넘겨도
-// 공개 저장소에는 올라가지 않는다.
-async function publishMembers(members, message){
-  const token = ghToken();
-  if(!token) return { ok:false, error:"발행 권한이 설정되지 않았습니다." };
-  const api = "https://api.github.com/repos/" + PICK_REPO + "/contents/" + PREMIUM_PATH;
-  const head = { "Authorization": "Bearer " + token,
-                 "Accept": "application/vnd.github+json",
-                 "Content-Type": "application/json" };
+// 항상 걸러낸다.
+async function publishMembers(members){
+  if(!firebaseReady) return { ok:false, error:"Firebase 설정이 아직 완료되지 않았습니다." };
+  if(!isBoardAdmin()) return { ok:false, error:"관리자 계정으로 로그인돼 있지 않습니다." };
   try {
-    let sha = null;
-    const cur = await fetch(api + "?ref=" + PICK_BRANCH + "&t=" + Date.now(), { headers: head });
-    if(cur.ok) sha = (await cur.json()).sha;
-    else if(cur.status === 401) throw new Error("토큰이 거부되었습니다. '토큰 점검'으로 원인을 확인하세요.");
-    else if(cur.status === 403) throw new Error("이 토큰에는 권한이 없습니다. '토큰 점검'으로 확인하세요.");
-    else if(cur.status === 404) sha = null;
-    else throw new Error("현재 파일 확인 실패 (HTTP " + cur.status + ")");
-
     const publicMembers = members.map(m => ({ email: m.email, expires: m.expires || "" }));
     const body = {
-      note: "유료서비스 승인 목록(이메일·만료일만). 이름·전화번호는 개인정보라 여기(공개 저장소)에 두지 않고 Firebase Storage에 별도 보관한다 — 화면(유료서비스 → 회원관리, 관리자만 보임)에서 관리한다. 이메일은 대소문자를 구분하지 않습니다. expires가 없으면 만료 없이 계속 승인 상태이고, 있으면 그 날짜(포함)까지만 로그인이 승인됩니다.",
+      updated: new Date().toISOString().slice(0,16).replace("T"," ") + " UTC",
+      note: "유료서비스 승인 명부(이메일·만료일만). 이름·전화번호는 premium_members/{email}/info.json에 따로 보관한다 — 화면(유료서비스 → 회원관리, 관리자만 보임)에서 관리한다. 이메일은 대소문자를 구분하지 않습니다. expires가 없으면 만료 없이 계속 승인 상태이고, 있으면 그 날짜(포함)까지만 로그인이 승인됩니다.",
       members: publicMembers,
     };
-    const res = await fetch(api, {
-      method: "PUT", headers: head,
-      body: JSON.stringify({
-        message: message || "👤 회원 명부 갱신",
-        content: b64utf8(JSON.stringify(body, null, 1)),
-        branch: PICK_BRANCH,
-        sha: sha || undefined,
-      }),
-    });
-    if(!res.ok){
-      const t = await res.text();
-      let apiMsg = ""; try { apiMsg = JSON.parse(t).message || ""; } catch(e){}
-      if(res.status === 401) throw new Error("토큰이 올바르지 않거나 만료되었습니다." + (apiMsg?" ("+apiMsg+")":""));
-      if(res.status === 403) throw new Error("발행이 거부됐습니다(HTTP 403)." + (apiMsg?" GitHub 응답: "+apiMsg:" 토큰 권한을 다시 확인하세요."));
-      if(res.status === 409) throw new Error("다른 곳에서 먼저 수정됐습니다. 새로고침 후 다시 시도하세요.");
-      throw new Error("발행 실패 (HTTP " + res.status + ") " + (apiMsg || t.slice(0,120)));
-    }
+    await withStorageTimeout(firebase.storage().ref(MEMBER_REGISTRY_PATH)
+      .putString(JSON.stringify(body, null, 1), "raw", { contentType:"application/json" }));
     premiumState.members = publicMembers;
     premiumState.approvedEmails = publicMembers.filter(isMemberActiveToday).map(m => String(m.email).toLowerCase().trim());
     return { ok:true };
@@ -3039,14 +2983,35 @@ function isMemberActiveToday(m){
   return m.expires >= today;
 }
 
+// 계정이 바뀌면(로그아웃 후 다른 계정 로그인) 올리고, 늦게 도착한 이전 계정의
+// 응답은 버린다 — 이제 명부는 계정마다 다르게(관리자 전체/회원 본인만) 온다.
+let premiumApprovedGen = 0;
+
+async function loadApprovedMembers(){
+  try {
+    const fn = firebase.app().functions().httpsCallable("getApprovedMembers");
+    const res = await withStorageTimeout(fn({}), 15000);
+    return (res.data && res.data.members) || [];
+  } catch(e){
+    // Firebase에 명부가 아직 한 번도 발행 안 됐거나(not-found) 함수가 아직 배포 전이면
+    // (internal) 예전 공개 GitHub 명부로 대체한다 — 여기서 실패로 끝내면 유료회원
+    // 전원이 잠겨버린다. 관리자가 회원관리에서 한 번 저장하면 그 목록째로 Firebase에
+    // 옮겨지고, 그 뒤 예전 GitHub 명부 파일은 지워도 된다.
+    console.warn("승인 명부: Firebase에서 못 읽어 예전 GitHub 명부로 대체:", e.code || e.message || e);
+    const resp = await fetchWithTimeout(PREMIUM_LEGACY_APPROVED_JSON_URL + "?t=" + Date.now(), 8000);
+    if(!resp.ok) throw new Error("HTTP " + resp.status);
+    const data = await resp.json();
+    return Array.isArray(data.members) ? data.members : [];
+  }
+}
+
 async function fetchPremiumApproved(){
   if(premiumState.status === "loading") return;
   premiumState.status = "loading";
+  const gen = ++premiumApprovedGen;
   try {
-    const resp = await fetchWithTimeout(PREMIUM_APPROVED_JSON_URL + "?t=" + Date.now(), 8000);
-    if(!resp.ok) throw new Error("HTTP " + resp.status);
-    const data = await resp.json();
-    const members = Array.isArray(data.members) ? data.members : [];
+    const members = await loadApprovedMembers();
+    if(gen !== premiumApprovedGen) return;
     premiumState.members = members;
     // 만료 안 지난 회원의 이메일만 "승인됨"으로 취급한다 — isPremiumApproved()가
     // 매 렌더마다 날짜 계산을 다시 하지 않도록 여기서 한 번에 걸러둔다.
@@ -3061,6 +3026,7 @@ async function fetchPremiumApproved(){
       firebase.auth().currentUser.getIdToken(true).catch(()=>{});
     }
   } catch(e){
+    if(gen !== premiumApprovedGen) return;
     console.warn("유료서비스 승인목록 로딩 실패:", e);
     premiumState.status = "error";
   }
@@ -3116,11 +3082,19 @@ function premiumResetPassword(){
 
 if(firebaseReady){
   firebase.auth().onAuthStateChanged(user => {
+    const prevUid = premiumState.user ? premiumState.user.uid : null;
     premiumState.user = user;
     premiumState.authChecked = true;
+    // 명부는 계정마다 다르게 오므로(관리자 전체/회원 본인만) 계정이 바뀌면 새로 읽는다.
+    if((user ? user.uid : null) !== prevUid){
+      premiumApprovedGen++;
+      premiumState.status = "idle";
+      premiumState.members = [];
+      premiumState.approvedEmails = [];
+    }
     if(user && premiumState.status === "idle") fetchPremiumApproved();
-    // AI 관련 소식 관리 버튼도 관리자 로그인 여부로 보이므로 그 탭도 다시 그린다.
-    if(state.tab === "premium" || state.tab === "hpai") render();
+    // AI 관련 소식·이달의 질병의 관리 버튼도 관리자 로그인 여부로 보이므로 다시 그린다.
+    if(state.tab === "premium" || state.tab === "hpai" || state.tab === "disease") render();
   });
 }
 
@@ -3267,15 +3241,36 @@ async function writePremiumContentJson(dataset, body){
 }
 
 // public_content/{dataset}/... — 위 premium_content와 같은 모양이지만 storage.rules에서
-// 누구나(비로그인 포함) 읽을 수 있고 관리자만 쓸 수 있다. 무료 탭 콘텐츠용.
+// 누구나(비로그인 포함) 읽을 수 있고 관리자만 쓸 수 있다. 무료 탭·로그인 전 화면용
+// (AI 관련 소식·이달의 질병·유료서비스 메뉴 편집본). 읽기는 premium_content와 같은
+// CORS 이유로 Cloud Function(getPublicContent)을 거친다 — 로그인은 필요 없다.
 function publicContentPath(dataset){
   return "public_content/" + dataset + "/latest.json";
 }
 async function fetchPublicContentJson(dataset){
-  const url = await withStorageTimeout(firebase.storage().ref(publicContentPath(dataset)).getDownloadURL());
-  const resp = await fetch(url);
-  if(!resp.ok) throw new Error("HTTP " + resp.status);
-  return await resp.json();
+  const fn = firebase.app().functions().httpsCallable("getPublicContent");
+  const res = await withStorageTimeout(fn({ dataset }), 15000);
+  return res.data && res.data.data;
+}
+// 세 데이터셋 모두 예전엔 이 공개 GitHub 저장소(legacyPath)에 있었다. Firebase에
+// 아직 한 번도 발행되지 않았으면 그 파일을 대신 읽고, 관리자가 처음 발행할 때 그
+// 내용째로 Firebase에 옮겨 쓴다. 둘 다 실패하면 null.
+async function fetchPublicContentOrLegacy(dataset, legacyPath){
+  if(firebaseReady){
+    try {
+      const j = await fetchPublicContentJson(dataset);
+      if(j) return j;
+    } catch(e){ console.warn(dataset + ": Firebase 발행본 없음 — 예전 GitHub 파일로 대체:", e.message || e); }
+  }
+  try {
+    const url = "https://raw.githubusercontent.com/" + PICK_REPO + "/" + PICK_BRANCH + "/" + legacyPath;
+    const r = await fetchWithTimeout(url + "?t=" + Date.now(), 8000);
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    return await r.json();
+  } catch(e){
+    console.warn(dataset + " 로딩 실패:", e.message || e);
+    return null;
+  }
 }
 async function writePublicContentJson(dataset, body){
   await withStorageTimeout(firebase.storage().ref(publicContentPath(dataset))
@@ -3965,25 +3960,10 @@ function newHpaiNewsId(){
   return "hn" + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 }
 
-async function fetchLegacyHpaiNews(){
-  const url = "https://raw.githubusercontent.com/" + PICK_REPO + "/" + PICK_BRANCH + "/" + HPAI_NEWS_LEGACY_PATH;
-  const r = await fetchWithTimeout(url + "?t=" + Date.now(), 8000);
-  if(!r.ok) throw new Error("HTTP " + r.status);
-  return await r.json();
-}
-
 async function fetchHpaiNews(){
   if(hpaiNewsState.status === "loading") return;
   hpaiNewsState.status = "loading";
-  let j = null;
-  if(firebaseReady){
-    try { j = await fetchPublicContentJson("hpai_news"); }
-    catch(e){ console.warn("AI 관련 소식: Firebase에 아직 발행본 없음 — 예전 GitHub 파일로 대체:", e); }
-  }
-  if(!j){
-    try { j = await fetchLegacyHpaiNews(); }
-    catch(e){ console.warn("AI 관련 소식 로딩 실패(빈 목록으로 표시):", e); }
-  }
+  const j = await fetchPublicContentOrLegacy("hpai_news", HPAI_NEWS_LEGACY_PATH);
   hpaiNewsState.data = j || { items: [] };
   hpaiNewsState.data.items = Array.isArray(hpaiNewsState.data.items) ? hpaiNewsState.data.items : [];
   hpaiNewsState.status = "done";
@@ -3995,21 +3975,15 @@ function currentHpaiNews(){
 }
 
 async function publishHpaiNews(items){
-  if(!firebaseReady) return { ok:false, error:"Firebase 설정이 아직 완료되지 않았습니다." };
-  if(!isBoardAdmin()) return { ok:false, error:"관리자 계정으로 로그인돼 있지 않습니다 — 유료서비스 탭에서 관리자 계정으로 로그인한 뒤 다시 시도하세요." };
-  try {
-    const body = {
-      updated: new Date().toISOString().slice(0,16).replace("T"," ") + " UTC",
-      by: PICK_BY,
-      note: "AI(고병원성 조류인플루엔자) 관련 소식 — 화면에서 저장하면 이 파일이 갱신되고 모든 사람에게 같은 내용이 보입니다.",
-      items: items,
-    };
-    await writePublicContentJson("hpai_news", body);
-    hpaiNewsState.data = body;
-    return { ok:true };
-  } catch(e){
-    return { ok:false, error: e.message || String(e) };
-  }
+  const body = {
+    updated: new Date().toISOString().slice(0,16).replace("T"," ") + " UTC",
+    by: PICK_BY,
+    note: "AI(고병원성 조류인플루엔자) 관련 소식 — 화면에서 저장하면 이 파일이 갱신되고 모든 사람에게 같은 내용이 보입니다.",
+    items: items,
+  };
+  const r = await publishPublicContent("hpai_news", body);
+  if(r.ok) hpaiNewsState.data = body;
+  return r;
 }
 
 // ── AI 관련 소식 추가할 때 쓰는 "관련 기사 자동검색" ──────────────────────────
@@ -4058,11 +4032,6 @@ async function searchHpaiPortalNews(){
 // 관리자 계정으로 로그인한 경우에만 추가·편집·삭제 UI가 보인다.
 function renderHpaiNewsCard(){
   const admin = isBoardAdmin();
-  // 예전 방식(GitHub 토큰)으로 관리하던 브라우저인데 아직 Firebase 관리자
-  // 로그인을 안 한 경우에만 안내 — 일반 방문자에게는 아무것도 안 보인다.
-  const loginHint = (!admin && ghToken())
-    ? `<div style="margin-top:10px;border-top:1px dashed #eee;padding-top:10px;font-size:10.5px;color:#888">⚙ 소식을 관리하려면 <b>유료서비스</b> 탭에서 관리자 계정으로 로그인하세요.</div>`
-    : "";
   const items = currentHpaiNews().slice().sort((a,b) => (b.createdAt||"").localeCompare(a.createdAt||"")).slice(0,5);
   const editing = hpaiNewsState.formId && currentHpaiNews().find(x=>x.id===hpaiNewsState.formId);
 
@@ -4150,7 +4119,6 @@ function renderHpaiNewsCard(){
     <div style="font-size:11px;color:#aaa;margin-bottom:4px">최신 5건만 보여드립니다</div>
     <div>${list}</div>
     ${adminBox}
-    ${loginHint}
   </div>`;
 }
 
@@ -4745,31 +4713,25 @@ function hlDisease(text, q){
 }
 
 // ── 이달의 질병 ────────────────────────────────────────────────────────────
-// 선택 내용은 저장소의 monthly_pick/picks.json 에 들어간다. 보는 사람은 아무것도
-// 하지 않아도 이 파일을 읽어 같은 내용을 본다(예전에는 localStorage라 저장한
-// 사람 브라우저에서만 보였다).
-//
-// 정적 사이트라 서버가 없어서, 파일에 쓰는 건 브라우저가 GitHub API를 직접
-// 호출해 커밋하는 방식이다. 그러려면 쓰기 권한이 필요한데 **토큰을 페이지
-// 소스에 넣으면 사이트를 보는 누구나 저장소를 고칠 수 있게 되므로 절대 넣지
-// 않는다.** 대신 글을 올리는 사람이 자기 브라우저에 한 번 저장해 두고
-// (localStorage), 그 브라우저에서만 발행이 된다. 나머지 방문자는 읽기 전용이다.
+// 선택 내용은 public_content/monthly_pick/latest.json(누구나 읽기, 관리자만 쓰기)에
+// 들어간다. 보는 사람은 아무것도 하지 않아도 이 파일을 읽어 같은 내용을 본다.
+// 발행은 다른 관리 기능과 같은 관리자 Firebase 로그인으로 한다 — 예전엔 공개
+// GitHub 저장소(monthly_pick/picks.json)에 관리자 브라우저에 저장해둔 GitHub
+// 개인 액세스 토큰으로 커밋했는데, 토큰 권한 문제로 발행이 자주 막혀서 옮겼다.
+// Firebase에 첫 발행 전까지는 예전 GitHub 파일을 대신 읽는다.
 const PICK_REPO   = "khmass-liturgy/pb";
-const PICK_PATH   = "monthly_pick/picks.json";
+const PICK_LEGACY_PATH = "monthly_pick/picks.json";
 const PICK_BRANCH = "main";
-const PICK_TOKEN_KEY = "pb_gh_token";
 const PICK_LOCAL_KEY = "poultry_monthly_pick";   // 예전 저장 위치 (이관용)
 const PICK_BY = "최동명 수의사";
 
-let pickState = { status:"idle", data:null, sha:null, editRef:null,
-                  adminOpen:false, busy:false, msg:"", diag:"" };
+// 예전 GitHub 발행용 토큰이 관리자 브라우저에 남아 있으면 지운다 — 이제
+// 어디서도 쓰지 않는 저장소 쓰기 권한이 브라우저에 계속 남아 있을 이유가 없다.
+try { localStorage.removeItem("pb_gh_token"); } catch(_){}
 
-function ghToken(){
-  try { return localStorage.getItem(PICK_TOKEN_KEY) || ""; } catch(_) { return ""; }
-}
-function setGhToken(v){
-  try { v ? localStorage.setItem(PICK_TOKEN_KEY, v) : localStorage.removeItem(PICK_TOKEN_KEY); } catch(_){}
-}
+let pickState = { status:"idle", data:null, editRef:null,
+                  adminOpen:false, busy:false, msg:"" };
+
 function newPickId(){
   return "p" + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 }
@@ -4809,128 +4771,28 @@ function countPicks(o){
 async function fetchMonthlyPicks(){
   if(pickState.status === "loading") return;
   pickState.status = "loading";
-  try {
-    const url = "https://raw.githubusercontent.com/" + PICK_REPO + "/" + PICK_BRANCH + "/" + PICK_PATH;
-    const r = await fetchWithTimeout(url + "?t=" + Date.now(), 8000);
-    if(!r.ok) throw new Error("HTTP " + r.status);
-    const j = await r.json();
+  const j = await fetchPublicContentOrLegacy("monthly_pick", PICK_LEGACY_PATH);
+  if(j){
     j.picks = normalizePicks(j.picks);
     pickState.data = j;
     pickState.status = "done";
-  } catch(e) {
-    console.warn("이달의 질병 로딩 실패:", e);
+  } else {
     pickState.data = { picks: {}, by: PICK_BY };
     pickState.status = "error";
   }
   if(state.tab === "disease") render();
 }
 
-// UTF-8 문자열 → base64 (GitHub API가 요구하는 형식)
-function b64utf8(s){
-  return btoa(String.fromCharCode.apply(null, new TextEncoder().encode(s)));
-}
-
-async function publishPicks(picks, message){
-  const token = ghToken();
-  if(!token) return { ok:false, error:"발행 권한이 설정되지 않았습니다." };
-  const api = "https://api.github.com/repos/" + PICK_REPO + "/contents/" + PICK_PATH;
-  const head = { "Authorization": "Bearer " + token,
-                 "Accept": "application/vnd.github+json",
-                 "Content-Type": "application/json" };
-  try {
-    // 다른 곳에서 먼저 바뀌었을 수 있으므로 최신 sha를 받아서 쓴다
-    let sha = null;
-    const cur = await fetch(api + "?ref=" + PICK_BRANCH + "&t=" + Date.now(), { headers: head });
-    if(cur.ok) sha = (await cur.json()).sha;
-    else if(cur.status === 401) throw new Error("토큰이 거부되었습니다. '토큰 점검'으로 원인을 확인하세요.");
-    else if(cur.status === 403) throw new Error("이 토큰에는 권한이 없습니다. '토큰 점검'으로 확인하세요.");
-    else if(cur.status === 404) sha = null;   // 파일이 아직 없으면 새로 만든다
-    else throw new Error("현재 파일 확인 실패 (HTTP " + cur.status + ")");
-
-    const body = {
-      updated: new Date().toISOString().slice(0,16).replace("T"," ") + " UTC",
-      by: PICK_BY,
-      note: "이달의 질병 선택 — 화면에서 저장하면 이 파일이 갱신되고 모든 사람에게 같은 내용이 보입니다.",
-      picks: picks,
-    };
-    const res = await fetch(api, {
-      method: "PUT", headers: head,
-      body: JSON.stringify({
-        message: message || "📌 이달의 질병 갱신",
-        content: b64utf8(JSON.stringify(body, null, 1)),
-        branch: PICK_BRANCH,
-        sha: sha || undefined,
-      }),
-    });
-    if(!res.ok){
-      const t = await res.text();
-      // GitHub가 준 실제 사유를 그대로 보여준다 — 예전엔 403을 무조건 "쓰기
-      // 권한이 없습니다"로 단정했는데, 토큰 권한은 정상인데도 403이 나는
-      // 경우(예: 조직 SSO 미승인, 푸시 보호 등)가 있어 원인 파악이 안 됐다.
-      let apiMsg = "";
-      try { apiMsg = JSON.parse(t).message || ""; } catch(e){}
-      if(res.status === 401) throw new Error("토큰이 올바르지 않거나 만료되었습니다." + (apiMsg?" ("+apiMsg+")":""));
-      if(res.status === 403) throw new Error("발행이 거부됐습니다(HTTP 403)." + (apiMsg?" GitHub 응답: "+apiMsg:" 토큰 권한을 다시 확인하세요."));
-      if(res.status === 409) throw new Error("다른 곳에서 먼저 수정됐습니다. 새로고침 후 다시 시도하세요.");
-      throw new Error("발행 실패 (HTTP " + res.status + ") " + (apiMsg || t.slice(0,120)));
-    }
-    pickState.data = body;
-    return { ok:true };
-  } catch(e) {
-    return { ok:false, error: e.message || String(e) };
-  }
-}
-
-// 401만 보고는 원인을 알 수 없다(토큰 오타 / 다른 계정 / 저장소 미선택 / 권한 부족).
-// 단계별로 물어봐서 어디서 막혔는지 짚어준다.
-async function diagnoseToken(){
-  const token = ghToken();
-  if(!token) return "토큰이 저장되어 있지 않습니다.";
-  const head = { "Authorization": "Bearer " + token, "Accept": "application/vnd.github+json" };
-  try {
-    // 1) 토큰 자체가 유효한가 + 어느 계정 것인가
-    const me = await fetch("https://api.github.com/user", { headers: head });
-    if(me.status === 401)
-      return "토큰이 유효하지 않습니다. 값이 잘렸거나 만료됐을 수 있으니 새로 만들어 다시 넣어보세요.";
-    if(!me.ok) return "토큰 확인 실패 (HTTP " + me.status + ")";
-    const login = (await me.json()).login;
-
-    // 2) 이 저장소에 닿는가
-    const rp = await fetch("https://api.github.com/repos/" + PICK_REPO, { headers: head });
-    if(rp.status === 404 || rp.status === 403){
-      const owner = PICK_REPO.split("/")[0];
-      return "토큰은 '" + login + "' 계정 것인데 " + PICK_REPO + " 에 접근할 수 없습니다."
-        + (login !== owner
-            ? " 저장소 주인은 '" + owner + "' 입니다 — 그 계정으로 로그인해 토큰을 만들어야 합니다."
-            : " 토큰 만들 때 Repository access에서 이 저장소를 선택했는지 확인하세요.");
-    }
-    if(!rp.ok) return "저장소 확인 실패 (HTTP " + rp.status + ")";
-    // 여기서 받은 permissions.push는 "이 계정이 저장소에 일반적으로 가진 권한"이라
-    // 저장소 주인이면 토큰 세부 권한과 무관하게 항상 true로 나온다 — 파인그레인드
-    // 토큰이 Contents 권한을 Read-only(또는 미부여)로 만들어졌어도 이 단계는
-    // 통과해버려서 "정상"이라고 오판하게 만든다. 그래서 실제 파일 조회(Contents
-    // 권한이 있어야 되는 호출)로 다시 확인한다.
-
-    // 3) Contents 권한이 실제로 있는가 — 발행 대상 파일을 직접 조회해본다
-    const cp = await fetch("https://api.github.com/repos/" + PICK_REPO + "/contents/" + PICK_PATH, { headers: head });
-    if(cp.status === 403 || cp.status === 401){
-      let apiMsg = ""; try { apiMsg = (await cp.json()).message || ""; } catch(e){}
-      return "'" + login + "' 계정으로 저장소는 보이지만 파일 조회가 거부됐습니다(HTTP " + cp.status + ")."
-        + (apiMsg ? " GitHub 응답: " + apiMsg + "." : "")
-        + " 토큰을 새로 만들 때 Permissions → Contents를 'Read-only'가 아니라 'Read and write'로 선택했는지 확인하고,"
-        + " 그래도 안 되면 '권한 해제' 후 방금 만든 토큰을 다시 붙여넣어(오타·공백 없이) 저장해보세요.";
-    }
-    if(!cp.ok && cp.status !== 404)
-      return "파일 확인 실패 (HTTP " + cp.status + ")";
-    // Contents 읽기까지는 확인됐다. 쓰기(Read and write)는 안전하게 미리 확인할
-    // 방법이 없어(실제로 커밋해봐야 안다) 여기서는 "아마 될 것"까지만 말해준다 —
-    // 그래도 여전히 발행이 403으로 실패하면 Read-only로 선택됐을 가능성이 크다.
-    return "'" + login + "' 계정, " + PICK_REPO + " 저장소와 파일 읽기까지 정상입니다. 다시 발행해보세요. "
-      + "그래도 '쓰기 권한이 없습니다' 오류가 반복되면, 토큰의 Contents 권한이 Read-only로 되어 있을 가능성이 큽니다 — "
-      + "새 토큰을 만들 때 Contents를 'Read and write'로 선택해 주세요.";
-  } catch(e) {
-    return "점검 중 오류: " + (e.message || e);
-  }
+async function publishPicks(picks){
+  const body = {
+    updated: new Date().toISOString().slice(0,16).replace("T"," ") + " UTC",
+    by: PICK_BY,
+    note: "이달의 질병 선택 — 화면에서 저장하면 이 파일이 갱신되고 모든 사람에게 같은 내용이 보입니다.",
+    picks: picks,
+  };
+  const r = await publishPublicContent("monthly_pick", body);
+  if(r.ok) pickState.data = body;
+  return r;
 }
 
 function findPick(picks, ref){
@@ -4947,7 +4809,7 @@ function renderMonthlyPick(list){
   const months = Object.keys(picks).filter(m => (picks[m]||[]).length).sort().reverse();
   const curList = picks[cur] || [];
   const total = countPicks(picks);
-  const admin = !!ghToken();
+  const admin = isBoardAdmin();
 
   const nameOf = s => { const d = list.find(x=>x.slug===s); return d ? d.title_ko : s; };
   const engOf  = s => { const d = list.find(x=>x.slug===s); return d ? d.title_en : ""; };
@@ -5029,29 +4891,9 @@ function renderMonthlyPick(list){
       + '</div>'
     : "";
 
-  // ── 관리 영역 (발행 권한이 있는 사람만) ──
+  // ── 관리 영역 (관리자 Firebase 로그인 상태에서만) ──
   const localCount = countPicks(localOnlyPicks());
-  const adminBody = !admin
-    ? '<div style="font-size:11px;color:#666;line-height:1.8">'
-      + '이 브라우저에서 선택을 <b>발행</b>하려면 GitHub 토큰이 필요합니다. 토큰은 이 브라우저에만 저장되며 페이지에는 포함되지 않습니다.<br>'
-      + '<a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener" style="color:#00695C">토큰 만들기 ↗</a>'
-      + ' — Repository access는 <b>'+esc(PICK_REPO)+'</b>만, 권한은 <b>Contents: Read and write</b> 하나만 주세요.'
-      + '</div>'
-      + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'
-      +   '<input id="dz-token" type="password" placeholder="github_pat_..." autocomplete="off" '
-      +     'style="flex:1;min-width:170px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />'
-      +   '<button id="dz-token-save" style="border:1px solid #00695C;background:#00695C;color:#fff;border-radius:7px;padding:7px 13px;font-size:12px">저장</button>'
-      + '</div>'
-    : '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:8px">'
-      +   '<span style="font-size:11px;color:#2E7D32">✔ 발행 권한 설정됨</span>'
-      +   '<span style="display:flex;gap:5px">'
-      +     '<button id="dz-token-check" style="font-size:10px;border:1px solid #00695C;border-radius:5px;background:#fff;color:#00695C;padding:2px 8px">토큰 점검</button>'
-      +     '<button id="dz-token-clear" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:2px 8px">권한 해제</button>'
-      +   '</span>'
-      + '</div>'
-      + (pickState.diag ? '<div style="font-size:11px;line-height:1.7;color:#7A5C00;background:#FFF8E1;border:1px solid #F0E0A0;border-radius:7px;padding:8px 10px;margin-bottom:8px">'
-          + esc(pickState.diag) + '</div>' : "")
-      + '<div style="background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">'
+  const adminBody = '<div style="background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">'
       +   '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:7px">'
       +     '<div style="font-size:11px;font-weight:700;color:#7A5C00">'
       +       (editing ? esc(monthLabel(ref.month))+' · '+esc(displayName(editing))+' 수정' : '질병 추가')+'</div>'
@@ -5078,7 +4920,7 @@ function renderMonthlyPick(list){
       +     '<button id="dz-migrate" style="font-size:10px;border:1px solid #B8860B;border-radius:5px;background:#fff;color:#B8860B;padding:2px 8px;margin-left:4px">함께 발행</button></div>' : "")
       + '</div>';
 
-  const adminBox = '<div style="margin-top:10px;border-top:1px dashed #eee;padding-top:9px">'
+  const adminBox = !admin ? "" : '<div style="margin-top:10px;border-top:1px dashed #eee;padding-top:9px">'
     + '<button id="dz-admin-toggle" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:3px 9px">'
     +   (pickState.adminOpen?'관리 닫기':'⚙ 관리')+'</button>'
     + (pickState.msg?'<span style="font-size:11px;margin-left:8px;color:'+(/실패|오류|않|없/.test(pickState.msg)?'#C62828':'#2E7D32')+'">'+esc(pickState.msg)+'</span>':'')
@@ -8222,26 +8064,27 @@ function renderPremiumTab(){
   if(PREMIUM_BOARDS[premiumState.view]){
     return renderPremiumGateHeader() + logoutBar + renderBoardPanel();
   }
-  // 회원관리 화면 — 관리자(ghToken 보유자)가 아니면 메뉴로 돌려보낸다
+  // 회원관리 화면 — 관리자가 아니면 메뉴로 돌려보낸다
   // (URL 조작 등으로 view만 바뀌어도 실제 데이터·기능에는 못 들어가지만,
   // 화면 자체를 안 보여주는 게 더 안전하고 덜 혼란스럽다).
   if(premiumState.view === "members"){
-    if(!ghToken()){ premiumState.view = "menu"; }
+    if(!isBoardAdmin()){ premiumState.view = "menu"; }
     else {
       if(memberProfilesState.status === "idle") fetchMemberProfiles();
       return renderPremiumGateHeader() + logoutBar + renderMemberManagePanel();
     }
   }
 
-  // 기본 화면 — 유료서비스 메뉴 목록. 회원관리는 관리자(ghToken 보유자)에게만
+  // 기본 화면 — 유료서비스 메뉴 목록. 회원관리·자동 문자 발송 관리는 관리자에게만
   // 보인다 — PREMIUM_ITEMS 배열 자체에는 안 넣는다(로그인 전 미리보기
   // renderPremiumPreview()도 같은 배열을 쓰는데, 거기서도 안 보여야 하므로).
   if(premiumMenuState.status === "idle") fetchPremiumMenuItems();
-  let menuItems = ghToken()
-    ? currentPremiumMenuItems().concat([{ key:"members", icon:"👤", title:"회원관리", desc:"이름·전화번호·가입일·만료일을 관리합니다. (관리자 전용)", color:"#37474F", category:"관리자 전용" }])
-    : currentPremiumMenuItems();
+  let menuItems = currentPremiumMenuItems();
   if(isBoardAdmin()){
-    menuItems = menuItems.concat([{ key:"smsadmin", icon:"📋", title:"자동 문자 발송 관리", desc:"발송 주기가 된 신청자를 확인하고 문자 내용을 준비합니다. (관리자 전용)", color:"#0277BD", category:"관리자 전용" }]);
+    menuItems = menuItems.concat([
+      { key:"members", icon:"👤", title:"회원관리", desc:"이름·전화번호·가입일·만료일을 관리합니다. (관리자 전용)", color:"#37474F", category:"관리자 전용" },
+      { key:"smsadmin", icon:"📋", title:"자동 문자 발송 관리", desc:"발송 주기가 된 신청자를 확인하고 문자 내용을 준비합니다. (관리자 전용)", color:"#0277BD", category:"관리자 전용" },
+    ]);
   }
   return renderPremiumGateHeader() + logoutBar + `
   <div class="pm-list">
@@ -13320,37 +13163,9 @@ function attachDiseaseEvents(){
     render();
   };
 
-  // ── 관리(발행 권한) ──
+  // ── 관리 ──
   const at = document.getElementById("dz-admin-toggle");
   if(at) at.onclick = () => { pickState.adminOpen = !pickState.adminOpen; pickState.msg = ""; render(); };
-
-  const ts = document.getElementById("dz-token-save");
-  if(ts) ts.onclick = () => {
-    const el = document.getElementById("dz-token");
-    const v = (el && el.value || "").trim();
-    if(!v){ alert("토큰을 입력하세요."); return; }
-    setGhToken(v);
-    pickState.msg = "발행 권한이 저장되었습니다";
-    pickState.diag = "";
-    render();
-  };
-
-  const tk = document.getElementById("dz-token-check");
-  if(tk) tk.onclick = async () => {
-    pickState.diag = "점검 중...";
-    render();
-    pickState.diag = await diagnoseToken();
-    render();
-  };
-
-  const tc = document.getElementById("dz-token-clear");
-  if(tc) tc.onclick = () => {
-    if(!confirm("이 브라우저에서 발행 권한을 지울까요?")) return;
-    setGhToken("");
-    pickState.msg = "";
-    pickState.diag = "";
-    render();
-  };
 
   // 예전에 이 브라우저에만 쌓여 있던 선택을 발행본에 합친다
   const mg = document.getElementById("dz-migrate");
