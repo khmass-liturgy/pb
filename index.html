@@ -3036,6 +3036,10 @@ async function fetchPremiumApproved(){
 function isPremiumApproved(){
   const user = premiumState.user;
   if(!user) return false;
+  // 관리자는 명부와 무관하게 항상 통과 — 명부에서 실수로 자기를 빼거나 만료시키면
+  // 유료서비스 탭이 막혀 그걸 고칠 회원관리 화면에도 못 들어가게 된다. 서버 쪽
+  // (functions의 isApprovedOrAdmin, storage.rules의 isAdmin)도 이미 같은 기준이다.
+  if(isBoardAdmin()) return true;
   if(user.email && premiumState.approvedEmails.includes(user.email.toLowerCase())) return true;
   return false;
 }
