@@ -69,6 +69,16 @@ service firebase.storage {
       allow write: if isAdmin();
     }
 
+    // 무료 탭의 공개 콘텐츠(AI 관련 소식 등) — premium_content와 달리 로그인
+    // 없이 누구나 읽을 수 있어야 한다. 예전엔 공개 GitHub 저장소에 GitHub
+    // 개인 액세스 토큰으로 커밋했는데, 토큰 권한 문제로 발행이 자주 막혀서
+    // 관리자 Firebase 로그인으로 쓰는 방식으로 옮겼다. 사진은 dataset을
+    // "hpai_news_images"처럼 따로 두면 같은 규칙을 그대로 탄다.
+    match /public_content/{dataset}/{fileName} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // 유료회원 기능요청 게시판 — 상담·진단·컨설팅(premium_board)과 달리
     // 글쓴이 본인+관리자만 보는 게 아니라 "승인된 회원 전체"가 서로의 글과
     // 답글을 볼 수 있는 공개 게시판이다(단, 화면에서는 글쓴이를 "익명"으로

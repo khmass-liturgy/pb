@@ -69,6 +69,12 @@ Two pieces are **not** static, both Firebase, both under the 유료서비스 tab
     Storage access, or delete them outright). The claim only applies on the member's next token
     refresh (up to ~1h) unless index.html forces one via `getIdToken(true)`, which it does right
     after a login is found to be approved.
+  - `public_content/{dataset}/latest.json` is the same shape but **world-readable** (admin-only
+    write) — for admin-authored content on the free tabs. Currently only AI 관련 소식
+    (`hpai_news`, photos under `public_content/hpai_news_images/`), which used to be committed to
+    this repo via the GitHub Contents API with a personal access token (`ghToken()`) until that
+    kept failing with 403s. `fetchHpaiNews()` falls back to the old `hpai_news/news.json` in this
+    repo until the first Firebase publish. 이달의 질병 and 회원관리 still publish via `ghToken()`.
   Both paths check the caller's email against a hardcoded admin list — keep it in sync with
   `functions/index.js`'s `ADMIN_EMAILS` when adding/removing an admin. Deploy with
   `firebase deploy --only storage`.

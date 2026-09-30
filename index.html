@@ -3119,7 +3119,8 @@ if(firebaseReady){
     premiumState.user = user;
     premiumState.authChecked = true;
     if(user && premiumState.status === "idle") fetchPremiumApproved();
-    if(state.tab === "premium") render();
+    // AI 관련 소식 관리 버튼도 관리자 로그인 여부로 보이므로 그 탭도 다시 그린다.
+    if(state.tab === "premium" || state.tab === "hpai") render();
   });
 }
 
@@ -3263,6 +3264,27 @@ async function fetchPremiumContentJson(dataset){
 async function writePremiumContentJson(dataset, body){
   await withStorageTimeout(firebase.storage().ref(premiumContentPath(dataset))
     .putString(JSON.stringify(body, null, 1), "raw", { contentType:"application/json" }));
+}
+
+// public_content/{dataset}/... — 위 premium_content와 같은 모양이지만 storage.rules에서
+// 누구나(비로그인 포함) 읽을 수 있고 관리자만 쓸 수 있다. 무료 탭 콘텐츠용.
+function publicContentPath(dataset){
+  return "public_content/" + dataset + "/latest.json";
+}
+async function fetchPublicContentJson(dataset){
+  const url = await withStorageTimeout(firebase.storage().ref(publicContentPath(dataset)).getDownloadURL());
+  const resp = await fetch(url);
+  if(!resp.ok) throw new Error("HTTP " + resp.status);
+  return await resp.json();
+}
+async function writePublicContentJson(dataset, body){
+  await withStorageTimeout(firebase.storage().ref(publicContentPath(dataset))
+    .putString(JSON.stringify(body, null, 1), "raw", { contentType:"application/json" }));
+}
+async function uploadPublicImage(dataset, fileName, file){
+  const ref = firebase.storage().ref("public_content/" + dataset + "/" + fileName);
+  await withStorageTimeout(ref.put(file, { contentType: file.type || "image/jpeg" }), 30000);
+  return await withStorageTimeout(ref.getDownloadURL());
 }
 
 // 이전(migration) 도우미 — treatment_packages 등 4개 데이터셋은 예전에
@@ -3905,16 +3927,21 @@ async function fetchHpaiRisk(){
 
 // ── AI(고병원성 조류인플루엔자) 관련 소식 ────────────────────────────────────
 // WOAH 신고 통계(hpaiState, 위)와 별개로, 관리자가 직접 올리는 소식(일반
-// 정보·최근 발생동향 등) 목록이다. AI관련정보 탭도 로그인 없는 무료 탭이라
-// Firebase premium_content가 아니라, "이달의 질병"과 같은 방식 — 공개
-// GitHub 저장소에 GitHub Contents API로 직접 커밋 — 을 그대로 쓴다. 발행
-// 권한(ghToken)도 "이달의 질병" 관리에서 이미 등록해둔 토큰을 그대로 쓴다.
+// 정보·최근 발생동향 등) 목록이다. AI관련정보 탭은 로그인 없는 무료 탭이라
+// premium_content(승인회원만 읽기)가 아니라 public_content(누구나 읽기,
+// 관리자만 쓰기)에 둔다: public_content/hpai_news/latest.json, 사진은
+// public_content/hpai_news_images/. 예전엔 공개 GitHub 저장소(hpai_news/news.json)에
+// GitHub 개인 액세스 토큰으로 커밋했는데, 토큰 권한 문제로 발행이 계속 403으로
+// 막혀서 다른 유료 콘텐츠와 같은 관리자 Firebase 로그인 방식으로 옮겼다 —
+// 발행하려면 유료서비스 탭에서 관리자 계정으로 로그인돼 있어야 한다.
+// Firebase에 아직 한 번도 발행 안 된 최초 상태에서는 예전 GitHub 파일을
+// 읽어 보여주고, 첫 발행 때 그 목록째로 Firebase에 옮겨 쓴다.
 // 화면에는 최신순 5건만 보여준다("뉴스정보" 탭과 같은 방식).
-const HPAI_NEWS_PATH = "hpai_news/news.json";
+const HPAI_NEWS_LEGACY_PATH = "hpai_news/news.json";
 // draftTitle/draftText/draftLink: 사진 선택·삭제처럼 폼을 다시 그리는 동작
 // 때마다 입력값이 안 날아가게 DOM 대신 여기 담아둔다(syncHpaiNewsDraftFields로
 // 동기화). files/previewUrls: 새로 올릴 사진(최대 3장) — 발행 시점에만
-// GitHub 저장소에 실제로 업로드한다. 수정 중 새 사진을 고르지 않으면 기존
+// Firebase Storage에 실제로 업로드한다. 수정 중 새 사진을 고르지 않으면 기존
 // images를 그대로 둔다.
 let hpaiNewsState = { status:"idle", data:null, adminOpen:false, formId:undefined, busy:false, msg:"", openId:null,
   draftTitle:"", draftText:"", draftLink:"", files:[], previewUrls:[] };
@@ -3938,22 +3965,28 @@ function newHpaiNewsId(){
   return "hn" + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 }
 
+async function fetchLegacyHpaiNews(){
+  const url = "https://raw.githubusercontent.com/" + PICK_REPO + "/" + PICK_BRANCH + "/" + HPAI_NEWS_LEGACY_PATH;
+  const r = await fetchWithTimeout(url + "?t=" + Date.now(), 8000);
+  if(!r.ok) throw new Error("HTTP " + r.status);
+  return await r.json();
+}
+
 async function fetchHpaiNews(){
   if(hpaiNewsState.status === "loading") return;
   hpaiNewsState.status = "loading";
-  try {
-    const url = "https://raw.githubusercontent.com/" + PICK_REPO + "/" + PICK_BRANCH + "/" + HPAI_NEWS_PATH;
-    const r = await fetchWithTimeout(url + "?t=" + Date.now(), 8000);
-    if(!r.ok) throw new Error("HTTP " + r.status);
-    const j = await r.json();
-    j.items = Array.isArray(j.items) ? j.items : [];
-    hpaiNewsState.data = j;
-    hpaiNewsState.status = "done";
-  } catch(e){
-    console.warn("AI 관련 소식 로딩 실패(최초 미발행 상태로 간주, 빈 목록):", e);
-    hpaiNewsState.data = { items: [] };
-    hpaiNewsState.status = "error";
+  let j = null;
+  if(firebaseReady){
+    try { j = await fetchPublicContentJson("hpai_news"); }
+    catch(e){ console.warn("AI 관련 소식: Firebase에 아직 발행본 없음 — 예전 GitHub 파일로 대체:", e); }
   }
+  if(!j){
+    try { j = await fetchLegacyHpaiNews(); }
+    catch(e){ console.warn("AI 관련 소식 로딩 실패(빈 목록으로 표시):", e); }
+  }
+  hpaiNewsState.data = j || { items: [] };
+  hpaiNewsState.data.items = Array.isArray(hpaiNewsState.data.items) ? hpaiNewsState.data.items : [];
+  hpaiNewsState.status = "done";
   if(state.tab === "hpai") render();
 }
 
@@ -3961,76 +3994,19 @@ function currentHpaiNews(){
   return (hpaiNewsState.data && hpaiNewsState.data.items) || [];
 }
 
-async function publishHpaiNews(items, message){
-  const token = ghToken();
-  if(!token) return { ok:false, error:"발행 권한이 설정되지 않았습니다 — '이달의 질병' 관리에서 먼저 토큰을 등록하세요." };
-  const api = "https://api.github.com/repos/" + PICK_REPO + "/contents/" + HPAI_NEWS_PATH;
-  const head = { "Authorization": "Bearer " + token,
-                 "Accept": "application/vnd.github+json",
-                 "Content-Type": "application/json" };
+async function publishHpaiNews(items){
+  if(!firebaseReady) return { ok:false, error:"Firebase 설정이 아직 완료되지 않았습니다." };
+  if(!isBoardAdmin()) return { ok:false, error:"관리자 계정으로 로그인돼 있지 않습니다 — 유료서비스 탭에서 관리자 계정으로 로그인한 뒤 다시 시도하세요." };
   try {
-    let sha = null;
-    const cur = await fetch(api + "?ref=" + PICK_BRANCH + "&t=" + Date.now(), { headers: head });
-    if(cur.ok) sha = (await cur.json()).sha;
-    else if(cur.status === 401) throw new Error("토큰이 거부되었습니다.");
-    else if(cur.status === 403) throw new Error("이 토큰에는 권한이 없습니다.");
-    else if(cur.status === 404) sha = null;
-    else throw new Error("현재 파일 확인 실패 (HTTP " + cur.status + ")");
-
     const body = {
       updated: new Date().toISOString().slice(0,16).replace("T"," ") + " UTC",
       by: PICK_BY,
       note: "AI(고병원성 조류인플루엔자) 관련 소식 — 화면에서 저장하면 이 파일이 갱신되고 모든 사람에게 같은 내용이 보입니다.",
       items: items,
     };
-    const res = await fetch(api, {
-      method: "PUT", headers: head,
-      body: JSON.stringify({
-        message: message || "🦠 AI 관련 소식 갱신",
-        content: b64utf8(JSON.stringify(body, null, 1)),
-        branch: PICK_BRANCH,
-        sha: sha || undefined,
-      }),
-    });
-    if(!res.ok){
-      const t = await res.text();
-      let apiMsg = ""; try { apiMsg = JSON.parse(t).message || ""; } catch(e){}
-      if(res.status === 401) throw new Error("토큰이 올바르지 않거나 만료되었습니다.");
-      if(res.status === 403) throw new Error("발행이 거부됐습니다(HTTP 403)." + (apiMsg?" GitHub 응답: "+apiMsg:""));
-      if(res.status === 409) throw new Error("다른 곳에서 먼저 수정됐습니다. 새로고침 후 다시 시도하세요.");
-      throw new Error("발행 실패 (HTTP " + res.status + ") " + (apiMsg || t.slice(0,120)));
-    }
+    await writePublicContentJson("hpai_news", body);
     hpaiNewsState.data = body;
     return { ok:true };
-  } catch(e){
-    return { ok:false, error: e.message || String(e) };
-  }
-}
-
-// AI 관련 소식에 첨부하는 사진 — Firebase가 없는 무료 탭이라, 이달의 질병과
-// 같은 GitHub Contents API로 이미지 파일도 그대로 커밋한다(JSON이 아니라
-// base64 이미지 바이트를 content로 보내는 것만 다르다). 같은 발행 토큰
-// (ghToken)을 그대로 쓴다.
-async function publishGithubBinaryFile(path, base64Content, message){
-  const token = ghToken();
-  if(!token) return { ok:false, error:"발행 권한이 설정되지 않았습니다." };
-  const api = "https://api.github.com/repos/" + PICK_REPO + "/contents/" + path;
-  const head = { "Authorization": "Bearer " + token, "Accept": "application/vnd.github+json", "Content-Type": "application/json" };
-  try {
-    let sha = null;
-    const cur = await fetch(api + "?ref=" + PICK_BRANCH + "&t=" + Date.now(), { headers: head });
-    if(cur.ok) sha = (await cur.json()).sha;
-    else if(cur.status !== 404) throw new Error("현재 파일 확인 실패 (HTTP " + cur.status + ")");
-    const res = await fetch(api, {
-      method: "PUT", headers: head,
-      body: JSON.stringify({ message: message || "🦠 AI 관련 소식 사진 업로드", content: base64Content, branch: PICK_BRANCH, sha: sha || undefined }),
-    });
-    if(!res.ok){
-      const t = await res.text();
-      let apiMsg = ""; try { apiMsg = JSON.parse(t).message || ""; } catch(e){}
-      throw new Error("사진 업로드 실패 (HTTP " + res.status + ") " + (apiMsg || t.slice(0,120)));
-    }
-    return { ok:true, url: "https://raw.githubusercontent.com/" + PICK_REPO + "/" + PICK_BRANCH + "/" + path };
   } catch(e){
     return { ok:false, error: e.message || String(e) };
   }
@@ -4078,10 +4054,15 @@ async function searchHpaiPortalNews(){
   render();
 }
 
-// 최신순 5건만 카드로 그린다("뉴스정보" 탭과 같은 개수 제한). 관리자(ghToken
-// 보유자)에게만 추가·편집·삭제 UI가 보인다.
+// 최신순 5건만 카드로 그린다("뉴스정보" 탭과 같은 개수 제한). Firebase
+// 관리자 계정으로 로그인한 경우에만 추가·편집·삭제 UI가 보인다.
 function renderHpaiNewsCard(){
-  const admin = !!ghToken();
+  const admin = isBoardAdmin();
+  // 예전 방식(GitHub 토큰)으로 관리하던 브라우저인데 아직 Firebase 관리자
+  // 로그인을 안 한 경우에만 안내 — 일반 방문자에게는 아무것도 안 보인다.
+  const loginHint = (!admin && ghToken())
+    ? `<div style="margin-top:10px;border-top:1px dashed #eee;padding-top:10px;font-size:10.5px;color:#888">⚙ 소식을 관리하려면 <b>유료서비스</b> 탭에서 관리자 계정으로 로그인하세요.</div>`
+    : "";
   const items = currentHpaiNews().slice().sort((a,b) => (b.createdAt||"").localeCompare(a.createdAt||"")).slice(0,5);
   const editing = hpaiNewsState.formId && currentHpaiNews().find(x=>x.id===hpaiNewsState.formId);
 
@@ -4169,6 +4150,7 @@ function renderHpaiNewsCard(){
     <div style="font-size:11px;color:#aaa;margin-bottom:4px">최신 5건만 보여드립니다</div>
     <div>${list}</div>
     ${adminBox}
+    ${loginHint}
   </div>`;
 }
 
@@ -13250,7 +13232,7 @@ function attachDiseaseEvents(){
     if(!item || !confirm(`"${item.title}" 소식을 삭제할까요?`)) return;
     const next = currentHpaiNews().filter(x=>x.id!==id);
     hpaiNewsState.busy = true; hpaiNewsState.msg = "발행 중..."; render();
-    const r = await publishHpaiNews(next, "🦠 AI 관련 소식 삭제: " + item.title);
+    const r = await publishHpaiNews(next);
     hpaiNewsState.busy = false;
     hpaiNewsState.msg = r.ok ? "삭제 완료" : ("발행 실패: " + r.error);
     render();
@@ -13304,17 +13286,14 @@ function attachDiseaseEvents(){
     hpaiNewsState.busy = true; hpaiNewsState.msg = "발행 중..."; render();
     try {
       let images = editingItem ? (editingItem.images || []) : [];
+      if(!isBoardAdmin()) throw new Error("관리자 계정으로 로그인돼 있지 않습니다 — 유료서비스 탭에서 관리자 계정으로 로그인한 뒤 다시 시도하세요.");
+      const id = editId || newHpaiNewsId();
       if(files.length){
-        const id = editId || newHpaiNewsId();
         images = [];
         for(let i=0;i<files.length;i++){
           const file = files[i];
           const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g,"") || "jpg";
-          const base64 = await readFileAsBase64(file);
-          const path = "hpai_news/images/" + id + "_" + (i+1) + "." + ext;
-          const r = await publishGithubBinaryFile(path, base64, "🦠 AI 관련 소식 사진: " + title);
-          if(!r.ok) throw new Error(r.error);
-          images.push(r.url);
+          images.push(await uploadPublicImage("hpai_news_images", id + "_" + (i+1) + "_" + Date.now() + "." + ext, file));
         }
       }
       const items = currentHpaiNews().slice();
@@ -13322,9 +13301,9 @@ function attachDiseaseEvents(){
         const idx = items.findIndex(x=>x.id===editId);
         if(idx>=0) items[idx] = Object.assign({}, items[idx], { title, text, link, images });
       } else {
-        items.push({ id:newHpaiNewsId(), title, text, link, images, createdAt:new Date().toISOString() });
+        items.push({ id, title, text, link, images, createdAt:new Date().toISOString() });
       }
-      const r = await publishHpaiNews(items, "🦠 AI 관련 소식 " + (editId?"수정":"추가") + ": " + title);
+      const r = await publishHpaiNews(items);
       hpaiNewsState.busy = false;
       if(r.ok){
         hpaiNewsState.msg = "발행 완료 — 모두에게 반영됩니다";
