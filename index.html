@@ -4799,7 +4799,7 @@ async function searchLocation(query){
 // 이 농장에 사는 닭 캐릭터 "최꼬꼬"와 대화하는 화면. 뉴스정보처럼 로그인 없는
 // 무료 탭이라, 서버 쪽(functions/index.js의 chickenChat)도 인증 없이 호출
 // 가능하다 — 대신 메시지 개수·길이·답변 길이를 짧게 제한하고, 같은
-// 브라우저당 하루 대화 횟수도 제한해(KKOKO_DAILY_LIMIT, localStorage 기반)
+// 브라우저당 하루 대화 횟수도 제한해(kkokoDailyLimit(), localStorage 기반)
 // 비용을 통제한다. 음성 입력은 브라우저 내장 Web Speech API(SpeechRecognition)를 쓴다 — 별도
 // 설치나 키 없이 되고, 지원하지 않는 브라우저(예: 일부 모바일 Firefox)에서는
 // 🎤 버튼 자체를 숨기고 글로만 대화할 수 있다.
@@ -4824,8 +4824,15 @@ function kkokoGreeting(){
 // 같은 브라우저당 하루 대화 횟수 제한 — chickenChat이 로그인 없는 공개
 // 엔드포인트라 API 비용이 새는 걸 막는 1차 방어선이다(localStorage 기반이라
 // 캐시를 지우거나 다른 브라우저/시크릿창을 쓰면 우회되는 느슨한 제한이지만,
-// 평범한 사용에서는 충분하다). 날짜가 바뀌면 자동으로 초기화된다.
-const KKOKO_DAILY_LIMIT = 200;
+// 평범한 사용에서는 충분하다). 날짜가 바뀌면 자동으로 초기화된다. 로그인
+// 여부와 무관한 하나의 숫자가 아니라, 승인된 유료회원은 더 넉넉하게(200회),
+// 무료 이용자는 원래 한도(20회)로 — 다른 모든 유료/무료 차등과 같은 기준
+// (isPremiumApproved())을 쓴다.
+const KKOKO_DAILY_LIMIT_FREE = 20;
+const KKOKO_DAILY_LIMIT_PREMIUM = 200;
+function kkokoDailyLimit(){
+  return isPremiumApproved() ? KKOKO_DAILY_LIMIT_PREMIUM : KKOKO_DAILY_LIMIT_FREE;
+}
 function kkokoTodayStr(){
   const d = new Date();
   return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
@@ -4936,7 +4943,8 @@ function renderKkokoTab(){
   const st = kkokoChatState;
   const voiceOk = kkokoVoiceSupported();
   const usage = kkokoLoadUsage();
-  const remaining = Math.max(0, KKOKO_DAILY_LIMIT - usage.count);
+  const dailyLimit = kkokoDailyLimit();
+  const remaining = Math.max(0, dailyLimit - usage.count);
   const limitReached = remaining <= 0;
 
   // 최꼬꼬(무료)/최꼬박사(유료)를 화면 왼쪽에 두고, 대화 말풍선이 그 얼굴(부리)
@@ -4976,7 +4984,7 @@ function renderKkokoTab(){
   ${st.listening ? `<div style="font-size:12px;color:#C62828;margin-top:6px">🎙️ 듣고 있어요... 말씀해 주세요</div>` : ""}
   <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;flex-wrap:wrap;gap:6px">
     ${st.messages.length ? `<button id="kkoko-reset-btn" type="button" style="font-size:12px;border:1px solid #ddd;border-radius:6px;background:#fff;color:#888;padding:5px 11px;cursor:pointer">↺ 대화 새로 시작하기</button>` : `<span></span>`}
-    <span style="font-size:11px;color:${limitReached?"#C62828":"#bbb"}">오늘 대화 ${usage.count}/${KKOKO_DAILY_LIMIT}회${limitReached?" — 내일 다시 와 주세요!":""}</span>
+    <span style="font-size:11px;color:${limitReached?"#C62828":"#bbb"}">오늘 대화 ${usage.count}/${dailyLimit}회${limitReached?" — 내일 다시 와 주세요!":""}</span>
   </div>`;
 
   // 말풍선 꼬리(왼쪽을 가리키는 삼각형)를 캐릭터 얼굴(부리) 높이쯤에 맞춰
@@ -5002,8 +5010,8 @@ async function sendKkokoMessage(){
   const ta = document.getElementById("kkoko-input");
   const text = ((ta ? ta.value : kkokoChatState.input) || "").trim();
   if(!text) return;
-  if(kkokoLoadUsage().count >= KKOKO_DAILY_LIMIT){
-    kkokoChatState.error = `오늘 ${kkokoDisplayName()}와 나눌 수 있는 대화(${KKOKO_DAILY_LIMIT}회)를 다 썼어요 — 내일 다시 찾아와 주세요!`;
+  if(kkokoLoadUsage().count >= kkokoDailyLimit()){
+    kkokoChatState.error = `오늘 ${kkokoDisplayName()}와 나눌 수 있는 대화(${kkokoDailyLimit()}회)를 다 썼어요 — 내일 다시 찾아와 주세요!`;
     render();
     return;
   }
