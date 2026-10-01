@@ -4991,7 +4991,11 @@ async function sendKkokoMessage(){
   try {
     if(!firebaseReady) throw new Error("아직 준비 중이에요. 잠시 후 다시 시도해 주세요.");
     kkokoBumpUsage(); // 실제 호출 직전에 셈 — 서버 응답 성공 여부와 무관하게 비용은 이미 발생하므로
-    const history = kkokoChatState.messages.slice(-12).map(m => ({ role: m.role==="user" ? "user" : "assistant", text: m.text }));
+    // 승인된 유료회원은 서버도 더 긴 대화 맥락을 받아 준다(functions/index.js의
+    // CHICKEN_CHAT_PREMIUM_HISTORY) — 여기서도 그만큼 보내야 서버 쪽 길이
+    // 제한(초과 시 reject)에 안 걸린다.
+    const historyLimit = isPremiumApproved() ? 20 : 12;
+    const history = kkokoChatState.messages.slice(-historyLimit).map(m => ({ role: m.role==="user" ? "user" : "assistant", text: m.text }));
     const fn = firebase.app().functions().httpsCallable("chickenChat");
     const res = await withStorageTimeout(fn({ messages: history }), 30000);
     const reply = (res.data && res.data.reply) || "";

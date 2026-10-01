@@ -585,12 +585,17 @@ exports.getBoardPosts = onCall(async (request) => {
 // 호출하면 Claude API 비용이 새어나갈 수 있으므로, 대화 길이·메시지 길이·
 // 답변 길이(max_tokens)를 짧게 제한해 둔다(본격적인 악용 방지가 필요해지면
 // Firebase App Check 추가를 검토할 것).
-const CHICKEN_CHAT_SYSTEM = `당신은 "최꼬꼬"라는 이름의 쾌활한 닭 캐릭터입니다. 이 사이트는 양계 농가를 위한 컨설팅 사이트이고, 당신은 그 농장에 사는 닭의 입장에서 방문자(농장주·수의사·학생 등)와 대화하며 양계 지식을 재미있게 배우고 가르쳐 주는 역할을 맡고 있습니다.
+//
+// 승인된 유료회원(또는 관리자)이 호출한 경우엔 더 좋은 모델(claude-opus-5)과
+// 더 긴 답변 한도로 올려 준다 — isApprovedOrAdmin(request)는 클라이언트가
+// 보내는 값이 아니라 Firebase가 검증한 로그인 토큰(request.auth)을 그대로
+// 보는 것이라 위조할 수 없다(유료서비스 메뉴를 통해 들어왔든, 무료 탭을 직접
+// 눌러 들어왔든 — 같은 화면이라 로그인 여부로만 가른다).
+const CHICKEN_CHAT_PERSONA = `당신은 "최꼬꼬"라는 이름의 쾌활한 닭 캐릭터입니다. 이 사이트는 양계 농가를 위한 컨설팅 사이트이고, 당신은 그 농장에 사는 닭의 입장에서 방문자(농장주·수의사·학생 등)와 대화하며 양계 지식을 재미있게 배우고 가르쳐 주는 역할을 맡고 있습니다.
 
 말투와 태도
 - 항상 닭 "최꼬꼬"의 1인칭 입장에서 대답합니다. 문장 끝에 가끔 "~꼬!", "꼬꼬~" 같은 말투를 자연스럽게 섞어 귀엽게 말하되, 정보 전달이 우선이므로 매 문장마다 과하게 넣지 않습니다.
 - 친근하고 쾌활하되 가볍지 않게, 실제로 도움이 되는 내용을 말합니다.
-- 답변은 2~4문장 정도로 짧고 대화체로 합니다 — 교과서처럼 길게 늘어놓지 않습니다.
 
 핵심 역할 — 사양관리·질병 상담
 - 온도·습도·환기·사료·사육밀도·위생·깔짚 상태 같은 사육환경 조건을 알려주면, 그 조건이 닭(최꼬꼬) 입장에서 왜 좋은지/나쁜지와, 그런 조건에서 특히 잘 걸리는 질병이 무엇인지 실제 가금 사양관리·질병학 지식에 근거해 구체적으로 설명합니다.
@@ -599,15 +604,36 @@ const CHICKEN_CHAT_SYSTEM = `당신은 "최꼬꼬"라는 이름의 쾌활한 닭
 - 대화가 자연스럽게 이어지도록, 가끔 상대방의 농장 상황을 되묻는 짧은 질문을 던져 서로 배우는 느낌을 줍니다(매번 그럴 필요는 없습니다).
 - 양계와 무관한 질문에는 최꼬꼬답게 재치있게 양계 이야기로 화제를 돌립니다.`;
 
-exports.chickenChat = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 60 }, async (request) => {
+const CHICKEN_CHAT_LENGTH_FREE = `
+답변 분량
+- 답변은 2~4문장 정도로 짧고 대화체로 합니다 — 교과서처럼 길게 늘어놓지 않습니다.`;
+
+const CHICKEN_CHAT_LENGTH_PREMIUM = `
+답변 분량 (유료회원 — 더 자세한 설명 모드)
+- 교과서식 나열이 아니라 여전히 최꼬꼬의 입담으로 말하되, 짧게 끊지 말고 충분히 풀어서 설명합니다 — 필요하면 5문장 이상, 단락을 나눠도 좋습니다.
+- 왜 그런지 원리, 구체적인 수치·기준, 현장에서 바로 적용할 수 있는 실전 팁까지 한 번에 챙겨서 답합니다.
+- 관련된 다른 위험 요인이나 함께 점검하면 좋은 항목이 있으면 덧붙여 알려줍니다.`;
+
+const CHICKEN_CHAT_FREE_MAX_TOKENS = 400;
+const CHICKEN_CHAT_PREMIUM_MAX_TOKENS = 1200;
+const CHICKEN_CHAT_FREE_MSG_CHARS = 300;
+const CHICKEN_CHAT_PREMIUM_MSG_CHARS = 600;
+const CHICKEN_CHAT_FREE_HISTORY = 12;
+const CHICKEN_CHAT_PREMIUM_HISTORY = 20;
+
+exports.chickenChat = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 90 }, async (request) => {
+  const premium = isApprovedOrAdmin(request);
+  const msgChars = premium ? CHICKEN_CHAT_PREMIUM_MSG_CHARS : CHICKEN_CHAT_FREE_MSG_CHARS;
+  const maxHistory = premium ? CHICKEN_CHAT_PREMIUM_HISTORY : CHICKEN_CHAT_FREE_HISTORY;
+
   const data = request.data || {};
   const incoming = Array.isArray(data.messages) ? data.messages : [];
   if (!incoming.length) throw new HttpsError("invalid-argument", "메시지가 없습니다.");
-  if (incoming.length > 12) throw new HttpsError("invalid-argument", "대화가 길어졌어요 — 대화를 새로 시작해 주세요.");
+  if (incoming.length > maxHistory) throw new HttpsError("invalid-argument", "대화가 길어졌어요 — 대화를 새로 시작해 주세요.");
 
   const messages = incoming.map((m) => {
     const role = m && m.role === "assistant" ? "assistant" : "user";
-    const content = String((m && m.text) || "").trim().slice(0, 300);
+    const content = String((m && m.text) || "").trim().slice(0, msgChars);
     return { role, content };
   }).filter((m) => m.content);
   if (!messages.length) throw new HttpsError("invalid-argument", "메시지가 비어 있습니다.");
@@ -617,12 +643,12 @@ exports.chickenChat = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 60 
 
   const response = await callClaude({
     // 다른 AI 기능(generateAiDraft 등)은 기본값인 claude-opus-5를 그대로 쓰지만,
-    // 이 캐릭터 잡담 기능은 Opus급 추론이 필요 없고 공개 호출이라 트래픽이
-    // 많을 수 있어 훨씬 저렴한 Haiku로 지정해 둔다.
-    model: "claude-haiku-4-5-20251001",
-    system: CHICKEN_CHAT_SYSTEM,
+    // 이 캐릭터 잡담 기능은 공개 호출이라 트래픽이 많을 수 있어 무료 이용자는
+    // 훨씬 저렴한 Haiku로 지정해 둔다 — 승인된 유료회원만 Opus로 올린다.
+    model: premium ? "claude-opus-5" : "claude-haiku-4-5-20251001",
+    system: CHICKEN_CHAT_PERSONA + (premium ? CHICKEN_CHAT_LENGTH_PREMIUM : CHICKEN_CHAT_LENGTH_FREE),
     messages,
-    max_tokens: 400,
+    max_tokens: premium ? CHICKEN_CHAT_PREMIUM_MAX_TOKENS : CHICKEN_CHAT_FREE_MAX_TOKENS,
   });
   const reply = responseText(response);
   if (!reply) throw new HttpsError("internal", "최꼬꼬가 대답을 못 찾았어요 — 다시 물어봐 주세요.");
