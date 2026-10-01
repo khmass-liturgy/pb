@@ -1,7 +1,7 @@
 {
-  "updated": "2026-10-01 10:15 KST",
-  "updatedTs": 1790817314,
-  "ok": 7,
+  "updated": "2026-10-01 17:48 KST",
+  "updatedTs": 1790844508,
+  "ok": 6,
   "total": 7,
   "order": [
     "chuksan",
@@ -50,7 +50,7 @@
           "source": ""
         }
       ],
-      "stale": false
+      "stale": true
     },
     "aflnews": {
       "name": "농수축산신문",
@@ -58,6 +58,18 @@
       "color": "#EF6C00",
       "home": "https://www.aflnews.co.kr/news/articleList.html?sc_section_code=S1N2&view_type=sm",
       "items": [
+        {
+          "title": "농협목우촌, 세계시장 진출 도모",
+          "url": "https://www.aflnews.co.kr/news/articleView.html?idxno=329100",
+          "date": "10.01 14:15",
+          "source": ""
+        },
+        {
+          "title": "용도별 원유 물량 합의…음용유 줄고 가공유 늘어",
+          "url": "https://www.aflnews.co.kr/news/articleView.html?idxno=329115",
+          "date": "10.01 14:15",
+          "source": ""
+        },
         {
           "title": "한국가축인공수정사협회, 2026년도 가축인공수정사 보수교육 실시",
           "url": "https://www.aflnews.co.kr/news/articleView.html?idxno=329046",
@@ -75,18 +87,6 @@
           "url": "https://www.aflnews.co.kr/news/articleView.html?idxno=329035",
           "date": "09.30 10:32",
           "source": ""
-        },
-        {
-          "title": "농식품부, 현장·전문가 참여 ‘가축방역물품 콘테스트’ 개최",
-          "url": "https://www.aflnews.co.kr/news/articleView.html?idxno=328998",
-          "date": "09.29 20:47",
-          "source": ""
-        },
-        {
-          "title": "농식품부, 2026/2027 겨울철 가축방역 추진 대책 발표",
-          "url": "https://www.aflnews.co.kr/news/articleView.html?idxno=328947",
-          "date": "09.28 14:53",
-          "source": ""
         }
       ],
       "stale": false
@@ -97,6 +97,12 @@
       "color": "#AD1457",
       "home": "https://www.pignpork.com/news/articleList.html?sc_section_code=S1N1&view_type=sm",
       "items": [
+        {
+          "title": "영주 단산면 빈 돈사서 화재... 7억여 원 재산 피해",
+          "url": "https://www.pignpork.com/news/articleView.html?idxno=19775",
+          "date": "",
+          "source": ""
+        },
         {
           "title": "이유 후 사고, 어떻게 줄일 것인가?… '제45회 전국양돈세미나' 개최",
           "url": "https://www.pignpork.com/news/articleView.html?idxno=19426",
@@ -120,12 +126,6 @@
           "url": "https://www.pignpork.com/news/articleView.html?idxno=19770",
           "date": "",
           "source": ""
-        },
-        {
-          "title": "축산농가, 응급환자 발생 대비 '구급차 진입로' 미리 확인해야",
-          "url": "https://www.pignpork.com/news/articleView.html?idxno=19758",
-          "date": "",
-          "source": ""
         }
       ],
       "stale": false
@@ -137,33 +137,33 @@
       "home": "https://www.dailyvet.co.kr/category/news/prevention-hygiene",
       "items": [
         {
-          "title": "제8회 대한민국 동물복지대상 공모 시작..11월 8일 마감",
-          "url": "https://www.dailyvet.co.kr/news/animalwelfare/298920",
-          "date": "10.01 09:42",
+          "title": "특별방역 대책기간에 구제역 9개 방역권역 운영",
+          "url": "https://www.dailyvet.co.kr/news/prevention-hygiene/299009",
+          "date": "10.01 16:44",
           "source": ""
         },
         {
-          "title": "“수의직 공무원 결원율 30%, 언제까지 방치할 것인가?”",
-          "url": "https://www.dailyvet.co.kr/news/policy/298866",
-          "date": "10.01 08:00",
+          "title": "특별방역 대책기간 앞두고 조류인플루엔자 진단기관 58개 평가..모두 ‘적합’",
+          "url": "https://www.dailyvet.co.kr/news/prevention-hygiene/299000",
+          "date": "10.01 16:30",
           "source": ""
         },
         {
-          "title": "예약부터 입원까지 하나의 흐름으로…플러스벳, 입원·예약 관리 고도화",
-          "url": "https://www.dailyvet.co.kr/news/industry/298902",
-          "date": "09.30 17:49",
+          "title": "고도화되는 수의역학, 분석 결과는 현장·정책의 변화로",
+          "url": "https://www.dailyvet.co.kr/news/prevention-hygiene/298960",
+          "date": "10.01 13:07",
           "source": ""
         },
         {
-          "title": "[포토뉴스] 제19회 동물사랑 사진·영상 공모전 수상작",
-          "url": "https://www.dailyvet.co.kr/news/animalwelfare/298794",
-          "date": "09.30 17:00",
+          "title": "세바, 미쓰이물산과 맞손…합작법인 설립해 아시아 시장 공략 본격화",
+          "url": "https://www.dailyvet.co.kr/news/industry/298944",
+          "date": "10.01 11:40",
           "source": ""
         },
         {
-          "title": "방역복·장화·발판 소독조, 더 편리하고 안전한 제품으로 표준화한다",
-          "url": "https://www.dailyvet.co.kr/news/prevention-hygiene/298785",
-          "date": "09.30 10:43",
+          "title": "수봉연, ‘모든 동물을 위한 플로깅 챌린지’ 개최",
+          "url": "https://www.dailyvet.co.kr/news/animalwelfare/298937",
+          "date": "10.01 11:09",
           "source": ""
         }
       ],
@@ -176,33 +176,33 @@
       "home": "https://www.asiae.co.kr/list/economy",
       "items": [
         {
-          "title": "이억원 \"금융환경 전환기…예상 못한 위험 선제적으로 대비\"",
-          "url": "https://view.asiae.co.kr/article/2026100109324533163",
-          "date": "10.01 10:00",
+          "title": "새마을금고, 인구감소지역 금융사기 예방에 힘보탠다",
+          "url": "https://view.asiae.co.kr/article/2026100116395774339",
+          "date": "10.01 16:39",
           "source": ""
         },
         {
-          "title": "핀다, 안중현 전 넥써스 부사장 최고제품책임자 선임",
-          "url": "https://view.asiae.co.kr/article/2026100109444375864",
-          "date": "10.01 09:44",
+          "title": "김정관 \"美측 알래스카 확정 발표, 너무 나간 것…러트닉에 유감표명\"",
+          "url": "https://view.asiae.co.kr/article/2026100116155395876",
+          "date": "10.01 16:15",
           "source": ""
         },
         {
-          "title": "9월 수출 1209억달러…사상 첫 1200억달러 돌파(상보)",
-          "url": "https://view.asiae.co.kr/article/2026100109392724088",
-          "date": "10.01 09:39",
+          "title": "삼성바이오 노사, 3차 조정도 결렬…우리사주 이자 지원안에도 '평행선'",
+          "url": "https://view.asiae.co.kr/article/2026100116095056651",
+          "date": "10.01 16:11",
           "source": ""
         },
         {
-          "title": "이형일 \"수출 1조달러 최초 돌파 전망…국민소득 4만달러 가시화\"(종합)",
-          "url": "https://view.asiae.co.kr/article/2026100109303573757",
-          "date": "10.01 09:30",
+          "title": "허장 재경부 차관, 지방정부에 주택공급 전폭적 협조 요청",
+          "url": "https://view.asiae.co.kr/article/2026100116084130633",
+          "date": "10.01 16:08",
           "source": ""
         },
         {
-          "title": "NH농협생명, 암진단 보험금 지급 후 사망보장 '건강채움NH암종신보험' 출시",
-          "url": "https://view.asiae.co.kr/article/2026100109081145606",
-          "date": "10.01 09:08",
+          "title": "기후부, 출범 1년 성과에…\"전기차 100만대 돌파·전력망 개편\"",
+          "url": "https://view.asiae.co.kr/article/2026100111311266971",
+          "date": "10.01 16:01",
           "source": ""
         }
       ],
@@ -215,6 +215,24 @@
       "home": "https://www.mafra.go.kr/home/5109/subview.do",
       "items": [
         {
+          "title": "농식품부, 여성농업인 정책 거버넌스 강화를 위한 권역별 간담회 개최",
+          "url": "http://www.mafra.go.kr/bbs/home/792/579324/artclView.do",
+          "date": "10.01 08:37",
+          "source": ""
+        },
+        {
+          "title": "“가을 여행은 촌캉스로!” 농식품부, 여행가는 달(가을) 맞아 10~11월 두 달간 ‘농촌관광 가는 주간’ 확대 운영",
+          "url": "http://www.mafra.go.kr/bbs/home/792/579326/artclView.do",
+          "date": "10.01 08:41",
+          "source": ""
+        },
+        {
+          "title": "“국내산인 줄 알았는데”... 농관원, 추석 농식품 원산지 위반 256개소 적발",
+          "url": "http://www.mafra.go.kr/bbs/home/792/579325/artclView.do",
+          "date": "10.01 08:39",
+          "source": ""
+        },
+        {
           "title": "세대 간 공감으로 공직사회의 기분 좋은 변화를 그려갑니다.",
           "url": "http://www.mafra.go.kr/bbs/home/792/579323/artclView.do",
           "date": "10.01 08:34",
@@ -224,24 +242,6 @@
           "title": "농식품부, ’27년 동계작물 종자(보급종) 5품목 25종 5,685톤 생산·공급 예정",
           "url": "http://www.mafra.go.kr/bbs/home/792/579306/artclView.do",
           "date": "09.29 19:40",
-          "source": ""
-        },
-        {
-          "title": "농식품부 박순연 기획조정실장, 주요 농업인단체 만나 농지 전수조사 현장 의견 청취",
-          "url": "http://www.mafra.go.kr/bbs/home/792/579319/artclView.do",
-          "date": "09.30 17:50",
-          "source": ""
-        },
-        {
-          "title": "농식품부 장관, 마을 이장들과 농지 전수조사 현장 간담회",
-          "url": "http://www.mafra.go.kr/bbs/home/792/579307/artclView.do",
-          "date": "09.29 19:41",
-          "source": ""
-        },
-        {
-          "title": "농식품부 장관, 구례군 농어촌 기본소득 추진상황 점검 및 우리밀가공공장 방문",
-          "url": "http://www.mafra.go.kr/bbs/home/792/579308/artclView.do",
-          "date": "09.29 19:43",
           "source": ""
         }
       ],
@@ -254,38 +254,38 @@
       "home": "https://news.google.com/search?q=%22bird%20flu%22%20poultry%20when%3A7d&hl=en-US&gl=US&ceid=US:en",
       "items": [
         {
-          "title": "무리 확보: 메뉴",
+          "title": "우리의 가축을 확보하세요: 메뉴",
           "url": "https://news.google.com/rss/articles/CBMikwFBVV95cUxOTFVISG5KbDhOdkM0ZW5oOGtSbXg5MEFOeDZMTjJ2NExoUmRwZ2QxM0ZkUmxYdFZVMm45d0UyMWV2VWlsdjlzN2UwblpwYTVwZUNQMWZydkw5RW9tcF9FYXJpN1d0UkZWSkVKX2Yzd2lwLWk1STAybnNybUlIXzZlZDBvamYxMFJqbjhXb1J2UFNtODQ?oc=5",
           "date": "09.25 16:00",
           "source": "aphis.usda.gov",
           "titleEn": "Secure Our Herds: Menu"
         },
         {
-          "title": "조기 급증으로 조류인플루엔자가 미네소타로 돌아왔습니다.",
+          "title": "조기 급증으로 미네소타에서 조류 독감이 다시 발생했음을 확인",
           "url": "https://news.google.com/rss/articles/CBMifkFVX3lxTFBYZ2l4YkY5NWFLc2VjN3RZaTBxTGphQ3VMZlZMZU9OZFBLal90d2FBNXVSTFFvSVIybjZEWmRySXdvYndKbkpOYXdQQnNtNXdMejA4X2dTaTgwbWNIWFJKWVhmcWdTT0JaWWZzeGJNRzdSOHVxdzB5OWZPd1Z6UQ?oc=5",
           "date": "09.27 21:00",
           "source": "MPR News",
           "titleEn": "An early surge confirms bird flu is back in Minnesota"
         },
         {
-          "title": "텍사스 A&M AgriLife, 가금류의 조류 독감 예방을 위한 극자외선 테스트 - 품질 보증 및 식품 안전",
+          "title": "Texas A&M AgriLife, 가금류의 조류인플루엔자 예방을 위해 원자외선 테스트 - 품질 보증 및 식품 안전",
           "url": "https://news.google.com/rss/articles/CBMisgFBVV95cUxQcW4yelNsdHVsQU1uM0lPSldmOFdLSjVxUTVnb2VBTGNUUHBJeDBNY3hvaUpWLW15eVFPTWFoVW9MVlhCbU5VSW9YYW5tb3R2MmJIUWF4dm8wazYwV3VrN1ZYdWtqYW9CNllsTW4tdU5Obkg4VDdrWTl1cmdMejJpT1QyTXAzdGJWTVp3RTdIeERROGpfN1Q0R0Jzb2loYndYUTNVakdiSnJDNHoxUTIwUXdR?oc=5",
           "date": "09.25 02:51",
           "source": "",
           "titleEn": "Texas A&M AgriLife Tests Far-Ultraviolet Light to Prevent Bird Flu in Poultry - Quality Assurance & Food Safety"
         },
         {
-          "title": "뒷마당 양떼 주인이 조류 독감에 대해 알아야 할 사항",
+          "title": "뒷마당 가축 소유자가 조류 독감에 대해 알아야 할 사항",
           "url": "https://news.google.com/rss/articles/CBMiqgFBVV95cUxOMEctQ2Eyazh0TElSaVo1dzhheF9CRlMzMnBIRm93QUF4ZHJieFo1bkdndUk0SHctMVFMRnotRFZfZG95clhqVGRtN2h4Vl9EQmtTV05yNTVCZDZkUlpFRm9MSVotQVM2VUZyOWNkYi1hM0xEX1VybzhMb0F6cnBVdmhYcGhyU0gzMTdUTllOdDZOVEc4RnN6WXhnT3VzQVNKLWNKaGxBdnRCZw?oc=5",
           "date": "09.28 20:23",
           "source": "Banner Health",
           "titleEn": "What Backyard Flock Owners Should Know About Bird Flu"
         },
         {
-          "title": "미네소타는 바이러스가 칠면조 떼로 돌아옴에 따라 조류 독감 사례에서 국가를 이끌고 있습니다.",
+          "title": "미네소타는 바이러스가 칠면조 무리로 다시 돌아오면서 조류 독감 사례에서 전국 선두를 달리고 있습니다.",
           "url": "https://news.google.com/rss/articles/CBMitwFBVV95cUxPMUYtSGt5YnEtTnNSLTJDbEFCN0c3REtISEhCd1lDellSZmQ3cUdCaUlEeVQyZHFWdzZQdWhWZlBCTE53TjFfbzdXZGZCWGp3Qk5WdlBtZVJQWjdWdXpkSlJIaDVpcmplOE05S2ZVNFNycmxoRDc2NkxoR0FIRzNaaVh0UGRsZWJVUFhkdHlJa2ZudGw3NWZUQUlfSXQ3cUNpRy1ySWxqb3hSSHlaazNKeFY4bFZha0E?oc=5",
           "date": "09.30 19:31",
-          "source": "agweek.com",
+          "source": "Agweek",
           "titleEn": "Minnesota leads nation in avian flu cases as virus returns to turkey flocks"
         }
       ],
