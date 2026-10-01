@@ -738,7 +738,7 @@ const PREMIUM_ITEMS = [
   { key:"study", icon:"🎓", title:"최수의사의 온라인 학습(카드 학습)", desc:"수의사가 올린 카드형 학습자료(앞면/뒷면)로 필요할 때마다 학습할 수 있습니다.", color:"#4527A0", category:"질문·학습·교육" },
   { key:"research", icon:"📚", title:"최신 기술탐구", desc:"질병논문·사양관리기술·컨설팅도구 최신 국제논문 5편씩을 매주 한글로 번역·요약해 드립니다.", color:"#6A1B9A", category:"질문·학습·교육" },
   { key:"magazine", icon:"📰", title:"양계잡지 학습정보", desc:"양계 전문지 지면을 사진으로 올리면 사진과 글을 분리해 게시판처럼 보여드립니다.", color:"#455A64", category:"질문·학습·교육" },
-  { key:"kkoko", icon:"🐔", title:"최꼬꼬랑 대화", desc:"이 농장에 사는 닭 캐릭터와 대화하며 사양관리·질병 지식을 재미있게 배워보세요. 텍스트는 물론 음성으로도 대화할 수 있습니다.", color:"#F57F17", category:"질문·학습·교육" },
+  { key:"kkoko", icon:"🐔", title:"최꼬박사랑 대화", desc:"무료 탭의 최꼬꼬가 유료회원님께는 더 똑똑해진 '최꼬박사'로 변신합니다 — 더 자세하고 깊이 있는 사양관리·질병 설명을 받아보세요. 텍스트는 물론 음성으로도 대화할 수 있습니다.", color:"#F57F17", category:"질문·학습·교육" },
   { key:"feature_board", icon:"💡", title:"기능 요청 게시판", desc:"필요한 기능을 자유롭게 제안해 주세요. 작성자는 다른 회원에게 익명으로 표시됩니다.", color:"#00838F", category:"게시판·기타" },
   { key:"consult", icon:"💬", title:"온라인 상담", desc:"농장 현안(사양·환기·질병 등)을 질문하면 최동명 수의사가 답변합니다. 사진 첨부 가능, 답변은 작성자만 볼 수 있습니다.", color:"#1565C0", category:"게시판·기타" },
   { key:"consulting", icon:"📈", title:"온라인 컨설팅", desc:"농장 운영·질병 현황을 바탕으로 맞춤 투약·백신 프로그램을 작성해 드립니다. 답변은 작성자만 볼 수 있습니다.", color:"#E65100", category:"게시판·기타" },
@@ -4804,7 +4804,19 @@ let kkokoChatState = { messages: [], input: "", busy: false, error: "", listenin
 // 음성 인식 객체는 render()가 지우면 안 되는 "살아있는" 브라우저 API 핸들이라
 // kkokoChatState(렌더 때마다 새로 그려지는 데이터)가 아니라 따로 둔다.
 let kkokoRecognizer = null;
-const KKOKO_GREETING = "안녕하세요! 저는 이 농장에 사는 최꼬꼬예요 🐔 사육 환경이나 궁금한 질병을 물어보시면 제 입장에서 설명해 드릴게요. 음성으로 물어보셔도 좋아요!";
+
+// 승인된 유료회원에게는 더 전문가다운 "최꼬박사" 캐릭터로 보인다(답변도
+// functions/index.js의 chickenChat에서 Opus 모델·더 긴 설명으로 올라간다 —
+// 여기 이름은 그 화면 쪽 표시만 맞추는 것이고, 실제 등급 판정은 서버가
+// Firebase 로그인 토큰으로 한다).
+function kkokoDisplayName(){
+  return isPremiumApproved() ? "최꼬박사" : "최꼬꼬";
+}
+function kkokoGreeting(){
+  return isPremiumApproved()
+    ? "안녕하세요! 저는 최꼬박사입니다 🐔 유료회원님께는 사양관리·질병에 대해 더 깊이 있게 설명해 드릴게요. 궁금한 걸 자세히 물어보세요 — 음성으로도 괜찮습니다!"
+    : "안녕하세요! 저는 이 농장에 사는 최꼬꼬예요 🐔 사육 환경이나 궁금한 질병을 물어보시면 제 입장에서 설명해 드릴게요. 음성으로 물어보셔도 좋아요!";
+}
 
 // 같은 브라우저당 하루 대화 횟수 제한 — chickenChat이 로그인 없는 공개
 // 엔드포인트라 API 비용이 새는 걸 막는 1차 방어선이다(localStorage 기반이라
@@ -4835,9 +4847,13 @@ function kkokoBumpUsage(){
 // 지우면 안 되는 타이머 핸들이라 따로 둔다.
 let kkokoCharState = { reacting: false, reactionText: "" };
 let kkokoReactTimer = null;
-const KKOKO_REACTIONS = [
+// "간지러워요, {이름}예요!"처럼 이름이 들어가는 반응 한 줄만 함수로 그때그때
+// 채운다 — 무료/유료(최꼬꼬/최꼬박사)에 따라 터치했을 때 보이는 이름도 맞게.
+function kkokoReactions(){
+  const name = kkokoDisplayName();
+  return [
   "꼬끼오! 깜짝이야~",
-  "간지러워요, 최꼬꼬예요!",
+  `간지러워요, ${name}예요!`,
   "오늘 기분 최고예요 🐥",
   "또 만져주세요~",
   "꼬옥! 반가워요!",
@@ -4854,7 +4870,8 @@ const KKOKO_REACTIONS = [
   "사장님! 쟤가 또 저 만져요!",
   "저를 자꾸 누르시면 달걀이 아니라 웃음이 나와요",
   "심심하면 질문해 주세요, 터치 말고요(농담이에요 꼬꼬)"
-];
+  ];
+}
 
 // 힉스필드(Higgsfield)로 만든 실사 사진. 유료 콘텐츠가 아니라 로그인 없는
 // 공개 탭이라, "이달의 질병"과 같은 공개 GitHub repo 경로
@@ -4877,14 +4894,15 @@ function kkokoVoiceSupported(){
 function kkokoCharacterBlock(talking, size){
   const w = size || 168, h = Math.round(w * 1.25);
   const cs = kkokoCharState;
+  const name = kkokoDisplayName();
   const animClass = cs.reacting ? "bounce" : (talking ? "talking" : "");
   // 반응 말풍선이 뜰 자리를 이미지 위에 따로 비워 둔다(margin-top) — 그
   // 자리에 말풍선을 넣으면 이미지를 가리지 않는다.
   return `
   <div style="position:relative;display:inline-block">
     ${cs.reacting && cs.reactionText ? `<div style="position:absolute;top:0;left:50%;transform:translateX(-50%);white-space:normal;max-width:240px;width:max-content;background:#fff;border:1px solid #F9D871;border-radius:14px;padding:7px 14px;font-size:12.5px;font-weight:700;color:#7A5C00;box-shadow:0 2px 8px rgba(0,0,0,.15);text-align:center;z-index:3">${esc(cs.reactionText)}</div>` : ""}
-    <button type="button" id="kkoko-char-btn" aria-label="최꼬꼬 만지기" title="눌러서 최꼬꼬를 만져보세요" style="border:none;background:none;padding:0;cursor:pointer;display:block;width:${w}px;height:${h}px;margin-top:56px">
-      <img src="${esc(kkokoImgUrl("kkoko_idle.png"))}" alt="최꼬꼬" class="kkoko-char${animClass?" "+animClass:""}" style="width:${w}px;height:${h}px;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,.18))" />
+    <button type="button" id="kkoko-char-btn" aria-label="${esc(name)} 만지기" title="눌러서 ${esc(name)}를 만져보세요" style="border:none;background:none;padding:0;cursor:pointer;display:block;width:${w}px;height:${h}px;margin-top:56px">
+      <img src="${esc(kkokoImgUrl("kkoko_idle.png"))}" alt="${esc(name)}" class="kkoko-char${animClass?" "+animClass:""}" style="width:${w}px;height:${h}px;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,.18))" />
     </button>
   </div>`;
 }
@@ -4892,7 +4910,8 @@ function kkokoCharacterBlock(talking, size){
 function kkokoTouchCharacter(){
   if(kkokoReactTimer) clearTimeout(kkokoReactTimer);
   kkokoCharState.reacting = true;
-  kkokoCharState.reactionText = KKOKO_REACTIONS[Math.floor(Math.random()*KKOKO_REACTIONS.length)];
+  const reactions = kkokoReactions();
+  kkokoCharState.reactionText = reactions[Math.floor(Math.random()*reactions.length)];
   render();
   kkokoReactTimer = setTimeout(()=>{
     kkokoCharState.reacting = false;
@@ -4903,10 +4922,12 @@ function kkokoTouchCharacter(){
 }
 
 function renderKkokoTab(){
+  const name = kkokoDisplayName();
+  const premium = isPremiumApproved();
   const head = `
   <div style="margin-bottom:14px">
-    <div class="display" style="font-size:18px;margin-bottom:3px">🐔 최꼬꼬랑 대화</div>
-    <div style="font-size:12.5px;color:#aaa">이 농장에 사는 닭 "최꼬꼬"와 대화하며 사양관리·질병 지식을 재미있게 배워보세요 — 사진을 눌러보세요!</div>
+    <div class="display" style="font-size:18px;margin-bottom:3px">🐔 ${esc(name)}랑 대화</div>
+    <div style="font-size:12.5px;color:#aaa">이 농장에 사는 닭 "${esc(name)}"${premium?" — 유료회원 전용 더 깊이 있는 설명 모드":""}와 대화하며 사양관리·질병 지식을 재미있게 배워보세요 — 사진을 눌러보세요!</div>
   </div>`;
 
   const st = kkokoChatState;
@@ -4915,16 +4936,17 @@ function renderKkokoTab(){
   const remaining = Math.max(0, KKOKO_DAILY_LIMIT - usage.count);
   const limitReached = remaining <= 0;
 
-  // 최꼬꼬를 화면 왼쪽에 두고, 대화 말풍선이 그 얼굴(부리) 높이에서 오른쪽으로
-  // 튀어나오는 레이아웃. 캐릭터는 이전보다 2배 크게(216px), 화면이 좁으면
-  // 말풍선이 그 아래로 자연스럽게 줄바꿈되도록 flex-wrap을 둔다.
+  // 최꼬꼬(무료)/최꼬박사(유료)를 화면 왼쪽에 두고, 대화 말풍선이 그 얼굴(부리)
+  // 높이에서 오른쪽으로 튀어나오는 레이아웃. 캐릭터는 이전보다 2배 크게
+  // (216px), 화면이 좁으면 말풍선이 그 아래로 자연스럽게 줄바꿈되도록
+  // flex-wrap을 둔다.
   const charBlock = `
   <div class="card" style="flex:0 0 244px;text-align:center;padding:14px 10px;background:linear-gradient(135deg,#FFF8E1,#FFECB3)">
     ${kkokoCharacterBlock(st.busy, 216)}
-    <div style="font-size:14px;font-weight:800;color:#7A5C00;margin-top:6px">최꼬꼬</div>
+    <div style="font-size:14px;font-weight:800;color:#7A5C00;margin-top:6px">${esc(name)}</div>
   </div>`;
 
-  const msgs = st.messages.length ? st.messages : [{ role:"chicken", text: KKOKO_GREETING }];
+  const msgs = st.messages.length ? st.messages : [{ role:"chicken", text: kkokoGreeting() }];
   const msgList = msgs.map(m => {
     const isChicken = m.role === "chicken";
     return `
@@ -4935,7 +4957,7 @@ function renderKkokoTab(){
 
   const busyBubble = st.busy ? `
     <div style="display:flex;justify-content:flex-start;margin-bottom:9px">
-      <div style="background:#FFF3CF;color:#9C7A00;border-radius:4px 16px 16px 16px;padding:11px 15px;font-size:15.5px">🐔 최꼬꼬가 생각하는 중... 🐥</div>
+      <div style="background:#FFF3CF;color:#9C7A00;border-radius:4px 16px 16px 16px;padding:11px 15px;font-size:15.5px">🐔 ${esc(name)}가 생각하는 중... 🐥</div>
     </div>` : "";
 
   const chatLog = `<div id="kkoko-log" style="max-height:360px;overflow-y:auto;padding:4px 2px;margin-bottom:10px">${msgList}${busyBubble}</div>`;
@@ -4968,7 +4990,7 @@ function renderKkokoTab(){
 
   return head + row + `
   <div style="font-size:10.5px;color:#aaa;line-height:1.6;margin-top:4px">
-    ※ 최꼬꼬는 AI가 닭의 입장에서 재미있게 설명해 드리는 캐릭터입니다. 실제 질병 진단·처방은 반드시 담당 수의사와 상담하세요.
+    ※ ${esc(name)}는 AI가 닭의 입장에서 재미있게 설명해 드리는 캐릭터입니다. 실제 질병 진단·처방은 반드시 담당 수의사와 상담하세요.
   </div>`;
 }
 
@@ -4978,7 +5000,7 @@ async function sendKkokoMessage(){
   const text = ((ta ? ta.value : kkokoChatState.input) || "").trim();
   if(!text) return;
   if(kkokoLoadUsage().count >= KKOKO_DAILY_LIMIT){
-    kkokoChatState.error = `오늘 최꼬꼬와 나눌 수 있는 대화(${KKOKO_DAILY_LIMIT}회)를 다 썼어요 — 내일 다시 찾아와 주세요!`;
+    kkokoChatState.error = `오늘 ${kkokoDisplayName()}와 나눌 수 있는 대화(${KKOKO_DAILY_LIMIT}회)를 다 썼어요 — 내일 다시 찾아와 주세요!`;
     render();
     return;
   }
@@ -8602,7 +8624,7 @@ function renderHeader(){
       <button class="tab ${state.tab==="disease"?"active":""}" data-tab="disease">🩺 양계질병</button>
       <button class="tab ${state.tab==="hpai"?"active":""}" data-tab="hpai">🦠 AI관련정보</button>
       <button class="tab ${state.tab==="briefing"?"active":""}" data-tab="briefing">📋 뉴스정보</button>
-      <button class="tab ${state.tab==="kkoko"?"active":""}" data-tab="kkoko">🐔 최꼬꼬랑 대화</button>
+      <button class="tab ${state.tab==="kkoko"?"active":""}" data-tab="kkoko">🐔 ${esc(kkokoDisplayName())}랑 대화</button>
       <button class="tab ${state.tab==="premium"?"active":""}" data-tab="premium">💼 유료서비스</button>
     </div>
     <button class="tabs-arrow right" type="button" aria-label="뒤쪽 메뉴 보기" tabindex="-1"><span>›</span></button>
