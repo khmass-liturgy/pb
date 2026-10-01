@@ -4911,6 +4911,8 @@ function kkokoCharacterBlock(talking, size){
   const w = size || 168, h = Math.round(w * 1.25);
   const cs = kkokoCharState;
   const name = kkokoDisplayName();
+  // 유료회원(최꼬박사)은 학사모를 쓰고 지시봉을 든 선생님 모습, 무료(최꼬꼬)는 평소 모습.
+  const imgFile = isPremiumApproved() ? "kkoko_doctor.png" : "kkoko_idle.png";
   const animClass = cs.reacting ? "bounce" : (talking ? "talking" : "");
   // 반응 말풍선이 뜰 자리를 이미지 위에 따로 비워 둔다(margin-top) — 그
   // 자리에 말풍선을 넣으면 이미지를 가리지 않는다.
@@ -4918,7 +4920,7 @@ function kkokoCharacterBlock(talking, size){
   <div style="position:relative;display:inline-block">
     ${cs.reacting && cs.reactionText ? `<div style="position:absolute;top:0;left:50%;transform:translateX(-50%);white-space:normal;max-width:240px;width:max-content;background:#fff;border:1px solid #F9D871;border-radius:14px;padding:7px 14px;font-size:12.5px;font-weight:700;color:#7A5C00;box-shadow:0 2px 8px rgba(0,0,0,.15);text-align:center;z-index:3">${esc(cs.reactionText)}</div>` : ""}
     <button type="button" id="kkoko-char-btn" aria-label="${esc(name)} 만지기" title="눌러서 ${esc(name)}를 만져보세요" style="border:none;background:none;padding:0;cursor:pointer;display:block;width:${w}px;height:${h}px;margin-top:56px">
-      <img src="${esc(kkokoImgUrl("kkoko_idle.png"))}" alt="${esc(name)}" class="kkoko-char${animClass?" "+animClass:""}" style="width:${w}px;height:${h}px;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,.18))" />
+      <img src="${esc(kkokoImgUrl(imgFile))}" alt="${esc(name)}" class="kkoko-char${animClass?" "+animClass:""}" style="width:${w}px;height:${h}px;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,.18))" />
     </button>
   </div>`;
 }
