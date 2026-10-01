@@ -209,12 +209,10 @@
    (다시 그려지지 않는) 전역 <style>에 둬야 재생 중 끊기지 않는다. */
 @keyframes kkoko-idle-bob { 0%,100%{ transform: translateY(0) rotate(0deg); } 50%{ transform: translateY(-4px) rotate(-1.5deg); } }
 @keyframes kkoko-talk-bob { 0%,100%{ transform: translateY(0) rotate(0deg); } 25%{ transform: translateY(-2px) rotate(2deg); } 75%{ transform: translateY(-2px) rotate(-2deg); } }
-@keyframes kkoko-excited-jump { 0%{ transform: translateY(0) scale(1) rotate(0deg); } 20%{ transform: translateY(-20px) scale(1.06) rotate(-5deg); } 40%{ transform: translateY(-2px) scale(1.02) rotate(5deg); } 60%{ transform: translateY(-16px) scale(1.05) rotate(-4deg); } 80%{ transform: translateY(0) scale(1.01) rotate(3deg); } 100%{ transform: translateY(0) scale(1) rotate(0deg); } }
 @keyframes kkoko-ring-pulse { 0%{ box-shadow: 0 0 0 0 rgba(198,40,40,.35); } 100%{ box-shadow: 0 0 0 14px rgba(198,40,40,0); } }
 .kkoko-char { animation: kkoko-idle-bob 2.6s ease-in-out infinite; transform-origin: 50% 90%; transition: filter 0.15s; }
 .kkoko-char:hover { filter: brightness(1.04); }
 .kkoko-char.talking { animation: kkoko-talk-bob 0.5s ease-in-out infinite; }
-.kkoko-char.excited { animation: kkoko-excited-jump 0.8s ease-in-out 2; }
 .kkoko-mic-btn.listening { animation: kkoko-ring-pulse 1.2s ease-out infinite; }
 </style>
 </head>
@@ -4804,19 +4802,22 @@ let kkokoChatState = { messages: [], input: "", busy: false, error: "", listenin
 let kkokoRecognizer = null;
 const KKOKO_GREETING = "안녕하세요! 저는 이 농장에 사는 최꼬꼬예요 🐔 사육 환경이나 궁금한 질병을 물어보시면 제 입장에서 설명해 드릴게요. 음성으로 물어보셔도 좋아요!";
 
-// 캐릭터를 터치했을 때의 반응 — reacting이면 잠깐(1.6초) 사진을 놀란 표정으로
-// 바꾸고 더 크게 들썩이는 애니메이션(kkoko-excited-jump)을 준다. reactTimer는
+// 캐릭터를 터치했을 때의 반응 — reacting이면 평소 실사 사진 대신, 모이를
+// 쪼아먹는 만화풍 캐릭터 영상(kkoko_peck.mp4, 5초)을 재생한다. 영상이
+// 끝나면(ended 이벤트) 자동으로 평소 사진으로 되돌아간다. reactEndTimer는
+// ended 이벤트가 어떤 이유로든 안 걸렸을 때를 대비한 안전장치다. 이 둘은
 // kkokoChatState와 달리 render()가 지우면 안 되는 타이머 핸들이라 따로 둔다.
 let kkokoCharState = { reacting: false, reactionText: "" };
-let kkokoReactTimer = null;
-const KKOKO_REACTIONS = ["꼬끼오! 깜짝이야~", "간지러워요, 최꼬꼬예요!", "오늘 기분 최고예요 🐥", "또 만져주세요~", "꼬옥! 반가워요!"];
+let kkokoReactEndTimer = null;
+const KKOKO_REACTIONS = ["냠냠, 모이 먹방이에요!", "꼬끼오! 배고팠어요~", "오늘 간식 최고예요 🐥", "또 모이 주세요~", "꼭꼭 씹어 먹어요!"];
 
-// 힉스필드(Higgsfield)로 만든 실사 사진 — 평소(idle)/터치 반응(excited) 두
-// 표정. 유료 콘텐츠가 아니라 로그인 없는 공개 탭이라, "이달의 질병"과 같은
-// 공개 GitHub repo 경로(raw.githubusercontent.com)로 바로 커밋해 둔다.
-// PICK_REPO/PICK_BRANCH는 이 파일 더 아래(약 line 5030)에서 선언되므로, 여기서
-// 바로 top-level const로 조립하면 TDZ 오류가 난다 — 실제로 쓰이는 렌더 시점
-// (PICK_REPO가 이미 초기화된 뒤)에 함수로 늦게 계산한다.
+// 힉스필드(Higgsfield)로 만든 이미지/영상 — 평소(idle, 실사 사진)와 터치
+// 반응(모이 쪼기, 만화풍 영상) 두 가지. 유료 콘텐츠가 아니라 로그인 없는
+// 공개 탭이라, "이달의 질병"과 같은 공개 GitHub repo 경로
+// (raw.githubusercontent.com)로 바로 커밋해 둔다. PICK_REPO/PICK_BRANCH는
+// 이 파일 더 아래(약 line 5030)에서 선언되므로, 여기서 바로 top-level
+// const로 조립하면 TDZ 오류가 난다 — 실제로 쓰이는 렌더 시점(PICK_REPO가
+// 이미 초기화된 뒤)에 함수로 늦게 계산한다.
 function kkokoImgUrl(filename){
   return "https://raw.githubusercontent.com/" + PICK_REPO + "/" + PICK_BRANCH + "/assets/kkoko/" + filename;
 }
@@ -4825,33 +4826,39 @@ function kkokoVoiceSupported(){
   return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
 }
 
-// talking이면(AI 응답을 기다리는 중) 작게 까딱거리고, reacting이면(터치 직후)
-// 놀란 표정 사진으로 바꿔 크게 점프시킨다(kkoko-talk-bob/-excited-jump는
-// 전역 <style>에 정의 — render()가 다시 그려도 애니메이션이 안 끊기게).
+// talking이면(AI 응답을 기다리는 중) 평소 사진이 작게 까딱거리고(kkoko-talk-bob),
+// reacting이면(터치 직후) 모이 쪼는 영상으로 바뀐다 — 영상 자체에 이미
+// 자연스러운 움직임이 있어 따로 CSS 애니메이션을 겹치지 않는다.
 function kkokoCharacterBlock(talking){
   const cs = kkokoCharState;
-  const src = cs.reacting ? kkokoImgUrl("kkoko_excited.jpg") : kkokoImgUrl("kkoko_idle.png");
-  const animClass = cs.reacting ? "excited" : (talking ? "talking" : "");
   return `
   <div style="position:relative;display:inline-block">
     ${cs.reacting && cs.reactionText ? `<div style="position:absolute;top:-14px;left:50%;transform:translateX(-50%);white-space:nowrap;background:#fff;border:1px solid #F9D871;border-radius:14px;padding:4px 12px;font-size:11.5px;font-weight:700;color:#7A5C00;box-shadow:0 2px 6px rgba(0,0,0,.1)">${esc(cs.reactionText)}</div>` : ""}
-    <button type="button" id="kkoko-char-btn" aria-label="최꼬꼬 만지기" title="눌러서 최꼬꼬를 만져보세요" style="border:none;background:none;padding:0;cursor:pointer;display:block">
-      <img src="${esc(src)}" alt="최꼬꼬" class="kkoko-char${animClass?" "+animClass:""}" style="width:168px;height:210px;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,.18))" />
+    <button type="button" id="kkoko-char-btn" aria-label="최꼬꼬 만지기" title="눌러서 최꼬꼬를 만져보세요" style="border:none;background:none;padding:0;cursor:pointer;display:block;width:168px;height:210px">
+      ${cs.reacting
+        ? `<video id="kkoko-char-video" src="${esc(kkokoImgUrl("kkoko_peck.mp4"))}" poster="${esc(kkokoImgUrl("kkoko_peck_poster.jpg"))}" autoplay muted playsinline style="width:168px;height:210px;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,.18));border-radius:10px"></video>`
+        : `<img src="${esc(kkokoImgUrl("kkoko_idle.png"))}" alt="최꼬꼬" class="kkoko-char${talking?" talking":""}" style="width:168px;height:210px;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,.18))" />`}
     </button>
   </div>`;
 }
 
+function kkokoEndReaction(){
+  if(kkokoReactEndTimer){ clearTimeout(kkokoReactEndTimer); kkokoReactEndTimer = null; }
+  kkokoCharState.reacting = false;
+  kkokoCharState.reactionText = "";
+  render();
+}
+
 function kkokoTouchCharacter(){
-  if(kkokoReactTimer) clearTimeout(kkokoReactTimer);
+  if(kkokoCharState.reacting) return; // 영상 재생 중 또 누르면 무시(끊기지 않게)
+  if(kkokoReactEndTimer) clearTimeout(kkokoReactEndTimer);
   kkokoCharState.reacting = true;
   kkokoCharState.reactionText = KKOKO_REACTIONS[Math.floor(Math.random()*KKOKO_REACTIONS.length)];
   render();
-  kkokoReactTimer = setTimeout(()=>{
-    kkokoCharState.reacting = false;
-    kkokoCharState.reactionText = "";
-    kkokoReactTimer = null;
-    render();
-  }, 1600);
+  // 영상 ended 이벤트가 정상 경로지만(attachEvents에서 연결), 혹시라도 영상
+  // 로딩 실패 등으로 안 걸리면 6초 뒤 안전하게 평소 모습으로 되돌린다
+  // (영상 길이는 5초).
+  kkokoReactEndTimer = setTimeout(kkokoEndReaction, 6000);
 }
 
 function renderKkokoTab(){
@@ -4868,7 +4875,7 @@ function renderKkokoTab(){
   <div class="card" style="text-align:center;padding:18px 16px;margin-bottom:14px;background:linear-gradient(135deg,#FFF8E1,#FFECB3)">
     ${kkokoCharacterBlock(st.busy)}
     <div style="font-size:15px;font-weight:800;color:#7A5C00;margin-top:6px">최꼬꼬</div>
-    <div style="font-size:10.5px;color:#9C7A00">이 농장의 닭 캐릭터</div>
+    <div style="font-size:10.5px;color:#9C7A00">재미있는 아무 대화나 질문을 나누어 보세요~</div>
   </div>`;
 
   const msgs = st.messages.length ? st.messages : [{ role:"chicken", text: KKOKO_GREETING }];
@@ -15635,6 +15642,8 @@ function attachEvents(){
   // 🐔 최꼬꼬랑 대화
   const kkokoCharBtn = document.getElementById("kkoko-char-btn");
   if(kkokoCharBtn) kkokoCharBtn.onclick = ()=> kkokoTouchCharacter();
+  const kkokoCharVideo = document.getElementById("kkoko-char-video");
+  if(kkokoCharVideo) kkokoCharVideo.onended = ()=> kkokoEndReaction();
   const kkokoInput = document.getElementById("kkoko-input");
   if(kkokoInput){
     kkokoInput.oninput = (e)=>{ kkokoChatState.input = e.target.value; };
