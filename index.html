@@ -203,6 +203,20 @@
   /* ── 브리핑 마크다운 스타일 ── */
 /* 약품조회 결과 표 — 열 폭을 고정 비율(colgroup)로 두므로 긴 낱말·영문명은 칸 안에서 줄바꿈 */
 .drug-result-table td{overflow-wrap:anywhere;vertical-align:top}
+
+/* ── 🐔 꼬꼬랑 대화 — 닭 캐릭터 애니메이션 ──
+   render()가 매번 #app.innerHTML을 통째로 새로 그리므로, 이 keyframes는
+   (다시 그려지지 않는) 전역 <style>에 둬야 재생 중 끊기지 않는다. */
+@keyframes kkoko-idle-bob { 0%,100%{ transform: translateY(0) rotate(0deg); } 50%{ transform: translateY(-4px) rotate(-1.5deg); } }
+@keyframes kkoko-blink { 0%,92%,100%{ transform: scaleY(1); } 96%{ transform: scaleY(0.1); } }
+@keyframes kkoko-talk-bob { 0%,100%{ transform: translateY(0) rotate(0deg); } 25%{ transform: translateY(-2px) rotate(2deg); } 75%{ transform: translateY(-2px) rotate(-2deg); } }
+@keyframes kkoko-wing { 0%,100%{ transform: rotate(0deg); } 50%{ transform: rotate(-12deg); } }
+@keyframes kkoko-ring-pulse { 0%{ box-shadow: 0 0 0 0 rgba(198,40,40,.35); } 100%{ box-shadow: 0 0 0 14px rgba(198,40,40,0); } }
+.kkoko-char { animation: kkoko-idle-bob 2.6s ease-in-out infinite; transform-origin: 50% 85%; }
+.kkoko-char.talking { animation: kkoko-talk-bob 0.5s ease-in-out infinite; }
+.kkoko-char .kkoko-eye { animation: kkoko-blink 4.2s ease-in-out infinite; transform-origin: center; }
+.kkoko-char .kkoko-wing { animation: kkoko-wing 1.8s ease-in-out infinite; transform-origin: 70% 30%; }
+.kkoko-mic-btn.listening { animation: kkoko-ring-pulse 1.2s ease-out infinite; }
 </style>
 </head>
 <body>
@@ -622,7 +636,7 @@ function saveCustomCoins(){ try { localStorage.setItem("custom_coins", JSON.stri
 // ═══════════════════════════════════════════════════════════════════════════
 // 탭 바에 있는 탭 이름. 주소 해시(#weather)와 postMessage로 받은 값이 진짜 탭인지
 // 확인하는 데 쓴다 — 엉뚱한 값이 들어와 어느 탭도 선택되지 않은 화면이 되지 않도록.
-const TAB_IDS = ["price","weather","vent","consult","disease","hpai","briefing","premium"];
+const TAB_IDS = ["price","weather","vent","consult","disease","hpai","briefing","kkoko","premium"];
 
 let state = { tab:"price", customSites:loadCustom(), customStocks:loadCustomList("custom_stocks"), customCoins:loadCustomList("custom_coins") };
 
@@ -4777,6 +4791,159 @@ async function searchLocation(query){
 
 // ── 뉴스정보 탭 ────────────────────────────────────────────────────────────
 // (AI 일일 브리핑은 GitHub Models 종료로 2026-08 제거. 뉴스·경제·정책만 표시)
+
+// ── 🐔 꼬꼬랑 대화 탭 ─────────────────────────────────────────────────────────
+// 이 농장에 사는 닭 캐릭터 "꼬꼬"와 대화하는 화면. 뉴스정보처럼 로그인 없는
+// 무료 탭이라, 서버 쪽(functions/index.js의 chickenChat)도 인증 없이 호출
+// 가능하다 — 대신 메시지 개수·길이·답변 길이를 짧게 제한해 비용을 통제한다.
+// 음성 입력은 브라우저 내장 Web Speech API(SpeechRecognition)를 쓴다 — 별도
+// 설치나 키 없이 되고, 지원하지 않는 브라우저(예: 일부 모바일 Firefox)에서는
+// 🎤 버튼 자체를 숨기고 글로만 대화할 수 있다.
+let kkokoChatState = { messages: [], input: "", busy: false, error: "", listening: false };
+// 음성 인식 객체는 render()가 지우면 안 되는 "살아있는" 브라우저 API 핸들이라
+// kkokoChatState(렌더 때마다 새로 그려지는 데이터)가 아니라 따로 둔다.
+let kkokoRecognizer = null;
+const KKOKO_GREETING = "안녕하세요! 저는 이 농장에 사는 꼬꼬예요 🐔 사육 환경이나 궁금한 질병을 물어보시면 제 입장에서 설명해 드릴게요. 음성으로 물어보셔도 좋아요!";
+
+function kkokoVoiceSupported(){
+  return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+}
+
+// 간단한 치비(chibi) 스타일 닭 캐릭터 — talking이면 더 빠르게 까딱거려
+// "대답하는 중"임을 보여준다(kkoko-talk-bob/-idle-bob는 전역 <style>에 정의).
+function kkokoChickenSvg(talking){
+  return `
+  <svg viewBox="0 0 120 120" width="112" height="112" class="kkoko-char${talking?" talking":""}" aria-label="꼬꼬">
+    <ellipse cx="60" cy="100" rx="28" ry="5" fill="#000" opacity="0.08"/>
+    <rect x="50" y="90" width="4" height="12" rx="2" fill="#FB8C00"/>
+    <rect x="66" y="90" width="4" height="12" rx="2" fill="#FB8C00"/>
+    <polyline points="44,102 52,96 48,102" fill="none" stroke="#FB8C00" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <polyline points="76,102 68,96 72,102" fill="none" stroke="#FB8C00" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <ellipse cx="60" cy="74" rx="32" ry="28" fill="#FFCA28"/>
+    <ellipse class="kkoko-wing" cx="83" cy="72" rx="13" ry="19" fill="#FFB300"/>
+    <circle cx="60" cy="37" r="22" fill="#FFCA28"/>
+    <ellipse cx="51" cy="15" rx="5" ry="7" fill="#E53935"/>
+    <ellipse cx="60" cy="11" rx="5.5" ry="8" fill="#E53935"/>
+    <ellipse cx="69" cy="15" rx="5" ry="7" fill="#E53935"/>
+    <ellipse cx="60" cy="53" rx="4" ry="6" fill="#E53935"/>
+    <polygon points="53,43 67,43 60,52" fill="#FB8C00"/>
+    <circle class="kkoko-eye" cx="51" cy="34" r="3.3" fill="#2b2b2b"/>
+    <circle class="kkoko-eye" cx="69" cy="34" r="3.3" fill="#2b2b2b"/>
+    <circle cx="52.3" cy="32.7" r="1" fill="#fff"/>
+    <circle cx="70.3" cy="32.7" r="1" fill="#fff"/>
+  </svg>`;
+}
+
+function renderKkokoTab(){
+  const head = `
+  <div style="margin-bottom:14px">
+    <div class="display" style="font-size:16px;margin-bottom:3px">🐔 꼬꼬랑 대화</div>
+    <div style="font-size:11px;color:#aaa">이 농장에 사는 닭 "꼬꼬"와 대화하며 사양관리·질병 지식을 재미있게 배워보세요</div>
+  </div>`;
+
+  const st = kkokoChatState;
+  const voiceOk = kkokoVoiceSupported();
+
+  const charBlock = `
+  <div class="card" style="text-align:center;padding:18px 16px;margin-bottom:14px;background:linear-gradient(135deg,#FFF8E1,#FFECB3)">
+    ${kkokoChickenSvg(st.busy)}
+    <div style="font-size:15px;font-weight:800;color:#7A5C00;margin-top:2px">꼬꼬</div>
+    <div style="font-size:10.5px;color:#9C7A00">이 농장의 닭 캐릭터</div>
+  </div>`;
+
+  const msgs = st.messages.length ? st.messages : [{ role:"chicken", text: KKOKO_GREETING }];
+  const msgList = msgs.map(m => {
+    const isChicken = m.role === "chicken";
+    return `
+    <div style="display:flex;justify-content:${isChicken?"flex-start":"flex-end"};margin-bottom:8px">
+      <div style="max-width:80%;background:${isChicken?"#FFF3CF":"#1a2744"};color:${isChicken?"#5C4400":"#fff"};border-radius:${isChicken?"4px 14px 14px 14px":"14px 4px 14px 14px"};padding:9px 13px;font-size:13px;line-height:1.6;white-space:pre-wrap">${isChicken?"🐔 ":""}${esc(m.text)}</div>
+    </div>`;
+  }).join("");
+
+  const busyBubble = st.busy ? `
+    <div style="display:flex;justify-content:flex-start;margin-bottom:8px">
+      <div style="background:#FFF3CF;color:#9C7A00;border-radius:4px 14px 14px 14px;padding:9px 13px;font-size:13px">🐔 꼬꼬가 생각하는 중... 🐥</div>
+    </div>` : "";
+
+  const chatLog = `<div id="kkoko-log" style="max-height:360px;overflow-y:auto;padding:4px 2px;margin-bottom:10px">${msgList}${busyBubble}</div>`;
+  const errorLine = st.error ? `<div style="font-size:11px;color:#C62828;margin-bottom:8px">${esc(st.error)}</div>` : "";
+
+  const inputRow = `
+  <div style="display:flex;gap:6px;align-items:flex-end">
+    <textarea id="kkoko-input" placeholder="${voiceOk?"궁금한 걸 물어보거나 🎤를 눌러 말해보세요":"예) 여름철 계사 환기를 줄이면 어떤 병에 잘 걸려?"}"
+      style="flex:1;min-height:44px;max-height:100px;padding:9px 11px;border:1px solid #ddd;border-radius:10px;font-size:13px;font-family:inherit;resize:none">${esc(st.input)}</textarea>
+    ${voiceOk ? `<button id="kkoko-mic-btn" type="button" class="kkoko-mic-btn${st.listening?" listening":""}" title="음성으로 물어보기" style="flex-shrink:0;width:42px;height:42px;border-radius:50%;border:none;background:${st.listening?"#C62828":"#F9A825"};color:#fff;font-size:18px;cursor:pointer">🎤</button>` : ""}
+    <button id="kkoko-send-btn" ${st.busy?"disabled":""} type="button" style="flex-shrink:0;border:none;border-radius:10px;background:${st.busy?"#ccc":"#1a2744"};color:#F9C74F;padding:0 18px;height:42px;font-size:13px;font-weight:700;cursor:pointer">전송</button>
+  </div>
+  ${st.listening ? `<div style="font-size:10.5px;color:#C62828;margin-top:6px">🎙️ 듣고 있어요... 말씀해 주세요</div>` : ""}
+  ${st.messages.length ? `<button id="kkoko-reset-btn" type="button" style="margin-top:8px;font-size:10.5px;border:1px solid #ddd;border-radius:6px;background:#fff;color:#888;padding:4px 10px;cursor:pointer">↺ 대화 새로 시작하기</button>` : ""}`;
+
+  return head + charBlock + `<div class="card" style="padding:14px">${chatLog}${errorLine}${inputRow}</div>
+  <div style="font-size:9px;color:#aaa;line-height:1.6;margin-top:8px">
+    ※ 꼬꼬는 AI가 닭의 입장에서 재미있게 설명해 드리는 캐릭터입니다. 실제 질병 진단·처방은 반드시 담당 수의사와 상담하세요.
+  </div>`;
+}
+
+async function sendKkokoMessage(){
+  if(kkokoChatState.busy) return;
+  const ta = document.getElementById("kkoko-input");
+  const text = ((ta ? ta.value : kkokoChatState.input) || "").trim();
+  if(!text) return;
+  kkokoStopVoice();
+  kkokoChatState.messages.push({ role:"user", text });
+  kkokoChatState.input = "";
+  kkokoChatState.error = "";
+  kkokoChatState.busy = true;
+  render();
+  try {
+    if(!firebaseReady) throw new Error("아직 준비 중이에요. 잠시 후 다시 시도해 주세요.");
+    const history = kkokoChatState.messages.slice(-12).map(m => ({ role: m.role==="user" ? "user" : "assistant", text: m.text }));
+    const fn = firebase.app().functions().httpsCallable("chickenChat");
+    const res = await withStorageTimeout(fn({ messages: history }), 30000);
+    const reply = (res.data && res.data.reply) || "";
+    kkokoChatState.messages.push({ role:"chicken", text: reply || "음... 할 말을 잃었어요 🐔 다시 물어봐 주세요." });
+  } catch(e){
+    kkokoChatState.error = "답변을 받지 못했어요: " + (e.message || String(e));
+  }
+  kkokoChatState.busy = false;
+  render();
+}
+
+function kkokoStartVoice(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR || kkokoChatState.listening) return;
+  try {
+    const rec = new SR();
+    kkokoRecognizer = rec;
+    rec.lang = "ko-KR";
+    rec.interimResults = false;
+    rec.maxAlternatives = 1;
+    rec.onresult = (e) => {
+      const text = (e.results && e.results[0] && e.results[0][0] && e.results[0][0].transcript) || "";
+      kkokoChatState.input = text;
+      kkokoChatState.listening = false;
+      render();
+      const input = document.getElementById("kkoko-input");
+      if(input) input.focus();
+    };
+    rec.onerror = () => { kkokoChatState.listening = false; kkokoChatState.error = "음성 인식에 실패했어요 — 다시 시도해 주세요."; render(); };
+    rec.onend = () => { kkokoChatState.listening = false; render(); };
+    kkokoChatState.listening = true;
+    kkokoChatState.error = "";
+    render();
+    rec.start();
+  } catch(e){
+    kkokoChatState.listening = false;
+    kkokoChatState.error = "음성 인식을 시작하지 못했어요.";
+    render();
+  }
+}
+function kkokoStopVoice(){
+  if(kkokoRecognizer){ try { kkokoRecognizer.stop(); } catch(e){} }
+  kkokoRecognizer = null;
+  kkokoChatState.listening = false;
+}
+
 // ── 양계질병 탭 ────────────────────────────────────────────────────────────
 // 자료는 수집 시점에 한글 번역까지 끝난 상태로 내려온다(브라우저에서 번역하지
 // 않는다 — 구글 번역 무료 엔드포인트가 IP 단위 429를 주기 때문). 여기서는
@@ -8275,7 +8442,7 @@ function render(){
   document.getElementById("app").innerHTML = `
     ${renderHeader()}
     <main>
-      ${state.tab==="price" || state.tab==="pig" || state.tab==="livestock" ? renderPriceTab() : state.tab==="weather" ? renderWeatherTab() : state.tab==="vent" ? renderVentTab() : state.tab==="consult" ? renderConsultTab() : state.tab==="disease" ? renderDiseaseTab() : state.tab==="hpai" ? renderHpaiTab() : state.tab==="briefing" ? renderBriefingTab() : state.tab==="premium" ? renderPremiumTab() : renderPriceTab()}
+      ${state.tab==="price" || state.tab==="pig" || state.tab==="livestock" ? renderPriceTab() : state.tab==="weather" ? renderWeatherTab() : state.tab==="vent" ? renderVentTab() : state.tab==="consult" ? renderConsultTab() : state.tab==="disease" ? renderDiseaseTab() : state.tab==="hpai" ? renderHpaiTab() : state.tab==="briefing" ? renderBriefingTab() : state.tab==="kkoko" ? renderKkokoTab() : state.tab==="premium" ? renderPremiumTab() : renderPriceTab()}
       ${renderFooter()}
     </main>`;
   attachEvents();
@@ -8337,6 +8504,7 @@ function renderHeader(){
       <button class="tab ${state.tab==="disease"?"active":""}" data-tab="disease">🩺 양계질병</button>
       <button class="tab ${state.tab==="hpai"?"active":""}" data-tab="hpai">🦠 AI관련정보</button>
       <button class="tab ${state.tab==="briefing"?"active":""}" data-tab="briefing">📋 뉴스정보</button>
+      <button class="tab ${state.tab==="kkoko"?"active":""}" data-tab="kkoko">🐔 꼬꼬랑 대화</button>
       <button class="tab ${state.tab==="premium"?"active":""}" data-tab="premium">💼 유료서비스</button>
     </div>
     <button class="tabs-arrow right" type="button" aria-label="뒤쪽 메뉴 보기" tabindex="-1"><span>›</span></button>
@@ -15443,6 +15611,28 @@ function attachEvents(){
   });
   const ventGotoWeatherBtn = document.getElementById("vent-goto-weather");
   if(ventGotoWeatherBtn) ventGotoWeatherBtn.onclick = ()=> switchTab("weather");
+
+  // 🐔 꼬꼬랑 대화
+  const kkokoInput = document.getElementById("kkoko-input");
+  if(kkokoInput){
+    kkokoInput.oninput = (e)=>{ kkokoChatState.input = e.target.value; };
+    kkokoInput.onkeydown = (e)=>{ if(e.key === "Enter" && !e.shiftKey){ e.preventDefault(); sendKkokoMessage(); } };
+  }
+  const kkokoSendBtn = document.getElementById("kkoko-send-btn");
+  if(kkokoSendBtn) kkokoSendBtn.onclick = ()=> sendKkokoMessage();
+  const kkokoMicBtn = document.getElementById("kkoko-mic-btn");
+  if(kkokoMicBtn) kkokoMicBtn.onclick = ()=>{
+    if(kkokoChatState.listening){ kkokoStopVoice(); render(); }
+    else kkokoStartVoice();
+  };
+  const kkokoResetBtn = document.getElementById("kkoko-reset-btn");
+  if(kkokoResetBtn) kkokoResetBtn.onclick = ()=>{
+    kkokoStopVoice();
+    kkokoChatState = { messages: [], input: "", busy: false, error: "", listening: false };
+    render();
+  };
+  const kkokoLog = document.getElementById("kkoko-log");
+  if(kkokoLog) kkokoLog.scrollTop = kkokoLog.scrollHeight;
 
   // 육계/산란계 컨설팅: 축종/품종/일령 선택
   document.querySelectorAll(".consult-species-btn").forEach(b=>b.onclick=()=>{

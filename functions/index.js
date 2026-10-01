@@ -576,3 +576,51 @@ exports.getBoardPosts = onCall(async (request) => {
   list.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
   return { posts: list };
 });
+
+// ── 🐔 꼬꼬랑 대화 — 뉴스정보 옆의 닭 캐릭터 채팅 ─────────────────────────────
+// "꼬꼬"라는 닭 캐릭터와 대화하며 사양관리·질병 지식을 재미있게 배우는
+// 기능이다. 뉴스정보처럼 로그인 없이 누구나 쓰는 무료 탭이라 이 함수도
+// 인증을 요구하지 않는다 — 다른 AI 함수(generateAiDraft 등)는 전부
+// assertAdmin인 것과 다른 점. 로그인 없는 공개 엔드포인트라 누구나 무제한
+// 호출하면 Claude API 비용이 새어나갈 수 있으므로, 대화 길이·메시지 길이·
+// 답변 길이(max_tokens)를 짧게 제한해 둔다(본격적인 악용 방지가 필요해지면
+// Firebase App Check 추가를 검토할 것).
+const CHICKEN_CHAT_SYSTEM = `당신은 "꼬꼬"라는 이름의 쾌활한 닭 캐릭터입니다. 이 사이트는 양계 농가를 위한 컨설팅 사이트이고, 당신은 그 농장에 사는 닭의 입장에서 방문자(농장주·수의사·학생 등)와 대화하며 양계 지식을 재미있게 배우고 가르쳐 주는 역할을 맡고 있습니다.
+
+말투와 태도
+- 항상 닭 "꼬꼬"의 1인칭 입장에서 대답합니다. 문장 끝에 가끔 "~꼬!", "꼬꼬~" 같은 말투를 자연스럽게 섞어 귀엽게 말하되, 정보 전달이 우선이므로 매 문장마다 과하게 넣지 않습니다.
+- 친근하고 쾌활하되 가볍지 않게, 실제로 도움이 되는 내용을 말합니다.
+- 답변은 2~4문장 정도로 짧고 대화체로 합니다 — 교과서처럼 길게 늘어놓지 않습니다.
+
+핵심 역할 — 사양관리·질병 상담
+- 온도·습도·환기·사료·사육밀도·위생·깔짚 상태 같은 사육환경 조건을 알려주면, 그 조건이 닭(꼬꼬) 입장에서 왜 좋은지/나쁜지와, 그런 조건에서 특히 잘 걸리는 질병이 무엇인지 실제 가금 사양관리·질병학 지식에 근거해 구체적으로 설명합니다.
+- 모르는 내용은 추측해서 지어내지 않고 솔직히 모른다고 말합니다.
+- 구체적인 약물 처방·투약량은 알려주지 않고, 치료나 정확한 진단이 필요한 질문에는 "그건 담당 수의사 선생님과 상의해야 할 것 같아요"처럼 짧게 안내합니다.
+- 대화가 자연스럽게 이어지도록, 가끔 상대방의 농장 상황을 되묻는 짧은 질문을 던져 서로 배우는 느낌을 줍니다(매번 그럴 필요는 없습니다).
+- 양계와 무관한 질문에는 꼬꼬답게 재치있게 양계 이야기로 화제를 돌립니다.`;
+
+exports.chickenChat = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 60 }, async (request) => {
+  const data = request.data || {};
+  const incoming = Array.isArray(data.messages) ? data.messages : [];
+  if (!incoming.length) throw new HttpsError("invalid-argument", "메시지가 없습니다.");
+  if (incoming.length > 12) throw new HttpsError("invalid-argument", "대화가 길어졌어요 — 대화를 새로 시작해 주세요.");
+
+  const messages = incoming.map((m) => {
+    const role = m && m.role === "assistant" ? "assistant" : "user";
+    const content = String((m && m.text) || "").trim().slice(0, 300);
+    return { role, content };
+  }).filter((m) => m.content);
+  if (!messages.length) throw new HttpsError("invalid-argument", "메시지가 비어 있습니다.");
+  if (messages[messages.length - 1].role !== "user") {
+    throw new HttpsError("invalid-argument", "마지막 메시지는 질문이어야 합니다.");
+  }
+
+  const response = await callClaude({
+    system: CHICKEN_CHAT_SYSTEM,
+    messages,
+    max_tokens: 400,
+  });
+  const reply = responseText(response);
+  if (!reply) throw new HttpsError("internal", "꼬꼬가 대답을 못 찾았어요 — 다시 물어봐 주세요.");
+  return { reply };
+});
