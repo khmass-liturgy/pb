@@ -738,6 +738,7 @@ const PREMIUM_ITEMS = [
   { key:"study", icon:"🎓", title:"최수의사의 온라인 학습(카드 학습)", desc:"수의사가 올린 카드형 학습자료(앞면/뒷면)로 필요할 때마다 학습할 수 있습니다.", color:"#4527A0", category:"질문·학습·교육" },
   { key:"research", icon:"📚", title:"최신 기술탐구", desc:"질병논문·사양관리기술·컨설팅도구 최신 국제논문 5편씩을 매주 한글로 번역·요약해 드립니다.", color:"#6A1B9A", category:"질문·학습·교육" },
   { key:"magazine", icon:"📰", title:"양계잡지 학습정보", desc:"양계 전문지 지면을 사진으로 올리면 사진과 글을 분리해 게시판처럼 보여드립니다.", color:"#455A64", category:"질문·학습·교육" },
+  { key:"kkoko", icon:"🐔", title:"최꼬꼬랑 대화", desc:"이 농장에 사는 닭 캐릭터와 대화하며 사양관리·질병 지식을 재미있게 배워보세요. 텍스트는 물론 음성으로도 대화할 수 있습니다.", color:"#F57F17", category:"질문·학습·교육" },
   { key:"feature_board", icon:"💡", title:"기능 요청 게시판", desc:"필요한 기능을 자유롭게 제안해 주세요. 작성자는 다른 회원에게 익명으로 표시됩니다.", color:"#00838F", category:"게시판·기타" },
   { key:"consult", icon:"💬", title:"온라인 상담", desc:"농장 현안(사양·환기·질병 등)을 질문하면 최동명 수의사가 답변합니다. 사진 첨부 가능, 답변은 작성자만 볼 수 있습니다.", color:"#1565C0", category:"게시판·기타" },
   { key:"consulting", icon:"📈", title:"온라인 컨설팅", desc:"농장 운영·질병 현황을 바탕으로 맞춤 투약·백신 프로그램을 작성해 드립니다. 답변은 작성자만 볼 수 있습니다.", color:"#E65100", category:"게시판·기타" },
@@ -806,7 +807,7 @@ const PREMIUM_MENU_LEGACY_PATH = "premium_menu/items.json";
 const PREMIUM_MENU_KNOWN_KEYS = [
   "drug","treatment","seasonal","finder","disinfect","newproducts","vaccine",
   "ventfinder","moltguide","feedstandard","selfcheck","diagnosis","faq","study",
-  "research","magazine","feature_board","consult","consulting","smssub",
+  "research","magazine","kkoko","feature_board","consult","consulting","smssub",
 ];
 let premiumMenuState = { status:"idle", data:null, busy:false, msg:"", adminOpen:false, formOpen:false,
   editIndex:null, draftKey:"", draftIcon:"🆕", draftTitle:"", draftDesc:"", draftColor:"#00838F", draftCategory:"" };
@@ -4809,7 +4810,7 @@ const KKOKO_GREETING = "안녕하세요! 저는 이 농장에 사는 최꼬꼬�
 // 엔드포인트라 API 비용이 새는 걸 막는 1차 방어선이다(localStorage 기반이라
 // 캐시를 지우거나 다른 브라우저/시크릿창을 쓰면 우회되는 느슨한 제한이지만,
 // 평범한 사용에서는 충분하다). 날짜가 바뀌면 자동으로 초기화된다.
-const KKOKO_DAILY_LIMIT = 20;
+const KKOKO_DAILY_LIMIT = 200;
 function kkokoTodayStr(){
   const d = new Date();
   return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
@@ -13721,9 +13722,13 @@ function attachEvents(){
   const prRetry = document.getElementById("btn-premium-retry");
   if(prRetry) prRetry.onclick = ()=>{ premiumState.status = "idle"; fetchPremiumApproved(); render(); };
 
-  // 유료서비스: 메뉴 카드 클릭 → 하위 화면 이동
+  // 유료서비스: 메뉴 카드 클릭 → 하위 화면 이동. "최꼬꼬랑 대화"는 유료
+  // 하위화면이 아니라 로그인 없는 별도 탭(state.tab==="kkoko")이라, 이 메뉴
+  // 안에 끼워 넣었어도 premiumState.view가 아니라 그 탭으로 바로 보낸다.
   document.querySelectorAll(".premium-item-btn").forEach(b=>b.onclick=()=>{
-    premiumState.view = b.dataset.key;
+    const key = b.dataset.key;
+    if(key === "kkoko"){ switchTab("kkoko"); return; }
+    premiumState.view = key;
     render();
   });
 
