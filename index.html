@@ -4834,7 +4834,26 @@ function kkokoBumpUsage(){
 // 지우면 안 되는 타이머 핸들이라 따로 둔다.
 let kkokoCharState = { reacting: false, reactionText: "" };
 let kkokoReactTimer = null;
-const KKOKO_REACTIONS = ["꼬끼오! 깜짝이야~", "간지러워요, 최꼬꼬예요!", "오늘 기분 최고예요 🐥", "또 만져주세요~", "꼬옥! 반가워요!"];
+const KKOKO_REACTIONS = [
+  "꼬끼오! 깜짝이야~",
+  "간지러워요, 최꼬꼬예요!",
+  "오늘 기분 최고예요 🐥",
+  "또 만져주세요~",
+  "꼬옥! 반가워요!",
+  "앗, 거긴 제 급소(?)인데요",
+  "계란 하나 낳을 뻔했잖아요!",
+  "저 지금 심쿵했어요 💛",
+  "이러다 저랑 사랑에 빠지시는 거 아니죠?",
+  "꼬꼬댁! 저는 장식품이 아니랍니다",
+  "오늘따라 손이 참 다정하시네요",
+  "닭살 돋는다는 말... 저 닭인데 진짜 돋아요",
+  "한 번 더 만지면 모이 값 청구할 거예요",
+  "제가 이래 봬도 이 농장 인싸입니다",
+  "꼬끼오~ 셀프 광고 좀 하자면, 저 매력적이죠?",
+  "사장님! 쟤가 또 저 만져요!",
+  "저를 자꾸 누르시면 달걀이 아니라 웃음이 나와요",
+  "심심하면 질문해 주세요, 터치 말고요(농담이에요 꼬꼬)"
+];
 
 // 힉스필드(Higgsfield)로 만든 실사 사진. 유료 콘텐츠가 아니라 로그인 없는
 // 공개 탭이라, "이달의 질병"과 같은 공개 GitHub repo 경로
@@ -4851,15 +4870,18 @@ function kkokoVoiceSupported(){
 }
 
 // talking이면(AI 응답을 기다리는 중) 작게 까딱거리고(kkoko-talk-bob),
-// reacting이면(터치 직후) 통통 튀며(kkoko-bounce) 반응한다.
-function kkokoCharacterBlock(talking){
+// reacting이면(터치 직후) 통통 튀며(kkoko-bounce) 반응한다. size는 가로
+// 픽셀(세로는 원본 비율 168:210에 맞춰 1.25배) — 화면 레이아웃에 맞게
+// 작게(옆자리) 또는 크게 쓸 수 있도록 인자로 받는다.
+function kkokoCharacterBlock(talking, size){
+  const w = size || 168, h = Math.round(w * 1.25);
   const cs = kkokoCharState;
   const animClass = cs.reacting ? "bounce" : (talking ? "talking" : "");
   return `
   <div style="position:relative;display:inline-block">
-    ${cs.reacting && cs.reactionText ? `<div style="position:absolute;top:-14px;left:50%;transform:translateX(-50%);white-space:nowrap;background:#fff;border:1px solid #F9D871;border-radius:14px;padding:4px 12px;font-size:11.5px;font-weight:700;color:#7A5C00;box-shadow:0 2px 6px rgba(0,0,0,.1)">${esc(cs.reactionText)}</div>` : ""}
-    <button type="button" id="kkoko-char-btn" aria-label="최꼬꼬 만지기" title="눌러서 최꼬꼬를 만져보세요" style="border:none;background:none;padding:0;cursor:pointer;display:block;width:168px;height:210px">
-      <img src="${esc(kkokoImgUrl("kkoko_idle.png"))}" alt="최꼬꼬" class="kkoko-char${animClass?" "+animClass:""}" style="width:168px;height:210px;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,.18))" />
+    ${cs.reacting && cs.reactionText ? `<div style="position:absolute;top:-16px;left:50%;transform:translateX(-50%);white-space:normal;max-width:220px;width:max-content;background:#fff;border:1px solid #F9D871;border-radius:14px;padding:6px 13px;font-size:12px;font-weight:700;color:#7A5C00;box-shadow:0 2px 8px rgba(0,0,0,.15);text-align:center;z-index:3">${esc(cs.reactionText)}</div>` : ""}
+    <button type="button" id="kkoko-char-btn" aria-label="최꼬꼬 만지기" title="눌러서 최꼬꼬를 만져보세요" style="border:none;background:none;padding:0;cursor:pointer;display:block;width:${w}px;height:${h}px">
+      <img src="${esc(kkokoImgUrl("kkoko_idle.png"))}" alt="최꼬꼬" class="kkoko-char${animClass?" "+animClass:""}" style="width:${w}px;height:${h}px;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,.18))" />
     </button>
   </div>`;
 }
@@ -4890,14 +4912,13 @@ function renderKkokoTab(){
   const remaining = Math.max(0, KKOKO_DAILY_LIMIT - usage.count);
   const limitReached = remaining <= 0;
 
-  // 캐릭터 카드 바로 아래, 입(부리) 쪽에서 나오는 말풍선 꼬리를 달아 대화창을
-  // "최꼬꼬가 말하는 말풍선"처럼 보이게 한다 — 꼬리(흰 삼각형)가 캐릭터 카드와
-  // 대화 카드 사이에 겹쳐 붙도록 margin을 음수로 당긴다.
+  // 최꼬꼬를 화면 왼쪽에 작게 두고, 대화 말풍선이 그 얼굴(부리) 높이에서
+  // 오른쪽으로 크게 튀어나오는 레이아웃. 말풍선이 화면 폭 대부분을 쓰도록
+  // 캐릭터 칸은 좁게(120px) 고정하고 대화 칸은 flex:1로 남은 폭을 전부 쓴다.
   const charBlock = `
-  <div class="card" style="text-align:center;padding:18px 16px;margin-bottom:0;background:linear-gradient(135deg,#FFF8E1,#FFECB3);position:relative;z-index:1">
-    ${kkokoCharacterBlock(st.busy)}
-    <div style="font-size:16px;font-weight:800;color:#7A5C00;margin-top:6px">최꼬꼬</div>
-    <div style="font-size:12px;color:#9C7A00">재미있는 아무 대화나 질문을 나누어 보세요~</div>
+  <div class="card" style="flex:0 0 120px;text-align:center;padding:12px 8px;background:linear-gradient(135deg,#FFF8E1,#FFECB3)">
+    ${kkokoCharacterBlock(st.busy, 108)}
+    <div style="font-size:14px;font-weight:800;color:#7A5C00;margin-top:4px">최꼬꼬</div>
   </div>`;
 
   const msgs = st.messages.length ? st.messages : [{ role:"chicken", text: KKOKO_GREETING }];
@@ -4930,13 +4951,17 @@ function renderKkokoTab(){
     <span style="font-size:11px;color:${limitReached?"#C62828":"#bbb"}">오늘 대화 ${usage.count}/${KKOKO_DAILY_LIMIT}회${limitReached?" — 내일 다시 와 주세요!":""}</span>
   </div>`;
 
+  // 말풍선 꼬리(왼쪽을 가리키는 삼각형)를 캐릭터 얼굴(부리) 높이쯤에 맞춰
+  // 붙인다 — 말풍선이 최꼬꼬 입에서 나오는 것처럼 보이게.
   const speechBubble = `
-  <div style="position:relative">
-    <div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:10px solid transparent;border-right:10px solid transparent;border-bottom:10px solid #fff;z-index:2"></div>
-    <div class="card" style="padding:16px;border-radius:0 0 20px 20px;margin-bottom:14px">${chatLog}${errorLine}${inputRow}</div>
+  <div style="position:relative;flex:1;min-width:0">
+    <div style="position:absolute;top:34px;left:-9px;width:0;height:0;border-top:9px solid transparent;border-bottom:9px solid transparent;border-right:9px solid #fff"></div>
+    <div class="card" style="padding:16px;border-radius:20px">${chatLog}${errorLine}${inputRow}</div>
   </div>`;
 
-  return head + charBlock + speechBubble + `
+  const row = `<div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:14px">${charBlock}${speechBubble}</div>`;
+
+  return head + row + `
   <div style="font-size:10.5px;color:#aaa;line-height:1.6;margin-top:4px">
     ※ 최꼬꼬는 AI가 닭의 입장에서 재미있게 설명해 드리는 캐릭터입니다. 실제 질병 진단·처방은 반드시 담당 수의사와 상담하세요.
   </div>`;

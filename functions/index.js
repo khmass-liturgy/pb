@@ -616,6 +616,10 @@ exports.chickenChat = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 60 
   }
 
   const response = await callClaude({
+    // 다른 AI 기능(generateAiDraft 등)은 기본값인 claude-opus-5를 그대로 쓰지만,
+    // 이 캐릭터 잡담 기능은 Opus급 추론이 필요 없고 공개 호출이라 트래픽이
+    // 많을 수 있어 훨씬 저렴한 Haiku로 지정해 둔다.
+    model: "claude-haiku-4-5-20251001",
     system: CHICKEN_CHAT_SYSTEM,
     messages,
     max_tokens: 400,
