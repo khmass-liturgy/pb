@@ -204,18 +204,17 @@
 /* 약품조회 결과 표 — 열 폭을 고정 비율(colgroup)로 두므로 긴 낱말·영문명은 칸 안에서 줄바꿈 */
 .drug-result-table td{overflow-wrap:anywhere;vertical-align:top}
 
-/* ── 🐔 꼬꼬랑 대화 — 닭 캐릭터 애니메이션 ──
+/* ── 🐔 최꼬꼬랑 대화 — 닭 캐릭터 애니메이션 ──
    render()가 매번 #app.innerHTML을 통째로 새로 그리므로, 이 keyframes는
    (다시 그려지지 않는) 전역 <style>에 둬야 재생 중 끊기지 않는다. */
 @keyframes kkoko-idle-bob { 0%,100%{ transform: translateY(0) rotate(0deg); } 50%{ transform: translateY(-4px) rotate(-1.5deg); } }
-@keyframes kkoko-blink { 0%,92%,100%{ transform: scaleY(1); } 96%{ transform: scaleY(0.1); } }
 @keyframes kkoko-talk-bob { 0%,100%{ transform: translateY(0) rotate(0deg); } 25%{ transform: translateY(-2px) rotate(2deg); } 75%{ transform: translateY(-2px) rotate(-2deg); } }
-@keyframes kkoko-wing { 0%,100%{ transform: rotate(0deg); } 50%{ transform: rotate(-12deg); } }
+@keyframes kkoko-excited-jump { 0%{ transform: translateY(0) scale(1) rotate(0deg); } 20%{ transform: translateY(-20px) scale(1.06) rotate(-5deg); } 40%{ transform: translateY(-2px) scale(1.02) rotate(5deg); } 60%{ transform: translateY(-16px) scale(1.05) rotate(-4deg); } 80%{ transform: translateY(0) scale(1.01) rotate(3deg); } 100%{ transform: translateY(0) scale(1) rotate(0deg); } }
 @keyframes kkoko-ring-pulse { 0%{ box-shadow: 0 0 0 0 rgba(198,40,40,.35); } 100%{ box-shadow: 0 0 0 14px rgba(198,40,40,0); } }
-.kkoko-char { animation: kkoko-idle-bob 2.6s ease-in-out infinite; transform-origin: 50% 85%; }
+.kkoko-char { animation: kkoko-idle-bob 2.6s ease-in-out infinite; transform-origin: 50% 90%; transition: filter 0.15s; }
+.kkoko-char:hover { filter: brightness(1.04); }
 .kkoko-char.talking { animation: kkoko-talk-bob 0.5s ease-in-out infinite; }
-.kkoko-char .kkoko-eye { animation: kkoko-blink 4.2s ease-in-out infinite; transform-origin: center; }
-.kkoko-char .kkoko-wing { animation: kkoko-wing 1.8s ease-in-out infinite; transform-origin: 70% 30%; }
+.kkoko-char.excited { animation: kkoko-excited-jump 0.8s ease-in-out 2; }
 .kkoko-mic-btn.listening { animation: kkoko-ring-pulse 1.2s ease-out infinite; }
 </style>
 </head>
@@ -4792,8 +4791,8 @@ async function searchLocation(query){
 // ── 뉴스정보 탭 ────────────────────────────────────────────────────────────
 // (AI 일일 브리핑은 GitHub Models 종료로 2026-08 제거. 뉴스·경제·정책만 표시)
 
-// ── 🐔 꼬꼬랑 대화 탭 ─────────────────────────────────────────────────────────
-// 이 농장에 사는 닭 캐릭터 "꼬꼬"와 대화하는 화면. 뉴스정보처럼 로그인 없는
+// ── 🐔 최꼬꼬랑 대화 탭 ────────────────────────────────────────────────────────
+// 이 농장에 사는 닭 캐릭터 "최꼬꼬"와 대화하는 화면. 뉴스정보처럼 로그인 없는
 // 무료 탭이라, 서버 쪽(functions/index.js의 chickenChat)도 인증 없이 호출
 // 가능하다 — 대신 메시지 개수·길이·답변 길이를 짧게 제한해 비용을 통제한다.
 // 음성 입력은 브라우저 내장 Web Speech API(SpeechRecognition)를 쓴다 — 별도
@@ -4803,42 +4802,63 @@ let kkokoChatState = { messages: [], input: "", busy: false, error: "", listenin
 // 음성 인식 객체는 render()가 지우면 안 되는 "살아있는" 브라우저 API 핸들이라
 // kkokoChatState(렌더 때마다 새로 그려지는 데이터)가 아니라 따로 둔다.
 let kkokoRecognizer = null;
-const KKOKO_GREETING = "안녕하세요! 저는 이 농장에 사는 꼬꼬예요 🐔 사육 환경이나 궁금한 질병을 물어보시면 제 입장에서 설명해 드릴게요. 음성으로 물어보셔도 좋아요!";
+const KKOKO_GREETING = "안녕하세요! 저는 이 농장에 사는 최꼬꼬예요 🐔 사육 환경이나 궁금한 질병을 물어보시면 제 입장에서 설명해 드릴게요. 음성으로 물어보셔도 좋아요!";
+
+// 캐릭터를 터치했을 때의 반응 — reacting이면 잠깐(1.6초) 사진을 놀란 표정으로
+// 바꾸고 더 크게 들썩이는 애니메이션(kkoko-excited-jump)을 준다. reactTimer는
+// kkokoChatState와 달리 render()가 지우면 안 되는 타이머 핸들이라 따로 둔다.
+let kkokoCharState = { reacting: false, reactionText: "" };
+let kkokoReactTimer = null;
+const KKOKO_REACTIONS = ["꼬끼오! 깜짝이야~", "간지러워요, 최꼬꼬예요!", "오늘 기분 최고예요 🐥", "또 만져주세요~", "꼬옥! 반가워요!"];
+
+// 힉스필드(Higgsfield)로 만든 실사 사진 — 평소(idle)/터치 반응(excited) 두
+// 표정. 유료 콘텐츠가 아니라 로그인 없는 공개 탭이라, "이달의 질병"과 같은
+// 공개 GitHub repo 경로(raw.githubusercontent.com)로 바로 커밋해 둔다.
+// PICK_REPO/PICK_BRANCH는 이 파일 더 아래(약 line 5030)에서 선언되므로, 여기서
+// 바로 top-level const로 조립하면 TDZ 오류가 난다 — 실제로 쓰이는 렌더 시점
+// (PICK_REPO가 이미 초기화된 뒤)에 함수로 늦게 계산한다.
+function kkokoImgUrl(filename){
+  return "https://raw.githubusercontent.com/" + PICK_REPO + "/" + PICK_BRANCH + "/assets/kkoko/" + filename;
+}
 
 function kkokoVoiceSupported(){
   return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
 }
 
-// 간단한 치비(chibi) 스타일 닭 캐릭터 — talking이면 더 빠르게 까딱거려
-// "대답하는 중"임을 보여준다(kkoko-talk-bob/-idle-bob는 전역 <style>에 정의).
-function kkokoChickenSvg(talking){
+// talking이면(AI 응답을 기다리는 중) 작게 까딱거리고, reacting이면(터치 직후)
+// 놀란 표정 사진으로 바꿔 크게 점프시킨다(kkoko-talk-bob/-excited-jump는
+// 전역 <style>에 정의 — render()가 다시 그려도 애니메이션이 안 끊기게).
+function kkokoCharacterBlock(talking){
+  const cs = kkokoCharState;
+  const src = cs.reacting ? kkokoImgUrl("kkoko_excited.jpg") : kkokoImgUrl("kkoko_idle.png");
+  const animClass = cs.reacting ? "excited" : (talking ? "talking" : "");
   return `
-  <svg viewBox="0 0 120 120" width="112" height="112" class="kkoko-char${talking?" talking":""}" aria-label="꼬꼬">
-    <ellipse cx="60" cy="100" rx="28" ry="5" fill="#000" opacity="0.08"/>
-    <rect x="50" y="90" width="4" height="12" rx="2" fill="#FB8C00"/>
-    <rect x="66" y="90" width="4" height="12" rx="2" fill="#FB8C00"/>
-    <polyline points="44,102 52,96 48,102" fill="none" stroke="#FB8C00" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-    <polyline points="76,102 68,96 72,102" fill="none" stroke="#FB8C00" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-    <ellipse cx="60" cy="74" rx="32" ry="28" fill="#FFCA28"/>
-    <ellipse class="kkoko-wing" cx="83" cy="72" rx="13" ry="19" fill="#FFB300"/>
-    <circle cx="60" cy="37" r="22" fill="#FFCA28"/>
-    <ellipse cx="51" cy="15" rx="5" ry="7" fill="#E53935"/>
-    <ellipse cx="60" cy="11" rx="5.5" ry="8" fill="#E53935"/>
-    <ellipse cx="69" cy="15" rx="5" ry="7" fill="#E53935"/>
-    <ellipse cx="60" cy="53" rx="4" ry="6" fill="#E53935"/>
-    <polygon points="53,43 67,43 60,52" fill="#FB8C00"/>
-    <circle class="kkoko-eye" cx="51" cy="34" r="3.3" fill="#2b2b2b"/>
-    <circle class="kkoko-eye" cx="69" cy="34" r="3.3" fill="#2b2b2b"/>
-    <circle cx="52.3" cy="32.7" r="1" fill="#fff"/>
-    <circle cx="70.3" cy="32.7" r="1" fill="#fff"/>
-  </svg>`;
+  <div style="position:relative;display:inline-block">
+    ${cs.reacting && cs.reactionText ? `<div style="position:absolute;top:-14px;left:50%;transform:translateX(-50%);white-space:nowrap;background:#fff;border:1px solid #F9D871;border-radius:14px;padding:4px 12px;font-size:11.5px;font-weight:700;color:#7A5C00;box-shadow:0 2px 6px rgba(0,0,0,.1)">${esc(cs.reactionText)}</div>` : ""}
+    <button type="button" id="kkoko-char-btn" aria-label="최꼬꼬 만지기" title="눌러서 최꼬꼬를 만져보세요" style="border:none;background:none;padding:0;cursor:pointer;display:block">
+      <img src="${esc(src)}" alt="최꼬꼬" class="kkoko-char${animClass?" "+animClass:""}" style="width:168px;height:210px;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,.18))" />
+    </button>
+  </div>`;
+}
+
+function kkokoTouchCharacter(){
+  if(kkokoReactTimer) clearTimeout(kkokoReactTimer);
+  kkokoCharState.reacting = true;
+  kkokoCharState.reactionText = KKOKO_REACTIONS[Math.floor(Math.random()*KKOKO_REACTIONS.length)];
+  render();
+  kkokoReactTimer = setTimeout(()=>{
+    kkokoCharState.reacting = false;
+    kkokoCharState.reactionText = "";
+    kkokoReactTimer = null;
+    render();
+  }, 1600);
 }
 
 function renderKkokoTab(){
   const head = `
   <div style="margin-bottom:14px">
-    <div class="display" style="font-size:16px;margin-bottom:3px">🐔 꼬꼬랑 대화</div>
-    <div style="font-size:11px;color:#aaa">이 농장에 사는 닭 "꼬꼬"와 대화하며 사양관리·질병 지식을 재미있게 배워보세요</div>
+    <div class="display" style="font-size:16px;margin-bottom:3px">🐔 최꼬꼬랑 대화</div>
+    <div style="font-size:11px;color:#aaa">이 농장에 사는 닭 "최꼬꼬"와 대화하며 사양관리·질병 지식을 재미있게 배워보세요 — 사진을 눌러보세요!</div>
   </div>`;
 
   const st = kkokoChatState;
@@ -4846,8 +4866,8 @@ function renderKkokoTab(){
 
   const charBlock = `
   <div class="card" style="text-align:center;padding:18px 16px;margin-bottom:14px;background:linear-gradient(135deg,#FFF8E1,#FFECB3)">
-    ${kkokoChickenSvg(st.busy)}
-    <div style="font-size:15px;font-weight:800;color:#7A5C00;margin-top:2px">꼬꼬</div>
+    ${kkokoCharacterBlock(st.busy)}
+    <div style="font-size:15px;font-weight:800;color:#7A5C00;margin-top:6px">최꼬꼬</div>
     <div style="font-size:10.5px;color:#9C7A00">이 농장의 닭 캐릭터</div>
   </div>`;
 
@@ -4862,7 +4882,7 @@ function renderKkokoTab(){
 
   const busyBubble = st.busy ? `
     <div style="display:flex;justify-content:flex-start;margin-bottom:8px">
-      <div style="background:#FFF3CF;color:#9C7A00;border-radius:4px 14px 14px 14px;padding:9px 13px;font-size:13px">🐔 꼬꼬가 생각하는 중... 🐥</div>
+      <div style="background:#FFF3CF;color:#9C7A00;border-radius:4px 14px 14px 14px;padding:9px 13px;font-size:13px">🐔 최꼬꼬가 생각하는 중... 🐥</div>
     </div>` : "";
 
   const chatLog = `<div id="kkoko-log" style="max-height:360px;overflow-y:auto;padding:4px 2px;margin-bottom:10px">${msgList}${busyBubble}</div>`;
@@ -4880,7 +4900,7 @@ function renderKkokoTab(){
 
   return head + charBlock + `<div class="card" style="padding:14px">${chatLog}${errorLine}${inputRow}</div>
   <div style="font-size:9px;color:#aaa;line-height:1.6;margin-top:8px">
-    ※ 꼬꼬는 AI가 닭의 입장에서 재미있게 설명해 드리는 캐릭터입니다. 실제 질병 진단·처방은 반드시 담당 수의사와 상담하세요.
+    ※ 최꼬꼬는 AI가 닭의 입장에서 재미있게 설명해 드리는 캐릭터입니다. 실제 질병 진단·처방은 반드시 담당 수의사와 상담하세요.
   </div>`;
 }
 
@@ -8504,7 +8524,7 @@ function renderHeader(){
       <button class="tab ${state.tab==="disease"?"active":""}" data-tab="disease">🩺 양계질병</button>
       <button class="tab ${state.tab==="hpai"?"active":""}" data-tab="hpai">🦠 AI관련정보</button>
       <button class="tab ${state.tab==="briefing"?"active":""}" data-tab="briefing">📋 뉴스정보</button>
-      <button class="tab ${state.tab==="kkoko"?"active":""}" data-tab="kkoko">🐔 꼬꼬랑 대화</button>
+      <button class="tab ${state.tab==="kkoko"?"active":""}" data-tab="kkoko">🐔 최꼬꼬랑 대화</button>
       <button class="tab ${state.tab==="premium"?"active":""}" data-tab="premium">💼 유료서비스</button>
     </div>
     <button class="tabs-arrow right" type="button" aria-label="뒤쪽 메뉴 보기" tabindex="-1"><span>›</span></button>
@@ -15612,7 +15632,9 @@ function attachEvents(){
   const ventGotoWeatherBtn = document.getElementById("vent-goto-weather");
   if(ventGotoWeatherBtn) ventGotoWeatherBtn.onclick = ()=> switchTab("weather");
 
-  // 🐔 꼬꼬랑 대화
+  // 🐔 최꼬꼬랑 대화
+  const kkokoCharBtn = document.getElementById("kkoko-char-btn");
+  if(kkokoCharBtn) kkokoCharBtn.onclick = ()=> kkokoTouchCharacter();
   const kkokoInput = document.getElementById("kkoko-input");
   if(kkokoInput){
     kkokoInput.oninput = (e)=>{ kkokoChatState.input = e.target.value; };
