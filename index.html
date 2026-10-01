@@ -3259,8 +3259,11 @@ if(firebaseReady){
       premiumState.approvedEmails = [];
     }
     if(user && premiumState.status === "idle") fetchPremiumApproved();
-    // AI 관련 소식·이달의 질병의 관리 버튼도 관리자 로그인 여부로 보이므로 다시 그린다.
-    if(state.tab === "premium" || state.tab === "hpai" || state.tab === "disease") render();
+    // 로그인/로그아웃은 premium 탭 관리 버튼뿐 아니라 최꼬꼬(무료)/최꼬박사(유료)
+    // 이름표처럼 isPremiumApproved()를 쓰는 다른 탭 화면에도 영향을 준다 — 탭을
+    // 일일이 나열하다 빠뜨리는 실수를 막기 위해 탭과 무관하게 항상 다시 그린다
+    // (로그인 전환은 드문 이벤트라 매번 다시 그려도 성능에 문제없다).
+    render();
   });
 }
 
