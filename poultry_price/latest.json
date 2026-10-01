@@ -1,13 +1,17 @@
 {
-  "updated": "2026-09-30 12:18 KST",
+  "updated": "2026-10-01 12:25 KST",
   "stale": {},
   "egg": {
     "label": "계란 산지가격",
     "region": "전국",
     "grade": "특란 (XL)",
     "unit": "원/10개",
-    "latest": 2054,
+    "latest": 2032,
     "rows": [
+      {
+        "date": "2026-09-30",
+        "value": 2032
+      },
       {
         "date": "2026-09-29",
         "value": 2054
@@ -83,10 +87,6 @@
       {
         "date": "2026-09-01",
         "value": 2155
-      },
-      {
-        "date": "2026-08-31",
-        "value": 2168
       }
     ]
   },
@@ -95,8 +95,12 @@
     "region": "수도권",
     "grade": "특란 (XL)",
     "unit": "원/10개",
-    "latest": 2043,
+    "latest": 2006,
     "rows": [
+      {
+        "date": "2026-09-30",
+        "value": 2006
+      },
       {
         "date": "2026-09-29",
         "value": 2043
@@ -172,10 +176,6 @@
       {
         "date": "2026-09-01",
         "value": 2165
-      },
-      {
-        "date": "2026-08-31",
-        "value": 2187
       }
     ]
   },
@@ -184,6 +184,10 @@
     "unit": "원/kg",
     "latest": 1500,
     "rows": [
+      {
+        "date": "2026-09-30",
+        "value": 1500
+      },
       {
         "date": "2026-09-29",
         "value": 1500
@@ -259,10 +263,6 @@
       {
         "date": "2026-09-01",
         "value": 2200
-      },
-      {
-        "date": "2026-08-31",
-        "value": 2100
       }
     ]
   },
@@ -273,7 +273,7 @@
         "label": "대",
         "spec": "1.6kg 이상",
         "value": 1500,
-        "date": "2026-09-29"
+        "date": "2026-09-30"
       },
       "medium": {
         "label": "중",
@@ -289,6 +289,12 @@
       }
     },
     "rows": [
+      {
+        "date": "2026-09-30",
+        "large": 1500,
+        "medium": null,
+        "small": null
+      },
       {
         "date": "2026-09-29",
         "large": 1500,
@@ -402,27 +408,21 @@
         "large": 2200,
         "medium": null,
         "small": null
-      },
-      {
-        "date": "2026-08-31",
-        "large": 2100,
-        "medium": null,
-        "small": null
       }
     ]
   },
   "pig": {
     "label": "농가수취 평균",
     "unit": "원/kg",
-    "latest": 6165,
+    "latest": 6544,
     "rows": [
+      {
+        "date": "2026-09-30",
+        "value": 6544
+      },
       {
         "date": "2026-09-29",
         "value": 6165
-      },
-      {
-        "date": "2026-09-28",
-        "value": 6148
       }
     ]
   },
@@ -431,39 +431,45 @@
       "female_calf": {
         "label": "암송아지(6~7개월)",
         "unit": "천원/마리",
-        "value": 3930,
-        "date": "2026-09-21"
+        "value": 4066,
+        "date": "2026-09-29"
       },
       "male_calf": {
         "label": "수송아지(6~7개월)",
         "unit": "천원/마리",
-        "value": 5646,
-        "date": "2026-09-21"
+        "value": 5684,
+        "date": "2026-09-29"
       },
       "farm_receipt_600kg": {
         "label": "농가수취가격(600kg)",
         "unit": "천원/마리",
-        "value": 8191,
-        "date": "2026-09-29"
+        "value": 8644,
+        "date": "2026-09-30"
       }
     },
     "rows": [
       {
-        "date": "2026-09-30",
+        "date": "2026-10-01",
         "female_calf": null,
         "male_calf": null,
         "farm_receipt_600kg": null
       },
       {
-        "date": "2026-09-29",
+        "date": "2026-09-30",
         "female_calf": null,
         "male_calf": null,
+        "farm_receipt_600kg": 8644
+      },
+      {
+        "date": "2026-09-29",
+        "female_calf": 4066,
+        "male_calf": 5684,
         "farm_receipt_600kg": 8191
       },
       {
         "date": "2026-09-28",
-        "female_calf": null,
-        "male_calf": null,
+        "female_calf": 4006,
+        "male_calf": 5696,
         "farm_receipt_600kg": 7933
       },
       {
@@ -579,12 +585,6 @@
         "female_calf": 3759,
         "male_calf": 5442,
         "farm_receipt_600kg": 8633
-      },
-      {
-        "date": "2026-08-31",
-        "female_calf": 3743,
-        "male_calf": 5443,
-        "farm_receipt_600kg": 7821
       }
     ]
   },
@@ -601,10 +601,6 @@
       {
         "date": "2026-07",
         "value": 1990
-      },
-      {
-        "date": "2026-06",
-        "value": 1942
       }
     ]
   },
@@ -657,22 +653,6 @@
       {
         "date": "2026-06-29",
         "value": 1193
-      },
-      {
-        "date": "2026-06-22",
-        "value": 1023
-      },
-      {
-        "date": "2026-06-15",
-        "value": 1206
-      },
-      {
-        "date": "2026-06-08",
-        "value": 1161
-      },
-      {
-        "date": "2026-06-01",
-        "value": 1224
       }
     ]
   },
