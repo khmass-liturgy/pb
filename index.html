@@ -4144,24 +4144,50 @@ async function searchHpaiPortalNews(){
   hpaiSearchState.status = "loading";
   render();
   try {
-    const rss = "https://news.google.com/rss/search?q=" + encodeURIComponent(q) + "&hl=ko&gl=KR&ceid=KR:ko";
-    const url = RSS2JSON + "?rss_url=" + encodeURIComponent(rss) + "&count=10";
-    const resp = await fetchWithTimeout(url, 10000);
-    if(!resp.ok) throw new Error("HTTP " + resp.status);
-    const data = await resp.json();
-    if(data.status !== "ok") throw new Error(data.message || "검색 오류");
-    const items = data.items.slice().sort((a,b) => {
-      const ta = a.pubDate ? new Date(a.pubDate).getTime() : 0;
-      const tb = b.pubDate ? new Date(b.pubDate).getTime() : 0;
-      return tb - ta;
-    });
-    hpaiSearchState.results = items.map(item => ({
-      title: (item.title || "").replace(/<[^>]+>/g, "").trim(),
-      link: item.link,
-      pubDate: item.pubDate ? item.pubDate.slice(0,10) : "",
-      source: item.author || "",
-      description: (item.description || "").replace(/<[^>]+>/g, "").trim(),
+    // 한 곳만 보면 같은 기사들만 나오므로, 성격이 다른 검색 RSS 여러 개를
+    // 동시에 돌려 합친다: ① 구글뉴스(전체 언론) ② 빙뉴스(구글에 안 잡히는
+    // 매체·지역지) ③ 구글뉴스 + 농업·축산 전문지 키워드 ④ 구글뉴스 + 방역·농가 키워드
+    // ⑤ 빙뉴스 + 축산 키워드. 일부가 실패해도 나머지 결과는 보여준다.
+    const gn = (query, extra) => "https://news.google.com/rss/search?q=" + encodeURIComponent(query) + (extra||"") + "&hl=ko&gl=KR&ceid=KR:ko";
+    const bn = (query) => "https://www.bing.com/news/search?q=" + encodeURIComponent(query) + "&format=rss&mkt=ko-KR";
+    const feeds = [
+      { label:"구글뉴스", rss: gn(q) },
+      { label:"빙뉴스", rss: bn(q) },
+      { label:"전문지(구글)", rss: gn(q + " (농민신문 OR 한국농어민신문 OR 농수축산신문 OR 축산신문 OR 가금 OR 양계)") },
+      { label:"방역·농가(구글)", rss: gn(q + " 방역 농가") },
+      { label:"축산(빙)", rss: bn(q + " 축산 양계") },
+    ];
+    const settled = await Promise.allSettled(feeds.map(async f => {
+      const url = RSS2JSON + "?rss_url=" + encodeURIComponent(f.rss) + "&count=10";
+      const resp = await fetchWithTimeout(url, 12000);
+      if(!resp.ok) throw new Error("HTTP " + resp.status);
+      const data = await resp.json();
+      if(data.status !== "ok") throw new Error(data.message || "검색 오류");
+      return (data.items || []).map(item => {
+        let title = (item.title || "").replace(/<[^>]+>/g, "").trim();
+        let source = item.author || "";
+        // 구글뉴스 제목은 "기사제목 - 매체명" 꼴이라 매체명을 떼어 따로 보여준다.
+        const m = title.match(/^(.*\S)\s+-\s+([^-]{1,30})$/);
+        if(m && f.label.indexOf("빙") === -1){ title = m[1]; source = source || m[2]; }
+        return {
+          title, link: item.link, source, via: f.label,
+          ts: item.pubDate ? (new Date(item.pubDate.replace(" ", "T")).getTime() || 0) : 0,
+          pubDate: item.pubDate ? item.pubDate.slice(0,10) : "",
+          description: (item.description || "").replace(/<[^>]+>/g, "").trim(),
+        };
+      });
     }));
+    const all = settled.filter(s => s.status === "fulfilled").flatMap(s => s.value);
+    if(!all.length) throw new Error("모든 검색원 실패");
+    const seen = new Set();
+    const merged = [];
+    all.sort((a,b) => b.ts - a.ts).forEach(r => {
+      const key = r.title.toLowerCase().replace(/[^0-9a-z가-힣]/g, "").slice(0, 22);
+      if(!key || seen.has(key)) return;
+      seen.add(key);
+      merged.push(r);
+    });
+    hpaiSearchState.results = merged.slice(0, 40);
     hpaiSearchState.status = "done";
   } catch(e){
     console.warn("AI 관련 소식 — 기사 검색 실패:", e);
@@ -4223,11 +4249,12 @@ function renderHpaiNewsCard(){
         </div>
         ${hpaiSearchState.status==="error" ? `<div style="font-size:11px;color:#C62828">검색 실패 — 잠시 후 다시 시도해 주세요.</div>` : ""}
         ${hpaiSearchState.status==="done" ? (hpaiSearchState.results.length ? `
-        <div style="max-height:220px;overflow-y:auto">
+        <div style="font-size:10px;color:#888;margin-bottom:4px">여러 검색원을 합쳐 최신순 ${hpaiSearchState.results.length}건 (중복 제거)</div>
+        <div style="max-height:300px;overflow-y:auto">
           ${hpaiSearchState.results.map((r,i) => `
           <button type="button" class="hn-search-pick-btn" data-idx="${i}" style="display:block;width:100%;text-align:left;border:none;border-bottom:1px solid #f2f2f2;background:none;padding:6px 2px;cursor:pointer">
             <div style="font-size:12px;font-weight:700;color:#333">${esc(r.title)}</div>
-            <div style="font-size:10px;color:#999;margin-top:2px">${esc(r.source)}${r.source&&r.pubDate?" · ":""}${esc(r.pubDate)}</div>
+            <div style="font-size:10px;color:#999;margin-top:2px">${esc(r.source)}${r.source&&r.pubDate?" · ":""}${esc(r.pubDate)} <span style="color:#1565C0">· ${esc(r.via||"")}</span></div>
           </button>`).join("")}
         </div>` : `<div style="font-size:11px;color:#aaa">"${esc(hpaiSearchState.query)}" 검색 결과가 없습니다.</div>`) : ""}
       </div>
