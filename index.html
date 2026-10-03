@@ -10865,6 +10865,23 @@ function renderLivestockWeatherPanel(fc, hourlyByDate){
   const coldWCT = showColdCard ? calcWindChill(coldTemp, coldWind) : null;
   const coldLv = showColdCard ? windChillLevel(coldWCT) : null;
 
+  // 10~20°C "쌀쌀 주의" — 윈드칠은 10°C 이하에서만 유효해 이 구간엔 칸이 비었다.
+  // 같은 밤~새벽(22~06시) 중 가장 낮은 기온으로 판정한다(공식 등급표가 없어 참고용
+  // 실무 기준 — 아래 하한 20°C는 이 사이트가 이미 쓰는 Hy-Line 표의 판정 하한,
+  // 18~25°C 적온대와 맞물린다). 10°C 이하는 위 윈드칠 칸이 대신 맡는다.
+  let chillTemp = null, chillWind = null;
+  if(coldHours.length > 0){
+    const w = coldHours.reduce((a,b)=> (b.temp != null && (a.temp == null || b.temp < a.temp)) ? b : a);
+    chillTemp = w.temp; chillWind = w.wind;
+  } else if(today){
+    chillTemp = today.tMin; chillWind = today.wind;
+  }
+  const showChillCard = !showColdCard && chillTemp != null && chillTemp > 10 && chillTemp < 20;
+  const chillLv = !showChillCard ? null
+    : chillTemp < 15
+      ? {label:"쌀쌀", color:"#E65100", bg:"#FFF3E0", icon:"🧥", note:"병아리·육추계 보온 확인, 틈새바람 차단 — 난방한다고 최소환기량을 줄이지 마세요"}
+      : {label:"선선", color:"#0277BD", bg:"#E1F5FE", icon:"🍂", note:"새벽 일교차에 유의 — 새벽 보온과 최소환기량을 함께 확인하세요"};
+
   // ── 렌더링 ───────────────────────────────────────────────────────────────
   const fmtDay2 = (dateStr) => {
     const d=new Date(dateStr), dn=["일","월","화","수","목","금","토"];
@@ -10903,7 +10920,7 @@ function renderLivestockWeatherPanel(fc, hourlyByDate){
   <div class="card" style="margin-top:16px;margin-bottom:16px">
     <div class="display" style="font-size:16px;margin-bottom:14px">🌡️ 축산 날씨 스트레스 지표</div>
 
-    <!-- 핵심 지표 (평소 3종, 기온 10°C 이하로 떨어지면 겨울철 한랭 스트레스 1종 추가) -->
+    <!-- 핵심 지표 (평소 3종 + 새벽 기온 10~20°C면 쌀쌀 주의, 10°C 이하면 겨울철 한랭 스트레스(윈드칠) 1종 추가) -->
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px">
 
       <!-- THI 오늘 -->
@@ -10934,6 +10951,16 @@ function renderLivestockWeatherPanel(fc, hourlyByDate){
         </div>
         <div style="font-size:10px;color:#aaa;margin-top:8px">야간 폐사 위험 구간<br>(가금 새벽 2~5시 취약)</div>
       </div>
+
+      ${showChillCard ? `
+      <!-- 쌀쌀 주의 (새벽 기온 10~20°C) — 윈드칠 적용 구간(10°C↓) 바로 위 -->
+      <div style="background:${chillLv.bg};border-radius:12px;padding:12px;text-align:center">
+        <div style="font-size:11px;color:#888;font-weight:600;margin-bottom:4px">쌀쌀 주의 (새벽 최저)</div>
+        <div style="font-size:29px;font-weight:800;color:${chillLv.color}">${Math.round(chillTemp)}°</div>
+        <div style="font-size:12px;font-weight:700;color:${chillLv.color}">${chillLv.icon} ${chillLv.label}</div>
+        <div style="font-size:10px;color:#aaa;margin-top:4px">10~15° 쌀쌀 / 15~20° 선선${chillWind!=null?" · 풍속 "+chillWind.toFixed(1)+"m/s":""}</div>
+        <div style="font-size:10px;color:#666;margin-top:6px;line-height:1.5">${chillLv.note}</div>
+      </div>` : ""}
 
       ${showColdCard ? `
       <!-- 겨울철 한랭 스트레스 (체감온도/윈드칠) -->
