@@ -8683,7 +8683,7 @@ function renderHeader(){
       <button class="tab ${state.tab==="price"||state.tab==="pig"||state.tab==="livestock"?"active":""}" data-tab="price">📊 양계 시세-통계</button>
       <button class="tab ${state.tab==="weather"?"active":""}" data-tab="weather">🌤️ 날씨</button>
       <button class="tab ${state.tab==="vent"?"active":""}" data-tab="vent">🌬️ 환기가이드</button>
-      <button class="tab ${state.tab==="consult"?"active":""}" data-tab="consult">🐔🥚 육계/산란계 컨설팅</button>
+      <button class="tab ${state.tab==="consult"?"active":""}" data-tab="consult">🐔🥚 육계/산란계/동물복지</button>
       <button class="tab ${state.tab==="disease"?"active":""}" data-tab="disease">🩺 양계질병</button>
       <button class="tab ${state.tab==="hpai"?"active":""}" data-tab="hpai">🦠 AI관련정보</button>
       <button class="tab ${state.tab==="briefing"?"active":""}" data-tab="briefing">📋 뉴스정보</button>
@@ -12482,6 +12482,241 @@ function renderFarmComparePanel(breed, age){
   </div>`;
 }
 
+// ── 🕊️ 동물복지 인증 자가진단 (육계/산란계 컨설팅 탭) ───────────────────────────
+// 「동물복지 축산농장 인증기준 및 인증 등에 관한 세부실시요령」(농림축산식품부 고시,
+// 농림축산검역본부·축산물품질평가원 시행)의 산란계·육계 기준을 농장 현황 입력값과
+// 비교해 "지금 내 농장이 인증 요건을 갖췄는지"를 항목별로 보여준다.
+// 수치 출처(고시 원문 페이지는 직접 열람이 막혀 아래 해설·안내 자료로 교차 확인):
+//  · 산란계: 국립축산과학원 「산란계농장 동물복지」, 축산신문 「알쏭달쏭 동물복지 ① 산란계농장 인증 기준」
+//  · 육계: 축산신문 「동물복지 육계농장 인증기준」, 농림축산검역본부 「세부실시요령(2014-25호) 개정 안내」
+// 고시는 개정될 수 있고 일부 항목(산란계 조도 10→20lux, 육계 밀도 '또는/및')은 자료마다 달라
+// 더 엄격한 쪽을 기준으로 삼았다. 참고용 자가진단이며 실제 인증은 심사로 결정된다.
+const WELFARE_SOURCES = [
+  { label:"국가동물보호정보시스템 — 동물복지 축산농장 인증", url:"https://www.animal.go.kr/front/community/show.do?boardId=contents&seq=79&menuNo=3000000019" },
+  { label:"세부실시요령 개정 안내(2014-25호)", url:"https://www.animal.go.kr/front/community/show.do?boardId=boardID04&menuNo=3000000021&seq=12019" },
+];
+const WELFARE_FIELDS = {
+  layer: [
+    { k:"heads",   label:"사육 수수", unit:"수" },
+    { k:"area",    label:"닭이 이용 가능한 면적(다단구조물은 각 단 합산)", unit:"㎡" },
+    { k:"multitier", label:"다단식 사육시설(Aviary) 사용", type:"sel", opts:[["no","사용 안 함(평사)"],["yes","사용함"]] },
+    { k:"floorArea", label:"계사 바닥면적(다단식일 때)", unit:"㎡", show:v=>v.multitier==="yes" },
+    { k:"perchM",  label:"횃대 총길이", unit:"m" },
+    { k:"nests",   label:"개별 산란상 개수", unit:"개" },
+    { k:"nestM3",  label:"공동 산란장소 용적(개별 산란상 대신)", unit:"㎥" },
+    { k:"feedType",label:"급이기 형태", type:"sel", opts:[["linear","선형(10cm/수)"],["round","원형(4cm/수)"]] },
+    { k:"feedSpaceM", label:"급이 공간 총길이(선형=길이, 원형=둘레 합)", unit:"m" },
+    { k:"drinkType",label:"급수기 형태", type:"sel", opts:[["nipple","니플형"],["cup","컵형"],["linear","선형 수조"],["round","원형 수조"]] },
+    { k:"drinkQty", label:"급수기 수량(니플·컵=개, 수조=총 m)", unit:"" },
+    { k:"lux",     label:"계사 내부 조도(낮)", unit:"lux" },
+    { k:"lightH",  label:"하루 점등 시간", unit:"시간" },
+    { k:"darkH",   label:"하루 암기(소등) 시간", unit:"시간" },
+    { k:"nh3",     label:"암모니아 농도", unit:"ppm" },
+    { k:"co2",     label:"이산화탄소 농도", unit:"ppm" },
+    { k:"litterPct", label:"깔짚으로 덮인 바닥 비율", unit:"%" },
+  ],
+  broiler: [
+    { k:"kind",    label:"종류", type:"sel", opts:[["broiler","육계"],["native","토종닭"],["sam","삼계"]] },
+    { k:"heads",   label:"사육 수수", unit:"수" },
+    { k:"area",    label:"사육 면적", unit:"㎡" },
+    { k:"weightKg",label:"출하 시 평균 체중", unit:"kg" },
+    { k:"feeders", label:"원형·타원형 급이기(지름 33cm 이상) 개수", unit:"대" },
+    { k:"drinkType",label:"급수기 형태", type:"sel", opts:[["nipple","니플형(10수당 1개)"],["cup","컵형(28수당 1개)"]] },
+    { k:"drinkQty", label:"급수기 개수", unit:"개" },
+    { k:"perchM",  label:"횃대 총길이", unit:"m" },
+    { k:"lux",     label:"계사 내부 조도(낮)", unit:"lux" },
+    { k:"lightH",  label:"하루 점등 시간", unit:"시간" },
+    { k:"darkH",   label:"하루 암기(소등) 시간", unit:"시간" },
+    { k:"nh3",     label:"암모니아 농도", unit:"ppm" },
+    { k:"co2",     label:"이산화탄소 농도", unit:"ppm" },
+  ],
+};
+// 체크박스 항목 — 체크하면 "충족". 수치로 잴 수 없는 요건들이다.
+const WELFARE_CHECKS = {
+  layer: [
+    { k:"nocage",  text:"케이지(복지형·개량 케이지 포함)를 쓰지 않고 평사·방사·다단식 사육을 한다" },
+    { k:"nomolt",  text:"강제털갈이(강제환우)를 하지 않는다" },
+    { k:"nobeak",  text:"부리다듬기를 하지 않는다 (불가피할 땐 적외선 방식만, 병아리 때 24시간 이내·부리 끝 1/3 이하)" },
+    { k:"perchspec", text:"횃대 굵기는 직경 3~6cm, 횃대 사이 간격은 30cm 이상이다" },
+    { k:"litterkeep", text:"깔짚이 젖거나 오염되면 교체·보충한다" },
+    { k:"dustbath",text:"닭이 모래목욕·먹이 쪼기 같은 본능 행동을 할 수 있는 바닥 환경이다" },
+    { k:"water",   text:"신선한 사료와 깨끗한 물을 항상 공급하고, 음용수 수질(일반세균수) 기준을 맞춘다" },
+    { k:"biosec",  text:"AI 등 질병 예방을 위한 소독·출입통제 방역 기준을 지키고 있다" },
+  ],
+  broiler: [
+    { k:"litterall",text:"계사 모든 바닥에 깔짚을 깔고, 모래목욕이 가능한 충분한 깊이를 유지한다" },
+    { k:"perchspec", text:"횃대는 직경 3~6cm, 벽에서 20cm 이상 떨어지고 바닥에서 10~100cm 높이에 둔다" },
+    { k:"enrich",  text:"채소류·나무조각 등 환경풍부화물을 제공한다" },
+    { k:"water",   text:"신선한 사료와 깨끗한 물을 항상 공급하고, 음용수 수질 기준을 맞춘다" },
+    { k:"biosec",  text:"AI 등 질병 예방을 위한 소독·출입통제 방역 기준을 지키고 있다" },
+  ],
+};
+let welfareState = (function(){
+  const base = { open:false, species:"layer", vals:{ layer:{}, broiler:{} }, checks:{ layer:{}, broiler:{} } };
+  try { const s = JSON.parse(localStorage.getItem("welfare_check_v1")||"null"); if(s) return Object.assign(base, s, { open:false }); } catch(e){}
+  return base;
+})();
+function saveWelfareState(){ try { localStorage.setItem("welfare_check_v1", JSON.stringify(welfareState)); } catch(e){} }
+
+function wfNum(v){ const n = parseFloat(v); return Number.isFinite(n) ? n : null; }
+function wfFmt(n, d){ return Number(n).toLocaleString("ko-KR", { maximumFractionDigits: d == null ? 1 : d }); }
+function wfRow(label, need, have, ok, tip, info){ return { label, need, have: have == null ? "입력 필요" : have, ok: have == null ? null : ok, tip: tip || "", info: !!info }; }
+
+function wfLayerRows(v){
+  const heads = wfNum(v.heads), area = wfNum(v.area), floor = wfNum(v.floorArea);
+  const R = [];
+  const d = heads && area ? heads / area : null;
+  R.push(wfRow("사육밀도(이용 가능 면적)", "1㎡당 9수 이하", d == null ? null : wfFmt(d) + "수/㎡", d != null && d <= 9,
+    d != null && d > 9 ? `이 면적(${wfFmt(area)}㎡)에선 최대 ${wfFmt(Math.floor(area * 9), 0)}수, ${wfFmt(heads, 0)}수를 키우려면 ${wfFmt(Math.ceil(heads / 9), 0)}㎡ 필요` : ""));
+  if(v.multitier === "yes"){
+    const fd = heads && floor ? heads / floor : null;
+    R.push(wfRow("바닥면적 기준 밀도(다단식)", "1㎡당 17수 이하", fd == null ? null : wfFmt(fd) + "수/㎡", fd != null && fd <= 17,
+      fd != null && fd > 17 ? `바닥면적 ${wfFmt(Math.ceil(heads / 17), 0)}㎡ 이상 필요` : ""));
+  }
+  const perch = wfNum(v.perchM);
+  R.push(wfRow("횃대", "1수당 15cm 이상(총 " + (heads ? wfFmt(heads * 0.15) : "—") + "m)", perch == null || !heads ? null : wfFmt(perch / heads * 100) + "cm/수", perch != null && heads && perch / heads * 100 >= 15,
+    perch != null && heads && perch / heads * 100 < 15 ? `${wfFmt(heads * 0.15 - perch)}m 더 필요 (슬랫 구조물은 필요 횃대의 80%까지 수당 460㎠로 대체 인정)` : ""));
+  const nests = wfNum(v.nests), nm3 = wfNum(v.nestM3);
+  const nestOk = heads && (nests != null || nm3 != null) ? ((nests != null && nests >= heads / 7) || (nm3 != null && nm3 >= heads / 120)) : null;
+  R.push(wfRow("산란상", "7수당 1개 이상 또는 120수당 1㎥ 이상", nestOk == null ? null : `${nests != null ? wfFmt(nests, 0) + "개" : "-"} / ${nm3 != null ? wfFmt(nm3) + "㎥" : "-"}`, nestOk === true,
+    nestOk === false && heads ? `개별 산란상 ${wfFmt(Math.ceil(heads / 7), 0)}개 또는 공동 산란장소 ${wfFmt(heads / 120)}㎥ 필요` : ""));
+  const fs = wfNum(v.feedSpaceM), perFeedNeed = v.feedType === "round" ? 4 : 10;
+  R.push(wfRow("급이기 급이공간", `1수당 ${perFeedNeed}cm 이상(${v.feedType === "round" ? "원형" : "선형"})`, fs == null || !heads ? null : wfFmt(fs / heads * 100) + "cm/수", fs != null && heads && fs / heads * 100 >= perFeedNeed,
+    fs != null && heads && fs / heads * 100 < perFeedNeed ? `급이 공간 ${wfFmt(heads * perFeedNeed / 100 - fs)}m 더 필요` : ""));
+  const dq = wfNum(v.drinkQty), dt = v.drinkType || "nipple";
+  if(dt === "nipple" || dt === "cup"){
+    R.push(wfRow("급수기 수량", "10수당 1개 이상(니플·컵)", dq == null || !heads ? null : wfFmt(dq, 0) + "개", dq != null && heads && dq >= heads / 10,
+      dq != null && heads && dq < heads / 10 ? `${wfFmt(Math.ceil(heads / 10) - dq, 0)}개 더 필요` : ""));
+  } else {
+    const need = dt === "linear" ? 2.5 : 1;
+    R.push(wfRow("급수 공간", `1수당 ${need}cm 이상(${dt === "linear" ? "선형" : "원형"} 수조)`, dq == null || !heads ? null : wfFmt(dq / heads * 100) + "cm/수", dq != null && heads && dq / heads * 100 >= need,
+      dq != null && heads && dq / heads * 100 < need ? `급수 공간 ${wfFmt(heads * need / 100 - dq)}m 더 필요` : ""));
+  }
+  const lux = wfNum(v.lux), lh = wfNum(v.lightH), dh = wfNum(v.darkH), nh3 = wfNum(v.nh3), co2 = wfNum(v.co2), lit = wfNum(v.litterPct);
+  R.push(wfRow("조도", "낮 20lux 이상", lux == null ? null : wfFmt(lux, 0) + "lux", lux != null && lux >= 20, lux != null && lux < 20 ? "자료에 따라 10lux로 적힌 곳도 있으나, 최신 개정 기준(20lux)에 맞춰 판정합니다" : ""));
+  R.push(wfRow("점등 시간", "하루 8시간 이상", lh == null ? null : wfFmt(lh) + "시간", lh != null && lh >= 8));
+  R.push(wfRow("암기(어두운 시간)", "하루 6시간 이상", dh == null ? null : wfFmt(dh) + "시간", dh != null && dh >= 6));
+  R.push(wfRow("암모니아", "25ppm 이하(10ppm 미만 권장)", nh3 == null ? null : wfFmt(nh3) + "ppm", nh3 != null && nh3 <= 25, nh3 != null && nh3 > 10 && nh3 <= 25 ? "기준 안이지만 10ppm 미만이 이상적입니다" : ""));
+  R.push(wfRow("이산화탄소", "5,000ppm 이하", co2 == null ? null : wfFmt(co2, 0) + "ppm", co2 != null && co2 <= 5000));
+  R.push(wfRow("깔짚 면적", "바닥의 1/3(33%) 이상", lit == null ? null : wfFmt(lit) + "%", lit != null && lit >= 33.3));
+  return R;
+}
+function wfBroilerRows(v){
+  const heads = wfNum(v.heads), area = wfNum(v.area), kg = wfNum(v.weightKg);
+  const kind = v.kind || "broiler";
+  const KIND = { broiler:{ nm:"육계", dens:19, feed:65, perch:1000, min:10000 }, native:{ nm:"토종닭", dens:19, feed:65, perch:800, min:6000 }, sam:{ nm:"삼계", dens:35, feed:110, perch:1700, min:17000 } }[kind];
+  const R = [];
+  R.push(wfRow(`사육 규모(${KIND.nm})`, `${wfFmt(KIND.min, 0)}수 이상`, heads == null ? null : wfFmt(heads, 0) + "수", heads != null && heads >= KIND.min, "2014 개정 안내 기준 — 현행 고시에서 확인하세요", true));
+  const d = heads && area ? heads / area : null;
+  R.push(wfRow("사육밀도(수)", `1㎡당 ${KIND.dens}수 이하`, d == null ? null : wfFmt(d) + "수/㎡", d != null && d <= KIND.dens,
+    d != null && d > KIND.dens ? `이 면적에선 최대 ${wfFmt(Math.floor(area * KIND.dens), 0)}수, ${wfFmt(heads, 0)}수면 ${wfFmt(Math.ceil(heads / KIND.dens), 0)}㎡ 필요` : ""));
+  const kd = heads && area && kg ? heads * kg / area : null;
+  R.push(wfRow("사육밀도(중량)", "1㎡당 30kg 이하", kd == null ? null : wfFmt(kd) + "kg/㎡", kd != null && kd <= 30,
+    kd != null && kd > 30 ? `출하체중 ${wfFmt(kg)}kg 기준 이 면적에선 최대 ${wfFmt(Math.floor(area * 30 / kg), 0)}수` : "수·중량 두 기준을 모두 충족해야 안전합니다(자료마다 '또는/및' 표기가 달라 더 엄격한 쪽 적용)"));
+  const f = wfNum(v.feeders);
+  R.push(wfRow("급이기(지름 33cm 이상 원형·타원형)", `${KIND.feed}수당 1대 이상`, f == null || !heads ? null : wfFmt(f, 0) + "대", f != null && heads && f >= heads / KIND.feed,
+    f != null && heads && f < heads / KIND.feed ? `${wfFmt(Math.ceil(heads / KIND.feed) - f, 0)}대 더 필요` : ""));
+  const dq = wfNum(v.drinkQty), per = v.drinkType === "cup" ? 28 : 10;
+  R.push(wfRow("급수기", `${per}수당 1개 이상(${v.drinkType === "cup" ? "컵형" : "니플형"})`, dq == null || !heads ? null : wfFmt(dq, 0) + "개", dq != null && heads && dq >= heads / per,
+    dq != null && heads && dq < heads / per ? `${wfFmt(Math.ceil(heads / per) - dq, 0)}개 더 필요` : ""));
+  const perch = wfNum(v.perchM), needPerch = heads ? heads / KIND.perch * 2 : null;
+  R.push(wfRow("횃대", `${wfFmt(KIND.perch, 0)}수당 2m`, perch == null || !heads ? null : wfFmt(perch) + "m", perch != null && needPerch != null && perch >= needPerch,
+    perch != null && needPerch != null && perch < needPerch ? `총 ${wfFmt(needPerch)}m 필요 (${wfFmt(needPerch - perch)}m 부족)` : ""));
+  const lux = wfNum(v.lux), lh = wfNum(v.lightH), dh = wfNum(v.darkH), nh3 = wfNum(v.nh3), co2 = wfNum(v.co2);
+  R.push(wfRow("조도", "낮 20lux 이상", lux == null ? null : wfFmt(lux, 0) + "lux", lux != null && lux >= 20));
+  R.push(wfRow("점등 시간", "하루 8시간 이상", lh == null ? null : wfFmt(lh) + "시간", lh != null && lh >= 8));
+  R.push(wfRow("암기(어두운 시간)", "하루 6시간 이상", dh == null ? null : wfFmt(dh) + "시간", dh != null && dh >= 6));
+  R.push(wfRow("암모니아", "25ppm 이하", nh3 == null ? null : wfFmt(nh3) + "ppm", nh3 != null && nh3 <= 25));
+  R.push(wfRow("이산화탄소", "5,000ppm 이하", co2 == null ? null : wfFmt(co2, 0) + "ppm", co2 != null && co2 <= 5000));
+  return R;
+}
+
+function renderWelfareResult(){
+  const sp = welfareState.species;
+  const rows = sp === "layer" ? wfLayerRows(welfareState.vals.layer || {}) : wfBroilerRows(welfareState.vals.broiler || {});
+  const checks = WELFARE_CHECKS[sp], cv = welfareState.checks[sp] || {};
+  const counted = rows.filter(r => !r.info);
+  const fail = counted.filter(r => r.ok === false).length;
+  const empty = counted.filter(r => r.ok === null).length;
+  const pass = counted.filter(r => r.ok === true).length;
+  const chkMiss = checks.filter(c => !cv[c.k]);
+  const total = counted.length + checks.length;
+  const done = pass + (checks.length - chkMiss.length);
+  const allOk = fail === 0 && empty === 0 && chkMiss.length === 0;
+  let verdict;
+  if(allOk) verdict = { bg:"#E8F5E9", c:"#2E7D32", t:"✅ 입력하신 내용으로는 인증 요건을 모두 충족합니다", s:"실제 인증은 신청 후 현장 심사로 결정됩니다 — 서류·시설 상태를 최종 확인하세요." };
+  else if(fail > 0) verdict = { bg:"#FFF3E0", c:"#E65100", t:`⚠️ 아직 인증 요건을 갖추지 못했습니다 — 수치 미달 ${fail}건${chkMiss.length ? ` · 체크 미충족 ${chkMiss.length}건` : ""}${empty ? ` · 입력 필요 ${empty}건` : ""}`, s:"아래 ❌ 항목을 보완하면 인증이 가능한지 다시 확인해 보세요." };
+  else if(empty > 0) verdict = { bg:"#E3F2FD", c:"#1565C0", t:`📝 입력 필요 ${empty}건${chkMiss.length ? ` · 체크 미충족 ${chkMiss.length}건` : ""} — 모두 채우면 최종 판정이 나옵니다`, s:"수치 칸을 채우고 해당되는 체크리스트에 체크해 주세요. (현재까지 입력한 수치는 모두 기준 이내)" };
+  else verdict = { bg:"#FFF3E0", c:"#E65100", t:`☑️ 수치 기준은 충족 — 체크리스트 ${chkMiss.length}건이 아직 미충족입니다`, s:"체크하지 않은 항목을 갖추면 인증 요건을 모두 충족하게 됩니다." };
+  const pct = Math.round(done / total * 100);
+  const rowHtml = rows.map(r => {
+    const ic = r.ok === true ? "✅" : r.ok === false ? "❌" : "⬜";
+    const col = r.ok === true ? "#2E7D32" : r.ok === false ? "#C62828" : "#999";
+    return `<div style="display:flex;gap:8px;align-items:flex-start;padding:8px 2px;border-top:1px solid #f0f0f0">
+      <div style="font-size:15px;line-height:1.3">${r.info ? "ℹ️" : ic}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12.5px;font-weight:700;color:#333">${esc(r.label)}${r.info ? ` <span style="font-size:10px;color:#999;font-weight:500">(판정 제외·참고)</span>` : ""}</div>
+        <div style="font-size:11.5px;color:#666;margin-top:2px">기준 ${esc(r.need)} · 내 농장 <b style="color:${col}">${esc(r.have)}</b></div>
+        ${r.tip ? `<div style="font-size:11px;color:${r.ok === false ? "#C62828" : "#888"};margin-top:2px">${esc(r.tip)}</div>` : ""}
+      </div></div>`;
+  }).join("");
+  return `
+    <div style="background:${verdict.bg};border-radius:12px;padding:12px 14px;margin-bottom:10px">
+      <div style="font-size:13.5px;font-weight:800;color:${verdict.c}">${verdict.t}</div>
+      <div style="font-size:11px;color:#666;margin-top:3px">${verdict.s}</div>
+      <div style="background:rgba(0,0,0,.08);border-radius:6px;height:7px;margin-top:8px"><div style="background:${verdict.c};width:${pct}%;height:7px;border-radius:6px"></div></div>
+      <div style="font-size:10px;color:#888;margin-top:3px">충족 ${done} / ${total}항목 (${pct}%)</div>
+    </div>
+    <div style="font-size:12px;font-weight:700;color:#333;margin:4px 0 2px">📏 수치 기준 비교</div>
+    ${rowHtml}`;
+}
+
+function renderWelfarePanel(){
+  const ws = welfareState, sp = ws.species, open = ws.open;
+  const head = `
+  <div id="wf-toggle" role="button" tabindex="0" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;gap:10px">
+    <div>
+      <div class="display" style="font-size:15px">🕊️ 동물복지 인증 자가진단</div>
+      <div style="font-size:11px;color:#888;margin-top:2px">내 농장 수치와 체크리스트로 동물복지 축산농장 인증이 가능한지 확인합니다</div>
+    </div>
+    <div style="font-size:12px;color:#1B7A3E;font-weight:700;white-space:nowrap">${open ? "접기 ▲" : "열기 ▼"}</div>
+  </div>`;
+  if(!open) return `<div class="card" style="margin-bottom:16px;border-top:4px solid #1B7A3E">${head}</div>`;
+
+  const vals = ws.vals[sp] || {};
+  const fields = WELFARE_FIELDS[sp].filter(f => !f.show || f.show(vals));
+  const inputHtml = fields.map(f => {
+    const val = vals[f.k] == null ? "" : vals[f.k];
+    const ctl = f.type === "sel"
+      ? `<select class="wf-in" data-k="${f.k}" style="width:100%;padding:7px 8px;border:1px solid #ddd;border-radius:8px;font-size:12.5px;background:#fff">${f.opts.map(o => `<option value="${o[0]}" ${(val || f.opts[0][0]) === o[0] ? "selected" : ""}>${esc(o[1])}</option>`).join("")}</select>`
+      : `<div style="display:flex;align-items:center;gap:5px"><input class="wf-in" data-k="${f.k}" type="number" inputmode="decimal" step="any" min="0" value="${esc(val)}" style="flex:1;min-width:0;padding:7px 8px;border:1px solid #ddd;border-radius:8px;font-size:13px" /><span style="font-size:11px;color:#888;white-space:nowrap">${esc(f.unit || "")}</span></div>`;
+    return `<label style="display:block"><div style="font-size:10.5px;color:#777;margin-bottom:3px;line-height:1.35">${esc(f.label)}</div>${ctl}</label>`;
+  }).join("");
+  const cv = ws.checks[sp] || {};
+  const checkHtml = WELFARE_CHECKS[sp].map(c => `
+    <label style="display:flex;gap:8px;align-items:flex-start;padding:7px 2px;border-top:1px solid #f0f0f0;cursor:pointer">
+      <input type="checkbox" class="wf-chk" data-k="${c.k}" ${cv[c.k] ? "checked" : ""} style="margin-top:3px;width:17px;height:17px;flex-shrink:0" />
+      <span style="font-size:12.5px;color:#333;line-height:1.5">${esc(c.text)}</span>
+    </label>`).join("");
+  const spBtn = (k, label) => `<button class="wf-sp" data-sp="${k}" style="flex:1;border:2px solid ${sp === k ? "#1B7A3E" : "#eee"};background:${sp === k ? "#1B7A3E" : "#fff"};color:${sp === k ? "#fff" : "#333"};border-radius:10px;padding:10px 6px;font-size:13px;font-weight:700;cursor:pointer">${label}</button>`;
+  return `
+  <div class="card" style="margin-bottom:16px;border-top:4px solid #1B7A3E">
+    ${head}
+    <div style="display:flex;gap:8px;margin:14px 0 12px">${spBtn("broiler", "🐔 육계 동물복지 인증기준")}${spBtn("layer", "🥚 산란계 동물복지 인증기준")}</div>
+    <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:6px">① 내 농장 현황 입력 <span style="font-weight:400;color:#999">— 아는 것만 넣어도 됩니다 (자동 저장)</span></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:14px">${inputHtml}</div>
+    <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:2px">② 체크리스트 <span style="font-weight:400;color:#999">— 지키고 있는 항목에 체크</span></div>
+    <div style="margin-bottom:14px">${checkHtml}</div>
+    <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:6px">③ 판정 결과</div>
+    <div id="wf-result">${renderWelfareResult()}</div>
+    <div style="font-size:10px;color:#aaa;line-height:1.7;margin-top:12px;border-top:1px dashed #eee;padding-top:8px">
+      ※ 기준 출처: 농림축산식품부 고시 「동물복지 축산농장 인증기준 및 인증 등에 관한 세부실시요령」 — 고시 원문 페이지는 직접 열람이 막혀 국립축산과학원 해설서·축산신문 기준 해설·검역본부 개정 안내(2014-25호)로 수치를 교차 확인했습니다.
+      고시는 개정될 수 있고 자료마다 표기가 다른 항목(산란계 조도 10→20lux, 육계 밀도 '또는/및')은 더 엄격한 쪽으로 판정했으니, <b>실제 신청 전에는 반드시 최신 고시와 인증기관(축산물품질평가원) 안내를 확인</b>하세요. 이 화면은 참고용 자가진단입니다.<br>
+      ${WELFARE_SOURCES.map(s => `<a href="${s.url}" target="_blank" rel="noopener" style="color:#1B7A3E">${esc(s.label)} ↗</a>`).join(" · ")}
+    </div>
+  </div>`;
+}
+
 function renderConsultTab(){
   const sp = CONSULT_BREEDS[consultState.species];
   if(consultState.breed && !sp.breeds[consultState.breed]) consultState.breed = Object.keys(sp.breeds)[0];
@@ -12622,7 +12857,7 @@ function renderConsultTab(){
 
   return `
   <div style="margin-bottom:14px">
-    <div class="display" style="font-size:16px;margin-bottom:3px">🐔🥚 육계/산란계 컨설팅</div>
+    <div class="display" style="font-size:16px;margin-bottom:3px">🐔🥚 육계/산란계/동물복지</div>
     <div style="font-size:11px;color:#aaa">품종·일령(주령)을 선택하면 세계 표준 사양매뉴얼 수치를 바로 보여줍니다</div>
   </div>
 
@@ -12638,6 +12873,7 @@ function renderConsultTab(){
   ${renderVentCalcPanel()}
   ${renderProductionIndexPanel()}
   ${renderMgmtPointsPanel()}
+  ${renderWelfarePanel()}
 
   <div style="font-size:10px;color:#aaa;line-height:1.7">
     ※ 출처: ${breed.source}. 사양매뉴얼 표는 국가·환경에 따라 실제 성적과 차이가 날 수 있는 "목표치"이며,
@@ -15891,6 +16127,26 @@ function attachEvents(){
   };
   const kkokoLog = document.getElementById("kkoko-log");
   if(kkokoLog) kkokoLog.scrollTop = kkokoLog.scrollHeight;
+
+  // 동물복지 인증 자가진단
+  const wfT=document.getElementById("wf-toggle");
+  if(wfT){
+    const tg=()=>{ welfareState.open=!welfareState.open; render(); };
+    wfT.onclick=tg;
+    wfT.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); tg(); } };
+  }
+  const wfRefresh=()=>{ const r=document.getElementById("wf-result"); if(r) r.innerHTML=renderWelfareResult(); };
+  document.querySelectorAll(".wf-sp").forEach(b=>b.onclick=()=>{ welfareState.species=b.dataset.sp; saveWelfareState(); render(); });
+  document.querySelectorAll(".wf-in").forEach(el=>{
+    const upd=()=>{
+      const m=welfareState.vals[welfareState.species]; m[el.dataset.k]=el.value; saveWelfareState();
+      if(el.tagName==="SELECT") render(); else wfRefresh();
+    };
+    if(el.tagName==="SELECT") el.onchange=upd; else el.oninput=upd;
+  });
+  document.querySelectorAll(".wf-chk").forEach(el=>el.onchange=()=>{
+    welfareState.checks[welfareState.species][el.dataset.k]=el.checked; saveWelfareState(); wfRefresh();
+  });
 
   // 육계/산란계 컨설팅: 축종/품종/일령 선택
   document.querySelectorAll(".consult-species-btn").forEach(b=>b.onclick=()=>{
