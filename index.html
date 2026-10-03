@@ -8650,7 +8650,7 @@ function renderHeaderSolarTerm(now){
   const c = info.current.term, n = info.next.term;
   const left = Math.ceil((info.next.at.getTime() - now.getTime()) / 86400000);
   return `
-        <button id="header-solar-term" title="절기 자세히 보기 (날씨 탭)"
+        <button id="header-solar-term" title="절기 자세히 보기 (날씨예측 탭)"
           style="background:none;border:none;border-left:1px solid rgba(255,255,255,.25);padding:0 0 0 14px;color:#fff;text-align:left;cursor:pointer;font-family:inherit">
           <div style="font-size:10px;opacity:.65;font-weight:600">오늘의 절기</div>
           <div class="hd-term-name" style="font-size:18px;font-weight:800;color:#F9C74F;line-height:1.15;white-space:nowrap">${esc(c.name)} <span style="font-size:11px;font-weight:500;color:#fff;opacity:.75">${esc(c.hanja)}</span></div>
@@ -8683,7 +8683,7 @@ function renderHeader(){
     <button class="tabs-arrow left" type="button" aria-label="앞쪽 메뉴 보기" tabindex="-1"><span>‹</span></button>
     <div class="tabs">
       <button class="tab ${state.tab==="price"||state.tab==="pig"||state.tab==="livestock"?"active":""}" data-tab="price">📊 양계 시세-통계</button>
-      <button class="tab ${state.tab==="weather"?"active":""}" data-tab="weather">🌤️ 날씨</button>
+      <button class="tab ${state.tab==="weather"?"active":""}" data-tab="weather">🌤️ 날씨예측</button>
       <button class="tab ${state.tab==="vent"?"active":""}" data-tab="vent">🌬️ 환기가이드</button>
       <button class="tab ${state.tab==="consult"?"active":""}" data-tab="consult">🐔🥚 육계/산란계/동물복지</button>
       <button class="tab ${state.tab==="disease"?"active":""}" data-tab="disease">🩺 양계질병</button>
@@ -10606,7 +10606,7 @@ function renderHusbandryPointsCard(opts){
   if(!c || c.hsi == null){
     const msg = weatherState.status === "loading"
       ? "날씨 정보를 불러오는 중입니다..."
-      : "날씨 탭에서 농장 위치를 먼저 설정하면 오늘 기상 기준으로 포인트를 짚어드립니다.";
+      : "날씨예측 탭에서 농장 위치를 먼저 설정하면 오늘 기상 기준으로 포인트를 짚어드립니다.";
     return `<div class="card" style="margin-bottom:14px;border-top:4px solid #0288D1">
       <div style="font-size:14px;font-weight:700;color:#333;margin-bottom:4px">${title}</div>
       <div style="font-size:11px;color:#aaa">${msg}</div>
@@ -11819,7 +11819,7 @@ function renderVentFinderPanel(){
   const wxNote = weatherState.status === "loading"
     ? "⏳ 오늘 날씨를 불러오는 중입니다..."
     : !hasLoc
-      ? "위치가 설정되어 있지 않습니다 — 🌤️ 날씨 메뉴에서 위치를 설정하면 자동으로 채워집니다. 지금은 아래 값을 직접 입력해 주세요."
+      ? "위치가 설정되어 있지 않습니다 — 🌤️ 날씨예측 메뉴에서 위치를 설정하면 자동으로 채워집니다. 지금은 아래 값을 직접 입력해 주세요."
       : wxToday
         ? `${esc(weatherState.locationName||"")} 오늘 예보 기준으로 채워 두었습니다. 계사 앞 온습도계 실측값이 있으면 그 값으로 바꿔 주세요.`
         : "오늘 날씨를 아직 불러오지 못했습니다 — 아래 값을 직접 입력해 주세요.";
@@ -12978,7 +12978,7 @@ function renderVentTab(){
       <div class="card" style="text-align:center;padding:28px 16px;margin-bottom:16px">
         <div style="font-size:28px;margin-bottom:8px">📍</div>
         <div style="font-size:13px;color:#888;margin-bottom:14px">오늘 날씨를 알아야 환기 단계를 추천해 드릴 수 있어요.<br>위치를 아직 설정하지 않으셨네요 — 먼저 위치를 찍어주세요.</div>
-        <button id="vent-goto-weather" style="border:none;border-radius:10px;background:#1a2744;color:#fff;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer">🌤️ 날씨 탭에서 위치 설정하기</button>
+        <button id="vent-goto-weather" style="border:none;border-radius:10px;background:#1a2744;color:#fff;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer">🌤️ 날씨예측 탭에서 위치 설정하기</button>
       </div>`;
 
     const st = sp.stages[recIdx];
