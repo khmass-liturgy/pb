@@ -5427,8 +5427,8 @@ function googleImageBtn(x){
     + label + '</a>';
   const en = (x.title_en || "").trim();
   const ko = (x.title_ko || "").trim();
-  return (en ? mk(en + " poultry", "🔍 이미지(영문)", en + " poultry") : "")
-       + (ko ? mk(ko + " 가금", "🔍 이미지(한글)", ko + " 가금") : "");
+  return (en ? mk(en + " poultry", "🔍 관련 이미지 검색(영문)", en + " poultry") : "")
+       + (ko ? mk(ko + " 가금", "🔍 관련 이미지 검색(한글)", ko + " 가금") : "");
 }
 
 // 검색 결과만 따로 그린다. 검색창까지 다시 그리면 한글 조합(IME)이 끊겨
