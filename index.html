@@ -5953,8 +5953,336 @@ function hpaiSplitBar(poultry, wild, w){
     <div style="flex:${poultry};background:#C62828"></div><div style="flex:${wild};background:#5E9BD6"></div></div>`;
 }
 
+// ── 🩺 고병원성 조류인플루엔자(HPAI) 증상 카드 + 🚨 예방·조기신고 메뉴 (AI관련정보 탭) ──────────
+// 근거: 임상·병리 — CFSPH(Iowa State Univ.) HPAI Fact sheet, Pantin-Jackwood/Swayne 등 HPAI 병리 문헌 요약
+//        (사이토카인 과다·모세혈관 누수·혈전으로 인한 부종·출혈·청색증·다장기부전),
+//   방역·신고 — 농림축산식품부 「2024/25 고병원성 AI 특별방역대책」(2024.9): 의심축 신고 기준·연락처·벌칙,
+//        핵심 방역수칙(장화 갈아신기·손소독·전용 작업복·야생동물 차단·전실 없는 쪽문 폐쇄·차량 2단계 소독 등).
+// 방역 정책은 해마다 개정되므로 화면에 "최신 지침 확인" 안내를 둔다. 사진 대신 직접 그린 SVG 그림을 쓰고,
+// 실제 임상 사진은 구글 이미지 검색 버튼으로 연결한다.
+const HPAI_HOTLINES = [
+  { tel:"1588-9060", label:"가축방역 신고 ☎ 1588-9060" },
+  { tel:"1588-4060", label:"가축방역 신고 ☎ 1588-4060" },
+];
+const HPAI_FEATURES = [
+  { icon:"🦠", t:"원인", d:"A형 인플루엔자 바이러스(Orthomyxoviridae) 중 HA 단백질 절단 부위에 염기성 아미노산이 여러 개 있는 H5·H7 아형. 이 구조 때문에 호흡기·소화기에 그치지 않고 혈관·뇌·췌장 등 전신 장기에서 증식합니다. 국내 최근 발생은 H5N1형이 대부분입니다." },
+  { icon:"☠️", t:"치사율", d:"닭에서 급성으로 진행되며 폐사율이 최대 100%에 이릅니다. 증상이 나타나기 전에 갑자기 죽는 경우도 있습니다. (오리·거위는 증상이 약해 모르는 사이 바이러스를 퍼뜨리는 숨은 전파원이 되기도 합니다.)" },
+  { icon:"⏱️", t:"진행 속도", d:"잠복기는 대체로 수일(약 3~7일)이고, 한 축사에서 시작되면 수일 안에 전 계군으로 번집니다. 그래서 첫 이상 징후를 놓치지 않는 것이 핵심입니다." },
+  { icon:"🦆", t:"유입·전파", d:"주 유입 경로는 철새 등 야생조류의 분변·호흡기 분비물입니다. 농장 안에서는 오염된 사람(장화·옷), 차량, 알 운반 차량·난좌·파레트, 쥐·고양이 등 야생동물, 분변이 묻은 물건을 통해 퍼집니다. 바이러스는 추울수록 환경에서 오래 살아 남아 10월~이듬해 4월에 집중 발생합니다." },
+  { icon:"⚖️", t:"법정 관리", d:"제1종 가축전염병입니다. 의심되면 즉시 신고해야 하며(미신고 시 5년 이하 징역 또는 5천만원 이하 벌금, 살처분 보상금 감액) 확진 시 살처분·이동제한이 적용됩니다." },
+  { icon:"🧑‍⚕️", t:"사람 건강", d:"드물지만 감염 가축·분비물에 노출된 사람에게 감염될 수 있습니다. 의심축 접촉 시 마스크·장갑·방역복·장화를 착용하고, 이후 발열·기침 등이 있으면 질병관리청 ☎1339에 문의하세요." },
+];
+// 임상증상: [아이콘, 증상, 생리학적 이유, 번호(그림)]
+const HPAI_CLINICAL = [
+  { n:0, ic:"💀", s:"증상 없이 갑자기 폐사 (급사)", why:"바이러스가 혈관 안쪽 벽(내피세포)과 여러 장기에서 폭발적으로 증식하면 면역계가 사이토카인(염증 물질)을 과다하게 쏟아냅니다(사이토카인 폭풍). 그 결과 전신 혈관 내 응고(DIC)와 다장기부전이 빨리 와서 증상이 나타나기 전에 죽습니다." },
+  { n:8, ic:"😴", s:"침울·졸음, 깃털 부풀림, 사료·음수 섭취 급감", why:"염증 사이토카인(IL-1, TNF-α, 인터페론 등)이 뇌의 체온조절·식욕 중추에 작용해 발열과 식욕 절폐를 일으키는 '병적 행동'입니다. 가장 먼저, 가장 흔하게 보이는 초기 신호입니다." },
+  { n:1, ic:"🟣", s:"벼슬·육수의 부종과 청색증(검붉은·보라색 변색), 끝이 괴사", why:"감염된 모세혈관의 투과성이 높아져 체액이 조직으로 새고(부종), 혈관 내 혈전·울혈로 산소가 빠진 혈액이 정체되어 푸르스름하게(청색증) 보입니다. 혈액 공급이 끊긴 끝부분은 괴사합니다." },
+  { n:2, ic:"😵", s:"머리·안면·눈꺼풀 부종", why:"같은 혈관 누수가 피부 밑 조직이 느슨한 머리·눈 주변에서 눈에 띄게 나타나는 것입니다." },
+  { n:3, ic:"🫁", s:"기침·재채기·가래 끓는 소리, 개구호흡, 비강·눈 분비물", why:"기관 점막의 염증·출혈로 점액·혈액성 분비물이 차고, 폐는 울혈·수종(폐포에 물이 참)으로 가스교환이 떨어져 숨쉬기가 힘들어집니다." },
+  { n:4, ic:"🦵", s:"정강이·발의 피하출혈(붉은 반점), 부종", why:"내피세포 손상과 응고인자·혈소판 소모(DIC)로 가장 얇은 피부인 각린 아래에서 출혈이 비쳐 보입니다." },
+  { n:5, ic:"🟢", s:"녹색(녹변)·물 같은 설사", why:"장 감염과 췌장 괴사로 소화·흡수가 안 되고, 먹지 못하는 동안 담즙 색소(빌리베르딘)가 변으로 그대로 배출되어 녹색을 띱니다." },
+  { n:6, ic:"🌀", s:"떨림·비틀거림·선회·고개 꺾임 등 신경증상", why:"뇌의 혈관 내피와 신경세포가 감염되어 뇌염·혈전·뇌출혈이 생기면서 운동 조절 기능이 망가집니다." },
+  { n:7, ic:"🥚", s:"산란율 급락, 연란·기형란·난각색 소실", why:"난소 난포의 변성·출혈과 난관염으로 배란과 난각 형성이 멈추고, 열·스트레스로 호르몬 조절도 깨집니다." },
+];
+// 부검소견: [번호(그림), 소견, 병리학적 이유]
+const HPAI_NECROPSY = [
+  { n:1, s:"기관 점막 출혈, 점액·혈액성 삼출물", why:"기관 상피세포가 감염되어 염증이 생기고, 손상된 점막 혈관이 터져 출혈과 삼출물이 고입니다." },
+  { n:2, s:"폐 울혈·수종·출혈", why:"모세혈관 투과성 증가로 폐포 속에 혈장이 새어 들어가 폐가 무겁고 붉게 젖어 보입니다." },
+  { n:3, s:"심외막·심근 점상출혈, 심근 괴사", why:"심근세포와 심장 혈관내피에서 바이러스가 증식해 혈관이 상하고 근육세포가 죽습니다." },
+  { n:4, s:"선위(샘위)-근위 경계부 점상출혈", why:"위장 점막 모세혈관의 내피 손상으로 적혈구가 새어 나옵니다. HPAI에서 매우 흔한 소견으로 선위 점막의 선조직도 직접 감염됩니다." },
+  { n:5, s:"췌장 황백색 괴사 병소·출혈", why:"췌장 선방세포에서 바이러스가 고농도로 증식해 세포가 괴사합니다(HPAI의 비교적 특징적인 소견). 소화효소 분비가 줄어 녹변 설사의 원인이 됩니다." },
+  { n:6, s:"장 점막·장막 출혈, 맹장편도·장 림프조직 출혈·괴사", why:"장 점막 혈관 손상과 림프조직(면역 기관) 내 바이러스 증식 때문에 출혈·괴사가 생깁니다." },
+  { n:7, s:"비장·간 종대와 점상 괴사", why:"단핵 식세포계가 바이러스를 처리하며 감염·염증 반응이 커져 장기가 붓고 괴사 병소가 생깁니다." },
+  { n:8, s:"난소 난포 출혈·변성(검붉게 변하거나 흐물거림), 난관 부종", why:"난포의 혈관이 파열되고 난포 조직이 퇴행하면서 산란이 중단됩니다. 난관 부종·염증이 동반됩니다." },
+  { n:9, s:"신장 충혈·요산염 침착", why:"급성 혈관 손상과 탈수로 신장 기능이 떨어져 요산이 제대로 배설되지 못하고 쌓입니다." },
+  { n:0, s:"벼슬·육수·머리·정강이 피하 부종과 출혈, 가슴·허벅지 근육 점상출혈", why:"온몸의 모세혈관 누수·출혈이 피부 밑과 근육 사이에서 육안으로 확인됩니다." },
+];
+const HPAI_OTHER = [
+  { t:"뉴캐슬병과 구분이 어렵습니다", d:"급사, 녹변, 신경증상, 선위 점상출혈이 둘 다 나타납니다. 겉모습만으로 구분할 수 없고 반드시 정밀검사(PCR)로 확인해야 합니다." },
+  { t:"사후 소견만으로 확진할 수 없습니다", d:"위 소견은 '의심'을 높이는 단서입니다. 의심되면 농장에서 임의로 시료를 옮기거나 이동하지 말고 방역기관의 지시에 따라 검사를 받으세요." },
+  { t:"경미한 증상도 신고 대상입니다", d:"폐사가 늘지 않아도 사료 섭취 감소, 침울·졸음, 호흡기 증상, 녹변이 보이면 신고하도록 권고합니다. 오리·종오리는 폐사 없이 산란율·사료 섭취만 줄기도 합니다." },
+  { t:"방역 단계별 차이", d:"증상 정도는 바이러스주·품종·일령에 따라 다르고, 백신이나 항체가 있는 계군에서는 더 약하게 나타나 발견이 늦어질 수 있습니다." },
+];
+const HPAI_IMG_QUERIES = [
+  ["고병원성 AI 닭 벼슬 청색증", "highly pathogenic avian influenza chicken cyanosis comb wattle"],
+  ["고병원성 AI 닭 부검 소견", "HPAI chicken necropsy lesions proventriculus hemorrhage pancreas"],
+  ["고병원성 AI 닭 정강이 출혈", "avian influenza chicken shank hemorrhage"],
+];
+
+// 의심축 신고 기준(2024/25 특별방역대책) — 폐사 2배, 산란율 3%p, 임상증상
+const HPAI_SUSPECT_SYMPTOMS = [
+  { k:"sleepy", t:"닭이 졸거나 침울하다" },
+  { k:"cyan",   t:"벼슬·육수가 보라색(청색증)이거나 붓는다" },
+  { k:"intake", t:"사료·음수 섭취가 눈에 띄게 줄었다" },
+  { k:"green",  t:"녹색·물 같은 설사가 보인다 (오리는 녹변)" },
+  { k:"resp",   t:"기침·재채기·개구호흡 등 호흡기 증상이 있다" },
+  { k:"nerve",  t:"떨림·비틀거림·선회 등 신경증상이 있다" },
+  { k:"egg",    t:"연란·기형란이 늘거나 산란이 급격히 줄었다" },
+  { k:"shank",  t:"정강이·발에 붉은 출혈 반점이나 부종이 있다" },
+];
+// 핵심 방역수칙(공식) / 사양관리요령(일반 권고)
+const HPAI_RULES = [
+  { g:"사람·출입", items:[
+    ["boots", "축사 출입 때마다 전용 장화로 갈아신고 손 소독, 발판 소독조 사용"],
+    ["clothes", "축사 전용 작업복(또는 방역복) 착용 — 농장 밖 옷으로 축사에 들어가지 않기"],
+    ["backdoor", "전실이 없는 축사의 뒷문·쪽문은 폐쇄(시건장치 포함)하고 사람이 드나들지 않기"],
+    ["visitor", "외부인 출입 통제·출입 기록 작성, 외국인 근로자에게 모국어 방역수칙 교육·안내문 부착"],
+    ["migr", "철새도래지에 축산차량·종사자 출입 금지(통제구간 위반 시 과태료)"],
+  ]},
+  { g:"차량·물품", items:[
+    ["car2", "농장 출입 차량은 2단계 소독(고정식 소독기 + 고압분무) 후 진입"],
+    ["receipt", "축산차량 소독필증 확인·보관 (소독 안 한 차량 출입 금지)"],
+    ["eggcar", "알 운반 차량 등 진입이 금지된 차량은 농장 안으로 들이지 않기 (난좌·알은 외부 환적)"],
+    ["pallet", "파레트·난좌·합판 등을 외부에 방치하지 않고, 축사로 반입할 때는 반드시 소독"],
+    ["machine", "농기계는 농장 외부 보관 — 불가피하면 세척·소독 후 반입, 농장 간 공동 사용 금지"],
+    ["daily", "농장 안팎·진입로를 매일 소독하고 소독 기록 남기기"],
+  ]},
+  { g:"야생동물 차단", items:[
+    ["net", "축사·퇴비사에 야생조류 차단망 설치, 파손 부위 즉시 보수"],
+    ["rodent", "쥐·고양이 등 방제(구서) 작업과 사료 등 잔존물 방치 금지"],
+    ["wild", "철새 도래지·야생조류 폐사체 접근 금지 (발견하면 110 신고, 직접 만지지 않기)"],
+  ]},
+];
+const HPAI_MGMT = [
+  { g:"매일 기록·관찰", items:[
+    ["log", "같은 시간대에 축사별 폐사 수·산란율·사료섭취량·음수량을 매일 기록 (이상 비교의 기준이 됩니다)"],
+    ["walk", "하루 2회 이상 계사를 돌며 졸고 있거나 구석에 몰려 있는 닭, 벼슬 색, 설사, 호흡음을 확인"],
+    ["dead", "폐사체는 즉시 수거해 밀폐 보관 — 축사나 농장 주변에 방치하지 않고 방역기관의 지시에 따라 처리"],
+  ]},
+  { g:"환경·면역력 관리", items:[
+    ["vent", "적정 환기와 온도·습도 유지, 급격한 온도 변화와 과밀 사육 피하기 (스트레스가 면역을 떨어뜨립니다)"],
+    ["water", "음수는 정수·소독된 물을 쓰고 급수라인을 주기적으로 세척, 지표수·고인 물 사용 금지"],
+    ["feed", "사료는 밀폐 저장해 야생조류·쥐가 접근하지 못하게 하고, 흘린 사료는 바로 치우기"],
+    ["nutri", "전염병이 도는 철새 도래기(10~4월)에는 영양·사양 관리를 평소보다 꼼꼼히 하고 백신·소독 프로그램 일정을 점검"],
+  ]},
+  { g:"입식·출하", items:[
+    ["allinout", "가능하면 올인올아웃(전체 입식·전체 출하)과 입식 전 충분한 세척·소독·건조"],
+    ["ship", "출하·입식 시 축사 내 사람·장비 출입을 최소화하고 출입구에 가까운 동부터 출하"],
+  ]},
+];
+const HPAI_PREV_KEY = "hpai_prev_v1";
+let hpaiSymState = { open:false, tab:"feature" };
+let hpaiPrevState = (function(){
+  const base = { open:false, sub:"report", ew:{}, sym:{}, chk:{}, contacts:{} };
+  try { const s = JSON.parse(localStorage.getItem(HPAI_PREV_KEY) || "null"); if(s) return Object.assign(base, s, { open:false, sub:"report" }); } catch(e){}
+  return base;
+})();
+function saveHpaiPrev(){
+  try { localStorage.setItem(HPAI_PREV_KEY, JSON.stringify({ ew:hpaiPrevState.ew, sym:hpaiPrevState.sym, chk:hpaiPrevState.chk, contacts:hpaiPrevState.contacts })); } catch(e){}
+}
+function hpaiTelHref(v){ return "tel:" + String(v||"").replace(/[^0-9+]/g, ""); }
+
+// ── 그림 1: 닭 외형 — 임상증상 위치 ──
+function hpaiChickenSvg(){
+  const pin = (n, x, y, lx, ly) => `<line x1="${x}" y1="${y}" x2="${lx}" y2="${ly}" stroke="#C62828" stroke-width="1.5"/><circle cx="${lx}" cy="${ly}" r="11" fill="#C62828"/><text x="${lx}" y="${ly+4}" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">${n}</text>`;
+  return `<svg viewBox="0 0 420 310" style="width:100%;max-width:460px;display:block;margin:0 auto;background:#F4F8FB;border-radius:14px" role="img" aria-label="고병원성 조류인플루엔자에 걸린 닭의 임상증상 위치 그림">
+    <ellipse cx="215" cy="285" rx="150" ry="9" fill="#dfe8ee"/>
+    <path d="M318 150 Q385 105 400 55 Q392 125 345 178 Z" fill="#D9C2A0" stroke="#8a6d4b" stroke-width="1.5"/>
+    <ellipse cx="220" cy="172" rx="108" ry="68" fill="#F5E6D0" stroke="#8a6d4b" stroke-width="2"/>
+    <path d="M205 178 Q235 140 285 170 Q250 215 205 205 Z" fill="#E8D2B2" stroke="#8a6d4b" stroke-width="1.2"/>
+    <path d="M104 118 C92 152 118 176 152 164 L184 120 Z" fill="#F5E6D0" stroke="#8a6d4b" stroke-width="2"/>
+    <circle cx="122" cy="96" r="35" fill="#F5E6D0" stroke="#8a6d4b" stroke-width="2"/>
+    <ellipse cx="118" cy="104" rx="28" ry="23" fill="#B39DDB" opacity=".35"/>
+    <path d="M100 66 q4 -26 17 -10 q6 -26 18 -8 q9 -16 14 10 q-22 11 -49 8z" fill="#5B3A8C" stroke="#3b2461" stroke-width="1.5"/>
+    <path d="M97 123 q-9 24 8 32 q14 -10 7 -32z" fill="#6A4C9C" stroke="#3b2461" stroke-width="1.5"/>
+    <polygon points="90,100 62,108 90,116" fill="#F2B134" stroke="#c98a12" stroke-width="1"/>
+    <circle cx="111" cy="92" r="4.5" fill="#222"/><circle cx="111" cy="92" r="11" fill="none" stroke="#9575CD" stroke-width="2.5" opacity=".8"/>
+    <path d="M72 116 q-5 9 -2 14 M80 118 q-4 9 -1 13" stroke="#64B5F6" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+    <path d="M74 98 q-14 -6 -22 -2 M74 106 q-16 -1 -24 4" stroke="#C62828" stroke-width="1.6" fill="none" stroke-dasharray="3 3"/>
+    <g stroke="#F2B134" stroke-width="7" stroke-linecap="round"><line x1="195" y1="236" x2="195" y2="276"/><line x1="245" y1="236" x2="245" y2="276"/></g>
+    <g stroke="#F2B134" stroke-width="4" stroke-linecap="round"><path d="M195 276 l-16 8 M195 276 l0 10 M195 276 l16 8 M245 276 l-16 8 M245 276 l0 10 M245 276 l16 8"/></g>
+    <g fill="#C62828"><circle cx="195" cy="248" r="2.4"/><circle cx="196" cy="258" r="2"/><circle cx="194" cy="266" r="2.4"/><circle cx="245" cy="250" r="2.4"/><circle cx="244" cy="261" r="2"/><circle cx="246" cy="269" r="2.4"/></g>
+    <ellipse cx="322" cy="214" rx="14" ry="7" fill="#7CB342"/><ellipse cx="335" cy="226" rx="10" ry="5" fill="#9CCC65"/>
+    <g transform="translate(95 38)"><path d="M0 0 q-14 -4 -16 8 M3 -6 q-12 -10 -18 -2" stroke="#7B1FA2" stroke-width="2" fill="none" stroke-linecap="round"/></g>
+    <ellipse cx="366" cy="262" rx="13" ry="17" fill="#fff" stroke="#999" stroke-width="1.5" stroke-dasharray="3 2"/><path d="M356 252 L376 274 M376 252 L356 274" stroke="#C62828" stroke-width="2.4"/>
+    ${pin(1, 125, 66, 160, 22)}${pin(2, 134, 108, 205, 50)}${pin(3, 66, 112, 36, 150)}${pin(4, 195, 262, 150, 255)}${pin(5, 322, 214, 372, 205)}${pin(6, 100, 50, 52, 38)}${pin(7, 366, 262, 395, 236)}${pin(8, 250, 150, 280, 122)}
+  </svg>`;
+}
+// ── 그림 2: 부검 장기 모식도 ──
+function hpaiOrganSvg(){
+  const pin = (n, x, y, lx, ly) => `<line x1="${x}" y1="${y}" x2="${lx}" y2="${ly}" stroke="#1565C0" stroke-width="1.5"/><circle cx="${lx}" cy="${ly}" r="11" fill="#1565C0"/><text x="${lx}" y="${ly+4}" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">${n}</text>`;
+  const dots = (pts, c) => pts.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="2" fill="${c || "#B71C1C"}"/>`).join("");
+  return `<svg viewBox="0 0 420 320" style="width:100%;max-width:460px;display:block;margin:0 auto;background:#FBF5EF;border-radius:14px" role="img" aria-label="고병원성 조류인플루엔자 부검 시 장기별 병변 위치 모식도">
+    <ellipse cx="205" cy="165" rx="188" ry="125" fill="#FFF8F0" stroke="#B89A7A" stroke-width="2" stroke-dasharray="6 4"/>
+    <path d="M42 62 Q92 88 135 128" stroke="#B0866B" stroke-width="9" fill="none" stroke-linecap="round"/>
+    <path d="M42 62 Q92 88 135 128" stroke="#C62828" stroke-width="3" fill="none" stroke-dasharray="2 8" stroke-linecap="round"/>
+    <ellipse cx="160" cy="150" rx="22" ry="34" fill="#E8A0A0" stroke="#b86a6a" stroke-width="1.5"/><ellipse cx="190" cy="165" rx="18" ry="30" fill="#E8A0A0" stroke="#b86a6a" stroke-width="1.5"/>
+    ${dots([[155,140],[163,158],[188,152],[192,170],[160,166]], "#8E0000")}
+    <path d="M118 170 q-18 -2 -14 18 q10 22 28 6 q8 -16 -14 -24z" fill="#C62828" stroke="#7f1d1d" stroke-width="1.5"/>
+    ${dots([[112,178],[120,186],[126,176]], "#fff")}
+    <ellipse cx="235" cy="150" rx="22" ry="18" fill="#D2AE86" stroke="#8a6d4b" stroke-width="1.5"/><ellipse cx="270" cy="170" rx="26" ry="22" fill="#A9825C" stroke="#6b4f33" stroke-width="1.5"/>
+    ${dots([[246,158],[250,164],[254,160],[248,168],[258,163]], "#B71C1C")}
+    <rect x="215" y="208" width="85" height="15" rx="7" fill="#F0D48A" stroke="#b79a45" stroke-width="1.5"/>${dots([[228,215],[245,216],[262,215],[280,216]], "#fff")}${dots([[236,212],[270,219]], "#B71C1C")}
+    <path d="M180 240 q18 -22 36 0 t36 0 t36 0 t30 -4" stroke="#E0B79C" stroke-width="12" fill="none" stroke-linecap="round"/>${dots([[200,233],[232,246],[262,234],[294,246],[318,236]], "#B71C1C")}
+    <circle cx="288" cy="132" r="9" fill="#8D3B3B" stroke="#5c2020" stroke-width="1.5"/><path d="M215 192 q22 -20 48 -6 q-6 26 -28 24 q-18 -2 -20 -18z" fill="#7B4B3A" stroke="#4a2c20" stroke-width="1.5"/>
+    <g><circle cx="338" cy="150" r="9" fill="#FFC107" stroke="#b58900"/><circle cx="356" cy="140" r="8" fill="#FFB300"/><circle cx="352" cy="162" r="10" fill="#8E0000"/><circle cx="332" cy="170" r="7" fill="#B71C1C"/><circle cx="366" cy="154" r="7" fill="#6D0000"/></g>
+    <path d="M318 196 q34 6 52 -4 q-6 22 -34 24 q-22 -2 -18 -20z" fill="#9B6B6B" stroke="#5c3b3b" stroke-width="1.5"/>
+    ${pin(1, 90, 76, 60, 28)}${pin(2, 170, 130, 188, 78)}${pin(3, 120, 182, 78, 214)}${pin(4, 262, 160, 300, 100)}${pin(5, 250, 216, 235, 272)}${pin(6, 300, 245, 340, 262)}${pin(7, 288, 132, 322, 92)}${pin(8, 352, 158, 392, 108)}${pin(9, 345, 205, 392, 214)}
+  </svg>`;
+}
+
+function renderHpaiSymptomCard(){
+  const s = hpaiSymState, tab = s.tab, color = "#B71C1C";
+  const head = `
+  <div id="hs-toggle" role="button" tabindex="0" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;gap:10px">
+    <div>
+      <div class="display" style="font-size:15px">🩺 고병원성 조류인플루엔자의 증상</div>
+      <div style="font-size:11px;color:#888;margin-top:2px">특징 · 임상증상(왜 생기나) · 부검소견(왜 생기나) · 그림으로 보기</div>
+    </div>
+    <div style="font-size:12px;color:${color};font-weight:700;white-space:nowrap">${s.open ? "접기 ▲" : "열기 ▼"}</div>
+  </div>`;
+  const wrap = body => `<div class="card" style="margin-bottom:14px;border-top:4px solid ${color}">${head}${body}</div>`;
+  if(!s.open) return wrap("");
+  const tabs = [["feature","📋 특징"],["clinical","😷 임상증상"],["necropsy","🔬 부검소견"],["other","💡 기타 사항"]];
+  const tabBar = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 12px">${tabs.map(t => `<button class="hs-tab" data-tab="${t[0]}" style="border:2px solid ${tab===t[0]?color:"#eee"};background:${tab===t[0]?color:"#fff"};color:${tab===t[0]?"#fff":"#444"};border-radius:10px;padding:8px 12px;font-size:12.5px;font-weight:700;cursor:pointer">${t[1]}</button>`).join("")}</div>`;
+  let body = "";
+  if(tab === "feature"){
+    body = `<div style="display:grid;gap:8px">${HPAI_FEATURES.map(f => `
+      <div style="display:flex;gap:10px;background:#FFF8F6;border:1px solid #F5DAD6;border-radius:10px;padding:10px 12px">
+        <div style="font-size:22px;line-height:1.2">${f.icon}</div>
+        <div><div style="font-size:12.5px;font-weight:800;color:${color}">${f.t}</div><div style="font-size:12px;color:#444;line-height:1.7;margin-top:2px">${f.d}</div></div>
+      </div>`).join("")}</div>`;
+  } else if(tab === "clinical"){
+    body = `${hpaiChickenSvg()}
+      <div style="font-size:10px;color:#999;text-align:center;margin:4px 0 10px">※ 이해를 돕기 위한 모식도입니다 (실제 병변은 개체마다 다릅니다)</div>
+      <div style="display:grid;gap:7px">${HPAI_CLINICAL.map(c => `
+        <div style="border:1px solid #eee;border-radius:10px;padding:9px 11px">
+          <div style="display:flex;align-items:center;gap:8px">
+            ${c.n ? `<span style="min-width:22px;height:22px;border-radius:50%;background:#C62828;color:#fff;font-size:12px;font-weight:800;display:inline-flex;align-items:center;justify-content:center">${c.n}</span>` : `<span style="font-size:18px">${c.ic}</span>`}
+            <div style="font-size:13px;font-weight:800;color:#333">${c.s}</div>
+          </div>
+          <div style="font-size:11.5px;color:#555;line-height:1.7;margin-top:5px;padding-left:2px"><b style="color:#1565C0">왜 생길까?</b> ${c.why}</div>
+        </div>`).join("")}</div>`;
+  } else if(tab === "necropsy"){
+    body = `${hpaiOrganSvg()}
+      <div style="font-size:10px;color:#999;text-align:center;margin:4px 0 10px">※ 장기 위치를 단순화한 모식도입니다. 빨간 점은 점상출혈, 흰 점은 괴사 병소를 나타냅니다</div>
+      <div style="display:grid;gap:7px">${HPAI_NECROPSY.map(c => `
+        <div style="border:1px solid #eee;border-radius:10px;padding:9px 11px">
+          <div style="display:flex;align-items:center;gap:8px">
+            ${c.n ? `<span style="min-width:22px;height:22px;border-radius:50%;background:#1565C0;color:#fff;font-size:12px;font-weight:800;display:inline-flex;align-items:center;justify-content:center">${c.n}</span>` : `<span style="font-size:18px">🔎</span>`}
+            <div style="font-size:13px;font-weight:800;color:#333">${c.s}</div>
+          </div>
+          <div style="font-size:11.5px;color:#555;line-height:1.7;margin-top:5px"><b style="color:#B71C1C">왜 이런 소견이 나올까?</b> ${c.why}</div>
+        </div>`).join("")}</div>`;
+  } else {
+    body = `<div style="display:grid;gap:8px">${HPAI_OTHER.map(o => `
+      <div style="background:#FFFBEA;border:1px solid #F3E7B3;border-radius:10px;padding:10px 12px">
+        <div style="font-size:12.5px;font-weight:800;color:#7A5C00">${o.t}</div><div style="font-size:12px;color:#444;line-height:1.7;margin-top:2px">${o.d}</div>
+      </div>`).join("")}</div>`;
+  }
+  const imgBtns = HPAI_IMG_QUERIES.map(q => `<a href="https://www.google.com/search?tbm=isch&q=${encodeURIComponent(q[1])}" target="_blank" rel="noopener" style="font-size:11px;border:1px solid #4285F4;border-radius:6px;padding:4px 9px;color:#4285F4;text-decoration:none;margin:0 6px 6px 0;display:inline-block">🔍 실제 사진: ${esc(q[0])}</a>`).join("");
+  return wrap(`${tabBar}${body}
+    <div style="margin-top:14px;border-top:1px dashed #eee;padding-top:10px"><div style="font-size:11px;color:#777;margin-bottom:6px">📷 실제 임상·부검 사진은 아래에서 검색해 볼 수 있습니다 (일부 사진은 자극적일 수 있습니다)</div>${imgBtns}</div>
+    <div style="font-size:9.5px;color:#aaa;line-height:1.7;margin-top:6px">※ 출처: Iowa State Univ. CFSPH 「Highly Pathogenic Avian Influenza」, HPAI 병리 문헌(사이토카인 과다 반응과 전신 모세혈관 누수·혈전) 요약 · 농림축산식품부 「고병원성 AI 특별방역대책」. 교육용 요약이며 진단은 반드시 방역기관 정밀검사로 하세요.</div>`);
+}
+
+// ── 예방·조기신고 메뉴 ──
+function hpaiEarlyCheck(){
+  const e = hpaiPrevState.ew || {}, sym = hpaiPrevState.sym || {};
+  const n = k => { const v = parseFloat(e[k]); return Number.isFinite(v) ? v : null; };
+  const avgD = n("avgDead"), todD = n("todayDead"), avgL = n("avgLay"), todL = n("todayLay");
+  const hits = [];
+  if(avgD != null && todD != null){
+    if(avgD > 0 && todD >= avgD * 2) hits.push(`오늘 폐사 ${todD}수 — 최근 7일 평균(${avgD}수)의 ${(todD/avgD).toFixed(1)}배 (기준: 2배 이상)`);
+    else if(avgD === 0 && todD >= 2) hits.push(`평소 폐사가 거의 없던 축사에서 오늘 ${todD}수 폐사 (기준: 평균의 2배 이상)`);
+  }
+  if(avgL != null && todL != null && avgL - todL >= 3) hits.push(`산란율 ${todL}% — 최근 7일 평균(${avgL}%)보다 ${(avgL-todL).toFixed(1)}%p 하락 (기준: 3% 이상 저하)`);
+  HPAI_SUSPECT_SYMPTOMS.forEach(s => { if(sym[s.k]) hits.push(s.t); });
+  const anyInput = hits.length || (avgD != null && todD != null) || (avgL != null && todL != null) || Object.keys(sym).some(k => sym[k]);
+  return { hits, anyInput };
+}
+function renderHpaiCheckResult(){
+  const r = hpaiEarlyCheck();
+  const call = HPAI_HOTLINES.map(h => `<a href="${hpaiTelHref(h.tel)}" style="display:inline-block;background:#C62828;color:#fff;text-decoration:none;font-weight:800;font-size:14px;border-radius:10px;padding:10px 14px;margin:6px 6px 0 0">📞 ${h.tel}</a>`).join("");
+  if(r.hits.length) return `<div style="background:#FFEBEE;border:2px solid #C62828;border-radius:12px;padding:12px 14px">
+    <div style="font-size:14px;font-weight:800;color:#B71C1C">🚨 고병원성 AI 의심 — 지금 바로 신고하세요</div>
+    <div style="font-size:12px;color:#444;line-height:1.7;margin-top:6px">${r.hits.map(h => "· " + esc(h)).join("<br>")}</div>
+    <div style="font-size:12px;color:#B71C1C;font-weight:700;margin-top:8px">① 농장의 사람·차량·가축·물품 이동을 즉시 중단 ② 가축방역기관에 신고 ③ 담당 수의사에게도 연락</div>
+    <div>${call}</div></div>`;
+  if(r.anyInput) return `<div style="background:#E8F5E9;border:1px solid #A5D6A7;border-radius:12px;padding:12px 14px">
+    <div style="font-size:13.5px;font-weight:800;color:#2E7D32">✅ 입력하신 내용은 의심 신고 기준에 해당하지 않습니다</div>
+    <div style="font-size:11.5px;color:#555;line-height:1.7;margin-top:4px">그래도 매일 같은 시간에 점검하고, 위 증상 중 하나라도 보이면 폐사가 늘지 않았더라도 바로 신고하세요.</div></div>`;
+  return `<div style="background:#F5F5F5;border-radius:12px;padding:12px 14px;font-size:12px;color:#777">수치를 입력하거나 해당 증상에 체크하면 신고 필요 여부를 바로 알려드립니다.</div>`;
+}
+function renderHpaiChecklist(groups, keyPrefix){
+  const chk = hpaiPrevState.chk || {};
+  let total = 0, done = 0;
+  const html = groups.map(g => `
+    <div style="font-size:12px;font-weight:800;color:#333;margin:12px 0 2px">${g.g}</div>
+    ${g.items.map(it => { total++; const on = !!chk[it[0]]; if(on) done++; return `
+      <label style="display:flex;gap:8px;align-items:flex-start;padding:7px 2px;border-top:1px solid #f0f0f0;cursor:pointer">
+        <input type="checkbox" class="hp-chk" data-k="${it[0]}" ${on?"checked":""} style="margin-top:3px;width:17px;height:17px;flex-shrink:0" />
+        <span style="font-size:12.5px;color:#333;line-height:1.55">${it[1]}</span></label>`; }).join("")}`).join("");
+  const pct = total ? Math.round(done / total * 100) : 0;
+  return `<div style="background:#F3F8FF;border-radius:10px;padding:9px 12px;margin-bottom:4px">
+      <div style="font-size:12px;font-weight:800;color:#1565C0">실천 현황 ${done} / ${total} (${pct}%)</div>
+      <div style="background:rgba(0,0,0,.08);border-radius:6px;height:7px;margin-top:5px"><div style="background:#1565C0;width:${pct}%;height:7px;border-radius:6px"></div></div></div>${html}`;
+}
+
+function renderHpaiPreventCard(){
+  const s = hpaiPrevState, color = "#C62828", c = s.contacts || {}, e = s.ew || {};
+  const call = HPAI_HOTLINES.map(h => `<a href="${hpaiTelHref(h.tel)}" style="flex:1;min-width:130px;text-align:center;background:#C62828;color:#fff;text-decoration:none;font-weight:800;font-size:14px;border-radius:10px;padding:11px 8px">📞 ${h.tel}</a>`).join("");
+  const head = `
+  <div id="hp-toggle" role="button" tabindex="0" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;gap:10px">
+    <div>
+      <div class="display" style="font-size:15px">🚨 AI 예방·조기신고 (방역수칙 · 사양관리 · 빠른 연락)</div>
+      <div style="font-size:11px;color:#888;margin-top:2px">의심되면 폐사가 늘기 전에 신고 — 조기 신고가 내 농장과 이웃 농장을 지킵니다</div>
+    </div>
+    <div style="font-size:12px;color:${color};font-weight:700;white-space:nowrap">${s.open ? "접기 ▲" : "열기 ▼"}</div>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">${call}</div>
+  <div style="font-size:10.5px;color:#999;margin-top:5px">가축방역 신고전화(24시간) · 야생조류 폐사체 발견 ☎110</div>`;
+  const wrap = body => `<div class="card" style="margin-bottom:14px;border-top:4px solid ${color}">${head}${body}</div>`;
+  if(!s.open) return wrap("");
+  const subs = [["report","🚨 조기발견·신고"],["rules","🛡️ 방역수칙"],["mgmt","🐔 사양관리요령"]];
+  const bar = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 12px">${subs.map(t => `<button class="hp-sub" data-sub="${t[0]}" style="border:2px solid ${s.sub===t[0]?color:"#eee"};background:${s.sub===t[0]?color:"#fff"};color:${s.sub===t[0]?"#fff":"#444"};border-radius:10px;padding:8px 12px;font-size:12.5px;font-weight:700;cursor:pointer">${t[1]}</button>`).join("")}</div>`;
+  let body = "";
+  if(s.sub === "report"){
+    const inp = (k, label, unit) => `<label style="display:block"><div style="font-size:10.5px;color:#777;margin-bottom:3px">${label}</div><div style="display:flex;align-items:center;gap:5px"><input class="hp-in" data-k="${k}" type="number" inputmode="decimal" step="any" min="0" value="${esc(e[k] == null ? "" : e[k])}" style="flex:1;min-width:0;padding:7px 8px;border:1px solid #ddd;border-radius:8px;font-size:13px" /><span style="font-size:11px;color:#888">${unit}</span></div></label>`;
+    const symHtml = HPAI_SUSPECT_SYMPTOMS.map(x => `<label style="display:flex;gap:8px;align-items:flex-start;padding:6px 2px;border-top:1px solid #f0f0f0;cursor:pointer"><input type="checkbox" class="hp-sym" data-k="${x.k}" ${s.sym && s.sym[x.k] ? "checked" : ""} style="margin-top:3px;width:17px;height:17px;flex-shrink:0" /><span style="font-size:12.5px;color:#333;line-height:1.5">${x.t}</span></label>`).join("");
+    body = `
+      <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:6px">① 오늘 우리 축사 수치 <span style="font-weight:400;color:#999">(축사별로 따로 확인하세요 · 자동 저장)</span></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px">
+        ${inp("avgDead", "최근 7일 평균 일 폐사 수", "수")}${inp("todayDead", "오늘 폐사 수", "수")}
+        ${inp("avgLay", "최근 7일 평균 산란율(산란계)", "%")}${inp("todayLay", "오늘 산란율", "%")}
+      </div>
+      <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:2px">② 이런 증상이 보이나요?</div>
+      <div style="margin-bottom:12px">${symHtml}</div>
+      <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:6px">③ 판정</div>
+      <div id="hp-result">${renderHpaiCheckResult()}</div>
+
+      <div style="font-size:12px;font-weight:700;color:#333;margin:16px 0 6px">📇 우리 농장 비상 연락처 <span style="font-weight:400;color:#999">(이 기기에만 저장)</span></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px">
+        ${[["vet","담당 수의사"],["gov","시·군 가축방역 담당"],["co","계열사·컨설턴트"]].map(x => `
+        <div style="border:1px solid #eee;border-radius:10px;padding:8px 10px">
+          <div style="font-size:10.5px;color:#777;margin-bottom:4px">${x[1]}</div>
+          <input class="hp-contact" data-k="${x[0]}" type="tel" inputmode="tel" placeholder="전화번호" value="${esc(c[x[0]] || "")}" style="width:100%;padding:7px 8px;border:1px solid #ddd;border-radius:8px;font-size:13px;margin-bottom:6px" />
+          ${c[x[0]] ? `<a href="${hpaiTelHref(c[x[0]])}" style="display:block;text-align:center;background:#1565C0;color:#fff;text-decoration:none;font-weight:700;font-size:13px;border-radius:8px;padding:8px">📞 전화 걸기</a>` : `<div style="font-size:10.5px;color:#bbb;text-align:center;padding:8px">번호를 입력하면 바로 전화할 수 있습니다</div>`}
+        </div>`).join("")}
+      </div>
+
+      <div style="background:#FFF8E1;border-radius:10px;padding:11px 13px;margin-top:16px;font-size:11.5px;color:#555;line-height:1.75">
+        <b style="color:#333">📞 신고할 때 이렇게 말하세요</b><br>
+        ① 농장명·주소·연락처 ② 가축 종류·사육 수수 ③ 증상이 시작된 시각과 축사 ④ 오늘 폐사 수와 평소 대비 ⑤ 산란율·사료·음수 변화 ⑥ 최근 방문한 차량·사람<br>
+        신고 후에는 방역기관의 지시가 있을 때까지 <b>농장 안의 가축·사람·차량·물품 이동을 중단</b>하세요.
+      </div>
+      <div style="background:#FFF3F3;border-radius:10px;padding:11px 13px;margin-top:10px;font-size:11.5px;color:#555;line-height:1.75">
+        <b style="color:#B71C1C">⚖️ 신고하면 이득입니다</b><br>
+        · 조기 신고(증상이 외관상 나타난 날 또는 그 전): 살처분 보상금 평가액 <b>10% 경감</b> 가능<br>
+        · 지연 신고: 보상금 <b>10~40% 감액</b> · 미신고: <b>60% 감액</b> + 5년 이하 징역 또는 5천만원 이하 벌금<br>
+        <span style="font-size:10px;color:#999">※ 2024/25 특별방역대책 기준 — 해마다 개정되므로 최신 지침은 방역기관에 확인하세요.</span>
+      </div>`;
+  } else if(s.sub === "rules"){
+    body = `<div style="font-size:11.5px;color:#666;line-height:1.7;margin-bottom:4px">농림축산식품부 핵심 방역수칙입니다. 우리 농장에서 지키고 있는 항목에 체크하세요.</div>${renderHpaiChecklist(HPAI_RULES)}
+      <div style="font-size:10px;color:#aaa;line-height:1.7;margin-top:10px">※ 출처: 농림축산식품부 「2024/25 고병원성 AI 특별방역대책」(2024.9). 지자체 행정명령·철새도래지 통제구간은 시기·지역에 따라 다르니 시·군 방역 안내를 함께 확인하세요.</div>`;
+  } else {
+    body = `<div style="font-size:11.5px;color:#666;line-height:1.7;margin-bottom:4px">감염을 막고, 감염되더라도 조기에 알아채기 위한 일반 사양관리 요령입니다(공식 수칙이 아닌 현장 권고).</div>${renderHpaiChecklist(HPAI_MGMT)}`;
+  }
+  return wrap(`${bar}${body}`);
+}
+
 function renderHpaiTab(){
-  const newsCard = renderHpaiNewsCard();
+  const newsCard = renderHpaiNewsCard() + renderHpaiSymptomCard() + renderHpaiPreventCard();
   const d = hpaiState;
   const shell = inner => `<div class="card" style="margin-bottom:16px">${inner}</div>`;
   if(d.status === "loading" || d.status === "idle")
@@ -14686,6 +15014,25 @@ function attachDiseaseEvents(){
     }
     render();
   };
+
+  // AI관련정보: 증상 카드 / 예방·조기신고
+  const hsT = document.getElementById("hs-toggle");
+  if(hsT){
+    const tg = () => { hpaiSymState.open = !hpaiSymState.open; render(); };
+    hsT.onclick = tg; hsT.onkeydown = e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); tg(); } };
+  }
+  document.querySelectorAll(".hs-tab").forEach(b => b.onclick = () => { hpaiSymState.tab = b.dataset.tab; render(); });
+  const hpT = document.getElementById("hp-toggle");
+  if(hpT){
+    const tg = () => { hpaiPrevState.open = !hpaiPrevState.open; render(); };
+    hpT.onclick = tg; hpT.onkeydown = e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); tg(); } };
+  }
+  document.querySelectorAll(".hp-sub").forEach(b => b.onclick = () => { hpaiPrevState.sub = b.dataset.sub; render(); });
+  const hpRefresh = () => { const r = document.getElementById("hp-result"); if(r) r.innerHTML = renderHpaiCheckResult(); };
+  document.querySelectorAll(".hp-in").forEach(el => el.oninput = () => { hpaiPrevState.ew[el.dataset.k] = el.value; saveHpaiPrev(); hpRefresh(); });
+  document.querySelectorAll(".hp-sym").forEach(el => el.onchange = () => { hpaiPrevState.sym[el.dataset.k] = el.checked; saveHpaiPrev(); hpRefresh(); });
+  document.querySelectorAll(".hp-chk").forEach(el => el.onchange = () => { hpaiPrevState.chk[el.dataset.k] = el.checked; saveHpaiPrev(); render(); });
+  document.querySelectorAll(".hp-contact").forEach(el => el.onchange = () => { hpaiPrevState.contacts[el.dataset.k] = el.value.trim(); saveHpaiPrev(); render(); });
 
   // 최신 연구되는 질병
   const emT = document.getElementById("em-toggle");
