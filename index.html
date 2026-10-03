@@ -6060,7 +6060,7 @@ const HPAI_MGMT = [
   ]},
 ];
 const HPAI_PREV_KEY = "hpai_prev_v1";
-let hpaiSymState = { open:false, tab:"feature" };
+let hpaiSymState = { open:false, tab:"feature", mark:null };
 let hpaiPrevState = (function(){
   const base = { open:false, sub:"report", ew:{}, sym:{}, chk:{} };
   try { const s = JSON.parse(localStorage.getItem(HPAI_PREV_KEY) || "null"); if(s) return Object.assign(base, s, { open:false, sub:"report" }); } catch(e){}
@@ -6073,12 +6073,39 @@ function hpaiTelHref(v){ return "tel:" + String(v||"").replace(/[^0-9+]/g, ""); 
 
 // ── 그림: 온라인 자가진단의 실제 닭 해부도(self_check/chicken_anatomy.jpg) ──
 // 그림 위에 따로 표시를 겹치지 않고, 각 증상·소견 옆에 해부도 속 번호·장기명을 적어 준다.
-function hpaiAnatomyImg(){
-  return `<div style="position:relative;width:100%;max-width:640px;margin:0 auto;border-radius:12px;overflow:hidden;border:1px solid #eee;background:#fff">
-    <img src="self_check/chicken_anatomy.jpg" alt="닭 내장 해부도" loading="lazy" style="width:100%;height:auto;display:block" /></div>`;
+const HPAI_EXT_AT = { comb:[10.5, 6.5], face:[13, 14.5], shank:[44.5, 84] };  // 그림에 번호가 없는 외부 부위(% 좌표)
+// 선택한 위치(mark)에만 동그라미를 그린다 — 움직임 없이 고정 표시
+function hpaiAnatomyImg(color){
+  const m = hpaiSymState.mark;
+  let ring = "";
+  if(m){
+    const b = (!m.ext && typeof bodyPartByKey === "function") ? bodyPartByKey(m.k) : null;
+    const pt = m.ext ? HPAI_EXT_AT[m.k] : (b && b.x != null ? [b.x, b.y] : null);
+    if(pt) ring = `<span id="hs-ring" style="position:absolute;left:${pt[0]}%;top:${pt[1]}%;transform:translate(-50%,-50%);width:8%;aspect-ratio:1/1;border-radius:50%;border:3px solid ${color};box-shadow:0 0 0 2px #fff,0 0 0 4px rgba(0,0,0,.18);pointer-events:none"></span>`;
+  }
+  return `<div id="hs-img" style="position:relative;width:100%;max-width:640px;margin:0 auto;border-radius:12px;overflow:hidden;border:1px solid #eee;background:#fff">
+    <img src="self_check/chicken_anatomy.jpg" alt="닭 내장 해부도" loading="lazy" style="width:100%;height:auto;display:block" />${ring}</div>`;
 }
-const HPAI_LOC_CLINICAL = { 1:"벼슬·육수", 2:"안면(눈·얼굴)", 3:"② 기관 · ⑥ 폐", 4:"정강이", 5:"⑬ 췌장 · ⑭ 소장 · ⑰ 총배설강", 6:"① 뇌", 7:"⑲ 난소 · ⑳ 난관" };
-const HPAI_LOC_NECROPSY = { 1:"② 기관", 2:"⑥ 폐", 3:"⑤ 심장", 4:"⑦ 선위 · ⑧ 근위", 5:"⑬ 췌장", 6:"⑭ 소장 · ⑮ 맹장", 7:"⑪ 비장 · ⑨ 간", 8:"⑲ 난소 · ⑳ 난관", 9:"⑱ 신장" };
+// 증상·소견별 해부도 위치 — 누르면 그림에 동그라미 표시. k=자가진단 BODY_PARTS 키, ext=그림에 번호가 없는 외부 부위
+const HPAI_LOC_CLINICAL = {
+  1:[{k:"comb", ext:1, t:"벼슬·육수"}], 2:[{k:"face", ext:1, t:"안면(눈·얼굴)"}],
+  3:[{k:"trachea", t:"② 기관"}, {k:"lungs", t:"⑥ 폐"}], 4:[{k:"shank", ext:1, t:"정강이"}],
+  5:[{k:"pancreas", t:"⑬ 췌장"}, {k:"intestine", t:"⑭ 소장"}, {k:"cloaca", t:"⑰ 총배설강"}],
+  6:[{k:"brain", t:"① 뇌"}], 7:[{k:"ovary", t:"⑲ 난소"}, {k:"oviduct", t:"⑳ 난관"}],
+};
+const HPAI_LOC_NECROPSY = {
+  1:[{k:"trachea", t:"② 기관"}], 2:[{k:"lungs", t:"⑥ 폐"}], 3:[{k:"heart", t:"⑤ 심장"}],
+  4:[{k:"proventriculus", t:"⑦ 선위"}, {k:"gizzard", t:"⑧ 근위"}], 5:[{k:"pancreas", t:"⑬ 췌장"}],
+  6:[{k:"intestine", t:"⑭ 소장"}, {k:"caeca", t:"⑮ 맹장"}], 7:[{k:"spleen", t:"⑪ 비장"}, {k:"liver", t:"⑨ 간"}],
+  8:[{k:"ovary", t:"⑲ 난소"}, {k:"oviduct", t:"⑳ 난관"}], 9:[{k:"kidney", t:"⑱ 신장"}],
+};
+function hpaiLocTags(list, label, bg, fg, color){
+  const cur = hpaiSymState.mark;
+  return `<div style="margin-top:5px;display:flex;gap:5px;flex-wrap:wrap;align-items:center"><span style="font-size:10.5px;color:#888">${label}</span>${list.map(x => {
+    const on = cur && cur.k === x.k && !!cur.ext === !!x.ext;
+    return `<button class="hs-loc" data-k="${x.k}" data-ext="${x.ext ? 1 : 0}" data-color="${color}" style="font-size:11px;font-weight:700;border:2px solid ${on ? fg : "transparent"};background:${on ? fg : bg};color:${on ? "#fff" : fg};border-radius:10px;padding:2px 9px;cursor:pointer">${x.t}</button>`;
+  }).join("")}<span style="font-size:10px;color:#bbb">눌러서 그림에 표시</span></div>`;
+}
 // 실제 임상 사진 — 미국 농무부(USDA APHIS) 제공, 퍼블릭 도메인(위키미디어 공용)
 const HPAI_PHOTOS = [
   { src:"assets/hpai/hpai_comb.jpg", cap:"벼슬의 보라·검붉은 변색과 괴사 (오른쪽 개체)", page:"https://commons.wikimedia.org/wiki/File:Discolored_chicken_comb.jpg" },
@@ -6118,8 +6145,8 @@ function renderHpaiSymptomCard(){
         <div><div style="font-size:12.5px;font-weight:800;color:${color}">${f.t}</div><div style="font-size:12px;color:#444;line-height:1.7;margin-top:2px">${f.d}</div></div>
       </div>`).join("")}</div>`;
   } else if(tab === "clinical"){
-    body = `${hpaiAnatomyImg()}
-      <div style="font-size:10px;color:#999;text-align:center;margin:4px 0 10px">※ 「온라인 자가진단」의 닭 해부도입니다 (증상별 해부도 위치는 아래 설명에 적었습니다)</div>
+    body = `${hpaiAnatomyImg("#C62828")}
+      <div style="font-size:10px;color:#999;text-align:center;margin:4px 0 10px">※ 「온라인 자가진단」의 닭 해부도입니다 (아래 증상의 위치 버튼을 누르면 그림에 동그라미로 표시됩니다)</div>
       ${hpaiPhotoStrip()}
       <div style="height:12px"></div>
       <div style="display:grid;gap:7px">${HPAI_CLINICAL.map(c => `
@@ -6128,19 +6155,19 @@ function renderHpaiSymptomCard(){
             <span style="font-size:18px">${c.ic}</span>
             <div style="font-size:13px;font-weight:800;color:#333">${c.s}</div>
           </div>
-          ${HPAI_LOC_CLINICAL[c.n] ? `<div style="margin-top:5px"><span style="font-size:10.5px;background:#FFEBEE;color:#B71C1C;border-radius:8px;padding:2px 8px;font-weight:700">해부도 위치 · ${HPAI_LOC_CLINICAL[c.n]}</span></div>` : ""}
+          ${HPAI_LOC_CLINICAL[c.n] ? hpaiLocTags(HPAI_LOC_CLINICAL[c.n], "해부도 위치", "#FFEBEE", "#B71C1C", "#C62828") : ""}
           <div style="font-size:11.5px;color:#555;line-height:1.7;margin-top:5px;padding-left:2px"><b style="color:#1565C0">왜 생길까?</b> ${c.why}</div>
         </div>`).join("")}</div>`;
   } else if(tab === "necropsy"){
-    body = `${hpaiAnatomyImg()}
-      <div style="font-size:10px;color:#999;text-align:center;margin:4px 0 10px">※ 「온라인 자가진단」의 닭 해부도입니다 (소견별 해부도 번호·장기는 아래 설명에 적었습니다)</div>
+    body = `${hpaiAnatomyImg("#1565C0")}
+      <div style="font-size:10px;color:#999;text-align:center;margin:4px 0 10px">※ 「온라인 자가진단」의 닭 해부도입니다 (아래 소견의 해부도 번호를 누르면 그림에 동그라미로 표시됩니다)</div>
       <div style="display:grid;gap:7px">${HPAI_NECROPSY.map(c => `
         <div style="border:1px solid #eee;border-radius:10px;padding:9px 11px">
           <div style="display:flex;align-items:center;gap:8px">
             <span style="font-size:18px">🔎</span>
             <div style="font-size:13px;font-weight:800;color:#333">${c.s}</div>
           </div>
-          ${HPAI_LOC_NECROPSY[c.n] ? `<div style="margin-top:5px"><span style="font-size:10.5px;background:#E3F2FD;color:#0D47A1;border-radius:8px;padding:2px 8px;font-weight:700">해부도 번호 · ${HPAI_LOC_NECROPSY[c.n]}</span></div>` : ""}
+          ${HPAI_LOC_NECROPSY[c.n] ? hpaiLocTags(HPAI_LOC_NECROPSY[c.n], "해부도 번호", "#E3F2FD", "#0D47A1", "#1565C0") : ""}
           <div style="font-size:11.5px;color:#555;line-height:1.7;margin-top:5px"><b style="color:#B71C1C">왜 이런 소견이 나올까?</b> ${c.why}</div>
         </div>`).join("")}</div>`;
   } else {
@@ -14991,7 +15018,14 @@ function attachDiseaseEvents(){
     const tg = () => { hpaiSymState.open = !hpaiSymState.open; render(); };
     hsT.onclick = tg; hsT.onkeydown = e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); tg(); } };
   }
-  document.querySelectorAll(".hs-tab").forEach(b => b.onclick = () => { hpaiSymState.tab = b.dataset.tab; render(); });
+  document.querySelectorAll(".hs-tab").forEach(b => b.onclick = () => { hpaiSymState.tab = b.dataset.tab; hpaiSymState.mark = null; render(); });
+  document.querySelectorAll(".hs-loc").forEach(b => b.onclick = () => {
+    const cur = hpaiSymState.mark, ext = b.dataset.ext === "1";
+    hpaiSymState.mark = (cur && cur.k === b.dataset.k && !!cur.ext === ext) ? null : { k:b.dataset.k, ext };
+    render();
+    const img = document.getElementById("hs-img");
+    if(img && hpaiSymState.mark){ const r = img.getBoundingClientRect(); if(r.top < 0 || r.bottom > window.innerHeight) img.scrollIntoView({ behavior:"smooth", block:"center" }); }
+  });
   const hpT = document.getElementById("hp-toggle");
   if(hpT){
     const tg = () => { hpaiPrevState.open = !hpaiPrevState.open; render(); };
