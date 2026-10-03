@@ -5635,7 +5635,7 @@ function emergAnalyze(papers){
     else if(recent >= 2 && ratio >= 1.2) trend = "up";
     else if(base >= 3 && ratio <= 0.7) trend = "down";
     return { d, mine, recent, prior, base, ratio, trend, score: recent * (1 + Math.max(0, ratio - 1)) };
-  }).filter(r => r.mine.length);
+  }).filter(r => r.recent > 0); // 최근 30일 0편인 질병은 제외
   rows.sort((a,b)=>b.recent-a.recent || b.mine.length-a.mine.length || b.score-a.score); // 최근 30일 논문 수 많은 순
   return rows;
 }
