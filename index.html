@@ -10483,6 +10483,31 @@ const HSI_ACTIONS = {
   ],
 };
 
+// "쾌적"(HSI 70 미만, 20°C 이상) 구간의 조치는 계절에 따라 달라야 한다. 예전엔
+// 여름 대비 문구(쿨링패드 시운전 등)를 달과 상관없이 늘 보여줘서, 가을·겨울에도
+// "다가올 더위를 준비하라"고 나오는 문제가 있었다. 5~9월만 더위 대비를 그대로 쓰고
+// 나머지 달은 그 계절에 실제로 해야 할 관리(월동 준비·환절기·봄 점검)로 바꾼다.
+// (더위 단계 경계 70/76/82와 그 위 단계 조치는 Hy-Line 원문이라 계절과 무관하게 그대로.)
+function comfortActions(month){
+  if(month >= 5 && month <= 9) return HSI_ACTIONS.comfort;
+  if(month >= 10 && month <= 11) return [
+    "열스트레스 걱정이 없는 쾌적 구간 — 월동 준비를 시작하기 좋은 시점입니다",
+    "계사 틈새·커튼·환기구를 보수하고 보온·난방기를 미리 시운전하세요 (연료도 미리 확보)",
+    "일교차가 커지는 환절기입니다 — 새벽 보온과 최소환기량을 함께 지켜 호흡기 질병(CRD 등)을 예방하세요",
+    "철새가 도래하는 시기입니다 — 야생조류·차량 출입을 막는 차단방역과 소독을 한 단계 강화하세요",
+  ];
+  if(month === 12 || month <= 2) return [
+    "지금은 추위 관리가 우선입니다 — 보온과 최소환기량을 함께 확인하세요",
+    "난방하려고 환기를 막지 마세요 — 암모니아·이산화탄소가 쌓이면 호흡기 피해로 이어집니다",
+    "음수 결빙·급수라인 동파와 깔짚 건조 상태를 점검하세요",
+  ];
+  return [ // 3~4월
+    "열스트레스 걱정이 없는 쾌적 구간 — 봄 환절기 일교차와 호흡기 질병에 유의하세요",
+    "겨우내 닫아 둔 환기구·팬·쿨링패드를 점검·청소해 다가올 여름을 미리 대비하세요",
+    "깔짚 수분과 콕시듐(Eimeria) 위험이 오르는 때입니다 — 환기량과 급수라인 누수를 점검하세요",
+  ];
+}
+
 // Aviagen Ross Handbook 2025 Table 2.5 — 체중별·습도별 최적 건구온도(°C).
 // 표에 실린 40/50/60/70% 사이는 선형보간한다.
 const AVIAGEN_APPARENT_TEMP = {
@@ -10591,7 +10616,9 @@ function renderHusbandryPointsCard(opts){
   const inRange = hsiInRange(c.peakTemp);
   const lv = inRange ? hsiLevel(c.hsi)
     : {key:"cold", label:"저온", short:"Below range", icon:"❄️", color:"#1565C0", bg:"#E3F2FD"};
-  const actions = HSI_ACTIONS[lv.key] || [];
+  const month = Number(String(c.date || "").slice(5,7)) || (new Date().getMonth() + 1);
+  const seasonalComfort = lv.key === "comfort" && !(month >= 5 && month <= 9);
+  const actions = lv.key === "comfort" ? comfortActions(month) : (HSI_ACTIONS[lv.key] || []);
   const rhInt = Math.round(c.peakHum);
   const hot = inRange && c.hsi >= 70;
 
@@ -10664,7 +10691,7 @@ function renderHusbandryPointsCard(opts){
 
     <div style="background:${lv.bg};border-radius:10px;padding:10px 12px;margin-bottom:12px">
       <div style="font-size:11px;font-weight:700;color:${lv.color};margin-bottom:5px">
-        ${lv.icon} 지금 해야 할 조치 <span style="font-size:9px;font-weight:600;opacity:.75">${inRange ? "Hy-Line 규정 조치" : "Hy-Line 적온대 기준"}</span>
+        ${lv.icon} 지금 해야 할 조치 <span style="font-size:9px;font-weight:600;opacity:.75">${seasonalComfort ? "계절별 관리 포인트" : (inRange ? "Hy-Line 규정 조치" : "Hy-Line 적온대 기준")}</span>
       </div>
       ${actions.map(a => bullet(a)).join("")}
     </div>
