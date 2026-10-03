@@ -78,9 +78,12 @@ def esearch_pmids(query: str) -> list[str]:
         "term": query,
         "retmax": RESULTS_PER_CATEGORY,
         # "date"는 유효한 정렬 스키마가 아니라 조용히 무시된다(NCBI가 그냥
-        # 경고만 주고 relevance로 돌아감) — 최근순 정렬은 pub_date를 쓴다.
-        "sort": "pub_date",
-        "datetype": "pdat",
+        # 경고만 주고 relevance로 돌아감). pub_date(발행일순)도 쓰면 안 된다 —
+        # 호 발행일이 미래로 찍힌 논문이 계속 맨 위를 차지해 몇 주째 같은 논문만
+        # 나왔다(질병논문 5편이 3주 연속 동일). PubMed "Most recent"와 같은
+        # most+recent(PubMed에 새로 등록된 순)를 쓴다.
+        "sort": "most+recent",
+        "datetype": "edat",
         "reldate": RECENCY_DAYS,
         "retmode": "json",
     }
