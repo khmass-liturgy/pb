@@ -6209,8 +6209,7 @@ function renderHpaiPreventCard(){
     </div>
     <div style="font-size:12px;color:${color};font-weight:700;white-space:nowrap">${s.open ? "접기 ▲" : "열기 ▼"}</div>
   </div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">${call}</div>
-  <div style="font-size:10.5px;color:#999;margin-top:5px">가축방역 신고전화(24시간) · 야생조류 폐사체 발견 ☎110</div>`;
+  `;
   const wrap = body => `<div class="card" style="margin-bottom:14px;border-top:4px solid ${color}">${head}${body}</div>`;
   if(!s.open) return wrap("");
   const subs = [["report","🚨 조기발견·신고"],["rules","🛡️ 방역수칙"],["mgmt","🐔 사양관리요령"]];
@@ -6220,6 +6219,8 @@ function renderHpaiPreventCard(){
     const inp = (k, label, unit) => `<label style="display:block"><div style="font-size:10.5px;color:#777;margin-bottom:3px">${label}</div><div style="display:flex;align-items:center;gap:5px"><input class="hp-in" data-k="${k}" type="number" inputmode="decimal" step="any" min="0" value="${esc(e[k] == null ? "" : e[k])}" style="flex:1;min-width:0;padding:7px 8px;border:1px solid #ddd;border-radius:8px;font-size:13px" /><span style="font-size:11px;color:#888">${unit}</span></div></label>`;
     const symHtml = HPAI_SUSPECT_SYMPTOMS.map(x => `<label style="display:flex;gap:8px;align-items:flex-start;padding:6px 2px;border-top:1px solid #f0f0f0;cursor:pointer"><input type="checkbox" class="hp-sym" data-k="${x.k}" ${s.sym && s.sym[x.k] ? "checked" : ""} style="margin-top:3px;width:17px;height:17px;flex-shrink:0" /><span style="font-size:12.5px;color:#333;line-height:1.5">${x.t}</span></label>`).join("");
     body = `
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${call}</div>
+      <div style="font-size:10.5px;color:#999;margin:5px 0 14px">가축방역 신고전화(24시간) · 야생조류 폐사체 발견 ☎110</div>
       <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:6px">① 오늘 우리 축사 수치 <span style="font-weight:400;color:#999">(축사별로 따로 확인하세요 · 자동 저장)</span></div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px">
         ${inp("avgDead", "최근 7일 평균 일 폐사 수", "수")}${inp("todayDead", "오늘 폐사 수", "수")}
