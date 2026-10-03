@@ -176,7 +176,10 @@ def translate_and_summarize(articles: list[dict[str, str]]) -> list[dict[str, st
         if resp.status_code not in (400, 404) or model == ANTHROPIC_MODEL_FALLBACK:
             break
     resp.raise_for_status()
-    blocks = resp.json().get("content", [])
+    payload = resp.json()
+    if payload.get("stop_reason") not in (None, "end_turn", "stop_sequence"):
+        print(f"  Anthropic stop_reason={payload.get('stop_reason')} (거절·잘림이면 JSON이 비어 파싱 실패함)")
+    blocks = payload.get("content", [])
     # content[0]이 항상 답변 텍스트라고 가정하면 안 된다 — 모델이 추론
     # 과정을 담은 thinking 블록을 먼저 반환하면 실제 답은 뒤쪽 블록에 있다.
     # type이 "text"인 첫 블록을 찾는다(KeyError 'text'로 실패했던 원인).
@@ -190,6 +193,52 @@ def translate_and_summarize(articles: list[dict[str, str]]) -> list[dict[str, st
     if not isinstance(parsed, list) or len(parsed) != len(articles):
         raise ValueError(f"번역 결과 개수 불일치: {len(parsed) if isinstance(parsed, list) else '리스트 아님'}")
     return parsed
+
+
+def google_translate(text: str) -> str:
+    """Claude가 해당 논문을 번역해주지 않을 때(예: 인플루엔자 재조합 바이러스 논문에서
+    응답이 거절·비어 JSON 파싱이 실패한 경우)를 위한 최후의 대체 — 무료 공개 번역
+    엔드포인트. 품질은 낮아도 영어 그대로 두는 것보다 낫다."""
+    chunks, cur = [], ""
+    for sent in re.split(r"(?<=[.!?])\s+", text):
+        if cur and len(cur) + len(sent) > 1200:
+            chunks.append(cur)
+            cur = sent
+        else:
+            cur = f"{cur} {sent}".strip()
+    if cur:
+        chunks.append(cur)
+    out = []
+    for c in chunks:
+        r = requests.get(
+            "https://translate.googleapis.com/translate_a/single",
+            params={"client": "gtx", "sl": "en", "tl": "ko", "dt": "t", "q": c},
+            headers=HEADERS, timeout=20,
+        )
+        r.raise_for_status()
+        out.append("".join(seg[0] for seg in r.json()[0] if seg and seg[0]))
+        time.sleep(0.3)
+    return " ".join(out).strip()
+
+
+def translate_one(article: dict[str, str]) -> dict[str, str] | None:
+    """한 편씩 따로 번역 — 묶음 호출에서 한 편이 문제를 일으켜도 나머지는 살린다."""
+    try:
+        res = translate_and_summarize([article])
+        return res[0] if res else None
+    except (requests.RequestException, ValueError, json.JSONDecodeError, KeyError) as exc:
+        print(f"  단건 번역 실패(PMID {article.get('pmid')}): {exc}")
+        return None
+
+
+def fallback_translation(article: dict[str, str]) -> dict[str, str] | None:
+    try:
+        title = google_translate(article["title_en"])
+        abstract = google_translate(article["abstract_en"][:1800])
+    except (requests.RequestException, ValueError, KeyError, IndexError) as exc:
+        print(f"  무료 번역도 실패(PMID {article.get('pmid')}): {exc}")
+        return None
+    return {"title_ko": title, "summary_ko": "(자동 기계번역 초록) " + abstract}
 
 
 def build_category(key: str, meta: dict[str, str]) -> dict[str, Any] | None:
@@ -212,9 +261,18 @@ def build_category(key: str, meta: dict[str, str]) -> dict[str, Any] | None:
         print(f"[{meta['label']}] 번역·요약 실패: {exc}")
         translated = None
 
+    # 묶음 호출이 통째로 실패했거나 일부가 비면 논문별로 다시 시도하고, 그래도 안 되면
+    # 무료 번역으로 채운다 — 한 편 때문에 카테고리 전체가 영어로 남던 문제 방지.
+    results: list[dict[str, str] | None] = list(translated) if translated else [None] * len(articles)
+    for i, art in enumerate(articles):
+        ok = results[i] and results[i].get("title_ko") and results[i].get("summary_ko")
+        if not ok:
+            results[i] = translate_one(art) or fallback_translation(art)
+            time.sleep(0.5)
+
     papers = []
     for i, art in enumerate(articles):
-        tr = translated[i] if translated else {}
+        tr = results[i] or {}
         # 프롬프트에 용어 지침을 넣어도 모델이 가끔 놓칠 수 있어, 다른 두 번역
         # 스크립트와 같은 용어집을 사후 적용으로 한 번 더 통과시킨다(이중 방어).
         papers.append({
