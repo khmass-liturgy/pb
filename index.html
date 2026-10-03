@@ -216,8 +216,6 @@
 .kkoko-char.talking { animation: kkoko-talk-bob 0.5s ease-in-out infinite; }
 .kkoko-char.bounce { animation: kkoko-bounce 0.6s ease-in-out 2; }
 .kkoko-mic-btn.listening { animation: kkoko-ring-pulse 1.2s ease-out infinite; }
-@keyframes hpaiPulse{0%{transform:translate(-50%,-50%) scale(1);opacity:1}70%{transform:translate(-50%,-50%) scale(1.25);opacity:.55}100%{transform:translate(-50%,-50%) scale(1);opacity:1}}
-.hpai-ring{animation:hpaiPulse 1.8s ease-in-out infinite}
 </style>
 </head>
 <body>
@@ -6087,7 +6085,6 @@ function hpaiAnatomyImg(pins, color){
     pts.forEach(pt => spots.push({ n:pin.n, x:pt[0], y:pt[1] }));
   });
   const marks = spots.map(sp => `
-    <span class="hpai-ring" style="position:absolute;left:${sp.x}%;top:${sp.y}%;transform:translate(-50%,-50%);width:5.6%;aspect-ratio:1/1;border-radius:50%;border:2.5px solid ${color};box-shadow:0 0 0 2px rgba(${rgba},.25);pointer-events:none"></span>
     <span style="position:absolute;left:${sp.x + 2.4}%;top:${sp.y - 3.4}%;min-width:1.7em;height:1.7em;border-radius:1em;background:${color};color:#fff;font-size:clamp(8px,2.2vw,11px);font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 4px;box-shadow:0 1px 3px rgba(0,0,0,.4);pointer-events:none">${sp.n}</span>`).join("");
   return `<div style="position:relative;width:100%;max-width:640px;margin:0 auto;border-radius:12px;overflow:hidden;border:1px solid #eee;background:#fff">
     <img src="self_check/chicken_anatomy.jpg" alt="닭 내장 해부도 — 병변 위치 표시" loading="lazy" style="width:100%;height:auto;display:block" />${marks}</div>`;
