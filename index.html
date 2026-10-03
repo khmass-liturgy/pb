@@ -9694,6 +9694,20 @@ function renderJungchuPriceCard(){
   </a>`;
 }
 
+// 오늘(최신) 값이 직전 값보다 얼마나 변했는지 가격 오른쪽에 짧게 보여준다.
+// 한국 시세 관례대로 오름=빨강▲, 내림=파랑▼, 같으면 회색 보합. label은 비교
+// 기준(전일/전주/전월), unit은 숫자 뒤에 붙일 단위(없으면 생략).
+function priceDeltaHtml(cur, prev, label, unit){
+  if(!Number.isFinite(cur) || !Number.isFinite(prev)) return "";
+  const diff = cur - prev;
+  const pct = prev ? (diff / prev * 100) : 0;
+  const tag = label ? `<span style="font-weight:600;color:#999;margin-right:3px">${esc(label)}</span>` : "";
+  if(diff === 0) return `<span style="display:inline-block;margin-left:7px;font-size:11px;font-weight:700;color:#888;white-space:nowrap;vertical-align:middle">${tag}― 보합</span>`;
+  const up = diff > 0, color = up ? "#D32F2F" : "#1565C0";
+  const abs = Math.abs(diff).toLocaleString();
+  return `<span style="display:inline-block;margin-left:7px;font-size:11px;font-weight:800;color:${color};white-space:nowrap;vertical-align:middle">${tag}${up?"▲":"▼"}${abs}${unit||""} <span style="font-weight:600">(${up?"+":"-"}${Math.abs(pct).toFixed(1)}%)</span></span>`;
+}
+
 function renderPoultryPriceLine(){
   const st=poultryPriceState;
   if(st.status==="idle"||st.status==="loading") return `<div class="card" style="margin-bottom:20px;text-align:center;padding:20px;color:#aaa">⏳ 축산 산지시세 조회 중...</div>`;
@@ -9708,16 +9722,16 @@ function renderPoultryPriceLine(){
   // poultry_price/latest.json 에 그대로 있다.
   const egg=st.data.egg, chick=st.data.chick, oldHen=st.data.old_hen;
   const cards=[
-    {icon:"🥚",label:"계란 산지가격",sub:"전국(XL)",value:egg.latest,unit:"원/10개",color:"#D4A012",date:egg.rows[0]?.date,
+    {icon:"🥚",label:"계란 산지가격",sub:"전국(XL)",value:egg.latest,unit:"원/10개",color:"#D4A012",date:egg.rows[0]?.date,prev:egg.rows?.[1]?.value,cmp:"전일",
       extra:Number.isInteger(egg.latest)?`개당 ${Math.round(egg.latest/10).toLocaleString()}원 · 30개(판) ${(egg.latest*3).toLocaleString()}원`:"",
       caption:"발표전일 기준"},
-    {icon:"🐣",label:"산란계 병아리",sub:"초생추",value:chick?.latest,unit:"원/마리",color:"#F9A825",date:chick?.rows?.[0]?.date,
+    {icon:"🐣",label:"산란계 병아리",sub:"초생추",value:chick?.latest,unit:"원/마리",color:"#F9A825",date:chick?.rows?.[0]?.date,prev:chick?.rows?.[1]?.value,cmp:"전월",
       caption:"전월 실적(월 공시)"},
-    {icon:"🐔",label:"산란성계",sub:"",value:oldHen?.latest,unit:"원/마리",color:"#8D6E63",date:oldHen?.rows?.[0]?.date,
+    {icon:"🐔",label:"산란성계",sub:"",value:oldHen?.latest,unit:"원/마리",color:"#8D6E63",date:oldHen?.rows?.[0]?.date,prev:oldHen?.rows?.[1]?.value,cmp:"전주",
       caption:"전주 실적(주 공시)"},
   ].map(item=>`
     <div class="livestock-price-card" style="min-width:0;background:#fff;border:1px solid #eee;border-radius:12px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between">
-      <div class="livestock-price-card__content" style="display:flex;align-items:center;gap:10px"><span class="livestock-price-card__icon" style="font-size:25px">${item.icon}</span><div class="livestock-price-card__body"><div class="livestock-price-card__label" style="font-size:12px;color:#777;font-weight:700">${item.label} <span style="font-weight:400">${item.sub}</span></div><div class="livestock-price-card__value" style="font-size:22px;color:${item.color};font-weight:800">${Number.isInteger(item.value)?item.value.toLocaleString():"-"}<span style="font-size:11px;color:#888;font-weight:400;margin-left:3px">${item.unit}</span></div>${item.extra?`<div style="font-size:11px;color:#999;margin-top:3px">${item.extra}</div>`:""}</div></div>
+      <div class="livestock-price-card__content" style="display:flex;align-items:center;gap:10px"><span class="livestock-price-card__icon" style="font-size:25px">${item.icon}</span><div class="livestock-price-card__body"><div class="livestock-price-card__label" style="font-size:12px;color:#777;font-weight:700">${item.label} <span style="font-weight:400">${item.sub}</span></div><div class="livestock-price-card__value" style="font-size:22px;color:${item.color};font-weight:800">${Number.isInteger(item.value)?item.value.toLocaleString():"-"}<span style="font-size:11px;color:#888;font-weight:400;margin-left:3px">${item.unit}</span>${priceDeltaHtml(item.value,item.prev,item.cmp,"원")}</div>${item.extra?`<div style="font-size:11px;color:#999;margin-top:3px">${item.extra}</div>`:""}</div></div>
       <div class="livestock-price-card__date" style="font-size:10px;color:#aaa;text-align:right">${item.date||""}<br>${item.caption}</div>
     </div>`).join("");
   const collectedAt=st.data.updated||"";
@@ -9742,13 +9756,13 @@ function renderBroilerPriceTodayPanel(){
   const rows = d.rows.map(r => `
     <tr>
       <th scope="row" style="text-align:center;padding:8px 6px;font-size:12px;font-weight:700;color:#333;border-top:1px solid #eee">${esc(r.grade)}</th>
-      ${cols.map(c => `<td style="text-align:center;padding:8px 6px;font-size:13px;font-weight:800;color:${c.color};background:${c.bg};border-top:1px solid #eee">${r[c.key].toLocaleString()}</td>`).join("")}
+      ${cols.map(c => `<td style="text-align:center;padding:8px 6px;font-size:13px;font-weight:800;color:${c.color};background:${c.bg};border-top:1px solid #eee">${r[c.key].toLocaleString()}${c.key==="today"?priceDeltaHtml(r.today,r.yesterday,"","원"):""}</td>`).join("")}
     </tr>`).join("");
   return `
   <div class="card" style="margin-bottom:20px">
     <div class="display" style="font-size:15px;margin-bottom:10px">🐔 금일 육계시세 <span style="font-size:10px;color:#aaa;font-weight:400">대한양계협회</span></div>
     <div style="overflow-x:auto">
-      <table style="width:100%;border-collapse:collapse;min-width:320px">
+      <table style="width:100%;border-collapse:collapse;min-width:420px">
         <thead>
           <tr style="background:#00897B;color:#fff">
             <th scope="col" style="text-align:center;padding:8px 6px;font-size:11px;border-radius:8px 0 0 0">${esc(d.date_label||"")}</th>
