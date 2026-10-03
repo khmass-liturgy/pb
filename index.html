@@ -13284,6 +13284,216 @@ function renderWeatherTab(){
   return renderSolarTermPanel() + renderWeatherBody();
 }
 
+// ── 🔮 이상기온 예측 (날씨 탭) ───────────────────────────────────────────────
+// 방법: ① Open-Meteo 앙상블 예보(ECMWF IFS 51멤버, 최대 35일)의 멤버별 일 기온을
+//   ② ERA5 재분석 1991~2020 "평년"(같은 날짜 ±7일 × 30년의 평균·표준편차)과 비교해
+//   "멤버 중 몇 %가 평년보다 1.28σ(상·하위 10%) 이상 벗어나는가"를 이상기온 확률로 본다.
+//   평소엔 10% 안팎이 정상이므로 그보다 훨씬 높으면 이상기온 신호다.
+//   절대 기준(폭염 일 최고 33℃ 이상, 한파 일 최저 -12℃ 이하, 호우 일 30mm 이상)도 같은 방식으로 확률화.
+// 클라이언트에서 두 공개 API(CORS 허용)만 호출하며, 평년값은 위치별로 localStorage에 캐시한다.
+const ANOM_Z = 1.2816;
+const ANOM_DAILY_DAYS = 14;
+let anomState = { open:false, status:"idle", key:"", data:null, err:"" };
+const ANOM_MD_START = (function(){ const a=[0]; [31,29,31,30,31,30,31,31,30,31,30,31].forEach((n,i)=>a.push(a[i]+n)); return a; })();
+function anomDoy(dateStr){ const m=parseInt(dateStr.slice(5,7),10), d=parseInt(dateStr.slice(8,10),10); return ANOM_MD_START[m-1]+d-1; } // 0~365, 2/29=59
+function anomMean(a){ return a.reduce((s,x)=>s+x,0)/a.length; }
+function anomSd(a, m){ const mm = m==null ? anomMean(a) : m; return Math.sqrt(a.reduce((s,x)=>s+(x-mm)*(x-mm),0)/Math.max(1,a.length-1)); }
+function anomPct(sorted, p){ const i=(sorted.length-1)*p, lo=Math.floor(i), hi=Math.ceil(i); return sorted[lo]+(sorted[hi]-sorted[lo])*(i-lo); }
+
+async function anomLoadClimatology(lat, lng){
+  const ck = "anom_clim_v1_" + lat.toFixed(1) + "_" + lng.toFixed(1);
+  try { const c = JSON.parse(localStorage.getItem(ck)||"null"); if(c && c.d && c.d.length===366) return c; } catch(e){}
+  const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=1991-01-01&end_date=2020-12-31&daily=temperature_2m_mean&timezone=Asia%2FSeoul`;
+  const resp = await fetchWithTimeout(url, 30000);
+  if(!resp.ok) throw new Error("평년 HTTP "+resp.status);
+  const j = await resp.json();
+  const t = j.daily && j.daily.time, v = j.daily && j.daily.temperature_2m_mean;
+  if(!t || !v) throw new Error("평년 데이터 없음");
+  // 연도별 366칸 배열(2/29가 없는 해는 앞뒤 평균으로 채움)
+  const years = {};
+  t.forEach((ds,i)=>{ if(v[i]==null) return; const y=ds.slice(0,4); (years[y] = years[y] || new Array(366).fill(null))[anomDoy(ds)] = v[i]; });
+  const yl = Object.values(years);
+  yl.forEach(a=>{ if(a[59]==null && a[58]!=null && a[60]!=null) a[59]=(a[58]+a[60])/2; });
+  const daily = [], weekly = [];
+  for(let d=0; d<366; d++){
+    const pool = [];
+    yl.forEach(a=>{ for(let k=-7;k<=7;k++){ const x=a[(d+k+366)%366]; if(x!=null) pool.push(x); } });
+    const m = anomMean(pool);
+    daily.push([+m.toFixed(2), +anomSd(pool, m).toFixed(2)]);
+    const wk = [];
+    yl.forEach(a=>{ let s=0,n=0; for(let k=0;k<7;k++){ const x=a[(d+k)%366]; if(x!=null){ s+=x; n++; } } if(n>=6) wk.push(s/n); });
+    const wm = anomMean(wk);
+    weekly.push([+wm.toFixed(2), +anomSd(wk, wm).toFixed(2)]);
+  }
+  const out = { d:daily, w:weekly };
+  try { localStorage.setItem(ck, JSON.stringify(out)); } catch(e){}
+  return out;
+}
+
+async function anomLoadEnsemble(lat, lng){
+  // 35일이 거절되면 16일로 낮춰 다시 시도
+  let lastErr;
+  for(const days of [35, 16]){
+    try {
+      const url = `https://ensemble-api.open-meteo.com/v1/ensemble?latitude=${lat}&longitude=${lng}&hourly=temperature_2m,precipitation&models=ecmwf_ifs025,gem_global&forecast_days=${days}&timezone=Asia%2FSeoul`;
+      const resp = await fetchWithTimeout(url, 30000);
+      if(!resp.ok) throw new Error("앙상블 HTTP "+resp.status);
+      const j = await resp.json();
+      if(!j.hourly || !j.hourly.time) throw new Error("앙상블 데이터 없음");
+      return j.hourly;
+    } catch(e){ lastErr = e; }
+  }
+  throw lastErr;
+}
+
+function anomCompute(h, clim){
+  // 모델별 멤버 키 묶기 — ECMWF는 약 15일까지만 시간별 값이 있고 그 뒤(~35일)는 GEM 앙상블로 이어 쓴다.
+  const MODELS = ["ecmwf_ifs025", "gem_global"];
+  const groups = {};
+  Object.keys(h).forEach(k=>{
+    const kind = k.indexOf("temperature_2m")===0 ? "t" : k.indexOf("precipitation")===0 ? "p" : null;
+    if(!kind) return;
+    const mdl = MODELS.find(m=>k.indexOf(m)>=0) || "x";
+    (groups[mdl] = groups[mdl] || { t:[], p:[] })[kind].push(k);
+  });
+  const order = MODELS.concat(["x"]).filter(m=>groups[m] && groups[m].t.length);
+  if(!order.length) throw new Error("기온 멤버 없음");
+  const dates = [], idx = {};
+  h.time.forEach((dt,i)=>{ const d=dt.slice(0,10); if(!idx[d]){ idx[d]=[]; dates.push(d); } idx[d].push(i); });
+  const valid = (mdl, d) => { const k = groups[mdl].t[0]; return idx[d].filter(i=>h[k][i]!=null).length >= 20; };
+  const share = (arr, f) => arr.filter(f).length / arr.length;
+  const days = [];
+  dates.forEach(d=>{
+    const mdl = order.find(m=>valid(m, d)); if(!mdl) return;
+    const g = groups[mdl], ix = idx[d];
+    const mem = g.t.map(k=>{ const a = ix.map(i=>h[k][i]).filter(x=>x!=null); return a.length ? { mean:anomMean(a), max:Math.max(...a), min:Math.min(...a) } : null; }).filter(Boolean);
+    if(!mem.length) return;
+    const rain = g.p.map(k=>{ const a = ix.map(i=>h[k][i]).filter(x=>x!=null); return a.length ? a.reduce((s,x)=>s+x,0) : null; }).filter(x=>x!=null);
+    const c = clim.d[anomDoy(d)], cm=c[0], cs=Math.max(c[1],0.5);
+    const means = mem.map(m=>m.mean).sort((a,b)=>a-b);
+    days.push({
+      date:d, model:mdl, clim:cm, mean:anomMean(means), p10:anomPct(means,0.1), p90:anomPct(means,0.9),
+      pHot: share(mem, m=>m.mean >= cm + ANOM_Z*cs), pCold: share(mem, m=>m.mean <= cm - ANOM_Z*cs),
+      pHeat: share(mem, m=>m.max >= 33), pFreeze: share(mem, m=>m.min <= -12),
+      rainMean: rain.length ? anomMean(rain) : null, pHeavy: rain.length ? share(rain, r=>r>=30) : null, pRain: rain.length ? share(rain, r=>r>=1) : null,
+      n: mem.length,
+    });
+  });
+  // 7일 단위 주간 평균 (앞 5주) — 그 주 7일을 모두 채우는 모델 중 우선순위가 높은 모델 사용
+  const weeks = [];
+  for(let w=0; w+7<=dates.length && weeks.length<5; w+=7){
+    const wd = dates.slice(w, w+7);
+    const mdl = order.find(m=>wd.every(d=>valid(m, d))); if(!mdl) break;
+    const per = groups[mdl].t.map(k=>{ const a=[]; wd.forEach(d=>idx[d].forEach(i=>{ if(h[k][i]!=null) a.push(h[k][i]); })); return a.length ? anomMean(a) : null; }).filter(x=>x!=null);
+    if(!per.length) break;
+    const c = clim.w[anomDoy(wd[0])], cm=c[0], cs=Math.max(c[1],0.3);
+    const m = anomMean(per);
+    weeks.push({ from:wd[0], to:wd[6], model:mdl, n:per.length, mean:m, clim:cm, sd:cs, z:(m-cm)/cs,
+      pHot: share(per, x=>x>=cm+ANOM_Z*cs), pCold: share(per, x=>x<=cm-ANOM_Z*cs) });
+  }
+  return { days, weeks, members: groups[order[0]].t.length };
+}
+
+async function anomRun(){
+  const lat = weatherState.lat, lng = weatherState.lng;
+  anomState.key = lat+","+lng; anomState.status = "loading"; anomState.err = "";
+  render();
+  try {
+    const [clim, ens] = await Promise.all([anomLoadClimatology(lat, lng), anomLoadEnsemble(lat, lng)]);
+    anomState.data = anomCompute(ens, clim);
+    anomState.updated = new Date();
+    anomState.status = "done";
+  } catch(e){
+    console.error("이상기온 예측 실패:", e);
+    anomState.status = "error"; anomState.err = String(e && e.message || e);
+  }
+  if(state.tab==="weather") render();
+}
+
+function renderAnomalyPanel(){
+  const open = anomState.open;
+  const head = `
+  <div id="anom-toggle" role="button" tabindex="0" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;gap:10px">
+    <div>
+      <div class="display" style="font-size:15px">🔮 이상기온 예측</div>
+      <div style="font-size:11px;color:#888;margin-top:2px">${esc(weatherState.locationName||"현재 위치")} · 앙상블 예보 51개 시나리오를 평년(1991~2020)과 비교해 이상고온·저온 가능성을 확률로 보여줍니다</div>
+    </div>
+    <div style="font-size:12px;color:#6A1B9A;font-weight:700;white-space:nowrap">${open ? "접기 ▲" : "열기 ▼"}</div>
+  </div>`;
+  const wrap = body => `<div class="card" style="margin-top:16px;border-top:4px solid #6A1B9A">${head}${body}</div>`;
+  if(!open) return wrap("");
+  const stale = anomState.key && anomState.key !== weatherState.lat+","+weatherState.lng;
+  if(anomState.status==="loading") return wrap(`<div style="text-align:center;padding:26px 0;font-size:13px;color:#888">⏳ 앙상블 예보와 평년 자료를 가져오는 중... (처음엔 평년 계산 때문에 10~20초 걸릴 수 있어요)</div>`);
+  if(anomState.status==="error") return wrap(`<div style="text-align:center;padding:20px 0"><div style="font-size:13px;color:#D32F2F;margin-bottom:10px">⚠️ 예측 자료를 가져오지 못했습니다 (${esc(anomState.err)})</div><button id="anom-run" style="border:none;border-radius:10px;background:#6A1B9A;color:#fff;padding:10px 20px;font-size:13px;font-weight:600">다시 시도</button></div>`);
+  if(anomState.status!=="done" || stale || !anomState.data) return wrap(`<div style="text-align:center;padding:20px 0"><button id="anom-run" style="border:none;border-radius:10px;background:#6A1B9A;color:#fff;padding:12px 24px;font-size:13px;font-weight:600">🔮 이상기온 예측 불러오기</button></div>`);
+
+  const D = anomState.data, dayNames = ["일","월","화","수","목","금","토"];
+  const fmt = ds => { const d=new Date(ds+"T00:00:00"); return `${d.getMonth()+1}/${d.getDate()}(${dayNames[d.getDay()]})`; };
+  const pc = p => Math.round(p*100);
+  const bar = (p, col) => `<div style="display:flex;align-items:center;gap:4px"><div style="width:44px;background:#eee;border-radius:4px;height:7px"><div style="width:${pc(p)}%;background:${col};height:7px;border-radius:4px"></div></div><span style="font-size:11px;font-weight:${p>=0.3?800:500};color:${p>=0.3?col:"#999"}">${pc(p)}%</span></div>`;
+  const near = D.days.slice(0, ANOM_DAILY_DAYS);
+
+  // 요약 문장
+  const bestHot = near.reduce((a,b)=>b.pHot>a.pHot?b:a, near[0]);
+  const bestCold = near.reduce((a,b)=>b.pCold>a.pCold?b:a, near[0]);
+  const heat = near.filter(d=>d.pHeat>=0.3), frz = near.filter(d=>d.pFreeze>=0.3), heavy = near.filter(d=>d.pHeavy!=null && d.pHeavy>=0.3);
+  const msgs = [];
+  if(bestHot && bestHot.pHot>=0.3) msgs.push(`🔥 <b>${fmt(bestHot.date)}</b> 전후 평년보다 매우 따뜻할 가능성 ${pc(bestHot.pHot)}% (평년 ${bestHot.clim.toFixed(1)}° → 예측 ${bestHot.mean.toFixed(1)}°)`);
+  if(bestCold && bestCold.pCold>=0.3) msgs.push(`🥶 <b>${fmt(bestCold.date)}</b> 전후 평년보다 매우 추울 가능성 ${pc(bestCold.pCold)}% (평년 ${bestCold.clim.toFixed(1)}° → 예측 ${bestCold.mean.toFixed(1)}°)`);
+  if(heat.length) msgs.push(`☀️ 폭염(최고 33°↑) 가능성 30%↑: ${heat.map(d=>fmt(d.date)).join(", ")}`);
+  if(frz.length) msgs.push(`❄️ 한파(최저 -12°↓) 가능성 30%↑: ${frz.map(d=>fmt(d.date)).join(", ")}`);
+  if(heavy.length) msgs.push(`🌧️ 호우(일 30mm↑) 가능성 30%↑: ${heavy.map(d=>fmt(d.date)).join(", ")}`);
+  const calm = !msgs.length;
+  const sum = `<div style="background:${calm?"#E8F5E9":"#F3E5F5"};border-radius:12px;padding:12px 14px;margin:14px 0 12px">
+    <div style="font-size:13.5px;font-weight:800;color:${calm?"#2E7D32":"#6A1B9A"}">${calm ? "✅ 앞으로 2주 뚜렷한 이상기온 신호는 없습니다" : "⚠️ 앞으로 2주 이상기온 신호가 있습니다"}</div>
+    ${msgs.map(m=>`<div style="font-size:12px;color:#444;margin-top:5px;line-height:1.5">${m}</div>`).join("")}
+    ${bestHot && bestHot.pHot>=0.3 ? `<div style="font-size:11px;color:#777;margin-top:7px">🐔 고온 대비: 환기·냉방 점검, 음수·전해질 준비, 입추·출하 시간 조정 검토</div>` : ""}
+    ${bestCold && bestCold.pCold>=0.3 ? `<div style="font-size:11px;color:#777;margin-top:4px">🐔 저온 대비: 보온·난방 점검, 틈새풍 차단, 급수 동결 방지</div>` : ""}
+  </div>`;
+
+  const rows = near.map(d=>{
+    const dv = d.mean - d.clim;
+    const dc = dv>=0 ? "#D32F2F" : "#1565C0";
+    const flags = [d.pHeat>=0.3?"☀️폭염":"", d.pFreeze>=0.3?"❄️한파":"", d.pHeavy!=null&&d.pHeavy>=0.3?"🌧️호우":""].filter(Boolean).join(" ");
+    const hi = d.pHot>=0.3 || d.pCold>=0.3;
+    return `<tr style="${hi?"background:#FAF3FC":""}">
+      <td style="padding:6px 6px;font-weight:700;white-space:nowrap">${fmt(d.date)}</td>
+      <td style="padding:6px 4px;white-space:nowrap"><b>${d.mean.toFixed(1)}°</b> <span style="color:#aaa;font-size:10px">${d.p10.toFixed(0)}~${d.p90.toFixed(0)}</span></td>
+      <td style="padding:6px 4px;white-space:nowrap;color:#888">${d.clim.toFixed(1)}° <span style="color:${dc};font-weight:700">${dv>=0?"+":""}${dv.toFixed(1)}</span></td>
+      <td style="padding:6px 4px">${bar(d.pHot,"#D84315")}</td>
+      <td style="padding:6px 4px">${bar(d.pCold,"#1565C0")}</td>
+      <td style="padding:6px 4px;white-space:nowrap;font-size:11px;color:#555">${d.pRain!=null ? `☔${pc(d.pRain)}%` : ""} ${flags}</td>
+    </tr>`;
+  }).join("");
+
+  const weeks = D.weeks.map((w,i)=>{
+    const dv = w.mean - w.clim, hi = Math.max(w.pHot, w.pCold) >= 0.3;
+    const tag = w.pHot>=0.3 && w.pHot>=w.pCold ? `<span style="color:#D84315;font-weight:800">따뜻함 경향 ${pc(w.pHot)}%</span>` : w.pCold>=0.3 ? `<span style="color:#1565C0;font-weight:800">추움 경향 ${pc(w.pCold)}%</span>` : `<span style="color:#888">평년 범위</span>`;
+    return `<div style="flex:1;min-width:120px;border:1px solid ${hi?"#CE93D8":"#eee"};border-radius:10px;padding:8px 10px;background:${hi?"#FAF3FC":"#fff"}">
+      <div style="font-size:10.5px;color:#888">${i+1}주차 ${fmt(w.from)}~${fmt(w.to)}</div>
+      <div style="font-size:15px;font-weight:800;margin-top:2px">${w.mean.toFixed(1)}° <span style="font-size:11px;font-weight:700;color:${dv>=0?"#D32F2F":"#1565C0"}">${dv>=0?"+":""}${dv.toFixed(1)}</span></div>
+      <div style="font-size:10.5px;color:#999">평년 ${w.clim.toFixed(1)}°</div>
+      <div style="font-size:11px;margin-top:3px">${tag}</div>
+    </div>`;
+  }).join("");
+
+  return wrap(`
+    ${sum}
+    <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:4px">📅 일별 (앞 ${near.length}일)</div>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;min-width:520px">
+      <thead><tr style="color:#999;font-size:10.5px;text-align:left;border-bottom:1px solid #eee">
+        <th style="padding:4px 6px;font-weight:600">날짜</th><th style="padding:4px;font-weight:600">예측 평균(범위)</th><th style="padding:4px;font-weight:600">평년·편차</th>
+        <th style="padding:4px;font-weight:600">이상고온↑</th><th style="padding:4px;font-weight:600">이상저온↓</th><th style="padding:4px;font-weight:600">강수·경보</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>
+    <div style="font-size:12px;font-weight:700;color:#333;margin:14px 0 6px">🗓️ 주간 평균기온 경향 (최대 5주)</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">${weeks || `<div style="font-size:12px;color:#999">주간 자료가 없습니다</div>`}</div>
+    <div style="font-size:10px;color:#aaa;line-height:1.7;margin-top:12px;border-top:1px dashed #eee;padding-top:8px">
+      ※ 이상고온/저온 확률 = 앙상블 ${D.members}개 시나리오 중 일평균(주간은 주평균) 기온이 평년보다 1.28σ 이상 높거나 낮은 시나리오의 비율입니다. 평소(정상)에도 약 10%는 나오는 값이라 <b>30% 이상이면 주의</b>로 봅니다.
+      예측 평균 옆 작은 숫자는 시나리오의 하위10%~상위10% 범위입니다. 일반적으로 1주 이내는 신뢰도가 높고 2주를 넘으면 경향 참고용입니다.<br>
+      자료: Open-Meteo(ECMWF IFS 앙상블 · ERA5 재분석 1991~2020 평년) · 3주차 이후는 GEM 앙상블(21개)로 이어 계산하며 정확도가 낮은 경향 참고용입니다 · 기상청 공식 예보·특보와 다를 수 있으니 중요한 판단엔 기상청 발표를 함께 확인하세요.${anomState.updated ? ` · 계산 ${anomState.updated.getHours()}시 ${String(anomState.updated.getMinutes()).padStart(2,"0")}분` : ""}
+    </div>`);
+}
+
 function renderWeatherBody(){
   const today = new Date();
   const dayNames = ["일","월","화","수","목","금","토"];
@@ -13476,6 +13686,8 @@ function renderWeatherBody(){
   ${hourlyPanel}
 
   ${renderLivestockWeatherPanel(fc, weatherState.hourly)}
+
+  ${renderAnomalyPanel()}
 
   <div class="card" style="margin-top:16px">
     <div style="display:flex;align-items:center;gap:12px">
@@ -16127,6 +16339,18 @@ function attachEvents(){
   };
   const kkokoLog = document.getElementById("kkoko-log");
   if(kkokoLog) kkokoLog.scrollTop = kkokoLog.scrollHeight;
+
+  // 이상기온 예측
+  const anT=document.getElementById("anom-toggle");
+  if(anT){
+    const tg=()=>{
+      anomState.open=!anomState.open;
+      if(anomState.open && (anomState.status==="idle" || anomState.key!==weatherState.lat+","+weatherState.lng) && anomState.status!=="loading") anomRun(); else render();
+    };
+    anT.onclick=tg;
+    anT.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); tg(); } };
+  }
+  const anR=document.getElementById("anom-run"); if(anR) anR.onclick=()=>anomRun();
 
   // 동물복지 인증 자가진단
   const wfT=document.getElementById("wf-toggle");
