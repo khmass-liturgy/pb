@@ -4138,13 +4138,9 @@ async function publishHpaiNews(items){
 // 채워진다.
 let hpaiSearchState = { status:"idle", query:"", results:[] };
 
-async function searchHpaiPortalNews(){
-  const q = (document.getElementById("hn-search-input")?.value || "").trim();
-  if(!q){ hpaiSearchState.results = []; render(); return; }
-  hpaiSearchState.query = q;
-  hpaiSearchState.status = "loading";
-  render();
-  try {
+// 여러 검색 RSS를 합쳐 최근 days일 이내 기사를 최신순·중복 제거로 돌려준다.
+// AI 관련 소식 관리 폼과 양계질병 탭의 "최신 연구되는 질병"이 함께 쓴다.
+async function fetchPortalNews(q, days){
     // 한 곳만 보면 같은 기사들만 나오므로, 성격이 다른 검색 RSS 여러 개를
     // 동시에 돌려 합친다: ① 구글뉴스(전체 언론) ② 빙뉴스(구글에 안 잡히는
     // 매체·지역지) ③ 구글뉴스 + 농업·축산 전문지 키워드 ④ 구글뉴스 + 방역·농가 키워드
@@ -4182,15 +4178,25 @@ async function searchHpaiPortalNews(){
     if(!all.length) throw new Error("모든 검색원 실패");
     const seen = new Set();
     const merged = [];
-    // 오래된 기사가 섞이지 않도록 최근 7일 이내(날짜를 못 읽은 것도 제외)만 남긴다.
-    const cutoff = Date.now() - 7 * 24 * 3600 * 1000;
+    // 오래된 기사가 섞이지 않도록 최근 days일(기본 7일) 이내(날짜를 못 읽은 것도 제외)만 남긴다.
+    const cutoff = Date.now() - (days || 7) * 24 * 3600 * 1000;
     all.filter(r => r.ts >= cutoff).sort((a,b) => b.ts - a.ts).forEach(r => {
       const key = r.title.toLowerCase().replace(/[^0-9a-z가-힣]/g, "").slice(0, 22);
       if(!key || seen.has(key)) return;
       seen.add(key);
       merged.push(r);
     });
-    hpaiSearchState.results = merged.slice(0, 40);
+    return merged.slice(0, 40);
+}
+
+async function searchHpaiPortalNews(){
+  const q = (document.getElementById("hn-search-input")?.value || "").trim();
+  if(!q){ hpaiSearchState.results = []; render(); return; }
+  hpaiSearchState.query = q;
+  hpaiSearchState.status = "loading";
+  render();
+  try {
+    hpaiSearchState.results = await fetchPortalNews(q, 7);
     hpaiSearchState.status = "done";
   } catch(e){
     console.warn("AI 관련 소식 — 기사 검색 실패:", e);
@@ -5535,12 +5541,293 @@ function renderDiseaseResults(){
   return countLine + (hits.length ? rows : empty);
 }
 
+// ── 🔬 최신 연구되는 질병 (양계질병 탭) ──────────────────────────────────────
+// 구조: ① PubMed(NCBI E-utilities, CORS 허용)에서 최근 90일 양계 질병 논문 목록을 받아
+//   ② 질병 사전(EMERG_DISEASES)의 키워드로 제목을 분류하고
+//   ③ "최근 30일 논문 수 vs 직전 60일 월평균"으로 요즘 새로 많이 다뤄지는 질병을 골라 보여준다.
+//   각 질병에서 → 대표 논문 목록 / PubMed 더보기 / 관련 소식 자동검색(AI 관련 소식에서 쓰는
+//   구글뉴스·빙뉴스 검색을 그대로 재사용) → 관리자는 논문·기사를 "AI 관련 소식 초안"으로 보내
+//   기존 소식 입력 폼(제목·내용·링크)에서 확인 후 발행한다. 목록은 12시간 캐시.
+const EMERG_DISEASES = [
+  { key:"hpai",   ko:"조류인플루엔자(AI)",        en:"avian influenza",           rx:/avian influenza|highly pathogenic avian|\bhpai\b|\bh5n1\b|\bh5n6\b|\bh9n2\b|\bh7n9\b|bird flu/ },
+  { key:"nd",     ko:"뉴캐슬병",                   en:"Newcastle disease",         rx:/newcastle|\bndv\b/ },
+  { key:"ib",     ko:"전염성기관지염(IB)",         en:"infectious bronchitis",     rx:/infectious bronchitis|\bibv\b/ },
+  { key:"ibd",    ko:"감보로병(전염성F낭병)",      en:"infectious bursal disease", rx:/infectious bursal|gumboro|\bibdv\b/ },
+  { key:"marek",  ko:"마렉병",                     en:"Marek's disease",           rx:/marek|\bmdv\b/ },
+  { key:"ilt",    ko:"전염성후두기관염(ILT)",      en:"infectious laryngotracheitis", rx:/infectious laryngotracheitis|\biltv\b/ },
+  { key:"ampv",   ko:"아메타뉴모바이러스(aMPV)",   en:"avian metapneumovirus",     rx:/metapneumovirus|\bampv\b/ },
+  { key:"cocci",  ko:"콕시듐병",                   en:"coccidiosis Eimeria",       rx:/coccidi|eimeria/ },
+  { key:"ne",     ko:"괴사성장염",                 en:"necrotic enteritis",        rx:/necrotic enteritis|clostridium perfringens|clostridial/ },
+  { key:"apec",   ko:"대장균증(APEC)",             en:"avian pathogenic Escherichia coli", rx:/colibacillosis|\bapec\b|avian pathogenic e/ },
+  { key:"salm",   ko:"살모넬라증",                 en:"Salmonella",                rx:/salmonella/ },
+  { key:"pullorum", ko:"추백리·가금티푸스",        en:"pullorum fowl typhoid",     rx:/pullorum|fowl typhoid|gallinarum/ },
+  { key:"campy",  ko:"캄필로박터",                 en:"Campylobacter",             rx:/campylobacter/ },
+  { key:"spotty", ko:"점상간염(Spotty liver)",     en:"spotty liver disease Campylobacter hepaticus", rx:/spotty liver|campylobacter hepaticus/ },
+  { key:"myco",   ko:"마이코플라즈마(MG·MS)",      en:"Mycoplasma gallisepticum",  rx:/mycoplasma/ },
+  { key:"cholera",ko:"가금콜레라",                 en:"fowl cholera Pasteurella multocida", rx:/fowl cholera|pasteurella multocida/ },
+  { key:"ort",    ko:"오르니토박테리움(ORT)",      en:"Ornithobacterium rhinotracheale", rx:/ornithobacterium/ },
+  { key:"coryza", ko:"전염성코라이자",             en:"infectious coryza Avibacterium paragallinarum", rx:/coryza|avibacterium/ },
+  { key:"black",  ko:"흑두병(히스토모나스)",       en:"histomoniasis blackhead",   rx:/histomon|blackhead/ },
+  { key:"eds",    ko:"산란저하증후군(EDS)",        en:"egg drop syndrome",         rx:/egg drop syndrome|\beds\b/ },
+  { key:"alv",    ko:"조류백혈병(ALV)",            en:"avian leukosis virus",      rx:/avian leukosis|\balv\b/ },
+  { key:"rev",    ko:"세망내피증(REV)",            en:"reticuloendotheliosis",     rx:/reticuloendotheliosis/ },
+  { key:"cav",    ko:"닭 전염성빈혈(CAV)",         en:"chicken infectious anemia", rx:/chicken anemia|chicken infectious anemia|\bcav\b/ },
+  { key:"reo",    ko:"레오바이러스(바이러스성 관절염)", en:"avian reovirus",       rx:/reovirus|viral arthritis|\bavr\b/ },
+  { key:"fadv",   ko:"아데노바이러스(봉입체간염)", en:"fowl adenovirus inclusion body hepatitis", rx:/adenovirus|inclusion body hepatitis|hydropericardium|\bfadv\b/ },
+  { key:"pox",    ko:"계두",                       en:"fowlpox",                   rx:/fowlpox|fowl pox|avipox/ },
+  { key:"ae",     ko:"조류뇌척수염",               en:"avian encephalomyelitis",   rx:/avian encephalomyelitis/ },
+  { key:"bco",    ko:"세균성 연골괴사(다리 질환)", en:"bacterial chondronecrosis with osteomyelitis", rx:/bacterial chondronecrosis|femoral head necrosis|\bbco\b/ },
+  { key:"astro",  ko:"아스트로바이러스",           en:"avian astrovirus",          rx:/astrovirus/ },
+  { key:"hev",    ko:"간비대·비장종대(E형간염)",   en:"avian hepatitis E virus",   rx:/hepatitis e|big liver and spleen/ },
+  { key:"staph",  ko:"포도상구균증",               en:"Staphylococcus poultry",    rx:/staphylococc/ },
+  { key:"asper",  ko:"아스페르길루스증",           en:"aspergillosis",             rx:/aspergill/ },
+  { key:"mite",   ko:"닭진드기(닭응애)",           en:"Dermanyssus gallinae red mite", rx:/dermanyssus|red mite|northern fowl mite/ },
+  { key:"ascites",ko:"복수증",                     en:"ascites broiler",           rx:/ascites/ },
+  { key:"woody",  ko:"우디브레스트·화이트스트라이핑", en:"woody breast white striping", rx:/woody breast|wooden breast|white striping/ },
+];
+const EMERG_CACHE_KEY = "emerg_papers_v1";
+const EMERG_CACHE_MS = 12 * 3600 * 1000;
+let emergState = { open:false, status:"idle", papers:[], list:[], err:"", updated:null, openKey:null, news:{},
+  searchQ:"", search:{ status:"idle", results:[], q:"" } };
+
+const EMERG_BASE = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/";
+const EMERG_POULTRY = '(chicken[tiab] OR chickens[tiab] OR poultry[tiab] OR broiler[tiab] OR broilers[tiab] OR "laying hen"[tiab] OR "laying hens"[tiab])';
+
+function emergFmtDate(d){ return d.getFullYear()+"/"+String(d.getMonth()+1).padStart(2,"0")+"/"+String(d.getDate()).padStart(2,"0"); }
+
+async function emergEsearch(term, retmax, extra){
+  const url = EMERG_BASE + "esearch.fcgi?db=pubmed&retmode=json&sort=pub_date&retmax=" + retmax + (extra||"") + "&term=" + encodeURIComponent(term);
+  const r = await fetchWithTimeout(url, 20000);
+  if(!r.ok) throw new Error("PubMed 검색 HTTP " + r.status);
+  const j = await r.json();
+  return (j.esearchresult && j.esearchresult.idlist) || [];
+}
+async function emergEsummary(ids){
+  const out = [];
+  for(let i=0; i<ids.length; i+=150){
+    const chunk = ids.slice(i, i+150);
+    const r = await fetchWithTimeout(EMERG_BASE + "esummary.fcgi?db=pubmed&retmode=json&id=" + chunk.join(","), 25000);
+    if(!r.ok) throw new Error("PubMed 요약 HTTP " + r.status);
+    const j = await r.json();
+    chunk.forEach(id => {
+      const x = j.result && j.result[id]; if(!x || !x.title) return;
+      const ds = (x.sortpubdate || x.epubdate || x.pubdate || "").slice(0,10).replace(/\//g,"-");
+      const ts = ds ? new Date(ds + "T00:00:00").getTime() : 0;
+      out.push({ id, title: String(x.title).replace(/<[^>]+>/g,"").replace(/\.$/,"").trim(), journal: x.source || "", date: ds, ts });
+    });
+    if(i + 150 < ids.length) await new Promise(res => setTimeout(res, 400)); // NCBI 초당 3회 제한
+  }
+  return out;
+}
+
+// 최근 90일 양계 질병 논문 → 질병별 집계
+function emergAnalyze(papers){
+  const now = Date.now(), D = 24*3600*1000;
+  const rows = EMERG_DISEASES.map(d => {
+    const mine = papers.filter(p => d.rx.test(p.title.toLowerCase())).sort((a,b)=>b.ts-a.ts);
+    const recent = mine.filter(p => p.ts >= now - 30*D).length;
+    const prior = mine.filter(p => p.ts < now - 30*D).length;       // 직전 60일
+    const base = prior / 2;                                          // 월평균
+    const ratio = recent / Math.max(base, 1);
+    let trend = "steady";
+    if(recent >= 3 && prior === 0) trend = "new";
+    else if(recent >= 4 && ratio >= 1.5) trend = "surge";
+    else if(recent >= 2 && ratio >= 1.2) trend = "up";
+    else if(base >= 3 && ratio <= 0.7) trend = "down";
+    return { d, mine, recent, prior, base, ratio, trend, score: recent * (1 + Math.max(0, ratio - 1)) };
+  }).filter(r => r.mine.length);
+  rows.sort((a,b)=>b.score-a.score);
+  return rows;
+}
+
+async function emergLoad(force){
+  if(emergState.status === "loading") return;
+  if(!force){
+    try {
+      const c = JSON.parse(localStorage.getItem(EMERG_CACHE_KEY) || "null");
+      if(c && c.ts && Date.now() - c.ts < EMERG_CACHE_MS && Array.isArray(c.papers) && c.papers.length){
+        emergState.papers = c.papers; emergState.list = emergAnalyze(c.papers); emergState.updated = new Date(c.ts); emergState.status = "done";
+        return;
+      }
+    } catch(e){}
+  }
+  emergState.status = "loading"; emergState.err = ""; render();
+  try {
+    const to = new Date(), from = new Date(Date.now() - 90*24*3600*1000);
+    const term = EMERG_POULTRY + ' AND (disease[tiab] OR virus[tiab] OR infection[tiab] OR outbreak[tiab] OR pathogen[tiab] OR vaccine[tiab] OR infectious[tiab]) AND ("' + emergFmtDate(from) + '"[PDAT] : "' + emergFmtDate(to) + '"[PDAT])';
+    const ids = await emergEsearch(term, 700);
+    if(!ids.length) throw new Error("검색된 논문이 없습니다");
+    const papers = await emergEsummary(ids);
+    emergState.papers = papers; emergState.list = emergAnalyze(papers); emergState.updated = new Date(); emergState.status = "done";
+    try { localStorage.setItem(EMERG_CACHE_KEY, JSON.stringify({ ts: Date.now(), papers })); } catch(e){}
+  } catch(e){
+    console.warn("최신 연구 질병 로딩 실패:", e);
+    emergState.status = "error"; emergState.err = String(e && e.message || e);
+  }
+  render();
+}
+
+// 자유 검색: 한글 병명이 사전에 있으면 영문 병명으로 바꿔 검색
+async function emergSearchPapers(){
+  const q = (document.getElementById("em-search-input")?.value || "").trim();
+  emergState.searchQ = q;
+  if(!q){ emergState.search = { status:"idle", results:[], q:"" }; render(); return; }
+  const hit = EMERG_DISEASES.find(d => d.ko.indexOf(q) >= 0 || d.en.toLowerCase().indexOf(q.toLowerCase()) >= 0);
+  const kw = hit ? hit.en : q;
+  emergState.search = { status:"loading", results:[], q, en: kw, ko: hit ? hit.ko : q };
+  render();
+  try {
+    const ids = await emergEsearch('(' + kw.split(/\s+/).map(w => '"' + w.replace(/"/g,"") + '"[tiab]').join(" AND ") + ') AND ' + EMERG_POULTRY, 20);
+    const papers = ids.length ? await emergEsummary(ids) : [];
+    emergState.search.results = papers.sort((a,b)=>b.ts-a.ts);
+    emergState.search.status = "done";
+  } catch(e){
+    console.warn("논문 검색 실패:", e);
+    emergState.search.status = "error";
+  }
+  render();
+}
+
+// 관련 소식 자동검색 — AI 관련 소식에서 쓰는 검색(fetchPortalNews)을 그대로 쓰되 질병은 30일 범위
+async function emergNewsSearch(key){
+  const row = emergState.list.find(r => r.d.key === key);
+  const d = row ? row.d : EMERG_DISEASES.find(x => x.key === key);
+  if(!d) return;
+  const q = d.ko.replace(/\(.*?\)/g, "").trim();
+  emergState.news[key] = { status:"loading", results:[], q };
+  render();
+  try {
+    emergState.news[key].results = await fetchPortalNews(q, 30);
+    emergState.news[key].status = "done";
+  } catch(e){
+    console.warn("질병 소식 검색 실패:", e);
+    emergState.news[key].status = "error";
+  }
+  render();
+}
+
+// 관리자: 논문/기사를 "AI 관련 소식" 입력 폼의 초안으로 보내고 그 탭으로 이동한다.
+function emergSendToNews(draft, queryHint){
+  hpaiNewsState.draftTitle = draft.title || "";
+  hpaiNewsState.draftText = draft.text || "";
+  hpaiNewsState.draftLink = draft.link || "";
+  hpaiNewsState.files = []; hpaiNewsState.previewUrls = [];
+  hpaiNewsState.formId = undefined; hpaiNewsState.adminOpen = true;
+  hpaiNewsState.msg = "초안이 입력됐습니다 — 내용을 다듬고 '추가 발행'을 눌러 주세요";
+  hpaiSearchState = { status:"idle", query: queryHint || "", results:[] };
+  if(hpaiNewsState.status === "idle") fetchHpaiNews();
+  switchTab("hpai");
+}
+
+function emergTrendBadge(t){
+  const m = { new:["🆕 신규","#6A1B9A","#F3E5F5"], surge:["🔥 급상승","#C62828","#FFEBEE"], up:["▲ 증가","#E65100","#FFF3E0"], down:["▼ 감소","#1565C0","#E3F2FD"], steady:["보합","#888","#f3f3f3"] }[t] || ["보합","#888","#f3f3f3"];
+  return `<span style="font-size:10px;font-weight:700;color:${m[1]};background:${m[2]};border-radius:9px;padding:2px 8px;white-space:nowrap">${m[0]}</span>`;
+}
+
+function renderEmergingDiseaseCard(){
+  const s = emergState, admin = isBoardAdmin();
+  const color = "#5E35B1";
+  const head = `
+  <div id="em-toggle" role="button" tabindex="0" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;gap:10px">
+    <div>
+      <div class="display" style="font-size:15px">🔬 최신 연구되는 질병</div>
+      <div style="font-size:11px;color:#888;margin-top:2px">PubMed 최근 90일 양계 논문에서 요즘 많이 다뤄지는 질병을 찾고, 관련 소식까지 검색합니다</div>
+    </div>
+    <div style="font-size:12px;color:${color};font-weight:700;white-space:nowrap">${s.open ? "접기 ▲" : "열기 ▼"}</div>
+  </div>`;
+  const wrap = body => `<div class="card" style="margin-bottom:14px;border-top:4px solid ${color}">${head}${body}</div>`;
+  if(!s.open) return wrap("");
+  if(s.status === "loading" || s.status === "idle")
+    return wrap(`<div style="text-align:center;padding:26px 0;font-size:13px;color:#888">⏳ PubMed에서 최근 논문을 모으는 중... (수 초 걸립니다)</div>`);
+  if(s.status === "error")
+    return wrap(`<div style="text-align:center;padding:20px 0"><div style="font-size:13px;color:#D32F2F;margin-bottom:10px">⚠️ 논문 목록을 가져오지 못했습니다 (${esc(s.err)})</div><button id="em-reload" style="border:none;border-radius:10px;background:${color};color:#fff;padding:10px 20px;font-size:13px;font-weight:600">다시 시도</button></div>`);
+
+  const paperLine = (p, key, idx, adminBtn) => `
+    <div style="padding:6px 0;border-top:1px solid #f4f4f4">
+      <a href="https://pubmed.ncbi.nlm.nih.gov/${esc(p.id)}/" target="_blank" rel="noopener" style="font-size:12px;font-weight:600;color:#333;text-decoration:none;line-height:1.45;display:block">${esc(p.title)}</a>
+      <div style="font-size:10px;color:#999;margin-top:2px">${esc(p.journal)}${p.journal&&p.date?" · ":""}${esc(p.date)}
+        ${adminBtn ? ` <button class="em-draft-paper" data-key="${esc(key)}" data-idx="${idx}" style="margin-left:6px;font-size:10px;border:1px solid #C62828;border-radius:5px;background:#fff;color:#C62828;padding:1px 7px;cursor:pointer">📥 AI 소식 초안</button>` : ""}</div>
+    </div>`;
+
+  const rows = s.list.slice(0, 12).map(r => {
+    const key = r.d.key, open = s.openKey === key;
+    const max = Math.max(...s.list.slice(0,12).map(x=>x.recent), 1);
+    const nw = s.news[key];
+    let newsHtml = "";
+    if(open){
+      if(nw && nw.status === "loading") newsHtml = `<div style="font-size:11px;color:#888;padding:8px 0">📰 관련 소식을 검색하는 중...</div>`;
+      else if(nw && nw.status === "error") newsHtml = `<div style="font-size:11px;color:#C62828;padding:8px 0">소식 검색에 실패했습니다. 잠시 후 다시 시도해 주세요.</div>`;
+      else if(nw && nw.status === "done") newsHtml = nw.results.length ? `
+        <div style="font-size:10px;color:#888;margin:8px 0 3px">📰 "${esc(nw.q)}" 최근 30일 기사 ${nw.results.length}건 (중복 제거)</div>
+        <div style="max-height:260px;overflow-y:auto">${nw.results.map((n,i)=>`
+          <div style="padding:5px 0;border-top:1px solid #f4f4f4">
+            <a href="${esc(n.link)}" target="_blank" rel="noopener" style="font-size:12px;font-weight:600;color:#333;text-decoration:none;line-height:1.45;display:block">${esc(n.title)}</a>
+            <div style="font-size:10px;color:#999;margin-top:2px">${esc(n.source)}${n.source&&n.pubDate?" · ":""}${esc(n.pubDate)}
+              ${admin ? ` <button class="em-draft-news" data-key="${esc(key)}" data-idx="${i}" style="margin-left:6px;font-size:10px;border:1px solid #C62828;border-radius:5px;background:#fff;color:#C62828;padding:1px 7px;cursor:pointer">📥 AI 소식 초안</button>` : ""}</div>
+          </div>`).join("")}</div>` : `<div style="font-size:11px;color:#aaa;padding:8px 0">"${esc(nw.q)}" 최근 30일 기사가 없습니다.</div>`;
+    }
+    return `
+    <div style="border:1px solid ${open?"#B39DDB":"#eee"};border-radius:10px;margin-bottom:6px;background:${open?"#FAF7FF":"#fff"}">
+      <div class="em-row" data-key="${esc(key)}" role="button" tabindex="0" style="cursor:pointer;padding:9px 11px;display:flex;align-items:center;gap:10px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:700;color:#333">${esc(r.d.ko)}</div>
+          <div style="font-size:10px;color:#aaa">${esc(r.d.en)}</div>
+        </div>
+        <div style="width:70px;background:#eee;border-radius:4px;height:7px"><div style="width:${Math.round(r.recent/max*100)}%;background:${color};height:7px;border-radius:4px"></div></div>
+        <div style="text-align:right;min-width:78px">
+          <div style="font-size:12px;font-weight:800;color:#333">30일 ${r.recent}편</div>
+          <div style="font-size:10px;color:#999">전 월평균 ${r.base.toFixed(1)}편</div>
+        </div>
+        <div>${emergTrendBadge(r.trend)}</div>
+      </div>
+      ${open ? `<div style="padding:0 11px 10px">
+        <div style="font-size:11px;font-weight:700;color:#555;margin:2px 0 2px">📚 최근 논문 (최신순)</div>
+        ${r.mine.slice(0,6).map((p,i)=>paperLine(p, key, i, admin)).join("")}
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+          <a href="https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent('"'+r.d.en+'" AND (chicken OR poultry OR broiler)')}&sort=date" target="_blank" rel="noopener" style="font-size:11px;border:1px solid ${color};color:${color};border-radius:6px;padding:4px 10px;text-decoration:none">PubMed 더보기 ↗</a>
+          <button class="em-news-btn" data-key="${esc(key)}" ${nw&&nw.status==="loading"?"disabled":""} style="font-size:11px;border:1px solid #1565C0;background:#E3F2FD;color:#1565C0;border-radius:6px;padding:4px 10px;font-weight:700;cursor:pointer">📰 관련 소식 자동검색</button>
+        </div>
+        ${newsHtml}
+      </div>` : ""}
+    </div>`;
+  }).join("");
+
+  const se = s.search;
+  const searchBox = `
+    <div style="display:flex;gap:6px;margin:12px 0 8px">
+      <input id="em-search-input" type="text" value="${esc(s.searchQ)}" placeholder="질병 직접 검색 (예: 뉴캐슬병, Salmonella, 괴사성장염)" style="flex:1;min-width:0;padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:12.5px" />
+      <button id="em-search-btn" ${se.status==="loading"?"disabled":""} style="border:1px solid ${color};background:#EDE7F6;color:${color};border-radius:8px;padding:8px 13px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">${se.status==="loading"?"검색 중...":"논문 검색"}</button>
+    </div>
+    ${se.status==="error" ? `<div style="font-size:11px;color:#C62828;margin-bottom:8px">검색에 실패했습니다.</div>` : ""}
+    ${se.status==="done" ? `<div style="background:#FAF7FF;border:1px solid #E1D8F5;border-radius:10px;padding:8px 11px;margin-bottom:10px">
+      <div style="font-size:11px;font-weight:700;color:#555">"${esc(se.q)}" 최신 논문 ${se.results.length}편 <span style="font-weight:400;color:#999">(PubMed · ${esc(se.en)})</span></div>
+      ${se.results.length ? se.results.map((p,i)=>`
+        <div style="padding:6px 0;border-top:1px solid #f0eafa">
+          <a href="https://pubmed.ncbi.nlm.nih.gov/${esc(p.id)}/" target="_blank" rel="noopener" style="font-size:12px;font-weight:600;color:#333;text-decoration:none;line-height:1.45;display:block">${esc(p.title)}</a>
+          <div style="font-size:10px;color:#999;margin-top:2px">${esc(p.journal)}${p.journal&&p.date?" · ":""}${esc(p.date)}
+            ${admin ? ` <button class="em-draft-search" data-idx="${i}" style="margin-left:6px;font-size:10px;border:1px solid #C62828;border-radius:5px;background:#fff;color:#C62828;padding:1px 7px;cursor:pointer">📥 AI 소식 초안</button>` : ""}</div>
+        </div>`).join("") : `<div style="font-size:11px;color:#aaa;padding:6px 0">검색 결과가 없습니다.</div>`}
+    </div>` : ""}`;
+
+  const upd = s.updated ? `${s.updated.getMonth()+1}/${s.updated.getDate()} ${s.updated.getHours()}시 기준` : "";
+  return wrap(`
+    ${searchBox}
+    <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:6px">📈 요즘 많이 연구되는 질병 <span style="font-weight:400;color:#999">— 최근 30일 논문 수 순 · 논문 ${s.papers.length}편 분석 ${upd}</span></div>
+    ${rows || `<div style="font-size:12px;color:#aaa;padding:10px 0">분류된 질병 논문이 없습니다.</div>`}
+    <div style="font-size:10px;color:#aaa;line-height:1.7;margin-top:8px;border-top:1px dashed #eee;padding-top:8px">
+      ※ 방법: PubMed에서 최근 90일간 닭·가금·육계·산란계와 질병 관련 논문 제목을 모아 병명 키워드로 분류했습니다(제목 기준이라 실제 연구 수와 차이가 있을 수 있음).
+      🔥급상승 = 최근 30일 4편 이상이면서 직전 60일 월평균의 1.5배 이상 · 🆕신규 = 직전 60일에 없던 질병이 30일에 3편 이상 · 논문 제목은 원문(영어)입니다.
+      ${admin ? "<br>관리자: 논문·기사 옆 <b>📥 AI 소식 초안</b>을 누르면 AI관련정보 탭의 소식 입력 폼에 제목·링크가 채워지며, 확인 후 발행하면 모두에게 보입니다." : ""}
+      <button id="em-reload" style="margin-left:6px;font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:1px 8px;cursor:pointer">↻ 새로고침</button>
+    </div>`);
+}
+
 function renderDiseaseTab(){
   const d = diseaseState;
   const shell = inner => '<div class="card" style="margin-bottom:16px">'+inner+'</div>';
   // 오늘 기상 기준 사양관리 포인트는 질병 자료 로딩 상태와 무관하게 항상 맨 위에
   // 둔다 — 질병 위험(호흡기·콕시듐·대장균)이 결국 오늘 사양환경에서 나오기 때문.
-  const head = renderHusbandryPointsCard({title:"📋 오늘의 사양관리 포인트", poultryOnly:true});
+  const head = renderHusbandryPointsCard({title:"📋 오늘의 사양관리 포인트", poultryOnly:true}) + renderEmergingDiseaseCard();
   if(d.status === "loading" || d.status === "idle")
     return head + shell('<div style="text-align:center;padding:28px;color:#aaa">⏳ 질병 자료를 불러오는 중...</div>');
   if(d.status === "error" || !d.data || !d.data.diseases)
@@ -14329,6 +14616,43 @@ function attachDiseaseEvents(){
     }
     render();
   };
+
+  // 최신 연구되는 질병
+  const emT = document.getElementById("em-toggle");
+  if(emT){
+    const tg = () => { emergState.open = !emergState.open; if(emergState.open && emergState.status === "idle"){ emergLoad(false); } render(); };
+    emT.onclick = tg;
+    emT.onkeydown = e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); tg(); } };
+  }
+  const emR = document.getElementById("em-reload"); if(emR) emR.onclick = () => { emergState.status = "idle"; emergLoad(true); };
+  document.querySelectorAll(".em-row").forEach(el => {
+    const tg = () => { emergState.openKey = emergState.openKey === el.dataset.key ? null : el.dataset.key; render(); };
+    el.onclick = tg;
+    el.onkeydown = e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); tg(); } };
+  });
+  document.querySelectorAll(".em-news-btn").forEach(b => b.onclick = () => emergNewsSearch(b.dataset.key));
+  const emSb = document.getElementById("em-search-btn"); if(emSb) emSb.onclick = () => emergSearchPapers();
+  const emSi = document.getElementById("em-search-input"); if(emSi) emSi.onkeydown = e => { if(e.key === "Enter"){ e.preventDefault(); emergSearchPapers(); } };
+  const emHint = key => { const d = EMERG_DISEASES.find(x => x.key === key); return d ? d.ko.replace(/\(.*?\)/g, "").trim() : ""; };
+  const emPaperDraft = (p, hint) => emergSendToNews({
+    title: "[최신 연구] " + p.title,
+    text: "PubMed 최신 논문 — " + (p.journal || "") + (p.date ? " (" + p.date + ")" : "") + "\n" + (hint ? "관련 질병: " + hint + "\n" : "") + "(원문은 영어 논문입니다. 핵심 내용을 한글로 요약해 입력하세요.)",
+    link: "https://pubmed.ncbi.nlm.nih.gov/" + p.id + "/",
+  }, hint);
+  document.querySelectorAll(".em-draft-paper").forEach(b => b.onclick = e => {
+    e.stopPropagation();
+    const row = emergState.list.find(r => r.d.key === b.dataset.key); if(!row) return;
+    const p = row.mine[Number(b.dataset.idx)]; if(p) emPaperDraft(p, emHint(b.dataset.key));
+  });
+  document.querySelectorAll(".em-draft-search").forEach(b => b.onclick = e => {
+    e.stopPropagation();
+    const p = emergState.search.results[Number(b.dataset.idx)]; if(p) emPaperDraft(p, emergState.search.ko || "");
+  });
+  document.querySelectorAll(".em-draft-news").forEach(b => b.onclick = e => {
+    e.stopPropagation();
+    const nw = emergState.news[b.dataset.key]; const n = nw && nw.results[Number(b.dataset.idx)]; if(!n) return;
+    emergSendToNews({ title: n.title, text: n.description || "", link: n.link }, nw.q);
+  });
 
   // ── 관리 ──
   const at = document.getElementById("dz-admin-toggle");
