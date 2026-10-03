@@ -13304,6 +13304,90 @@ function anomMean(a){ return a.reduce((s,x)=>s+x,0)/a.length; }
 function anomSd(a, m){ const mm = m==null ? anomMean(a) : m; return Math.sqrt(a.reduce((s,x)=>s+(x-mm)*(x-mm),0)/Math.max(1,a.length-1)); }
 function anomPct(sorted, p){ const i=(sorted.length-1)*p, lo=Math.floor(i), hi=Math.ceil(i); return sorted[lo]+(sorted[hi]-sorted[lo])*(i-lo); }
 
+// 이상기온 예측 기준 안내 모달 (이상기온 예측 카드·오늘의 관리 포인트의 이상기온 블록을 누르면 열림)
+function openAnomInfoModal(){
+  const old = document.getElementById("anom-info-modal");
+  if(old) old.remove();
+  const PROB = [
+    {range:"30% 미만", label:"정상 범위", color:"#2E7D32", bg:"#E8F5E9", desc:"평소에도 약 10%는 나오는 값 — 이상기온 신호 아님"},
+    {range:"30~40%",   label:"주의",     color:"#F57F17", bg:"#FFFDE7", desc:"평년보다 벗어날 가능성이 커지는 중 · 예보 갱신 확인 (이상기온 예측 카드에 표시)"},
+    {range:"40~60%",   label:"경고",     color:"#E65100", bg:"#FFF3E0", desc:"시나리오의 절반 가까이가 이상 구간 · 사전 대비 시작 (오늘의 관리 포인트에 표시)"},
+    {range:"60% 이상", label:"높음",     color:"#B71C1C", bg:"#FFEBEE", desc:"대부분의 시나리오가 이상기온을 가리킴 · 대비 조치 즉시 실행"},
+  ];
+  const EVENTS = [
+    {icon:"🔥", name:"이상고온", rule:"일평균기온이 평년보다 1.28σ 이상 높음 (평년 상위 10%)", note:"주간 평균은 주평균 기준으로 같은 방식"},
+    {icon:"🥶", name:"이상저온", rule:"일평균기온이 평년보다 1.28σ 이상 낮음 (평년 하위 10%)", note:"주간 평균은 주평균 기준으로 같은 방식"},
+    {icon:"☀️", name:"폭염",     rule:"일 최고기온 33°C 이상 (기상청 폭염주의보 기준)", note:"시나리오별 시간별 최고값으로 판정"},
+    {icon:"❄️", name:"한파",     rule:"일 최저기온 -12°C 이하 (기상청 한파주의보 기준)", note:"시나리오별 시간별 최저값으로 판정"},
+    {icon:"🌧️", name:"호우",     rule:"일 강수량 30mm 이상", note:"강수 있음(☔)은 1mm 이상"},
+    {icon:"↕️", name:"기온 급변", rule:"앙상블 평균 일평균기온이 하루 만에 6°C 이상 오르거나 내림", note:"환기 단계·보온을 미리 조정할 신호"},
+  ];
+  const LEAD = [
+    {range:"1~7일",   label:"신뢰 높음", color:"#2E7D32", desc:"ECMWF 앙상블 — 확률을 그대로 활용"},
+    {range:"8~15일",  label:"보통",     color:"#F57F17", desc:"ECMWF 앙상블 — 시나리오가 갈라지는 구간, 확률은 경향으로 해석"},
+    {range:"16~35일", label:"참고용",   color:"#B71C1C", desc:"GEM 앙상블(21개)로 이어 계산 — 주간 경향만 보세요"},
+  ];
+  const modal = document.createElement("div");
+  modal.id = "anom-info-modal";
+  modal.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px";
+  const row = (z, w) => `<div style="display:flex;align-items:center;gap:10px;background:${z.bg||"#f7f7f7"};border-radius:8px;padding:8px 10px;margin-bottom:5px">
+      <div style="min-width:${w||76}px;font-size:12px;font-weight:800;color:${z.color};text-align:center">${z.range}</div>
+      <div style="min-width:56px;font-size:12px;font-weight:700;color:${z.color}">${z.label}</div>
+      <div style="flex:1;font-size:11px;color:#555;line-height:1.5">${z.desc}</div></div>`;
+  modal.innerHTML = `
+  <div style="background:#fff;border-radius:16px;width:100%;max-width:540px;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
+    <div style="padding:16px 20px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#fff;z-index:1">
+      <div>
+        <div style="font-size:16px;font-weight:700;color:#1a2744">🔮 이상기온 예측 기준</div>
+        <div style="font-size:11px;color:#aaa;margin-top:2px">앙상블 예보 × 평년(1991~2020) 비교</div>
+      </div>
+      <button id="anom-modal-close" style="border:none;background:none;font-size:20px;color:#aaa;cursor:pointer;padding:4px">✕</button>
+    </div>
+    <div style="padding:16px 20px">
+      <div style="background:#f7f7f7;border-radius:10px;padding:10px 12px;margin-bottom:16px">
+        <div style="font-size:11px;font-weight:700;color:#555;margin-bottom:6px">📐 이렇게 계산합니다</div>
+        <div style="font-size:11px;color:#444;line-height:1.8">
+          <b>①</b> 앙상블 예보: 초기값을 조금씩 달리한 <b>51개 시나리오</b>(ECMWF)로 날씨를 각각 예측<br>
+          <b>②</b> 평년: ERA5 재분석 1991~2020년, 같은 날짜 ±7일 × 30년의 <b>평균(μ)과 표준편차(σ)</b><br>
+          <b>③</b> 이상기온 확률 = 시나리오 중 일평균기온이 <b>μ ± 1.28σ</b>를 벗어나는 시나리오의 비율
+        </div>
+        <div style="font-family:monospace;font-size:11px;color:#333;margin-top:6px">확률 = (T ≥ μ+1.28σ 인 시나리오 수) ÷ 전체 시나리오 수</div>
+        <div style="font-size:10px;color:#888;margin-top:4px">1.28σ는 정규분포에서 상·하위 10% 경계 — 평소에도 약 10%는 나오는 값이라, 그보다 훨씬 높을 때가 이상기온 신호입니다.</div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:8px">확률 단계</div>
+      <div style="margin-bottom:14px">${PROB.map(z=>row(z)).join("")}</div>
+
+      <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:8px">판정 항목별 기준</div>
+      <div style="margin-bottom:14px">${EVENTS.map(e=>`
+        <div style="display:flex;gap:10px;align-items:flex-start;border:1px solid #eee;border-radius:8px;padding:8px 10px;margin-bottom:5px">
+          <div style="font-size:18px;line-height:1.2">${e.icon}</div>
+          <div style="flex:1"><div style="font-size:12px;font-weight:700;color:#333">${e.name}</div>
+            <div style="font-size:11px;color:#555;line-height:1.5">${e.rule}</div>
+            <div style="font-size:10px;color:#999">${e.note}</div></div>
+        </div>`).join("")}</div>
+
+      <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:8px">예보 기간별 신뢰도</div>
+      <div style="margin-bottom:14px">${LEAD.map(z=>row(Object.assign({bg:"#fafafa"}, z), 66)).join("")}</div>
+
+      <div style="background:#FFF8E1;border-radius:8px;padding:10px 12px;font-size:10px;color:#666;line-height:1.7">
+        <b style="color:#333">💡 실무 참고</b><br>
+        · 표시되는 "예측 평균(범위)"의 범위는 시나리오의 하위 10%~상위 10%입니다 — 범위가 넓을수록 예보가 불확실합니다<br>
+        · 오늘의 관리 포인트에는 확률 40% 이상(폭염·한파·호우는 30% 이상)일 때만 올라옵니다<br>
+        · 앙상블은 실제보다 시나리오가 덜 퍼지는 경향이 있어 확률이 다소 과신될 수 있습니다<br>
+        · 기상청 공식 예보·특보와 다를 수 있으니 중요한 판단은 기상청 발표를 함께 확인하세요
+      </div>
+      <div style="font-size:9px;color:#aaa;margin-top:10px;text-align:right">
+        출처: Open-Meteo Ensemble API (ECMWF IFS · GEM Global) · ERA5 재분석(Copernicus/ECMWF) 1991~2020 평년
+      </div>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+  const close = ()=>modal.remove();
+  document.getElementById("anom-modal-close").onclick = close;
+  modal.onclick = (e)=>{ if(e.target===modal) close(); };
+}
+
 async function anomLoadClimatology(lat, lng){
   const ck = "anom_clim_v1_" + lat.toFixed(1) + "_" + lng.toFixed(1);
   try { const c = JSON.parse(localStorage.getItem(ck)||"null"); if(c && c.d && c.d.length===366) return c; } catch(e){}
@@ -13418,7 +13502,7 @@ async function anomRun(quick){
 // 날씨 위치가 잡히면 fetchWeather가 가벼운(16일) 계산을 백그라운드로 돌려 anomState에 채운다.
 function anomPointsHtml(bullet){
   const head = `<div style="font-size:11px;font-weight:700;color:#333;margin-bottom:5px">🔮 이상기온 신호 <span style="font-size:9px;color:#aaa;font-weight:600">앞으로 10일 · 앙상블 예보 vs 평년</span></div>`;
-  const wrapIt = inner => `<div style="border-top:1px dashed #eee;padding-top:10px;margin-bottom:4px">${head}${inner}</div>`;
+  const wrapIt = inner => `<div class="anom-info-open" role="button" tabindex="0" title="눌러서 예측 기준 보기" style="cursor:pointer;border-top:1px dashed #eee;padding-top:10px;margin-bottom:4px">${head}${inner}</div>`;
   if(anomState.status==="loading" || (anomState.status==="idle")) return wrapIt(`<div style="font-size:11px;color:#aaa">이상기온 예측 계산 중...</div>`);
   if(anomState.status!=="done" || !anomState.data || !anomState.data.days.length) return "";
   const dn = ["일","월","화","수","목","금","토"];
@@ -13444,7 +13528,7 @@ function anomPointsHtml(bullet){
   for(let i=1;i<near.length;i++){ const dv = near[i].mean-near[i-1].mean; if(Math.abs(dv)>=6) swings.push({d:near[i], dv}); }
   if(swings.length) out.push(bullet(`↕️ <b>기온 급변</b> — ${list(swings, s=>`${fmt(s.d.date)} 전일 대비 ${s.dv>0?"+":""}${s.dv.toFixed(1)}°C`)}. 환기 단계·보온을 하루 전에 미리 조정하고 호흡기 질병(CRD·대장균) 경계`, "#7B1FA2"));
   const inner = out.length ? out.join("") : `<div style="font-size:11px;color:#2E7D32">✅ 앞으로 10일 평년 대비 뚜렷한 이상기온 신호 없음</div>`;
-  return wrapIt(inner + `<div style="font-size:9px;color:#aaa;margin-top:3px">확률 40% 이상(폭염·한파·호우는 30% 이상)일 때만 표시 · 자세한 내용은 날씨 탭 "이상기온 예측"</div>`);
+  return wrapIt(inner + `<div style="font-size:9px;color:#aaa;margin-top:3px">확률 40% 이상(폭염·한파·호우는 30% 이상)일 때만 표시 · 눌러서 예측 기준 보기 ⓘ</div>`);
 }
 
 function renderAnomalyPanel(){
@@ -13481,11 +13565,12 @@ function renderAnomalyPanel(){
   if(frz.length) msgs.push(`❄️ 한파(최저 -12°↓) 가능성 30%↑: ${frz.map(d=>fmt(d.date)).join(", ")}`);
   if(heavy.length) msgs.push(`🌧️ 호우(일 30mm↑) 가능성 30%↑: ${heavy.map(d=>fmt(d.date)).join(", ")}`);
   const calm = !msgs.length;
-  const sum = `<div style="background:${calm?"#E8F5E9":"#F3E5F5"};border-radius:12px;padding:12px 14px;margin:14px 0 12px">
+  const sum = `<div class="anom-info-open" role="button" tabindex="0" title="눌러서 예측 기준 보기" style="cursor:pointer;background:${calm?"#E8F5E9":"#F3E5F5"};border-radius:12px;padding:12px 14px;margin:14px 0 12px">
     <div style="font-size:13.5px;font-weight:800;color:${calm?"#2E7D32":"#6A1B9A"}">${calm ? "✅ 앞으로 2주 뚜렷한 이상기온 신호는 없습니다" : "⚠️ 앞으로 2주 이상기온 신호가 있습니다"}</div>
     ${msgs.map(m=>`<div style="font-size:12px;color:#444;margin-top:5px;line-height:1.5">${m}</div>`).join("")}
     ${bestHot && bestHot.pHot>=0.3 ? `<div style="font-size:11px;color:#777;margin-top:7px">🐔 고온 대비: 환기·냉방 점검, 음수·전해질 준비, 입추·출하 시간 조정 검토</div>` : ""}
     ${bestCold && bestCold.pCold>=0.3 ? `<div style="font-size:11px;color:#777;margin-top:4px">🐔 저온 대비: 보온·난방 점검, 틈새풍 차단, 급수 동결 방지</div>` : ""}
+    <div style="font-size:10px;color:#6A1B9A;margin-top:8px;font-weight:700">ⓘ 눌러서 예측 기준 보기</div>
   </div>`;
 
   const rows = near.map(d=>{
@@ -13506,7 +13591,7 @@ function renderAnomalyPanel(){
   const weeks = D.weeks.map((w,i)=>{
     const dv = w.mean - w.clim, hi = Math.max(w.pHot, w.pCold) >= 0.3;
     const tag = w.pHot>=0.3 && w.pHot>=w.pCold ? `<span style="color:#D84315;font-weight:800">따뜻함 경향 ${pc(w.pHot)}%</span>` : w.pCold>=0.3 ? `<span style="color:#1565C0;font-weight:800">추움 경향 ${pc(w.pCold)}%</span>` : `<span style="color:#888">평년 범위</span>`;
-    return `<div style="flex:1;min-width:120px;border:1px solid ${hi?"#CE93D8":"#eee"};border-radius:10px;padding:8px 10px;background:${hi?"#FAF3FC":"#fff"}">
+    return `<div class="anom-info-open" role="button" tabindex="0" style="cursor:pointer;flex:1;min-width:120px;border:1px solid ${hi?"#CE93D8":"#eee"};border-radius:10px;padding:8px 10px;background:${hi?"#FAF3FC":"#fff"}">
       <div style="font-size:10.5px;color:#888">${i+1}주차 ${fmt(w.from)}~${fmt(w.to)}</div>
       <div style="font-size:15px;font-weight:800;margin-top:2px">${w.mean.toFixed(1)}° <span style="font-size:11px;font-weight:700;color:${dv>=0?"#D32F2F":"#1565C0"}">${dv>=0?"+":""}${dv.toFixed(1)}</span></div>
       <div style="font-size:10.5px;color:#999">평년 ${w.clim.toFixed(1)}°</div>
@@ -13525,7 +13610,7 @@ function renderAnomalyPanel(){
     <div style="font-size:12px;font-weight:700;color:#333;margin:14px 0 6px">🗓️ 주간 평균기온 경향 (최대 5주)</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">${weeks || `<div style="font-size:12px;color:#999">주간 자료가 없습니다</div>`}</div>
     <div style="font-size:10px;color:#aaa;line-height:1.7;margin-top:12px;border-top:1px dashed #eee;padding-top:8px">
-      ※ 이상고온/저온 확률 = 앙상블 ${D.members}개 시나리오 중 일평균(주간은 주평균) 기온이 평년보다 1.28σ 이상 높거나 낮은 시나리오의 비율입니다. 평소(정상)에도 약 10%는 나오는 값이라 <b>30% 이상이면 주의</b>로 봅니다.
+      <a class="anom-info-open" role="button" tabindex="0" style="color:#6A1B9A;font-weight:700;cursor:pointer">ⓘ 예측 기준 자세히 보기</a><br>※ 이상고온/저온 확률 = 앙상블 ${D.members}개 시나리오 중 일평균(주간은 주평균) 기온이 평년보다 1.28σ 이상 높거나 낮은 시나리오의 비율입니다. 평소(정상)에도 약 10%는 나오는 값이라 <b>30% 이상이면 주의</b>로 봅니다.
       예측 평균 옆 작은 숫자는 시나리오의 하위10%~상위10% 범위입니다. 일반적으로 1주 이내는 신뢰도가 높고 2주를 넘으면 경향 참고용입니다.<br>
       자료: Open-Meteo(ECMWF IFS 앙상블 · ERA5 재분석 1991~2020 평년) · 3주차 이후는 GEM 앙상블(21개)로 이어 계산하며 정확도가 낮은 경향 참고용입니다 · 기상청 공식 예보·특보와 다를 수 있으니 중요한 판단엔 기상청 발표를 함께 확인하세요.${anomState.updated ? ` · 계산 ${anomState.updated.getHours()}시 ${String(anomState.updated.getMinutes()).padStart(2,"0")}분` : ""}
     </div>`);
@@ -16624,6 +16709,10 @@ function attachEvents(){
   };
   bindCardOpen("card-thi", openTHIInfoModal);
   bindCardOpen("card-cold", openColdInfoModal);
+  document.querySelectorAll(".anom-info-open").forEach(el=>{
+    el.onclick = ()=> openAnomInfoModal();
+    el.onkeydown = (e)=>{ if(e.key === "Enter" || e.key === " "){ e.preventDefault(); openAnomInfoModal(); } };
+  });
 
   // 날씨 요일 카드 클릭 → 시간대별 상세
   document.querySelectorAll(".wx-day-card").forEach(b=>b.onclick=()=>{
