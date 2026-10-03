@@ -5636,7 +5636,7 @@ function emergAnalyze(papers){
     else if(base >= 3 && ratio <= 0.7) trend = "down";
     return { d, mine, recent, prior, base, ratio, trend, score: recent * (1 + Math.max(0, ratio - 1)) };
   }).filter(r => r.mine.length);
-  rows.sort((a,b)=>b.score-a.score);
+  rows.sort((a,b)=>b.recent-a.recent || b.mine.length-a.mine.length || b.score-a.score); // 최근 30일 논문 수 많은 순
   return rows;
 }
 
@@ -5749,9 +5749,9 @@ function renderEmergingDiseaseCard(){
         ${adminBtn ? ` <button class="em-draft-paper" data-key="${esc(key)}" data-idx="${idx}" style="margin-left:6px;font-size:10px;border:1px solid #C62828;border-radius:5px;background:#fff;color:#C62828;padding:1px 7px;cursor:pointer">📥 AI 소식 초안</button>` : ""}</div>
     </div>`;
 
-  const rows = s.list.slice(0, 12).map(r => {
+  const rows = s.list.map((r, rank) => {
     const key = r.d.key, open = s.openKey === key;
-    const max = Math.max(...s.list.slice(0,12).map(x=>x.recent), 1);
+    const max = Math.max(...s.list.map(x=>x.recent), 1);
     const nw = s.news[key];
     let newsHtml = "";
     if(open){
@@ -5769,6 +5769,7 @@ function renderEmergingDiseaseCard(){
     return `
     <div style="border:1px solid ${open?"#B39DDB":"#eee"};border-radius:10px;margin-bottom:6px;background:${open?"#FAF7FF":"#fff"}">
       <div class="em-row" data-key="${esc(key)}" role="button" tabindex="0" style="cursor:pointer;padding:9px 11px;display:flex;align-items:center;gap:10px">
+        <div style="min-width:22px;text-align:center;font-size:13px;font-weight:800;color:${rank<3?color:"#bbb"}">${rank+1}</div>
         <div style="flex:1;min-width:0">
           <div style="font-size:13px;font-weight:700;color:#333">${esc(r.d.ko)}</div>
           <div style="font-size:10px;color:#aaa">${esc(r.d.en)}</div>
@@ -5812,7 +5813,7 @@ function renderEmergingDiseaseCard(){
   const upd = s.updated ? `${s.updated.getMonth()+1}/${s.updated.getDate()} ${s.updated.getHours()}시 기준` : "";
   return wrap(`
     ${searchBox}
-    <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:6px">📈 요즘 많이 연구되는 질병 <span style="font-weight:400;color:#999">— 최근 30일 논문 수 순 · 논문 ${s.papers.length}편 분석 ${upd}</span></div>
+    <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:6px">📈 요즘 많이 연구되는 질병 <span style="font-weight:400;color:#999">— 최근 30일 논문 편수 많은 순(자동 정렬) · 논문 ${s.papers.length}편 분석 ${upd}</span></div>
     ${rows || `<div style="font-size:12px;color:#aaa;padding:10px 0">분류된 질병 논문이 없습니다.</div>`}
     <div style="font-size:10px;color:#aaa;line-height:1.7;margin-top:8px;border-top:1px dashed #eee;padding-top:8px">
       ※ 방법: PubMed에서 최근 90일간 닭·가금·육계·산란계와 질병 관련 논문 제목을 모아 병명 키워드로 분류했습니다(제목 기준이라 실제 연구 수와 차이가 있을 수 있음).
