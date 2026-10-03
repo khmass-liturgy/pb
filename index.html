@@ -5681,6 +5681,7 @@ async function emergSearchPapers(){
     const papers = ids.length ? await emergEsummary(ids) : [];
     emergState.search.results = papers.sort((a,b)=>b.ts-a.ts);
     emergState.search.status = "done";
+    emergTranslateTitles(emergState.search.results);
   } catch(e){
     console.warn("논문 검색 실패:", e);
     emergState.search.status = "error";
@@ -5719,6 +5720,59 @@ function emergSendToNews(draft, queryHint){
   switchTab("hpai");
 }
 
+// ── 논문 제목·초록 한글 번역 ──
+// 구글 번역 공개 엔드포인트(translate.googleapis.com, CORS 허용)를 브라우저에서 바로 쓴다.
+// 기계번역이라 전문용어는 어색할 수 있어 원문(영어)을 함께 둔다. 초록은 PubMed efetch로 받는다.
+emergState.tr = {};   // 논문 id → 한글 제목
+emergState.abs = {};  // 논문 id → { status, en, ko, open }
+async function emergTranslate(text){
+  const chunks = [];
+  let cur = "";
+  String(text).split(/(?<=[.!?])\s+/).forEach(sn => {
+    if((cur + " " + sn).length > 1200 && cur){ chunks.push(cur); cur = sn; } else cur = cur ? cur + " " + sn : sn;
+  });
+  if(cur) chunks.push(cur);
+  const out = [];
+  for(const c of chunks){
+    const r = await fetchWithTimeout("https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ko&dt=t&q=" + encodeURIComponent(c), 15000);
+    if(!r.ok) throw new Error("번역 HTTP " + r.status);
+    const j = await r.json();
+    out.push((j[0] || []).map(x => x[0]).join(""));
+  }
+  return out.join(" ").trim();
+}
+async function emergTranslateTitles(papers){
+  const todo = papers.filter(p => p && !emergState.tr[p.id]);
+  if(!todo.length) return;
+  await Promise.all(todo.map(async p => {
+    try { emergState.tr[p.id] = await emergTranslate(p.title); } catch(e){ console.warn("제목 번역 실패:", e); }
+  }));
+  render();
+}
+async function emergToggleAbstract(id){
+  const a = emergState.abs[id] = emergState.abs[id] || { status:"idle", open:false };
+  a.open = !a.open;
+  if(a.open && a.status === "idle"){
+    a.status = "loading"; render();
+    try {
+      const r = await fetchWithTimeout(EMERG_BASE + "efetch.fcgi?db=pubmed&retmode=xml&id=" + id, 20000);
+      if(!r.ok) throw new Error("초록 HTTP " + r.status);
+      const doc = new DOMParser().parseFromString(await r.text(), "text/xml");
+      const parts = Array.from(doc.querySelectorAll("AbstractText")).map(n => {
+        const lb = n.getAttribute("Label");
+        return (lb ? lb + ": " : "") + (n.textContent || "").trim();
+      }).filter(Boolean);
+      a.en = parts.join("\n");
+      if(!a.en){ a.status = "none"; }
+      else { a.ko = await emergTranslate(a.en); a.status = "done"; }
+    } catch(e){
+      console.warn("초록 번역 실패:", e);
+      a.status = "error";
+    }
+  }
+  render();
+}
+
 function emergTrendBadge(t){
   const m = { new:["🆕 신규","#6A1B9A","#F3E5F5"], surge:["🔥 급상승","#C62828","#FFEBEE"], up:["▲ 증가","#E65100","#FFF3E0"], down:["▼ 감소","#1565C0","#E3F2FD"], steady:["보합","#888","#f3f3f3"] }[t] || ["보합","#888","#f3f3f3"];
   return `<span style="font-size:10px;font-weight:700;color:${m[1]};background:${m[2]};border-radius:9px;padding:2px 8px;white-space:nowrap">${m[0]}</span>`;
@@ -5742,12 +5796,32 @@ function renderEmergingDiseaseCard(){
   if(s.status === "error")
     return wrap(`<div style="text-align:center;padding:20px 0"><div style="font-size:13px;color:#D32F2F;margin-bottom:10px">⚠️ 논문 목록을 가져오지 못했습니다 (${esc(s.err)})</div><button id="em-reload" style="border:none;border-radius:10px;background:${color};color:#fff;padding:10px 20px;font-size:13px;font-weight:600">다시 시도</button></div>`);
 
-  const paperLine = (p, key, idx, adminBtn) => `
-    <div style="padding:6px 0;border-top:1px solid #f4f4f4">
-      <a href="https://pubmed.ncbi.nlm.nih.gov/${esc(p.id)}/" target="_blank" rel="noopener" style="font-size:12px;font-weight:600;color:#333;text-decoration:none;line-height:1.45;display:block">${esc(p.title)}</a>
-      <div style="font-size:10px;color:#999;margin-top:2px">${esc(p.journal)}${p.journal&&p.date?" · ":""}${esc(p.date)}
-        ${adminBtn ? ` <button class="em-draft-paper" data-key="${esc(key)}" data-idx="${idx}" style="margin-left:6px;font-size:10px;border:1px solid #C62828;border-radius:5px;background:#fff;color:#C62828;padding:1px 7px;cursor:pointer">📥 AI 소식 초안</button>` : ""}</div>
+  const paperLine = (p, adminBtnHtml) => {
+    const ko = emergState.tr[p.id], ab = emergState.abs[p.id];
+    let absHtml = "";
+    if(ab && ab.open){
+      if(ab.status === "loading") absHtml = `<div style="font-size:11px;color:#888;margin-top:6px">📄 초록을 가져와 번역하는 중...</div>`;
+      else if(ab.status === "error") absHtml = `<div style="font-size:11px;color:#C62828;margin-top:6px">초록을 가져오거나 번역하지 못했습니다. 잠시 후 다시 시도해 주세요.</div>`;
+      else if(ab.status === "none") absHtml = `<div style="font-size:11px;color:#aaa;margin-top:6px">이 논문은 PubMed에 초록이 없습니다.</div>`;
+      else if(ab.status === "done") absHtml = `<div style="margin-top:6px;background:#fff;border:1px solid #E1D8F5;border-radius:8px;padding:8px 10px">
+        <div style="font-size:11px;font-weight:700;color:#5E35B1;margin-bottom:3px">📄 초록 (한글 번역)</div>
+        <div style="font-size:12px;color:#333;line-height:1.65;white-space:pre-wrap">${esc(ab.ko)}</div>
+        <details style="margin-top:5px"><summary style="font-size:10px;color:#999;cursor:pointer">영어 원문 보기</summary><div style="font-size:11px;color:#777;line-height:1.55;white-space:pre-wrap;margin-top:3px">${esc(ab.en)}</div></details>
+        <div style="font-size:9px;color:#bbb;margin-top:3px">자동(기계) 번역이라 전문용어가 어색할 수 있습니다.</div>
+      </div>`;
+    }
+    return `
+    <div style="padding:7px 0;border-top:1px solid #f4f4f4">
+      <a href="https://pubmed.ncbi.nlm.nih.gov/${esc(p.id)}/" target="_blank" rel="noopener" style="text-decoration:none;display:block">
+        ${ko ? `<div style="font-size:12.5px;font-weight:700;color:#222;line-height:1.5">${esc(ko)}</div><div style="font-size:10.5px;color:#999;line-height:1.4;margin-top:1px">${esc(p.title)}</div>`
+             : `<div style="font-size:12px;font-weight:600;color:#333;line-height:1.45">${esc(p.title)}</div><div style="font-size:10px;color:#bbb">번역 중...</div>`}
+      </a>
+      <div style="font-size:10px;color:#999;margin-top:3px">${esc(p.journal)}${p.journal&&p.date?" · ":""}${esc(p.date)}
+        <button class="em-abs-btn" data-id="${esc(p.id)}" style="margin-left:6px;font-size:10px;border:1px solid #5E35B1;border-radius:5px;background:${ab&&ab.open?"#EDE7F6":"#fff"};color:#5E35B1;padding:1px 7px;cursor:pointer">📄 초록 번역 ${ab&&ab.open?"접기":"보기"}</button>
+        ${adminBtnHtml || ""}</div>
+      ${absHtml}
     </div>`;
+  };
 
   const rows = s.list.map((r, rank) => {
     const key = r.d.key, open = s.openKey === key;
@@ -5783,7 +5857,7 @@ function renderEmergingDiseaseCard(){
       </div>
       ${open ? `<div style="padding:0 11px 10px">
         <div style="font-size:11px;font-weight:700;color:#555;margin:2px 0 2px">📚 최근 논문 (최신순)</div>
-        ${r.mine.slice(0,6).map((p,i)=>paperLine(p, key, i, admin)).join("")}
+        ${r.mine.slice(0,6).map((p,i)=>paperLine(p, admin ? ` <button class="em-draft-paper" data-key="${esc(key)}" data-idx="${i}" style="margin-left:6px;font-size:10px;border:1px solid #C62828;border-radius:5px;background:#fff;color:#C62828;padding:1px 7px;cursor:pointer">📥 AI 소식 초안</button>` : "")).join("")}
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
           <a href="https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent('"'+r.d.en+'" AND (chicken OR poultry OR broiler)')}&sort=date" target="_blank" rel="noopener" style="font-size:11px;border:1px solid ${color};color:${color};border-radius:6px;padding:4px 10px;text-decoration:none">PubMed 더보기 ↗</a>
           <button class="em-news-btn" data-key="${esc(key)}" ${nw&&nw.status==="loading"?"disabled":""} style="font-size:11px;border:1px solid #1565C0;background:#E3F2FD;color:#1565C0;border-radius:6px;padding:4px 10px;font-weight:700;cursor:pointer">📰 관련 소식 자동검색</button>
@@ -5802,12 +5876,7 @@ function renderEmergingDiseaseCard(){
     ${se.status==="error" ? `<div style="font-size:11px;color:#C62828;margin-bottom:8px">검색에 실패했습니다.</div>` : ""}
     ${se.status==="done" ? `<div style="background:#FAF7FF;border:1px solid #E1D8F5;border-radius:10px;padding:8px 11px;margin-bottom:10px">
       <div style="font-size:11px;font-weight:700;color:#555">"${esc(se.q)}" 최신 논문 ${se.results.length}편 <span style="font-weight:400;color:#999">(PubMed · ${esc(se.en)})</span></div>
-      ${se.results.length ? se.results.map((p,i)=>`
-        <div style="padding:6px 0;border-top:1px solid #f0eafa">
-          <a href="https://pubmed.ncbi.nlm.nih.gov/${esc(p.id)}/" target="_blank" rel="noopener" style="font-size:12px;font-weight:600;color:#333;text-decoration:none;line-height:1.45;display:block">${esc(p.title)}</a>
-          <div style="font-size:10px;color:#999;margin-top:2px">${esc(p.journal)}${p.journal&&p.date?" · ":""}${esc(p.date)}
-            ${admin ? ` <button class="em-draft-search" data-idx="${i}" style="margin-left:6px;font-size:10px;border:1px solid #C62828;border-radius:5px;background:#fff;color:#C62828;padding:1px 7px;cursor:pointer">📥 AI 소식 초안</button>` : ""}</div>
-        </div>`).join("") : `<div style="font-size:11px;color:#aaa;padding:6px 0">검색 결과가 없습니다.</div>`}
+      ${se.results.length ? se.results.map((p,i)=>paperLine(p, admin ? ` <button class="em-draft-search" data-idx="${i}" style="margin-left:6px;font-size:10px;border:1px solid #C62828;border-radius:5px;background:#fff;color:#C62828;padding:1px 7px;cursor:pointer">📥 AI 소식 초안</button>` : "")).join("") : `<div style="font-size:11px;color:#aaa;padding:6px 0">검색 결과가 없습니다.</div>`}
     </div>` : ""}`;
 
   const upd = s.updated ? `${s.updated.getMonth()+1}/${s.updated.getDate()} ${s.updated.getHours()}시 기준` : "";
@@ -14627,19 +14696,26 @@ function attachDiseaseEvents(){
   }
   const emR = document.getElementById("em-reload"); if(emR) emR.onclick = () => { emergState.status = "idle"; emergLoad(true); };
   document.querySelectorAll(".em-row").forEach(el => {
-    const tg = () => { emergState.openKey = emergState.openKey === el.dataset.key ? null : el.dataset.key; render(); };
+    const tg = () => {
+      emergState.openKey = emergState.openKey === el.dataset.key ? null : el.dataset.key; render();
+      const row = emergState.openKey && emergState.list.find(r => r.d.key === emergState.openKey);
+      if(row) emergTranslateTitles(row.mine.slice(0, 6));
+    };
     el.onclick = tg;
     el.onkeydown = e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); tg(); } };
   });
   document.querySelectorAll(".em-news-btn").forEach(b => b.onclick = () => emergNewsSearch(b.dataset.key));
+  document.querySelectorAll(".em-abs-btn").forEach(b => b.onclick = e => { e.stopPropagation(); emergToggleAbstract(b.dataset.id); });
   const emSb = document.getElementById("em-search-btn"); if(emSb) emSb.onclick = () => emergSearchPapers();
   const emSi = document.getElementById("em-search-input"); if(emSi) emSi.onkeydown = e => { if(e.key === "Enter"){ e.preventDefault(); emergSearchPapers(); } };
   const emHint = key => { const d = EMERG_DISEASES.find(x => x.key === key); return d ? d.ko.replace(/\(.*?\)/g, "").trim() : ""; };
-  const emPaperDraft = (p, hint) => emergSendToNews({
-    title: "[최신 연구] " + p.title,
-    text: "PubMed 최신 논문 — " + (p.journal || "") + (p.date ? " (" + p.date + ")" : "") + "\n" + (hint ? "관련 질병: " + hint + "\n" : "") + "(원문은 영어 논문입니다. 핵심 내용을 한글로 요약해 입력하세요.)",
+  const emPaperDraft = (p, hint) => { const ab = emergState.abs[p.id]; emergSendToNews({
+    title: "[최신 연구] " + (emergState.tr[p.id] || p.title),
+    text: "PubMed 최신 논문 — " + (p.journal || "") + (p.date ? " (" + p.date + ")" : "") + "\n" + (hint ? "관련 질병: " + hint + "\n" : "")
+      + "원문 제목: " + p.title + "\n"
+      + (ab && ab.status === "done" ? "\n[초록 번역]\n" + ab.ko + "\n\n(자동 번역 — 발행 전 다듬어 주세요)" : "(초록 번역을 불러오지 않았습니다. 목록에서 '초록 번역 보기'를 누른 뒤 초안을 만들면 번역이 함께 들어갑니다.)"),
     link: "https://pubmed.ncbi.nlm.nih.gov/" + p.id + "/",
-  }, hint);
+  }, hint); };
   document.querySelectorAll(".em-draft-paper").forEach(b => b.onclick = e => {
     e.stopPropagation();
     const row = emergState.list.find(r => r.d.key === b.dataset.key); if(!row) return;
