@@ -622,16 +622,17 @@ function chickenChatLength(name, premium){
 
 답변 분량 (유료회원 — 더 자세한 설명 모드)
 - 교과서식 나열이 아니라 여전히 ${name}의 입담으로 말하되, 짧게 끊지 말고 충분히 풀어서 설명합니다 — 필요하면 5문장 이상, 단락을 나눠도 좋습니다.
+- 단, 답변은 반드시 중간에 끊기지 않고 마무리 문장까지 완결되어야 합니다. 분량은 공백 포함 약 700자 이내로 잡고, 내용이 많으면 중요한 순서대로 핵심만 추려 요약해서 그 안에 끝맺으세요(나머지는 "더 궁금하면 이어서 물어보세요"로 마무리).
 - 왜 그런지 원리, 구체적인 수치·기준, 현장에서 바로 적용할 수 있는 실전 팁까지 한 번에 챙겨서 답합니다.
 - 관련된 다른 위험 요인이나 함께 점검하면 좋은 항목이 있으면 덧붙여 알려줍니다.`
     : `
 
 답변 분량
-- 답변은 2~4문장 정도로 짧고 대화체로 합니다 — 교과서처럼 길게 늘어놓지 않습니다.`;
+- 답변은 2~4문장 정도로 짧고 대화체로 합니다 — 교과서처럼 길게 늘어놓지 않습니다. 문장이 중간에 끊기지 않게 항상 끝까지 마무리합니다.`;
 }
 
 const CHICKEN_CHAT_FREE_MAX_TOKENS = 400;
-const CHICKEN_CHAT_PREMIUM_MAX_TOKENS = 1200;
+const CHICKEN_CHAT_PREMIUM_MAX_TOKENS = 1600;
 const CHICKEN_CHAT_FREE_MSG_CHARS = 300;
 const CHICKEN_CHAT_PREMIUM_MSG_CHARS = 600;
 const CHICKEN_CHAT_FREE_HISTORY = 12;
@@ -667,7 +668,14 @@ exports.chickenChat = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 90 
     messages,
     max_tokens: premium ? CHICKEN_CHAT_PREMIUM_MAX_TOKENS : CHICKEN_CHAT_FREE_MAX_TOKENS,
   });
-  const reply = responseText(response);
+  let reply = responseText(response);
   if (!reply) throw new HttpsError("internal", `${name}가 대답을 못 찾았어요 — 다시 물어봐 주세요.`);
+  // 프롬프트로 분량을 줄였어도 토큰 한도에 걸려 잘렸다면, 마지막 미완성 문장을
+  // 떼어내고 이어서 물어보라는 안내로 자연스럽게 닫는다.
+  if (response.stop_reason === "max_tokens") {
+    const cut = Math.max(reply.lastIndexOf("."), reply.lastIndexOf("!"), reply.lastIndexOf("?"), reply.lastIndexOf("요"), reply.lastIndexOf("다"));
+    if (cut > reply.length * 0.5) reply = reply.slice(0, cut + 1);
+    reply += "\n\n(여기까지 정리했어요 — 더 궁금한 부분은 이어서 물어보세요!)";
+  }
   return { reply };
 });
