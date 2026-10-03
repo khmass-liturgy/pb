@@ -6071,24 +6071,14 @@ function saveHpaiPrev(){
 }
 function hpaiTelHref(v){ return "tel:" + String(v||"").replace(/[^0-9+]/g, ""); }
 
-// ── 그림: 온라인 자가진단의 실제 닭 해부도(self_check/chicken_anatomy.jpg) 위에 병변 위치 표시 ──
-// 장기 좌표는 자가진단의 BODY_PARTS(%)를 그대로 쓰고, 벼슬·얼굴·정강이처럼 그림에 번호가 없는
-// 외부 부위만 별도 % 좌표를 둔다. pins: [{ n:번호, parts:["lungs", ...] | at:[x%,y%] }]
-const HPAI_EXT_AT = { comb:[10.5, 6.5], face:[13, 14.5], shank:[44.5, 84] };
-function hpaiAnatomyImg(pins, color){
-  const rgba = color === "#1565C0" ? "21,101,192" : "198,40,40";
-  const spots = [];
-  pins.forEach(pin => {
-    const pts = [];
-    (pin.parts || []).forEach(k => { const b = (typeof bodyPartByKey === "function") ? bodyPartByKey(k) : null; if(b && b.x != null) pts.push([b.x, b.y]); });
-    (pin.ext || []).forEach(k => { if(HPAI_EXT_AT[k]) pts.push(HPAI_EXT_AT[k]); });
-    pts.forEach(pt => spots.push({ n:pin.n, x:pt[0], y:pt[1] }));
-  });
-  const marks = spots.map(sp => `
-    <span style="position:absolute;left:${sp.x + 2.4}%;top:${sp.y - 3.4}%;min-width:1.7em;height:1.7em;border-radius:1em;background:${color};color:#fff;font-size:clamp(8px,2.2vw,11px);font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 4px;box-shadow:0 1px 3px rgba(0,0,0,.4);pointer-events:none">${sp.n}</span>`).join("");
+// ── 그림: 온라인 자가진단의 실제 닭 해부도(self_check/chicken_anatomy.jpg) ──
+// 그림 위에 따로 표시를 겹치지 않고, 각 증상·소견 옆에 해부도 속 번호·장기명을 적어 준다.
+function hpaiAnatomyImg(){
   return `<div style="position:relative;width:100%;max-width:640px;margin:0 auto;border-radius:12px;overflow:hidden;border:1px solid #eee;background:#fff">
-    <img src="self_check/chicken_anatomy.jpg" alt="닭 내장 해부도 — 병변 위치 표시" loading="lazy" style="width:100%;height:auto;display:block" />${marks}</div>`;
+    <img src="self_check/chicken_anatomy.jpg" alt="닭 내장 해부도" loading="lazy" style="width:100%;height:auto;display:block" /></div>`;
 }
+const HPAI_LOC_CLINICAL = { 1:"벼슬·육수", 2:"안면(눈·얼굴)", 3:"② 기관 · ⑥ 폐", 4:"정강이", 5:"⑬ 췌장 · ⑭ 소장 · ⑰ 총배설강", 6:"① 뇌", 7:"⑲ 난소 · ⑳ 난관" };
+const HPAI_LOC_NECROPSY = { 1:"② 기관", 2:"⑥ 폐", 3:"⑤ 심장", 4:"⑦ 선위 · ⑧ 근위", 5:"⑬ 췌장", 6:"⑭ 소장 · ⑮ 맹장", 7:"⑪ 비장 · ⑨ 간", 8:"⑲ 난소 · ⑳ 난관", 9:"⑱ 신장" };
 // 실제 임상 사진 — 미국 농무부(USDA APHIS) 제공, 퍼블릭 도메인(위키미디어 공용)
 const HPAI_PHOTOS = [
   { src:"assets/hpai/hpai_comb.jpg", cap:"벼슬의 보라·검붉은 변색과 괴사 (오른쪽 개체)", page:"https://commons.wikimedia.org/wiki/File:Discolored_chicken_comb.jpg" },
@@ -6128,34 +6118,29 @@ function renderHpaiSymptomCard(){
         <div><div style="font-size:12.5px;font-weight:800;color:${color}">${f.t}</div><div style="font-size:12px;color:#444;line-height:1.7;margin-top:2px">${f.d}</div></div>
       </div>`).join("")}</div>`;
   } else if(tab === "clinical"){
-    body = `${hpaiAnatomyImg([
-        { n:1, ext:["comb"] }, { n:2, ext:["face"] }, { n:3, parts:["trachea","lungs"] }, { n:4, ext:["shank"] },
-        { n:5, parts:["pancreas","intestine","cloaca"] }, { n:6, parts:["brain"] }, { n:7, parts:["ovary","oviduct"] },
-      ], "#C62828")}
-      <div style="font-size:10px;color:#999;text-align:center;margin:4px 0 10px">※ 「온라인 자가진단」의 닭 해부도 위에 증상이 나타나는 위치를 표시했습니다 (번호는 아래 증상 번호와 같습니다)</div>
+    body = `${hpaiAnatomyImg()}
+      <div style="font-size:10px;color:#999;text-align:center;margin:4px 0 10px">※ 「온라인 자가진단」의 닭 해부도입니다 (증상별 해부도 위치는 아래 설명에 적었습니다)</div>
       ${hpaiPhotoStrip()}
       <div style="height:12px"></div>
       <div style="display:grid;gap:7px">${HPAI_CLINICAL.map(c => `
         <div style="border:1px solid #eee;border-radius:10px;padding:9px 11px">
           <div style="display:flex;align-items:center;gap:8px">
-            ${c.n ? `<span style="min-width:22px;height:22px;border-radius:50%;background:#C62828;color:#fff;font-size:12px;font-weight:800;display:inline-flex;align-items:center;justify-content:center">${c.n}</span>` : `<span style="font-size:18px">${c.ic}</span>`}
+            <span style="font-size:18px">${c.ic}</span>
             <div style="font-size:13px;font-weight:800;color:#333">${c.s}</div>
           </div>
+          ${HPAI_LOC_CLINICAL[c.n] ? `<div style="margin-top:5px"><span style="font-size:10.5px;background:#FFEBEE;color:#B71C1C;border-radius:8px;padding:2px 8px;font-weight:700">해부도 위치 · ${HPAI_LOC_CLINICAL[c.n]}</span></div>` : ""}
           <div style="font-size:11.5px;color:#555;line-height:1.7;margin-top:5px;padding-left:2px"><b style="color:#1565C0">왜 생길까?</b> ${c.why}</div>
         </div>`).join("")}</div>`;
   } else if(tab === "necropsy"){
-    body = `${hpaiAnatomyImg([
-        { n:1, parts:["trachea"] }, { n:2, parts:["lungs"] }, { n:3, parts:["heart"] }, { n:4, parts:["proventriculus","gizzard"] },
-        { n:5, parts:["pancreas"] }, { n:6, parts:["intestine","caeca"] }, { n:7, parts:["spleen","liver"] },
-        { n:8, parts:["ovary","oviduct"] }, { n:9, parts:["kidney"] },
-      ], "#1565C0")}
-      <div style="font-size:10px;color:#999;text-align:center;margin:4px 0 10px">※ 「온라인 자가진단」의 닭 해부도 위에 병변이 생기는 장기를 표시했습니다 (번호는 아래 소견 번호와 같습니다)</div>
+    body = `${hpaiAnatomyImg()}
+      <div style="font-size:10px;color:#999;text-align:center;margin:4px 0 10px">※ 「온라인 자가진단」의 닭 해부도입니다 (소견별 해부도 번호·장기는 아래 설명에 적었습니다)</div>
       <div style="display:grid;gap:7px">${HPAI_NECROPSY.map(c => `
         <div style="border:1px solid #eee;border-radius:10px;padding:9px 11px">
           <div style="display:flex;align-items:center;gap:8px">
-            ${c.n ? `<span style="min-width:22px;height:22px;border-radius:50%;background:#1565C0;color:#fff;font-size:12px;font-weight:800;display:inline-flex;align-items:center;justify-content:center">${c.n}</span>` : `<span style="font-size:18px">🔎</span>`}
+            <span style="font-size:18px">🔎</span>
             <div style="font-size:13px;font-weight:800;color:#333">${c.s}</div>
           </div>
+          ${HPAI_LOC_NECROPSY[c.n] ? `<div style="margin-top:5px"><span style="font-size:10.5px;background:#E3F2FD;color:#0D47A1;border-radius:8px;padding:2px 8px;font-weight:700">해부도 번호 · ${HPAI_LOC_NECROPSY[c.n]}</span></div>` : ""}
           <div style="font-size:11.5px;color:#555;line-height:1.7;margin-top:5px"><b style="color:#B71C1C">왜 이런 소견이 나올까?</b> ${c.why}</div>
         </div>`).join("")}</div>`;
   } else {
