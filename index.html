@@ -4776,6 +4776,8 @@ async function fetchWeather(lat, lng, name){
     weatherState.lat=lat; weatherState.lng=lng;
     weatherState.status="done";
     saveWeatherLocation(lat, lng, name);
+    // 오늘의 관리 포인트용 이상기온 신호 — 위치가 바뀌었거나 아직 없으면 가볍게(16일) 백그라운드 계산
+    if(anomState.key !== lat+","+lng && anomState.status !== "loading") setTimeout(()=>anomRun(true), 0);
   } catch(e){
     console.error("날씨 조회 실패:", e);
     weatherState.status="error";
@@ -10720,6 +10722,8 @@ function renderHusbandryPointsCard(opts){
       ${extras.join("")}
     </div>` : ""}
 
+    ${anomPointsHtml(bullet)}
+
     <div style="font-size:9px;color:#aaa;margin-top:8px;line-height:1.6">
       ※ 판정도구 출처: 열스트레스 지수는 Hy-Line Technical Update
       「Understanding Heat Stress in Layers」 Figure 2의 온도×습도 표를 그대로 조회한 값
@@ -13330,10 +13334,10 @@ async function anomLoadClimatology(lat, lng){
   return out;
 }
 
-async function anomLoadEnsemble(lat, lng){
-  // 35일이 거절되면 16일로 낮춰 다시 시도
+async function anomLoadEnsemble(lat, lng, quick){
+  // quick=홈 카드용 가벼운 호출(16일). 35일이 거절되면 16일로 낮춰 다시 시도
   let lastErr;
-  for(const days of [35, 16]){
+  for(const days of (quick ? [16] : [35, 16])){
     try {
       const url = `https://ensemble-api.open-meteo.com/v1/ensemble?latitude=${lat}&longitude=${lng}&hourly=temperature_2m,precipitation&models=ecmwf_ifs025,gem_global&forecast_days=${days}&timezone=Asia%2FSeoul`;
       const resp = await fetchWithTimeout(url, 30000);
@@ -13394,12 +13398,12 @@ function anomCompute(h, clim){
   return { days, weeks, members: groups[order[0]].t.length };
 }
 
-async function anomRun(){
+async function anomRun(quick){
   const lat = weatherState.lat, lng = weatherState.lng;
-  anomState.key = lat+","+lng; anomState.status = "loading"; anomState.err = "";
-  render();
+  anomState.key = lat+","+lng; anomState.status = "loading"; anomState.err = ""; anomState.quick = !!quick;
+  if(!quick) render();
   try {
-    const [clim, ens] = await Promise.all([anomLoadClimatology(lat, lng), anomLoadEnsemble(lat, lng)]);
+    const [clim, ens] = await Promise.all([anomLoadClimatology(lat, lng), anomLoadEnsemble(lat, lng, quick)]);
     anomState.data = anomCompute(ens, clim);
     anomState.updated = new Date();
     anomState.status = "done";
@@ -13407,7 +13411,40 @@ async function anomRun(){
     console.error("이상기온 예측 실패:", e);
     anomState.status = "error"; anomState.err = String(e && e.message || e);
   }
-  if(state.tab==="weather") render();
+  render();
+}
+
+// 오늘의 축산 관리 포인트 카드에 끼우는 "이상기온 신호" 블록 (앞으로 7일).
+// 날씨 위치가 잡히면 fetchWeather가 가벼운(16일) 계산을 백그라운드로 돌려 anomState에 채운다.
+function anomPointsHtml(bullet){
+  const head = `<div style="font-size:11px;font-weight:700;color:#333;margin-bottom:5px">🔮 이상기온 신호 <span style="font-size:9px;color:#aaa;font-weight:600">앞으로 10일 · 앙상블 예보 vs 평년</span></div>`;
+  const wrapIt = inner => `<div style="border-top:1px dashed #eee;padding-top:10px;margin-bottom:4px">${head}${inner}</div>`;
+  if(anomState.status==="loading" || (anomState.status==="idle")) return wrapIt(`<div style="font-size:11px;color:#aaa">이상기온 예측 계산 중...</div>`);
+  if(anomState.status!=="done" || !anomState.data || !anomState.data.days.length) return "";
+  const dn = ["일","월","화","수","목","금","토"];
+  const fmt = ds => { const d=new Date(ds+"T00:00:00"); return `${d.getMonth()+1}/${d.getDate()}(${dn[d.getDay()]})`; };
+  const near = anomState.data.days.slice(0, 10);
+  const list = (arr, f) => arr.map(f).join(", ");
+  const out = [];
+  const hot = near.filter(d=>d.pHot>=0.4), cold = near.filter(d=>d.pCold>=0.4);
+  if(hot.length){
+    const pk = hot.reduce((a,b)=>b.pHot>a.pHot?b:a);
+    out.push(bullet(`🔥 <b>이상고온 예상</b> — ${list(hot, d=>fmt(d.date))} (최고 확률 ${Math.round(pk.pHot*100)}%, ${fmt(pk.date)} 평년보다 <b>+${(pk.mean-pk.clim).toFixed(1)}°C</b>). 계절에 맞지 않는 더위는 계군이 적응하기 전에 닥칩니다 — 환기팬·쿨링·냉방 가동 점검, 전해질·음수라인 점검을 <b>미리</b> 해 두고, 입추·이동·백신 같은 스트레스 작업은 피하세요`, "#D84315"));
+  }
+  if(cold.length){
+    const pk = cold.reduce((a,b)=>b.pCold>a.pCold?b:a);
+    out.push(bullet(`🥶 <b>이상저온 예상</b> — ${list(cold, d=>fmt(d.date))} (최고 확률 ${Math.round(pk.pCold*100)}%, ${fmt(pk.date)} 평년보다 <b>${(pk.mean-pk.clim).toFixed(1)}°C</b>). 보온·난방기 사전 점검, 틈새풍 차단, 육추계사는 예열 시간을 앞당기고 최소환기량은 유지하세요`, "#1565C0"));
+  }
+  const heat = near.filter(d=>d.pHeat>=0.3), frz = near.filter(d=>d.pFreeze>=0.3), heavy = near.filter(d=>d.pHeavy!=null && d.pHeavy>=0.3);
+  if(heat.length) out.push(bullet(`☀️ <b>폭염(최고 33°C↑) 가능성</b> — ${list(heat, d=>`${fmt(d.date)} ${Math.round(d.pHeat*100)}%`)}. 산란계는 난각질·산란율, 육계는 출하체중·폐사 관리에 직접 영향`, "#C62828"));
+  if(frz.length) out.push(bullet(`❄️ <b>한파(최저 -12°C↓) 가능성</b> — ${list(frz, d=>`${fmt(d.date)} ${Math.round(d.pFreeze*100)}%`)}. 급수라인·니플 동결, 난방 연료 잔량 확인`, "#1565C0"));
+  if(heavy.length) out.push(bullet(`🌧️ <b>호우(일 30mm↑) 가능성</b> — ${list(heavy, d=>`${fmt(d.date)} ${Math.round(d.pHeavy*100)}%`)}. 배수로·지붕·발전기 점검, 깔짚 습기 관리`, "#0277BD"));
+  // 급변: 앙상블 평균 일평균기온이 하루 만에 6°C 이상 오르내리는 날 (환기 단계 급변 위험)
+  const swings = [];
+  for(let i=1;i<near.length;i++){ const dv = near[i].mean-near[i-1].mean; if(Math.abs(dv)>=6) swings.push({d:near[i], dv}); }
+  if(swings.length) out.push(bullet(`↕️ <b>기온 급변</b> — ${list(swings, s=>`${fmt(s.d.date)} 전일 대비 ${s.dv>0?"+":""}${s.dv.toFixed(1)}°C`)}. 환기 단계·보온을 하루 전에 미리 조정하고 호흡기 질병(CRD·대장균) 경계`, "#7B1FA2"));
+  const inner = out.length ? out.join("") : `<div style="font-size:11px;color:#2E7D32">✅ 앞으로 10일 평년 대비 뚜렷한 이상기온 신호 없음</div>`;
+  return wrapIt(inner + `<div style="font-size:9px;color:#aaa;margin-top:3px">확률 40% 이상(폭염·한파·호우는 30% 이상)일 때만 표시 · 자세한 내용은 날씨 탭 "이상기온 예측"</div>`);
 }
 
 function renderAnomalyPanel(){
@@ -16345,7 +16382,7 @@ function attachEvents(){
   if(anT){
     const tg=()=>{
       anomState.open=!anomState.open;
-      if(anomState.open && (anomState.status==="idle" || anomState.key!==weatherState.lat+","+weatherState.lng) && anomState.status!=="loading") anomRun(); else render();
+      if(anomState.open && (anomState.status==="idle" || anomState.quick || anomState.key!==weatherState.lat+","+weatherState.lng) && anomState.status!=="loading") anomRun(); else render();
     };
     anT.onclick=tg;
     anT.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); tg(); } };
