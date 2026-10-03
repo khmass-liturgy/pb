@@ -4181,7 +4181,9 @@ async function searchHpaiPortalNews(){
     if(!all.length) throw new Error("모든 검색원 실패");
     const seen = new Set();
     const merged = [];
-    all.sort((a,b) => b.ts - a.ts).forEach(r => {
+    // 오래된 기사가 섞이지 않도록 최근 7일 이내(날짜를 못 읽은 것도 제외)만 남긴다.
+    const cutoff = Date.now() - 7 * 24 * 3600 * 1000;
+    all.filter(r => r.ts >= cutoff).sort((a,b) => b.ts - a.ts).forEach(r => {
       const key = r.title.toLowerCase().replace(/[^0-9a-z가-힣]/g, "").slice(0, 22);
       if(!key || seen.has(key)) return;
       seen.add(key);
@@ -4249,14 +4251,14 @@ function renderHpaiNewsCard(){
         </div>
         ${hpaiSearchState.status==="error" ? `<div style="font-size:11px;color:#C62828">검색 실패 — 잠시 후 다시 시도해 주세요.</div>` : ""}
         ${hpaiSearchState.status==="done" ? (hpaiSearchState.results.length ? `
-        <div style="font-size:10px;color:#888;margin-bottom:4px">여러 검색원을 합쳐 최신순 ${hpaiSearchState.results.length}건 (중복 제거)</div>
+        <div style="font-size:10px;color:#888;margin-bottom:4px">여러 검색원을 합쳐 최근 7일 이내 최신순 ${hpaiSearchState.results.length}건 (중복 제거)</div>
         <div style="max-height:300px;overflow-y:auto">
           ${hpaiSearchState.results.map((r,i) => `
           <button type="button" class="hn-search-pick-btn" data-idx="${i}" style="display:block;width:100%;text-align:left;border:none;border-bottom:1px solid #f2f2f2;background:none;padding:6px 2px;cursor:pointer">
             <div style="font-size:12px;font-weight:700;color:#333">${esc(r.title)}</div>
             <div style="font-size:10px;color:#999;margin-top:2px">${esc(r.source)}${r.source&&r.pubDate?" · ":""}${esc(r.pubDate)} <span style="color:#1565C0">· ${esc(r.via||"")}</span></div>
           </button>`).join("")}
-        </div>` : `<div style="font-size:11px;color:#aaa">"${esc(hpaiSearchState.query)}" 검색 결과가 없습니다.</div>`) : ""}
+        </div>` : `<div style="font-size:11px;color:#aaa">"${esc(hpaiSearchState.query)}" 최근 7일 이내 검색 결과가 없습니다.</div>`) : ""}
       </div>
 
       <input id="hn-title" type="text" placeholder="제목" value="${esc(hpaiNewsState.draftTitle)}"
