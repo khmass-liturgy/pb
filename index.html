@@ -4987,9 +4987,9 @@ function renderKkokoTab(){
   // (216px), 화면이 좁으면 말풍선이 그 아래로 자연스럽게 줄바꿈되도록
   // flex-wrap을 둔다.
   const charBlock = `
-  <div class="card" style="flex:0 0 244px;text-align:center;padding:14px 10px;background:linear-gradient(135deg,#FFF8E1,#FFECB3)">
+  <div class="card" style="flex:0 0 244px;text-align:center;padding:14px 10px;background:${premium?"linear-gradient(135deg,#E3F2FD,#BBDEFB)":"linear-gradient(135deg,#FFF8E1,#FFECB3)"}">
     ${kkokoCharacterBlock(st.busy, 216)}
-    <div style="font-size:14px;font-weight:800;color:#7A5C00;margin-top:6px">${esc(name)}</div>
+    <div style="font-size:14px;font-weight:800;color:${premium?"#0D47A1":"#7A5C00"};margin-top:6px">${esc(name)}</div>
   </div>`;
 
   const msgs = st.messages.length ? st.messages : [{ role:"chicken", text: kkokoGreeting() }];
