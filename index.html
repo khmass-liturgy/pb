@@ -216,6 +216,8 @@
 .kkoko-char.talking { animation: kkoko-talk-bob 0.5s ease-in-out infinite; }
 .kkoko-char.bounce { animation: kkoko-bounce 0.6s ease-in-out 2; }
 .kkoko-mic-btn.listening { animation: kkoko-ring-pulse 1.2s ease-out infinite; }
+@keyframes hpaiPulse{0%{transform:translate(-50%,-50%) scale(1);opacity:1}70%{transform:translate(-50%,-50%) scale(1.25);opacity:.55}100%{transform:translate(-50%,-50%) scale(1);opacity:1}}
+.hpai-ring{animation:hpaiPulse 1.8s ease-in-out infinite}
 </style>
 </head>
 <body>
@@ -5970,12 +5972,11 @@ const HPAI_FEATURES = [
   { icon:"⏱️", t:"진행 속도", d:"잠복기는 대체로 수일(약 3~7일)이고, 한 축사에서 시작되면 수일 안에 전 계군으로 번집니다. 그래서 첫 이상 징후를 놓치지 않는 것이 핵심입니다." },
   { icon:"🦆", t:"유입·전파", d:"주 유입 경로는 철새 등 야생조류의 분변·호흡기 분비물입니다. 농장 안에서는 오염된 사람(장화·옷), 차량, 알 운반 차량·난좌·파레트, 쥐·고양이 등 야생동물, 분변이 묻은 물건을 통해 퍼집니다. 바이러스는 추울수록 환경에서 오래 살아 남아 10월~이듬해 4월에 집중 발생합니다." },
   { icon:"⚖️", t:"법정 관리", d:"제1종 가축전염병입니다. 의심되면 즉시 신고해야 하며(미신고 시 5년 이하 징역 또는 5천만원 이하 벌금, 살처분 보상금 감액) 확진 시 살처분·이동제한이 적용됩니다." },
-  { icon:"🧑‍⚕️", t:"사람 건강", d:"드물지만 감염 가축·분비물에 노출된 사람에게 감염될 수 있습니다. 의심축 접촉 시 마스크·장갑·방역복·장화를 착용하고, 이후 발열·기침 등이 있으면 질병관리청 ☎1339에 문의하세요." },
 ];
 // 임상증상: [아이콘, 증상, 생리학적 이유, 번호(그림)]
 const HPAI_CLINICAL = [
   { n:0, ic:"💀", s:"증상 없이 갑자기 폐사 (급사)", why:"바이러스가 혈관 안쪽 벽(내피세포)과 여러 장기에서 폭발적으로 증식하면 면역계가 사이토카인(염증 물질)을 과다하게 쏟아냅니다(사이토카인 폭풍). 그 결과 전신 혈관 내 응고(DIC)와 다장기부전이 빨리 와서 증상이 나타나기 전에 죽습니다." },
-  { n:8, ic:"😴", s:"침울·졸음, 깃털 부풀림, 사료·음수 섭취 급감", why:"염증 사이토카인(IL-1, TNF-α, 인터페론 등)이 뇌의 체온조절·식욕 중추에 작용해 발열과 식욕 절폐를 일으키는 '병적 행동'입니다. 가장 먼저, 가장 흔하게 보이는 초기 신호입니다." },
+  { n:0, ic:"😴", s:"침울·졸음, 깃털 부풀림, 사료·음수 섭취 급감", why:"염증 사이토카인(IL-1, TNF-α, 인터페론 등)이 뇌의 체온조절·식욕 중추에 작용해 발열과 식욕 절폐를 일으키는 '병적 행동'입니다. 가장 먼저, 가장 흔하게 보이는 초기 신호입니다." },
   { n:1, ic:"🟣", s:"벼슬·육수의 부종과 청색증(검붉은·보라색 변색), 끝이 괴사", why:"감염된 모세혈관의 투과성이 높아져 체액이 조직으로 새고(부종), 혈관 내 혈전·울혈로 산소가 빠진 혈액이 정체되어 푸르스름하게(청색증) 보입니다. 혈액 공급이 끊긴 끝부분은 괴사합니다." },
   { n:2, ic:"😵", s:"머리·안면·눈꺼풀 부종", why:"같은 혈관 누수가 피부 밑 조직이 느슨한 머리·눈 주변에서 눈에 띄게 나타나는 것입니다." },
   { n:3, ic:"🫁", s:"기침·재채기·가래 끓는 소리, 개구호흡, 비강·눈 분비물", why:"기관 점막의 염증·출혈로 점액·혈액성 분비물이 차고, 폐는 울혈·수종(폐포에 물이 참)으로 가스교환이 떨어져 숨쉬기가 힘들어집니다." },
@@ -6063,62 +6064,49 @@ const HPAI_MGMT = [
 const HPAI_PREV_KEY = "hpai_prev_v1";
 let hpaiSymState = { open:false, tab:"feature" };
 let hpaiPrevState = (function(){
-  const base = { open:false, sub:"report", ew:{}, sym:{}, chk:{}, contacts:{} };
+  const base = { open:false, sub:"report", ew:{}, sym:{}, chk:{} };
   try { const s = JSON.parse(localStorage.getItem(HPAI_PREV_KEY) || "null"); if(s) return Object.assign(base, s, { open:false, sub:"report" }); } catch(e){}
   return base;
 })();
 function saveHpaiPrev(){
-  try { localStorage.setItem(HPAI_PREV_KEY, JSON.stringify({ ew:hpaiPrevState.ew, sym:hpaiPrevState.sym, chk:hpaiPrevState.chk, contacts:hpaiPrevState.contacts })); } catch(e){}
+  try { localStorage.setItem(HPAI_PREV_KEY, JSON.stringify({ ew:hpaiPrevState.ew, sym:hpaiPrevState.sym, chk:hpaiPrevState.chk })); } catch(e){}
 }
 function hpaiTelHref(v){ return "tel:" + String(v||"").replace(/[^0-9+]/g, ""); }
 
-// ── 그림 1: 닭 외형 — 임상증상 위치 ──
-function hpaiChickenSvg(){
-  const pin = (n, x, y, lx, ly) => `<line x1="${x}" y1="${y}" x2="${lx}" y2="${ly}" stroke="#C62828" stroke-width="1.5"/><circle cx="${lx}" cy="${ly}" r="11" fill="#C62828"/><text x="${lx}" y="${ly+4}" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">${n}</text>`;
-  return `<svg viewBox="0 0 420 310" style="width:100%;max-width:460px;display:block;margin:0 auto;background:#F4F8FB;border-radius:14px" role="img" aria-label="고병원성 조류인플루엔자에 걸린 닭의 임상증상 위치 그림">
-    <ellipse cx="215" cy="285" rx="150" ry="9" fill="#dfe8ee"/>
-    <path d="M318 150 Q385 105 400 55 Q392 125 345 178 Z" fill="#D9C2A0" stroke="#8a6d4b" stroke-width="1.5"/>
-    <ellipse cx="220" cy="172" rx="108" ry="68" fill="#F5E6D0" stroke="#8a6d4b" stroke-width="2"/>
-    <path d="M205 178 Q235 140 285 170 Q250 215 205 205 Z" fill="#E8D2B2" stroke="#8a6d4b" stroke-width="1.2"/>
-    <path d="M104 118 C92 152 118 176 152 164 L184 120 Z" fill="#F5E6D0" stroke="#8a6d4b" stroke-width="2"/>
-    <circle cx="122" cy="96" r="35" fill="#F5E6D0" stroke="#8a6d4b" stroke-width="2"/>
-    <ellipse cx="118" cy="104" rx="28" ry="23" fill="#B39DDB" opacity=".35"/>
-    <path d="M100 66 q4 -26 17 -10 q6 -26 18 -8 q9 -16 14 10 q-22 11 -49 8z" fill="#5B3A8C" stroke="#3b2461" stroke-width="1.5"/>
-    <path d="M97 123 q-9 24 8 32 q14 -10 7 -32z" fill="#6A4C9C" stroke="#3b2461" stroke-width="1.5"/>
-    <polygon points="90,100 62,108 90,116" fill="#F2B134" stroke="#c98a12" stroke-width="1"/>
-    <circle cx="111" cy="92" r="4.5" fill="#222"/><circle cx="111" cy="92" r="11" fill="none" stroke="#9575CD" stroke-width="2.5" opacity=".8"/>
-    <path d="M72 116 q-5 9 -2 14 M80 118 q-4 9 -1 13" stroke="#64B5F6" stroke-width="2.4" fill="none" stroke-linecap="round"/>
-    <path d="M74 98 q-14 -6 -22 -2 M74 106 q-16 -1 -24 4" stroke="#C62828" stroke-width="1.6" fill="none" stroke-dasharray="3 3"/>
-    <g stroke="#F2B134" stroke-width="7" stroke-linecap="round"><line x1="195" y1="236" x2="195" y2="276"/><line x1="245" y1="236" x2="245" y2="276"/></g>
-    <g stroke="#F2B134" stroke-width="4" stroke-linecap="round"><path d="M195 276 l-16 8 M195 276 l0 10 M195 276 l16 8 M245 276 l-16 8 M245 276 l0 10 M245 276 l16 8"/></g>
-    <g fill="#C62828"><circle cx="195" cy="248" r="2.4"/><circle cx="196" cy="258" r="2"/><circle cx="194" cy="266" r="2.4"/><circle cx="245" cy="250" r="2.4"/><circle cx="244" cy="261" r="2"/><circle cx="246" cy="269" r="2.4"/></g>
-    <ellipse cx="322" cy="214" rx="14" ry="7" fill="#7CB342"/><ellipse cx="335" cy="226" rx="10" ry="5" fill="#9CCC65"/>
-    <g transform="translate(95 38)"><path d="M0 0 q-14 -4 -16 8 M3 -6 q-12 -10 -18 -2" stroke="#7B1FA2" stroke-width="2" fill="none" stroke-linecap="round"/></g>
-    <ellipse cx="366" cy="262" rx="13" ry="17" fill="#fff" stroke="#999" stroke-width="1.5" stroke-dasharray="3 2"/><path d="M356 252 L376 274 M376 252 L356 274" stroke="#C62828" stroke-width="2.4"/>
-    ${pin(1, 125, 66, 160, 22)}${pin(2, 134, 108, 205, 50)}${pin(3, 66, 112, 36, 150)}${pin(4, 195, 262, 150, 255)}${pin(5, 322, 214, 372, 205)}${pin(6, 100, 50, 52, 38)}${pin(7, 366, 262, 395, 236)}${pin(8, 250, 150, 280, 122)}
-  </svg>`;
+// ── 그림: 온라인 자가진단의 실제 닭 해부도(self_check/chicken_anatomy.jpg) 위에 병변 위치 표시 ──
+// 장기 좌표는 자가진단의 BODY_PARTS(%)를 그대로 쓰고, 벼슬·얼굴·정강이처럼 그림에 번호가 없는
+// 외부 부위만 별도 % 좌표를 둔다. pins: [{ n:번호, parts:["lungs", ...] | at:[x%,y%] }]
+const HPAI_EXT_AT = { comb:[10.5, 6.5], face:[13, 14.5], shank:[44.5, 84] };
+function hpaiAnatomyImg(pins, color){
+  const rgba = color === "#1565C0" ? "21,101,192" : "198,40,40";
+  const spots = [];
+  pins.forEach(pin => {
+    const pts = [];
+    (pin.parts || []).forEach(k => { const b = (typeof bodyPartByKey === "function") ? bodyPartByKey(k) : null; if(b && b.x != null) pts.push([b.x, b.y]); });
+    (pin.ext || []).forEach(k => { if(HPAI_EXT_AT[k]) pts.push(HPAI_EXT_AT[k]); });
+    pts.forEach(pt => spots.push({ n:pin.n, x:pt[0], y:pt[1] }));
+  });
+  const marks = spots.map(sp => `
+    <span class="hpai-ring" style="position:absolute;left:${sp.x}%;top:${sp.y}%;transform:translate(-50%,-50%);width:5.6%;aspect-ratio:1/1;border-radius:50%;border:2.5px solid ${color};box-shadow:0 0 0 2px rgba(${rgba},.25);pointer-events:none"></span>
+    <span style="position:absolute;left:${sp.x + 2.4}%;top:${sp.y - 3.4}%;min-width:1.7em;height:1.7em;border-radius:1em;background:${color};color:#fff;font-size:clamp(8px,2.2vw,11px);font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 4px;box-shadow:0 1px 3px rgba(0,0,0,.4);pointer-events:none">${sp.n}</span>`).join("");
+  return `<div style="position:relative;width:100%;max-width:640px;margin:0 auto;border-radius:12px;overflow:hidden;border:1px solid #eee;background:#fff">
+    <img src="self_check/chicken_anatomy.jpg" alt="닭 내장 해부도 — 병변 위치 표시" loading="lazy" style="width:100%;height:auto;display:block" />${marks}</div>`;
 }
-// ── 그림 2: 부검 장기 모식도 ──
-function hpaiOrganSvg(){
-  const pin = (n, x, y, lx, ly) => `<line x1="${x}" y1="${y}" x2="${lx}" y2="${ly}" stroke="#1565C0" stroke-width="1.5"/><circle cx="${lx}" cy="${ly}" r="11" fill="#1565C0"/><text x="${lx}" y="${ly+4}" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">${n}</text>`;
-  const dots = (pts, c) => pts.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="2" fill="${c || "#B71C1C"}"/>`).join("");
-  return `<svg viewBox="0 0 420 320" style="width:100%;max-width:460px;display:block;margin:0 auto;background:#FBF5EF;border-radius:14px" role="img" aria-label="고병원성 조류인플루엔자 부검 시 장기별 병변 위치 모식도">
-    <ellipse cx="205" cy="165" rx="188" ry="125" fill="#FFF8F0" stroke="#B89A7A" stroke-width="2" stroke-dasharray="6 4"/>
-    <path d="M42 62 Q92 88 135 128" stroke="#B0866B" stroke-width="9" fill="none" stroke-linecap="round"/>
-    <path d="M42 62 Q92 88 135 128" stroke="#C62828" stroke-width="3" fill="none" stroke-dasharray="2 8" stroke-linecap="round"/>
-    <ellipse cx="160" cy="150" rx="22" ry="34" fill="#E8A0A0" stroke="#b86a6a" stroke-width="1.5"/><ellipse cx="190" cy="165" rx="18" ry="30" fill="#E8A0A0" stroke="#b86a6a" stroke-width="1.5"/>
-    ${dots([[155,140],[163,158],[188,152],[192,170],[160,166]], "#8E0000")}
-    <path d="M118 170 q-18 -2 -14 18 q10 22 28 6 q8 -16 -14 -24z" fill="#C62828" stroke="#7f1d1d" stroke-width="1.5"/>
-    ${dots([[112,178],[120,186],[126,176]], "#fff")}
-    <ellipse cx="235" cy="150" rx="22" ry="18" fill="#D2AE86" stroke="#8a6d4b" stroke-width="1.5"/><ellipse cx="270" cy="170" rx="26" ry="22" fill="#A9825C" stroke="#6b4f33" stroke-width="1.5"/>
-    ${dots([[246,158],[250,164],[254,160],[248,168],[258,163]], "#B71C1C")}
-    <rect x="215" y="208" width="85" height="15" rx="7" fill="#F0D48A" stroke="#b79a45" stroke-width="1.5"/>${dots([[228,215],[245,216],[262,215],[280,216]], "#fff")}${dots([[236,212],[270,219]], "#B71C1C")}
-    <path d="M180 240 q18 -22 36 0 t36 0 t36 0 t30 -4" stroke="#E0B79C" stroke-width="12" fill="none" stroke-linecap="round"/>${dots([[200,233],[232,246],[262,234],[294,246],[318,236]], "#B71C1C")}
-    <circle cx="288" cy="132" r="9" fill="#8D3B3B" stroke="#5c2020" stroke-width="1.5"/><path d="M215 192 q22 -20 48 -6 q-6 26 -28 24 q-18 -2 -20 -18z" fill="#7B4B3A" stroke="#4a2c20" stroke-width="1.5"/>
-    <g><circle cx="338" cy="150" r="9" fill="#FFC107" stroke="#b58900"/><circle cx="356" cy="140" r="8" fill="#FFB300"/><circle cx="352" cy="162" r="10" fill="#8E0000"/><circle cx="332" cy="170" r="7" fill="#B71C1C"/><circle cx="366" cy="154" r="7" fill="#6D0000"/></g>
-    <path d="M318 196 q34 6 52 -4 q-6 22 -34 24 q-22 -2 -18 -20z" fill="#9B6B6B" stroke="#5c3b3b" stroke-width="1.5"/>
-    ${pin(1, 90, 76, 60, 28)}${pin(2, 170, 130, 188, 78)}${pin(3, 120, 182, 78, 214)}${pin(4, 262, 160, 300, 100)}${pin(5, 250, 216, 235, 272)}${pin(6, 300, 245, 340, 262)}${pin(7, 288, 132, 322, 92)}${pin(8, 352, 158, 392, 108)}${pin(9, 345, 205, 392, 214)}
-  </svg>`;
+// 실제 임상 사진 — 미국 농무부(USDA APHIS) 제공, 퍼블릭 도메인(위키미디어 공용)
+const HPAI_PHOTOS = [
+  { src:"assets/hpai/hpai_comb.jpg", cap:"벼슬의 보라·검붉은 변색과 괴사 (오른쪽 개체)", page:"https://commons.wikimedia.org/wiki/File:Discolored_chicken_comb.jpg" },
+  { src:"assets/hpai/hpai_swollen_head.jpg", cap:"머리·벼슬·육수·안면의 부종과 청색증", page:"https://commons.wikimedia.org/wiki/File:Swollen_chicken.jpg" },
+  { src:"assets/hpai/hpai_shank_hemorrhage.jpg", cap:"정강이·발의 피하출혈 (붉은 반점)", page:"https://commons.wikimedia.org/wiki/File:Discolored_chicken_legs.jpg" },
+];
+function hpaiPhotoStrip(){
+  return `<div style="margin-top:12px">
+    <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:6px">📷 실제 임상 사진</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">${HPAI_PHOTOS.map(ph => `
+      <figure style="margin:0;border:1px solid #eee;border-radius:10px;overflow:hidden;background:#fff">
+        <a href="${ph.src}" target="_blank" rel="noopener" title="눌러서 크게 보기"><img src="${ph.src}" alt="${esc(ph.cap)}" loading="lazy" style="width:100%;height:120px;object-fit:cover;display:block" /></a>
+        <figcaption style="font-size:10.5px;color:#555;line-height:1.5;padding:6px 8px">${esc(ph.cap)} <a href="${ph.page}" target="_blank" rel="noopener" style="color:#aaa">출처</a></figcaption>
+      </figure>`).join("")}</div>
+    <div style="font-size:9.5px;color:#aaa;margin-top:4px">사진: USDA APHIS (퍼블릭 도메인, 위키미디어 공용에서 가져옴)</div></div>`;
 }
 
 function renderHpaiSymptomCard(){
@@ -6143,8 +6131,13 @@ function renderHpaiSymptomCard(){
         <div><div style="font-size:12.5px;font-weight:800;color:${color}">${f.t}</div><div style="font-size:12px;color:#444;line-height:1.7;margin-top:2px">${f.d}</div></div>
       </div>`).join("")}</div>`;
   } else if(tab === "clinical"){
-    body = `${hpaiChickenSvg()}
-      <div style="font-size:10px;color:#999;text-align:center;margin:4px 0 10px">※ 이해를 돕기 위한 모식도입니다 (실제 병변은 개체마다 다릅니다)</div>
+    body = `${hpaiAnatomyImg([
+        { n:1, ext:["comb"] }, { n:2, ext:["face"] }, { n:3, parts:["trachea","lungs"] }, { n:4, ext:["shank"] },
+        { n:5, parts:["pancreas","intestine","cloaca"] }, { n:6, parts:["brain"] }, { n:7, parts:["ovary","oviduct"] },
+      ], "#C62828")}
+      <div style="font-size:10px;color:#999;text-align:center;margin:4px 0 10px">※ 「온라인 자가진단」의 닭 해부도 위에 증상이 나타나는 위치를 표시했습니다 (번호는 아래 증상 번호와 같습니다)</div>
+      ${hpaiPhotoStrip()}
+      <div style="height:12px"></div>
       <div style="display:grid;gap:7px">${HPAI_CLINICAL.map(c => `
         <div style="border:1px solid #eee;border-radius:10px;padding:9px 11px">
           <div style="display:flex;align-items:center;gap:8px">
@@ -6154,8 +6147,12 @@ function renderHpaiSymptomCard(){
           <div style="font-size:11.5px;color:#555;line-height:1.7;margin-top:5px;padding-left:2px"><b style="color:#1565C0">왜 생길까?</b> ${c.why}</div>
         </div>`).join("")}</div>`;
   } else if(tab === "necropsy"){
-    body = `${hpaiOrganSvg()}
-      <div style="font-size:10px;color:#999;text-align:center;margin:4px 0 10px">※ 장기 위치를 단순화한 모식도입니다. 빨간 점은 점상출혈, 흰 점은 괴사 병소를 나타냅니다</div>
+    body = `${hpaiAnatomyImg([
+        { n:1, parts:["trachea"] }, { n:2, parts:["lungs"] }, { n:3, parts:["heart"] }, { n:4, parts:["proventriculus","gizzard"] },
+        { n:5, parts:["pancreas"] }, { n:6, parts:["intestine","caeca"] }, { n:7, parts:["spleen","liver"] },
+        { n:8, parts:["ovary","oviduct"] }, { n:9, parts:["kidney"] },
+      ], "#1565C0")}
+      <div style="font-size:10px;color:#999;text-align:center;margin:4px 0 10px">※ 「온라인 자가진단」의 닭 해부도 위에 병변이 생기는 장기를 표시했습니다 (번호는 아래 소견 번호와 같습니다)</div>
       <div style="display:grid;gap:7px">${HPAI_NECROPSY.map(c => `
         <div style="border:1px solid #eee;border-radius:10px;padding:9px 11px">
           <div style="display:flex;align-items:center;gap:8px">
@@ -6220,7 +6217,7 @@ function renderHpaiChecklist(groups, keyPrefix){
 }
 
 function renderHpaiPreventCard(){
-  const s = hpaiPrevState, color = "#C62828", c = s.contacts || {}, e = s.ew || {};
+  const s = hpaiPrevState, color = "#C62828", e = s.ew || {};
   const call = HPAI_HOTLINES.map(h => `<a href="${hpaiTelHref(h.tel)}" style="flex:1;min-width:130px;text-align:center;background:#C62828;color:#fff;text-decoration:none;font-weight:800;font-size:14px;border-radius:10px;padding:11px 8px">📞 ${h.tel}</a>`).join("");
   const head = `
   <div id="hp-toggle" role="button" tabindex="0" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;gap:10px">
@@ -6250,16 +6247,6 @@ function renderHpaiPreventCard(){
       <div style="margin-bottom:12px">${symHtml}</div>
       <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:6px">③ 판정</div>
       <div id="hp-result">${renderHpaiCheckResult()}</div>
-
-      <div style="font-size:12px;font-weight:700;color:#333;margin:16px 0 6px">📇 우리 농장 비상 연락처 <span style="font-weight:400;color:#999">(이 기기에만 저장)</span></div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px">
-        ${[["vet","담당 수의사"],["gov","시·군 가축방역 담당"],["co","계열사·컨설턴트"]].map(x => `
-        <div style="border:1px solid #eee;border-radius:10px;padding:8px 10px">
-          <div style="font-size:10.5px;color:#777;margin-bottom:4px">${x[1]}</div>
-          <input class="hp-contact" data-k="${x[0]}" type="tel" inputmode="tel" placeholder="전화번호" value="${esc(c[x[0]] || "")}" style="width:100%;padding:7px 8px;border:1px solid #ddd;border-radius:8px;font-size:13px;margin-bottom:6px" />
-          ${c[x[0]] ? `<a href="${hpaiTelHref(c[x[0]])}" style="display:block;text-align:center;background:#1565C0;color:#fff;text-decoration:none;font-weight:700;font-size:13px;border-radius:8px;padding:8px">📞 전화 걸기</a>` : `<div style="font-size:10.5px;color:#bbb;text-align:center;padding:8px">번호를 입력하면 바로 전화할 수 있습니다</div>`}
-        </div>`).join("")}
-      </div>
 
       <div style="background:#FFF8E1;border-radius:10px;padding:11px 13px;margin-top:16px;font-size:11.5px;color:#555;line-height:1.75">
         <b style="color:#333">📞 신고할 때 이렇게 말하세요</b><br>
@@ -15032,7 +15019,6 @@ function attachDiseaseEvents(){
   document.querySelectorAll(".hp-in").forEach(el => el.oninput = () => { hpaiPrevState.ew[el.dataset.k] = el.value; saveHpaiPrev(); hpRefresh(); });
   document.querySelectorAll(".hp-sym").forEach(el => el.onchange = () => { hpaiPrevState.sym[el.dataset.k] = el.checked; saveHpaiPrev(); hpRefresh(); });
   document.querySelectorAll(".hp-chk").forEach(el => el.onchange = () => { hpaiPrevState.chk[el.dataset.k] = el.checked; saveHpaiPrev(); render(); });
-  document.querySelectorAll(".hp-contact").forEach(el => el.onchange = () => { hpaiPrevState.contacts[el.dataset.k] = el.value.trim(); saveHpaiPrev(); render(); });
 
   // 최신 연구되는 질병
   const emT = document.getElementById("em-toggle");
