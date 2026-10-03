@@ -3192,7 +3192,8 @@ async function fetchPremiumApproved(){
     console.warn("유료서비스 승인목록 로딩 실패:", e);
     premiumState.status = "error";
   }
-  if(state.tab === "premium") render();
+  // 최꼬꼬/최꼬박사 탭도 이 승인 결과로 화면이 정해지므로(kkokoTierPending) 함께 다시 그린다.
+  if(state.tab === "premium" || state.tab === "kkoko") render();
 }
 
 function isPremiumApproved(){
@@ -4841,6 +4842,15 @@ let kkokoRecognizer = null;
 // functions/index.js의 chickenChat에서 Opus 모델·더 긴 설명으로 올라간다 —
 // 여기 이름은 그 화면 쪽 표시만 맞추는 것이고, 실제 등급 판정은 서버가
 // Firebase 로그인 토큰으로 한다).
+// 새로고침 직후엔 Firebase 로그인 상태(authChecked)와 승인 명단(status)을 아직
+// 모르는 짧은 구간이 있다 — 이때 isPremiumApproved()는 false라 유료회원에게도
+// 잠깐 무료(최꼬꼬) 화면이 그려졌다가 바뀌는 깜빡임이 생긴다. 등급을 아직 모를
+// 땐 어느 쪽으로도 그리지 않고 "준비 중"으로 둔다.
+function kkokoTierPending(){
+  if(!firebaseReady) return false;
+  if(!premiumState.authChecked) return true;
+  return !!premiumState.user && (premiumState.status === "idle" || premiumState.status === "loading");
+}
 function kkokoDisplayName(){
   return isPremiumApproved() ? "최꼬박사" : "최꼬꼬";
 }
@@ -4969,6 +4979,11 @@ function kkokoTouchCharacter(){
 }
 
 function renderKkokoTab(){
+  if(kkokoTierPending()){
+    return `
+  <div style="margin-bottom:14px"><div class="display" style="font-size:18px">🐔 대화</div></div>
+  <div class="card" style="text-align:center;padding:60px 16px;color:#aaa">🐔 대화 상대를 준비하는 중...</div>`;
+  }
   const name = kkokoDisplayName();
   const premium = isPremiumApproved();
   const head = `
@@ -8672,7 +8687,7 @@ function renderHeader(){
       <button class="tab ${state.tab==="disease"?"active":""}" data-tab="disease">🩺 양계질병</button>
       <button class="tab ${state.tab==="hpai"?"active":""}" data-tab="hpai">🦠 AI관련정보</button>
       <button class="tab ${state.tab==="briefing"?"active":""}" data-tab="briefing">📋 뉴스정보</button>
-      <button class="tab ${state.tab==="kkoko"?"active":""}" data-tab="kkoko">🐔 ${esc(kkokoDisplayName())}랑 대화</button>
+      <button class="tab ${state.tab==="kkoko"?"active":""}" data-tab="kkoko">🐔 ${kkokoTierPending() ? "대화" : esc(kkokoDisplayName()) + "랑 대화"}</button>
       <button class="tab ${state.tab==="premium"?"active":""}" data-tab="premium">💼 유료서비스</button>
     </div>
     <button class="tabs-arrow right" type="button" aria-label="뒤쪽 메뉴 보기" tabindex="-1"><span>›</span></button>
