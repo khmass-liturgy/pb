@@ -10924,14 +10924,14 @@ function renderLivestockWeatherPanel(fc, hourlyByDate){
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px">
 
       <!-- THI 오늘 -->
-      <div style="background:${thiLv ? thiLv.bg : "#f5f5f5"};border-radius:12px;padding:12px;text-align:center;position:relative">
+      <div id="card-thi" role="button" tabindex="0" title="눌러서 THI 기준표 보기" style="background:${thiLv ? thiLv.bg : "#f5f5f5"};border-radius:12px;padding:12px;text-align:center;position:relative;cursor:pointer">
         <button id="btn-thi-info" title="THI 기준표 보기"
           style="position:absolute;top:6px;right:6px;border:none;background:rgba(255,255,255,0.7);border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;color:#555;padding:0;line-height:1">ⓘ</button>
         <div style="font-size:11px;color:#888;font-weight:600;margin-bottom:4px">온습도지수 (THI)</div>
         <div style="font-size:29px;font-weight:800;color:${thiLv ? thiLv.color : "#333"}">${peakTHI ?? "-"}</div>
         <div style="font-size:12px;font-weight:700;color:${thiLv ? thiLv.color : "#aaa"}">${thiLv ? thiLv.icon+" "+thiLv.label : "-"}</div>
         ${thiGauge(peakTHI)}
-        <div style="font-size:10px;color:#aaa;margin-top:4px">오후 최고 기준 · ⓘ 기준표</div>
+        <div style="font-size:10px;color:#aaa;margin-top:4px">오후 최고 기준 · 눌러서 기준표 보기</div>
       </div>
 
       <!-- 일교차 -->
@@ -10964,7 +10964,7 @@ function renderLivestockWeatherPanel(fc, hourlyByDate){
 
       ${showColdCard ? `
       <!-- 겨울철 한랭 스트레스 (체감온도/윈드칠) -->
-      <div style="background:${coldLv.bg};border-radius:12px;padding:12px;text-align:center;position:relative">
+      <div id="card-cold" role="button" tabindex="0" title="눌러서 체감온도 기준 보기" style="background:${coldLv.bg};border-radius:12px;padding:12px;text-align:center;position:relative;cursor:pointer">
         <button id="btn-cold-info" title="체감온도 기준 보기"
           style="position:absolute;top:6px;right:6px;border:none;background:rgba(255,255,255,0.7);border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;color:#555;padding:0;line-height:1">ⓘ</button>
         <div style="font-size:11px;color:#888;font-weight:600;margin-bottom:4px">겨울철 체감온도(윈드칠)</div>
@@ -10972,6 +10972,7 @@ function renderLivestockWeatherPanel(fc, hourlyByDate){
         <div style="font-size:12px;font-weight:700;color:${coldLv.color}">${coldLv.icon} ${coldLv.label}</div>
         <div style="font-size:10px;color:#aaa;margin-top:4px">실제 ${Math.round(coldTemp)}° · 풍속 ${coldWind!=null?coldWind.toFixed(1)+"m/s":"-"} 반영</div>
         <div style="font-size:10px;color:#666;margin-top:6px;line-height:1.5">${coldLv.note}</div>
+        <div style="font-size:10px;color:#aaa;margin-top:4px">눌러서 기준 보기</div>
       </div>` : ""}
     </div>
 
@@ -16097,6 +16098,15 @@ function attachEvents(){
   if(thiInfoBtn) thiInfoBtn.onclick = (e)=>{ e.stopPropagation(); openTHIInfoModal(); };
   const coldInfoBtn = document.getElementById("btn-cold-info");
   if(coldInfoBtn) coldInfoBtn.onclick = (e)=>{ e.stopPropagation(); openColdInfoModal(); };
+  // ⓘ 버튼뿐 아니라 카드 어디를 눌러도(키보드 Enter·Space 포함) 같은 기준 정보를 보여준다.
+  const bindCardOpen = (id, open) => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.onclick = ()=> open();
+    el.onkeydown = (e)=>{ if(e.key === "Enter" || e.key === " "){ e.preventDefault(); open(); } };
+  };
+  bindCardOpen("card-thi", openTHIInfoModal);
+  bindCardOpen("card-cold", openColdInfoModal);
 
   // 날씨 요일 카드 클릭 → 시간대별 상세
   document.querySelectorAll(".wx-day-card").forEach(b=>b.onclick=()=>{
