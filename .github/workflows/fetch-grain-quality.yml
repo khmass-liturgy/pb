@@ -1,0 +1,55 @@
+name: 세계 곡물 품질 흐름 지표 수집
+
+# 미국·브라질·아르헨티나·유럽 주요 산지의 ERA5 날씨를 평년과 비교해 곡물 품질 위험 지표를 만든다.
+# 평년(1991~2020) 자료가 무거워 Open-Meteo 시간당 한도에 걸리므로 4시간마다 돌려 지점별로 이어 받는다.
+# 평년이 모두 모이면(baseline.json) 이후 실행은 가볍고, 값이 안 바뀌면 커밋하지 않는다.
+on:
+  schedule:
+    # 매 4시간(UTC) 40분
+    - cron: "40 */4 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: fetch-grain-quality
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-grain-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: 패키지 설치
+        run: pip install requests
+      - name: 곡물 산지 지표 수집
+        run: python scripts/fetch_grain_quality.py
+      - name: 결과 검증
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path("grain_quality/latest.json")
+          if p.exists():          # 평년이 덜 모인 초기에는 latest.json이 아직 없을 수 있다
+              data = json.loads(p.read_text(encoding="utf-8"))
+              assert data["regions"], "지역이 하나도 없음"
+              for key, r in data["regions"].items():
+                  assert r["series"] and r["now"], f"{key}: 지표가 비어 있음"
+          PY
+      - name: 결과 커밋
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add grain_quality/
+          git diff --staged --quiet && echo "변경 없음" && exit 0
+          git commit -m "🌽 곡물 품질 흐름 지표 갱신 ($(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M KST'))"
+          for i in 1 2 3 4; do
+            git pull --rebase --autostash && git push && exit 0
+            sleep 5
+          done
+          exit 1
