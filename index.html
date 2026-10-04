@@ -9292,7 +9292,10 @@ function renderFeedGrainFlow(){
        <div style="font-size:12px;color:#555;line-height:1.6;margin-top:3px">${esc(tv.stage)} · 최근 30일 강수 평년의 ${tr.now.norm.p > 0 ? Math.round(tr.now.cur.p / tr.now.norm.p * 100) : "-"}%, 평균 최고기온 평년 대비 ${tr.now.cur.tmax - tr.now.norm.tmax >= 0 ? "+" : ""}${(tr.now.cur.tmax - tr.now.norm.tmax).toFixed(1)}°C</div>`;
   const summary = `
   <div style="background:${allOk ? "#E8F5E9" : tv.level.bg};border-radius:14px;padding:13px 15px;margin-bottom:12px">
-    <div style="font-size:10.5px;color:#888;margin-bottom:3px">이번 주 세계 곡물 품질 흐름</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:5px">
+      <div style="font-size:10.5px;color:#888">이번 주 세계 곡물 품질 흐름</div>
+      <div style="font-size:11px;font-weight:800;color:#1565C0;background:#E3F2FD;border-radius:10px;padding:2px 10px">📅 기상 자료 기준일 ${esc(keys.map(k => d.regions[k].asof).sort().slice(-1)[0] || "-")} · 갱신 ${esc((d.updated || "").slice(0, 16))}</div>
+    </div>
     ${headline}
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">${ranked.map(k => `<span style="font-size:11.5px;font-weight:700;background:#fff;border:1.5px solid ${views[k].level.c};color:${views[k].level.c};border-radius:12px;padding:3px 10px">${fgBadge(k, 16)} ${esc(d.regions[k].name)} ${views[k].level.ic}${views[k].level.t}</span>`).join("")}</div>
   </div>`;
@@ -9501,6 +9504,21 @@ const FGQ_CORN_TYPES = `
       <b>사료 시사점</b> — 유리질이 높을수록 단단해서 <b>분쇄가 어렵고 입자가 거칠며(분쇄 에너지↑), 전분이 단백질 기질에 싸여 소화 속도는 느립니다</b>. 반대로 치아형은 무르고 소화는 빠르지만 운송 중 잘 깨져 BCFM이 늘 수 있습니다<sup style="font-size:9px">16</sup>. 분쇄 입도·펠릿 품질과 효소(아밀라아제) 사용 판단에 쓰세요.
     </div>
   </div>`;
+const FGQ_YEAR = {
+  1:"2024/25 수확", 2:"2024 수확", 3:"논문(연도 미기재)", 4:"2006 자료", 5:"2017 표준성분표", 6:"2024 수확", 7:"2020~2025 검사자료", 8:"연도 미확인",
+  9:"2020 논문", 10:"논문(연도 미확인)", 11:"현행 거래 규격", 12:"2025 수확", 13:"2025 수확", 14:"2025/26 수확", 15:"2025/26 보도",
+  16:"2020 시료(2021 발표)", 17:"2006~2015 시료(2016 발표)", 18:"현행 거래 규격", 19:"2011 규격", 20:"2010 규격", 21:"사료표 집계(연도 다양)",
+  22:"2009 표준", 23:"2018 논문", 24:"2015 논문", 25:"2026 종합검토", 26:"2023 수확", 27:"2025 수확", 28:"2025 수확", 29:"2026.6 가이드",
+  30:"논문(연도 미확인)", 31:"2023 논문", 32:"2017 논문", 33:"2015 표준", 34:"2002 논문",
+};
+// 자료 신선도 색: 2024 이후 초록 · 2019~2023 주황 · 2018 이전 빨강 · 연도 불명 회색
+function fgqYearInfo(n){
+  const t = FGQ_YEAR[n] || "연도 미확인";
+  const ys = (t.match(/20\d\d/g) || []).map(Number);
+  const y = ys.length ? Math.max(...ys) : null;
+  const c = y == null ? "#999" : y >= 2024 ? "#2E7D32" : y >= 2019 ? "#EF6C00" : "#C62828";
+  return { t, y, c };
+}
 const FGQ_KIND = {
   m: { t:"● 실측", c:"#2E7D32", d:"보고서·논문에서 확인한 실측 평균값" },
   r: { t:"○ 참고", c:"#EF6C00", d:"거래 규격·상대 비교·시험 값(실측 평균이 아님)" },
@@ -9635,7 +9653,7 @@ const FGQ = {
 function fgqCell(c){
   c = c || FGQ_NONE;
   const k = FGQ_KIND[c[1]] || FGQ_KIND.n;
-  const sup = (c[2] || []).map(n => `<sup style="font-size:9px;color:#888">${n}</sup>`).join("");
+  const sup = (c[2] || []).map(n => `<sup title="${esc((FGQ_SRC[n] || [""])[0])} · ${esc(fgqYearInfo(n).t)}" style="font-size:9px;color:${fgqYearInfo(n).c};font-weight:700;cursor:help">${n}</sup>`).join("");
   if(c[1] === "n") return `<td style="padding:8px 6px;font-size:11px;color:#bbb;vertical-align:top">${esc(c[0])}${sup}</td>`;
   return `<td style="padding:8px 6px;vertical-align:top"><div style="font-size:12.5px;font-weight:700;color:#333;line-height:1.4">${esc(c[0])}${sup}</div><div style="font-size:9.5px;font-weight:700;color:${k.c};margin-top:2px">${k.t}</div></td>`;
 }
@@ -9644,9 +9662,18 @@ function renderFeedGrainQuality(){
   const tabs = Object.keys(FGQ).map(k => `<button class="fg-qcrop" data-crop="${k}" style="flex:1;border:2px solid ${feedGrainState.crop===k?"#F57F17":"#eee"};background:${feedGrainState.crop===k?"#F57F17":"#fff"};color:${feedGrainState.crop===k?"#fff":"#333"};border-radius:10px;padding:9px 6px;font-size:13px;font-weight:700;cursor:pointer">${FGQ[k].icon} ${FGQ[k].name}</button>`).join("");
   const used = new Set();
   if(feedGrainState.crop === "corn") [16, 18, 19, 34].forEach(n => used.add(n));
+  const groupYears = g => {
+    const ids = new Set();
+    g.rows.forEach(r => FGQ_ORIGINS.forEach(o => ((r[o[0]] || [])[2] || []).forEach(n => ids.add(n))));
+    if(g.extra === "corntypes") [16, 19, 34].forEach(n => ids.add(n));
+    const seen = new Set(), chips = [];
+    Array.from(ids).sort((a, b) => a - b).forEach(n => { const i = fgqYearInfo(n); if(seen.has(i.t)) return; seen.add(i.t); chips.push(`<span style="font-size:10px;font-weight:700;color:${i.c};border:1px solid ${i.c};border-radius:9px;padding:1px 7px;white-space:nowrap">${esc(i.t)}</span>`); });
+    return chips.length ? `<div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin:2px 0 6px"><span style="font-size:10px;color:#888;font-weight:700">📅 자료 기준</span>${chips.join("")}</div>` : "";
+  };
   const groups = crop.groups.map(g => `
     <div class="card" style="padding:12px 12px 6px;margin-bottom:12px">
       <div style="font-size:13px;font-weight:800;color:#333;margin-bottom:3px">${g.title}</div>
+      ${groupYears(g)}
       <div style="font-size:10.5px;color:#999;line-height:1.55;margin-bottom:6px">${g.note}</div>
       ${g.extra === "corntypes" ? FGQ_CORN_TYPES : ""}
       <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:900px">
@@ -9656,12 +9683,17 @@ function renderFeedGrainQuality(){
           return `<tr style="border-top:1px solid #f1f1f1"><td style="padding:8px 6px;font-size:11.5px;font-weight:700;color:#555;vertical-align:top">${r.k}</td>${FGQ_ORIGINS.map(o => fgqCell(r[o[0]])).join("")}</tr>`;
         }).join("")}</tbody></table></div>
     </div>`).join("");
-  const srcList = Array.from(used).sort((a, b) => a - b).map(n => `<div style="font-size:10.5px;line-height:1.6"><span style="color:#888">${n}.</span> <a href="${FGQ_SRC[n][1]}" target="_blank" rel="noopener" style="color:#1565C0;text-decoration:none">${esc(FGQ_SRC[n][0])} ↗</a></div>`).join("");
+  const srcList = Array.from(used).sort((a, b) => a - b).map(n => `<div style="font-size:10.5px;line-height:1.6"><span style="color:#888">${n}.</span> <span style="font-size:9.5px;font-weight:700;color:${fgqYearInfo(n).c};border:1px solid ${fgqYearInfo(n).c};border-radius:8px;padding:0 5px;margin-right:3px">${esc(fgqYearInfo(n).t)}</span><a href="${FGQ_SRC[n][1]}" target="_blank" rel="noopener" style="color:#1565C0;text-decoration:none">${esc(FGQ_SRC[n][0])} ↗</a></div>`).join("");
   const legend = ["m", "r", "g", "n"].map(k => `<span style="font-size:10.5px;color:#666"><b style="color:${FGQ_KIND[k].c}">${FGQ_KIND[k].t}</b> ${FGQ_KIND[k].d}</span>`).join(" · ");
   const read = crop.read.map(x => `<div style="padding:8px 0;border-top:1px solid #f1f1f1;display:flex;gap:10px"><div style="min-width:64px;font-size:12px;font-weight:800;color:#F57F17">${x[0]}</div><div style="font-size:12px;color:#444;line-height:1.7">${x[1]}</div></div>`).join("");
   return `
   <div style="font-size:11.5px;color:#666;line-height:1.7;background:#F7F9FA;border-radius:10px;padding:9px 12px;margin-bottom:10px">
     나라별 곡물 품질 보고서·논문의 수치를 모아 영양과 물리적 성질을 비교합니다. 보고서가 없는 칸은 <b>같은 조건 비교 조사·한국 수입 시료·거래 규격</b> 같은 우회 자료로 채우고, 그래도 없으면 <b>"데이터 없음"</b>으로 두었습니다. 실측이 아닌 칸은 <b style="color:#EF6C00">○ 참고</b>로 구분했습니다. ▲▼는 3국 비교에서 통계적으로 가장 높거나 낮은 쪽입니다.
+  </div>
+  <div style="background:#EEF5FF;border:1px solid #CFE0F7;border-radius:10px;padding:8px 12px;margin-bottom:10px;font-size:11px;color:#2c4a73;line-height:1.7">
+    📅 <b>자료 기준 연도는 칸마다 다릅니다.</b> 표 제목 아래 <b>📅 자료 기준</b> 칩과 값 옆 <b>출처 번호 색</b>으로 확인하세요 —
+    <b style="color:#2E7D32">초록 2024년 이후</b> · <b style="color:#EF6C00">주황 2019~2023</b> · <b style="color:#C62828">빨강 2018년 이전(오래된 자료)</b> · <b style="color:#999">회색 연도 미확인</b>.
+    새 보고서가 나오면 수치를 직접 갱신해야 하며, 자동 갱신되는 것은 <b>🌍 세계 품질 흐름</b> 탭뿐입니다.
   </div>
   <div style="display:flex;gap:8px;margin-bottom:12px">${tabs}</div>
   ${groups}
