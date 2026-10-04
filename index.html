@@ -6076,12 +6076,25 @@ function hpaiTelHref(v){ return "tel:" + String(v||"").replace(/[^0-9+]/g, ""); 
 // 그림 위에 따로 표시를 겹치지 않고, 각 증상·소견 옆에 해부도 속 번호·장기명을 적어 준다.
 const HPAI_EXT_AT = { comb:[10.5, 6.5], face:[13, 14.5], shank:[44.5, 84] };  // 그림에 번호가 없는 외부 부위(% 좌표)
 // 선택한 위치(mark)에만 동그라미를 그린다 — 움직임 없이 고정 표시
+// 해부도 위치 카탈로그 — 자가진단의 20개 장기(번호 위치) + 번호 없는 외부 부위(벼슬·안면·정강이) + 관리자가 만든 위치.
+// 항목(증상·소견)은 이 카탈로그의 키 목록(locs)을 가진다. 좌표는 그림 가로세로 대비 %.
+const HG_EXT_LABELS = { comb:"벼슬·육수", face:"안면(눈·얼굴)", shank:"정강이" };
+function hgCircled(n){ return n >= 1 && n <= 20 ? String.fromCharCode(0x2460 + n - 1) : String(n); }
+function hgPositions(customList){
+  const out = [];
+  if(typeof BODY_PARTS !== "undefined") BODY_PARTS.filter(b => !b.sign && b.x != null).forEach(b => out.push({ k:b.key, t:hgCircled(b.num) + " " + b.label, x:b.x, y:b.y, kind:"organ" }));
+  Object.keys(HPAI_EXT_AT).forEach(k => out.push({ k, t:HG_EXT_LABELS[k] || k, x:HPAI_EXT_AT[k][0], y:HPAI_EXT_AT[k][1], kind:"ext" }));
+  const cp = customList || (typeof hg === "function" ? hg().customPos : []) || [];
+  cp.forEach(c => { if(c && c.k && String(c.t || "").trim()) out.push({ k:c.k, t:String(c.t).trim(), x:Number(c.x), y:Number(c.y), kind:"custom" }); });
+  return out;
+}
+function hgPosByKey(k){ return hgPositions().find(p => p.k === k) || null; }
 function hpaiAnatomyImg(color){
   const m = hpaiSymState.mark;
   let ring = "";
   if(m){
-    const b = (!m.ext && typeof bodyPartByKey === "function") ? bodyPartByKey(m.k) : null;
-    const pt = m.ext ? HPAI_EXT_AT[m.k] : (b && b.x != null ? [b.x, b.y] : null);
+    const ps = hgPosByKey(m.k);
+    const pt = ps && Number.isFinite(ps.x) && Number.isFinite(ps.y) ? [ps.x, ps.y] : null;
     if(pt) ring = `<span id="hs-ring" style="position:absolute;left:${pt[0]}%;top:${pt[1]}%;transform:translate(-50%,-50%);width:8%;aspect-ratio:1/1;border-radius:50%;border:3px solid ${color};box-shadow:0 0 0 2px #fff,0 0 0 4px rgba(0,0,0,.18);pointer-events:none"></span>`;
   }
   return `<div id="hs-img" style="position:relative;width:100%;max-width:640px;margin:0 auto;border-radius:12px;overflow:hidden;border:1px solid #eee;background:#fff">
@@ -6100,11 +6113,18 @@ const HPAI_LOC_NECROPSY = {
   6:[{k:"intestine", t:"⑭ 소장"}, {k:"caeca", t:"⑮ 맹장"}], 7:[{k:"spleen", t:"⑪ 비장"}, {k:"liver", t:"⑨ 간"}],
   8:[{k:"ovary", t:"⑲ 난소"}, {k:"oviduct", t:"⑳ 난관"}], 9:[{k:"kidney", t:"⑱ 신장"}],
 };
+// 항목의 위치 목록 — 관리자가 고른 locs가 있으면 그것, 없으면 예전 번호(n) 매핑
+function hgItemLocs(item, kind){
+  if(Array.isArray(item.locs)) return item.locs.map(hgPosByKey).filter(Boolean);
+  const map = kind === "clin" ? HPAI_LOC_CLINICAL : HPAI_LOC_NECROPSY;
+  return (map[item.n] || []).map(x => ({ k:x.k, t:x.t }));
+}
 function hpaiLocTags(list, label, bg, fg, color){
   const cur = hpaiSymState.mark;
+  if(!list.length) return "";
   return `<div style="margin-top:5px;display:flex;gap:5px;flex-wrap:wrap;align-items:center"><span style="font-size:10.5px;color:#888">${label}</span>${list.map(x => {
-    const on = cur && cur.k === x.k && !!cur.ext === !!x.ext;
-    return `<button class="hs-loc" data-k="${x.k}" data-ext="${x.ext ? 1 : 0}" data-color="${color}" style="font-size:11px;font-weight:700;border:2px solid ${on ? fg : "transparent"};background:${on ? fg : bg};color:${on ? "#fff" : fg};border-radius:10px;padding:2px 9px;cursor:pointer">${x.t}</button>`;
+    const on = cur && cur.k === x.k;
+    return `<button class="hs-loc" data-k="${esc(x.k)}" data-color="${color}" style="font-size:11px;font-weight:700;border:2px solid ${on ? fg : "transparent"};background:${on ? fg : bg};color:${on ? "#fff" : fg};border-radius:10px;padding:2px 9px;cursor:pointer">${x.t}</button>`;
   }).join("")}<span style="font-size:10px;color:#bbb">눌러서 그림에 표시</span></div>`;
 }
 // 실제 임상 사진 — 미국 농무부(USDA APHIS) 제공, 퍼블릭 도메인(위키미디어 공용)
@@ -6149,6 +6169,7 @@ function hgDefaults(){
     suspect: HPAI_SUSPECT_SYMPTOMS.map(x => ({ k:x.k, t:x.t })),
     rules: flat(HPAI_RULES),
     mgmt: flat(HPAI_MGMT),
+    customPos: [],
     texts: {
       imgNote: "📷 실제 임상·부검 사진은 아래에서 검색해 볼 수 있습니다 (일부 사진은 자극적일 수 있습니다)",
       symptomNote: "※ 출처: Iowa State Univ. CFSPH 「Highly Pathogenic Avian Influenza」, HPAI 병리 문헌(사이토카인 과다 반응과 전신 모세혈관 누수·혈전) 요약 · 농림축산식품부 「고병원성 AI 특별방역대책」. 교육용 요약이며 진단은 반드시 방역기관 정밀검사로 하세요.",
@@ -6163,6 +6184,14 @@ function hgDefaults(){
   return _hgDefaults;
 }
 function hgClone(x){ return JSON.parse(JSON.stringify(x)); }
+// 편집 시작 때 예전 번호(n) 항목에도 위치 목록(locs)을 채워 체크칩에 반영한다
+function hgNormalizeDraft(d){
+  [["clinical", HPAI_LOC_CLINICAL], ["necropsy", HPAI_LOC_NECROPSY]].forEach(([k, map]) => {
+    (d[k] || []).forEach(it => { if(!Array.isArray(it.locs)) it.locs = (map[it.n] || []).map(x => x.k); });
+  });
+  if(!Array.isArray(d.customPos)) d.customPos = [];
+  return d;
+}
 // 화면이 쓰는 실제 내용 = 발행본(있으면) 위에 기본값을 깐 것
 function hg(){
   const d = hgDefaults(), pub = (hpaiGuideState.data && hpaiGuideState.data.data) || {}, o = {};
@@ -6182,9 +6211,10 @@ async function fetchHpaiGuide(){
 }
 const HG_SECTIONS = {
   symptom: [
+    { k:"customPos", label:"📍 새 해부도 위치 만들기 — 만든 위치는 아래 임상증상·부검소견에서 고를 수 있습니다", fields:[{f:"t",l:"위치 이름 (예: 폐 윗부분, 눈 주변)"},{f:"x",l:"가로(%)",w:84,num:1},{f:"y",l:"세로(%)",w:84,num:1}], blank:()=>({k:"c_" + hgNewKey(), t:"", x:50, y:50}), main:"t", picker:true },
     { k:"features", label:"📋 특징", fields:[{f:"icon",l:"아이콘",w:70},{f:"t",l:"제목"},{f:"d",l:"설명",ta:1}], blank:()=>({icon:"•",t:"",d:""}), main:"t" },
-    { k:"clinical", label:"😷 임상증상", fields:[{f:"ic",l:"아이콘",w:70},{f:"s",l:"증상"},{f:"n",l:"해부도 위치 버튼",sel:"clin"},{f:"why",l:"왜 생길까 (생리학적 이유)",ta:1}], blank:()=>({n:0,ic:"•",s:"",why:""}), main:"s" },
-    { k:"necropsy", label:"🔬 부검소견", fields:[{f:"s",l:"소견"},{f:"n",l:"해부도 번호 버튼",sel:"nec"},{f:"why",l:"왜 이런 소견이 나올까 (병리학적 이유)",ta:1}], blank:()=>({n:0,s:"",why:""}), main:"s" },
+    { k:"clinical", label:"😷 임상증상", fields:[{f:"ic",l:"아이콘",w:70},{f:"s",l:"증상"},{f:"locs",l:"해부도 위치 (여러 개 선택 가능)",locs:1},{f:"why",l:"왜 생길까 (생리학적 이유)",ta:1}], blank:()=>({n:0,locs:[],ic:"•",s:"",why:""}), main:"s" },
+    { k:"necropsy", label:"🔬 부검소견", fields:[{f:"s",l:"소견"},{f:"locs",l:"해부도 번호·위치 (여러 개 선택 가능)",locs:1},{f:"why",l:"왜 이런 소견이 나올까 (병리학적 이유)",ta:1}], blank:()=>({n:0,locs:[],s:"",why:""}), main:"s" },
     { k:"other", label:"💡 기타 사항", fields:[{f:"t",l:"제목"},{f:"d",l:"설명",ta:1}], blank:()=>({t:"",d:""}), main:"t" },
     { k:"imgq", label:"🔍 실제 사진 검색 버튼", fields:[{f:"l",l:"버튼 이름"},{f:"q",l:"검색어(영문 권장)"}], blank:()=>({l:"",q:""}), main:"l" },
   ],
@@ -6212,6 +6242,12 @@ function renderHpaiGuideEditor(card){
   const fieldHtml = (sec, i, fd, val) => {
     const lab = `<div style="font-size:10.5px;color:#777;margin-bottom:2px">${esc(fd.l)}</div>`;
     const attrs = `class="hg-in" data-sec="${sec}" data-i="${i}" data-f="${fd.f}"`;
+    if(fd.locs){
+      const cur = Array.isArray(val) ? val : [];
+      const chips = hgPositions(draft.customPos || []).map(p => `<label style="display:inline-flex;align-items:center;gap:3px;font-size:11px;border:1px solid ${cur.indexOf(p.k) >= 0 ? "#1565C0" : "#ddd"};background:${cur.indexOf(p.k) >= 0 ? "#E3F2FD" : "#fff"};border-radius:12px;padding:2px 8px;margin:0 4px 4px 0;cursor:pointer"><input type="checkbox" class="hg-loc-chk" data-sec="${sec}" data-i="${i}" data-k="${esc(p.k)}" ${cur.indexOf(p.k) >= 0 ? "checked" : ""} style="margin:0" />${esc(p.t)}${p.kind === "custom" ? ' <span style="color:#7B1FA2">★</span>' : ""}</label>`).join("");
+      return `<div>${lab}<div>${chips}</div></div>`;
+    }
+    if(fd.num) return `<div style="flex:0 0 ${fd.w || 90}px;min-width:0">${lab}<input ${attrs} type="number" step="0.1" min="0" max="100" value="${esc(val == null ? "" : val)}" style="${inputCss}" /></div>`;
     if(fd.sel) return `<div>${lab}<select ${attrs} style="${inputCss};background:#fff">${hgSelOptions(fd.sel).map(o => `<option value="${o[0]}" ${Number(val) === o[0] ? "selected" : ""}>${esc(o[1])}</option>`).join("")}</select></div>`;
     if(fd.ta) return `<div>${lab}<textarea ${attrs} rows="3" style="${inputCss};line-height:1.5;resize:vertical">${esc(val == null ? "" : val)}</textarea></div>`;
     return `<div style="${fd.w ? `flex:0 0 ${fd.w}px;` : "flex:1 1 140px;"}min-width:0">${lab}<input ${attrs} type="text" value="${esc(val == null ? "" : val)}" style="${inputCss}" /></div>`;
@@ -6219,8 +6255,8 @@ function renderHpaiGuideEditor(card){
   const secHtml = HG_SECTIONS[card].map(sec => {
     const list = draft[sec.k] || [];
     const rows = list.map((it, i) => {
-      const inline = sec.fields.filter(f => !f.ta && !f.sel);
-      const block = sec.fields.filter(f => f.ta || f.sel);
+      const inline = sec.fields.filter(f => !f.ta && !f.sel && !f.locs);
+      const block = sec.fields.filter(f => f.ta || f.sel || f.locs);
       return `<div style="border:1px solid #e6e6e6;border-radius:9px;padding:8px 9px;margin-bottom:7px;background:#fff">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"><span style="font-size:10.5px;font-weight:800;color:#888">${i + 1}번</span>
           <span style="white-space:nowrap">
@@ -6230,6 +6266,8 @@ function renderHpaiGuideEditor(card){
           </span></div>
         ${inline.length ? `<div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:6px">${inline.map(f => fieldHtml(sec.k, i, f, it[f.f])).join("")}</div>` : ""}
         <div style="display:grid;gap:6px">${block.map(f => fieldHtml(sec.k, i, f, it[f.f])).join("")}</div>
+        ${sec.picker ? `<div style="font-size:10.5px;color:#777;margin:6px 0 3px">그림을 눌러 위치를 정하세요 (가로·세로 %가 자동으로 채워집니다)</div>
+          <div class="hg-pickbox" data-i="${i}" style="position:relative;width:100%;max-width:420px;border:1px solid #ddd;border-radius:8px;overflow:hidden;cursor:crosshair;background:#fff"><img src="self_check/chicken_anatomy.jpg" alt="해부도" style="width:100%;display:block;pointer-events:none" /><span class="hg-dot" style="position:absolute;left:${Number(it.x) || 0}%;top:${Number(it.y) || 0}%;transform:translate(-50%,-50%);width:7%;aspect-ratio:1/1;border-radius:50%;border:3px solid #C62828;box-shadow:0 0 0 2px #fff;pointer-events:none"></span></div>` : ""}
       </div>`;
     }).join("");
     return `<div style="margin-bottom:16px">
@@ -6267,6 +6305,7 @@ async function hgPublish(card){
       clean[k] = d[k].filter(it => String(it[sec ? sec.main : "t"] || "").trim()).map(it => {
         const o = Object.assign({}, it);
         if(o.n != null) o.n = Number(o.n) || 0;
+        if(k === "customPos"){ o.x = Math.max(0, Math.min(100, Number(o.x) || 0)); o.y = Math.max(0, Math.min(100, Number(o.y) || 0)); o.t = String(o.t || "").trim(); }
         if((k === "rules" || k === "mgmt") && !String(o.g || "").trim()) o.g = "기타";
         if((k === "rules" || k === "mgmt" || k === "suspect") && !o.k) o.k = hgNewKey();
         return o;
@@ -6317,7 +6356,7 @@ function renderHpaiSymptomCard(){
             <span style="font-size:18px">${esc(c.ic)}</span>
             <div style="font-size:13px;font-weight:800;color:#333">${hgFmt(c.s)}</div>
           </div>
-          ${HPAI_LOC_CLINICAL[c.n] ? hpaiLocTags(HPAI_LOC_CLINICAL[c.n], "해부도 위치", "#FFEBEE", "#B71C1C", "#C62828") : ""}
+          ${hpaiLocTags(hgItemLocs(c, "clin"), "해부도 위치", "#FFEBEE", "#B71C1C", "#C62828")}
           <div style="font-size:11.5px;color:#555;line-height:1.7;margin-top:5px;padding-left:2px"><b style="color:#1565C0">왜 생길까?</b> ${hgFmt(c.why)}</div>
         </div>`).join("")}</div>`;
   } else if(tab === "necropsy"){
@@ -6329,7 +6368,7 @@ function renderHpaiSymptomCard(){
             <span style="font-size:18px">🔎</span>
             <div style="font-size:13px;font-weight:800;color:#333">${hgFmt(c.s)}</div>
           </div>
-          ${HPAI_LOC_NECROPSY[c.n] ? hpaiLocTags(HPAI_LOC_NECROPSY[c.n], "해부도 번호", "#E3F2FD", "#0D47A1", "#1565C0") : ""}
+          ${hpaiLocTags(hgItemLocs(c, "nec"), "해부도 번호", "#E3F2FD", "#0D47A1", "#1565C0")}
           <div style="font-size:11.5px;color:#555;line-height:1.7;margin-top:5px"><b style="color:#B71C1C">왜 이런 소견이 나올까?</b> ${hgFmt(c.why)}</div>
         </div>`).join("")}</div>`;
   } else {
@@ -15890,13 +15929,33 @@ function attachDiseaseEvents(){
   // AI 안내 카드 내용 편집(관리자)
   document.querySelectorAll(".hg-edit-open").forEach(b => b.onclick = e => {
     e.stopPropagation();
-    hpaiGuideState.edit = b.dataset.card; hpaiGuideState.draft = hgClone(hg()); hpaiGuideState.msg = "";
+    hpaiGuideState.edit = b.dataset.card; hpaiGuideState.draft = hgNormalizeDraft(hgClone(hg())); hpaiGuideState.msg = "";
     if(b.dataset.card === "symptom") hpaiSymState.open = true; else hpaiPrevState.open = true;
     render();
   });
   document.querySelectorAll(".hg-in").forEach(el => {
-    const upd = () => { const it = hpaiGuideState.draft[el.dataset.sec][Number(el.dataset.i)]; if(it) it[el.dataset.f] = (el.dataset.f === "n") ? Number(el.value) : el.value; };
+    const upd = () => {
+      const it = hpaiGuideState.draft[el.dataset.sec][Number(el.dataset.i)]; if(!it) return;
+      const f = el.dataset.f;
+      it[f] = (f === "n" || f === "x" || f === "y") ? Number(el.value) : el.value;
+      if(f === "x" || f === "y"){ const box = document.querySelector('.hg-pickbox[data-i="' + el.dataset.i + '"] .hg-dot'); if(box){ box.style.left = (Number(it.x) || 0) + "%"; box.style.top = (Number(it.y) || 0) + "%"; } }
+    };
     if(el.tagName === "SELECT") el.onchange = upd; else el.oninput = upd;
+  });
+  document.querySelectorAll(".hg-loc-chk").forEach(el => el.onchange = () => {
+    const it = hpaiGuideState.draft[el.dataset.sec][Number(el.dataset.i)]; if(!it) return;
+    const cur = Array.isArray(it.locs) ? it.locs.slice() : [], k = el.dataset.k, at = cur.indexOf(k);
+    if(el.checked && at < 0) cur.push(k); if(!el.checked && at >= 0) cur.splice(at, 1);
+    it.locs = cur;
+    const lab = el.closest("label"); if(lab){ lab.style.borderColor = el.checked ? "#1565C0" : "#ddd"; lab.style.background = el.checked ? "#E3F2FD" : "#fff"; }
+  });
+  document.querySelectorAll(".hg-pickbox").forEach(box => box.onclick = e => {
+    const it = hpaiGuideState.draft.customPos[Number(box.dataset.i)]; if(!it) return;
+    const r = box.getBoundingClientRect();
+    it.x = Math.max(0, Math.min(100, Math.round((e.clientX - r.left) / r.width * 1000) / 10));
+    it.y = Math.max(0, Math.min(100, Math.round((e.clientY - r.top) / r.height * 1000) / 10));
+    const dot = box.querySelector(".hg-dot"); if(dot){ dot.style.left = it.x + "%"; dot.style.top = it.y + "%"; }
+    document.querySelectorAll('.hg-in[data-sec="customPos"][data-i="' + box.dataset.i + '"]').forEach(inp => { if(inp.dataset.f === "x") inp.value = it.x; if(inp.dataset.f === "y") inp.value = it.y; });
   });
   document.querySelectorAll(".hg-txt").forEach(el => el.oninput = () => { hpaiGuideState.draft.texts[el.dataset.key] = el.value; });
   const hgSec = k => [].concat(...Object.values(HG_SECTIONS)).find(x => x.k === k);
@@ -15911,12 +15970,13 @@ function attachDiseaseEvents(){
   document.querySelectorAll(".hg-down").forEach(b => b.onclick = () => hgMove(b.dataset.sec, Number(b.dataset.i), 1));
   document.querySelectorAll(".hg-reset-sec").forEach(b => b.onclick = () => {
     if(!confirm("이 목록을 기본 내용으로 되돌릴까요? (저장 전까지는 화면에만 반영됩니다)")) return;
-    hpaiGuideState.draft[b.dataset.sec] = hgClone(hgDefaults()[b.dataset.sec]); render();
+    hpaiGuideState.draft[b.dataset.sec] = hgClone(hgDefaults()[b.dataset.sec]); hgNormalizeDraft(hpaiGuideState.draft); render();
   });
   document.querySelectorAll(".hg-reset-all").forEach(b => b.onclick = () => {
     if(!confirm("이 카드의 모든 목록과 문구를 기본 내용으로 되돌릴까요? (저장 전까지는 화면에만 반영됩니다)")) return;
     const card = hpaiGuideState.edit, d = hgClone(hgDefaults());
     HG_SECTIONS[card].forEach(sec => { hpaiGuideState.draft[sec.k] = d[sec.k]; });
+    hgNormalizeDraft(hpaiGuideState.draft);
     HG_TEXTS[card].forEach(t => { hpaiGuideState.draft.texts[t[0]] = d.texts[t[0]]; });
     render();
   });
@@ -15931,8 +15991,8 @@ function attachDiseaseEvents(){
   }
   document.querySelectorAll(".hs-tab").forEach(b => b.onclick = () => { hpaiSymState.tab = b.dataset.tab; hpaiSymState.mark = null; render(); });
   document.querySelectorAll(".hs-loc").forEach(b => b.onclick = () => {
-    const cur = hpaiSymState.mark, ext = b.dataset.ext === "1";
-    hpaiSymState.mark = (cur && cur.k === b.dataset.k && !!cur.ext === ext) ? null : { k:b.dataset.k, ext };
+    const cur = hpaiSymState.mark;
+    hpaiSymState.mark = (cur && cur.k === b.dataset.k) ? null : { k:b.dataset.k };
     render();
     const img = document.getElementById("hs-img");
     if(img && hpaiSymState.mark){ const r = img.getBoundingClientRect(); if(r.top < 0 || r.bottom > window.innerHeight) img.scrollIntoView({ behavior:"smooth", block:"center" }); }
