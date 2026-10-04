@@ -9462,16 +9462,37 @@ const FGQ_SRC = {
 // 옥수수 알곡 종류(경도) 기준 안내 — 물리적 성질 표 위에 붙는다.
 // 공식 정의는 브라질 IN 60/2011(알곡 85% 이상이 해당 형태)과 아르헨티나 Norma XII(유리질 배유가 절반 초과면 duro)이며,
 // 반치아형·반플린트의 유리질 % 구간은 공식 수치가 아니라 일반적인 구분(◇)이다. 실측 유리질 비율은 도착항 조사·품종 연구에서 가져왔다.
+// 알곡 세로 단면 모식도 — 겉의 호박색 = 유리질(단단한 배유), 안쪽 크림색 = 분질(무른 배유). dip=윗면 함몰 깊이, core=분질 크기 배율.
+function fgKernelSvg(dip, core, label){
+  const topY = (16 + dip) / 2;
+  return `<svg viewBox="0 0 60 84" width="46" height="64" role="img" aria-label="${label} 알곡 단면 모식도" style="display:block;margin:0 auto">
+    <path d="M10 16 Q30 ${dip} 50 16 C55 38 44 68 30 78 C16 68 5 38 10 16 Z" fill="#EFA928" stroke="#B8741A" stroke-width="1.4"/>
+    <ellipse cx="30" cy="${(topY + 44).toFixed(1)}" rx="${(15 * core).toFixed(1)}" ry="${(24 * core).toFixed(1)}" fill="#FCF4D6" stroke="#E4D49A" stroke-width=".8"/>
+    <path d="M22 76 Q30 82 38 76 L36 70 Q30 73 24 70 Z" fill="#F7E7A6" stroke="#C9A24B" stroke-width=".8"/>
+  </svg>`;
+}
 const FGQ_CORN_TYPES = `
   <div style="background:#FFFBEA;border:1px solid #F3E7B3;border-radius:10px;padding:10px 12px;margin-bottom:8px">
     <div style="font-size:12.5px;font-weight:800;color:#7A5C00;margin-bottom:6px">🌽 옥수수 알곡 종류 기준 — 치아형 · 반치아형 · 반플린트 · 플린트</div>
-    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:640px;font-size:11.5px">
-      <thead><tr style="text-align:left;border-bottom:2px solid #F3E7B3;color:#7A5C00"><th style="padding:5px">종류</th><th style="padding:5px">알곡 윗면(왕관)</th><th style="padding:5px">배유(내부) 성질</th><th style="padding:5px">유리질 비율(대략)</th><th style="padding:5px">대표</th></tr></thead>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start;margin-bottom:8px">
+      <figure style="margin:0;flex:1 1 280px;max-width:420px">
+        <a href="assets/corn/zea_mays_types.jpg" target="_blank" rel="noopener" title="눌러서 크게 보기"><img src="assets/corn/zea_mays_types.jpg" alt="옥수수 종류별 알곡 사진 — 치아형(indentata)과 플린트(indurata) 비교" loading="lazy" style="width:100%;height:auto;display:block;border-radius:8px;border:1px solid #eee" /></a>
+        <figcaption style="font-size:10px;color:#8a7a3a;line-height:1.6;margin-top:3px"><b>실제 알곡 비교</b> — 왼쪽 <i>indentata</i>=<b>치아형</b>(윗면이 쐐기처럼 움푹), 위 가운데 <i>indurata</i>=<b>플린트</b>(둥글고 매끈). 사진: Miquel Pujol Palol, <a href="https://commons.wikimedia.org/wiki/File:LPCC-788-Grans_de_Zea_mays.jpg" target="_blank" rel="noopener" style="color:#8a7a3a">CC BY-SA 3.0 · 위키미디어 공용</a></figcaption>
+      </figure>
+      <div style="flex:1 1 220px;font-size:11px;color:#6b5600;line-height:1.7">
+        <b>단면 모식도 보는 법</b><br>
+        <span style="display:inline-block;width:12px;height:12px;background:#EFA928;border:1px solid #B8741A;vertical-align:middle"></span> 겉의 호박색 = <b>유리질</b>(단단하고 투명한 배유)<br>
+        <span style="display:inline-block;width:12px;height:12px;background:#FCF4D6;border:1px solid #E4D49A;vertical-align:middle"></span> 안쪽 크림색 = <b>분질</b>(무르고 하얀 배유)<br>
+        치아형일수록 분질이 크고 윗면이 움푹, 플린트일수록 유리질이 두껍고 윗면이 둥글어집니다. 모식도는 이해를 돕기 위한 그림이며 실제 비율은 품종마다 다릅니다.
+      </div>
+    </div>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:700px;font-size:11.5px">
+      <thead><tr style="text-align:left;border-bottom:2px solid #F3E7B3;color:#7A5C00"><th style="padding:5px">단면 모식도</th><th style="padding:5px">종류</th><th style="padding:5px">알곡 윗면(왕관)</th><th style="padding:5px">배유(내부) 성질</th><th style="padding:5px">유리질 비율(대략)</th><th style="padding:5px">대표</th></tr></thead>
       <tbody>
-        <tr style="border-top:1px solid #f3ecc8"><td style="padding:6px;font-weight:800">치아형 (dent)</td><td style="padding:6px">움푹 들어간 홈이 뚜렷</td><td style="padding:6px">가운데 대부분이 분질(하얀 가루 같은 배유), 겉에만 얇은 유리질</td><td style="padding:6px">약 50% 미만<br><span style="color:#2E7D32;font-weight:700">● 미국 평균 47~48%(범위 35~62)</span></td><td style="padding:6px">미국 옥수수벨트 · 프랑스 일부</td></tr>
-        <tr style="border-top:1px solid #f3ecc8"><td style="padding:6px;font-weight:800">반치아형 (semi-dent)</td><td style="padding:6px">얕은 홈 또는 약한 함몰</td><td style="padding:6px">분질과 유리질이 비슷하거나 분질이 약간 많음</td><td style="padding:6px">약 50~60% <span style="color:#7B1FA2;font-weight:700">◇</span></td><td style="padding:6px">유럽 일부 · 브라질 일부 품종</td></tr>
-        <tr style="border-top:1px solid #f3ecc8"><td style="padding:6px;font-weight:800">반플린트 (semi-flint)</td><td style="padding:6px">둥글고 홈이 거의 없음</td><td style="padding:6px">유리질이 우세하고 가운데에 분질이 조금</td><td style="padding:6px">약 60~70% <span style="color:#7B1FA2;font-weight:700">◇</span><br><span style="color:#2E7D32;font-weight:700">● 아르헨티나 도착항 평균 65.5%</span></td><td style="padding:6px">브라질 · 아르헨티나 다수</td></tr>
-        <tr style="border-top:1px solid #f3ecc8"><td style="padding:6px;font-weight:800">플린트 (flint, duro)</td><td style="padding:6px">둥글고 매끈, 홈 없음</td><td style="padding:6px">대부분 유리질(투명하고 단단), 분질은 아주 적음</td><td style="padding:6px">약 70% 이상<br><span style="color:#2E7D32;font-weight:700">● 브라질 평균 72.3%(품종 64~80)</span></td><td style="padding:6px">브라질 · 아르헨티나(colorado duro) · 열대 지역</td></tr>
+        <tr style="border-top:1px solid #f3ecc8"><td style="padding:6px">${fgKernelSvg(26, 1.0, "치아형")}</td><td style="padding:6px;font-weight:800">치아형 (dent)</td><td style="padding:6px">움푹 들어간 홈이 뚜렷</td><td style="padding:6px">가운데 대부분이 분질(하얀 가루 같은 배유), 겉에만 얇은 유리질</td><td style="padding:6px">약 50% 미만<br><span style="color:#2E7D32;font-weight:700">● 미국 평균 47~48%(범위 35~62)</span></td><td style="padding:6px">미국 옥수수벨트 · 프랑스 일부</td></tr>
+        <tr style="border-top:1px solid #f3ecc8"><td style="padding:6px">${fgKernelSvg(15, 0.78, "반치아형")}</td><td style="padding:6px;font-weight:800">반치아형 (semi-dent)</td><td style="padding:6px">얕은 홈 또는 약한 함몰</td><td style="padding:6px">분질과 유리질이 비슷하거나 분질이 약간 많음</td><td style="padding:6px">약 50~60% <span style="color:#7B1FA2;font-weight:700">◇</span></td><td style="padding:6px">유럽 일부 · 브라질 일부 품종</td></tr>
+        <tr style="border-top:1px solid #f3ecc8"><td style="padding:6px">${fgKernelSvg(5, 0.52, "반플린트")}</td><td style="padding:6px;font-weight:800">반플린트 (semi-flint)</td><td style="padding:6px">둥글고 홈이 거의 없음</td><td style="padding:6px">유리질이 우세하고 가운데에 분질이 조금</td><td style="padding:6px">약 60~70% <span style="color:#7B1FA2;font-weight:700">◇</span><br><span style="color:#2E7D32;font-weight:700">● 아르헨티나 도착항 평균 65.5%</span></td><td style="padding:6px">브라질 · 아르헨티나 다수</td></tr>
+        <tr style="border-top:1px solid #f3ecc8"><td style="padding:6px">${fgKernelSvg(-3, 0.26, "플린트")}</td><td style="padding:6px;font-weight:800">플린트 (flint, duro)</td><td style="padding:6px">둥글고 매끈, 홈 없음</td><td style="padding:6px">대부분 유리질(투명하고 단단), 분질은 아주 적음</td><td style="padding:6px">약 70% 이상<br><span style="color:#2E7D32;font-weight:700">● 브라질 평균 72.3%(품종 64~80)</span></td><td style="padding:6px">브라질 · 아르헨티나(colorado duro) · 열대 지역</td></tr>
       </tbody>
     </table></div>
     <div style="font-size:11px;color:#6b5600;line-height:1.7;margin-top:8px">
