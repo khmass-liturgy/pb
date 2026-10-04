@@ -9,6 +9,9 @@
   · 건조·고온 신호 ↑ : 가뭄·열 스트레스 → 수량 감소, 옥수수 아플라톡신 위험
   · 다습 신호 ↑      : 수확기 수분 상승, 곰팡이·DON·푸모니신·발아 위험
 
+곰팡이 오염 위험(mold)은 별도로, 최근 30일 중 "고온다습일"(일평균기온 25°C↑·습도 80%↑, 아플라톡신 계열)과
+"온난다습일"(15~25°C·습도 85%↑, DON·ZEN·OTA 계열)을 세어 0~100점으로 만든다(절대 환경 기준이라 평년 불필요).
+
 실제 곰팡이독소 농도나 로트 품질을 측정한 값이 아니라 "기상으로 본 위험의 높낮이"다.
 
 두 단계로 나뉜다.
@@ -44,6 +47,13 @@ WEEKS_BACK = 12      # 최근 13개 시점(주 단위)
 HEAT_C = 35.0        # 고온일 기준 일 최고기온
 WET_MM = 5.0         # 강수일 기준 일 강수량
 METRICS = ("p", "wb", "heat", "wet", "tmax")
+# 곰팡이 오염(독소) 위험 환경 기준 — 일평균기온·일평균상대습도로 "곰팡이가 자라기 좋은 날"을 센다.
+#  · 고온다습일: 기온 25°C↑ & 습도 80%↑ — Aspergillus flavus(아플라톡신) 생육·독소 생성에 유리한 환경
+#  · 온난다습일: 기온 15~25°C & 습도 85%↑ — Fusarium(DON·ZEN)·Penicillium(OTA) 등에 유리한 환경
+# 최근 30일 중 고온다습일 12일, 온난다습일 15일이면 각각 위험 100점.
+HH_TEMP, HH_RH = 25.0, 80.0
+WH_TMIN, WH_RH = 15.0, 85.0
+HH_FULL, WH_FULL = 12.0, 15.0
 
 # 지역별 대표 지점 (주요 생산벨트)
 REGIONS = {
@@ -67,10 +77,11 @@ def point_key(name: str) -> str:
     return name
 
 
-def fetch_rows(lat: float, lng: float, start: date, end: date) -> list[tuple[date, float, float, float]]:
+def fetch_rows(lat: float, lng: float, start: date, end: date, extra: bool = False) -> list[tuple]:
     params = {
         "latitude": lat, "longitude": lng, "start_date": start.isoformat(), "end_date": end.isoformat(),
-        "daily": "precipitation_sum,temperature_2m_max,et0_fao_evapotranspiration", "timezone": "UTC",
+        "daily": "precipitation_sum,temperature_2m_max,et0_fao_evapotranspiration" + (",temperature_2m_mean,relative_humidity_2m_mean" if extra else ""),
+        "timezone": "UTC",
     }
     last = None
     for attempt in range(3):
@@ -81,8 +92,11 @@ def fetch_rows(lat: float, lng: float, start: date, end: date) -> list[tuple[dat
             r.raise_for_status()
             d = r.json()["daily"]
             out = []
-            for t, p, tx, et in zip(d["time"], d["precipitation_sum"], d["temperature_2m_max"], d["et0_fao_evapotranspiration"]):
-                out.append((date.fromisoformat(t), 0.0 if p is None else p, tx if tx is not None else math.nan, 0.0 if et is None else et))
+            tm_l = d.get("temperature_2m_mean") or [None] * len(d["time"])
+            rh_l = d.get("relative_humidity_2m_mean") or [None] * len(d["time"])
+            for t, p, tx, et, tm, rh in zip(d["time"], d["precipitation_sum"], d["temperature_2m_max"], d["et0_fao_evapotranspiration"], tm_l, rh_l):
+                out.append((date.fromisoformat(t), 0.0 if p is None else p, tx if tx is not None else math.nan, 0.0 if et is None else et,
+                            tm if tm is not None else math.nan, rh if rh is not None else math.nan))
             return out
         except RateLimited:
             raise
@@ -106,7 +120,7 @@ class Series:
         self.cwet = [0] * (n + 1)
         self.ctx = [0.0] * (n + 1)
         self.ctxn = [0] * (n + 1)
-        for i, (_, p, tx, et) in enumerate(rows):
+        for i, (_, p, tx, et, *_rest) in enumerate(rows):
             self.cp[i + 1] = self.cp[i] + p
             self.cwb[i + 1] = self.cwb[i] + (p - et)
             self.cheat[i + 1] = self.cheat[i] + (1 if (not math.isnan(tx) and tx >= HEAT_C) else 0)
@@ -127,6 +141,24 @@ class Series:
             "heat": self.cheat[j] - self.cheat[i], "wet": self.cwet[j] - self.cwet[i],
             "tmax": (self.ctx[j] - self.ctx[i]) / n_tx,
         }
+
+
+def mold_window(rows, end: date) -> dict | None:
+    """end 포함 최근 30일의 고온다습일·온난다습일·평균 습도·평균 기온."""
+    lo = end - timedelta(days=WINDOW - 1)
+    win = [r for r in rows if lo <= r[0] <= end and not math.isnan(r[4]) and not math.isnan(r[5])]
+    if len(win) < WINDOW - 3:
+        return None
+    hh = sum(1 for r in win if r[4] >= HH_TEMP and r[5] >= HH_RH)
+    wh = sum(1 for r in win if WH_TMIN <= r[4] < HH_TEMP and r[5] >= WH_RH)
+    return {"hh": hh * WINDOW / len(win), "wh": wh * WINDOW / len(win),
+            "rh": sum(r[5] for r in win) / len(win), "tm": sum(r[4] for r in win) / len(win)}
+
+
+def mold_scores(hh: float, wh: float) -> dict:
+    afla = min(100.0, hh / HH_FULL * 100)
+    fus = min(100.0, wh / WH_FULL * 100)
+    return {"afla": round(afla), "fus": round(fus), "score": round(max(afla, fus))}
 
 
 def mean_sd(xs: list[float]) -> tuple[float, float]:
@@ -202,17 +234,21 @@ def scores(z: dict) -> tuple[float, float]:
 def build_region(rkey: str, meta: dict, base: dict, end: date) -> dict:
     series_list = []
     for name, lat, lng in meta["points"]:
-        rows = fetch_rows(lat, lng, end - timedelta(days=130), end)     # 최근 ~4개월만(가볍다)
-        series_list.append((name, Series(rows), base[f"{rkey}:{name}"]))
+        rows = fetch_rows(lat, lng, end - timedelta(days=130), end, extra=True)     # 최근 ~4개월만(가볍다)
+        series_list.append((name, Series(rows), base[f"{rkey}:{name}"], rows))
         time.sleep(2)
-    last = min(s.last for _, s, _ in series_list)
+    last = min(s.last for _, s, _, _ in series_list)
     steps = []
     for k in range(WEEKS_BACK, -1, -1):
         e = last - timedelta(days=7 * k)
         md = (e.month, 28 if (e.month, e.day) == (2, 29) else e.day)
         i = CAL_IDX[md]
         per = []
-        for _, s, b in series_list:
+        molds = []
+        for _, s, b, rows in series_list:
+            mw = mold_window(rows, e)
+            if mw:
+                molds.append(mw)
             cur = s.window(e)
             if cur is None:
                 continue
@@ -223,7 +259,11 @@ def build_region(rkey: str, meta: dict, base: dict, end: date) -> dict:
         avg = lambda idx, m: sum(p[idx][m] for p in per) / len(per)
         z = {m: avg(2, m) for m in METRICS}
         dry, wet = scores(z)
-        steps.append({"end": e.isoformat(), "z": {m: round(v, 2) for m, v in z.items()},
+        mold = None
+        if molds:
+            av = lambda k: sum(m[k] for m in molds) / len(molds)
+            mold = {**mold_scores(av("hh"), av("wh")), "hh": round(av("hh"), 1), "wh": round(av("wh"), 1), "rh": round(av("rh")), "tm": round(av("tm"), 1)}
+        steps.append({"end": e.isoformat(), "mold": mold, "z": {m: round(v, 2) for m, v in z.items()},
                       "cur": {m: round(avg(0, m), 1) for m in METRICS}, "norm": {m: round(avg(1, m), 1) for m in METRICS},
                       "dry": round(dry, 2), "wet": round(wet, 2)})
     if not steps:
@@ -231,7 +271,8 @@ def build_region(rkey: str, meta: dict, base: dict, end: date) -> dict:
     now = steps[-1]
     return {
         "name": meta["name"], "points": [p[0] for p in meta["points"]], "asof": now["end"], "now": now,
-        "series": [{"end": s["end"], "wb": s["z"]["wb"], "tmax": s["z"]["tmax"], "p": s["z"]["p"], "dry": s["dry"], "wet": s["wet"]} for s in steps],
+        "series": [{"end": s["end"], "wb": s["z"]["wb"], "tmax": s["z"]["tmax"], "p": s["z"]["p"], "dry": s["dry"], "wet": s["wet"],
+                    "mold": (s["mold"] or {}).get("score"), "afla": (s["mold"] or {}).get("afla"), "fus": (s["mold"] or {}).get("fus")} for s in steps],
     }
 
 

@@ -9052,12 +9052,13 @@ function premiumUserLabel(){
 //   1991~2020 평년과 비교한 z-점수를 grain_quality/latest.json으로 만든다(최근 13주 흐름 포함).
 //   · 건조·고온 점수 ↑ : 가뭄·열 스트레스 → 수량·소립화, 옥수수 아플라톡신 위험
 //   · 다습 점수 ↑      : 수확기 수분 상승·곰팡이, DON·푸모니신, 밀 발아·OTA 위험
+//   · 곰팡이 오염 위험(mold): 최근 30일의 고온다습일·온난다습일(기온×습도)을 센 0~100점(평년 비교 없는 절대 환경 기준)
 //   지금 시기(작기)에 어느 위험이 중요한지는 산지별 작기 달력(FG_CAL)으로 정한다.
 // 곰팡이독소 농도·로트 품질을 직접 잰 값이 아니라 "기상으로 본 위험의 높낮이"이며, 실제 품질은
 //   USDA FGIS·CONAB 등 기관 보고와 검사성적서로 확인해야 한다(산지별 기관 탭에 링크).
 const GRAIN_QUALITY_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/grain_quality/latest.json";
 let grainQState = { status:"idle", data:null };
-let feedGrainState = { sub:"flow", region:"us", openKey:null };
+let feedGrainState = { sub:"flow", region:"us", openKey:null, moldOpen:null };
 
 async function fetchGrainQuality(){
   if(grainQState.status === "loading") return;
@@ -9143,6 +9144,99 @@ function fgImplication(key, v, r){
     "해상운송 중 결로로 품질이 더 나빠질 수 있어 장거리 선적 로트는 입고 후 사료빈 보관 기간을 짧게 가져가세요."];
 }
 
+// ── 곰팡이 오염 위험 (고온·다습 환경 기준) ──
+// 수집 스크립트가 최근 30일 중 "고온다습일"(일평균기온 25°C↑·습도 80%↑ — 아플라톡신 계열)과
+// "온난다습일"(15~25°C·습도 85%↑ — DON·ZEN·OTA 계열)을 세어 0~100점으로 만든 값(mold)을 쓴다.
+const FG_MOLD_LEVELS = [
+  { max:25,  t:"낮음",     ic:"🟢", c:"#2E7D32", bg:"#E8F5E9", d:"곰팡이가 자라기 어려운 환경에 가깝습니다." },
+  { max:50,  t:"보통",     ic:"🟡", c:"#F9A825", bg:"#FFF8E1", d:"곰팡이 생육에 유리한 날이 일부 있습니다 — 수확·건조·저장 중 수분 관리에 신경 쓰세요." },
+  { max:75,  t:"높음",     ic:"🟠", c:"#EF6C00", bg:"#FFF3E0", d:"고온·다습한 날이 많아 곰팡이독소 오염 가능성이 높습니다 — 이 산지 원료는 독소 검사 성적서를 꼭 확인하세요." },
+  { max:999, t:"매우 높음", ic:"🔴", c:"#C62828", bg:"#FFEBEE", d:"곰팡이 생육에 매우 유리한 환경이 이어졌습니다 — 입고 전 다중 곰팡이독소 검사와 수분 확인이 필수입니다." },
+];
+function fgMoldLevel(score){ return FG_MOLD_LEVELS.find(l => score < l.max) || FG_MOLD_LEVELS[3]; }
+function fgMoldType(m){
+  if(!m || m.score < 25) return "뚜렷한 우세 계열 없음";
+  return m.afla >= m.fus ? "아플라톡신 계열 우세 (고온다습)" : "DON·ZEN·OTA 계열 우세 (온난다습)";
+}
+function fgMoldStrip(series){
+  const cells = series.map(x => {
+    const sc = x.mold == null ? null : x.mold, lv = sc == null ? null : fgMoldLevel(sc);
+    return `<span title="${esc(x.end)} · 곰팡이 위험 ${sc == null ? "-" : sc}" style="flex:1;height:18px;background:${lv ? lv.c : "#eee"};opacity:${lv ? 0.35 + Math.min(1, sc / 100) * 0.65 : 1};display:block"></span>`;
+  }).join("");
+  return `<div style="display:flex;border-radius:6px;overflow:hidden;gap:1px;background:#fff;margin-top:6px">${cells}</div>
+    <div style="display:flex;justify-content:space-between;font-size:9.5px;color:#aaa;margin-top:2px"><span>${series.length}주 전</span><span>지금</span></div>`;
+}
+function renderFeedGrainMold(d, keys){
+  const have = keys.filter(k => d.regions[k].now && d.regions[k].now.mold);
+  if(!have.length) return "";
+  const ranked = have.slice().sort((a, b) => d.regions[b].now.mold.score - d.regions[a].now.mold.score);
+  const topR = d.regions[ranked[0]].now.mold, topLv = fgMoldLevel(topR.score);
+  const rows = ranked.map(k => {
+    const r = d.regions[k], m = r.now.mold, lv = fgMoldLevel(m.score), open = feedGrainState.moldOpen === k;
+    return `
+    <div style="border:1.5px solid ${open ? lv.c : "#eee"};border-radius:12px;background:#fff;margin-bottom:8px">
+      <div class="fg-mold-row" data-reg="${k}" role="button" tabindex="0" style="cursor:pointer;padding:10px 12px">
+        <div style="display:flex;align-items:center;gap:9px">
+          ${fgBadge(k, 26)}
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:6px">
+              <span style="font-size:13px;font-weight:800;color:#333">${esc(r.name)}</span>
+              <span style="font-size:12px;font-weight:800;color:${lv.c}">${lv.ic} ${lv.t} · ${m.score}점</span>
+            </div>
+            <div style="background:#eee;border-radius:6px;height:9px;margin-top:4px;position:relative"><div style="width:${m.score}%;background:${lv.c};height:9px;border-radius:6px"></div>
+              <span style="position:absolute;left:25%;top:-1px;width:1px;height:11px;background:#bbb"></span><span style="position:absolute;left:50%;top:-1px;width:1px;height:11px;background:#bbb"></span><span style="position:absolute;left:75%;top:-1px;width:1px;height:11px;background:#bbb"></span></div>
+          </div>
+        </div>
+        <div style="font-size:10.5px;color:#777;margin-top:5px">${esc(fgMoldType(m))} · 고온다습일 ${m.hh}일 · 온난다습일 ${m.wh}일 <span style="color:#bbb">(최근 30일)</span></div>
+        ${fgMoldStrip(r.series)}
+      </div>
+      ${open ? `<div style="padding:2px 12px 12px;border-top:1px solid #f1f1f1;background:#FCFCFC">
+        <div style="background:${lv.bg};border-radius:9px;padding:9px 11px;margin-top:8px;font-size:12px;color:#444;line-height:1.65">${lv.d}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+          <span style="font-size:11px;background:#F5F5F5;border-radius:10px;padding:3px 9px">🌡️ 평균기온 ${m.tm}°C</span>
+          <span style="font-size:11px;background:#F5F5F5;border-radius:10px;padding:3px 9px">💧 평균습도 ${m.rh}%</span>
+          <span style="font-size:11px;background:#FFF3E0;border-radius:10px;padding:3px 9px">아플라 계열 ${m.afla}점</span>
+          <span style="font-size:11px;background:#E3F2FD;border-radius:10px;padding:3px 9px">DON·ZEN·OTA 계열 ${m.fus}점</span>
+        </div>
+      </div>` : ""}
+    </div>`;
+  }).join("");
+  return `
+  <div class="card" style="padding:14px 14px 8px;margin-bottom:12px;border-top:4px solid #8E24AA">
+    <div style="font-size:14px;font-weight:800;color:#6A1B9A">🍄 곰팡이독소 오염 위험도 <span style="font-size:11px;font-weight:600;color:#999">고온·다습 환경 기준</span></div>
+    <div style="font-size:11.5px;color:#666;line-height:1.65;margin:4px 0 10px">곰팡이는 <b>덥고 습한 날</b>이 이어질수록 잘 자라고 독소를 만듭니다. 최근 30일 중 그런 날이 며칠인지로 산지별 오염 가능성을 0~100점으로 보여줍니다.${topR.score >= 50 ? ` 지금은 <b style="color:${topLv.c}">${esc(d.regions[ranked[0]].name)}</b>이 가장 높습니다.` : ""}</div>
+    ${rows}
+    <div style="font-size:10px;color:#aaa;line-height:1.7;margin:2px 0 6px">
+      🔴 고온다습일 = 일평균기온 25°C↑ & 습도 80%↑(아플라톡신 <i>Aspergillus</i> 생육·독소 생성에 유리) · 🔵 온난다습일 = 15~25°C & 습도 85%↑(<i>Fusarium</i> DON·ZEN, <i>Penicillium</i> OTA에 유리).
+      고온다습일 12일 또는 온난다습일 15일이면 100점. 25점 미만 낮음 · 50 미만 보통 · 75 미만 높음 · 75 이상 매우 높음. 줄을 누르면 자세히.
+    </div>
+  </div>`;
+}
+
+// 카드마다 현재 값을 말로 풀어 주는 한 줄 해석 (눈금·추세·13주 띠를 어떻게 읽는지)
+function fgReadout(r, v){
+  const dry = r.now.dry, wet = r.now.wet;
+  const lvTxt = x => x < 1 ? "평년 범위" : x < 2 ? "평년보다 눈에 띄게" : x < 3 ? "평년보다 확연히" : "평년과 크게 다르게";
+  const parts = [];
+  if(dry >= 1) parts.push(`건조·고온 ${dry.toFixed(1)}점 — ${lvTxt(dry)} 건조하고 더운 상태`);
+  else parts.push(`건조·고온 ${dry.toFixed(1)}점 — 평년 범위`);
+  if(wet >= 1) parts.push(`다습 ${wet.toFixed(1)}점 — ${lvTxt(wet)} 비가 많은 상태`);
+  else parts.push(wet < 0.3 ? `다습 ${wet.toFixed(1)}점 — 비는 평년 수준이거나 적음` : `다습 ${wet.toFixed(1)}점 — 평년 범위`);
+  const ser = r.series || [];
+  const dryW = ser.filter(x => x.wet - x.dry <= -1).length, wetW = ser.filter(x => x.wet - x.dry >= 1).length;
+  let flow = `최근 ${ser.length}주 중 `;
+  if(dryW === ser.length) flow = `최근 ${ser.length}주 내내 건조·고온 쪽(주황)`;
+  else if(wetW === ser.length) flow = `최근 ${ser.length}주 내내 다습 쪽(파랑)`;
+  else if(!dryW && !wetW) flow = `최근 ${ser.length}주 내내 평년 수준(회색)`;
+  const bits = [];
+  if(dryW) bits.push(`${dryW}주가 건조·고온 쪽(주황)`);
+  if(wetW) bits.push(`${wetW}주가 다습 쪽(파랑)`);
+  const calmW = ser.length - dryW - wetW;
+  if(calmW) bits.push(`${calmW}주가 평년 수준(회색)`);
+  if(bits.length && dryW !== ser.length && wetW !== ser.length && (dryW || wetW)) flow += bits.join(", ");
+  const tr = v.trend === "up" ? "4주 전보다 위험이 커지는 중입니다." : v.trend === "down" ? "4주 전보다 완화되는 중입니다." : "4주 전과 비슷한 수준입니다.";
+  return `<div style="font-size:11px;color:#555;line-height:1.65;background:#F7F9FA;border-radius:8px;padding:7px 10px;margin-top:8px"><b style="color:#333">해석</b> · ${parts.join(". ")}. ${flow}이며, ${tr}</div>`;
+}
 function fgTrendTxt(t){ return t === "up" ? ["▲ 악화", "#C62828"] : t === "down" ? ["▼ 완화", "#2E7D32"] : ["▶ 비슷", "#888"]; }
 function fgMeter(label, score, color){
   const pct = Math.max(0, Math.min(100, score / 4 * 100));
@@ -9165,6 +9259,11 @@ function fgDetailRows(r){
     ["🔥 35°C↑ 고온일", `${c.heat.toFixed(1)}일`, `평년 ${m.heat.toFixed(1)}일`],
     ["🌧️ 강수일(5mm↑)", `${c.wet.toFixed(1)}일`, `평년 ${m.wet.toFixed(1)}일`],
   ];
+  if(n.mold){
+    rows.push(["🍄 고온다습일(25°C↑·습도 80%↑)", `${n.mold.hh}일`, "아플라톡신 계열"]);
+    rows.push(["🍄 온난다습일(15~25°C·습도 85%↑)", `${n.mold.wh}일`, "DON·ZEN·OTA 계열"]);
+    rows.push(["💧 평균 습도 · 평균기온", `${n.mold.rh}% · ${n.mold.tm}°C`, ""]);
+  }
   return rows.map(x => `<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid #f1f1f1;font-size:12px"><span style="color:#555">${x[0]}</span><span><b style="color:#333">${x[1]}</b> <span style="color:#999;font-size:11px">${x[2]}</span></span></div>`).join("");
 }
 
@@ -9206,10 +9305,12 @@ function renderFeedGrainFlow(){
         </div>
         ${fgMeter("☀️ 건조·고온", r.now.dry, "#EF6C00")}
         ${fgMeter("🌧️ 다습", r.now.wet, "#1E88E5")}
+        ${r.now.mold ? `<div style="display:flex;justify-content:space-between;font-size:10.5px;color:#666;margin-top:7px"><span>🍄 곰팡이 오염 위험</span><b style="color:${fgMoldLevel(r.now.mold.score).c}">${fgMoldLevel(r.now.mold.score).ic} ${fgMoldLevel(r.now.mold.score).t} ${r.now.mold.score}점</b></div>` : ""}
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:11px">
           <span style="color:${tt[1]};font-weight:800">4주 전보다 ${tt[0]}</span><span style="color:#aaa">${open ? "접기 ▲" : "자세히 ▼"}</span>
         </div>
         ${fgStrip(r.series)}
+        ${fgReadout(r, v)}
       </div>
       ${open ? `<div style="padding:2px 14px 14px;background:#FCFCFC;border-top:1px solid #f0f0f0">
         <div style="font-size:11px;color:#888;margin:8px 0 2px">${FG_FOCUS_TXT[v.focus]} · 기준일 ${esc(r.asof)} · 대표 지점 ${esc((r.points || []).join("·"))}</div>
@@ -9221,12 +9322,29 @@ function renderFeedGrainFlow(){
       </div>` : ""}
     </div>`;
   }).join("");
+  const guide = `
+  <details style="background:#F3F8FF;border:1px solid #D6E6FA;border-radius:12px;padding:10px 13px;margin-bottom:12px">
+    <summary style="cursor:pointer;font-size:12.5px;font-weight:800;color:#1565C0">📖 이 화면 읽는 법 — 해석 예시</summary>
+    <div style="font-size:12px;color:#444;line-height:1.75;margin-top:8px">
+      <b>눈금(0~4)</b>은 "평년과 얼마나 다른가"입니다. 1 미만 정상 · 1~2 주의 · 2~3 경계 · 3 이상 심각이고, 눈금 위 세로선이 1·2·3 지점입니다.<br>
+      <b>흐름 띠</b>는 13주 전(왼쪽)부터 지금(오른쪽)까지 한 칸이 1주입니다. 🟠주황=평년보다 건조·고온, 회색=평년 수준, 🔵파랑=평년보다 다습이고, 색이 짙을수록 정도가 큽니다.
+      <div style="background:#fff;border-radius:8px;padding:9px 11px;margin-top:8px">
+        <div style="font-size:11px;font-weight:800;color:#333;margin-bottom:3px">예시) 건조·고온 2.0 / 다습 0.0 / "4주 전보다 ▼완화" / 띠가 거의 짙은 주황</div>
+        ① 건조·고온 2.0 = <b>경계</b> 수준으로, 평년보다 확연히 건조하고 덥다는 뜻입니다.<br>
+        ② 다습 0.0 = 비가 평년만큼 오거나 그보다 적어, 습해서 생기는 곰팡이 위험은 지금 낮습니다.<br>
+        ③ 띠가 짙은 주황으로 이어졌다 = 최근 몇 달 내내 건조·고온이 이어졌다는 뜻이고, 오른쪽 끝이 옅어진 것은 최근 1~3주에 조금 풀렸다는 뜻입니다.<br>
+        ④ "▼완화" = 4주 전보다 점수가 내려가 위험이 줄고 있다는 뜻입니다.<br>
+        <b>그래서</b> → 수량 감소·소립화(가격 상승 압력)와 옥수수 아플라톡신 위험이 평년보다 높았던 해이므로, 이 산지 원료는 수확 시기와 독소 검사 성적서를 확인하는 것이 좋습니다. 완화 추세라 더 나빠지는 상황은 아닙니다.
+      </div>
+      <div style="margin-top:8px"><b>곰팡이 오염 위험도(0~100)</b>는 평년과 비교하지 않고 "덥고 습한 날이 며칠인가"로 봅니다. 예) 64점 🟠높음 · 온난다습일 9.7일 = 최근 30일 중 약 10일이 곰팡이(DON·ZEN·OTA 계열)가 자라기 좋은 날씨였다는 뜻이라 독소 검사 성적서를 꼭 확인할 단계입니다.</div>
+    </div>
+  </details>`;
   const legend = `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:10.5px;color:#888;margin:2px 0 12px">
     <span>흐름 띠:</span><span style="color:#BF360C;font-weight:700">건조·고온</span>
     ${["#BF360C","#E64A19","#FFB74D","#CFD8DC","#90CAF9","#42A5F5","#1565C0"].map(c => `<span style="width:16px;height:10px;background:${c};display:inline-block"></span>`).join("")}
     <span style="color:#1565C0;font-weight:700">다습</span><span>(가운데 회색 = 평년 수준 · 오른쪽 끝이 지금)</span></div>`;
   const stale = d.stale && Object.keys(d.stale).length ? ` · ⚠️ ${Object.keys(d.stale).map(k => esc(d.regions[k] && d.regions[k].name)).join("·")}은 이전 값` : "";
-  return summary + legend + cards + `
+  return summary + renderFeedGrainMold(d, keys) + guide + legend + cards + `
   <div style="font-size:10px;color:#aaa;line-height:1.7;margin-top:4px">
     ※ 갱신 ${esc(d.updated)}${stale} · 자료: ${esc(d.source)}. 곰팡이독소 농도·로트 품질을 직접 잰 값이 아니라 <b>기상으로 본 위험의 높낮이</b>입니다. 건조·다습 점수 1 이상 주의, 2 이상 경계, 3 이상 심각이며(평년 대비 표준편차 기준), 현재 작기에서 중요한 위험만 신호등에 반영합니다. 실제 품질은 「산지별 기관 자료」의 작황·검사 보고와 사료회사 성적서로 확인하세요.
   </div>`;
@@ -9296,6 +9414,16 @@ function renderFeedGrainMethod(){
     ${steps.map(x => `<div style="padding:7px 0;border-top:1px solid #f3f3f3"><div style="font-size:12px;font-weight:800;color:#F57F17">${x[0]}</div><div style="font-size:11.5px;color:#555;line-height:1.65;margin-top:2px">${x[1]}</div></div>`).join("")}
   </div>
   <div class="card" style="padding:14px 16px;margin-bottom:12px"><div style="font-size:13px;font-weight:800;color:#333;margin-bottom:8px">🚦 신호등 기준</div>${lv}</div>
+  <div class="card" style="padding:14px 16px;margin-bottom:12px;border-top:4px solid #8E24AA">
+    <div style="font-size:13px;font-weight:800;color:#6A1B9A;margin-bottom:6px">🍄 곰팡이 오염 위험도는 이렇게 계산합니다</div>
+    <div style="font-size:12px;color:#555;line-height:1.7">곰팡이는 온도와 수분(습도)이 함께 높을 때 자라고 독소를 만듭니다. 최근 30일 중 아래 조건을 만족하는 날을 센 뒤 100점 만점으로 환산합니다 (지점 3곳 평균).</div>
+    <div style="font-size:12px;color:#444;line-height:1.7;margin-top:6px">
+      · <b>고온다습일</b>: 일평균기온 25°C 이상 & 일평균 습도 80% 이상 → 12일이면 100점 (<i>Aspergillus flavus</i> — 아플라톡신)<br>
+      · <b>온난다습일</b>: 15~25°C & 습도 85% 이상 → 15일이면 100점 (<i>Fusarium</i> — DON·ZEN·푸모니신, <i>Penicillium</i> — OTA)<br>
+      · <b>곰팡이 오염 위험도</b> = 두 점수 중 큰 값 (25 미만 낮음 · 50 미만 보통 · 75 미만 높음 · 75 이상 매우 높음)
+    </div>
+    <div style="font-size:11px;color:#999;line-height:1.7;margin-top:6px">공기 습도는 곡물 수분과 같지 않습니다 — 수확 후 건조·저장 상태에 따라 실제 오염은 달라집니다. 가뭄·열 스트레스를 받은 옥수수는 습도가 낮아도 아플라톡신이 생길 수 있어 건조·고온 점수와 함께 봐야 합니다.</div>
+  </div>
   <div class="card" style="padding:14px 16px;margin-bottom:12px;border-top:4px solid #2E7D32"><div style="font-size:13px;font-weight:800;color:#2E7D32;margin-bottom:4px">✅ 이 지표로 알 수 있는 것</div>${li(can)}</div>
   <div class="card" style="padding:14px 16px;margin-bottom:12px;border-top:4px solid #C62828"><div style="font-size:13px;font-weight:800;color:#C62828;margin-bottom:4px">❌ 알 수 없는 것</div>${li(cant)}</div>
   <div style="background:#FFF3E0;border-radius:10px;padding:11px 14px;font-size:12px;color:#6d4300;line-height:1.7">
@@ -15811,6 +15939,11 @@ function attachEvents(){
   document.querySelectorAll(".fg-reg").forEach(b => b.onclick = () => { feedGrainState.region = b.dataset.reg; render(); });
   document.querySelectorAll(".fg-card").forEach(el => {
     const tg = () => { feedGrainState.openKey = feedGrainState.openKey === el.dataset.reg ? null : el.dataset.reg; render(); };
+    el.onclick = tg;
+    el.onkeydown = e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); tg(); } };
+  });
+  document.querySelectorAll(".fg-mold-row").forEach(el => {
+    const tg = () => { feedGrainState.moldOpen = feedGrainState.moldOpen === el.dataset.reg ? null : el.dataset.reg; render(); };
     el.onclick = tg;
     el.onkeydown = e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); tg(); } };
   });
