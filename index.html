@@ -9457,7 +9457,29 @@ const FGQ_SRC = {
   31: ["미국·아르헨티나·브라질 옥수수 육계 급여시험(AME·소화율, 각 1점)", "https://pmc.ncbi.nlm.nih.gov/articles/PMC10571875/"],
   32: ["인도네시아 옥수수 품종의 화학 조성·유전(Asian J. Food Technol.)", "https://scialert.net/abstract/?doi=ajft.2017.116.123"],
   33: ["필리핀 국가표준 PNS/BAFS 163:2015 사료 원료", "https://members.wto.org/crnattachments/2015/SPS/PHL/14_2165_00_e.pdf"],
+  34: ["Correa 등 2002 — 옥수수 유리질(vitreousness)과 반추위 전분 분해율(J. Dairy Sci.)", "https://pubmed.ncbi.nlm.nih.gov/12487466/"],
 };
+// 옥수수 알곡 종류(경도) 기준 안내 — 물리적 성질 표 위에 붙는다.
+// 공식 정의는 브라질 IN 60/2011(알곡 85% 이상이 해당 형태)과 아르헨티나 Norma XII(유리질 배유가 절반 초과면 duro)이며,
+// 반치아형·반플린트의 유리질 % 구간은 공식 수치가 아니라 일반적인 구분(◇)이다. 실측 유리질 비율은 도착항 조사·품종 연구에서 가져왔다.
+const FGQ_CORN_TYPES = `
+  <div style="background:#FFFBEA;border:1px solid #F3E7B3;border-radius:10px;padding:10px 12px;margin-bottom:8px">
+    <div style="font-size:12.5px;font-weight:800;color:#7A5C00;margin-bottom:6px">🌽 옥수수 알곡 종류 기준 — 치아형 · 반치아형 · 반플린트 · 플린트</div>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:640px;font-size:11.5px">
+      <thead><tr style="text-align:left;border-bottom:2px solid #F3E7B3;color:#7A5C00"><th style="padding:5px">종류</th><th style="padding:5px">알곡 윗면(왕관)</th><th style="padding:5px">배유(내부) 성질</th><th style="padding:5px">유리질 비율(대략)</th><th style="padding:5px">대표</th></tr></thead>
+      <tbody>
+        <tr style="border-top:1px solid #f3ecc8"><td style="padding:6px;font-weight:800">치아형 (dent)</td><td style="padding:6px">움푹 들어간 홈이 뚜렷</td><td style="padding:6px">가운데 대부분이 분질(하얀 가루 같은 배유), 겉에만 얇은 유리질</td><td style="padding:6px">약 50% 미만<br><span style="color:#2E7D32;font-weight:700">● 미국 평균 47~48%(범위 35~62)</span></td><td style="padding:6px">미국 옥수수벨트 · 프랑스 일부</td></tr>
+        <tr style="border-top:1px solid #f3ecc8"><td style="padding:6px;font-weight:800">반치아형 (semi-dent)</td><td style="padding:6px">얕은 홈 또는 약한 함몰</td><td style="padding:6px">분질과 유리질이 비슷하거나 분질이 약간 많음</td><td style="padding:6px">약 50~60% <span style="color:#7B1FA2;font-weight:700">◇</span></td><td style="padding:6px">유럽 일부 · 브라질 일부 품종</td></tr>
+        <tr style="border-top:1px solid #f3ecc8"><td style="padding:6px;font-weight:800">반플린트 (semi-flint)</td><td style="padding:6px">둥글고 홈이 거의 없음</td><td style="padding:6px">유리질이 우세하고 가운데에 분질이 조금</td><td style="padding:6px">약 60~70% <span style="color:#7B1FA2;font-weight:700">◇</span><br><span style="color:#2E7D32;font-weight:700">● 아르헨티나 도착항 평균 65.5%</span></td><td style="padding:6px">브라질 · 아르헨티나 다수</td></tr>
+        <tr style="border-top:1px solid #f3ecc8"><td style="padding:6px;font-weight:800">플린트 (flint, duro)</td><td style="padding:6px">둥글고 매끈, 홈 없음</td><td style="padding:6px">대부분 유리질(투명하고 단단), 분질은 아주 적음</td><td style="padding:6px">약 70% 이상<br><span style="color:#2E7D32;font-weight:700">● 브라질 평균 72.3%(품종 64~80)</span></td><td style="padding:6px">브라질 · 아르헨티나(colorado duro) · 열대 지역</td></tr>
+      </tbody>
+    </table></div>
+    <div style="font-size:11px;color:#6b5600;line-height:1.7;margin-top:8px">
+      <b>공식 분류 기준</b> — <b>브라질(IN 60/2011)</b>: 알곡의 85% 이상(중량)이 해당 형태일 때 그 군으로 분류 — <b>duro</b>(배유가 주로 각질·유리질로 단면이 투명), <b>dentado</b>(부분 또는 전부 분질, 왕관에 뚜렷한 함몰), <b>semiduro·semidentado</b>(그 중간)<sup style="font-size:9px">19</sup>. <b>아르헨티나(Norma XII)</b>: 유리질 배유가 절반을 넘으면 <b>duro</b>, 분질이 절반 이상이고 왕관 함몰이 뚜렷하면 <b>dentado</b>, 기준에 안 맞으면 규격 외<sup style="font-size:9px">18</sup>.<br>
+      <b>측정 근거</b> — 유리질 비율은 단면에서 투명한 부분의 비율이고, 같은 방법으로 미국 치아형 14품종이 평균 48.2%(34.9~62.3), 브라질 플린트 5품종이 73.1%(64.2~80.0)로 나왔습니다<sup style="font-size:9px">34</sup>. 반치아형·반플린트의 %구간은 일반적인 구분이며 공식 수치가 아닙니다.<br>
+      <b>사료 시사점</b> — 유리질이 높을수록 단단해서 <b>분쇄가 어렵고 입자가 거칠며(분쇄 에너지↑), 전분이 단백질 기질에 싸여 소화 속도는 느립니다</b>. 반대로 치아형은 무르고 소화는 빠르지만 운송 중 잘 깨져 BCFM이 늘 수 있습니다<sup style="font-size:9px">16</sup>. 분쇄 입도·펠릿 품질과 효소(아밀라아제) 사용 판단에 쓰세요.
+    </div>
+  </div>`;
 const FGQ_KIND = {
   m: { t:"● 실측", c:"#2E7D32", d:"보고서·논문에서 확인한 실측 평균값" },
   r: { t:"○ 참고", c:"#EF6C00", d:"거래 규격·상대 비교·시험 값(실측 평균이 아님)" },
@@ -9498,7 +9520,7 @@ const FGQ = {
       { k:"품종 범위 — 인도네시아 옥수수 (단백·지방·섬유 %DB)", us:FGQ_NONE, eu:FGQ_NONE, br:FGQ_NONE, ar:FGQ_NONE, sea:["단백 7.1~11.8 · 지방 2.6~7.2 · 섬유 1.4~3.7","r",[32]] },
       { k:"육계 AMEn (kcal/kg, 표준성분표)", us:FGQ_NONE, eu:FGQ_NONE, br:["3,364","r",[5]], ar:FGQ_NONE },
     ]},
-    { title:"📐 물리적 성질", note:"용적중은 kg/hl로 환산(1 lb/bu ≈ 1.287 kg/hl). 유리질 비율이 높을수록 단단한 플린트형입니다.", rows:[
+    { title:"📐 물리적 성질", extra:"corntypes", note:"용적중은 kg/hl로 환산(1 lb/bu ≈ 1.287 kg/hl). 유리질 비율이 높을수록 단단한 플린트형입니다.", rows:[
       { k:"경도 — 유리질(vitreous) 비율 (%)", us:["47.2 (가장 무름)","m",[16]], eu:["치아형·반치아형 위주","g",[]], br:["72.3 (가장 단단)","m",[16]], ar:["65.5","m",[16]] },
       { k:"종류", us:["치아형(dent), 경질 배유 85%","m",[1]], eu:["치아형·반치아형 위주","g",[]], br:["플린트·반플린트 위주 (분류상 duro/semiduro)","r",[19]], ar:["플린트 colorado duro 중심","r",[4,18]] },
       { k:"수분 (%) 수확·검사 시", us:["15.3","m",[1]], eu:["14.8","m",[2]], br:FGQ_NONE, ar:FGQ_NONE },
@@ -9600,10 +9622,12 @@ function renderFeedGrainQuality(){
   const crop = FGQ[feedGrainState.crop || "corn"];
   const tabs = Object.keys(FGQ).map(k => `<button class="fg-qcrop" data-crop="${k}" style="flex:1;border:2px solid ${feedGrainState.crop===k?"#F57F17":"#eee"};background:${feedGrainState.crop===k?"#F57F17":"#fff"};color:${feedGrainState.crop===k?"#fff":"#333"};border-radius:10px;padding:9px 6px;font-size:13px;font-weight:700;cursor:pointer">${FGQ[k].icon} ${FGQ[k].name}</button>`).join("");
   const used = new Set();
+  if(feedGrainState.crop === "corn") [16, 18, 19, 34].forEach(n => used.add(n));
   const groups = crop.groups.map(g => `
     <div class="card" style="padding:12px 12px 6px;margin-bottom:12px">
       <div style="font-size:13px;font-weight:800;color:#333;margin-bottom:3px">${g.title}</div>
       <div style="font-size:10.5px;color:#999;line-height:1.55;margin-bottom:6px">${g.note}</div>
+      ${g.extra === "corntypes" ? FGQ_CORN_TYPES : ""}
       <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:900px">
         <thead><tr style="text-align:left;border-bottom:2px solid #eee"><th style="padding:6px;font-size:10.5px;color:#999;font-weight:600;width:22%"></th>${FGQ_ORIGINS.map(o => `<th style="padding:6px;font-size:11.5px;font-weight:800;color:#444">${fgBadge(o[0], 16)} ${o[1]}</th>`).join("")}</tr></thead>
         <tbody>${g.rows.map(r => {
