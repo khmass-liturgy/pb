@@ -732,6 +732,7 @@ const PREMIUM_ITEMS = [
   { key:"ventfinder", icon:"💨", title:"내 농장에 맞는 환기량 찾기", desc:"오늘 날씨·계사 조건을 넣으면 최소환기량(습도 조절)과 최대환기량(터널·냉각)을 계산해 드립니다.", color:"#0288D1", category:"사양관리" },
   { key:"moltguide", icon:"🪶", title:"산란계 환우 프로그램(육종회사별)", desc:"하이라인·로만 등 육종회사가 권장하는 품종별 인위환우(강제환우) 프로그램을 비교해 보여드립니다.", color:"#00695C", category:"사양관리" },
   { key:"feedstandard", icon:"🌾", title:"내 농장의 사료영양 관리", desc:"육계·산란계 사육단계별 국제 사료 영양 표준(에너지·단백질·칼슘 등)과 평균 사료 교체일령을 한눈에 보여드립니다.", color:"#F57F17", category:"사양관리" },
+  { key:"feedgrain", icon:"🌽", title:"사료곡물 원료 품질평가", desc:"미국·브라질·아르헨티나·유럽 곡물의 작황과 원료 품질 위험을 보고, 시험성적서 없이도 농장에서 최근 사료 품질을 신호등 점수로 점검합니다.", color:"#F57F17", category:"사양관리" },
   { key:"selfcheck", icon:"🐔", title:"온라인 자가진단", desc:"닭 해부도에서 장기를 클릭하면 그 장기의 기능과 흔히 나타나는 질병을 보여드립니다.", color:"#AD1457", category:"진단" },
   { key:"diagnosis", icon:"🔍", title:"온라인 진단", desc:"닭의 외부모습·분변상태·부검사진(기관지·간·신장·소장)을 올리면 최동명 수의사가 직접 진단합니다. 사진·진단 내용은 작성자만 볼 수 있습니다.", color:"#2E7D32", category:"진단" },
   { key:"faq", icon:"❓", title:"농장에서 많이 궁금해 하는 질문", desc:"농장에서 자주 묻는 질문과 답변을 카드로 모아뒀습니다. 카드를 누르면 답변이 펼쳐집니다.", color:"#5D4037", category:"질문·학습·교육" },
@@ -806,7 +807,7 @@ const PREMIUM_MENU_LEGACY_PATH = "premium_menu/items.json";
 // 항목이라 목록에서 뺀다).
 const PREMIUM_MENU_KNOWN_KEYS = [
   "drug","treatment","seasonal","finder","disinfect","newproducts","vaccine",
-  "ventfinder","moltguide","feedstandard","selfcheck","diagnosis","faq","study",
+  "ventfinder","moltguide","feedstandard","feedgrain","selfcheck","diagnosis","faq","study",
   "research","magazine","kkoko","feature_board","consult","consulting","smssub",
 ];
 let premiumMenuState = { status:"idle", data:null, busy:false, msg:"", adminOpen:false, formOpen:false,
@@ -9044,6 +9045,301 @@ function premiumUserLabel(){
   return (premiumState.user && premiumState.user.email) || "";
 }
 
+// ── 🌾 사료곡물 원료 품질평가 (유료서비스) ───────────────────────────────────────
+// ① 사료 품질 신호등 — 시험성적서·검사자료가 없는 농장이 "최근 입고 사료"를 눈·코·손과 사료빈,
+//    닭의 반응(섭취량·증체/산란·분변)만으로 대략 점검하는 100점 간이 지표.
+//    구성(검사자료가 없는 경우를 전제로 재배분): 원료 배경위험 20 + 관능·물리 점검 30 + 사료빈 보관 20 + 생산성 신호 30.
+//    (시험성적서가 있으면 독소·수분·산가 실측값이 이 점수보다 우선한다 — 이 지표는 "검사를 서둘러야 하는가"의
+//     우선순위를 알려주는 용도이며 합격·불합격 판정이 아니다.)
+// ② 산지별 작황·품질 — 미국·브라질·아르헨티나·유럽의 작황/품질/독소 자료를 어디서 보는지와 수확·선적 시기별 위험.
+// ③ 평가 방법과 한계 — USDA 통계로 알 수 있는 것/없는 것, 점수 구성.
+// 실제 곰팡이독소 농도·사료 로트별 품질은 USDA·CONAB 같은 통계로는 알 수 없고(같은 선적 안에서도 편중),
+// 최종 판단은 시료 검사로 해야 한다.
+const FG_KEY = "feedgrain_v1";
+const FG_OPTS = {
+  crop:    [["", "선택"], ["corn", "옥수수"], ["soy", "대두박(대두)"], ["wheat", "밀·보리"], ["other", "수수·기타"]],
+  origin:  [["", "선택"], ["us", "미국"], ["br", "브라질"], ["ar", "아르헨티나"], ["eu", "유럽(EU·흑해)"], ["other", "기타·모름"]],
+  weather: [["", "선택"], ["normal", "평년 수준(작황 양호)"], ["dry", "가뭄·고온이었음"], ["wet", "다우·수확기 비가 많았음"], ["unk", "모름"]],
+  age:     [["", "선택"], ["m1", "입고 1개월 이내"], ["m3", "1~3개월"], ["m6", "3~6개월"], ["m6p", "6개월 넘음"], ["unk", "모름"]],
+  stay:    [["", "선택"], ["d7", "7일 이내"], ["d14", "8~14일"], ["d21", "15~21일"], ["d22", "22일 이상"]],
+};
+const FG_B_CHECKS = [
+  { k:"moldOdor", t:"퀴퀴한 곰팡이 냄새가 난다", w:8 },
+  { k:"moldVis",  t:"눈에 보이는 곰팡이·흰/푸른 가루, 단단한 덩어리가 있다", w:8 },
+  { k:"rancid",   t:"기름 쩐내(산패 냄새)나 시큼한 냄새가 난다", w:6 },
+  { k:"wet",      t:"눅눅하고 손에 달라붙거나, 한 줌 쥐면 따뜻하다", w:5 },
+  { k:"color",    t:"색이 평소보다 어둡거나 탈색되어 보인다", w:4 },
+  { k:"bug",      t:"벌레·거미줄·이물(돌·쇠붙이·왕겨 등)이 보인다", w:4 },
+  { k:"fines",    t:"가루(미분)가 많고, 큰 입자와 가루가 따로 갈린다", w:4 },
+  { k:"pellet",   t:"펠릿이면 손으로 쉽게 부서지고 가루가 많이 나온다", w:3 },
+];
+const FG_C_CHECKS = [
+  { k:"caked",  t:"사료빈 벽·하부에 사료가 굳어 있거나 곰팡이가 보인다", w:5 },
+  { k:"cond",   t:"사료빈 안에 결로(물방울)나 빗물 샘이 있다", w:5 },
+  { k:"clean",  t:"사료빈을 최근 6개월 안에 비우고 청소하지 않았다", w:4 },
+  { k:"pests",  t:"사료빈 주변에 야생조류·쥐 흔적이나 흘린 사료가 있다", w:3 },
+];
+const FG_D_CHECKS = {
+  common: [
+    { k:"loose",  t:"묽은 변이 늘었거나, 소화 안 된 사료가 변에 섞여 나온다", w:3 },
+    { k:"refuse", t:"사료를 가려 먹거나 주저하는 등 기호성이 떨어졌다", w:4 },
+  ],
+  layer:   [{ k:"shell", t:"난각이 약해졌거나 연란·파란이 늘었다", w:3 }],
+  broiler: [{ k:"leg",   t:"다리 이상·깃털 상태 불량·균일도 저하가 늘었다", w:3 }],
+};
+let feedGrainState = (function(){
+  const base = { sub:"score", species:"layer", region:"us", v:{}, c:{} };
+  try { const s = JSON.parse(localStorage.getItem(FG_KEY) || "null"); if(s) return Object.assign(base, s, { sub:"score", region:"us" }); } catch(e){}
+  return base;
+})();
+function saveFeedGrain(){ try { localStorage.setItem(FG_KEY, JSON.stringify({ species:feedGrainState.species, v:feedGrainState.v, c:feedGrainState.c })); } catch(e){} }
+
+function fgNum(x){ const n = parseFloat(x); return Number.isFinite(n) ? n : null; }
+// 점수 계산 — 감점 근거를 함께 모아 "왜 이 점수인지" 보여 준다.
+function fgCompute(){
+  const st = feedGrainState, v = st.v || {}, c = st.c || {}, sp = st.species;
+  const why = [];
+  // A. 원료 배경위험 (20)
+  let a = 0; const crop = v.crop || "", origin = v.origin || "", wx = v.weather || "", age = v.age || "";
+  if(wx === "dry") { const p = crop === "corn" ? 7 : 4; a += p; why.push(["A", `산지가 가뭄·고온이었음 — ${crop==="corn"?"옥수수 아플라톡신":"곰팡이독소"} 위험↑`, p]); }
+  else if(wx === "wet") { const p = (crop === "wheat") ? 7 : (crop === "corn" ? 6 : 4); a += p; why.push(["A", `산지가 다우·수확기 습윤 — ${crop==="wheat"?"DON·ZEN·OTA":crop==="corn"?"푸모니신·DON":"곰팡이·수분"} 위험↑`, p]); }
+  else if(wx === "unk") { a += 3; why.push(["A", "산지 작황·기상을 모름", 3]); }
+  if(origin === "other" || origin === "") { if(origin === "other"){ a += 3; why.push(["A", "원산지를 모름 — 배경위험을 평가할 수 없음", 3]); } }
+  else if(crop === "corn" && (origin === "br" || origin === "ar")){ a += 2; why.push(["A", "남미산 옥수수 — 고온다습 기후와 장거리 해상운송(결로) 위험", 2]); }
+  else if(crop === "wheat" && origin === "eu"){ a += 1; why.push(["A", "유럽산 맥류 — 개화기 습윤 시 DON·ZEN 위험", 1]); }
+  const ageP = { m1:0, m3:2, m6:4, m6p:7, unk:2 }[age];
+  if(ageP){ a += ageP; why.push(["A", age === "unk" ? "수확·입고 후 경과를 모름" : "수확·입고 후 시간이 길수록 저장 중 곰팡이·산패 위험↑", ageP]); }
+  a = Math.min(20, a);
+  // B. 관능·물리 점검 (30)
+  let b = 0;
+  FG_B_CHECKS.forEach(x => { if(c[x.k]){ b += x.w; why.push(["B", x.t, x.w]); } });
+  b = Math.min(30, b);
+  // C. 사료빈 보관 (20)
+  let cc = 0;
+  const stayP = { d7:0, d14:3, d21:6, d22:10 }[v.stay || ""] || 0;
+  if(stayP){ cc += stayP; why.push(["C", "사료빈 체류 기간이 길다 — 오래될수록 변질·산패↑", stayP]); }
+  FG_C_CHECKS.forEach(x => { if(c[x.k]){ cc += x.w; why.push(["C", x.t, x.w]); } });
+  cc = Math.min(20, cc);
+  // D. 생산성 신호 (30) — 최근 2주 vs 직전 4주
+  let d = 0;
+  const intake = fgNum(v.intake), perf = fgNum(v.perf), fcr = fgNum(v.fcr);
+  if(intake != null){ const p = intake >= 10 ? 12 : intake >= 5 ? 8 : intake >= 3 ? 4 : 0; if(p){ d += p; why.push(["D", `사료섭취량이 ${intake}% 줄었음`, p]); } }
+  if(perf != null){
+    const p = sp === "layer" ? (perf >= 4 ? 10 : perf >= 2 ? 6 : 0) : (perf >= 8 ? 10 : perf >= 4 ? 6 : 0);
+    if(p){ d += p; why.push(["D", sp === "layer" ? `산란율이 ${perf}%p 떨어졌음` : `일일증체가 ${perf}% 줄었음`, p]); }
+  }
+  if(fcr != null){ const p = fcr >= 5 ? 6 : fcr >= 3 ? 3 : 0; if(p){ d += p; why.push(["D", `사료요구율(FCR)이 ${fcr}% 나빠졌음`, p]); } }
+  FG_D_CHECKS.common.concat(FG_D_CHECKS[sp] || []).forEach(x => { if(c[x.k]){ d += x.w; why.push(["D", x.t, x.w]); } });
+  d = Math.min(30, d);
+  // 입력 완료도
+  const need = [v.crop, v.origin, v.weather, v.age, v.stay, v.intake, v.perf].filter(x => x !== undefined && x !== "" && x !== null).length;
+  const required = 7, filled = need;
+  const A = 20 - a, B = 30 - b, C = 20 - cc, D = 30 - d, total = A + B + C + D;
+  // 원인 추정
+  const dry = wx === "dry", wet = wx === "wet";
+  const flags = [];
+  if(c.moldOdor || c.moldVis || ((dry || wet) && d >= 8)) flags.push(["toxin", "🍄 곰팡이독소 의심"]);
+  if(c.rancid || ((age === "m6" || age === "m6p") && (c.color || c.rancid))) flags.push(["rancid", "🛢️ 지방 산패 의심"]);
+  if(cc >= 8 || c.wet) flags.push(["store", "🏚️ 보관(결로·응고) 문제"]);
+  if(c.fines || c.pellet) flags.push(["phys", "⚙️ 입자·펠릿 품질 문제"]);
+  if(c.bug) flags.push(["pest", "🐛 벌레·이물 오염"]);
+  return { A, B, C, D, total, a, b, cc, d, why, flags, filled, required };
+}
+function fgLevel(t){
+  return t >= 80 ? { k:"g", c:"#2E7D32", bg:"#E8F5E9", ic:"🟢", t:"양호", s:"뚜렷한 위험 신호가 없습니다. 정기 검사 일정은 그대로 유지하세요." }
+       : t >= 60 ? { k:"y", c:"#E65100", bg:"#FFF3E0", ic:"🟡", t:"주의", s:"위험 신호가 있습니다. 곰팡이독소·산패 검사를 앞당겨 의뢰하는 것이 좋습니다." }
+                 : { k:"r", c:"#C62828", bg:"#FFEBEE", ic:"🔴", t:"위험", s:"해당 사료 로트의 급여를 줄이거나 보류하고 즉시 검사·수의사 상담을 받으세요." };
+}
+function fgGauge(score){
+  const cx = 100, cy = 100, r = 80;
+  const pt = (sc, rad) => { const ang = Math.PI * (1 - sc / 100); return [cx + rad * Math.cos(ang), cy - rad * Math.sin(ang)]; };
+  const arc = (s0, s1, col) => { const p0 = pt(s0, r), p1 = pt(s1, r); return `<path d="M${p0[0].toFixed(1)} ${p0[1].toFixed(1)} A${r} ${r} 0 0 1 ${p1[0].toFixed(1)} ${p1[1].toFixed(1)}" stroke="${col}" stroke-width="16" fill="none"/>`; };
+  const n = pt(Math.max(0, Math.min(100, score)), r - 6);
+  return `<svg viewBox="0 0 200 118" style="width:100%;max-width:300px;display:block;margin:0 auto" role="img" aria-label="사료 품질 점수 ${score}점">
+    ${arc(0, 59.5, "#EF5350")}${arc(60.5, 79.5, "#FFB300")}${arc(80.5, 100, "#43A047")}
+    <line x1="${cx}" y1="${cy}" x2="${n[0].toFixed(1)}" y2="${n[1].toFixed(1)}" stroke="#263238" stroke-width="3.5" stroke-linecap="round"/>
+    <circle cx="${cx}" cy="${cy}" r="7" fill="#263238"/>
+    <text x="14" y="116" font-size="9" fill="#999">0</text><text x="92" y="22" font-size="9" fill="#999" text-anchor="middle">50</text><text x="180" y="116" font-size="9" fill="#999">100</text>
+  </svg>`;
+}
+function renderFeedGrainResult(){
+  const r = fgCompute(), lv = fgLevel(r.total), c = feedGrainState.c || {};
+  if(!r.filled && !Object.keys(c).some(k => c[k]) && fgNum((feedGrainState.v || {}).fcr) == null)
+    return `<div style="background:#F5F5F5;border-radius:12px;padding:18px 14px;text-align:center;font-size:12.5px;color:#777;line-height:1.7">위 항목을 입력하면 사료 품질 점수와 신호등이 여기에 나타납니다.</div>`;
+  const bar = (label, got, max, col) => `<div style="margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;font-size:11.5px;color:#444"><span>${label}</span><b style="color:${got/max>=.8?"#2E7D32":got/max>=.6?"#E65100":"#C62828"}">${got} / ${max}</b></div>
+      <div style="background:#eee;border-radius:5px;height:9px;margin-top:3px"><div style="width:${Math.round(got/max*100)}%;background:${col};height:9px;border-radius:5px"></div></div></div>`;
+  const lowInput = r.filled < r.required;
+  const flagHtml = r.flags.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">${r.flags.map(f => `<span style="font-size:11.5px;font-weight:700;background:#fff;border:1px solid ${lv.c};color:${lv.c};border-radius:12px;padding:3px 10px">${f[1]}</span>`).join("")}</div>` : "";
+  const whyTop = r.why.slice().sort((a, b) => b[2] - a[2]).slice(0, 6);
+  const acts = [];
+  const has = k => r.flags.some(f => f[0] === k);
+  if(has("toxin")) acts.push("🍄 문제 로트에서 여러 지점(윗면·중간·아래)을 섞어 대표 시료 약 1kg을 채취해 <b>다중 곰팡이독소</b>(아플라톡신·DON·ZEN·푸모니신·OTA·T-2) 검사를 의뢰하세요. 독소는 한 로트 안에서도 편중되므로 한두 곳만 뜨면 안 됩니다.");
+  if(has("rancid")) acts.push("🛢️ 산가·과산화물가(산패도)와 수분을 검사하고, 사료회사에 항산화제 사용 여부를 확인하세요.");
+  if(has("store")) acts.push("🏚️ 사료빈을 비우고 굳은 사료를 제거·청소하며 결로 원인(환기·뚜껑 밀폐·외벽 단열)을 점검하세요. 한 번에 적게 주문해 체류 기간을 줄이세요.");
+  if(has("phys")) acts.push("⚙️ 입자도·펠릿 내구성(PDI)·미분율을 사료회사에 확인 요청하고, 같은 로트의 성적서와 비교하세요.");
+  if(has("pest")) acts.push("🐛 오염 로트는 다른 사료와 섞지 말고 사진을 남겨 공급사에 클레임 근거로 보관하세요.");
+  if(lv.k === "r") acts.unshift("🚨 의심 로트는 <b>다른 로트와 섞지 말고</b> 급여량을 줄이거나 보류하며, 이상 증상이 이어지면 수병 담당 수의사와 상담하세요. (독소 흡착제 등은 검사 결과와 수의사 판단 뒤에 사용)");
+  acts.push("📄 사료회사에 <b>원산지·수확연도·입고일·선적항·시험성적서(COA)</b>를 요청하세요. 성적서가 있으면 그 실측값이 이 점수보다 우선합니다.");
+  const group = ["A","B","C","D"].map(k => ({ k, rows: r.why.filter(w => w[0] === k) }));
+  const names = { A:"원료 배경위험", B:"관능·물리", C:"사료빈 보관", D:"생산성 신호" };
+  return `
+  <div style="background:${lv.bg};border-radius:14px;padding:14px 14px 12px;margin-bottom:12px;${lowInput?"opacity:.92":""}">
+    ${fgGauge(r.total)}
+    <div style="text-align:center;margin-top:-6px">
+      <div style="font-size:30px;font-weight:900;color:${lv.c};line-height:1.1">${r.total}<span style="font-size:14px;font-weight:700">점</span></div>
+      <div style="font-size:15px;font-weight:800;color:${lv.c};margin-top:2px">${lv.ic} ${lv.t}</div>
+      <div style="font-size:12px;color:#555;line-height:1.6;margin-top:4px">${lv.s}</div>
+    </div>
+    ${flagHtml}
+    ${lowInput ? `<div style="font-size:11px;color:#8d6e00;background:#FFF8E1;border-radius:8px;padding:6px 9px;margin-top:10px">⚠️ 입력 ${r.filled}/${r.required}개 — 비워 둔 항목은 문제가 없는 것으로 계산되어 점수가 실제보다 높게 나올 수 있습니다. 모든 칸을 채워 주세요.</div>` : ""}
+  </div>
+  <div class="card" style="padding:12px 14px;margin-bottom:12px">
+    ${bar("① 원료 배경위험 (산지·작황·경과)", r.A, 20, "#1565C0")}
+    ${bar("② 관능·물리 점검 (냄새·색·곰팡이·입자)", r.B, 30, "#6A1B9A")}
+    ${bar("③ 사료빈 보관 (체류·결로·청소)", r.C, 20, "#00838F")}
+    ${bar("④ 생산성 신호 (섭취량·증체/산란·분변)", r.D, 30, "#E65100")}
+  </div>
+  ${whyTop.length ? `<div class="card" style="padding:12px 14px;margin-bottom:12px">
+    <div style="font-size:12px;font-weight:800;color:#333;margin-bottom:6px">🔎 점수가 깎인 이유 (큰 순)</div>
+    ${whyTop.map(w => `<div style="display:flex;gap:8px;font-size:12px;color:#444;line-height:1.6;padding:3px 0;border-top:1px solid #f3f3f3"><span style="min-width:34px;color:#C62828;font-weight:800">-${w[2]}</span><span><span style="font-size:10.5px;color:#999">${names[w[0]]} ·</span> ${w[1]}</span></div>`).join("")}
+  </div>` : ""}
+  <div class="card" style="padding:12px 14px;margin-bottom:6px;border-top:4px solid ${lv.c}">
+    <div style="font-size:12px;font-weight:800;color:#333;margin-bottom:6px">✅ 다음에 할 일</div>
+    ${acts.map(a => `<div style="font-size:12px;color:#444;line-height:1.7;padding:4px 0;border-top:1px solid #f3f3f3">${a}</div>`).join("")}
+  </div>`;
+}
+
+function renderFeedGrainScore(){
+  const st = feedGrainState, v = st.v || {}, c = st.c || {}, sp = st.species;
+  const sel = (k, opts) => `<select class="fg-in" data-k="${k}" style="width:100%;padding:8px 9px;border:1px solid #ddd;border-radius:8px;font-size:13px;background:#fff">${opts.map(o => `<option value="${o[0]}" ${(v[k] || "") === o[0] ? "selected" : ""}>${esc(o[1])}</option>`).join("")}</select>`;
+  const lab = (t, inner, hint) => `<label style="display:block"><div style="font-size:11px;color:#666;margin-bottom:4px">${t}</div>${inner}${hint ? `<div style="font-size:10px;color:#aaa;margin-top:2px">${hint}</div>` : ""}</label>`;
+  const num = (k, unit) => `<div style="display:flex;align-items:center;gap:5px"><input class="fg-in" data-k="${k}" type="number" inputmode="decimal" step="any" value="${esc(v[k] == null ? "" : v[k])}" style="flex:1;min-width:0;padding:8px 9px;border:1px solid #ddd;border-radius:8px;font-size:13px" /><span style="font-size:11px;color:#888">${unit}</span></div>`;
+  const chk = (list) => list.map(x => `<label style="display:flex;gap:8px;align-items:flex-start;padding:7px 2px;border-top:1px solid #f0f0f0;cursor:pointer"><input type="checkbox" class="fg-chk" data-k="${x.k}" ${c[x.k] ? "checked" : ""} style="margin-top:3px;width:17px;height:17px;flex-shrink:0" /><span style="font-size:12.5px;color:#333;line-height:1.5">${x.t}</span></label>`).join("");
+  const spBtn = (k, label, col) => `<button class="fg-sp" data-sp="${k}" style="flex:1;border:2px solid ${sp===k?col:"#eee"};background:${sp===k?col:"#fff"};color:${sp===k?"#fff":"#333"};border-radius:10px;padding:9px 6px;font-size:13px;font-weight:700;cursor:pointer">${label}</button>`;
+  const sec = (n, t, sub) => `<div style="margin:16px 0 8px"><div style="font-size:13px;font-weight:800;color:#333">${n} ${t}</div>${sub ? `<div style="font-size:10.5px;color:#999;margin-top:1px">${sub}</div>` : ""}</div>`;
+  const d = FG_D_CHECKS.common.concat(FG_D_CHECKS[sp] || []);
+  return `
+  <div style="font-size:11.5px;color:#666;line-height:1.7;background:#F7F9FA;border-radius:10px;padding:9px 12px;margin-bottom:6px">
+    시험성적서·검사자료가 없어도, <b>최근 입고된 사료</b>를 눈·코·손으로 보고 사료빈과 닭의 반응을 답하면 사료 품질을 신호등으로 알려드립니다. 입력은 자동 저장됩니다.
+  </div>
+  <div style="display:flex;gap:8px;margin:12px 0 4px">${spBtn("layer", "🥚 산란계", "#2E7D32")}${spBtn("broiler", "🐔 육계", "#F57F17")}</div>
+
+  ${sec("①", "원료 배경위험", "사료회사·거래명세서에서 확인하는 정보 (원료 배경 20점)")}
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">
+    ${lab("주요 원료 곡종", sel("crop", FG_OPTS.crop))}
+    ${lab("주된 원산지", sel("origin", FG_OPTS.origin))}
+    ${lab("산지 작황·기상(수확 해)", sel("weather", FG_OPTS.weather), "CONAB·USDA·JRC MARS 보도 참고")}
+    ${lab("수확·입고 후 경과", sel("age", FG_OPTS.age))}
+  </div>
+
+  ${sec("②", "사료를 직접 보고, 맡고, 만져 보세요", "빈에 넣기 전 포대·차량 하부에서 한 줌 떠서 점검 — 해당되는 것만 체크 (30점)")}
+  <div>${chk(FG_B_CHECKS)}</div>
+
+  ${sec("③", "사료빈 보관", "농장에서 보관하는 동안의 변질 위험 (20점)")}
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:4px">
+    ${lab("사료가 빈에 머무는 평균 기간", sel("stay", FG_OPTS.stay))}
+  </div>
+  <div>${chk(FG_C_CHECKS)}</div>
+
+  ${sec("④", "닭의 반응 (최근 2주 vs 직전 4주)", "사료 문제는 닭의 섭취·성적에서 가장 먼저 드러납니다 (30점) — 줄었으면 양수, 늘었으면 0 또는 음수")}
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:4px">
+    ${lab("사료 섭취량 감소율", num("intake", "%"), "예) 5% 줄었으면 5")}
+    ${lab(sp === "layer" ? "산란율 하락(%p)" : "일일증체 감소율", num("perf", sp === "layer" ? "%p" : "%"), sp === "layer" ? "예) 92%→89%면 3" : "예) 5% 줄었으면 5")}
+    ${lab("사료요구율(FCR) 악화율", num("fcr", "%"), "예) 3% 나빠졌으면 3")}
+  </div>
+  <div>${chk(d)}</div>
+
+  <div style="font-size:13px;font-weight:800;color:#333;margin:18px 0 8px">⑤ 결과</div>
+  <div id="fg-result">${renderFeedGrainResult()}</div>
+  <div style="font-size:10px;color:#aaa;line-height:1.7;margin-top:8px;border-top:1px dashed #eee;padding-top:8px">
+    ※ 이 지표는 검사를 대신하지 않습니다. 곰팡이독소는 같은 선적·같은 로트 안에서도 한쪽에 몰려 있어, 눈에 안 보이거나 점수가 높아도 안전을 보장하지 못합니다.
+    점수는 "이 사료를 더 의심하고 검사를 서둘러야 하는가"의 우선순위를 알려주는 용도입니다. 시험성적서가 있으면 그 실측값(독소·수분·산가)을 우선하세요.
+  </div>`;
+}
+
+// 산지별 정보 — 기관·자료 링크는 각 기관의 대표 사이트(세부 경로는 바뀔 수 있어 메인 주소)
+const FG_REGIONS = {
+  us: { flag:"🇺🇸", name:"미국", color:"#1565C0",
+    crops:"옥수수·대두(대두박)·밀·수수", season:"옥수수·대두 수확 9~11월 → 수출 연중(걸프·PNW·내륙수로). 밀은 6~8월 수확",
+    risks:[["아플라톡신","가뭄·고온이 길었던 해(남부 평원·남동부) 옥수수에서 증가"], ["푸모니신·DON","수확 전후로 비가 많고 습했던 해(중서부)에 증가"], ["물리 품질","용적중·손상립·파쇄립은 FGIS 등급(U.S. No.2 등)으로 확인"]],
+    sources:[["USDA FGIS(연방곡물검사국) — 등급·검사자료","https://www.ams.usda.gov/about-ams/programs-offices/federal-grain-inspection-service","용적중·수분·손상립·파쇄립·이물, 수출곡물 검사 통계"], ["USDA NASS — 작황·수확 진행","https://www.nass.usda.gov/","주별 작황 상태, 가뭄·강우, 수확 진도, 생산량"], ["USDA ERS — Feed Grains Database","https://www.ers.usda.gov/data-products/feed-grains-database/","생산·재고·수출입·사료 사용량·가격(시장상황 중심, 품질 직접 지표는 아님)"], ["USDA WASDE","https://www.usda.gov/oce/commodity/wasde","월간 수급·생산 전망"]],
+    check:"원산지(주)·수확연도·곡물 등급(No.2 등)·선적항·선적일, 수출검사증명서(FGIS)를 사료회사에 확인" },
+  br: { flag:"🇧🇷", name:"브라질", color:"#2E7D32",
+    crops:"옥수수(1기작·2기작 safrinha)·대두", season:"1기작 옥수수 수확 1~3월, 2기작 6~8월(수출 주력 7~1월), 대두 수확 1~4월",
+    risks:[["아플라톡신·푸모니신","고온다습한 기후에서 높음 — 특히 성숙·수확기에 비가 와서 수분이 오르면 위험↑"], ["저장·운송 중 변질","장거리 해상운송 중 결로와 장기 저장으로 곰팡이·산패 증가"], ["물리 품질","수분·손상립은 선적 전 검사성적서로 확인"]],
+    sources:[["CONAB — 작황·생산량(주별·작기별)","https://www.conab.gov.br/info-agro/safras","옥수수 1·2기작, 대두 생산량·수확 진행·기상 영향, 주간 작황 보고서"], ["MAPA — 곡물 규격·품질관리","https://www.gov.br/agricultura/pt-br","곡물 분류 규격, 품질관리, 수출 규정"], ["Embrapa — 연구·모니터링","https://www.embrapa.br/","병해·곰팡이독소 연구자료"]],
+    check:"실제 독소 수치는 CONAB 통계에 없음 — 수출업체 COA, 선적 전 SGS·Intertek 성적서, 항구·사일로별 검사결과 필요" },
+  ar: { flag:"🇦🇷", name:"아르헨티나", color:"#0288D1",
+    crops:"옥수수·대두·밀·해바라기", season:"대두 수확 4~6월, 옥수수 수확 3~7월, 밀 12~1월",
+    risks:[["푸모니신","옥수수에서 다습한 해 증가"], ["아플라톡신","북부 가뭄·고온 지역에서 증가"], ["DON·ZEN","밀 개화기 다습 시 증가"]],
+    sources:[["아르헨티나 농업부(Secretaría de Agricultura) — 생산·수확 통계","https://www.argentina.gob.ar/agricultura","대두·옥수수·밀·해바라기 주간·월간 작황, 장기 시계열"], ["SENASA — 검역·위생","https://www.argentina.gob.ar/senasa","수출입 검역·위생 및 식물검사"], ["Bolsa de Cereales de Buenos Aires — 주간 작황","https://www.bolsadecereales.com/","주간 작황지도·수확진도(현장 반영이 빠름)"], ["BCR(로사리오 곡물거래소)","https://www.bcr.com.ar/","옥수수·대두·밀 작황과 수출품질 보고서"]],
+    check:"정부 자료는 생산·작황 중심 — 지역별 현장 상황은 거래소 보고서가 더 빠르게 반영. 독소는 INTA 연구·수출 성적서로 확인" },
+  eu: { flag:"🇪🇺", name:"유럽", color:"#6A1B9A",
+    crops:"옥수수(프랑스·루마니아·헝가리 등)·밀·보리", season:"보리 6~7월, 밀 7~8월, 옥수수 9~11월 수확",
+    risks:[["DON·ZEN","밀·옥수수 개화기에 습하면 푸사리움 독소 증가"], ["오크라톡신 A(OTA)","수확 후 수분이 높은 채 저장될 때 증가"], ["푸모니신·아플라톡신","남동유럽 고온 해 옥수수에서 발생 증가"]],
+    sources:[["JRC MARS — 월별 기상·토양수분·작황·수량 전망","https://ec.europa.eu/jrc/en/mars","EU 회원국·인접국 작물 발육과 수량을 매월 평가"], ["Eurostat — 생산량·재배면적","https://ec.europa.eu/eurostat","국가·지역(NUTS2)별 곡물 생산량, 표준수분 기준"], ["EFSA — 곰팡이독소 발생자료","https://www.efsa.europa.eu/","DON·ZEN·아플라톡신·푸모니신·OTA·T-2/HT-2 분석 결과 수집"], ["RASFF — 기준초과·통관거부 사례","https://webgate.ec.europa.eu/rasff-window/","식품·사료 경보와 회수 사례"]],
+    check:"국가별 등급(수분·단백질·용적중·손상립)은 각국 정부·곡물협회 자료 — 원산국·수확연도를 사료회사에 확인" },
+};
+function renderFeedGrainRegion(){
+  const sel = feedGrainState.region;
+  const tabs = Object.keys(FG_REGIONS).map(k => { const r = FG_REGIONS[k]; return `<button class="fg-reg" data-reg="${k}" style="flex:1;min-width:76px;border:2px solid ${sel===k?r.color:"#eee"};background:${sel===k?r.color:"#fff"};color:${sel===k?"#fff":"#333"};border-radius:10px;padding:9px 4px;font-size:12.5px;font-weight:700;cursor:pointer">${r.flag} ${r.name}</button>`; }).join("");
+  const r = FG_REGIONS[sel];
+  return `
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">${tabs}</div>
+  <div class="card" style="padding:14px 16px;margin-bottom:12px;border-top:4px solid ${r.color}">
+    <div style="font-size:15px;font-weight:800;color:${r.color}">${r.flag} ${r.name}산 원료</div>
+    <div style="font-size:12px;color:#555;line-height:1.7;margin-top:6px"><b>주요 곡종</b> · ${r.crops}</div>
+    <div style="font-size:12px;color:#555;line-height:1.7"><b>수확·선적 시기</b> · ${r.season}</div>
+  </div>
+  <div class="card" style="padding:14px 16px;margin-bottom:12px">
+    <div style="font-size:13px;font-weight:800;color:#333;margin-bottom:8px">⚠️ 이 산지에서 주의할 품질 위험</div>
+    ${r.risks.map(x => `<div style="display:flex;gap:10px;padding:7px 0;border-top:1px solid #f3f3f3"><div style="min-width:92px;font-size:12px;font-weight:800;color:${r.color}">${x[0]}</div><div style="font-size:12px;color:#555;line-height:1.6">${x[1]}</div></div>`).join("")}
+  </div>
+  <div class="card" style="padding:14px 16px;margin-bottom:12px">
+    <div style="font-size:13px;font-weight:800;color:#333;margin-bottom:8px">📚 작황·품질 자료 어디서 볼까</div>
+    ${r.sources.map(x => `<div style="padding:8px 0;border-top:1px solid #f3f3f3"><a href="${x[1]}" target="_blank" rel="noopener" style="font-size:12.5px;font-weight:700;color:${r.color};text-decoration:none">${x[0]} ↗</a><div style="font-size:11.5px;color:#666;line-height:1.6;margin-top:2px">${x[2]}</div></div>`).join("")}
+    <div style="padding:8px 0;border-top:1px solid #f3f3f3"><a href="https://www.fao.org/faostat" target="_blank" rel="noopener" style="font-size:12.5px;font-weight:700;color:#555;text-decoration:none">FAOSTAT · AMIS (국가 간 비교) ↗</a><div style="font-size:11.5px;color:#666;line-height:1.6;margin-top:2px">국가별 생산·교역·재고·시장정보 비교 (<a href="https://www.amis-outlook.org/" target="_blank" rel="noopener" style="color:#888">AMIS</a>)</div></div>
+  </div>
+  <div style="background:#FFF8E1;border-radius:10px;padding:11px 14px;font-size:12px;color:#5d4b00;line-height:1.7"><b>농장에서 확인할 것</b><br>${r.check}</div>
+  <div style="font-size:10px;color:#aaa;line-height:1.7;margin-top:10px">※ 일반 정보 요약입니다. 기관 사이트의 세부 주소·제공 항목은 바뀔 수 있어 메인 주소로 연결했습니다. 작황 보도를 확인한 뒤 「사료 품질 신호등」의 '산지 작황·기상' 항목에 반영하세요.</div>`;
+}
+
+function renderFeedGrainMethod(){
+  const rows = [["① 원료 배경위험","20점","원산지·곡종·수확 해 기상·입고 후 경과 — USDA·CONAB·JRC 등 산지 작황 자료로 추정"],["② 관능·물리 점검","30점","냄새·곰팡이·색·습기·벌레·미분·펠릿 — 입고 때 직접 확인"],["③ 사료빈 보관","20점","체류 기간·응고·결로·청소·야생동물 — 농장에서 생기는 변질"],["④ 생산성 신호","30점","섭취량·증체/산란·FCR·분변·난각 — 닭이 보여 주는 결과"]];
+  const can = ["미국산 옥수수의 연도별 평균 용적중·수분·손상립 수준(FGIS 수출검사 통계)", "산지별 가뭄·강우 등 작황·기상으로 본 독소 발생 위험의 상대적 높낮이(NASS·CONAB·JRC)", "올해 원료가 평년보다 위험한 해인지 — 검사의 우선순위 결정"];
+  const cant = ["해당 사료 로트의 실제 곰팡이독소 농도(같은 선적 안에서도 편중)", "배합비·아미노산·에너지 설계와 제조공정 중 영양소 손상, 혼합균일도, 펠릿 내구성", "선박·항만·국내 사일로·농장 사료빈에서 생긴 결로와 변질", "농장 질병·온도·음수 상태가 사료효율에 미친 영향"];
+  const li = a => a.map(x => `<div style="font-size:12px;color:#444;line-height:1.65;padding:3px 0 3px 14px;position:relative"><span style="position:absolute;left:0">·</span>${x}</div>`).join("");
+  return `
+  <div class="card" style="padding:14px 16px;margin-bottom:12px">
+    <div style="font-size:13px;font-weight:800;color:#333;margin-bottom:8px">📐 100점 구성 (검사자료가 없는 농장용)</div>
+    ${rows.map(x => `<div style="display:flex;gap:10px;padding:7px 0;border-top:1px solid #f3f3f3"><div style="min-width:104px;font-size:12px;font-weight:800;color:#1565C0">${x[0]}</div><div style="min-width:36px;font-size:12px;font-weight:800">${x[1]}</div><div style="font-size:11.5px;color:#666;line-height:1.55">${x[2]}</div></div>`).join("")}
+    <div style="font-size:11px;color:#777;line-height:1.7;margin-top:8px">🟢 80점 이상 양호 · 🟡 60~79 주의 · 🔴 60 미만 위험<br>
+    시험성적서가 있는 경우(입고 사료 시험성적 35점 등)는 이 구성 대신 성적서의 실측값(독소·수분·산가·영양성분)을 우선합니다.</div>
+  </div>
+  <div class="card" style="padding:14px 16px;margin-bottom:12px;border-top:4px solid #2E7D32"><div style="font-size:13px;font-weight:800;color:#2E7D32;margin-bottom:4px">✅ USDA 등 통계로 알 수 있는 것</div>${li(can)}</div>
+  <div class="card" style="padding:14px 16px;margin-bottom:12px;border-top:4px solid #C62828"><div style="font-size:13px;font-weight:800;color:#C62828;margin-bottom:4px">❌ 통계만으로는 알 수 없는 것</div>${li(cant)}</div>
+  <div style="background:#FFF3E0;border-radius:10px;padding:11px 14px;font-size:12px;color:#6d4300;line-height:1.7">
+    "미국산 옥수수가 올해 평년보다 위험한가"는 알 수 있어도, <b>"지금 이 농장 사료가 몇 점인가"</b>는 사료 성분표·시험성적서와 농장 생산성 자료가 있어야 판단할 수 있습니다. 통계는 사전 위험도, 시료 검사는 최종 판정입니다.
+  </div>`;
+}
+
+function renderFeedGrainPanel(){
+  const st = feedGrainState;
+  const head = `
+  <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+    <div>
+      <div class="display" style="font-size:16px;margin-bottom:3px">🌽 사료곡물 원료 품질평가</div>
+      <div style="font-size:11px;color:#aaa">미국·남미·유럽 원료의 작황·품질 위험과, 검사자료 없이 농장에서 해 보는 사료 품질 신호등</div>
+    </div>
+    <button id="feedgrain-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button>
+  </div>`;
+  const subs = [["score", "🚦 사료 품질 신호등"], ["region", "🌎 산지별 작황·품질"], ["method", "📖 평가 방법·한계"]];
+  const bar = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">${subs.map(t => `<button class="fg-sub" data-sub="${t[0]}" style="border:2px solid ${st.sub===t[0]?"#F57F17":"#eee"};background:${st.sub===t[0]?"#F57F17":"#fff"};color:${st.sub===t[0]?"#fff":"#444"};border-radius:10px;padding:8px 12px;font-size:12.5px;font-weight:700;cursor:pointer">${t[1]}</button>`).join("")}</div>`;
+  const body = st.sub === "region" ? renderFeedGrainRegion() : st.sub === "method" ? renderFeedGrainMethod() : renderFeedGrainScore();
+  return head + bar + `<div class="card" style="padding:16px;border-top:4px solid #F57F17">${body}</div>`;
+}
+
 function renderPremiumGateHeader(){
   return `
   <div style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
@@ -9221,6 +9517,10 @@ function renderPremiumTab(){
   // 사료 영양 표준표(육계·산란계) 화면 — 정적 상수라 Storage fetch가 필요 없다.
   if(premiumState.view === "feedstandard"){
     return renderPremiumGateHeader() + logoutBar + renderFeedStandardPanel();
+  }
+  // 사료곡물 원료 품질평가 화면 — 정적 상수와 농장 입력으로만 계산하므로 Storage fetch가 필요 없다.
+  if(premiumState.view === "feedgrain"){
+    return renderPremiumGateHeader() + logoutBar + renderFeedGrainPanel();
   }
   // 양계잡지 학습정보 화면
   if(premiumState.view === "magazine"){
@@ -15524,6 +15824,18 @@ function attachEvents(){
     feedStandardState.species = b.dataset.species;
     render();
   });
+  // 사료곡물 원료 품질평가
+  const fgBack = document.getElementById("feedgrain-back-btn");
+  if(fgBack) fgBack.onclick = ()=>{ premiumState.view = "menu"; render(); };
+  document.querySelectorAll(".fg-sub").forEach(b => b.onclick = () => { feedGrainState.sub = b.dataset.sub; render(); });
+  document.querySelectorAll(".fg-reg").forEach(b => b.onclick = () => { feedGrainState.region = b.dataset.reg; render(); });
+  document.querySelectorAll(".fg-sp").forEach(b => b.onclick = () => { feedGrainState.species = b.dataset.sp; saveFeedGrain(); render(); });
+  const fgRefresh = () => { const r = document.getElementById("fg-result"); if(r) r.innerHTML = renderFeedGrainResult(); };
+  document.querySelectorAll(".fg-in").forEach(el => {
+    const upd = () => { feedGrainState.v[el.dataset.k] = el.value; saveFeedGrain(); fgRefresh(); };
+    if(el.tagName === "SELECT") el.onchange = upd; else el.oninput = upd;
+  });
+  document.querySelectorAll(".fg-chk").forEach(el => el.onchange = () => { feedGrainState.c[el.dataset.k] = el.checked; saveFeedGrain(); fgRefresh(); });
   // 양계잡지 학습정보
   const magazineBackBtn = document.getElementById("magazine-back-btn");
   if(magazineBackBtn) magazineBackBtn.onclick = ()=>{ premiumState.view = "menu"; render(); };
