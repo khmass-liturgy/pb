@@ -732,7 +732,7 @@ const PREMIUM_ITEMS = [
   { key:"ventfinder", icon:"💨", title:"내 농장에 맞는 환기량 찾기", desc:"오늘 날씨·계사 조건을 넣으면 최소환기량(습도 조절)과 최대환기량(터널·냉각)을 계산해 드립니다.", color:"#0288D1", category:"사양관리" },
   { key:"moltguide", icon:"🪶", title:"산란계 환우 프로그램(육종회사별)", desc:"하이라인·로만 등 육종회사가 권장하는 품종별 인위환우(강제환우) 프로그램을 비교해 보여드립니다.", color:"#00695C", category:"사양관리" },
   { key:"feedstandard", icon:"🌾", title:"내 농장의 사료영양 관리", desc:"육계·산란계 사육단계별 국제 사료 영양 표준(에너지·단백질·칼슘 등)과 평균 사료 교체일령을 한눈에 보여드립니다.", color:"#F57F17", category:"사양관리" },
-  { key:"feedgrain", icon:"🌽", title:"사료곡물 원료 품질평가", desc:"미국·브라질·아르헨티나·유럽 곡물 산지의 기상 흐름을 평년과 비교해, 세계 곡물 품질 위험을 신호등과 13주 흐름 띠로 한눈에 보여드립니다.", color:"#F57F17", category:"사양관리" },
+  { key:"feedgrain", icon:"🌽", title:"사료곡물 원료 품질평가", desc:"미국·브라질·아르헨티나·유럽 곡물 산지의 기상 흐름과 곰팡이 위험을 신호등·13주 흐름 띠로 보고, 옥수수·대두·밀의 영양·물리 품질을 나라별로 비교합니다.", color:"#F57F17", category:"사양관리" },
   { key:"selfcheck", icon:"🐔", title:"온라인 자가진단", desc:"닭 해부도에서 장기를 클릭하면 그 장기의 기능과 흔히 나타나는 질병을 보여드립니다.", color:"#AD1457", category:"진단" },
   { key:"diagnosis", icon:"🔍", title:"온라인 진단", desc:"닭의 외부모습·분변상태·부검사진(기관지·간·신장·소장)을 올리면 최동명 수의사가 직접 진단합니다. 사진·진단 내용은 작성자만 볼 수 있습니다.", color:"#2E7D32", category:"진단" },
   { key:"faq", icon:"❓", title:"농장에서 많이 궁금해 하는 질문", desc:"농장에서 자주 묻는 질문과 답변을 카드로 모아뒀습니다. 카드를 누르면 답변이 펼쳐집니다.", color:"#5D4037", category:"질문·학습·교육" },
@@ -9058,7 +9058,7 @@ function premiumUserLabel(){
 //   USDA FGIS·CONAB 등 기관 보고와 검사성적서로 확인해야 한다(산지별 기관 탭에 링크).
 const GRAIN_QUALITY_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/grain_quality/latest.json";
 let grainQState = { status:"idle", data:null };
-let feedGrainState = { sub:"flow", region:"us", openKey:null, moldOpen:null };
+let feedGrainState = { sub:"flow", region:"us", openKey:null, moldOpen:null, crop:"corn" };
 
 async function fetchGrainQuality(){
   if(grainQState.status === "loading") return;
@@ -9397,6 +9397,142 @@ function renderFeedGrainRegion(){
   <div style="font-size:10px;color:#aaa;line-height:1.7;margin-top:10px">※ 일반 정보 요약입니다. 기관 사이트의 세부 주소·제공 항목은 바뀔 수 있어 메인 주소로 연결했습니다. 「세계 품질 흐름」의 기상 지표와 함께 이 기관 보고를 확인하면 판단이 더 정확해집니다.</div>`;
 }
 
+// ── 🧪 영양·물리 품질 비교 (미국·유럽·브라질·아르헨티나 × 옥수수·대두·밀) ─────────────────────
+// 각 나라의 곡물 품질 보고서·논문에서 실제로 확인한 수치를 우선 쓰고(●), 보고서가 없는 칸은 규격·표준값이나
+// 상대 비교 같은 참고 근거(○), 출처가 약한 일반 정보(◇), 없으면 "데이터 없음(–)"으로 표시한다.
+// 나라마다 연도·분석법(NIR/효소법)·수분 기준이 달라 숫자를 그대로 줄 세우면 안 되므로 화면에 주의 문구를 둔다.
+// 값 형식: [표시값, 종류(m 실측 | r 참고 | g 일반 | n 없음), 출처번호들]
+const FGQ_SRC = {
+  1: ["USGC 2024/25 옥수수 수확 품질 보고서(미국)", "https://grains.org/corn_report/corn-harvest-quality-report-2025-2026/"],
+  2: ["FranceAgriMer·ARVALIS Qualit@lim 옥수수 2024(프랑스)", "https://www.franceagrimer.fr/sites/default/files/rdd/documents/Qualit@lim_Ma%C3%AFs_2024_0.pdf"],
+  3: ["Ciência Rural — 브라질 옥수수 50개 품종 영양·독소(SciELO)", "https://www.scielo.br/j/cr/a/FrVhCvyzJt3WxWtQCb5rHbc/"],
+  4: ["ILSI·MAIZAR 「Maíz y Nutrición」(아르헨티나)", "https://www.maizar.org.ar/documentos/ilsi%20maizar.pdf"],
+  5: ["Brazilian Tables for Poultry and Swine(Rostagno 2017) — 육계 에너지값", "https://www.scielo.br/j/rbz/a/9SjtJQx5VhTv9d9nXQ3qZVx/"],
+  6: ["미국 대두 품질 연례 보고서 2024(UMN·USSOY)", "https://soyquality.com/wp-content/uploads/2024/11/2024-Quality-Report.pdf"],
+  7: ["USSEC — 미국산 vs 브라질산 대두 손상·수분(2020~2025 검사자료)", "https://ussec.org/news/follow-the-bean-at-soy-connext-u-s-soybeans-show-less-damage-than-brazilian-beans-quality-data-reveals/"],
+  8: ["Farm Progress — 브라질 vs 미국 대두 품질 비교", "https://www.farmprogress.com/marketing/brazil-vs-u-s-who-s-got-the-better-beans-"],
+  9: ["대두박 원산지별 성분·단백질 품질 메타분석(Anim. Feed Sci. Technol.)", "https://www.sciencedirect.com/science/article/pii/S0377840120304351"],
+  10: ["일리노이대 — 대두박 원산지별 아미노산 소화율", "https://nutrition.ansci.illinois.edu/node/1172"],
+  11: ["아르헨티나 곡물 거래 기준·BCR 시세 자료", "https://www.bcr.com.ar/es/mercados/mercado-de-granos/cotizaciones/cotizaciones-internacionales-0"],
+  12: ["US Wheat Associates 2025 작황 품질 보고서(월드그레인 요약)", "https://www.world-grain.com/articles/22137-us-wheat-associates-analyzes-each-class-of-2025-crop"],
+  13: ["ARVALIS 2025 프랑스 연질밀 수확 품질", "https://www.arvalis.fr/infos-techniques/recolte-2025-des-bles-de-qualite-mais-qui-imposeront-une-preparation-soignee-la"],
+  14: ["BCR 아르헨티나 밀 2025/26 품질 분석(Infocampo)", "https://www.infocampo.com.ar/peso-hectolitrico-y-proteina-que-muestran-los-primeros-analisis-de-calidad-del-trigo-2025-26/"],
+  15: ["Agrolink — 브라질 밀 2025/26 품질 동향", "https://www.agrolink.com.br/noticias/trigo-bom-nao-e-so-produtivo---e-o-que-a-industria-quer-comprar_515485.html"],
+};
+const FGQ_KIND = {
+  m: { t:"● 실측", c:"#2E7D32", d:"보고서에서 확인한 평균 실측값" },
+  r: { t:"○ 참고", c:"#EF6C00", d:"규격·표준값 또는 상대 비교(실측 평균이 아님)" },
+  g: { t:"◇ 일반", c:"#7B1FA2", d:"출처가 약한 일반 정보" },
+  n: { t:"–", c:"#bbb", d:"확인된 데이터 없음" },
+};
+const FGQ_NONE = ["데이터 없음", "n", []];
+const FGQ_ORIGINS = [["us", "미국"], ["eu", "유럽"], ["br", "브라질"], ["ar", "아르헨티나"]];
+const FGQ = {
+  corn: { name:"옥수수", icon:"🌽", groups:[
+    { title:"🧬 영양 성분", note:"건물(DM) 기준으로 맞춰 비교. 브라질 값은 보고된 87% DM 기준을 건물 기준으로 환산(÷0.87)했고, 분석법(NIR/효소법)이 달라 ±수 %p 차이는 의미가 작습니다.", rows:[
+      { k:"조단백 (%DM)", us:["8.5","m",[1]], eu:["7.8","m",[2]], br:["9.0","m",[3]], ar:["8~10","r",[4]] },
+      { k:"전분 (%DM)", us:["72.2","m",[1]], eu:["76.2","m",[2]], br:["73.0","m",[3]], ar:["70~75","r",[4]] },
+      { k:"조지방 (%DM)", us:["3.9","m",[1]], eu:["3.6","m",[2]], br:["4.5","m",[3]], ar:["4~5","r",[4]] },
+      { k:"에너지(육계 AMEn, kcal/kg)", us:FGQ_NONE, eu:FGQ_NONE, br:["3,364","r",[5]], ar:FGQ_NONE },
+    ]},
+    { title:"📐 물리적 성질", note:"용적중은 단위가 달라 kg/hl로 환산(1 lb/bu ≈ 1.287 kg/hl).", rows:[
+      { k:"수분 (%) 수확·검사 시", us:["15.3","m",[1]], eu:["14.8","m",[2]], br:FGQ_NONE, ar:FGQ_NONE },
+      { k:"용적중 (kg/hl)", us:["75.8","m",[1]], eu:FGQ_NONE, br:FGQ_NONE, ar:["≥78 (제분용 규격)","r",[4]] },
+      { k:"100립중 (g)", us:["36.7","m",[1]], eu:FGQ_NONE, br:FGQ_NONE, ar:FGQ_NONE },
+      { k:"파쇄·이물 BCFM (%)", us:["0.6","m",[1]], eu:FGQ_NONE, br:FGQ_NONE, ar:FGQ_NONE },
+      { k:"총 손상립 (%)", us:["1.1","m",[1]], eu:FGQ_NONE, br:["0.53 (품종시험)","r",[3]], ar:FGQ_NONE },
+      { k:"경도·종류", us:["치아형, 경질 배유 85%","m",[1]], eu:["치아형·반치아형 위주","g",[]], br:["플린트·반플린트 위주","g",[]], ar:["플린트(colorado duro)","r",[4]] },
+    ]},
+    { title:"🍄 곰팡이독소 (참고)", note:"조사 방식이 서로 달라 직접 비교하지 말고 '어떤 독소를 신경 쓰는가'로만 보세요.", rows:[
+      { k:"아플라톡신", us:["20ppb 이하 98.9%","m",[1]], eu:FGQ_NONE, br:["평균 0.045µg/kg (거의 불검출)","r",[3]], ar:FGQ_NONE },
+      { k:"푸모니신", us:["5ppm 미만 97.2%","m",[1]], eu:FGQ_NONE, br:["평균 197µg/kg (68% 검출)","r",[3]], ar:FGQ_NONE },
+      { k:"DON", us:["5ppm 이하 98.9%","m",[1]], eu:["우천으로 건전성 저하 우려(수치 미공개)","r",[2]], br:["평균 9µg/kg","r",[3]], ar:FGQ_NONE },
+    ]},
+  ], read:[
+    ["미국", "용적중 75.8kg/hl·100립중 36.7g으로 역대 최고 수준이고 BCFM 0.6%, 손상립 1.1%라 <b>물리 품질이 안정적</b>입니다. 단백 8.5·전분 72.2는 전형적인 값이며 독소도 기준 이내가 98~99%입니다."],
+    ["유럽(프랑스)", "전분 76.2%DM로 높게 나왔지만 분석법이 달라 미국 값과 직접 비교는 어렵습니다. <b>단백 7.8%로 낮은 편</b>(2024는 5년 평균보다 0.4p 낮음)이라 단백 보충이 더 필요할 수 있고, 2024 다우로 수확·건조 시기에 따라 곰팡이 건전성이 나빠진 로트가 있었습니다."],
+    ["브라질", "품종시험 기준 단백 9.0·지방 4.5%DM로 <b>에너지·단백이 높은 편</b>이지만 상업 수출 평균이 아닌 시험 값입니다. 푸모니신이 68% 시료에서 검출되어 <b>수확기 수분·독소 관리</b>가 중요합니다."],
+    ["아르헨티나", "플린트(colorado duro)가 중심이라 <b>용적중이 높고 단단</b>합니다(제분용 78kg/hl 이상 규격). 단백 8~10%, 지방 4~5%로 전반적 영양은 비슷하며, 단단한 만큼 분쇄 입도 관리가 중요합니다."],
+  ]},
+  soy: { name:"대두", icon:"🫘", groups:[
+    { title:"🧬 영양 성분", note:"대두는 13% 수분 기준(단백·지방). 브라질·아르헨티나 값은 절대 평균이 아니라 미국 대비 차이나 거래 규격입니다.", rows:[
+      { k:"단백질 (%, 13% 수분)", us:["34.0","m",[6]], eu:["유럽산 자료 없음 (수입 압착 위주)","n",[]], br:["미국 대비 약 +0.7p","r",[8]], ar:["거래 기준 33.5 (최저 33)","r",[11]] },
+      { k:"지방 (%, 13% 수분)", us:["19.9","m",[6]], eu:FGQ_NONE, br:["미국 대비 약 +1.7p","r",[8]], ar:["거래 기준 18.5 (최저 18)","r",[11]] },
+      { k:"자당 (%)", us:["4.3","m",[6]], eu:FGQ_NONE, br:["미국보다 낮음","r",[6]], ar:FGQ_NONE },
+      { k:"대두박 조단백 (%)", us:["46.5","m",[9]], eu:["수입 대두 압착","n",[]], br:["47.4","m",[9]], ar:["46.3","m",[9]] },
+      { k:"대두박 단백 품질(소화율·라이신)", us:["우수 — SID·KOH용해도 더 높음","r",[9,10]], eu:FGQ_NONE, br:["미국보다 낮은 경향","r",[9,10]], ar:["미국보다 낮은 경향","r",[9,10]] },
+    ]},
+    { title:"📐 물리적 성질", note:"브라질·미국 비교는 5년(2020~2025) 선적·검사자료입니다.", rows:[
+      { k:"수분 (%) 검사 시", us:["11.4","m",[7]], eu:FGQ_NONE, br:["12.4","m",[7]], ar:FGQ_NONE },
+      { k:"총 손상립 (%)", us:["1.08","m",[7]], eu:FGQ_NONE, br:["6.91","m",[7]], ar:FGQ_NONE },
+      { k:"이물 (%) 수확 시", us:["0.2","m",[6]], eu:FGQ_NONE, br:["미국보다 약간 낮다는 보고","r",[8]], ar:FGQ_NONE },
+      { k:"용적중 (kg/hl)", us:["72.7 (56.5 lb/bu)","m",[6]], eu:FGQ_NONE, br:FGQ_NONE, ar:FGQ_NONE },
+      { k:"종합 '양호' 비율", us:["92.5%","r",[7]], eu:FGQ_NONE, br:["82.9%","r",[7]], ar:["87.5%","r",[7]] },
+    ]},
+  ], read:[
+    ["미국", "단백 34.0·지방 19.9%로 <b>단백이 브라질보다 약간 낮은 대신 손상립(1.08%)·수분이 낮아 물리 품질이 가장 안정적</b>이며, 대두박은 소화율과 라이신 비율이 더 우수하다는 연구가 있습니다."],
+    ["브라질", "단백·지방은 미국보다 높지만 <b>총 손상립이 6.9%로 약 6배</b>이고 수분도 높아(수확 시 20~25%) 저장·선적 중 변질 위험이 큽니다. 대두박 조단백(47.4%)은 높으나 단백 품질은 미국보다 낮은 경향입니다."],
+    ["아르헨티나", "거래 기준 단백 33.5·지방 18.5%로 브라질·미국보다 낮은 쪽이고, 대두박 조단백 46.3%에 소화율도 미국보다 낮은 경향입니다. 물리 품질은 미국과 브라질의 중간 수준으로 보고됩니다."],
+    ["유럽", "유럽은 대두를 대부분 수입해 압착하므로 <b>유럽산 대두 자체의 신뢰할 만한 품질 자료가 없습니다</b>. 유럽에서 가공한 대두박은 원료 원산지(미국·브라질 등)를 확인하세요."],
+  ]},
+  wheat: { name:"밀", icon:"🌾", groups:[
+    { title:"🧬 영양 성분", note:"단백 수분 기준이 다릅니다(미국 HRW 12%·SRW 건물, 아르헨티나 13.5%). 사료용은 단백이 높을수록 아미노산 공급에 유리합니다.", rows:[
+      { k:"단백질 (%)", us:["HRW 12.1 · SRW 9.5","m",[12]], eu:["11.3","m",[13]], br:["수치 미확인 (2025/26 우천으로 품질 하락 보도)","n",[15]], ar:["9.6 (13.5% 수분)","m",[14]] },
+    ]},
+    { title:"📐 물리적 성질", note:"미국 용적중은 lb/bu를 kg/hl로 환산했습니다(60 lb/bu≈77.2, 58.6≈75.4).", rows:[
+      { k:"수분 (%)", us:["SRW 12.8","m",[12]], eu:["12.6","m",[13]], br:FGQ_NONE, ar:FGQ_NONE },
+      { k:"용적중 (kg/hl)", us:["HRW 77.2 · SRW 75.4","m",[12]], eu:["78.6","m",[13]], br:["우천으로 낮은 로트 증가(정성)","r",[15]], ar:["79.4","m",[14]] },
+      { k:"천립중 (g)", us:["HRW 31 · SRW 32.7","m",[12]], eu:FGQ_NONE, br:FGQ_NONE, ar:FGQ_NONE },
+      { k:"낙하수 (초)", us:["HRW 370 · SRW 298","m",[12]], eu:["98% 로트가 240초 초과","m",[13]], br:["우천으로 낮은 로트 증가(정성)","r",[15]], ar:FGQ_NONE },
+    ]},
+  ], read:[
+    ["미국", "HRW는 단백 12.1%로 높고 SRW는 9.5%로 낮아 <b>종류별 차이가 큽니다</b>. 용적중은 75~77kg/hl, 낙하수가 높아(HRW 370초) 발아 피해는 적습니다."],
+    ["유럽(프랑스)", "<b>용적중 78.6kg/hl·단백 11.3%</b>로 균형이 좋고, 건조한 수확으로 수분(12.6%)이 낮으며 낙하수 240초 초과가 98%라 발아 피해가 거의 없습니다."],
+    ["브라질", "정량 평균을 확인하지 못했습니다. 2025/26 수확기 <b>우천·고습으로 용적중·낙하수가 낮은 로트가 늘었다</b>는 보도가 있어 로트별 검사가 필요합니다."],
+    ["아르헨티나", "<b>용적중 79.4kg/hl로 가장 높지만 단백은 9.6%로 낮은 편</b>입니다. 수확량이 많은 해라 단백이 희석되었고, 사료용으로는 아미노산 보충이 더 필요합니다."],
+  ]},
+};
+function fgqCell(c){
+  c = c || FGQ_NONE;
+  const k = FGQ_KIND[c[1]] || FGQ_KIND.n;
+  const sup = (c[2] || []).map(n => `<sup style="font-size:9px;color:#888">${n}</sup>`).join("");
+  if(c[1] === "n") return `<td style="padding:8px 6px;font-size:11px;color:#bbb;vertical-align:top">${esc(c[0])}${sup}</td>`;
+  return `<td style="padding:8px 6px;vertical-align:top"><div style="font-size:12.5px;font-weight:700;color:#333;line-height:1.4">${esc(c[0])}${sup}</div><div style="font-size:9.5px;font-weight:700;color:${k.c};margin-top:2px">${k.t}</div></td>`;
+}
+function renderFeedGrainQuality(){
+  const crop = FGQ[feedGrainState.crop || "corn"];
+  const tabs = Object.keys(FGQ).map(k => `<button class="fg-qcrop" data-crop="${k}" style="flex:1;border:2px solid ${feedGrainState.crop===k?"#F57F17":"#eee"};background:${feedGrainState.crop===k?"#F57F17":"#fff"};color:${feedGrainState.crop===k?"#fff":"#333"};border-radius:10px;padding:9px 6px;font-size:13px;font-weight:700;cursor:pointer">${FGQ[k].icon} ${FGQ[k].name}</button>`).join("");
+  const used = new Set();
+  const groups = crop.groups.map(g => `
+    <div class="card" style="padding:12px 12px 6px;margin-bottom:12px">
+      <div style="font-size:13px;font-weight:800;color:#333;margin-bottom:3px">${g.title}</div>
+      <div style="font-size:10.5px;color:#999;line-height:1.55;margin-bottom:6px">${g.note}</div>
+      <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:560px">
+        <thead><tr style="text-align:left;border-bottom:2px solid #eee"><th style="padding:6px;font-size:10.5px;color:#999;font-weight:600;width:22%"></th>${FGQ_ORIGINS.map(o => `<th style="padding:6px;font-size:11.5px;font-weight:800;color:#444">${fgBadge(o[0], 16)} ${o[1]}</th>`).join("")}</tr></thead>
+        <tbody>${g.rows.map(r => {
+          FGQ_ORIGINS.forEach(o => ((r[o[0]] || [])[2] || []).forEach(n => used.add(n)));
+          return `<tr style="border-top:1px solid #f1f1f1"><td style="padding:8px 6px;font-size:11.5px;font-weight:700;color:#555;vertical-align:top">${r.k}</td>${FGQ_ORIGINS.map(o => fgqCell(r[o[0]])).join("")}</tr>`;
+        }).join("")}</tbody></table></div>
+    </div>`).join("");
+  const srcList = Array.from(used).sort((a, b) => a - b).map(n => `<div style="font-size:10.5px;line-height:1.6"><span style="color:#888">${n}.</span> <a href="${FGQ_SRC[n][1]}" target="_blank" rel="noopener" style="color:#1565C0;text-decoration:none">${esc(FGQ_SRC[n][0])} ↗</a></div>`).join("");
+  const legend = ["m", "r", "g", "n"].map(k => `<span style="font-size:10.5px;color:#666"><b style="color:${FGQ_KIND[k].c}">${FGQ_KIND[k].t}</b> ${FGQ_KIND[k].d}</span>`).join(" · ");
+  const read = crop.read.map(x => `<div style="padding:8px 0;border-top:1px solid #f1f1f1;display:flex;gap:10px"><div style="min-width:64px;font-size:12px;font-weight:800;color:#F57F17">${x[0]}</div><div style="font-size:12px;color:#444;line-height:1.7">${x[1]}</div></div>`).join("");
+  return `
+  <div style="font-size:11.5px;color:#666;line-height:1.7;background:#F7F9FA;border-radius:10px;padding:9px 12px;margin-bottom:10px">
+    나라별 곡물 품질 보고서·논문의 수치를 모아 영양과 물리적 성질을 비교합니다. 자료가 없는 칸은 <b>"데이터 없음"</b>으로 두었고, 보고서 대신 규격·상대 비교로 채운 칸은 <b style="color:#EF6C00">○ 참고</b>로 구분했습니다.
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:12px">${tabs}</div>
+  ${groups}
+  <div style="margin-bottom:6px">${legend}</div>
+  <div class="card" style="padding:12px 14px;margin-bottom:12px;border-top:4px solid #F57F17">
+    <div style="font-size:13px;font-weight:800;color:#333;margin-bottom:2px">📝 ${crop.name} 종합 평가</div>${read}
+  </div>
+  <div style="background:#FFF8E1;border-radius:10px;padding:10px 13px;font-size:11px;color:#6b5600;line-height:1.7;margin-bottom:10px">
+    ⚠️ <b>비교 시 주의</b> — 나라마다 조사 연도·시료 수·분석법·수분 기준이 달라 숫자 몇 개의 차이를 우열로 읽으면 안 됩니다. 같은 나라 안에서도 산지·연도에 따라 크게 달라지며, 실제 사료 로트의 품질은 입고 성적서로 확인하세요.
+  </div>
+  <div style="font-size:11px;font-weight:800;color:#555;margin-bottom:3px">📚 출처</div>${srcList}`;
+}
+
 function renderFeedGrainMethod(){
   const li = a => a.map(x => `<div style="font-size:12px;color:#444;line-height:1.65;padding:3px 0 3px 14px;position:relative"><span style="position:absolute;left:0">·</span>${x}</div>`).join("");
   const steps = [
@@ -9441,9 +9577,9 @@ function renderFeedGrainPanel(){
     </div>
     <button id="feedgrain-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button>
   </div>`;
-  const subs = [["flow", "🌍 세계 품질 흐름"], ["region", "🏛️ 산지별 기관 자료"], ["method", "📖 평가 방법·한계"]];
+  const subs = [["flow", "🌍 세계 품질 흐름"], ["quality", "🧪 영양·물리 비교"], ["region", "🏛️ 산지별 기관 자료"], ["method", "📖 평가 방법·한계"]];
   const bar = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">${subs.map(t => `<button class="fg-sub" data-sub="${t[0]}" style="border:2px solid ${st.sub===t[0]?"#F57F17":"#eee"};background:${st.sub===t[0]?"#F57F17":"#fff"};color:${st.sub===t[0]?"#fff":"#444"};border-radius:10px;padding:8px 12px;font-size:12.5px;font-weight:700;cursor:pointer">${t[1]}</button>`).join("")}</div>`;
-  const body = st.sub === "region" ? renderFeedGrainRegion() : st.sub === "method" ? renderFeedGrainMethod() : renderFeedGrainFlow();
+  const body = st.sub === "region" ? renderFeedGrainRegion() : st.sub === "method" ? renderFeedGrainMethod() : st.sub === "quality" ? renderFeedGrainQuality() : renderFeedGrainFlow();
   return head + bar + `<div class="card" style="padding:16px;border-top:4px solid #F57F17">${body}</div>`;
 }
 
@@ -15937,6 +16073,7 @@ function attachEvents(){
   if(fgBack) fgBack.onclick = ()=>{ premiumState.view = "menu"; render(); };
   document.querySelectorAll(".fg-sub").forEach(b => b.onclick = () => { feedGrainState.sub = b.dataset.sub; render(); });
   document.querySelectorAll(".fg-reg").forEach(b => b.onclick = () => { feedGrainState.region = b.dataset.reg; render(); });
+  document.querySelectorAll(".fg-qcrop").forEach(b => b.onclick = () => { feedGrainState.crop = b.dataset.crop; render(); });
   document.querySelectorAll(".fg-card").forEach(el => {
     const tg = () => { feedGrainState.openKey = feedGrainState.openKey === el.dataset.reg ? null : el.dataset.reg; render(); };
     el.onclick = tg;
