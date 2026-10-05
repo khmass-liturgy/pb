@@ -1144,20 +1144,45 @@ function lgSmsText(st, res){
   const r8 = res.rows[8], rs = res.rows[res.stim];
   return `[산란계 점등프로그램]\n${names[st.company] || st.company} · ${st.house === "dark" ? "무창" : "개방계사"} · 입식 ${hatch.getMonth() + 1}/${hatch.getDate()}\n${where} ${lat.toFixed(1)}°N · 광자극 ${res.stim}주\n자연일장 ${r8.nat.toFixed(1)}h(8주) → ${rs.nat.toFixed(1)}h(${res.stim}주)\n` + lines.join("\n") + `\n※참고용 계산 — 육종회사 공식 점등표가 우선 (polcon.cc)`;
 }
-function renderLightSms(res){
-  const st = lightGuideState, text = lgSmsText(st, res);
+// 문자 보내기 박스(범용) — 내용 미리보기 + 받는 번호(선택) + 문자 앱 열기(sms:) + 복사. 점등·환우 프로그램이 같이 쓴다.
+function renderSmsBox(prefix, text, phone, title, extra){
   return `<div style="margin-top:16px;border:1px solid #E3F2FD;background:#F7FBFF;border-radius:12px;padding:12px 13px">
-    <div style="font-size:13px;font-weight:800;color:#1565C0">📱 점등 프로그램을 문자로 보내기</div>
-    <div style="font-size:11px;color:#666;line-height:1.6;margin:3px 0 8px">위 계산 결과를 문자 글로 만들어 휴대폰 문자 앱으로 열어 줍니다(보내기 버튼은 문자 앱에서 직접 누릅니다). 받는 번호를 비워 두면 문자 앱에서 받는 사람을 고를 수 있어요.</div>
+    <div style="font-size:13px;font-weight:800;color:#1565C0">📱 ${esc(title)}</div>
+    <div style="font-size:11px;color:#666;line-height:1.6;margin:3px 0 8px">내용을 문자 글로 만들어 휴대폰 문자 앱으로 열어 줍니다(보내기 버튼은 문자 앱에서 직접 누릅니다). 받는 번호를 비워 두면 문자 앱에서 받는 사람을 고를 수 있어요.</div>
+    ${extra || ""}
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px">
-      <label style="flex:1 1 170px"><div style="font-size:10.5px;color:#777;margin-bottom:3px">받는 번호(선택)</div><input id="lg-sms-phone" type="tel" inputmode="tel" placeholder="010-1234-5678" value="${esc(st.phone || "")}" style="width:100%;box-sizing:border-box;padding:8px 9px;border:1px solid #ddd;border-radius:8px;font-size:13px" /></label>
-      <button id="lg-sms-btn" style="border:none;border-radius:8px;background:#1565C0;color:#fff;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer">📱 문자 앱으로 열기</button>
-      <button id="lg-sms-copy" style="border:1px solid #1565C0;border-radius:8px;background:#fff;color:#1565C0;padding:9px 12px;font-size:12.5px;font-weight:700;cursor:pointer">📋 문자 내용 복사</button>
+      <label style="flex:1 1 170px"><div style="font-size:10.5px;color:#777;margin-bottom:3px">받는 번호(선택)</div><input id="${prefix}-sms-phone" type="tel" inputmode="tel" placeholder="010-1234-5678" value="${esc(phone || "")}" style="width:100%;box-sizing:border-box;padding:8px 9px;border:1px solid #ddd;border-radius:8px;font-size:13px" /></label>
+      <button id="${prefix}-sms-btn" style="border:none;border-radius:8px;background:#1565C0;color:#fff;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer">📱 문자 앱으로 열기</button>
+      <button id="${prefix}-sms-copy" style="border:1px solid #1565C0;border-radius:8px;background:#fff;color:#1565C0;padding:9px 12px;font-size:12.5px;font-weight:700;cursor:pointer">📋 문자 내용 복사</button>
     </div>
-    <textarea id="lg-sms-text" readonly rows="${Math.min(14, text.split("\n").length + 1)}" style="width:100%;box-sizing:border-box;padding:9px 10px;border:1px solid #dbe7f5;border-radius:8px;font-size:12px;line-height:1.55;font-family:inherit;background:#fff;color:#333;resize:vertical">${esc(text)}</textarea>
+    <textarea id="${prefix}-sms-text" readonly rows="${Math.min(14, text.split("\n").length + 1)}" style="width:100%;box-sizing:border-box;padding:9px 10px;border:1px solid #dbe7f5;border-radius:8px;font-size:12px;line-height:1.55;font-family:inherit;background:#fff;color:#333;resize:vertical">${esc(text)}</textarea>
     <div style="font-size:10px;color:#999;line-height:1.6;margin-top:4px">글자 수 ${text.length}자 (보통 90자를 넘으면 장문(LMS)으로 발송됩니다). 컴퓨터에서는 문자 앱이 안 열릴 수 있으니 「문자 내용 복사」를 쓰세요.</div>
-    <div id="lg-sms-msg" style="font-size:11px;color:#2E7D32;margin-top:3px"></div>
+    <div id="${prefix}-sms-msg" style="font-size:11px;color:#2E7D32;margin-top:3px"></div>
   </div>`;
+}
+function bindSmsBox(prefix, onPhone){
+  const ph = document.getElementById(prefix + "-sms-phone");
+  const msg = t => { const m = document.getElementById(prefix + "-sms-msg"); if(m) m.textContent = t; };
+  if(ph) ph.onchange = () => onPhone(ph.value.trim());
+  const btn = document.getElementById(prefix + "-sms-btn");
+  if(btn) btn.onclick = () => {
+    const txt = (document.getElementById(prefix + "-sms-text") || {}).value || "";
+    const raw = (ph && ph.value) || "", num = raw.replace(/[^0-9+]/g, "");
+    onPhone(num ? raw.trim() : "");
+    const sep = /iPhone|iPad|iPod/i.test(navigator.userAgent) ? "&" : "?";
+    msg("문자 앱을 여는 중입니다... 열리지 않으면 「문자 내용 복사」를 눌러 붙여 넣으세요.");
+    location.href = "sms:" + num + sep + "body=" + encodeURIComponent(txt);
+  };
+  const cp = document.getElementById(prefix + "-sms-copy");
+  if(cp) cp.onclick = async () => {
+    const ta = document.getElementById(prefix + "-sms-text"); if(!ta) return;
+    try { await navigator.clipboard.writeText(ta.value); msg("✅ 복사했습니다 — 문자·카카오톡에 붙여 넣으세요."); }
+    catch(e){ ta.focus(); ta.select(); msg("복사 권한이 없어 글을 선택해 두었습니다 — 길게 눌러 복사하세요."); }
+  };
+}
+function renderLightSms(res){
+  const st = lightGuideState;
+  return renderSmsBox("lg", lgSmsText(st, res), st.phone, "점등 프로그램을 문자로 보내기");
 }
 function renderLightCalc(){
   const st = lightGuideState, res = lgCompute(st);
@@ -1257,6 +1282,20 @@ function renderLightGuidePanel(){
 }
 
 
+// 환우 프로그램 카드 한 장을 문자 글로 — 요약(각 단계의 첫 문장)과 전체 두 가지
+function moltSmsText(g, mode){
+  const first = d => { const m = String(d).match(/^(.+?[.!?。])(\s|$)/); return m ? m[1] : (String(d).length > 70 ? String(d).slice(0, 70) + "…" : String(d)); };
+  const lines = g.sections.map((s, i) => `${i + 1}. ${s.step}${mode === "full" ? " — " + s.detail : " — " + first(s.detail)}`);
+  return `[산란계 환우 프로그램]\n${g.company} · ${g.breed}\n` + lines.join("\n") + `\n※참고용 — 구입처 최신 가이드 우선 (polcon.cc)`;
+}
+function renderMoltSms(g){
+  const mode = moltSmsState.mode;
+  if(!moltSmsState.phone && lightGuideState.phone) moltSmsState.phone = lightGuideState.phone;
+  const chip = (m, t) => `<button class="mg-sms-mode" data-mode="${m}" style="border:1.5px solid ${mode === m ? "#1565C0" : "#ddd"};background:${mode === m ? "#1565C0" : "#fff"};color:${mode === m ? "#fff" : "#555"};border-radius:12px;padding:3px 11px;font-size:11.5px;font-weight:700;cursor:pointer;margin-right:5px">${t}</button>`;
+  const text = moltSmsText(g, mode);
+  return renderSmsBox("mg", text, moltSmsState.phone, "이 환우 프로그램을 문자로 보내기",
+    `<div style="margin-bottom:8px"><span style="font-size:10.5px;color:#777;margin-right:6px">문자 길이</span>${chip("short", "요약(단계별 한 문장)")}${chip("full", "전체 내용")}</div>`);
+}
 function renderMoltGuidePanel(){
   const head = `
   <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
@@ -1287,6 +1326,7 @@ function renderMoltGuidePanel(){
           <div style="font-size:12.5px;color:#444;line-height:1.6;margin-top:2px">${esc(s.detail)}</div>
         </div>`).join("")}
         ${g.caution ? `<div style="font-size:11px;color:#8D6E00;background:#FFF8E1;border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.6">⚠️ ${esc(g.caution)}</div>` : ""}
+        ${renderMoltSms(g)}
       </div>` : ""}
     </div>`;
   }).join("");
@@ -7968,6 +8008,7 @@ let treatmentTabState = { species: "broiler", openKey: null, adminOpen: false, f
 let seasonalTabState = { season: "spring", openKey: null, adminOpen: false, formKey: undefined };
 let disinfectTabState = { openKey: null, adminOpen: false, formKey: undefined, generalOpenKey: null };
 let moltGuideState = { openKey: null };
+let moltSmsState = { mode:"short", phone:"" };   // short=단계별 첫 문장 요약, full=전체 문구
 // 학습 화면 내비게이션 — deckKey가 없으면 덱 목록, 있으면 그 덱의 카드
 // 뷰어(cardIndex번째 카드, flipped면 뒷면 표시 중). deckFormKey/cardFormKey는
 // 관리자가 덱/카드를 추가·편집할 때 쓰는 폼 상태다(둘 다 undefined면 새로 추가).
@@ -16763,24 +16804,10 @@ function attachEvents(){
     } else lightGuideState[k] = (k === "stim") ? Number(el.value) : el.value;
     saveLightGuide(); render();
   });
-  const lgPhone = document.getElementById("lg-sms-phone");
-  if(lgPhone) lgPhone.onchange = () => { lightGuideState.phone = lgPhone.value.trim(); saveLightGuide(); };
-  const lgMsg = t => { const m = document.getElementById("lg-sms-msg"); if(m) m.textContent = t; };
-  const lgSmsBtn = document.getElementById("lg-sms-btn");
-  if(lgSmsBtn) lgSmsBtn.onclick = () => {
-    const txt = (document.getElementById("lg-sms-text") || {}).value || "";
-    const num = ((lgPhone && lgPhone.value) || "").replace(/[^0-9+]/g, "");
-    lightGuideState.phone = num ? ((lgPhone && lgPhone.value) || "").trim() : ""; saveLightGuide();
-    const sep = /iPhone|iPad|iPod/i.test(navigator.userAgent) ? "&" : "?";
-    lgMsg("문자 앱을 여는 중입니다... 열리지 않으면 「문자 내용 복사」를 눌러 붙여 넣으세요.");
-    location.href = "sms:" + num + sep + "body=" + encodeURIComponent(txt);
-  };
-  const lgCopyBtn = document.getElementById("lg-sms-copy");
-  if(lgCopyBtn) lgCopyBtn.onclick = async () => {
-    const ta = document.getElementById("lg-sms-text"); if(!ta) return;
-    try { await navigator.clipboard.writeText(ta.value); lgMsg("✅ 복사했습니다 — 문자·카카오톡에 붙여 넣으세요."); }
-    catch(e){ ta.focus(); ta.select(); lgMsg("복사 권한이 없어 글을 선택해 두었습니다 — 길게 눌러 복사하세요."); }
-  };
+  bindSmsBox("lg", v => { lightGuideState.phone = v; saveLightGuide(); });
+  // 환우 프로그램 문자 보내기
+  document.querySelectorAll(".mg-sms-mode").forEach(b => b.onclick = () => { moltSmsState.mode = b.dataset.mode; render(); });
+  bindSmsBox("mg", v => { moltSmsState.phone = v; lightGuideState.phone = v; saveLightGuide(); });
   const lgGotoW = document.getElementById("lg-goto-weather");
   if(lgGotoW) lgGotoW.onclick = () => switchTab("weather");
   const lgGps = document.getElementById("lg-gps");
