@@ -6980,7 +6980,7 @@ function hkFarms(){ return HPAI_KR_FARMS.filter(f => hkInPeriod(f.conf, hpaiKrSt
 function hkWild(){ return HPAI_KR_WILD.filter(w => hkInPeriod(w.conf, hpaiKrState.period)); }
 function hkFmt(d){ return `${hkMonth(d)}.${Number(d.slice(8, 10))}`; }
 function hkCount(list, key){ const m = {}; list.forEach(x => { const k = typeof key === "function" ? key(x) : x[key]; m[k] = (m[k] || 0) + 1; }); return m; }
-function hkProvFill(n){ return n <= 0 ? "#F1F3F4" : n <= 2 ? "#FFE0B2" : n <= 5 ? "#FFB74D" : n <= 9 ? "#F4511E" : "#B71C1C"; }
+function hkProvFill(n){ return n <= 0 ? "#F1F3F4" : n <= 2 ? "#FFF3E0" : n <= 5 ? "#FFE0B2" : n <= 9 ? "#FFCC80" : "#FFAB91"; }
 function renderHpaiKrMap(){
   const st = hpaiKrState, farms = hkFarms(), wild = hkWild();
   const showF = st.layer !== "wild", showW = st.layer !== "farm";
@@ -6989,27 +6989,32 @@ function renderHpaiKrMap(){
     const sel = st.sel && st.sel.type === "sido" && st.sel.key === k;
     return `<path class="hk-prov" data-sido="${k}" d="${HPAI_KR_MAP.provs[k]}" fill="${showF ? hkProvFill(bySido[k] || 0) : "#F1F3F4"}" stroke="${sel ? "#1a2744" : "#fff"}" stroke-width="${sel ? 2.2 : 1}" style="cursor:pointer" />`;
   }).join("");
-  const labels = Object.keys(HPAI_KR_MAP.labels).map(k => {
-    const p = HPAI_KR_MAP.labels[k], n = bySido[k] || 0;
-    const dark = showF && n >= 6;
-    return `<text x="${p[0]}" y="${p[1]}" font-size="9.5" fill="${dark ? "#fff" : "#78909C"}" text-anchor="middle" style="pointer-events:none;font-weight:700">${k}${showF && n ? " " + n : ""}</text>`;
+  // 서해안·남해안에 점이 몰려 글자가 가려지므로 바다 쪽 빈 곳에 이름표를 두고 가는 선으로 잇는다
+  const HK_LABEL = { "경기":[96,46], "인천":[46,102], "충남":[40,190], "세종":[56,238], "전북":[38,290], "광주":[30,350], "전남":[50,440] };
+  const SHOW = ["경기", "인천", "충남", "세종", "충북", "전북", "광주", "전남", "경북", "경남", "강원", "제주"];
+  const lbl = k => k + (showF && (bySido[k] || 0) ? " " + bySido[k] : "");
+  const labels = SHOW.map(k => {
+    const c = HPAI_KR_MAP.labels[k], o = HK_LABEL[k];
+    const txt = (x, y, anchor) => `<text x="${x}" y="${y}" font-size="13" fill="#263238" text-anchor="${anchor}" stroke="#fff" stroke-width="3.2" stroke-linejoin="round" paint-order="stroke" style="pointer-events:none;font-weight:800">${lbl(k)}</text>`;
+    if(!o) return txt(c[0], c[1], "middle");
+    return `<line x1="${o[0] + 4}" y1="${o[1] - 4}" x2="${c[0]}" y2="${c[1]}" stroke="#78909C" stroke-width="0.9" stroke-dasharray="2 2" style="pointer-events:none"/>` + txt(o[0], o[1], "middle");
   }).join("");
   const grp = {};
   farms.forEach(f => { const k = f.sido + "|" + f.sgg; (grp[k] = grp[k] || []).push(f); });
   const dots = !showF ? "" : Object.keys(grp).map(k => {
     const p = HPAI_KR_MAP.pts[k]; if(!p) return "";
-    const n = grp[k].length, r = 4.5 + 2.6 * Math.sqrt(n) , sel = st.sel && st.sel.type === "sgg" && st.sel.key === k;
-    return `<g class="hk-dot" data-key="${esc(k)}" style="cursor:pointer"><circle cx="${p[0]}" cy="${p[1]}" r="${r.toFixed(1)}" fill="#C62828" fill-opacity="0.78" stroke="${sel ? "#1a2744" : "#fff"}" stroke-width="${sel ? 2.4 : 1.2}"/>${n > 1 ? `<text x="${p[0]}" y="${p[1] + 3.4}" font-size="9.5" fill="#fff" text-anchor="middle" style="pointer-events:none;font-weight:800">${n}</text>` : ""}</g>`;
+    const n = grp[k].length, r = 6.5 + 3.2 * Math.sqrt(n), sel = st.sel && st.sel.type === "sgg" && st.sel.key === k;
+    return `<g class="hk-dot" data-key="${esc(k)}" style="cursor:pointer"><circle cx="${p[0]}" cy="${p[1]}" r="${r.toFixed(1)}" fill="#C62828" fill-opacity="0.92" stroke="${sel ? "#1a2744" : "#fff"}" stroke-width="${sel ? 3 : 2}"/>${n > 1 ? `<text x="${p[0]}" y="${p[1] + 4.5}" font-size="13" fill="#fff" text-anchor="middle" style="pointer-events:none;font-weight:800">${n}</text>` : ""}</g>`;
   }).join("");
   const wgrp = {};
   wild.forEach(w => { const k = w.sido + "|" + w.sgg; (wgrp[k] = wgrp[k] || []).push(w); });
   const wdots = !showW ? "" : Object.keys(wgrp).map(k => {
     const p = HPAI_KR_MAP.pts[k]; if(!p) return "";
-    const n = wgrp[k].length, r = 3.6 + 1.6 * Math.sqrt(n), off = showF ? 7 : 0, sel = st.sel && st.sel.type === "wsgg" && st.sel.key === k;
+    const n = wgrp[k].length, r = 6 + 2 * Math.sqrt(n), off = showF ? 9 : 0, sel = st.sel && st.sel.type === "wsgg" && st.sel.key === k;
     const x = p[0] + off, y = p[1] - off;
-    return `<g class="hk-wdot" data-key="${esc(k)}" style="cursor:pointer"><polygon points="${x},${(y - r).toFixed(1)} ${(x + r).toFixed(1)},${y} ${x},${(y + r).toFixed(1)} ${(x - r).toFixed(1)},${y}" fill="#1976D2" fill-opacity="0.85" stroke="${sel ? "#1a2744" : "#fff"}" stroke-width="${sel ? 2 : 1}"/></g>`;
+    return `<g class="hk-wdot" data-key="${esc(k)}" style="cursor:pointer"><polygon points="${x},${(y - r).toFixed(1)} ${(x + r).toFixed(1)},${y} ${x},${(y + r).toFixed(1)} ${(x - r).toFixed(1)},${y}" fill="#1565C0" fill-opacity="0.95" stroke="${sel ? "#1a2744" : "#fff"}" stroke-width="${sel ? 2.6 : 1.6}"/></g>`;
   }).join("");
-  return `<svg viewBox="10 0 370 560" style="width:100%;max-width:330px;height:auto;display:block;margin:0 auto" role="img" aria-label="우리나라 지도에 표시한 가금농장 고병원성 AI 발생과 야생조류 검출 위치">${paths}${labels}${wdots}${dots}</svg>`;
+  return `<svg viewBox="10 0 370 560" style="width:100%;max-width:460px;height:auto;display:block;margin:0 auto" role="img" aria-label="우리나라 지도에 표시한 가금농장 고병원성 AI 발생과 야생조류 검출 위치">${paths}${wdots}${dots}${labels}</svg>`;
 }
 function renderHpaiKrDetail(){
   const st = hpaiKrState, sel = st.sel;
@@ -7049,14 +7054,14 @@ function renderHpaiKrCard(){
   const sggCnt = new Set(all.map(f => f.sido + "|" + f.sgg)).size;
   const layerBtn = (k, t) => `<button class="hk-layer" data-k="${k}" style="border:1.5px solid ${st.layer === k ? "#C62828" : "#ddd"};background:${st.layer === k ? "#C62828" : "#fff"};color:${st.layer === k ? "#fff" : "#555"};border-radius:16px;padding:5px 12px;font-size:11.5px;font-weight:700;cursor:pointer">${t}</button>`;
   const perBtn = p => `<button class="hk-period" data-k="${p[0]}" style="border:1.5px solid ${st.period === p[0] ? "#1a2744" : "#ddd"};background:${st.period === p[0] ? "#1a2744" : "#fff"};color:${st.period === p[0] ? "#fff" : "#555"};border-radius:16px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer">${p[1]}</button>`;
-  const legend = `<div style="display:flex;gap:10px;flex-wrap:wrap;font-size:10.5px;color:#666;justify-content:center;margin-top:4px"><span><b style="color:#C62828">●</b> 가금농장(크기=건수)</span><span><b style="color:#1976D2">◆</b> 야생조류 검출</span><span>시·도 색: <i style="background:#FFE0B2;padding:0 6px">1~2</i> <i style="background:#FFB74D;padding:0 6px">3~5</i> <i style="background:#F4511E;color:#fff;padding:0 6px">6~9</i> <i style="background:#B71C1C;color:#fff;padding:0 6px">10+</i></span></div>`;
+  const legend = `<div style="display:flex;gap:10px;flex-wrap:wrap;font-size:10.5px;color:#666;justify-content:center;margin-top:4px"><span><b style="color:#C62828">●</b> 가금농장(크기=건수)</span><span><b style="color:#1976D2">◆</b> 야생조류 검출</span><span>시·도 색: <i style="background:#FFF3E0;padding:0 6px;border:1px solid #eee">1~2</i> <i style="background:#FFE0B2;padding:0 6px">3~5</i> <i style="background:#FFCC80;padding:0 6px">6~9</i> <i style="background:#FFAB91;padding:0 6px">10+</i></span></div>`;
   const kpi = (v, t, c) => `<div style="flex:1 1 90px;background:#fff;border:1px solid #f0f0f0;border-radius:10px;padding:8px 6px;text-align:center"><div style="font-size:19px;font-weight:900;color:${c}">${v}</div><div style="font-size:10.5px;color:#777;margin-top:1px">${t}</div></div>`;
   const body = `
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin:12px 0 8px">${kpi(farms.length + "건", "가금농장 발생", "#C62828")}${kpi(wild.length + "건", "야생조류 검출", "#1976D2")}${kpi((tot / 10000).toFixed(0) + "만수", "발생농장 사육수수", "#6D4C41")}${kpi(new Set(farms.map(f => f.sido + f.sgg)).size + "곳", "발생 시·군", "#2E7D32")}</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">${HPAI_KR_PERIODS.map(perBtn).join("")}</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">${layerBtn("farm", "🐔 가금농장")}${layerBtn("wild", "🦆 야생조류")}${layerBtn("both", "함께 보기")}</div>
     <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start">
-      <div style="flex:1 1 280px;min-width:0">${renderHpaiKrMap()}${legend}</div>
+      <div style="flex:1 1 320px;min-width:0">${renderHpaiKrMap()}${legend}</div>
       <div style="flex:1 1 240px;min-width:0">
         <div style="font-size:12px;font-weight:800;color:#333;margin-bottom:2px">시·도별 가금농장 발생 <span style="font-weight:400;color:#aaa">(눌러서 상세)</span></div>${bars || `<div style="font-size:11.5px;color:#aaa">해당 기간 발생 없음</div>`}
         <div style="font-size:12px;font-weight:800;color:#333;margin:12px 0 0">월별 발생(확진일 기준, 전체 ${all.length}건)</div>${monBars}
