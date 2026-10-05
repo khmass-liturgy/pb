@@ -6999,7 +6999,7 @@ function renderHpaiKrMap(){
   const lbl = k => k + (showF && (bySido[k] || 0) ? " " + bySido[k] : "");
   const labels = SHOW.map(k => {
     const c = HPAI_KR_MAP.labels[k], o = HK_LABEL[k];
-    const txt = (x, y, anchor) => `<text x="${x}" y="${y}" font-size="13" fill="#263238" text-anchor="${anchor}" stroke="#fff" stroke-width="2" stroke-linejoin="round" paint-order="stroke" style="pointer-events:none;font-weight:500">${lbl(k)}</text>`;
+    const txt = (x, y, anchor) => `<text x="${x}" y="${y}" font-size="13" fill="#000" text-anchor="${anchor}" stroke="#fff" stroke-width="1" stroke-linejoin="round" paint-order="stroke" style="pointer-events:none;font-weight:500">${lbl(k)}</text>`;
     if(!o) return txt(c[0], c[1], "middle");
     return `<line x1="${o[0] + 4}" y1="${o[1] - 4}" x2="${c[0]}" y2="${c[1]}" stroke="#78909C" stroke-width="0.9" stroke-dasharray="2 2" style="pointer-events:none"/>` + txt(o[0], o[1], "middle");
   }).join("");
