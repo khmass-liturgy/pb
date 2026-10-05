@@ -1332,19 +1332,125 @@ function renderLightCards(){
     </div>`;
   }).join("");
 }
+// ── 육계 점등 계산기 ─────────────────────────────────────────────────────────
+// 입식일·출하일령·소등 시각을 넣으면 일령별 점등/암기 시간, 소등·점등 시각, 조도를 뽑는다.
+// Ross: 2025 핸드북 Typical Lighting Program / Cobb: 관리 가이드 5.3(표를 1시간 단계로 단순화) / 동물복지: 명기 8h·암기 6h·20 lux 이상.
+const BR_PROGRAMS = {
+  ross:{ name:"Ross 308 (일반)", max:4 },
+  cobb1:{ name:"Cobb 500 옵션1 (출하 2.5kg 미만)", max:6 },
+  cobb2:{ name:"Cobb 500 옵션2 (2.5~3.0kg)", max:8 },
+  cobb3:{ name:"Cobb 500 옵션3 (3.0kg 초과)", max:11 },
+  welfare:{ name:"동물복지 인증 육계", max:6 },
+};
+const BR_STATE_KEY = "broiler_light_v1";
+let broilerLightState = (function(){
+  const t = new Date(); const pad = n => String(n).padStart(2, "0");
+  const base = { prog:"ross", place:`${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())}`, days:32, off:"22:00", phone:"" };
+  try { const s = JSON.parse(localStorage.getItem(BR_STATE_KEY) || "null"); if(s) return Object.assign(base, s); } catch(e){}
+  return base;
+})();
+function saveBroilerLight(){ try { localStorage.setItem(BR_STATE_KEY, JSON.stringify(broilerLightState)); } catch(e){} }
+function brDark(prog, d, days){
+  const left = days - d;                               // 출하(포획)까지 남은 일수
+  if(prog === "ross"){
+    if(left >= 0 && left <= 3) return 1;               // 출하 전 3일 23시간 점등
+    return d <= 6 ? [1, 2, 2, 3, 3, 4, 4][d] : 4;
+  }
+  if(prog === "welfare") return d <= 6 ? [1, 2, 2, 3, 4, 5, 6][d] : 6;
+  const max = BR_PROGRAMS[prog].max;                   // Cobb
+  let dark = d === 0 ? 0 : d <= 6 ? 1 : Math.min(max, 1 + (d - 6));
+  if(left === 0) return 0;
+  if(left <= 5) dark = Math.min(dark, left);           // 출하 5일 전부터 암기를 1시간씩 줄임
+  return dark;
+}
+function brLux(prog, d){
+  if(d <= 6) return prog === "cobb1" || prog === "cobb2" || prog === "cobb3" ? "25 이상(가장 어두운 곳)" : "30~40";
+  return prog === "welfare" ? "20 이상(균일)" : "5~10";
+}
+function brSchedule(st){
+  const place = new Date(st.place + "T00:00:00");
+  if(isNaN(place.getTime())) return null;
+  const days = Math.max(20, Math.min(50, Number(st.days) || 32));
+  const rows = [];
+  for(let d = 0; d <= days; d++){
+    const dark = brDark(st.prog, d, days);
+    rows.push({ d, date:new Date(place.getTime() + d * 86400000), dark, light:24 - dark, lux:brLux(st.prog, d) });
+  }
+  const groups = [];
+  rows.forEach(r => {
+    const g = groups[groups.length - 1];
+    if(g && g.dark === r.dark && g.lux === r.lux) { g.to = r; } else groups.push({ from:r, to:r, dark:r.dark, lux:r.lux });
+  });
+  return { rows, groups, days };
+}
+function brClock(off, darkH){
+  const m = /^(\d{1,2}):(\d{2})$/.exec(off || "22:00") || ["", "22", "00"];
+  const t = ((Number(m[1]) * 60 + Number(m[2]) + Math.round(darkH * 60)) % 1440 + 1440) % 1440;
+  return String(Math.floor(t / 60)).padStart(2, "0") + ":" + String(t % 60).padStart(2, "0");
+}
+function brFmtDate(d){ return `${d.getMonth() + 1}/${d.getDate()}`; }
+function brSmsText(st, sc){
+  if(!sc) return "";
+  const lines = sc.groups.map(g => {
+    const age = g.from.d === g.to.d ? `${g.from.d}일` : `${g.from.d}~${g.to.d}일`;
+    const when = `${brFmtDate(g.from.date)}${g.from.d === g.to.d ? "" : "~" + brFmtDate(g.to.date)}`;
+    const tm = g.dark === 0 ? "계속 점등" : `소등 ${st.off}→점등 ${brClock(st.off, g.dark)}`;
+    return `${age}(${when}) 점등 ${g.from.light}h·암기 ${g.dark}h · ${tm} · 조도 ${g.lux}lux`;
+  });
+  const p = new Date(st.place + "T00:00:00");
+  return `[육계 점등프로그램]\n${BR_PROGRAMS[st.prog].name} · 입식 ${brFmtDate(p)} · 출하 ${sc.days}일령(${brFmtDate(sc.rows[sc.days].date)})\n` + lines.join("\n") + `\n※참고용 — 육종회사·인증기관 최신 기준 우선 (polcon.cc)`;
+}
+function renderBroilerCalc(){
+  const st = broilerLightState, sc = brSchedule(st);
+  const inp = "padding:8px 9px;border:1px solid #ddd;border-radius:8px;font-size:13px;background:#fff;width:100%;box-sizing:border-box";
+  const lab = (t, inner) => `<label style="display:block"><div style="font-size:11px;color:#666;margin-bottom:3px">${t}</div>${inner}</label>`;
+  const form = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:10px">
+    ${lab("점등 프로그램", `<select class="br-in" data-k="prog" style="${inp}">${Object.keys(BR_PROGRAMS).map(k => `<option value="${k}" ${st.prog === k ? "selected" : ""}>${esc(BR_PROGRAMS[k].name)}</option>`).join("")}</select>`)}
+    ${lab("병아리 입식일", `<input class="br-in" data-k="place" type="date" value="${esc(st.place)}" style="${inp}" />`)}
+    ${lab("출하(포획) 일령", `<input class="br-in" data-k="days" type="number" min="20" max="50" step="1" value="${esc(st.days)}" style="${inp}" />`)}
+    ${lab("매일 소등 시각", `<input class="br-in" data-k="off" type="time" value="${esc(st.off)}" style="${inp}" />`)}
+  </div>`;
+  if(!sc) return form + `<div style="font-size:12px;color:#C62828">입식일을 입력하세요.</div>`;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const age = Math.round((today.getTime() - new Date(st.place + "T00:00:00").getTime()) / 86400000);
+  const cur = sc.rows[age];
+  const todayBox = cur
+    ? `<div style="background:#FFF8E1;border-radius:10px;padding:9px 12px;font-size:12.5px;color:#6D4C00;line-height:1.7;margin-bottom:10px">📅 오늘은 입식 <b>${age}일령</b> — 점등 <b>${cur.light}시간</b> · 암기 <b>${cur.dark}시간</b>${cur.dark ? ` (소등 ${esc(st.off)} → 점등 ${brClock(st.off, cur.dark)})` : " (계속 점등)"} · 조도 ${esc(cur.lux)} lux</div>`
+    : `<div style="background:#F5F5F5;border-radius:10px;padding:8px 12px;font-size:11.5px;color:#777;margin-bottom:10px">오늘(${brFmtDate(today)})은 이 입식 계획 기간(0~${sc.days}일령) 밖입니다.</div>`;
+  const dk6 = sc.rows.filter(r => r.d >= 8 && r.dark >= 6).length, tot = sc.rows.filter(r => r.d >= 8).length;
+  const luxOk = st.prog === "welfare";
+  const welfare = (dk6 === tot && luxOk)
+    ? `<div style="font-size:11.5px;color:#2E7D32;background:#E8F5E9;border-radius:8px;padding:7px 10px;margin-bottom:10px">✅ 8일령 이후 매일 암기 6시간 이상 · 조도 20 lux 이상 — 동물복지 인증 기준(명기 8시간·암기 6시간·20 lux)을 충족하는 계획입니다.</div>`
+    : `<div style="font-size:11.5px;color:#8D6E00;background:#FFF8E1;border-radius:8px;padding:7px 10px;margin-bottom:10px;line-height:1.65">ℹ️ 8일령 이후 암기 6시간 이상인 날 ${dk6}/${tot}일${luxOk ? "" : " · 낮 조도 20 lux 미만(5~10 lux) 구간이 있어"} 동물복지 인증 기준에는 맞지 않습니다. 인증농장은 「동물복지 인증 육계」를 선택하세요.</div>`;
+  const trs = sc.groups.map(g => {
+    const age2 = g.from.d === g.to.d ? `${g.from.d}일` : `${g.from.d}~${g.to.d}일`;
+    const dt = g.from.d === g.to.d ? brFmtDate(g.from.date) : `${brFmtDate(g.from.date)}~${brFmtDate(g.to.date)}`;
+    const hit = cur && cur.d >= g.from.d && cur.d <= g.to.d;
+    return `<tr style="border-top:1px solid #f1f1f1;${hit ? "background:#FFF8E1" : ""}"><td style="padding:6px 5px;font-weight:700">${age2}${hit ? " ◀" : ""}</td><td style="padding:6px 5px;color:#888">${dt}</td><td style="padding:6px 5px;color:#EF6C00;font-weight:800">${g.from.light}</td><td style="padding:6px 5px;color:#1565C0;font-weight:700">${g.dark}</td><td style="padding:6px 5px">${g.dark === 0 ? "계속 점등" : `${esc(st.off)} → ${brClock(st.off, g.dark)}`}</td><td style="padding:6px 5px;color:#555">${esc(g.lux)}</td></tr>`;
+  }).join("");
+  const cobbNote = "Cobb 가이드: 첫날 24h, 이후 소등 시각 고정, 100~160g(약 7일령)부터 암기를 1시간씩 늘려 최대치까지, 출하 5일 전부터 1시간씩 줄임(표를 단순화한 값).";
+  const note = { ross:"Ross 핸드북 Typical Lighting Program: 첫날 23h 점등, 2~7일 암기를 4시간까지 단계 증가, 이후 연속 4시간 이상, 출하 전 3일 23h 점등.", cobb1:cobbNote, cobb2:cobbNote, cobb3:cobbNote, welfare:"동물복지 인증 기준(명기 8h 이상·암기 6h 이상·낮 20 lux 이상)을 만족하도록 입식 후 암기를 6시간까지 올리고 이후 유지합니다. 1~7일령은 육추를 위해 암기를 단계적으로 늘립니다." }[st.prog];
+  return form + todayBox + welfare + `
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:440px;font-size:11.5px">
+      <thead><tr style="text-align:left;color:#999;font-size:10.5px;border-bottom:2px solid #eee"><th style="padding:5px">일령</th><th style="padding:5px">날짜</th><th style="padding:5px">점등(h)</th><th style="padding:5px">암기(h)</th><th style="padding:5px">소등 → 점등</th><th style="padding:5px">조도(lux)</th></tr></thead>
+      <tbody>${trs}</tbody></table></div>
+    <div style="font-size:10px;color:#aaa;line-height:1.7;margin-top:10px">※ ${esc(note)} 실제 적용은 체중·계군 상태와 육종회사·인증기관의 최신 기준을 우선하세요. 암기 중 조도는 0.4 lux 미만이어야 합니다.</div>
+    ${renderSmsBox("br", brSmsText(st, sc), st.phone, "육계 점등 프로그램을 문자로 보내기")}`;
+}
 function renderLightGuidePanel(){
   const st = lightGuideState;
   const head = `
   <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
     <div>
       <div class="display" style="font-size:16px;margin-bottom:3px">💡 점등 프로그램(산란계·육계, 육종회사별)</div>
-      <div style="font-size:11px;color:#aaa">로만·하이라인·이사 공식 가이드의 점등 원칙과, 입식일·지역별 자연 일장을 겹쳐 본 계절별 계산기</div>
+      <div style="font-size:11px;color:#aaa">로만·하이라인·이사 공식 가이드의 점등 원칙, 산란계 계절별 계산기, 육계(Ross·Cobb·동물복지) 일령별 점등 계산기</div>
     </div>
     <button id="lightguide-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button>
   </div>`;
-  const tabs = [["calc", "🌤️ 계절별 계산기"], ["guide", "📚 육종회사별 가이드"]];
+  const tabs = [["calc", "🌤️ 산란계 계절별 계산기"], ["broiler", "🍗 육계 점등 계산기"], ["guide", "📚 육종회사별 가이드"]];
   const bar = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">${tabs.map(t => `<button class="lg-tab" data-tab="${t[0]}" style="border:2px solid ${st.tab === t[0] ? "#F9A825" : "#eee"};background:${st.tab === t[0] ? "#F9A825" : "#fff"};color:${st.tab === t[0] ? "#fff" : "#444"};border-radius:10px;padding:8px 14px;font-size:12.5px;font-weight:700;cursor:pointer">${t[1]}</button>`).join("")}</div>`;
   const body = st.tab === "guide" ? renderLightCards() + `<div style="font-size:9px;color:#aaa;line-height:1.6;margin-top:6px">※ 실제 병아리를 구입한 육종회사·사료회사의 최신 공식 가이드가 우선합니다. 가이드 판·세대에 따라 수치가 바뀔 수 있습니다.</div>`
+    : st.tab === "broiler" ? `<div class="card" style="padding:14px 14px 10px;border-top:4px solid #F9A825"><div id="br-calc">${renderBroilerCalc()}</div></div>`
     : `<div class="card" style="padding:14px 14px 10px;border-top:4px solid #F9A825"><div id="lg-calc">${renderLightCalc()}</div></div>`;
   return head + bar + body;
 }
@@ -16873,6 +16979,11 @@ function attachEvents(){
     saveLightGuide(); render();
   });
   bindSmsBox("lg", v => { lightGuideState.phone = v; saveLightGuide(); });
+  document.querySelectorAll(".br-in").forEach(el => el.onchange = () => {
+    broilerLightState[el.dataset.k] = el.dataset.k === "days" ? Number(el.value) : el.value;
+    saveBroilerLight(); render();
+  });
+  bindSmsBox("br", v => { broilerLightState.phone = v; saveBroilerLight(); });
   // 환우 프로그램 문자 보내기
   document.querySelectorAll(".mg-sms-mode").forEach(b => b.onclick = () => { moltSmsState.mode = b.dataset.mode; render(); });
   bindSmsBox("mg", v => { moltSmsState.phone = v; lightGuideState.phone = v; saveLightGuide(); });
