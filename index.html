@@ -39,6 +39,9 @@
   }
   .header-inner { max-width: 900px; margin: 0 auto; }
   .header-top { display: flex; align-items: center; justify-content: space-between; padding: 14px 0 8px; }
+  /* 세로 화면(휴대폰 등)에서만 보이는 가로 모드 안내 */
+  .hd-landscape-tip { display: none; font-size: 11.5px; color: #F9C74F; background: rgba(255,255,255,.08); border-radius: 8px; padding: 5px 10px; margin: 0 0 8px; line-height: 1.5; }
+  @media (orientation: portrait) { .hd-landscape-tip { display: block; } }
   /* 탭이 8개로 늘면서 좁은 화면에서 글자가 두 줄로 꺾이는 문제가 있어, 줄바꿈을
      막고 대신 옆으로 스크롤되게 한다(모바일 브레이크포인트와 동일한 방식). */
   .tabs { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
@@ -10895,6 +10898,7 @@ function renderHeader(){
         ${renderHeaderSolarTerm(now)}
       </div>
     </div>
+    <div class="hd-landscape-tip" style="${embedded?"display:none !important":""}">📱↔️ 이 앱의 화면은 <b>가로 모드</b>에 최적화되어 있습니다. 휴대폰을 가로로 돌려 보시면 더 넓고 편하게 볼 수 있어요.</div>
     <div class="tabs-wrap">
     <button class="tabs-arrow left" type="button" aria-label="앞쪽 메뉴 보기" tabindex="-1"><span>‹</span></button>
     <div class="tabs">
