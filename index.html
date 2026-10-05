@@ -6102,6 +6102,7 @@ async function emergEsummary(ids){
 }
 
 // 최근 90일 양계 질병 논문 → 질병별 집계
+const EMERG_MIN_PAPERS = 5;   // 최근 30일 이 편수 이상인 질병만 노출
 function emergAnalyze(papers){
   const now = Date.now(), D = 24*3600*1000;
   const rows = EMERG_DISEASES.map(d => {
@@ -6116,7 +6117,7 @@ function emergAnalyze(papers){
     else if(recent >= 2 && ratio >= 1.2) trend = "up";
     else if(base >= 3 && ratio <= 0.7) trend = "down";
     return { d, mine, recent, prior, base, ratio, trend, score: recent * (1 + Math.max(0, ratio - 1)) };
-  }).filter(r => r.recent > 0); // 최근 30일 0편인 질병은 제외
+  }).filter(r => r.recent >= EMERG_MIN_PAPERS); // 최근 30일 5편 미만인 질병은 제외
   rows.sort((a,b)=>b.recent-a.recent || b.mine.length-a.mine.length || b.score-a.score); // 최근 30일 논문 수 많은 순
   return rows;
 }
@@ -6363,8 +6364,8 @@ function renderEmergingDiseaseCard(){
   const upd = s.updated ? `${s.updated.getMonth()+1}/${s.updated.getDate()} ${s.updated.getHours()}시 기준` : "";
   return wrap(`
     ${searchBox}
-    <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:6px">📈 요즘 많이 연구되는 질병 <span style="font-weight:400;color:#999">— 최근 30일 논문 편수 많은 순(자동 정렬) · 논문 ${s.papers.length}편 분석 ${upd}</span></div>
-    ${rows || `<div style="font-size:12px;color:#aaa;padding:10px 0">분류된 질병 논문이 없습니다.</div>`}
+    <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:6px">📈 요즘 많이 연구되는 질병 <span style="font-weight:400;color:#999">— 최근 30일 논문 ${EMERG_MIN_PAPERS}편 이상만 · 편수 많은 순(자동 정렬) · 논문 ${s.papers.length}편 분석 ${upd}</span></div>
+    ${rows || `<div style="font-size:12px;color:#aaa;padding:10px 0">최근 30일 논문이 ${EMERG_MIN_PAPERS}편 이상인 질병이 없습니다.</div>`}
     <div style="font-size:10px;color:#aaa;line-height:1.7;margin-top:8px;border-top:1px dashed #eee;padding-top:8px">
       ※ 방법: PubMed에서 최근 90일간 닭·가금·육계·산란계와 질병 관련 논문 제목을 모아 병명 키워드로 분류했습니다(제목 기준이라 실제 연구 수와 차이가 있을 수 있음).
       🔥급상승 = 최근 30일 4편 이상이면서 직전 60일 월평균의 1.5배 이상 · 🆕신규 = 직전 60일에 없던 질병이 30일에 3편 이상 · 논문 제목은 원문(영어)입니다.
