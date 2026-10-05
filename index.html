@@ -4775,7 +4775,7 @@ function renderHpaiNewsCard(){
 
   return `
   <div class="card" style="margin-bottom:14px;border-top:4px solid #C62828">
-    <div class="display" style="font-size:15px;margin-bottom:4px">🦠 AI 관련 소식</div>
+    <div class="display" style="font-size:15px;margin-bottom:4px">🦠 AI 관련 소식 ${hpaiTagline("소식이 빨라야 방역도 빠르다")}</div>
     <div style="font-size:11px;color:#aaa;margin-bottom:4px">최신 5건만 보여드립니다</div>
     <div>${list}</div>
     ${adminBox}
@@ -6814,7 +6814,7 @@ function renderHpaiSymptomCard(){
   const head = `
   <div id="hs-toggle" role="button" tabindex="0" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;gap:10px">
     <div>
-      <div class="display" style="font-size:15px">🩺 고병원성 조류인플루엔자의 증상</div>
+      <div class="display" style="font-size:15px">🩺 고병원성 조류인플루엔자의 증상 ${hpaiTagline("아는 만큼 먼저 보인다")}</div>
       <div style="font-size:11px;color:#888;margin-top:2px">특징 · 임상증상(왜 생기나) · 부검소견(왜 생기나) · 그림으로 보기</div>
     </div>
     <div style="font-size:12px;color:${color};font-weight:700;white-space:nowrap">${s.open ? "접기 ▲" : "열기 ▼"}</div>
@@ -6923,7 +6923,7 @@ function renderHpaiPreventCard(){
   const head = `
   <div id="hp-toggle" role="button" tabindex="0" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;gap:10px">
     <div>
-      <div class="display" style="font-size:15px">🚨 AI 예방·조기신고 (방역수칙 · 사양관리 · 빠른 연락)</div>
+      <div class="display" style="font-size:15px">🚨 AI 예방·조기신고 (방역수칙 · 사양관리 · 빠른 연락) ${hpaiTagline("의심되면 먼저 신고한다")}</div>
       <div style="font-size:11px;color:#888;margin-top:2px">의심되면 폐사가 늘기 전에 신고 — 조기 신고가 내 농장과 이웃 농장을 지킵니다</div>
     </div>
     <div style="font-size:12px;color:${color};font-weight:700;white-space:nowrap">${s.open ? "접기 ▲" : "열기 ▼"}</div>
@@ -7022,10 +7022,12 @@ function renderHpaiKrDetail(){
   else { const l = hkWild().filter(w => w.sido + "|" + w.sgg === sel.key); title = `${sel.key.replace("|", " ")} — 야생조류 검출 ${l.length}건`; rows = l.map(w => `<tr style="border-top:1px solid #f1f1f1"><td style="padding:5px 4px;color:#888">${hkFmt(w.conf)}</td><td style="padding:5px 4px;font-weight:700">${esc(w.spot)}</td><td style="padding:5px 4px">${esc(w.sample)}</td><td style="padding:5px 4px;color:#555">${esc(w.sero)}</td></tr>`).join(""); }
   return `<div style="background:#F7F9FC;border-radius:10px;padding:10px 12px"><div style="font-size:12.5px;font-weight:800;color:#1a2744;margin-bottom:6px">${esc(title)} <button id="hk-clear" style="margin-left:6px;font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:1px 8px;cursor:pointer">닫기</button></div>${rows ? `<table style="width:100%;border-collapse:collapse;font-size:11.5px"><tbody>${rows}</tbody></table>` : `<div style="font-size:11.5px;color:#aaa">선택한 기간에 해당 내역이 없습니다.</div>`}</div>`;
 }
+// 카드 제목 오른쪽에 붙이는 한 줄 문구(알약 모양)
+function hpaiTagline(text){ return `<span style="font-size:11.5px;font-weight:700;color:#C62828;background:#FFEBEE;border-radius:12px;padding:2px 9px;margin-left:4px;white-space:nowrap">${esc(text)}</span>`; }
 function renderHpaiKrCard(){
   const st = hpaiKrState, color = "#C62828";
   const head = `<div id="hk-toggle" role="button" tabindex="0" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;gap:10px">
-    <div><div class="display" style="font-size:15px">🗺️ 국내 가금농장 HPAI 발생·검출 현황 <span style="font-size:11.5px;font-weight:700;color:#C62828;background:#FFEBEE;border-radius:12px;padding:2px 9px;margin-left:4px;white-space:nowrap">과거를 알아야 미래가 보인다</span></div>
+    <div><div class="display" style="font-size:15px">🗺️ 국내 가금농장 HPAI 발생·검출 현황 ${hpaiTagline("과거를 알아야 미래가 보인다")}</div>
     <div style="font-size:11px;color:#888;margin-top:2px">2025.9.12 최초 신고 ~ 2026.3.31 · 농림축산식품부 자료 기준 지도</div></div>
     <div style="font-size:12px;color:${color};font-weight:700;white-space:nowrap">${st.open ? "접기 ▲" : "열기 ▼"}</div></div>`;
   const wrap = body => `<div class="card" style="margin-bottom:14px;border-top:4px solid ${color}">${head}${body}</div>`;
@@ -7117,7 +7119,7 @@ function renderHpaiTab(){
   const krCard = `
     <div class="card" style="margin-bottom:14px;border-top:4px solid ${kr?HPAI_LEVEL[kr.level].color:"#2E7D32"}">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
-        <div class="display" style="font-size:15px">🇰🇷 국내 현황</div>
+        <div class="display" style="font-size:15px">🇰🇷 국내 현황 ${hpaiTagline("지금 우리 땅의 상황")}</div>
         ${kr ? hpaiBadge(kr.level) : hpaiBadge("quiet")}
       </div>
       ${kr ? `
@@ -7149,7 +7151,7 @@ function renderHpaiTab(){
 
   const fwCard = `
     <div class="card" style="margin-bottom:14px;border-top:4px solid #6A1B9A">
-      <div class="display" style="font-size:15px;margin-bottom:4px">🦆 ${esc(fw.name||"철새 이동경로")}</div>
+      <div class="display" style="font-size:15px;margin-bottom:4px">🦆 ${esc(fw.name||"철새 이동경로")} ${hpaiTagline("철새의 길이 바이러스의 길")}</div>
       <div style="font-size:11px;color:#888;line-height:1.5;margin-bottom:10px">${esc(fw.note||"")}</div>
       <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px;font-size:12px">
         <span>경로상 <b>${fw.countries||0}</b>개국</span>
@@ -7183,7 +7185,7 @@ function renderHpaiTab(){
 
   const regCard = `
     <div class="card" style="margin-bottom:14px;border-top:4px solid #00695C">
-      <div class="display" style="font-size:15px;margin-bottom:10px">🌍 대륙별 신고 현황</div>
+      <div class="display" style="font-size:15px;margin-bottom:10px">🌍 대륙별 신고 현황 ${hpaiTagline("세계의 불씨가 문턱까지 온다")}</div>
       ${regRows || `<div style="color:#ccc;font-size:11px;text-align:center;padding:14px">데이터 없음</div>`}
     </div>`;
 
@@ -7201,7 +7203,7 @@ function renderHpaiTab(){
   return newsCard + `
   <div class="card" style="margin-bottom:14px;border-top:4px solid #C62828">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
-      <div class="display" style="font-size:16px">🦠 고병원성 AI(HPAI) 발생예측통계</div>
+      <div class="display" style="font-size:16px">🦠 고병원성 AI(HPAI) 발생예측통계 ${hpaiTagline("숫자가 먼저 알려 준다")}</div>
       <div style="display:flex;align-items:center;gap:6px">
         <span style="font-size:11px;color:#fff;background:${r.stale?"#E65100":"#455A64"};border-radius:9px;padding:3px 9px;white-space:nowrap">🗓️ 업데이트 ${esc(r.updated||"-")}</span>
         ${r.stale?`<span style="font-size:10px;color:#E65100;background:#FFF3E0;border-radius:9px;padding:2px 8px">수집 실패 · 이전 자료</span>`:""}
@@ -7230,7 +7232,7 @@ function renderHpaiTab(){
   ${regCard}
 
   <div class="card" style="margin-bottom:14px;border-top:4px solid #455A64">
-    <div class="display" style="font-size:15px;margin-bottom:10px">📊 신고 상위국 (최근 ${r.window_days}일)</div>
+    <div class="display" style="font-size:15px;margin-bottom:10px">📊 신고 상위국 (최근 ${r.window_days}일) ${hpaiTagline("많이 나온 곳에 위험이 있다")}</div>
     <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:430px">
       <thead><tr style="border-bottom:1px solid #eee">
         <th></th>
