@@ -1087,7 +1087,7 @@ function lgCompute(st){
   let prodMax = 0;
   for(let wk = 0; wk <= 40; wk++){
     const d = new Date(hatch.getTime() + wk * 7 * 86400000);
-    const nat = lgDayLength(Number(st.lat) || 36.5, d);
+    const nat = lgDayLength(lgEffectiveLat(st), d);
     const prog = lgProgram(st.company, wk, stim);
     let eff;
     if(st.house === "dark"){ eff = prog; }                 // 암막(무창): 회사 프로그램 그대로
@@ -1097,14 +1097,25 @@ function lgCompute(st){
   }
   return { rows, stim };
 }
+// 위도는 날씨예측 탭에서 정한 농장 위치(weatherState / 저장된 위치)를 자동으로 읽는다. 없으면 목록에서 직접 고른다.
+function lgWeatherLoc(){
+  if(typeof weatherState !== "undefined" && weatherState && Number.isFinite(Number(weatherState.lat)) && weatherState.lat != null && weatherState.status === "done")
+    return { lat:Number(weatherState.lat), name:weatherState.locationName || "내 위치" };
+  const sv = (typeof loadWeatherLocation === "function") ? loadWeatherLocation() : null;
+  return sv && Number.isFinite(Number(sv.lat)) ? { lat:Number(sv.lat), name:sv.name || "저장된 위치" } : null;
+}
+function lgEffectiveLat(st){
+  if(st.latMode !== "manual"){ const w = lgWeatherLoc(); if(w) return w.lat; }
+  return Number(st.lat) || 36.5;
+}
 const LG_STATE_KEY = "light_guide_v1";
 let lightGuideState = (function(){
   const t = new Date(); const pad = n => String(n).padStart(2, "0");
-  const base = { tab:"calc", openKey:"principle", company:"lohmann", hatch:`${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())}`, lat:37.5, house:"open", stim:17 };
+  const base = { tab:"calc", openKey:"principle", company:"lohmann", hatch:`${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())}`, lat:37.5, latMode:"weather", house:"open", stim:17 };
   try { const s = JSON.parse(localStorage.getItem(LG_STATE_KEY) || "null"); if(s) return Object.assign(base, s, { tab:"calc", openKey:"principle" }); } catch(e){}
   return base;
 })();
-function saveLightGuide(){ try { const s = lightGuideState; localStorage.setItem(LG_STATE_KEY, JSON.stringify({ company:s.company, hatch:s.hatch, lat:s.lat, house:s.house, stim:s.stim })); } catch(e){} }
+function saveLightGuide(){ try { const s = lightGuideState; localStorage.setItem(LG_STATE_KEY, JSON.stringify({ company:s.company, hatch:s.hatch, lat:s.lat, latMode:s.latMode, house:s.house, stim:s.stim })); } catch(e){} }
 
 function lgChartSvg(rows){
   const W = 600, H = 220, L = 34, R = 10, T = 10, B = 26;
@@ -1116,7 +1127,9 @@ function lgChartSvg(rows){
 }
 function renderLightCalc(){
   const st = lightGuideState, res = lgCompute(st);
-  const spot = LG_SPOTS.map(s => `<option value="${s[1]}" ${Number(st.lat) === s[1] ? "selected" : ""}>${s[0]} (${s[1]}°N)</option>`).join("");
+  const wloc = lgWeatherLoc(), useAuto = st.latMode !== "manual" && !!wloc;
+  const spot = (wloc ? `<option value="auto" ${useAuto ? "selected" : ""}>📍 날씨예측 탭 위치: ${esc(wloc.name)} (${wloc.lat.toFixed(2)}°N)</option>` : "")
+    + LG_SPOTS.map(s => `<option value="${s[1]}" ${!useAuto && Number(st.lat) === s[1] ? "selected" : ""}>${s[0]} (${s[1]}°N)</option>`).join("");
   const inp = "padding:8px 9px;border:1px solid #ddd;border-radius:8px;font-size:13px;background:#fff;width:100%;box-sizing:border-box";
   const lab = (t, inner) => `<label style="display:block"><div style="font-size:11px;color:#666;margin-bottom:3px">${t}</div>${inner}</label>`;
   const form = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:10px">
@@ -1126,7 +1139,13 @@ function renderLightCalc(){
     ${lab("계사 형태", `<select class="lg-in" data-k="house" style="${inp}"><option value="open" ${st.house === "open" ? "selected" : ""}>개방·유창 (자연광 유입)</option><option value="dark" ${st.house === "dark" ? "selected" : ""}>무창·암막 (자연광 차단)</option></select>`)}
     ${lab("광자극 시작 주령", `<input class="lg-in" data-k="stim" type="number" min="14" max="20" step="1" value="${esc(st.stim)}" style="${inp}" />`)}
   </div>`;
-  if(!res) return form + `<div style="font-size:12px;color:#C62828">입식일을 입력하세요.</div>`;
+  const latNow = lgEffectiveLat(st);
+  const locBar = wloc && useAuto
+    ? `<div style="font-size:11px;color:#2E7D32;background:#E8F5E9;border-radius:8px;padding:6px 10px;margin-bottom:8px">📍 날씨예측 탭에서 정한 농장 위치 <b>${esc(wloc.name)}</b>의 위도 <b>${latNow.toFixed(2)}°N</b>를 자동으로 적용했습니다.</div>`
+    : (wloc ? `<div style="font-size:11px;color:#666;background:#F5F5F5;border-radius:8px;padding:6px 10px;margin-bottom:8px">적용 위도 ${latNow.toFixed(1)}°N (직접 선택). 위 목록에서 <b>📍 날씨예측 탭 위치</b>를 고르면 농장 위치를 자동으로 씁니다.</div>`
+      : `<div style="font-size:11px;color:#8D6E00;background:#FFF8E1;border-radius:8px;padding:8px 10px;margin-bottom:8px;line-height:1.7">📍 날씨예측 탭에 농장 위치가 아직 없어 선택한 지역(위도 ${latNow.toFixed(1)}°N)으로 계산 중입니다. 아래에서 위치를 설정하면 위도를 자동으로 읽어옵니다.
+        <div style="margin-top:5px;display:flex;gap:6px;flex-wrap:wrap"><button id="lg-gps" style="border:1px solid #1a2744;border-radius:8px;background:#1a2744;color:#fff;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer">📍 현재 위치로 설정</button><button id="lg-goto-weather" style="border:1px solid #1a2744;border-radius:8px;background:#fff;color:#1a2744;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer">🌤️ 날씨예측 탭에서 설정</button></div></div>`);
+  if(!res) return locBar + form + `<div style="font-size:12px;color:#C62828">입식일을 입력하세요.</div>`;
   const rows = res.rows, r8 = rows[8], r17 = rows[res.stim], d = r17.nat - r8.nat;
   const nat816 = rows.slice(8, res.stim).map(r => r.nat), avgNat = nat816.length ? nat816.reduce((x, y) => x + y, 0) / nat816.length : 0;
   let warn;
@@ -1148,18 +1167,18 @@ function renderLightCalc(){
   const months = [];
   for(let m = 0; m < 12; m++){
     const h = new Date(new Date(st.hatch + "T00:00:00").getFullYear(), m, 15);
-    const a = lgDayLength(Number(st.lat), new Date(h.getTime() + 8 * 7 * 86400000)), b = lgDayLength(Number(st.lat), new Date(h.getTime() + st.stim * 7 * 86400000));
+    const eLat = lgEffectiveLat(st), a = lgDayLength(eLat, new Date(h.getTime() + 8 * 7 * 86400000)), b = lgDayLength(eLat, new Date(h.getTime() + st.stim * 7 * 86400000));
     months.push({ m:m + 1, d:b - a });
   }
   const mcell = x => { const c = x.d > 0.6 ? ["#FFEBEE", "#C62828", "일장↑ 조기성숙 주의"] : x.d < -0.6 ? ["#FFF3E0", "#EF6C00", "일장↓ 산란지연 주의"] : ["#E8F5E9", "#2E7D32", "안정"]; return `<div style="background:${c[0]};border-radius:8px;padding:6px 4px;text-align:center"><div style="font-size:12px;font-weight:800;color:#333">${x.m}월</div><div style="font-size:10px;font-weight:700;color:${c[1]};line-height:1.35">${c[2]}</div><div style="font-size:9.5px;color:#999">${x.d >= 0 ? "+" : ""}${x.d.toFixed(1)}h</div></div>`; };
-  return form + `
+  return locBar + form + `
     <div style="background:${warn.bg};border-radius:10px;padding:9px 12px;font-size:12px;color:${warn.c};line-height:1.65;margin-bottom:10px">${warn.t}</div>
     ${lgChartSvg(rows)}
     <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:10.5px;color:#666;margin:2px 0 10px"><span><b style="color:#90A4AE">━</b> 자연 일장</span><span><b style="color:#1565C0">┅</b> 회사 프로그램(무창 기준)</span><span><b style="color:#EF6C00">━</b> 실제 적용 점등시간(${st.house === "dark" ? "암막" : "개방계사"})</span></div>
     <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:420px;font-size:11.5px">
       <thead><tr style="text-align:left;color:#999;font-size:10.5px;border-bottom:2px solid #eee"><th style="padding:5px">주령</th><th style="padding:5px">날짜</th><th style="padding:5px">자연 일장</th><th style="padding:5px">회사 프로그램</th><th style="padding:5px">적용 시간</th><th style="padding:5px">인공조명 추가</th></tr></thead>
       <tbody>${trs}</tbody></table></div>
-    <div style="font-size:12px;font-weight:800;color:#333;margin:14px 0 6px">📅 입식 월별 계절 위험 (선택한 지역, 광자극 시작 주령 기준 — 8주령→${st.stim}주령 자연 일장 변화)</div>
+    <div style="font-size:12px;font-weight:800;color:#333;margin:14px 0 6px">📅 입식 월별 계절 위험 (위도 ${latNow.toFixed(1)}°N, 광자극 시작 주령 기준 — 8주령→${st.stim}주령 자연 일장 변화)</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(86px,1fr));gap:6px">${months.map(mcell).join("")}</div>
     <div style="font-size:10px;color:#aaa;line-height:1.7;margin-top:10px">※ 자연 일장은 일출~일몰 시간(위도·날짜 천문 계산)이며 박명은 포함하지 않아 실제 닭이 느끼는 일장은 30분~1시간 더 깁니다. 적용 시간 = 개방계사는 <b>자연광 이하로 줄일 수 없다</b>는 가정으로 육성 중에는 max(회사 프로그램, 자연 일장), 광자극 이후에는 <b>줄이지 않는 원칙</b>을 적용했습니다. 이 계산은 가이드 원칙에 자연 일장을 겹친 참고용이며 회사의 공식 맞춤 점등표(Hy-Line 웹 점등 프로그램·LOHMANN 점등 도구)를 대신하지 않습니다. Hy-Line은 도표를 그래프로만 공개해 주령별 시간이 개략값입니다.</div>`;
 }
@@ -16703,9 +16722,30 @@ function attachEvents(){
   document.querySelectorAll(".lightguide-toggle").forEach(b => b.onclick = () => { lightGuideState.openKey = lightGuideState.openKey === b.dataset.key ? null : b.dataset.key; render(); });
   document.querySelectorAll(".lg-in").forEach(el => el.onchange = () => {
     const k = el.dataset.k;
-    lightGuideState[k] = (k === "lat" || k === "stim") ? Number(el.value) : el.value;
+    if(k === "lat"){
+      if(el.value === "auto") lightGuideState.latMode = "weather";
+      else { lightGuideState.latMode = "manual"; lightGuideState.lat = Number(el.value); }
+    } else lightGuideState[k] = (k === "stim") ? Number(el.value) : el.value;
     saveLightGuide(); render();
   });
+  const lgGotoW = document.getElementById("lg-goto-weather");
+  if(lgGotoW) lgGotoW.onclick = () => switchTab("weather");
+  const lgGps = document.getElementById("lg-gps");
+  if(lgGps) lgGps.onclick = () => {
+    if(!navigator.geolocation){ alert("이 브라우저는 위치 감지를 지원하지 않습니다. 날씨예측 탭에서 지역을 직접 선택하세요."); return; }
+    lgGps.disabled = true; lgGps.textContent = "위치 확인 중...";
+    navigator.geolocation.getCurrentPosition(async pos => {
+      const lat = pos.coords.latitude, lng = pos.coords.longitude;
+      let name = "현재 위치";
+      try {
+        const r = await fetchWithTimeout(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=ko`, 5000);
+        const d = await r.json();
+        name = d.address?.city || d.address?.town || d.address?.county || (d.display_name || "").split(",")[0] || name;
+      } catch(e){}
+      lightGuideState.latMode = "weather"; saveLightGuide();
+      fetchWeather(lat, lng, name);          // 날씨예측 탭과 같은 위치로 저장·조회 (끝나면 화면 갱신)
+    }, () => { alert("위치를 가져오지 못했습니다. 위치 권한을 허용하거나 날씨예측 탭에서 지역을 직접 선택하세요."); lgGps.disabled = false; lgGps.textContent = "📍 현재 위치로 설정"; }, { timeout:10000 });
+  };
   const moltguideBackBtn = document.getElementById("moltguide-back-btn");
   if(moltguideBackBtn) moltguideBackBtn.onclick = ()=>{ premiumState.view = "menu"; render(); };
   document.querySelectorAll(".moltguide-toggle").forEach(b=>b.onclick=()=>{
