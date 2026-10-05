@@ -7025,7 +7025,7 @@ function renderHpaiKrDetail(){
 function renderHpaiKrCard(){
   const st = hpaiKrState, color = "#C62828";
   const head = `<div id="hk-toggle" role="button" tabindex="0" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;gap:10px">
-    <div><div class="display" style="font-size:15px">🗺️ 국내 가금농장 HPAI 발생·검출 현황</div>
+    <div><div class="display" style="font-size:15px">🗺️ 국내 가금농장 HPAI 발생·검출 현황 <span style="font-size:11.5px;font-weight:700;color:#C62828;background:#FFEBEE;border-radius:12px;padding:2px 9px;margin-left:4px;white-space:nowrap">과거를 알아야 미래가 보인다</span></div>
     <div style="font-size:11px;color:#888;margin-top:2px">2025.9.12 최초 신고 ~ 2026.3.31 · 농림축산식품부 자료 기준 지도</div></div>
     <div style="font-size:12px;color:${color};font-weight:700;white-space:nowrap">${st.open ? "접기 ▲" : "열기 ▼"}</div></div>`;
   const wrap = body => `<div class="card" style="margin-bottom:14px;border-top:4px solid ${color}">${head}${body}</div>`;
