@@ -1111,11 +1111,11 @@ function lgEffectiveLat(st){
 const LG_STATE_KEY = "light_guide_v1";
 let lightGuideState = (function(){
   const t = new Date(); const pad = n => String(n).padStart(2, "0");
-  const base = { tab:"calc", openKey:"principle", company:"lohmann", hatch:`${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())}`, lat:37.5, latMode:"weather", house:"open", stim:17 };
+  const base = { tab:"calc", openKey:"principle", company:"lohmann", hatch:`${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())}`, lat:37.5, latMode:"weather", house:"open", stim:17, phone:"" };
   try { const s = JSON.parse(localStorage.getItem(LG_STATE_KEY) || "null"); if(s) return Object.assign(base, s, { tab:"calc", openKey:"principle" }); } catch(e){}
   return base;
 })();
-function saveLightGuide(){ try { const s = lightGuideState; localStorage.setItem(LG_STATE_KEY, JSON.stringify({ company:s.company, hatch:s.hatch, lat:s.lat, latMode:s.latMode, house:s.house, stim:s.stim })); } catch(e){} }
+function saveLightGuide(){ try { const s = lightGuideState; localStorage.setItem(LG_STATE_KEY, JSON.stringify({ company:s.company, hatch:s.hatch, lat:s.lat, latMode:s.latMode, house:s.house, stim:s.stim, phone:s.phone })); } catch(e){} }
 
 function lgChartSvg(rows){
   const W = 600, H = 220, L = 34, R = 10, T = 10, B = 26;
@@ -1124,6 +1124,40 @@ function lgChartSvg(rows){
   const grid = [6, 8, 10, 12, 14, 16, 18].map(h => `<line x1="${L}" x2="${W - R}" y1="${y(h)}" y2="${y(h)}" stroke="#eee" /><text x="${L - 4}" y="${y(h) + 3}" font-size="9" fill="#999" text-anchor="end">${h}</text>`).join("");
   const xs = [0, 8, 16, 24, 32, 40].map(w => `<text x="${x(w)}" y="${H - 8}" font-size="9" fill="#999" text-anchor="middle">${w}주</text>`).join("");
   return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block" role="img" aria-label="주령별 자연 일장과 점등시간 그래프">${grid}${xs}${line("nat", "#B0BEC5", 2.5)}${line("prog", "#1565C0", 2, true)}${line("eff", "#EF6C00", 2.8)}</svg>`;
+}
+// 점등 프로그램을 문자 메시지 글로 만든다 — 변하는 시점 위주로 줄여서(약 300~600자) 문자·카톡에 붙여 넣기 좋게 한다.
+function lgSmsText(st, res){
+  if(!res) return "";
+  const names = { lohmann:"로만 브라운", hyline:"하이라인 브라운" };
+  const lat = lgEffectiveLat(st), w = lgWeatherLoc();
+  const where = (st.latMode !== "manual" && w) ? w.name : "위도";
+  const hatch = new Date(st.hatch + "T00:00:00"), today = new Date(); today.setHours(0, 0, 0, 0);
+  const future = hatch.getTime() > today.getTime();
+  const fmtH = v => (Math.round(v * 2) / 2).toString().replace(/\.0$/, "");
+  const picked = []; let last = null;
+  res.rows.forEach(r => {
+    const upcoming = future || r.date.getTime() >= today.getTime() - 7 * 86400000;
+    if(!upcoming) return;
+    if(last == null || Math.abs(r.eff - last) >= 0.9 || r.wk === res.stim || r.wk === 30){ picked.push(r); last = r.eff; }
+  });
+  const lines = picked.slice(0, 14).map(r => `${r.wk}주 ${r.date.getMonth() + 1}/${r.date.getDate()} ${fmtH(r.eff)}시간` + (r.add >= 0.25 ? `(인공 +${fmtH(r.add)})` : ""));
+  const r8 = res.rows[8], rs = res.rows[res.stim];
+  return `[산란계 점등프로그램]\n${names[st.company] || st.company} · ${st.house === "dark" ? "무창" : "개방계사"} · 입식 ${hatch.getMonth() + 1}/${hatch.getDate()}\n${where} ${lat.toFixed(1)}°N · 광자극 ${res.stim}주\n자연일장 ${r8.nat.toFixed(1)}h(8주) → ${rs.nat.toFixed(1)}h(${res.stim}주)\n` + lines.join("\n") + `\n※참고용 계산 — 육종회사 공식 점등표가 우선 (polcon.cc)`;
+}
+function renderLightSms(res){
+  const st = lightGuideState, text = lgSmsText(st, res);
+  return `<div style="margin-top:16px;border:1px solid #E3F2FD;background:#F7FBFF;border-radius:12px;padding:12px 13px">
+    <div style="font-size:13px;font-weight:800;color:#1565C0">📱 점등 프로그램을 문자로 보내기</div>
+    <div style="font-size:11px;color:#666;line-height:1.6;margin:3px 0 8px">위 계산 결과를 문자 글로 만들어 휴대폰 문자 앱으로 열어 줍니다(보내기 버튼은 문자 앱에서 직접 누릅니다). 받는 번호를 비워 두면 문자 앱에서 받는 사람을 고를 수 있어요.</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px">
+      <label style="flex:1 1 170px"><div style="font-size:10.5px;color:#777;margin-bottom:3px">받는 번호(선택)</div><input id="lg-sms-phone" type="tel" inputmode="tel" placeholder="010-1234-5678" value="${esc(st.phone || "")}" style="width:100%;box-sizing:border-box;padding:8px 9px;border:1px solid #ddd;border-radius:8px;font-size:13px" /></label>
+      <button id="lg-sms-btn" style="border:none;border-radius:8px;background:#1565C0;color:#fff;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer">📱 문자 앱으로 열기</button>
+      <button id="lg-sms-copy" style="border:1px solid #1565C0;border-radius:8px;background:#fff;color:#1565C0;padding:9px 12px;font-size:12.5px;font-weight:700;cursor:pointer">📋 문자 내용 복사</button>
+    </div>
+    <textarea id="lg-sms-text" readonly rows="${Math.min(14, text.split("\n").length + 1)}" style="width:100%;box-sizing:border-box;padding:9px 10px;border:1px solid #dbe7f5;border-radius:8px;font-size:12px;line-height:1.55;font-family:inherit;background:#fff;color:#333;resize:vertical">${esc(text)}</textarea>
+    <div style="font-size:10px;color:#999;line-height:1.6;margin-top:4px">글자 수 ${text.length}자 (보통 90자를 넘으면 장문(LMS)으로 발송됩니다). 컴퓨터에서는 문자 앱이 안 열릴 수 있으니 「문자 내용 복사」를 쓰세요.</div>
+    <div id="lg-sms-msg" style="font-size:11px;color:#2E7D32;margin-top:3px"></div>
+  </div>`;
 }
 function renderLightCalc(){
   const st = lightGuideState, res = lgCompute(st);
@@ -1180,7 +1214,8 @@ function renderLightCalc(){
       <tbody>${trs}</tbody></table></div>
     <div style="font-size:12px;font-weight:800;color:#333;margin:14px 0 6px">📅 입식 월별 계절 위험 (위도 ${latNow.toFixed(1)}°N, 광자극 시작 주령 기준 — 8주령→${st.stim}주령 자연 일장 변화)</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(86px,1fr));gap:6px">${months.map(mcell).join("")}</div>
-    <div style="font-size:10px;color:#aaa;line-height:1.7;margin-top:10px">※ 자연 일장은 일출~일몰 시간(위도·날짜 천문 계산)이며 박명은 포함하지 않아 실제 닭이 느끼는 일장은 30분~1시간 더 깁니다. 적용 시간 = 개방계사는 <b>자연광 이하로 줄일 수 없다</b>는 가정으로 육성 중에는 max(회사 프로그램, 자연 일장), 광자극 이후에는 <b>줄이지 않는 원칙</b>을 적용했습니다. 이 계산은 가이드 원칙에 자연 일장을 겹친 참고용이며 회사의 공식 맞춤 점등표(Hy-Line 웹 점등 프로그램·LOHMANN 점등 도구)를 대신하지 않습니다. Hy-Line은 도표를 그래프로만 공개해 주령별 시간이 개략값입니다.</div>`;
+    <div style="font-size:10px;color:#aaa;line-height:1.7;margin-top:10px">※ 자연 일장은 일출~일몰 시간(위도·날짜 천문 계산)이며 박명은 포함하지 않아 실제 닭이 느끼는 일장은 30분~1시간 더 깁니다. 적용 시간 = 개방계사는 <b>자연광 이하로 줄일 수 없다</b>는 가정으로 육성 중에는 max(회사 프로그램, 자연 일장), 광자극 이후에는 <b>줄이지 않는 원칙</b>을 적용했습니다. 이 계산은 가이드 원칙에 자연 일장을 겹친 참고용이며 회사의 공식 맞춤 점등표(Hy-Line 웹 점등 프로그램·LOHMANN 점등 도구)를 대신하지 않습니다. Hy-Line은 도표를 그래프로만 공개해 주령별 시간이 개략값입니다.</div>
+    ${renderLightSms(res)}`;
 }
 function renderLightCards(){
   return LIGHT_GUIDE_COMPANIES.map(g => {
@@ -16728,6 +16763,24 @@ function attachEvents(){
     } else lightGuideState[k] = (k === "stim") ? Number(el.value) : el.value;
     saveLightGuide(); render();
   });
+  const lgPhone = document.getElementById("lg-sms-phone");
+  if(lgPhone) lgPhone.onchange = () => { lightGuideState.phone = lgPhone.value.trim(); saveLightGuide(); };
+  const lgMsg = t => { const m = document.getElementById("lg-sms-msg"); if(m) m.textContent = t; };
+  const lgSmsBtn = document.getElementById("lg-sms-btn");
+  if(lgSmsBtn) lgSmsBtn.onclick = () => {
+    const txt = (document.getElementById("lg-sms-text") || {}).value || "";
+    const num = ((lgPhone && lgPhone.value) || "").replace(/[^0-9+]/g, "");
+    lightGuideState.phone = num ? ((lgPhone && lgPhone.value) || "").trim() : ""; saveLightGuide();
+    const sep = /iPhone|iPad|iPod/i.test(navigator.userAgent) ? "&" : "?";
+    lgMsg("문자 앱을 여는 중입니다... 열리지 않으면 「문자 내용 복사」를 눌러 붙여 넣으세요.");
+    location.href = "sms:" + num + sep + "body=" + encodeURIComponent(txt);
+  };
+  const lgCopyBtn = document.getElementById("lg-sms-copy");
+  if(lgCopyBtn) lgCopyBtn.onclick = async () => {
+    const ta = document.getElementById("lg-sms-text"); if(!ta) return;
+    try { await navigator.clipboard.writeText(ta.value); lgMsg("✅ 복사했습니다 — 문자·카카오톡에 붙여 넣으세요."); }
+    catch(e){ ta.focus(); ta.select(); lgMsg("복사 권한이 없어 글을 선택해 두었습니다 — 길게 눌러 복사하세요."); }
+  };
   const lgGotoW = document.getElementById("lg-goto-weather");
   if(lgGotoW) lgGotoW.onclick = () => switchTab("weather");
   const lgGps = document.getElementById("lg-gps");
