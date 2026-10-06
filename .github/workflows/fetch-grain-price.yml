@@ -1,0 +1,43 @@
+name: 곡물 가격동향·전망 수집
+
+on:
+  schedule:
+    # CBOT는 미국 금요일 마감이 한국시간 토요일 새벽 4시경이라, 한국시간 화~토 08:00에 전날 마감을 반영한다.
+    # 23:00 UTC(월~금) = 한국시간 08:00(화~토)
+    - cron: "0 23 * * 1-5"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-grain-price:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Python 설정
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: 패키지 설치
+        run: pip install requests
+
+      - name: 곡물 가격동향·전망 계산
+        run: python scripts/fetch_grain_price.py
+
+      - name: 결과 커밋
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add grain_price/
+          git diff --staged --quiet && echo "변경 없음" && exit 0
+          git commit -m "🌽 곡물 가격동향·전망 갱신 ($(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M KST'))"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin ${GITHUB_REF_NAME} && git push && exit 0
+            echo "푸시 재시도 $i"
+            sleep 5
+          done
+          exit 1
