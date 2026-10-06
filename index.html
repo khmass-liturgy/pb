@@ -777,6 +777,11 @@ const PREMIUM_CATEGORY_COLORS = {
 // renderPremiumTab)의 렌더 방식을 그대로 유지하면서 묶음 제목만 추가한다.
 function renderPremiumMenuItems(items, mode){
   let html = "", lastCategory = null;
+  // 같은 분류(category)는 저장된 순서가 어긋나 있어도(관리자 편집·새 항목 추가 등) 한 제목 아래로 모은다 —
+  // 분류의 순서는 처음 나온 순서, 분류 안 항목 순서는 원래 순서를 그대로 쓴다.
+  const catOrder = [];
+  items.forEach(it => { const c = it.category || ""; if(!catOrder.includes(c)) catOrder.push(c); });
+  items = catOrder.reduce((acc, c) => acc.concat(items.filter(it => (it.category || "") === c)), []);
   items.forEach(it => {
     if(it.category && it.category !== lastCategory){
       // .pm-list는 grid라 폭이 좁은 div는 카드들 사이 빈 칸에 끼어 들어가
