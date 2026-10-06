@@ -115,15 +115,27 @@ def parse_price_table(page_html: str) -> dict[str, Any] | None:
 
 
 def fetch_html() -> str | None:
-    urls = [SOURCE_URL] + [factory(SOURCE_URL) for factory in PROXY_URLS]
-    for url in urls:
+    """직접 요청 → 공개 프록시 순. 프록시는 같은 주소를 몇 시간~며칠씩 캐시해 옛 표(예: 며칠 전 시세)를 돌려주는
+    일이 있어, 요청 주소 뒤에 매번 다른 값을 붙여 캐시를 피하고 어느 경로로 받았는지·표의 날짜를 로그에 남긴다."""
+    stamp = str(int(datetime.now(KST).timestamp()))
+    target = SOURCE_URL + "?_=" + stamp
+    urls = [("직접", target, {"Cache-Control": "no-cache"})]
+    for i, factory in enumerate(PROXY_URLS):
+        u = factory(target)
+        if "allorigins" in u:
+            u += "&disableCache=true"
+        urls.append((f"프록시{i + 1}", u, {"Cache-Control": "no-cache"}))
+    for name, url, extra in urls:
         try:
-            response = requests.get(url, headers=HEADERS, timeout=30)
+            response = requests.get(url, headers={**HEADERS, **extra}, timeout=30)
             response.encoding = response.apparent_encoding or "utf-8"
-            if response.ok and parse_price_table(response.text):
+            parsed = parse_price_table(response.text) if response.ok else None
+            if parsed:
+                print(f"받은 경로: {name} · 표 날짜 {parsed['date_label']}")
                 return response.text
+            print(f"  {name}: 표를 못 찾음 (HTTP {response.status_code})")
         except requests.RequestException as exc:
-            print(f"request failed: {type(exc).__name__}: {exc}")
+            print(f"  {name} 요청 실패: {type(exc).__name__}: {exc}")
     return None
 
 

@@ -1,12 +1,12 @@
 {
-  "date_label": "10/02",
+  "date_label": "10/06",
   "rows": [
     {
       "grade": "대",
       "spec": "1.6kg이상",
       "unit": "원/kg",
-      "today": 1800,
-      "yesterday": 1700,
+      "today": 1900,
+      "yesterday": 1800,
       "last_month": 2100,
       "last_year": 1600
     },
@@ -14,8 +14,8 @@
       "grade": "중",
       "spec": "1.6kg미만~1.4kg이상",
       "unit": "원/kg",
-      "today": 1900,
-      "yesterday": 1800,
+      "today": 2000,
+      "yesterday": 1900,
       "last_month": 2200,
       "last_year": 1700
     },
@@ -23,8 +23,8 @@
       "grade": "소",
       "spec": "1.4kg미만",
       "unit": "원/kg",
-      "today": 2000,
-      "yesterday": 1900,
+      "today": 2100,
+      "yesterday": 2000,
       "last_month": 2300,
       "last_year": 1800
     },
@@ -39,7 +39,7 @@
     }
   ],
   "note": "게재시간 : 당일 오후 1시 · 대(1.6kg이상), 중(1.6kg미만~1.4kg이상), 소(1.4kg미만)",
-  "updated": "2026-10-05 20:39 KST",
+  "updated": "2026-10-06 23:16 KST",
   "source_url": "https://www.poultry.or.kr/",
-  "stale": true
+  "stale": false
 }

@@ -12359,6 +12359,12 @@ function renderBroilerPriceTodayPanel(){
   return `
   <div class="card" style="margin-bottom:20px">
     <div class="display" style="font-size:15px;margin-bottom:10px">🐔 금일 육계시세 <span style="font-size:10px;color:#aaa;font-weight:400">대한양계협회</span></div>
+    ${(() => {
+      // 협회가 시세를 게시한 날(date_label, MM/DD)이 오늘(KST)이 아니면 알려 준다 — 오후 1시 전, 주말·공휴일, 협회 미게시
+      const k = new Date(Date.now() + 9 * 3600000), todayLbl = String(k.getUTCMonth() + 1).padStart(2, "0") + "/" + String(k.getUTCDate()).padStart(2, "0");
+      return d.date_label && d.date_label !== todayLbl
+        ? `<div style="font-size:11px;color:#8D6E00;background:#FFF8E1;border-radius:8px;padding:6px 10px;margin:-2px 0 10px;line-height:1.6">ℹ️ 협회 홈페이지의 최근 게시일은 <b>${esc(d.date_label)}</b>입니다. 오늘(${todayLbl}) 시세는 보통 오후 1시경 게시되며 주말·공휴일에는 게시되지 않습니다.${d.updated ? ` <span style="color:#aaa">(수집 확인 ${esc(d.updated)})</span>` : ""}</div>` : "";
+    })()}
     <div style="overflow-x:auto">
       <table style="width:100%;border-collapse:collapse;min-width:420px">
         <thead>
