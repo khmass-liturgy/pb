@@ -42,6 +42,9 @@
   /* 세로 화면(휴대폰 등)에서만 보이는 가로 모드 안내 */
   .hd-landscape-tip { display: none; font-size: 11.5px; color: #F9C74F; background: rgba(255,255,255,.08); border-radius: 8px; padding: 5px 10px; margin: 0 0 8px; line-height: 1.5; }
   @media (orientation: portrait) { .hd-landscape-tip { display: block; } }
+  .hd-install { margin: 0 0 8px; }
+  .hd-install button { border: 1.5px solid #F9C74F; background: #F9C74F; color: #1a2744; border-radius: 18px; padding: 6px 14px; font-size: 12.5px; font-weight: 800; cursor: pointer; }
+  .hd-install .guide { margin-top: 6px; background: rgba(255,255,255,.1); color: #fff; border-radius: 8px; padding: 8px 11px; font-size: 11.5px; line-height: 1.65; }
   /* 탭이 8개로 늘면서 좁은 화면에서 글자가 두 줄로 꺾이는 문제가 있어, 줄바꿈을
      막고 대신 옆으로 스크롤되게 한다(모바일 브레이크포인트와 동일한 방식). */
   .tabs { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
@@ -10880,6 +10883,27 @@ function renderPremiumTab(){
   <div style="margin-top:14px;font-size:11px;color:#aaa;text-align:center">위 메뉴는 계속 추가됩니다. 궁금한 점은 010-9150-8844로 문의해 주세요.</div>`;
 }
 
+// ── 바탕화면(홈 화면)에 추가 ─────────────────────────────────────────────────
+// 설치 가능한 브라우저(크롬·엣지·삼성인터넷 등)는 beforeinstallprompt 로 설치 창을 바로 띄우고,
+// 아이폰 사파리 등 그렇지 않은 곳은 "공유 → 홈 화면에 추가" 방법을 안내한다.
+const pwaInstall = { deferred:null, guide:false, installed:false };
+function pwaIsStandalone(){
+  try { return (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || window.navigator.standalone === true; } catch(e){ return false; }
+}
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); pwaInstall.deferred = e; render(); });
+window.addEventListener("appinstalled", () => { pwaInstall.installed = true; pwaInstall.deferred = null; render(); });
+if("serviceWorker" in navigator){ window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js").catch(() => {}); }); }
+function pwaGuideText(){
+  const ua = navigator.userAgent || "";
+  if(/iPhone|iPad|iPod/i.test(ua)) return "아이폰·아이패드(사파리): 화면 아래(또는 위)의 <b>공유 버튼(□↑)</b> → <b>홈 화면에 추가</b>를 누르세요. 크롬·네이버 앱에서는 사파리로 열어야 합니다.";
+  if(/SamsungBrowser/i.test(ua)) return "삼성 인터넷: 오른쪽 아래 <b>메뉴(≡)</b> → <b>현재 페이지 추가</b> → <b>홈 화면</b>을 누르세요.";
+  if(/Android/i.test(ua)) return "안드로이드: 브라우저 오른쪽 위 <b>메뉴(⋮)</b> → <b>홈 화면에 추가</b>(또는 <b>앱 설치</b>)를 누르세요. 카카오톡·네이버 앱 안에서 열었다면 크롬으로 열어 주세요.";
+  return "컴퓨터(크롬·엣지): 주소창 오른쪽의 <b>설치 아이콘(⊕)</b>을 누르거나, 메뉴(⋮) → <b>저장 및 공유 → 앱으로 설치</b>(또는 <b>바탕 화면 바로가기 만들기</b>)를 선택하세요.";
+}
+function renderPwaInstall(embedded){
+  if(embedded || pwaInstall.installed || pwaIsStandalone()) return "";
+  return `<div class="hd-install"><button id="pwa-install-btn" type="button">📲 바탕화면에 추가</button>${pwaInstall.guide ? `<div class="guide">${pwaGuideText()}</div>` : ""}</div>`;
+}
 function render(){
   document.getElementById("app").innerHTML = `
     ${renderHeader()}
@@ -10936,6 +10960,7 @@ function renderHeader(){
         ${renderHeaderSolarTerm(now)}
       </div>
     </div>
+    ${renderPwaInstall(embedded)}
     <div class="hd-landscape-tip" style="${embedded?"display:none !important":""}">📱↔️ 이 앱의 화면은 <b>가로 모드</b>에 최적화되어 있습니다. 휴대폰을 가로로 돌려 보시면 더 넓고 편하게 볼 수 있어요.</div>
     <div class="tabs-wrap">
     <button class="tabs-arrow left" type="button" aria-label="앞쪽 메뉴 보기" tabindex="-1"><span>‹</span></button>
@@ -16677,6 +16702,14 @@ function attachDiseaseEvents(){
     emT.onclick = tg;
     emT.onkeydown = e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); tg(); } };
   }
+  const pwaBtn = document.getElementById("pwa-install-btn");
+  if(pwaBtn) pwaBtn.onclick = async () => {
+    if(pwaInstall.deferred){
+      const ev = pwaInstall.deferred; pwaInstall.deferred = null;
+      try { ev.prompt(); const r = await ev.userChoice; if(r && r.outcome === "accepted") pwaInstall.installed = true; } catch(e){ pwaInstall.guide = true; }
+      render();
+    } else { pwaInstall.guide = !pwaInstall.guide; render(); }
+  };
   const emBack = document.getElementById("emerging-back-btn");
   if(emBack) emBack.onclick = () => { premiumState.view = "menu"; render(); };
   // 국내 가금농장 HPAI 발생 지도
