@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-05 12:21 KST",
+  "updated": "2026-10-06 13:08 KST",
   "stale": {},
   "egg": {
     "label": "계란 산지가격",
@@ -166,8 +166,12 @@
   "chicken": {
     "label": "생계유통(대)",
     "unit": "원/kg",
-    "latest": 1600,
+    "latest": 1700,
     "rows": [
+      {
+        "date": "2026-10-06",
+        "value": 1700
+      },
       {
         "date": "2026-10-02",
         "value": 1600
@@ -248,8 +252,8 @@
       "large": {
         "label": "대",
         "spec": "1.6kg 이상",
-        "value": 1600,
-        "date": "2026-10-02"
+        "value": 1700,
+        "date": "2026-10-06"
       },
       "medium": {
         "label": "중",
@@ -265,6 +269,12 @@
       }
     },
     "rows": [
+      {
+        "date": "2026-10-06",
+        "large": 1700,
+        "medium": null,
+        "small": null
+      },
       {
         "date": "2026-10-02",
         "large": 1600,
@@ -378,15 +388,15 @@
   "pig": {
     "label": "농가수취 평균",
     "unit": "원/kg",
-    "latest": 7834,
+    "latest": 6057,
     "rows": [
+      {
+        "date": "2026-10-05",
+        "value": 6057
+      },
       {
         "date": "2026-10-02",
         "value": 7834
-      },
-      {
-        "date": "2026-10-01",
-        "value": 6914
       }
     ]
   },
@@ -407,16 +417,22 @@
       "farm_receipt_600kg": {
         "label": "농가수취가격(600kg)",
         "unit": "천원/마리",
-        "value": 8643,
-        "date": "2026-10-02"
+        "value": 6474,
+        "date": "2026-10-05"
       }
     },
     "rows": [
       {
-        "date": "2026-10-05",
+        "date": "2026-10-06",
         "female_calf": null,
         "male_calf": null,
         "farm_receipt_600kg": null
+      },
+      {
+        "date": "2026-10-05",
+        "female_calf": null,
+        "male_calf": null,
+        "farm_receipt_600kg": 6474
       },
       {
         "date": "2026-10-02",
@@ -531,12 +547,6 @@
         "female_calf": 3883,
         "male_calf": 5456,
         "farm_receipt_600kg": 8772
-      },
-      {
-        "date": "2026-09-05",
-        "female_calf": null,
-        "male_calf": null,
-        "farm_receipt_600kg": null
       }
     ]
   },
