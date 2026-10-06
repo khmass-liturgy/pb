@@ -15865,6 +15865,23 @@ function renderSolarTermPanel(){
       <span style="font-size:10px;font-weight:700;color:#2E7D32;display:block;margin-bottom:3px">🐔 이 절기의 가축사육</span>
       ${esc(c.term.farm)}
     </div>` : ""}
+    <div style="margin-top:12px;border-top:1px dashed #E5D9AC;padding-top:10px">
+      <div style="display:flex;align-items:baseline;gap:7px;flex-wrap:wrap;margin-bottom:6px">
+        <span style="font-size:10px;font-weight:800;color:#fff;background:#B8860B;border-radius:8px;padding:2px 8px">⏭ 다음 절기</span>
+        <span class="display" style="font-size:18px;color:#7A5C00">${esc(n.term.name)}</span>
+        <span style="font-size:11px;color:#A08A50">${esc(n.term.hanja)}</span>
+        <span style="font-size:11px;color:#999">${esc(fmt(n.at))} · <b style="color:#B8860B">D-${left}</b></span>
+      </div>
+      <div style="font-size:12.5px;line-height:1.8;color:#5A4A20;background:#FFFBEA;border:1px solid #F0E0A0;border-radius:8px;padding:10px 12px">
+        <span style="font-size:10px;font-weight:700;color:#B8860B;display:block;margin-bottom:3px">${esc(n.term.name)}의 유래 · 풍속</span>
+        ${esc(n.term.story)}
+      </div>
+      ${n.term.farm ? `
+      <div style="font-size:12.5px;line-height:1.8;color:#1B4332;background:#F1F8F4;border:1px solid #CFE6D8;border-radius:8px;padding:10px 12px;margin-top:8px">
+        <span style="font-size:10px;font-weight:700;color:#2E7D32;display:block;margin-bottom:3px">🐔 다음 절기(${esc(n.term.name)}) 미리 준비할 가축사육</span>
+        ${esc(n.term.farm)}
+      </div>` : ""}
+    </div>
     <div style="font-size:9px;color:#c8c8c8;margin-top:7px">절기는 태양 황경 기준으로 매년 자동 계산됩니다</div>
   </div>`;
 }
