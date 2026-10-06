@@ -741,6 +741,7 @@ const PREMIUM_ITEMS = [
   { key:"moltguide", icon:"🪶", title:"산란계 환우 프로그램(육종회사별)", desc:"하이라인·로만 등 육종회사가 권장하는 품종별 인위환우(강제환우) 프로그램을 비교해 보여드립니다.", color:"#00695C", category:"사양관리" },
   { key:"feedstandard", icon:"🌾", title:"내 농장의 사료영양 관리", desc:"육계·산란계 사육단계별 국제 사료 영양 표준(에너지·단백질·칼슘 등)과 평균 사료 교체일령을 한눈에 보여드립니다.", color:"#F57F17", category:"사양관리" },
   { key:"feedgrain", icon:"🌽", title:"사료곡물 원료 품질평가", desc:"미국·브라질·아르헨티나·유럽 곡물 산지의 기상 흐름과 곰팡이 위험을 신호등·13주 흐름 띠로 보고, 옥수수·대두·밀의 영양·물리 품질을 나라별로 비교합니다.", color:"#F57F17", category:"사양관리" },
+  { key:"grainprice", icon:"📈", title:"사료곡물 가격동향·전망", desc:"세계 곡물 선물시장(옥수수·대두박·대두·밀)의 가격 흐름을 카드로 보고, 환율·달러·유가·산지 기상 등 대내외 변수로 1~3개월 가격 전망을 확인합니다.", color:"#EF6C00", category:"사양관리" },
   { key:"selfcheck", icon:"🐔", title:"온라인 자가진단", desc:"닭 해부도에서 장기를 클릭하면 그 장기의 기능과 흔히 나타나는 질병을 보여드립니다.", color:"#AD1457", category:"진단" },
   { key:"diagnosis", icon:"🔍", title:"온라인 진단", desc:"닭의 외부모습·분변상태·부검사진(기관지·간·신장·소장)을 올리면 최동명 수의사가 직접 진단합니다. 사진·진단 내용은 작성자만 볼 수 있습니다.", color:"#2E7D32", category:"진단" },
   { key:"specimen", icon:"🧪", title:"가검물 의뢰(유료)", desc:"혈청·부검·조직 등 가검물 검사를 의뢰서 양식 그대로 입력해 온라인으로 의뢰합니다. 접수 후 최동명 수의사가 확인해 안내합니다.", color:"#00695C", category:"진단" },
@@ -817,7 +818,7 @@ const PREMIUM_MENU_LEGACY_PATH = "premium_menu/items.json";
 // 항목이라 목록에서 뺀다).
 const PREMIUM_MENU_KNOWN_KEYS = [
   "drug","treatment","seasonal","finder","disinfect","newproducts","vaccine",
-  "ventfinder","lightguide","moltguide","feedstandard","feedgrain","selfcheck","diagnosis","specimen","faq","study",
+  "ventfinder","lightguide","moltguide","feedstandard","feedgrain","grainprice","selfcheck","diagnosis","specimen","faq","study",
   "research","emerging","magazine","kkoko","feature_board","consult","consulting","smssub",
 ];
 let premiumMenuState = { status:"idle", data:null, busy:false, msg:"", adminOpen:false, formOpen:false,
@@ -10707,6 +10708,116 @@ function renderFeedGrainPanel(){
   return head + bar + `<div class="card" style="padding:16px;border-top:4px solid #F57F17">${body}</div>`;
 }
 
+// ── 사료곡물 가격동향·전망 (유료서비스) ───────────────────────────────────────────
+// scripts/fetch_grain_price.py 가 매일(화~토 08:00) CBOT 선물(옥수수·대두박·대두·밀)과 환율·달러지수·유가·운임,
+// 산지 기상(grain_quality)을 모아 계산해 grain_price/latest.json 에 둔다. 여기서는 그 결과만 그린다.
+// 전망은 6개 요인(추세·가격 위치·계절성·달러·유가·산지 기상)의 가중 점수이며 투자·구매 권유가 아닌 참고 자료다.
+const GRAIN_PRICE_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/grain_price/latest.json";
+const grainPriceState = { status:"idle", data:null, open:{ corn:true }, showMethod:false };
+const GP_ORDER = ["corn", "soymeal", "soybean", "wheat"];
+const GP_ICON = { corn:"🌽", soymeal:"🫘", soybean:"🌱", wheat:"🌾" };
+const GP_USE = { corn:"에너지원(사료의 약 55~65%)", soymeal:"단백질원(대두박)", soybean:"원료 대두(대두박·대두유의 원료)", wheat:"옥수수 대체 에너지원" };
+async function fetchGrainPrice(){
+  if(grainPriceState.status === "loading") return;
+  grainPriceState.status = "loading";
+  try {
+    const r = await fetchWithTimeout(GRAIN_PRICE_JSON_URL + "?t=" + Date.now(), 10000);
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    grainPriceState.data = await r.json();
+    grainPriceState.status = "done";
+  } catch(e){ console.warn("곡물 가격동향 로딩 실패:", e); grainPriceState.status = "error"; }
+  if(premiumState.view === "grainprice") render();
+}
+const gpPct = v => v == null ? "–" : (v > 0 ? "+" : "") + v.toFixed(1) + "%";
+const gpCol = v => v == null ? "#999" : v > 0.05 ? "#D32F2F" : v < -0.05 ? "#1565C0" : "#777";   // 가격 상승=빨강(구매 부담), 하락=파랑
+function gpDir(d){ return d === "up" ? { t:"상승 우세", ic:"🔺", c:"#C62828", bg:"#FFEBEE" } : d === "down" ? { t:"하락 우세", ic:"🔻", c:"#1565C0", bg:"#E3F2FD" } : { t:"보합권", ic:"➖", c:"#616161", bg:"#F5F5F5" }; }
+function gpSpark(rows, color, w, h){
+  w = w || 300; h = h || 70;
+  if(!rows || rows.length < 3) return "";
+  const v = rows.map(r => r[1]), mn = Math.min(...v), mx = Math.max(...v), rg = (mx - mn) || 1;
+  const x = i => (i / (v.length - 1) * (w - 4) + 2).toFixed(1), y = val => (h - 4 - (val - mn) / rg * (h - 10) + 2).toFixed(1);
+  const pts = v.map((val, i) => x(i) + "," + y(val)).join(" ");
+  const last = v.length - 1;
+  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;display:block" role="img" aria-label="최근 2년 가격 추이"><polygon points="2,${h - 2} ${pts} ${w - 2},${h - 2}" fill="${color}" fill-opacity="0.10"/><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linejoin="round"/><circle cx="${x(last)}" cy="${y(v[last])}" r="3.2" fill="${color}"/></svg>`;
+}
+function gpRange(g){
+  const f = g.forecast, lo = Math.min(f.m3.lo, g.last) * 0.985, hi = Math.max(f.m3.hi, g.last) * 1.015, rg = hi - lo;
+  const pc = v => ((v - lo) / rg * 100).toFixed(1);
+  const bar = (label, m) => `<div style="display:flex;align-items:center;gap:8px;margin:5px 0"><div style="width:44px;font-size:11px;color:#666;font-weight:700">${label}</div><div style="flex:1;position:relative;height:16px;background:#F5F5F5;border-radius:8px"><div style="position:absolute;left:${pc(m.lo)}%;width:${(pc(m.hi) - pc(m.lo)).toFixed(1)}%;top:3px;height:10px;background:#FFCC80;border-radius:5px"></div><div style="position:absolute;left:${pc(m.mid)}%;top:0;width:3px;height:16px;background:#E65100;border-radius:2px"></div><div style="position:absolute;left:${pc(g.last)}%;top:-2px;width:2px;height:20px;background:#455A64"></div></div><div style="width:112px;font-size:10.5px;color:#555;text-align:right">${m.lo.toFixed(2)} ~ ${m.hi.toFixed(2)}</div></div>`;
+  return bar("1개월", f.m1) + bar("3개월", f.m3) + `<div style="font-size:10px;color:#999;margin-left:52px">┃ 현재가 ${g.last.toFixed(2)}　<b style="color:#E65100">┃</b> 중심 전망　<span style="background:#FFCC80;padding:0 6px;border-radius:3px">약 68% 범위(±1σ)</span></div>`;
+}
+function renderGrainPriceCard(key, g, stale){
+  const open = !!grainPriceState.open[key], f = g.forecast, dir = gpDir(f.direction), col = "#EF6C00";
+  const chip = (l, v) => `<span style="font-size:10.5px;color:${gpCol(v)};background:#fff;border:1px solid #eee;border-radius:10px;padding:2px 8px;white-space:nowrap">${l} <b>${gpPct(v)}</b></span>`;
+  const drivers = f.drivers.map(d => {
+    const s = d.score, pos = s >= 0, wd = Math.min(100, Math.abs(s)) / 2;
+    return `<div style="margin:7px 0"><div style="display:flex;justify-content:space-between;font-size:11.5px"><b style="color:#333">${esc(d.label)} <span style="font-weight:400;color:#aaa">(비중 ${Math.round(d.weight * 100)}%)</span></b><b style="color:${s > 15 ? "#C62828" : s < -15 ? "#1565C0" : "#777"}">${s > 15 ? "가격↑ 요인" : s < -15 ? "가격↓ 요인" : "중립"} ${s > 0 ? "+" : ""}${s}</b></div>
+      <div style="position:relative;height:8px;background:#F1F3F4;border-radius:4px;margin:3px 0"><div style="position:absolute;left:50%;top:0;width:1px;height:8px;background:#bbb"></div><div style="position:absolute;${pos ? "left:50%" : `left:${50 - wd}%`};width:${wd}%;height:8px;background:${s > 0 ? "#EF5350" : "#42A5F5"};border-radius:4px"></div></div>
+      <div style="font-size:11px;color:#666;line-height:1.55">${esc(d.text)}</div></div>`;
+  }).join("");
+  return `<div class="card" style="border-top:4px solid ${col};margin-bottom:12px;padding:14px 16px">
+    <div class="gp-toggle" data-key="${key}" style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;cursor:pointer">
+      <div><div style="font-size:11px;color:${col};font-weight:700">${GP_ICON[key]} ${esc(GP_USE[key])}</div>
+        <div style="font-size:16px;font-weight:900;color:#333;margin-top:2px">${esc(g.name)} <span style="font-size:11px;color:#aaa;font-weight:600">${esc(g.symbol)}</span>${stale ? ' <span style="font-size:10px;color:#C62828">(갱신 지연)</span>' : ""}</div></div>
+      <div style="text-align:right"><div style="font-size:20px;font-weight:900;color:#333;line-height:1.1">${g.last.toFixed(2)}<span style="font-size:11px;color:#888;font-weight:600"> ${esc(g.unit)}</span></div>
+        <div style="font-size:12px;color:#555;margin-top:2px">${g.krw_per_kg ? "약 <b>" + g.krw_per_kg.toLocaleString() + "원/kg</b>" : ""}</div></div>
+    </div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap;margin:8px 0">${chip("1주", g.change["1w"])}${chip("1개월", g.change["1m"])}${chip("3개월", g.change["3m"])}${chip("6개월", g.change["6m"])}${chip("1년", g.change["1y"])}</div>
+    ${gpSpark(g.weekly, col)}
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:#aaa;margin-top:1px"><span>2년 전</span><span>기준 ${esc(g.date)} · 52주 위치 ${g.pos52}% (저점 ${g.lo52} ~ 고점 ${g.hi52}) · 10년 중 ${g.pctile10y}번째 백분위</span></div>
+    <div style="margin-top:10px;background:${dir.bg};border-radius:10px;padding:10px 12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px"><div style="font-size:13px;font-weight:900;color:${dir.c}">${dir.ic} 향후 1~3개월 전망: ${dir.t}</div><div style="font-size:11px;color:#666">종합점수 <b style="color:${dir.c}">${f.score > 0 ? "+" : ""}${f.score}</b> · 신뢰도 <b>${esc(f.confidence)}</b></div></div>
+      <div style="font-size:11.5px;color:#444;margin:6px 0 4px;line-height:1.6">중심 전망 1개월 <b>${f.m1.pct > 0 ? "+" : ""}${f.m1.pct}%</b> · 3개월 <b>${f.m3.pct > 0 ? "+" : ""}${f.m3.pct}%</b> (최근 변동성 연 ${g.vol}% 기준 ±${f.m3.sigma}% 폭 가능)</div>
+      ${gpRange(g)}
+    </div>
+    <div class="gp-toggle" data-key="${key}" style="cursor:pointer;margin-top:8px;font-size:11.5px;color:${col};font-weight:800;text-align:center">${open ? "요인 접기 ▲" : "전망 근거(6개 요인) 보기 ▼"}</div>
+    ${open ? `<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #eee">${drivers}${f.weather && f.weather.length ? `<div style="font-size:10.5px;color:#888;line-height:1.6;margin-top:6px">산지 기상 신호: ${f.weather.map(w => `${esc(w.name)} ${w.stress.toFixed(1)}점${w.stress >= 2 ? "(" + esc(w.kind) + ")" : ""}${w.in_season ? "" : "·핵심기 외"}`).join(" / ")}</div>` : ""}</div>` : ""}
+  </div>`;
+}
+function renderGrainPricePanel(){
+  const st = grainPriceState, head = `<div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><div class="display" style="font-size:16px;margin-bottom:3px">📈 사료곡물 가격동향·전망</div><div style="font-size:11px;color:#aaa">세계 곡물 선물시장(CBOT)과 환율·달러·유가·산지 기상을 분석한 가격 흐름과 1~3개월 전망</div></div><button id="grainprice-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button></div>`;
+  if(st.status === "idle" || st.status === "loading") return head + `<div class="card" style="text-align:center;padding:32px;color:#aaa">⏳ 곡물 시장 자료를 불러오는 중...</div>`;
+  if(st.status === "error" || !st.data) return head + `<div class="card" style="text-align:center;padding:28px;color:#C62828;font-size:13px">⚠️ 자료를 불러오지 못했습니다.<div><button id="grainprice-retry" style="margin-top:10px;border:1px solid #0277BD;border-radius:8px;background:#0277BD;color:#fff;padding:7px 14px;font-size:12px;font-weight:700">다시 불러오기</button></div></div>`;
+  const d = st.data, gs = d.grains || {}, stale = d.stale || {};
+  const keys = GP_ORDER.filter(k => gs[k]);
+  const tiles = keys.map(k => { const g = gs[k], dir = gpDir(g.forecast.direction); return `<div style="flex:1 1 130px;background:${dir.bg};border-radius:10px;padding:9px 10px"><div style="font-size:11px;color:#555;font-weight:700">${GP_ICON[k]} ${esc(g.name)}</div><div style="font-size:15px;font-weight:900;color:#333">${g.krw_per_kg ? g.krw_per_kg.toLocaleString() + "<span style='font-size:10px;color:#888'> 원/kg</span>" : g.last.toFixed(2)}</div><div style="font-size:11.5px;font-weight:800;color:${dir.c}">${dir.ic} ${dir.t}</div><div style="font-size:10px;color:#777">3개월 ${gpPct(g.change["3m"])} · 전망 ${g.forecast.m3.pct > 0 ? "+" : ""}${g.forecast.m3.pct}%</div></div>`; }).join("");
+  // 요인 종합: 4개 곡물의 요인 점수 평균
+  const agg = {}; keys.forEach(k => gs[k].forecast.drivers.forEach(dr => { (agg[dr.key] = agg[dr.key] || { label:dr.label, sum:0, n:0, text:dr.text }); agg[dr.key].sum += dr.score; agg[dr.key].n++; }));
+  const up = Object.values(agg).map(a => ({ label:a.label, s:a.sum / a.n, text:a.text })).filter(a => a.s > 15).sort((a, b) => b.s - a.s);
+  const dn = Object.values(agg).map(a => ({ label:a.label, s:a.sum / a.n, text:a.text })).filter(a => a.s < -15).sort((a, b) => a.s - b.s);
+  const li = a => `<li style="margin:3px 0"><b>${esc(a.label)}</b> <span style="color:#999">(${a.s > 0 ? "+" : ""}${Math.round(a.s)})</span> — ${esc(a.text)}</li>`;
+  const m = d.macro || {};
+  const mt = ["usdkrw", "dxy", "brent", "bdry"].filter(k => m[k]).map(k => { const x = m[k]; return `<div style="flex:1 1 130px;background:#fff;border:1px solid #eee;border-radius:10px;padding:8px 10px"><div style="font-size:11px;color:#777;font-weight:700">${esc(x.name)}</div><div style="font-size:15px;font-weight:900;color:#333">${x.last.toLocaleString()}<span style="font-size:10px;color:#888"> ${esc(x.unit)}</span></div><div style="font-size:10.5px;color:${gpCol(x.change["3m"])}">3개월 ${gpPct(x.change["3m"])} · 1년 ${gpPct(x.change["1y"])}</div>${gpSpark(x.weekly, "#78909C", 140, 36)}</div>`; }).join("");
+  const fx = m.usdkrw ? `<div style="font-size:11.5px;color:#555;line-height:1.7;margin-top:8px">💱 <b>환율 민감도</b>: 환율이 ±5% 움직이면 같은 국제가격이라도 원화 환산가는 ±5% 달라집니다(옥수수 ${gs.corn && gs.corn.krw_per_kg ? "약 ±" + Math.round(gs.corn.krw_per_kg * 0.05) + "원/kg" : ""}). 최근 3개월 환율 ${gpPct(m.usdkrw.change["3m"])}${m.usdkrw.change["3m"] < 0 ? " → 원화 강세가 도입단가를 일부 낮춰 주는 구간" : m.usdkrw.change["3m"] > 0 ? " → 원화 약세가 도입단가에 부담" : ""}.</div>` : "";
+  const news = (d.news || []).slice(0, 6).map(n => `<li style="margin:3px 0"><a href="${esc(n.link)}" target="_blank" rel="noopener" style="color:#333;text-decoration:none">${esc(n.title)}</a></li>`).join("");
+  const cards = keys.map(k => renderGrainPriceCard(k, gs[k], stale[k])).join("");
+  return head + `
+    <div class="card" style="padding:14px 16px;margin-bottom:12px;border-top:4px solid #455A64">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px"><div style="font-size:14px;font-weight:900;color:#333">한눈에 보기 <span style="font-size:11px;color:#999;font-weight:500">국제 선물가 원화 환산(원/kg) · 향후 1~3개월 전망</span></div><div style="font-size:10.5px;color:#aaa">갱신 ${esc(d.updated || "")}</div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">${tiles}</div>
+      <div style="font-size:10.5px;color:#999;line-height:1.6;margin-top:8px">원/kg 은 CBOT 선물가에 원/달러 환율을 곱해 환산한 참고값입니다(운임·프리미엄·관세·사료회사 마진 미포함). 가격이 오르면 <b style="color:#D32F2F">빨강</b>, 내리면 <b style="color:#1565C0">파랑</b>으로 표시합니다.</div>
+    </div>
+    ${cards}
+    <div class="card" style="padding:14px 16px;margin-bottom:12px;border-top:4px solid #00897B">
+      <div style="font-size:14px;font-weight:900;color:#333;margin-bottom:6px">🔎 대내외 변수 종합</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <div style="flex:1 1 260px"><div style="font-size:12px;font-weight:800;color:#C62828">가격 상승 요인</div><ul style="margin:3px 0 0;padding-left:16px;font-size:11.5px;color:#444;line-height:1.6">${up.map(li).join("") || '<li style="color:#aaa">뚜렷한 상승 요인 없음</li>'}</ul></div>
+        <div style="flex:1 1 260px"><div style="font-size:12px;font-weight:800;color:#1565C0">가격 하락 요인</div><ul style="margin:3px 0 0;padding-left:16px;font-size:11.5px;color:#444;line-height:1.6">${dn.map(li).join("") || '<li style="color:#aaa">뚜렷한 하락 요인 없음</li>'}</ul></div>
+      </div>
+      <div style="font-size:12px;font-weight:800;color:#333;margin:12px 0 6px">대외 변수 현황</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${mt}</div>${fx}
+    </div>
+    ${news ? `<div class="card" style="padding:14px 16px;margin-bottom:12px"><div style="font-size:13px;font-weight:900;color:#333;margin-bottom:4px">📰 최근 곡물시장 소식</div><ul style="margin:0;padding-left:16px;font-size:11.5px;line-height:1.6">${news}</ul></div>` : ""}
+    <div class="card" style="padding:12px 16px;margin-bottom:12px;background:#FAFAFA">
+      <div class="gp-method" style="cursor:pointer;font-size:12px;font-weight:800;color:#555">ℹ️ 전망은 이렇게 계산합니다 ${st.showMethod ? "▲" : "▼"}</div>
+      ${st.showMethod ? `<div style="font-size:11.5px;color:#555;line-height:1.75;margin-top:6px">
+        <b>자료</b>: 야후 파이낸스의 CBOT 선물(옥수수 ZC, 대두박 ZM, 대두 ZS, 밀 ZW) 10년 월봉·2년 일봉, 원/달러 환율, 달러지수(DXY), 브렌트유, 건화물 운임 ETF(BDRY), 그리고 본 사이트 「사료곡물 원료 품질평가」의 산지 기상 신호(ERA5 재분석).<br>
+        <b>방법</b>: 6개 요인을 각각 -100~+100점으로 만들어 가중합합니다 — 가격 추세 30%(50일·200일 이동평균, 3개월 변화), 가격 위치 15%(10년 중 높으면 하락 압력, 낮으면 상승 압력), 계절성 15%(같은 달 이후 3개월의 10년 평균), 달러 10%(달러 강세=가격 부담), 국제 유가 10%(에탄올·비료·운송비), 산지 기상 20%(가뭄·과습이 생육·수확 핵심기 산지에 나타날 때). 합계 점수가 +18 이상이면 상승 우세, -18 이하면 하락 우세, 그 사이는 보합권입니다.<br>
+        <b>전망 폭</b>: 최근 60거래일 변동성으로 1개월·3개월 표준편차(σ)를 구하고, 중심 전망 = 현재가 × (1 + 점수 × 0.5 × σ), 범위 = 중심 ± 1σ(통계적으로 약 68% 확률)로 표시합니다. 점수가 높아도 중심값은 σ의 절반 이내만 움직이도록 보수적으로 잡았습니다.<br>
+        <b>한계</b>: 재고·수출입 정책(관세·보조금), 지정학, 바이오연료 정책, 투기자금 포지션, 해상운임·프리미엄 같은 변수는 점수에 직접 넣지 못했습니다(유가·달러·뉴스로 간접 확인). 과거 통계에 기반한 참고 자료이며 투자·구매 판단의 근거나 수익을 보장하지 않습니다. 실제 사료 도입단가는 선물가 외에 프리미엄·운임·환율 시점에 따라 달라집니다.</div>` : ""}
+    </div>`;
+}
+
 function renderPremiumGateHeader(){
   return `
   <div style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
@@ -10897,6 +11008,11 @@ function renderPremiumTab(){
   if(premiumState.view === "feedgrain"){
     if(grainQState.status === "idle") fetchGrainQuality();
     return renderPremiumGateHeader() + logoutBar + renderFeedGrainPanel();
+  }
+  // 사료곡물 가격동향·전망 — grain_price/latest.json(매일 자동 갱신)을 읽는다
+  if(premiumState.view === "grainprice"){
+    if(grainPriceState.status === "idle") fetchGrainPrice();
+    return renderPremiumGateHeader() + logoutBar + renderGrainPricePanel();
   }
   // 양계잡지 학습정보 화면
   if(premiumState.view === "magazine"){
@@ -16801,6 +16917,13 @@ function attachDiseaseEvents(){
   }
   const pwaBtn = document.getElementById("pwa-install-btn");
   if(pwaBtn) pwaBtn.onclick = () => { pwaInstall.guide = !pwaInstall.guide; render(); };
+  const gpBack = document.getElementById("grainprice-back-btn");
+  if(gpBack) gpBack.onclick = () => { premiumState.view = "menu"; render(); };
+  const gpRetry = document.getElementById("grainprice-retry");
+  if(gpRetry) gpRetry.onclick = () => { grainPriceState.status = "idle"; render(); };
+  document.querySelectorAll(".gp-toggle").forEach(el => el.onclick = () => { const k = el.dataset.key; grainPriceState.open[k] = !grainPriceState.open[k]; render(); });
+  const gpMethod = document.querySelector(".gp-method");
+  if(gpMethod) gpMethod.onclick = () => { grainPriceState.showMethod = !grainPriceState.showMethod; render(); };
   const emBack = document.getElementById("emerging-back-btn");
   if(emBack) emBack.onclick = () => { premiumState.view = "menu"; render(); };
   // 국내 가금농장 HPAI 발생 지도
