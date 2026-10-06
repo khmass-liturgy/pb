@@ -752,7 +752,7 @@ const PREMIUM_ITEMS = [
   { key:"feature_board", icon:"💡", title:"기능 요청 게시판", desc:"필요한 기능을 자유롭게 제안해 주세요. 작성자는 다른 회원에게 익명으로 표시됩니다.", color:"#00838F", category:"게시판·기타" },
   { key:"consult", icon:"💬", title:"온라인 상담", desc:"농장 현안(사양·환기·질병 등)을 질문하면 최동명 수의사가 답변합니다. 사진 첨부 가능, 답변은 작성자만 볼 수 있습니다.", color:"#1565C0", category:"게시판·기타" },
   { key:"consulting", icon:"📈", title:"온라인 컨설팅", desc:"농장 운영·질병 현황을 바탕으로 맞춤 투약·백신 프로그램을 작성해 드립니다. 답변은 작성자만 볼 수 있습니다.", color:"#E65100", category:"게시판·기타" },
-  { key:"smssub", icon:"📱", title:"자동 문자 발송 신청", desc:"계절별 투약 패키지·기술탐구·상황별 처방 중 원하는 정보를 정해진 주기로 문자 알림 신청합니다.", color:"#0277BD", category:"게시판·기타" },
+  { key:"smssub", icon:"📱", title:"자동 문자 발송 신청", desc:"시세·계란수급·곡물선물, 국내외 AI 발생현황, 이달의 질병, 계절별 패키지·기술탐구 등 15가지 중 원하는 정보를 정해진 주기로 문자 알림 신청합니다.", color:"#0277BD", category:"게시판·기타" },
 ];
 
 // 카테고리 큰 제목마다 다른 색을 준다 — 묶음별로 한눈에 구분되게. 목록에
@@ -2913,11 +2913,21 @@ function cardCandToBackImage(c){
 // 3개(FIREBASE_SERVICE_ACCOUNT_JSON/SMS_RELAY_URL/SMS_RELAY_SECRET)는 스크립트
 // 상단 설명 참고.
 const SMS_SUBSCRIBABLE_MENUS = [
-  { key:"seasonal", label:"🗓️ 계절별 투약(관리) 패키지" },
-  { key:"research", label:"📚 최신 기술탐구" },
-  { key:"treatment", label:"💉 상황별 처방(투약) 패키지" },
-  { key:"poultry_price", label:"📊 양계 산지시세" },
-  { key:"briefing", label:"📋 뉴스정보" },
+  { group:"📊 시세·경제", key:"poultry_price", label:"📊 양계 산지시세" },
+  { group:"📊 시세·경제", key:"egg_report", label:"🥚 주간 계란 수급 정보" },
+  { group:"📊 시세·경제", key:"jungchu", label:"🐥 산란 중추 가격" },
+  { group:"📊 시세·경제", key:"market", label:"💹 곡물선물·환율" },
+  { group:"📊 시세·경제", key:"feed_production", label:"🌾 배합사료 생산 동향" },
+  { group:"📊 시세·경제", key:"layer_stats", label:"🐔 닭 사육 마릿수 통계" },
+  { group:"📊 시세·경제", key:"grain_quality", label:"🌽 사료곡물 산지 기상·곰팡이 신호" },
+  { group:"🦠 질병·방역", key:"hpai_kr", label:"🦠 국내 AI 발생현황" },
+  { group:"🦠 질병·방역", key:"hpai_world", label:"🌍 세계 AI 발생(WOAH)" },
+  { group:"🦠 질병·방역", key:"hpai_news", label:"🚨 AI 방역 소식" },
+  { group:"🦠 질병·방역", key:"monthly_pick", label:"📌 이달의 질병" },
+  { group:"🦠 질병·방역", key:"research", label:"📚 최신 기술탐구" },
+  { group:"🩺 사양·정보", key:"seasonal", label:"🗓️ 계절별 투약(관리) 패키지" },
+  { group:"🩺 사양·정보", key:"treatment", label:"💉 상황별 처방(투약) 패키지" },
+  { group:"🩺 사양·정보", key:"briefing", label:"📋 뉴스정보" },
 ];
 const SMS_INTERVALS = [
   { key:"daily", label:"매일", days:1 },
@@ -9036,9 +9046,11 @@ function renderSmsSubPanel(){
   }
   const cfg = st.data || {};
 
-  const menuBtns = SMS_SUBSCRIBABLE_MENUS.map(m => `
+  const menuBtn = m => `
     <button class="smssub-menu-btn" data-menu="${m.key}"
-      style="flex:1;min-width:130px;border:2px solid ${cfg.menu===m.key?"#0277BD":"#eee"};background:${cfg.menu===m.key?"#0277BD":"#fff"};color:${cfg.menu===m.key?"#fff":"#333"};border-radius:10px;padding:10px 8px;font-size:12.5px;font-weight:700;cursor:pointer">${m.label}</button>`).join("");
+      style="flex:1;min-width:130px;border:2px solid ${cfg.menu===m.key?"#0277BD":"#eee"};background:${cfg.menu===m.key?"#0277BD":"#fff"};color:${cfg.menu===m.key?"#fff":"#333"};border-radius:10px;padding:10px 8px;font-size:12.5px;font-weight:700;cursor:pointer">${m.label}</button>`;
+  const groups = [...new Set(SMS_SUBSCRIBABLE_MENUS.map(m => m.group))];
+  const menuBtns = groups.map(g => `<div style="width:100%;font-size:11.5px;font-weight:800;color:#0277BD;margin:6px 0 2px">${g}</div>` + SMS_SUBSCRIBABLE_MENUS.filter(m => m.group === g).map(menuBtn).join("")).join("");
   const intervalBtns = SMS_INTERVALS.map(i => `
     <button class="smssub-interval-btn" data-interval="${i.key}"
       style="flex:1;border:2px solid ${cfg.interval===i.key?"#0277BD":"#eee"};background:${cfg.interval===i.key?"#0277BD":"#fff"};color:${cfg.interval===i.key?"#fff":"#333"};border-radius:10px;padding:9px 6px;font-size:12.5px;font-weight:700;cursor:pointer">${i.label}</button>`).join("");

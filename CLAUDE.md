@@ -173,7 +173,7 @@ assuming their output is refreshed automatically.
 `scripts/send_sms_subscriptions.py` + `.github/workflows/send-sms-subscriptions.yml` (daily 08:30
 KST) is a different shape from the table above — it doesn't read an external source or write JSON
 into this repo. It processes the 유료서비스 "자동 문자 발송 신청" subscriptions (member picks a
-menu — 계절별 패키지/기술탐구/상황별 처방 — and an interval) stored in Firebase Storage under
+menu — 15 choices in 시세·경제 / 질병·방역 / 사양·정보 groups, see `SMS_SUBSCRIBABLE_MENUS` in index.html and `build_digest` in the script; most read this repo's public JSON, so a new menu = one digest function + one list entry — and an interval) stored in Firebase Storage under
 `premium_board/sms_sub/{uid}/settings/config.json`, and for whichever subscribers are due, sends a
 digest text via the **sms-relay** fixed-IP proxy already deployed for the sibling `farm-pro` project
 (OneDrive `GitHub-daehan/farm-pro/sms-relay/`, an Oracle Cloud VM in front of the 알리고 SMS API —

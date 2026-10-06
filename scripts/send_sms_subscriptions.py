@@ -81,6 +81,180 @@ def current_season():
     return "winter"
 
 
+# ── 추가 메뉴 문자 내용(저장소의 공개 JSON을 읽어 만든다) ───────────────────────────
+RAW = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/"
+
+
+def fetch_repo_json(path):
+    try:
+        with urllib.request.urlopen(RAW + path, timeout=10) as r:
+            return json.loads(r.read().decode("utf-8"))
+    except Exception:
+        return None
+
+
+def _arrow(cur, prev):
+    if not isinstance(cur, (int, float)) or not isinstance(prev, (int, float)) or not prev:
+        return ""
+    pct = (cur - prev) / prev * 100
+    return f" {'▲' if pct > 0.05 else '▼' if pct < -0.05 else '─'}{abs(pct):.1f}%"
+
+
+def _short(s, n=60):
+    s = " ".join(str(s or "").split())
+    return s if len(s) <= n else s[:n - 1] + "…"
+
+
+def digest_hpai_kr():
+    d = fetch_repo_json("hpai_kr/latest.json") or {}
+    farms = [f for f in d.get("farms", []) if f.get("conf", "") >= "2026-09-01"]
+    wild = [w for w in d.get("wild", []) if w.get("conf", "") >= "2026-09-01"]
+    lines = ["[🦠 국내 AI 발생현황]", f"26/27 시즌(9월~) 가금농장 {len(farms)}건 · 야생조류 {len(wild)}건"]
+    for f in sorted(farms, key=lambda x: x["conf"])[-4:]:
+        lines.append(f"- {f['conf'][5:].lstrip('0').replace('-0', '-').replace('-', '.')} {f['sido']} {f['sgg']} {f.get('breed','')} {f.get('cnt',0):,}수")
+    for n in (d.get("news") or [])[:2]:
+        lines.append("· " + _short(n.get("title"), 50))
+    if d.get("as_of"):
+        lines.append(f"(농식품부 자료 {d['as_of'][:10]} 기준)")
+    if not farms and not wild and not d.get("news"):
+        lines.append("지금까지 새 시즌 발생이 자료에 없습니다.")
+    return "\n".join(lines)
+
+
+def digest_hpai_world():
+    h = fetch_repo_json("hpai_risk/latest.json")
+    if not h:
+        return "[🌍 세계 AI 발생(WOAH)]\n아직 수집된 자료가 없습니다."
+    o = h.get("overall") or {}
+    lines = ["[🌍 세계 AI 발생(WOAH)]",
+             f"최근 {h.get('window_days', 180)}일 {o.get('countries', 0)}개국 {o.get('total', 0)}건(가금 {o.get('poultry', 0)}·야생 {o.get('wild', 0)}), 진행중 {o.get('ongoing', 0)}건"]
+    fw = h.get("flyway") or {}
+    if fw:
+        lines.append(f"한반도 철새경로(EAAF) {fw.get('total', 0)}건, 진행중 {fw.get('ongoing', 0)}건")
+    kr = h.get("korea") or {}
+    if kr:
+        lines.append(f"국내 WOAH 신고 {kr.get('total', 0)}건(최근 {kr.get('latest', '-')})")
+    return "\n".join(lines)
+
+
+def digest_hpai_news(bucket):
+    data = load_json_blob(bucket, "public_content/hpai_news/latest.json") or fetch_repo_json("hpai_news/news.json") or {}
+    items = sorted(data.get("items") or [], key=lambda x: x.get("createdAt", ""), reverse=True)[:3]
+    if not items:
+        return "[🚨 AI 방역 소식]\n아직 등록된 소식이 없습니다."
+    lines = ["[🚨 AI 방역 소식]"]
+    for it in items:
+        lines.append(f"- {(it.get('createdAt') or '')[:10]} {_short(it.get('title'), 45)}")
+    return "\n".join(lines)
+
+
+def digest_egg_report():
+    e = fetch_repo_json("egg_report/latest.json")
+    if not e:
+        return "[🥚 주간 계란 수급]\n아직 수집된 자료가 없습니다."
+    lines = [f"[🥚 {e.get('title', '주간 계란 수급 정보')}]"]
+    s = e.get("summary") or {}
+    if s.get("supply_status"):
+        lines.append(f"수급 판단: {s['supply_status']}")
+    for sec in (e.get("sections") or [])[:2]:
+        lines.append(f"▶ {sec.get('title', '')}: {_short(sec.get('summary'), 70)}")
+    return "\n".join(lines)
+
+
+def digest_market():
+    m = (fetch_repo_json("market/quotes.json") or {}).get("quotes") or {}
+    if not m:
+        return "[💹 곡물선물·환율]\n아직 수집된 시세가 없습니다."
+    rows = [("corn", "🌽 옥수수", " $/bu", 2), ("soybean", "🫘 대두", " $/bu", 2), ("soymeal", "대두박", " $/톤", 1),
+            ("wheat", "🌾 밀", " $/bu", 2), ("usdkrw", "💵 달러", "원", 1), ("brent", "🛢 브렌트유", " $/배럴", 1)]
+    lines = ["[💹 곡물선물·환율]"]
+    for key, label, unit, dec in rows:
+        q = m.get(key)
+        if q and isinstance(q.get("current"), (int, float)):
+            lines.append(f"{label} {q['current']:,.{dec}f}{unit}{_arrow(q['current'], q.get('prev'))}")
+    return "\n".join(lines)
+
+
+def digest_grain_quality():
+    g = fetch_repo_json("grain_quality/latest.json")
+    if not g or not g.get("regions"):
+        return "[🌽 사료곡물 산지 흐름]\n아직 수집된 자료가 없습니다."
+    lines = ["[🌽 사료곡물 산지 기상·곰팡이 신호]"]
+    for r in g["regions"].values():
+        now = r.get("now") or {}
+        mold = (now.get("mold") or {}).get("score")
+        z = now.get("z") or {}
+        parts = []
+        if isinstance(mold, (int, float)):
+            lvl = "높음" if mold >= 60 else "보통" if mold >= 35 else "낮음"
+            parts.append(f"곰팡이 {mold:.0f}점({lvl})")
+        if isinstance(z.get("p"), (int, float)):
+            parts.append("강수 평년비 " + ("많음" if z["p"] > 1 else "적음" if z["p"] < -1 else "비슷"))
+        lines.append(f"- {r.get('name', '')}: " + (", ".join(parts) or "자료 없음"))
+    lines.append("(최근 30일, 위성 재분석 기준)")
+    return "\n".join(lines)
+
+
+def digest_feed_production():
+    f = fetch_repo_json("feed_production/latest.json")
+    if not f:
+        return "[🌾 배합사료 생산]\n아직 수집된 자료가 없습니다."
+    y, m = f["latest"]["year"], f["latest"]["month"]
+    cur, prev = f["years"].get(str(y)), f["years"].get(str(y - 1))
+
+    def tot(yr, keys):
+        return sum((yr["groups"][k][m - 1] or 0) for k in keys) if yr else 0
+    lines = [f"[🌾 배합사료 생산 {y}년 {m}월]"]
+    for label, keys in (("육계용", ["broiler_starter", "broiler_finisher"]), ("산란계용", ["layer_rearing", "layer_laying"])):
+        c, p = tot(cur, keys), tot(prev, keys)
+        lines.append(f"{label} {c:,.0f}톤{_arrow(c, p)} (전년 동월 대비)")
+    return "\n".join(lines)
+
+
+def digest_layer_stats():
+    s = fetch_repo_json("layer_stats/latest.json")
+    if not s:
+        return "[🐔 사육 마릿수 통계]\n아직 수집된 자료가 없습니다."
+    lay, br = s.get("layer") or {}, s.get("broiler") or {}
+    lines = [f"[🐔 닭 사육 마릿수 {s.get('period', '')}]"]
+    lines.append(f"산란계 {lay.get('birds', 0) / 10000:,.0f}만수({lay.get('farms', 0):,}호) 전분기 {lay.get('birds_pct', 0):+.1f}%")
+    lines.append(f"육계 {br.get('birds', 0) / 10000:,.0f}만수({br.get('farms', 0):,}호) 전분기 {br.get('birds_pct', 0):+.1f}%")
+    lines.append("(축산물품질평가원 통계)")
+    return "\n".join(lines)
+
+
+def digest_jungchu():
+    j = fetch_repo_json("jungchu_price/latest.json")
+    if not j or not isinstance(j.get("latest"), int):
+        return "[🐥 산란 중추 가격]\n아직 수집된 자료가 없습니다."
+    return f"[🐥 산란 중추 가격]\n{j.get('latest_year')}년 {j.get('latest_month')}월 {j['latest']:,}원\n(대한산란계협회 게시표 기준)"
+
+
+def digest_monthly_pick():
+    p = fetch_repo_json("monthly_pick/picks.json") or {}
+    picks = p.get("picks") or {}
+    if not picks:
+        return "[📌 이달의 질병]\n아직 선정된 질병이 없습니다."
+    month = datetime.now(KST).strftime("%Y-%m")
+    key = month if picks.get(month) else sorted(picks)[-1]
+    names = {}
+    for dz in (fetch_repo_json("poultry_disease/diseases.json") or {}).get("diseases", []):
+        names[dz.get("slug")] = dz.get("title_ko") or dz.get("title_en")
+    lines = [f"[📌 {key} 이달의 질병]"]
+    for it in picks[key][:4]:
+        name = names.get(it.get("slug")) or it.get("title") or ""
+        note = it.get("note") or ""
+        lines.append(f"- {_short(name, 60)}" + (f" — {_short(note, 40)}" if note and it.get("slug") else ""))
+    return "\n".join(lines)
+
+
+EXTRA_DIGESTS = {
+    "hpai_kr": digest_hpai_kr, "hpai_world": digest_hpai_world, "egg_report": digest_egg_report,
+    "market": digest_market, "grain_quality": digest_grain_quality, "feed_production": digest_feed_production,
+    "layer_stats": digest_layer_stats, "jungchu": digest_jungchu, "monthly_pick": digest_monthly_pick,
+}
+
+
 def build_digest(bucket, menu):
     if menu == "seasonal":
         data = load_json_blob(bucket, "premium_content/seasonal_packages/latest.json") or {}
@@ -173,6 +347,12 @@ def build_digest(bucket, menu):
         if not found:
             return "[📋 뉴스정보 브리핑]\n아직 수집된 뉴스가 없습니다."
         return "\n".join(lines)
+
+    if menu == "hpai_news":
+        return digest_hpai_news(bucket)
+
+    if menu in EXTRA_DIGESTS:
+        return EXTRA_DIGESTS[menu]()
 
     return ""
 
