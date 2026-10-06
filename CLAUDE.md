@@ -124,6 +124,14 @@ Each data domain has this shape:
 | 금일 육계시세(대한양계협회 poultry.or.kr) | `scripts/fetch_broiler_price_today.py` | `broiler_price_today/latest.json` | fetch-broiler-price-today.yml | daily 13:20 |
 | 기술탐구 논문(PubMed → Claude API 번역·요약, 유료서비스 전용) | `scripts/fetch_research_papers.py` | `research_papers/latest.json` | fetch-research-papers.yml | weekly Sun 07:10 |
 | 배합사료 생산실적(농식품부 월별 .xls → 육계·산란계 생산잠재력 마릿수 추정) | `scripts/fetch_feed_production.py` | `feed_production/latest.json` | fetch-feed-production.yml | daily 10:30 (commits only when a new month is posted, ~20th) |
+| 국내 고병원성 AI 가금농장 발생·야생조류 검출(농식품부 「발생·검출 현황」 .hwp 표 + Google 뉴스 RSS 최근 3일 보도) | `scripts/fetch_hpai_kr.py` | `hpai_kr/latest.json` | fetch-hpai-kr.yml | daily 09:30·18:30 (commits only when the table or news changed) |
+
+`fetch_hpai_kr.py` reads the MAFRA HWP table (olefile) through the same domestic relay as the feed-production job —
+the relay's `MAFRA_ALLOWED_PATH` (farm-pro `sms-relay/server.js`) must include `bbs/FMD-AI2/851`, and the VM needs the
+updated server.js deployed or the workflow fails. The board is updated only now and then (25/26 season: 12.30 then
+3.22), so the JSON also carries recent news headlines. index.html's 발생지도 merges rows confirmed on/after
+2026-09-01 (`HPAI_KR_NEW_SEASON`) from that JSON on top of the built-in 25/26 season data (`HPAI_KR_FARMS`/`HPAI_KR_WILD`)
+and draws them in purple/teal.
 
 `fetch_egg_report.py` and `fetch_egg_price.py` currently have no workflow wired up — check before
 assuming their output is refreshed automatically.
