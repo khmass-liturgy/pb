@@ -22,9 +22,12 @@ jobs:
           python-version: "3.12"
 
       - name: 패키지 설치
-        run: pip install requests
+        run: pip install requests trafilatura
 
       - name: 양계 업계 소식 수집
+        # 요약은 Claude(ANTHROPIC_API_KEY — 기술탐구 논문 수집과 같은 저장소 시크릿)로 만들고, 키가 없으면 본문 앞부분으로 대신한다
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python scripts/fetch_industry_news.py
 
       - name: 결과 커밋

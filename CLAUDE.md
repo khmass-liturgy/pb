@@ -126,7 +126,7 @@ Each data domain has this shape:
 | 배합사료 생산실적(농식품부 월별 .xls → 육계·산란계 생산잠재력 마릿수 추정) | `scripts/fetch_feed_production.py` | `feed_production/latest.json` | fetch-feed-production.yml | daily 10:30 (commits only when a new month is posted, ~20th) |
 | 국내 고병원성 AI 가금농장 발생·야생조류 검출(농식품부 「발생·검출 현황」 .hwp 표 + Google 뉴스 RSS 최근 3일 보도) | `scripts/fetch_hpai_kr.py` | `hpai_kr/latest.json` | fetch-hpai-kr.yml | daily 09:30·18:30 (commits only when the table or news changed) |
 | 사료곡물 가격동향·전망(CBOT 옥수수·대두박·대두·밀 + 환율·달러지수·유가·운임 + grain_quality 기상 → 6요인 가중점수 1·3개월 전망, 유료서비스 전용 카드) | `scripts/fetch_grain_price.py` | `grain_price/latest.json` | fetch-grain-price.yml | Tue–Sat 08:00 (US close; commits only when numbers changed) |
-| 양계 업계 소식(Google 뉴스 국내판에서 계란·조류인플루엔자·AI·육계·방역·양계 질병 키워드 24개 검색, 최근 14일 누적, 유료서비스 「업계관련 소식」 카드) | `scripts/fetch_industry_news.py` | `industry_news/latest.json` | fetch-industry-news.yml | daily 07:30 |
+| 양계 업계 소식(Google 뉴스 국내판에서 계란·조류인플루엔자·AI·육계·방역·양계 질병 키워드 24개 검색, 최근 14일 누적, 유료서비스 「양계 업계관련 핵심키워드 검색소식」 카드; 원문 주소는 Google 뉴스 링크를 batchexecute로 풀고, 본문 요약은 Claude Haiku(ANTHROPIC_API_KEY, 없으면 본문 앞부분 발췌)) | `scripts/fetch_industry_news.py` | `industry_news/latest.json` | fetch-industry-news.yml | daily 07:30 |
 
 `fetch_hpai_kr.py` reads the MAFRA HWP table (olefile) through the same domestic relay as the feed-production job —
 the relay's `MAFRA_ALLOWED_PATH` (farm-pro `sms-relay/server.js`) must include `bbs/FMD-AI2/851`, and the VM needs the

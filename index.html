@@ -750,7 +750,7 @@ const PREMIUM_ITEMS = [
   { key:"emerging", icon:"🔬", title:"최신 연구되는 질병", desc:"PubMed 최근 논문에서 요즘 많이 다뤄지는 양계질병을 편수 순으로 찾아 한글로 번역해 보여드리고, 관련 소식까지 검색합니다.", color:"#5E35B1", category:"질문·학습·교육" },
   { key:"research", icon:"📚", title:"최신 기술탐구", desc:"질병논문·사양관리기술·컨설팅도구 최신 국제논문 5편씩을 매주 한글로 번역·요약해 드립니다.", color:"#6A1B9A", category:"질문·학습·교육" },
   { key:"magazine", icon:"📰", title:"양계잡지 학습정보", desc:"양계 전문지 지면을 사진으로 올리면 사진과 글을 분리해 게시판처럼 보여드립니다.", color:"#455A64", category:"질문·학습·교육" },
-  { key:"industrynews", icon:"🗞️", title:"업계관련 소식", desc:"계란·조류인플루엔자·AI·육계·방역·양계 질병 등 양계 관련 국내 기사를 매일 아침 모아 카드로 보여드립니다.", color:"#455A64", category:"게시판·기타" },
+  { key:"industrynews", icon:"🗞️", title:"양계 업계관련 핵심키워드 검색소식", desc:"계란·조류인플루엔자·AI·육계·방역·양계 질병 등 양계 핵심 키워드로 국내 기사를 매일 아침 검색해 요약과 함께 카드로 보여드립니다.", color:"#455A64", category:"게시판·기타" },
   { key:"kkoko", icon:"🐔", title:"최꼬박사랑 대화", desc:"무료 탭의 최꼬꼬가 유료회원님께는 더 똑똑해진 '최꼬박사'로 변신합니다 — 더 자세하고 깊이 있는 사양관리·질병 설명을 받아보세요. 텍스트는 물론 음성으로도 대화할 수 있습니다.", color:"#F57F17", category:"질문·학습·교육" },
   { key:"feature_board", icon:"💡", title:"기능 요청 게시판", desc:"필요한 기능을 자유롭게 제안해 주세요. 작성자는 다른 회원에게 익명으로 표시됩니다.", color:"#00838F", category:"게시판·기타" },
   { key:"consult", icon:"💬", title:"온라인 상담", desc:"농장 현안(사양·환기·질병 등)을 질문하면 최동명 수의사가 답변합니다. 사진 첨부 가능, 답변은 작성자만 볼 수 있습니다.", color:"#1565C0", category:"게시판·기타" },
@@ -10849,7 +10849,7 @@ function renderGrainPricePanel(){
     </div>`;
 }
 
-// ── 업계관련 소식 (유료서비스 · 게시판·기타) ─────────────────────────────────────
+// ── 양계 업계관련 핵심키워드 검색소식 (유료서비스 · 게시판·기타) ─────────────────────────────────────
 // scripts/fetch_industry_news.py 가 매일 아침 Google 뉴스(국내판)에서 계란·조류인플루엔자·AI·육계·방역·양계 질병 등
 // 양계 키워드 기사를 모아 industry_news/latest.json 에 쌓는다(최근 14일). 여기서는 그 목록을 카드로 그린다.
 const INDUSTRY_NEWS_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/industry_news/latest.json";
@@ -10868,7 +10868,7 @@ async function fetchIndustryNews(){
 }
 function renderIndustryNewsPanel(){
   const st = industryNewsState;
-  const head = `<div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><div class="display" style="font-size:16px;margin-bottom:3px">📰 업계관련 소식</div><div style="font-size:11px;color:#aaa">계란·조류인플루엔자·AI·육계·방역·양계 질병 등 양계 관련 국내 기사를 매일 아침 모아 카드로 보여드립니다</div></div><button id="industrynews-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button></div>`;
+  const head = `<div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><div class="display" style="font-size:16px;margin-bottom:3px">📰 양계 업계관련 핵심키워드 검색소식</div><div style="font-size:11px;color:#aaa">계란·조류인플루엔자·AI·육계·방역·양계 질병 등 핵심 키워드로 매일 아침 국내 기사를 검색해 요약과 함께 보여드립니다</div></div><button id="industrynews-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button></div>`;
   if(st.status === "idle" || st.status === "loading") return head + `<div class="card" style="text-align:center;padding:32px;color:#aaa">⏳ 소식을 불러오는 중...</div>`;
   if(st.status === "error" || !st.data) return head + `<div class="card" style="text-align:center;padding:28px;color:#C62828;font-size:13px">⚠️ 소식을 불러오지 못했습니다.<div><button id="industrynews-retry" style="margin-top:10px;border:1px solid #0277BD;border-radius:8px;background:#0277BD;color:#fff;padding:7px 14px;font-size:12px;font-weight:700">다시 불러오기</button></div></div>`;
   const d = st.data, items = d.items || [], groups = d.groups || [];
@@ -10882,9 +10882,12 @@ function renderIndustryNewsPanel(){
     const day = i.ts.slice(0, 10);
     if(day !== lastDay){ lastDay = day; cards += `<div style="font-size:12px;font-weight:800;color:#37474F;margin:14px 0 6px">${day === todayStr ? "오늘" : day === yStr ? "어제" : day.slice(5).replace("-", "월 ") + "일"} <span style="font-weight:500;color:#aaa;font-size:11px">${day}</span></div>`; }
     const c = IN_COLORS[(i.tags || [])[0]] || "#37474F";
-    cards += `<a href="${esc(i.link)}" target="_blank" rel="noopener" style="display:block;text-decoration:none;background:#fff;border:1px solid #eee;border-left:4px solid ${c};border-radius:10px;padding:10px 12px;margin-bottom:8px">
-      <div style="font-size:13px;font-weight:700;color:#222;line-height:1.5">${esc(i.title)}</div>
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:5px"><div style="display:flex;gap:4px;flex-wrap:wrap">${(i.tags || []).slice(0, 3).map(t => `<span style="font-size:10px;color:${IN_COLORS[t] || "#555"};background:#F6F6F6;border-radius:8px;padding:1px 7px;font-weight:700">${esc(t)}</span>`).join("")}</div><div style="font-size:10.5px;color:#999">${esc(i.source || "")} · ${esc(i.ts.slice(11))}</div></div></a>`;
+    const orig = i.url || i.link;
+    cards += `<div style="background:#fff;border:1px solid #eee;border-left:4px solid ${c};border-radius:10px;padding:11px 13px;margin-bottom:9px">
+      <div style="font-size:13.5px;font-weight:800;color:#222;line-height:1.5">${esc(i.title)}</div>
+      <div style="font-size:10.5px;color:#999;margin-top:2px">${esc(i.source || "")} · ${esc(i.ts.slice(11))}</div>
+      ${i.summary ? `<div style="font-size:12.5px;color:#444;line-height:1.7;margin-top:7px;background:#FAFAFA;border-radius:8px;padding:8px 10px">${i.summary_ai ? '<span style="font-size:10px;color:#6A1B9A;font-weight:800">🤖 AI 요약</span> ' : '<span style="font-size:10px;color:#888;font-weight:800">본문 발췌</span> '}${esc(i.summary)}</div>` : `<div style="font-size:11.5px;color:#aaa;margin-top:6px">요약을 만들지 못한 기사입니다. 원문에서 확인해 주세요.</div>`}
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px"><div style="display:flex;gap:4px;flex-wrap:wrap">${(i.tags || []).slice(0, 3).map(t => `<span style="font-size:10px;color:${IN_COLORS[t] || "#555"};background:#F6F6F6;border-radius:8px;padding:1px 7px;font-weight:700">${esc(t)}</span>`).join("")}</div><a href="${esc(orig)}" target="_blank" rel="noopener" style="font-size:12px;font-weight:800;color:#fff;background:${c};border-radius:8px;padding:6px 12px;text-decoration:none;white-space:nowrap">📄 원문 보기 ↗</a></div></div>`;
   });
   return head + `
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px">${chip("전체")}${groups.map(chip).join("")}</div>
@@ -10892,7 +10895,7 @@ function renderIndustryNewsPanel(){
     ${st.showKw ? `<div style="font-size:11px;color:#666;line-height:1.7;background:#F7F9FC;border-radius:8px;padding:8px 10px;margin-top:6px">${(d.keywords || []).map(k => esc(k)).join(" · ")}<br><span style="color:#999">'AI'는 인공지능 기사가 섞이지 않도록 제목에 가금·방역 맥락이 있는 기사만 담습니다.</span></div>` : ""}
     ${cards || `<div class="card" style="text-align:center;padding:24px;color:#aaa;margin-top:10px">해당하는 기사가 없습니다.</div>`}
     ${list.length > shown.length ? `<div style="text-align:center;margin-top:6px"><button id="in-more" style="border:1px solid #0277BD;border-radius:8px;background:#fff;color:#0277BD;padding:8px 18px;font-size:12px;font-weight:700;cursor:pointer">더 보기 (${list.length - shown.length}건 남음)</button></div>` : ""}
-    <div style="font-size:9.5px;color:#aaa;line-height:1.6;margin-top:12px">※ 기사 제목과 링크만 모아 보여 주며 저작권은 각 언론사에 있습니다. 카드를 누르면 원문으로 이동합니다.</div>`;
+    <div style="font-size:9.5px;color:#aaa;line-height:1.6;margin-top:12px">※ 요약은 기사 내용을 짧게 줄인 참고용이며(AI 요약은 오류가 있을 수 있음) 기사의 저작권은 각 언론사에 있습니다. 정확한 내용은 「원문 보기」로 확인하세요.</div>`;
 }
 
 function renderPremiumGateHeader(){
