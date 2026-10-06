@@ -515,7 +515,7 @@ exports.extractMagazineText = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeco
   };
 });
 
-const BOARD_TYPES = ["diagnosis", "consult", "consulting"];
+const BOARD_TYPES = ["diagnosis", "consult", "consulting", "specimen"];
 
 // 온라인 상담·진단·컨설팅(premium_board/{boardType}/{uid}/{postId}/
 // post.json·reply.json) — 회원용("mine": 내 글만)과 관리자용("inbox":

@@ -743,6 +743,7 @@ const PREMIUM_ITEMS = [
   { key:"feedgrain", icon:"🌽", title:"사료곡물 원료 품질평가", desc:"미국·브라질·아르헨티나·유럽 곡물 산지의 기상 흐름과 곰팡이 위험을 신호등·13주 흐름 띠로 보고, 옥수수·대두·밀의 영양·물리 품질을 나라별로 비교합니다.", color:"#F57F17", category:"사양관리" },
   { key:"selfcheck", icon:"🐔", title:"온라인 자가진단", desc:"닭 해부도에서 장기를 클릭하면 그 장기의 기능과 흔히 나타나는 질병을 보여드립니다.", color:"#AD1457", category:"진단" },
   { key:"diagnosis", icon:"🔍", title:"온라인 진단", desc:"닭의 외부모습·분변상태·부검사진(기관지·간·신장·소장)을 올리면 최동명 수의사가 직접 진단합니다. 사진·진단 내용은 작성자만 볼 수 있습니다.", color:"#2E7D32", category:"진단" },
+  { key:"specimen", icon:"🧪", title:"가검물 의뢰(유료)", desc:"혈청·부검·조직 등 가검물 검사를 의뢰서 양식 그대로 입력해 온라인으로 의뢰합니다. 접수 후 최동명 수의사가 확인해 안내합니다.", color:"#00695C", category:"진단" },
   { key:"faq", icon:"❓", title:"농장에서 많이 궁금해 하는 질문", desc:"농장에서 자주 묻는 질문과 답변을 카드로 모아뒀습니다. 카드를 누르면 답변이 펼쳐집니다.", color:"#5D4037", category:"질문·학습·교육" },
   { key:"study", icon:"🎓", title:"최수의사의 온라인 학습(카드 학습)", desc:"수의사가 올린 카드형 학습자료(앞면/뒷면)로 필요할 때마다 학습할 수 있습니다.", color:"#4527A0", category:"질문·학습·교육" },
   { key:"emerging", icon:"🔬", title:"최신 연구되는 질병", desc:"PubMed 최근 논문에서 요즘 많이 다뤄지는 양계질병을 편수 순으로 찾아 한글로 번역해 보여드리고, 관련 소식까지 검색합니다.", color:"#5E35B1", category:"질문·학습·교육" },
@@ -816,7 +817,7 @@ const PREMIUM_MENU_LEGACY_PATH = "premium_menu/items.json";
 // 항목이라 목록에서 뺀다).
 const PREMIUM_MENU_KNOWN_KEYS = [
   "drug","treatment","seasonal","finder","disinfect","newproducts","vaccine",
-  "ventfinder","lightguide","moltguide","feedstandard","feedgrain","selfcheck","diagnosis","faq","study",
+  "ventfinder","lightguide","moltguide","feedstandard","feedgrain","selfcheck","diagnosis","specimen","faq","study",
   "research","emerging","magazine","kkoko","feature_board","consult","consulting","smssub",
 ];
 let premiumMenuState = { status:"idle", data:null, busy:false, msg:"", adminOpen:false, formOpen:false,
@@ -3791,6 +3792,64 @@ const PREMIUM_BOARDS = {
     ],
     fields: [
       { key:"symptom", label:"증상 및 농장 상황", type:"textarea", required:true, placeholder:"주령, 사육수수, 증상, 폐사 여부 등을 적어주세요." },
+    ],
+  },
+  specimen: {
+    introText: "가검물(혈청·부검·조직 등) 검사 의뢰서입니다. 아래 양식을 입력해 의뢰하시면 최동명 수의사가 확인 후 시료 보내는 방법과 검사 비용(유료)을 안내합니다. 가검물 번호(ADL)는 접수 시 부여됩니다.",
+    freePhotos: true,
+    maxPhotos: 4,
+    compact: true,
+    fields: [
+      { type:"section", label:"축주" },
+      { key:"farmName", label:"농장명(성명)", type:"text", required:true, w:"half" },
+      { key:"mobile", label:"휴대폰", type:"text", required:true, w:"half", placeholder:"010-0000-0000" },
+      { key:"address", label:"주소", type:"text", required:true },
+      { key:"tel", label:"전화번호", type:"text", w:"half" },
+      { type:"section", label:"신청인 (비용 부담)" },
+      { key:"applOrg", label:"소속", type:"text", w:"half" },
+      { key:"applName", label:"성명", type:"text", w:"half" },
+      { key:"applEmail", label:"e-mail", type:"text", w:"half" },
+      { key:"applTel", label:"전화번호", type:"text", w:"half" },
+      { type:"section", label:"담당 동물병원" },
+      { key:"vetOrg", label:"소속", type:"text", w:"half" },
+      { key:"vetName", label:"성명", type:"text", w:"half" },
+      { key:"vetEmail", label:"e-mail", type:"text", w:"half" },
+      { key:"vetTel", label:"전화번호", type:"text", w:"half" },
+      { type:"note", label:"※ 혈청은 계군당 최소 10수 이상이어야 합니다." },
+      { type:"section", label:"가검물" },
+      { key:"species", label:"축종", type:"text", required:true, w:"third", placeholder:"예) 산란계" },
+      { key:"breed", label:"품종", type:"text", w:"third", placeholder:"예) 하이라인 브라운" },
+      { key:"generation", label:"세대", type:"text", w:"third" },
+      { key:"placeDate", label:"입추일자", type:"date", w:"half" },
+      { key:"sampleDate", label:"시료채취일자", type:"date", w:"half" },
+      { key:"specimenTypes", label:"가검물 내용", type:"checks", required:true, options:["혈청", "부검", "HACCP", "조직", "기타"] },
+      { type:"section", label:"계군정보" },
+      { key:"buyer", label:"구입처", type:"text", w:"half" },
+      { key:"buyerStage", label:"구입 형태", type:"radio", options:["초생추", "중추"], w:"half" },
+      { key:"feed", label:"사료", type:"text", w:"half" },
+      { key:"houses", label:"사육 동수(개동)", type:"text", w:"half" },
+      { key:"totalBirds", label:"총사육수", type:"text", w:"half" },
+      { key:"onsetDate", label:"발병일", type:"date", w:"half" },
+      { key:"flockCount", label:"계군수", type:"text", w:"half" },
+      { key:"flockBirds", label:"계군수수", type:"text", w:"half" },
+      { type:"section", label:"임상증상 및 병력" },
+      { key:"routine", label:"", type:"checks", options:["정기검사"] },
+      { key:"symptom", label:"임상증상 및 병력", type:"textarea", required:true, placeholder:"주령, 증상, 폐사 경과, 투약 이력 등을 적어주세요." },
+      { type:"section", label:"백신내역 (접종일 또는 차수)" },
+      { key:"vOil", label:"오일사독", type:"text", w:"third" },
+      { key:"vAI", label:"AI 사독", type:"text", w:"third" },
+      { key:"vND", label:"ND 생독", type:"text", w:"third" },
+      { key:"vIB", label:"IB 생독", type:"text", w:"third" },
+      { key:"vMG", label:"MG", type:"text", w:"third" },
+      { key:"vMS", label:"MS", type:"text", w:"third" },
+      { key:"vIBH", label:"IBH 사독", type:"text", w:"third" },
+      { key:"vSG", label:"SG 생독", type:"text", w:"third" },
+      { key:"vEtc", label:"기타", type:"text", w:"third" },
+      { type:"section", label:"검사항목" },
+      { key:"serumTests", label:"혈청검사", type:"checks", options:["AI", "ND", "EDS", "IB", "IBD", "APV", "SP", "MG", "MS"] },
+      { key:"ecoli", label:"병원성 대장균", type:"checks", options:["병원성 대장균 검사"] },
+      { key:"histology", label:"조직검사", type:"checks", options:["조직검사"] },
+      { key:"testNote", label:"기타 검사·요청사항", type:"textarea", placeholder:"" },
     ],
   },
   consult: {
@@ -9750,17 +9809,27 @@ function renderBoardPhotoInputs(cfg){
   return "";
 }
 
+// 입력 항목 한 칸 — 기본 text/textarea 외에 의뢰서용 section(소제목)·note(안내문)·date·checks·radio 를 지원한다.
+// w:"half"|"third" 는 한 줄에 둘/셋씩 놓는 폭, 없으면 한 줄 전체.
+function renderBoardFieldInput(f){
+  const wid = f.w === "half" ? "calc(50% - 4px)" : f.w === "third" ? "calc(33.3% - 6px)" : "100%";
+  const box = "padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;box-sizing:border-box;width:100%;background:#fff";
+  if(f.type === "section") return `<div style="width:100%;margin-top:8px;padding:5px 9px;background:#E0F2F1;color:#00695C;border-radius:6px;font-size:12px;font-weight:800">${esc(f.label)}</div>`;
+  if(f.type === "note") return `<div style="width:100%;font-size:11px;color:#C62828;font-weight:700">${esc(f.label)}</div>`;
+  const label = f.label ? `<div style="font-size:11px;color:#666;margin-bottom:3px">${esc(f.label)}${f.required ? ' <span style="color:#C62828">*</span>' : ""}</div>` : "";
+  let input;
+  if(f.type === "textarea") input = `<textarea class="board-field" data-field="${f.key}" placeholder="${esc(f.placeholder || "")}" style="${box};min-height:80px;font-family:inherit"></textarea>`;
+  else if(f.type === "date") input = `<input type="date" class="board-field" data-field="${f.key}" style="${box}" />`;
+  else if(f.type === "checks") input = `<div style="display:flex;flex-wrap:wrap;gap:6px 14px">${f.options.map(o => `<label style="font-size:12px;color:#333;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" class="board-check" data-field="${f.key}" value="${esc(o)}" /> ${esc(o)}</label>`).join("")}</div>`;
+  else if(f.type === "radio") input = `<div style="display:flex;flex-wrap:wrap;gap:6px 14px">${f.options.map(o => `<label style="font-size:12px;color:#333;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="radio" name="board-radio-${f.key}" class="board-radio" data-field="${f.key}" value="${esc(o)}" /> ${esc(o)}</label>`).join("")}</div>`;
+  else input = `<input type="text" class="board-field" data-field="${f.key}" placeholder="${esc(f.placeholder || "")}" style="${box}" />`;
+  return `<div style="width:${wid};min-width:0">${label}${input}</div>`;
+}
 function renderBoardCreateForm(cfg){
   return `
   <div style="background:#FAFAFA;border:1px solid #eee;border-radius:9px;padding:12px;margin-bottom:14px">
     <div style="font-size:11px;font-weight:700;color:#333;margin-bottom:8px">새 ${esc(cfg.title)} 작성</div>
-    ${cfg.fields.map(f => `
-    <div style="margin-bottom:8px">
-      <div style="font-size:11px;color:#666;margin-bottom:3px">${esc(f.label)}${f.required?' <span style="color:#C62828">*</span>':""}</div>
-      ${f.type==="textarea"
-        ? `<textarea class="board-field" data-field="${f.key}" placeholder="${esc(f.placeholder||"")}" style="width:100%;min-height:80px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit"></textarea>`
-        : `<input type="text" class="board-field" data-field="${f.key}" placeholder="${esc(f.placeholder||"")}" style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />`}
-    </div>`).join("")}
+    <div style="display:flex;flex-wrap:wrap;gap:8px">${cfg.fields.map(renderBoardFieldInput).join("")}</div>
     ${renderBoardPhotoInputs(cfg)}
     ${boardState.msg?`<div style="font-size:11px;margin:6px 0;color:${/실패|오류/.test(boardState.msg)?"#C62828":"#2E7D32"}">${esc(boardState.msg)}</div>`:""}
     <div style="display:flex;gap:6px;align-items:center;margin-top:6px">
@@ -9789,11 +9858,27 @@ function renderBoardPhotos(post){
 }
 
 function renderBoardFields(cfg, post){
-  return cfg.fields.map(f => `
+  const vals = post.fields || {};
+  if(!cfg.compact){
+    return cfg.fields.map(f => `
     <div style="margin-bottom:8px">
       <div style="font-size:10.5px;color:#999;font-weight:700">${esc(f.label)}</div>
-      <div style="font-size:12.5px;color:#333;white-space:pre-wrap;line-height:1.6">${esc((post.fields && post.fields[f.key]) || "-")}</div>
+      <div style="font-size:12.5px;color:#333;white-space:pre-wrap;line-height:1.6">${esc(vals[f.key] || "-")}</div>
     </div>`).join("");
+  }
+  // 의뢰서형: 소제목별로 묶고, 값이 있는 항목만 보여 준다
+  let out = "", pending = "", any = false;
+  const flush = () => { if(any && pending) out += pending; pending = ""; any = false; };
+  cfg.fields.forEach(f => {
+    if(f.type === "section"){ flush(); pending = `<div style="margin-top:10px;padding:4px 9px;background:#E0F2F1;color:#00695C;border-radius:6px;font-size:11.5px;font-weight:800">${esc(f.label)}</div>`; any = false; return; }
+    if(f.type === "note") return;
+    const v = (vals[f.key] || "").trim();
+    if(!v) return;
+    any = true;
+    pending += `<div style="display:flex;gap:8px;padding:4px 2px;border-bottom:1px solid #f4f4f4"><div style="width:104px;flex-shrink:0;font-size:11px;color:#888;font-weight:700">${esc(f.label || "내용")}</div><div style="font-size:12.5px;color:#333;white-space:pre-wrap;line-height:1.6;min-width:0">${esc(v)}</div></div>`;
+  });
+  flush();
+  return out;
 }
 
 function renderBoardPostDetail(cfg, post, admin){
@@ -9822,8 +9907,9 @@ function renderBoardList(cfg, posts, admin){
   }
   return posts.map(post => {
     const open = boardState.openId === post.id;
-    const firstField = cfg.fields[0];
-    const label = (firstField && post.fields && post.fields[firstField.key]) ? post.fields[firstField.key].slice(0,40) : "(제목 없음)";
+    const firstField = cfg.fields.find(f => f.key);
+    let label = (firstField && post.fields && post.fields[firstField.key]) ? post.fields[firstField.key].slice(0,40) : "(제목 없음)";
+    if(cfg.compact && post.fields){ const sp = [post.fields.species, post.fields.specimenTypes].filter(Boolean).join(" · "); if(sp) label += " — " + sp; }
     return `
     <div class="card" style="border-top:4px solid ${cfg.color};margin-bottom:10px;padding:14px 16px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
@@ -18625,10 +18711,13 @@ function attachEvents(){
     const fields = {};
     let missingLabel = "";
     cfg.fields.forEach(f=>{
-      const el = document.querySelector(`.board-field[data-field="${f.key}"]`);
-      const v = (el && el.value || "").trim();
+      if(!f.key) return;                       // section/note 는 값이 없다
+      let v;
+      if(f.type === "checks") v = Array.from(document.querySelectorAll(`.board-check[data-field="${f.key}"]:checked`)).map(c => c.value).join(", ");
+      else if(f.type === "radio"){ const r = document.querySelector(`.board-radio[data-field="${f.key}"]:checked`); v = r ? r.value : ""; }
+      else { const el = document.querySelector(`.board-field[data-field="${f.key}"]`); v = (el && el.value || "").trim(); }
       fields[f.key] = v;
-      if(f.required && !v && !missingLabel) missingLabel = f.label;
+      if(f.required && !v && !missingLabel) missingLabel = f.label || "가검물 내용";
     });
     if(missingLabel){ alert(missingLabel + "을(를) 입력하세요."); return; }
 
