@@ -3818,10 +3818,10 @@ const PREMIUM_BOARDS = {
       { key:"applEmail", label:"e-mail", type:"text", w:"half" },
       { key:"applTel", label:"전화번호", type:"text", w:"half" },
       { type:"section", label:"담당 동물병원" },
-      { key:"vetOrg", label:"소속", type:"text", w:"half" },
-      { key:"vetName", label:"성명", type:"text", w:"half" },
-      { key:"vetEmail", label:"e-mail", type:"text", w:"half" },
-      { key:"vetTel", label:"전화번호", type:"text", w:"half" },
+      { key:"vetOrg", label:"소속", type:"text", w:"half", fixed:"대한동물병원" },
+      { key:"vetName", label:"성명", type:"text", w:"half", fixed:"최동명" },
+      { key:"vetEmail", label:"e-mail", type:"text", w:"half", fixed:"trsumun@daum.net" },
+      { key:"vetTel", label:"전화번호", type:"text", w:"half", fixed:"010-9150-8844" },
       { type:"note", label:"※ 혈청은 계군당 최소 10수 이상이어야 합니다." },
       { type:"section", label:"가검물" },
       { key:"species", label:"축종", type:"text", required:true, w:"third", placeholder:"예) 산란계" },
@@ -9845,6 +9845,7 @@ function renderBoardFieldInput(f){
   else if(f.type === "date") input = `<input type="date" class="board-field" data-field="${f.key}" style="${box}" />`;
   else if(f.type === "checks") input = `<div style="display:flex;flex-wrap:wrap;gap:6px 14px">${f.options.map(o => `<label style="font-size:12px;color:#333;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" class="board-check" data-field="${f.key}" value="${esc(o)}" /> ${esc(o)}</label>`).join("")}</div>`;
   else if(f.type === "radio") input = `<div style="display:flex;flex-wrap:wrap;gap:6px 14px">${f.options.map(o => `<label style="font-size:12px;color:#333;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="radio" name="board-radio-${f.key}" class="board-radio" data-field="${f.key}" value="${esc(o)}" /> ${esc(o)}</label>`).join("")}</div>`;
+  else if(f.fixed) input = `<input type="text" class="board-field" data-field="${f.key}" value="${esc(f.fixed)}" readonly style="${box};background:#F1F3F4;color:#333" />`;   // 고정값(수정 불가)
   else input = `<input type="text" class="board-field" data-field="${f.key}" placeholder="${esc(f.placeholder || "")}" style="${box}" />`;
   return `<div style="width:${wid};min-width:0">${label}${input}</div>`;
 }
