@@ -3796,7 +3796,13 @@ const PREMIUM_BOARDS = {
     ],
   },
   specimen: {
-    introText: "가검물(혈청·부검·조직 등) 검사 의뢰서입니다. 아래 양식을 입력해 의뢰하시면 최동명 수의사가 확인 후 시료 보내는 방법과 검사 비용(유료)을 안내합니다. 가검물 번호(ADL)는 접수 시 부여됩니다.",
+    introText: "가검물(혈청·부검·조직 등) 검사 의뢰서입니다. 아래 절차를 확인하고 의뢰서를 작성해 주세요.",
+    procedure: {
+      steps: ["아래 「새 가검물 의뢰 작성」으로 의뢰서를 작성합니다.", "가검물을 택배로 보냅니다."],
+      toName: "(주)아비넥스트 병성감정 담당자",
+      toAddress: "충청북도 청주시 상당구 남일면 쌍암동길 30-7",
+      toTel: "043-292-9998",
+    },
     freePhotos: true,
     maxPhotos: 4,
     compact: true,
@@ -9812,6 +9818,22 @@ function renderBoardPhotoInputs(cfg){
 
 // 입력 항목 한 칸 — 기본 text/textarea 외에 의뢰서용 section(소제목)·note(안내문)·date·checks·radio 를 지원한다.
 // w:"half"|"third" 는 한 줄에 둘/셋씩 놓는 폭, 없으면 한 줄 전체.
+// 의뢰 절차 안내(가검물 의뢰) — 단계와 보내실 곳(택배 주소)
+function renderBoardProcedure(cfg){
+  const pr = cfg.procedure; if(!pr) return "";
+  const steps = pr.steps.map((s, i) => `<div style="display:flex;gap:8px;align-items:flex-start;margin:4px 0"><span style="flex-shrink:0;width:20px;height:20px;border-radius:50%;background:${cfg.color};color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center">${i + 1}</span><span style="font-size:12.5px;color:#333;line-height:1.55">${esc(s)}</span></div>`).join("");
+  return `<div style="background:#E0F2F1;border:1px solid #B2DFDB;border-radius:10px;padding:11px 13px;margin-bottom:12px">
+    <div style="font-size:12.5px;font-weight:800;color:#00695C;margin-bottom:4px">📋 가검물 의뢰 절차</div>
+    <div style="font-size:12.5px;color:#333;line-height:1.6;margin-bottom:6px"><b>의뢰서 작성하고 가검물을 택배로 보내시면 됩니다.</b></div>
+    ${steps}
+    <div style="margin-top:8px;background:#fff;border-radius:8px;padding:9px 11px">
+      <div style="font-size:11px;color:#888;font-weight:700;margin-bottom:2px">📦 보내실 곳</div>
+      <div style="font-size:13px;font-weight:800;color:#333">${esc(pr.toName)}</div>
+      <div style="font-size:12.5px;color:#444;margin-top:2px">${esc(pr.toAddress)}</div>
+      <div style="font-size:12.5px;margin-top:2px">☎ <a href="tel:${esc(pr.toTel.replace(/[^0-9]/g, ""))}" style="color:${cfg.color};font-weight:800;text-decoration:none">${esc(pr.toTel)}</a></div>
+    </div>
+  </div>`;
+}
 function renderBoardFieldInput(f){
   const wid = f.w === "half" ? "calc(50% - 4px)" : f.w === "third" ? "calc(33.3% - 6px)" : "100%";
   const box = "padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;box-sizing:border-box;width:100%;background:#fff";
@@ -9968,6 +9990,7 @@ function renderBoardPanel(){
     }
     return head + `
     <div style="font-size:11.5px;color:#888;margin-bottom:10px">${esc(cfg.introText||"")}</div>
+    ${renderBoardProcedure(cfg)}
     ${addBtn}
     ${boardState.formOpen ? renderBoardCreateForm(cfg) : ""}
     ${body}
@@ -9986,6 +10009,7 @@ function renderBoardPanel(){
     : renderBoardList(cfg, boardState.posts[cfg.key], false);
   return head + `
   <div style="font-size:11.5px;color:#888;margin-bottom:10px">${esc(cfg.introText||"")}</div>
+  ${renderBoardProcedure(cfg)}
   ${addBtn}
   ${boardState.formOpen ? renderBoardCreateForm(cfg) : ""}
   ${listBody}
