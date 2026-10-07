@@ -11312,6 +11312,23 @@ function render(){
       ${renderFooter()}
     </main>`;
   attachEvents();
+  // 유료서비스 하위 화면에서 "← 메뉴로"로 돌아오면 첫 메뉴가 아니라 방금 누른 카드 자리로 복원한다.
+  // (한 번 복원하면 비워서, 메뉴 안의 다른 다시그리기에서는 스크롤이 튀지 않게 한다)
+  if(state.tab === "premium" && premiumState.view === "menu" && premiumState.menuScroll != null){
+    const y = premiumState.menuScroll, k = premiumState.menuLastKey;
+    premiumState.menuScroll = null;
+    const restore = () => {
+      const btn = k ? document.querySelector(`.premium-item-btn[data-key="${k}"]`) : null;
+      if(btn){
+        const r = btn.getBoundingClientRect();
+        // 카드가 화면 안에 이미 보이면 저장한 위치 그대로, 아니면 카드를 화면 가운데로
+        if(r.top < 0 || r.bottom > window.innerHeight) window.scrollTo(0, Math.max(0, window.scrollY + r.top - window.innerHeight / 3));
+        else window.scrollTo(0, y);
+      } else window.scrollTo(0, y);
+    };
+    window.scrollTo(0, y);
+    requestAnimationFrame(restore);
+  }
 }
 
 // iframe으로 다른 화면(farm-pro의 가금컨설팅 메뉴) 안에 들어가 있는지.
@@ -17228,7 +17245,7 @@ function switchTab(tab){
     // 유료서비스 탭 버튼을 누르면 항상 메뉴 화면으로 — 안 그러면 약품조회·
     // 기술탐구 같은 하위 화면에 들어가 있는 상태로 탭을 눌러도 그대로 남아
     // "눌러도 안 돌아온다"는 것처럼 보인다.
-    if(tab==="premium") premiumState.view = "menu";
+    if(tab==="premium"){ premiumState.view = "menu"; premiumState.menuScroll = null; }
     state.tab=tab; render();
     if(state.tab==="disease"){
       if(diseaseState.status==="idle") fetchDiseases();
@@ -17319,8 +17336,12 @@ function attachEvents(){
   document.querySelectorAll(".premium-item-btn").forEach(b=>b.onclick=()=>{
     const key = b.dataset.key;
     if(key === "kkoko"){ switchTab("kkoko"); return; }
+    // 메뉴로 돌아왔을 때 방금 보던 자리(스크롤 위치·카드)로 복원하려고 기억해 둔다.
+    premiumState.menuScroll = window.scrollY;
+    premiumState.menuLastKey = key;
     premiumState.view = key;
     render();
+    window.scrollTo(0, 0);
   });
 
   // 유료서비스 메뉴 초기화면 — 관리자 편집
