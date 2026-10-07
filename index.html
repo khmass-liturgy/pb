@@ -9456,6 +9456,23 @@ function studyBackImageCredit(img){
   return c ? " · " + c : "";
 }
 
+// 학습 덱 색 테마 — 덱마다 색을 달리해 한눈에 구분되게 한다. main/dark는 앞면(질문),
+// soft/line/ink는 뒷면(정답)과 목록 장식에 쓴다. 관리자가 고른 색(deck.color)이 있으면 그것,
+// 없으면 덱 순서대로 자동 배정한다.
+const STUDY_THEMES = [
+  { key:"violet", name:"보라", main:"#7E57C2", dark:"#4527A0", soft:"#EDE7F6", line:"#B39DDB", ink:"#311B92" },
+  { key:"teal",   name:"청록", main:"#26A69A", dark:"#00796B", soft:"#E0F2F1", line:"#80CBC4", ink:"#004D40" },
+  { key:"blue",   name:"파랑", main:"#42A5F5", dark:"#1565C0", soft:"#E3F2FD", line:"#90CAF9", ink:"#0D47A1" },
+  { key:"green",  name:"초록", main:"#66BB6A", dark:"#2E7D32", soft:"#E8F5E9", line:"#A5D6A7", ink:"#1B5E20" },
+  { key:"orange", name:"주황", main:"#FFA726", dark:"#E65100", soft:"#FFF3E0", line:"#FFCC80", ink:"#BF360C" },
+  { key:"red",    name:"빨강", main:"#EF5350", dark:"#C62828", soft:"#FFEBEE", line:"#EF9A9A", ink:"#B71C1C" },
+  { key:"pink",   name:"분홍", main:"#EC407A", dark:"#AD1457", soft:"#FCE4EC", line:"#F48FB1", ink:"#880E4F" },
+  { key:"brown",  name:"갈색", main:"#8D6E63", dark:"#4E342E", soft:"#EFEBE9", line:"#BCAAA4", ink:"#3E2723" },
+];
+function studyThemeFor(deck, idx){
+  return STUDY_THEMES.find(t => deck && t.key === deck.color) || STUDY_THEMES[(idx||0) % STUDY_THEMES.length];
+}
+
 function renderStudyPanel(){
   const head = `
   <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
@@ -9475,27 +9492,33 @@ function renderStudyPanel(){
   const nav = studyNavState;
 
   if(!nav.deckKey){
-    const list = decks.length ? decks.map(d => `
-    <div class="card study-deck-open" data-deck="${d.key}" style="padding:16px;margin-bottom:10px;border-top:4px solid #4527A0;cursor:pointer">
+    const list = decks.length ? decks.map((d, di) => { const th = studyThemeFor(d, di); return `
+    <div class="card study-deck-open" data-deck="${d.key}" style="padding:16px;margin-bottom:10px;border-top:4px solid ${th.main};border-left:6px solid ${th.main};background:linear-gradient(135deg,${th.soft},#fff 60%);cursor:pointer">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
         <div style="min-width:0">
-          <div style="font-size:14px;font-weight:800;color:#333">${esc(d.title)}</div>
-          <div style="font-size:11.5px;color:#888;margin-top:4px">${esc(d.desc||"")}</div>
-          <div style="font-size:10.5px;color:#4527A0;margin-top:6px;font-weight:700">카드 ${d.cards.length}장</div>
+          <div style="font-size:14px;font-weight:800;color:${th.ink}">${esc(d.title)}</div>
+          <div style="font-size:11.5px;color:#777;margin-top:4px">${esc(d.desc||"")}</div>
+          <div style="display:inline-block;font-size:10.5px;color:#fff;background:${th.dark};border-radius:10px;padding:2px 9px;margin-top:7px;font-weight:700">카드 ${d.cards.length}장</div>
         </div>
         ${admin ? `
         <div style="white-space:nowrap;flex-shrink:0">
-          <button class="study-deck-edit-btn" data-deck="${d.key}" style="font-size:10px;border:1px solid #4527A0;border-radius:5px;background:#fff;color:#4527A0;padding:3px 8px;margin-right:4px">편집</button>
+          <button class="study-deck-edit-btn" data-deck="${d.key}" style="font-size:10px;border:1px solid ${th.dark};border-radius:5px;background:#fff;color:${th.dark};padding:3px 8px;margin-right:4px">편집</button>
           <button class="study-deck-del-btn" data-deck="${d.key}" style="font-size:10px;border:1px solid #eee;border-radius:5px;background:#fff;color:#bbb;padding:3px 8px">삭제</button>
         </div>` : ""}
       </div>
-    </div>`).join("") : `<div class="card" style="text-align:center;padding:28px 16px;color:#aaa">아직 등록된 학습자료가 없습니다.${admin?"":" 곧 추가됩니다."}</div>`;
+    </div>`; }).join("") : `<div class="card" style="text-align:center;padding:28px 16px;color:#aaa">아직 등록된 학습자료가 없습니다.${admin?"":" 곧 추가됩니다."}</div>`;
 
     const editingDeck = nav.deckFormKey && decks.find(d=>d.key===nav.deckFormKey);
     const dDft = nav.deckDraft;
     const dtVal = dDft ? dDft.title : (editingDeck ? editingDeck.title : "");
     const ddVal = dDft ? dDft.desc : (editingDeck ? (editingDeck.desc||"") : "");
     const dLock = nav.deckAiBusy ? "disabled" : "";
+    const dColorKey = nav.deckColor !== undefined ? nav.deckColor : (editingDeck ? (editingDeck.color||"") : "");
+    const colorPicker = `<div style="font-size:10.5px;color:#888;margin:2px 0 5px">카드 색 ${dColorKey?"":"(자동 — 순서대로 배정)"}</div>
+        <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px">
+          <button class="sd-color-btn" data-color="" title="자동" style="width:30px;height:30px;border-radius:50%;border:${dColorKey===""?"3px solid #333":"1px solid #ccc"};background:conic-gradient(#7E57C2,#26A69A,#42A5F5,#66BB6A,#FFA726,#EF5350,#EC407A,#7E57C2);cursor:pointer"></button>
+          ${STUDY_THEMES.map(t=>`<button class="sd-color-btn" data-color="${t.key}" title="${t.name}" style="width:30px;height:30px;border-radius:50%;border:${dColorKey===t.key?"3px solid #333":"2px solid #fff"};box-shadow:0 0 0 1px #ccc;background:linear-gradient(135deg,${t.main},${t.dark});cursor:pointer"></button>`).join("")}
+        </div>`;
     const adminBox = !admin ? "" : `
     <div style="margin-top:16px;border-top:1px dashed #eee;padding-top:12px">
       <button id="study-admin-toggle" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:3px 9px">${nav.adminOpen?"관리 닫기":"⚙ 관리"}</button>
@@ -9512,6 +9535,7 @@ function renderStudyPanel(){
         <textarea id="sd-desc" placeholder="덱 설명" ${dLock}
           style="width:100%;min-height:50px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:6px">${esc(ddVal)}</textarea>
         ${nav.deckAiDraft ? `<div style="font-size:10.5px;color:#6A1B9A;background:#F6EFFA;border-radius:6px;padding:6px 8px;margin:0 0 8px;line-height:1.5">✨ AI가 쓴 설명 초안입니다 — 내용을 확인·수정한 뒤 발행하세요.</div>` : ""}
+        ${colorPicker}
         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
           <button id="sd-save" ${studyCardsState.busy||nav.deckAiBusy?"disabled":""} style="border:1px solid #B8860B;background:${studyCardsState.busy||nav.deckAiBusy?"#ccc":"#B8860B"};color:#fff;border-radius:7px;padding:7px 15px;font-size:12px;font-weight:600">${studyCardsState.busy?"발행 중...":(editingDeck?"수정 발행":"추가 발행")}</button>
           ${editingDeck?`<button id="sd-cancel" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:6px 10px">취소</button>`:""}
@@ -9530,25 +9554,26 @@ function renderStudyPanel(){
   const cardsArr = deck.cards || [];
   if(nav.cardIndex >= cardsArr.length) nav.cardIndex = 0;
   const card = cardsArr[nav.cardIndex];
+  const th = studyThemeFor(deck, decks.indexOf(deck));
 
   const breadcrumb = `<div style="margin-bottom:12px"><button id="study-deck-back-btn" style="font-size:11px;border:1px solid #ddd;border-radius:6px;background:#fff;color:#666;padding:5px 10px">← 덱 목록</button>
-  <span style="font-size:12.5px;font-weight:700;color:#333;margin-left:8px">${esc(deck.title)}</span></div>`;
+  <span style="font-size:12.5px;font-weight:800;color:${th.ink};background:${th.soft};border-left:4px solid ${th.main};border-radius:5px;padding:3px 9px;margin-left:8px">${esc(deck.title)}</span></div>`;
 
   const viewer = !card ? `<div class="card" style="text-align:center;padding:28px 16px;color:#aaa">아직 등록된 카드가 없습니다.</div>` : `
   <div style="font-size:11px;color:#888;margin-bottom:8px;text-align:center">카드 ${nav.cardIndex+1} / ${cardsArr.length}</div>
-  <div id="study-flip-card" style="cursor:pointer;background:${nav.flipped?"linear-gradient(135deg,#FFF8E1,#FFECB3)":"linear-gradient(135deg,#5E35B1,#4527A0)"};border:1px solid ${nav.flipped?"#F9D871":"#4527A0"};border-radius:14px;padding:28px 20px;min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,0.12)">
+  <div id="study-flip-card" style="cursor:pointer;background:${nav.flipped?`linear-gradient(135deg,${th.soft},#fff)`:`linear-gradient(135deg,${th.main},${th.dark})`};border:2px solid ${nav.flipped?th.line:th.dark};border-radius:14px;padding:28px 20px;min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,0.12)">
     ${(!nav.flipped && card.imageUrl) ? `<a href="${esc(card.imageUrl)}" target="_blank" rel="noopener" class="study-card-image-link" style="display:block;margin-bottom:12px" title="눌러서 원본 크기로 보기">
       <img src="${esc(card.imageUrl)}" alt="" style="max-width:100%;max-height:160px;border-radius:8px" />
-      <div style="font-size:9.5px;color:#E0D6F5;margin-top:3px">🔍 눌러서 크게 보기</div>
+      <div style="font-size:9.5px;color:rgba(255,255,255,.85);margin-top:3px">🔍 눌러서 크게 보기</div>
     </a>` : ""}
     ${(nav.flipped && card.backImage && card.backImage.url) ? `<div style="margin-bottom:12px;max-width:100%">
       <a href="${esc(card.backImage.url)}" target="_blank" rel="noopener" class="study-card-image-link" style="display:block" title="눌러서 크게 보기">
         <img src="${esc(card.backImage.url)}" alt="${esc(card.backImage.title||"대표 증상 사진")}" loading="lazy" style="max-width:100%;max-height:220px;border-radius:8px" />
       </a>
-      <div style="font-size:9.5px;color:#8D6E00;margin-top:3px;line-height:1.5">🔍 사진을 누르면 크게 보기${studyBackImageCredit(card.backImage)}</div>
+      <div style="font-size:9.5px;color:${th.dark};margin-top:3px;line-height:1.5">🔍 사진을 누르면 크게 보기${studyBackImageCredit(card.backImage)}</div>
     </div>` : ""}
-    <div style="font-size:${nav.flipped?"15px":"30px"};font-weight:800;color:${nav.flipped?"#5C4400":"#fff"};line-height:1.6;white-space:pre-wrap">${esc(nav.flipped ? card.back : card.front)}</div>
-    <div style="font-size:10.5px;color:${nav.flipped?"#B8860B":"#D8CCF0"};margin-top:14px">${nav.flipped?"다시 눌러 앞면 보기":"눌러서 정답 보기"}</div>
+    <div style="font-size:${nav.flipped?"15px":"30px"};font-weight:800;color:${nav.flipped?th.ink:"#fff"};line-height:1.6;white-space:pre-wrap">${esc(nav.flipped ? card.back : card.front)}</div>
+    <div style="font-size:10.5px;color:${nav.flipped?th.dark:"rgba(255,255,255,.8)"};margin-top:14px">${nav.flipped?"다시 눌러 앞면 보기":"눌러서 정답 보기"}</div>
   </div>
   <div style="display:flex;justify-content:space-between;gap:8px;margin-top:14px">
     <button id="study-prev-btn" ${nav.cardIndex===0?"disabled":""} style="flex:1;border:1px solid #ddd;border-radius:8px;background:#fff;color:${nav.cardIndex===0?"#ccc":"#333"};padding:10px;font-size:12.5px;font-weight:700">← 이전</button>
@@ -18586,7 +18611,7 @@ function attachEvents(){
     studyNavState.adminOpen = false;
     render();
   });
-  const deckResetForm = ()=>{ studyNavState.deckDraft = null; studyNavState.deckAiDraft = false; };
+  const deckResetForm = ()=>{ studyNavState.deckDraft = null; studyNavState.deckAiDraft = false; studyNavState.deckColor = undefined; };
   const studyAdminToggle = document.getElementById("study-admin-toggle");
   if(studyAdminToggle) studyAdminToggle.onclick = ()=>{
     studyNavState.adminOpen = !studyNavState.adminOpen;
@@ -18613,6 +18638,11 @@ function attachEvents(){
     const t = document.getElementById("sd-title"), d = document.getElementById("sd-desc");
     if(t || d) studyNavState.deckDraft = { title: t ? t.value : "", desc: d ? d.value : "" };
   };
+  document.querySelectorAll(".sd-color-btn").forEach(b=>b.onclick=()=>{
+    deckSyncDraft();
+    studyNavState.deckColor = b.dataset.color;
+    render();
+  });
   const deckRunAi = async ()=>{
     if(studyNavState.deckAiBusy) return;
     deckSyncDraft();
@@ -18664,9 +18694,9 @@ function attachEvents(){
     const editKey = studyNavState.deckFormKey;
     if(editKey){
       const idx = decks.findIndex(d=>d.key===editKey);
-      if(idx>=0) decks[idx] = Object.assign({}, decks[idx], { title, desc });
+      if(idx>=0) decks[idx] = Object.assign({}, decks[idx], { title, desc }, studyNavState.deckColor !== undefined ? { color: studyNavState.deckColor } : {});
     } else {
-      decks.push({ key:newStudyKey("d"), title, desc, cards:[] });
+      decks.push({ key:newStudyKey("d"), title, desc, color: studyNavState.deckColor || "", cards:[] });
     }
     studyCardsState.busy = true; studyCardsState.msg = "발행 중..."; render();
     const r = await publishStudyDecks(decks, "🎓 학습 덱 " + (editKey?"수정":"추가") + ": " + title);
