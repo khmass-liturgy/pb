@@ -1,13 +1,17 @@
 {
-  "updated": "2026-10-06 13:08 KST",
+  "updated": "2026-10-07 12:36 KST",
   "stale": {},
   "egg": {
     "label": "계란 산지가격",
     "region": "전국",
     "grade": "특란 (XL)",
     "unit": "원/10개",
-    "latest": 1992,
+    "latest": 1984,
     "rows": [
+      {
+        "date": "2026-10-06",
+        "value": 1984
+      },
       {
         "date": "2026-10-02",
         "value": 1992
@@ -87,8 +91,12 @@
     "region": "수도권",
     "grade": "특란 (XL)",
     "unit": "원/10개",
-    "latest": 1962,
+    "latest": 2003,
     "rows": [
+      {
+        "date": "2026-10-06",
+        "value": 2003
+      },
       {
         "date": "2026-10-02",
         "value": 1962
@@ -388,15 +396,15 @@
   "pig": {
     "label": "농가수취 평균",
     "unit": "원/kg",
-    "latest": 6057,
+    "latest": 6423,
     "rows": [
+      {
+        "date": "2026-10-06",
+        "value": 6423
+      },
       {
         "date": "2026-10-05",
         "value": 6057
-      },
-      {
-        "date": "2026-10-02",
-        "value": 7834
       }
     ]
   },
@@ -417,16 +425,22 @@
       "farm_receipt_600kg": {
         "label": "농가수취가격(600kg)",
         "unit": "천원/마리",
-        "value": 6474,
-        "date": "2026-10-05"
+        "value": 8740,
+        "date": "2026-10-06"
       }
     },
     "rows": [
       {
-        "date": "2026-10-06",
+        "date": "2026-10-07",
         "female_calf": null,
         "male_calf": null,
         "farm_receipt_600kg": null
+      },
+      {
+        "date": "2026-10-06",
+        "female_calf": null,
+        "male_calf": null,
+        "farm_receipt_600kg": 8740
       },
       {
         "date": "2026-10-05",
@@ -570,8 +584,16 @@
     "label": "산란노계",
     "unit": "원/마리",
     "period": "주",
-    "latest": 723,
+    "latest": 664,
     "rows": [
+      {
+        "date": "2026-09-21",
+        "value": 664
+      },
+      {
+        "date": "2026-09-14",
+        "value": 527
+      },
       {
         "date": "2026-09-07",
         "value": 723
