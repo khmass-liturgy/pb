@@ -1228,33 +1228,94 @@ function lgSmsText(st, res){
   const r8 = res.rows[8], rs = res.rows[res.stim];
   return `[산란계 점등프로그램]\n${names[st.company] || st.company} · ${st.house === "dark" ? "무창" : "개방계사"} · 입식 ${hatch.getMonth() + 1}/${hatch.getDate()}\n${where} ${lat.toFixed(1)}°N · 광자극 ${res.stim}주\n자연일장 ${r8.nat.toFixed(1)}h(8주) → ${rs.nat.toFixed(1)}h(${res.stim}주)\n` + lines.join("\n") + `\n※참고용 계산 — 육종회사 공식 점등표가 우선 (polcon.cc)`;
 }
-// 문자 보내기 박스(범용) — 내용 미리보기 + 받는 번호(선택) + 문자 앱 열기(sms:) + 복사. 점등·환우 프로그램이 같이 쓴다.
+// 문자 보내기 박스(범용) — 내용 미리보기 + 받는 번호 + 📤 바로 보내기(서버 경유 직접 발송) + 문자 앱 열기(sms:) + 복사.
+// 점등(lg)·환우(mg)·육계 점등(br) 프로그램이 같이 쓴다. 바로 보내기는 Cloud Function sendDirectSms → sms-relay → 알리고
+// 경로로, farm-pro의 문자 보내기와 같은 방식이다(승인회원만, 대표번호로 발송, 하루 한도 있음).
+const SMS_DIRECT_FOOTER = "\n- 농장동물 컨설팅(polcon.cc)";      // functions/index.js의 SMS_DIRECT_FOOTER와 같아야 한다(바이트 계산용)
+const SMS_DIRECT_KIND = { lg:"light", br:"light", mg:"molt" };
+// EUC-KR 근사 바이트(ASCII 1, 그 외 2) — functions/index.js·farm-pro sms-relay와 같은 방식
+function smsByteLength(text){ let b = 0; for(const ch of text) b += ch.codePointAt(0) > 0x7f ? 2 : 1; return b; }
+// 받는 번호 나누기 — 쉼표·세미콜론·줄바꿈으로 나누고, "010 1234 5678"처럼 띄어 쓴 한 번호는 붙여서 읽는다.
+// 한 칸에 공백으로만 여러 번호를 적은 경우는 나눴을 때 모두 휴대폰 번호 꼴일 때만 나눈다.
+function smsParseNumbers(raw){
+  const out = [];
+  String(raw || "").split(/[,;\/\n]+/).forEach(part => {
+    const joined = part.replace(/[^0-9]/g, "");
+    if(!joined) return;
+    const pieces = part.trim().split(/\s+/).map(s => s.replace(/[^0-9]/g, "")).filter(Boolean);
+    if(!/^01[016789]\d{7,8}$/.test(joined) && pieces.length > 1 && pieces.every(x => /^01[016789]\d{7,8}$/.test(x))) out.push(...pieces);
+    else out.push(joined);
+  });
+  return [...new Set(out)];
+}
+function smsDirectAvailable(){ return !!(firebaseReady && premiumState.user && isPremiumApproved()); }
 function renderSmsBox(prefix, text, phone, title, extra){
+  const bytes = smsByteLength(text + SMS_DIRECT_FOOTER), lms = bytes > 90, tooLong = bytes > 2000;
+  const direct = smsDirectAvailable();
   return `<div style="margin-top:16px;border:1px solid #E3F2FD;background:#F7FBFF;border-radius:12px;padding:12px 13px">
     <div style="font-size:13px;font-weight:800;color:#1565C0">📱 ${esc(title)}</div>
-    <div style="font-size:11px;color:#666;line-height:1.6;margin:3px 0 8px">내용을 문자 글로 만들어 휴대폰 문자 앱으로 열어 줍니다(보내기 버튼은 문자 앱에서 직접 누릅니다). 받는 번호를 비워 두면 문자 앱에서 받는 사람을 고를 수 있어요.</div>
+    <div style="font-size:11px;color:#666;line-height:1.6;margin:3px 0 8px">${direct
+      ? "받는 휴대폰 번호를 넣고 <b>📤 바로 보내기</b>를 누르면 이 화면에서 바로 문자가 발송됩니다(최동명 수의사 대표번호로 발송). 여러 명은 쉼표로 구분해 최대 5명까지 보낼 수 있습니다."
+      : "내용을 문자 글로 만들어 휴대폰 문자 앱으로 열어 줍니다(보내기 버튼은 문자 앱에서 직접 누릅니다). 받는 번호를 비워 두면 문자 앱에서 받는 사람을 고를 수 있어요."}</div>
     ${extra || ""}
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px">
-      <label style="flex:1 1 170px"><div style="font-size:10.5px;color:#777;margin-bottom:3px">받는 번호(선택)</div><input id="${prefix}-sms-phone" type="tel" inputmode="tel" placeholder="010-1234-5678" value="${esc(phone || "")}" style="width:100%;box-sizing:border-box;padding:8px 9px;border:1px solid #ddd;border-radius:8px;font-size:13px" /></label>
-      <button id="${prefix}-sms-btn" style="border:none;border-radius:8px;background:#1565C0;color:#fff;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer">📱 문자 앱으로 열기</button>
-      <button id="${prefix}-sms-copy" style="border:1px solid #1565C0;border-radius:8px;background:#fff;color:#1565C0;padding:9px 12px;font-size:12.5px;font-weight:700;cursor:pointer">📋 문자 내용 복사</button>
+      <label style="flex:1 1 190px"><div style="font-size:10.5px;color:#777;margin-bottom:3px">받는 휴대폰 번호${direct ? "" : "(선택)"}</div><input id="${prefix}-sms-phone" type="tel" inputmode="tel" placeholder="010-1234-5678" value="${esc(phone || "")}" style="width:100%;box-sizing:border-box;padding:9px 10px;border:1px solid #ddd;border-radius:8px;font-size:14px" /></label>
+      ${direct ? `<button id="${prefix}-sms-direct" ${tooLong ? "disabled" : ""} style="border:none;border-radius:8px;background:${tooLong ? "#bbb" : "#2E7D32"};color:#fff;padding:10px 16px;font-size:13.5px;font-weight:800;cursor:pointer">📤 바로 보내기</button>` : ""}
+      <button id="${prefix}-sms-btn" style="border:${direct ? "1px solid #1565C0" : "none"};border-radius:8px;background:${direct ? "#fff" : "#1565C0"};color:${direct ? "#1565C0" : "#fff"};padding:9px 14px;font-size:12.5px;font-weight:700;cursor:pointer">📱 문자 앱으로 열기</button>
+      <button id="${prefix}-sms-copy" style="border:1px solid #1565C0;border-radius:8px;background:#fff;color:#1565C0;padding:9px 12px;font-size:12.5px;font-weight:700;cursor:pointer">📋 복사</button>
     </div>
     <textarea id="${prefix}-sms-text" readonly rows="${Math.min(14, text.split("\n").length + 1)}" style="width:100%;box-sizing:border-box;padding:9px 10px;border:1px solid #dbe7f5;border-radius:8px;font-size:12px;line-height:1.55;font-family:inherit;background:#fff;color:#333;resize:vertical">${esc(text)}</textarea>
-    <div style="font-size:10px;color:#999;line-height:1.6;margin-top:4px">글자 수 ${text.length}자 (보통 90자를 넘으면 장문(LMS)으로 발송됩니다). 컴퓨터에서는 문자 앱이 안 열릴 수 있으니 「문자 내용 복사」를 쓰세요.</div>
-    <div id="${prefix}-sms-msg" style="font-size:11px;color:#2E7D32;margin-top:3px"></div>
+    <div style="font-size:10px;color:${tooLong ? "#C62828" : "#999"};line-height:1.6;margin-top:4px">${bytes.toLocaleString()}byte · ${tooLong ? "너무 길어 바로 보낼 수 없습니다(최대 2,000byte) — 요약으로 바꾸세요" : lms ? "장문(LMS)으로 발송됩니다" : "단문(SMS)으로 발송됩니다"}${direct ? " · 바로 보내기는 끝에 '- 농장동물 컨설팅(polcon.cc)'이 붙고 회원 1명당 하루 20건까지입니다" : " · 컴퓨터에서는 문자 앱이 안 열릴 수 있으니 「복사」를 쓰세요"}.</div>
+    <div id="${prefix}-sms-msg" style="font-size:12px;color:#2E7D32;margin-top:4px;font-weight:600"></div>
   </div>`;
 }
 function bindSmsBox(prefix, onPhone){
   const ph = document.getElementById(prefix + "-sms-phone");
-  const msg = t => { const m = document.getElementById(prefix + "-sms-msg"); if(m) m.textContent = t; };
+  const msgEl = () => document.getElementById(prefix + "-sms-msg");
+  const msg = (t, err) => { const m = msgEl(); if(m){ m.textContent = t; m.style.color = err ? "#C62828" : "#2E7D32"; } };
   if(ph) ph.onchange = () => onPhone(ph.value.trim());
+  const direct = document.getElementById(prefix + "-sms-direct");
+  if(direct) direct.onclick = async () => {
+    const txt = ((document.getElementById(prefix + "-sms-text") || {}).value || "").trim();
+    const raw = (ph && ph.value || "").trim();
+    const nums = smsParseNumbers(raw);
+    if(!nums.length){ msg("받는 휴대폰 번호를 입력하세요.", true); if(ph) ph.focus(); return; }
+    if(nums.length > 5){ msg("한 번에 최대 5명까지 보낼 수 있습니다.", true); return; }
+    const bad = nums.find(n => !/^01[016789]\d{7,8}$/.test(n));
+    if(bad){ msg("휴대폰 번호 형식이 아닙니다: " + bad, true); return; }
+    if(!txt){ msg("보낼 내용이 없습니다.", true); return; }
+    const bytes = smsByteLength(txt + SMS_DIRECT_FOOTER);
+    const pretty = nums.map(n => n.replace(/^(\d{3})(\d{3,4})(\d{4})$/, "$1-$2-$3")).join(", ");
+    if(!confirm(`${pretty} 에게 문자를 보낼까요?\n(${bytes}byte · ${bytes > 90 ? "장문(LMS)" : "단문(SMS)"})`)) return;
+    onPhone(raw);
+    direct.disabled = true; const label = direct.textContent; direct.textContent = "보내는 중...";
+    msg("문자를 보내는 중입니다...");
+    try {
+      const fn = firebase.app().functions().httpsCallable("sendDirectSms", { timeout: 70000 });
+      const res = await fn({ to: nums, content: txt, kind: SMS_DIRECT_KIND[prefix] || "etc" });
+      const d = res.data || {};
+      if(d.errorCount > 0 && !d.successCount) msg(`⚠️ 발송 요청은 됐지만 실패로 처리되었습니다(실패 ${d.errorCount}건). 번호를 확인해 주세요.`, true);
+      else msg(`✅ ${pretty} 에게 문자를 보냈습니다(${d.messageType || ""}${d.errorCount ? `, 실패 ${d.errorCount}건` : ""}). 오늘 남은 발송 ${d.remaining}건.`);
+    } catch(e){
+      const code = e && e.code || "", text = (e && e.message) || String(e);
+      if(/deadline-exceeded/.test(code)){
+        // 결과 불명 — 이미 나갔을 수 있으니 바로 다시 보내지 않게 1분 동안 버튼을 잠근다
+        msg("⚠️ 발송 결과를 확인하지 못했습니다 — 이미 발송됐을 수 있으니 받는 분께 먼저 확인한 뒤 다시 보내세요.", true);
+        direct.textContent = label; setTimeout(() => { direct.disabled = false; }, 60000);
+        return;
+      }
+      if(/not-found|internal/.test(code) && !/문자|발송|번호|내용|명부/.test(text)) msg("바로 보내기 서버가 아직 준비되지 않았습니다. 「문자 앱으로 열기」로 보내 주세요.", true);
+      else msg("문자를 보내지 못했습니다: " + text, true);
+    }
+    direct.disabled = false; direct.textContent = label;
+  };
   const btn = document.getElementById(prefix + "-sms-btn");
   if(btn) btn.onclick = () => {
     const txt = (document.getElementById(prefix + "-sms-text") || {}).value || "";
-    const raw = (ph && ph.value) || "", num = raw.replace(/[^0-9+]/g, "");
+    const raw = (ph && ph.value) || "", num = smsParseNumbers(raw).join(",");
     onPhone(num ? raw.trim() : "");
     const sep = /iPhone|iPad|iPod/i.test(navigator.userAgent) ? "&" : "?";
-    msg("문자 앱을 여는 중입니다... 열리지 않으면 「문자 내용 복사」를 눌러 붙여 넣으세요.");
+    msg("문자 앱을 여는 중입니다... 열리지 않으면 「복사」를 눌러 붙여 넣으세요.");
     location.href = "sms:" + num + sep + "body=" + encodeURIComponent(txt);
   };
   const cp = document.getElementById(prefix + "-sms-copy");
@@ -1663,7 +1724,9 @@ let magazineState = { status:"idle", data:null, busy:false, msg:"" };
 // 만들고 실제 업로드는 발행(magazine-save-btn) 시점에 한다. draftTitle/
 // draftText/draftSource는 사진 선택·삭제·OCR처럼 폼을 다시 그리는 동작 때마다
 // (syncMagazineDraftFields로) DOM에서 옮겨 담아, 입력해둔 값이 안 날아가게 한다.
-let magazineNavState = { openId:null, adminOpen:false, files:[], previewUrls:[], ocrBusy:false, draftTitle:"", draftText:"", draftSummary:"", draftSource:"" };
+// editId: 지금 수정 중인 글의 id(null이면 새 글 올리기). keepUrls: 수정할 때 그대로 남겨 둘 기존 사진 주소 —
+// 새로 고른 사진(files)은 그 뒤에 붙는다(합쳐서 최대 10장).
+let magazineNavState = { openId:null, adminOpen:false, files:[], previewUrls:[], ocrBusy:false, draftTitle:"", draftText:"", draftSummary:"", draftSource:"", editId:null, keepUrls:[] };
 
 function syncMagazineDraftFields(){
   magazineNavState.draftTitle = (document.getElementById("magazine-title-input")?.value || "");
@@ -1674,6 +1737,7 @@ function syncMagazineDraftFields(){
 
 function resetMagazineForm(){
   magazineNavState.files = []; magazineNavState.previewUrls = [];
+  magazineNavState.editId = null; magazineNavState.keepUrls = [];
   magazineNavState.draftTitle = ""; magazineNavState.draftText = ""; magazineNavState.draftSummary = ""; magazineNavState.draftSource = "";
 }
 
@@ -1686,9 +1750,17 @@ async function fetchMagazineNotes(){
     magazineState.data = j;
     magazineState.status = "done";
   } catch(e){
-    console.warn("양계잡지 학습정보 로딩 실패(최초 미발행 상태로 간주, 빈 목록 표시):", e);
-    magazineState.data = { items: [] };
-    magazineState.status = "done";
+    // 아직 한 번도 발행하지 않은 경우(not-found)만 빈 목록으로 보고, 그 밖의 오류(시간 초과·네트워크)는 오류로 둔다 —
+    // 빈 목록으로 착각한 채 발행하면 기존 자료가 모두 덮어써져 사라진다.
+    const code = String((e && e.code) || ""), msg = String((e && e.message) || "");
+    if(/not-found/.test(code) || /not-found|발행된/.test(msg)){
+      magazineState.data = { items: [] };
+      magazineState.status = "done";
+    } else {
+      console.warn("양계잡지 학습정보 로딩 실패:", e);
+      magazineState.data = null;
+      magazineState.status = "error";
+    }
   }
   if(premiumState.view === "magazine") render();
 }
@@ -1752,10 +1824,19 @@ async function runMagazineOcr(){
     if(!data.ok){
       magazineState.msg = "이 사진에서는 읽을 만한 글자를 찾지 못했습니다 — 직접 입력해 주세요.";
     } else {
-      magazineNavState.draftTitle = data.title || "";
-      magazineNavState.draftText = data.text || "";
-      magazineNavState.draftSummary = data.summary || "";
-      magazineState.msg = "글자를 옮겨 적고 요점도 정리했습니다 — 확인·수정한 뒤 발행하세요";
+      if(magazineNavState.editId){
+        // 수정 중에는 새로 붙인 사진의 글을 기존 글 뒤에 이어 붙인다(제목은 비어 있을 때만 채움)
+        const join = (a, b) => [String(a || "").trim(), String(b || "").trim()].filter(Boolean).join("\n\n");
+        if(!magazineNavState.draftTitle.trim()) magazineNavState.draftTitle = data.title || "";
+        magazineNavState.draftText = join(magazineNavState.draftText, data.text);
+        magazineNavState.draftSummary = join(magazineNavState.draftSummary, data.summary);
+        magazineState.msg = "새 사진의 글을 기존 본문·요약 뒤에 이어 붙였습니다 — 확인·수정한 뒤 「수정 저장」을 누르세요";
+      } else {
+        magazineNavState.draftTitle = data.title || "";
+        magazineNavState.draftText = data.text || "";
+        magazineNavState.draftSummary = data.summary || "";
+        magazineState.msg = "글자를 옮겨 적고 요점도 정리했습니다 — 확인·수정한 뒤 발행하세요";
+      }
     }
   } catch(e){
     magazineState.msg = "글자 추출 실패: " + (e.message || String(e));
@@ -1777,6 +1858,9 @@ function renderMagazinePanel(){
   if(st.status === "idle" || st.status === "loading"){
     return head + `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⏳ 불러오는 중...</div>`;
   }
+  if(st.status === "error"){
+    return head + `<div class="card" style="text-align:center;padding:28px 16px;color:#C62828;font-size:13px">⚠️ 자료를 불러오지 못했습니다.<div><button id="magazine-retry" style="margin-top:10px;border:1px solid #455A64;border-radius:8px;background:#455A64;color:#fff;padding:7px 14px;font-size:12px;font-weight:700">다시 불러오기</button></div></div>`;
+  }
   const admin = isBoardAdmin();
   const items = currentMagazineNotes().slice().sort((a,b) => (b.createdAt||"").localeCompare(a.createdAt||""));
 
@@ -1793,12 +1877,12 @@ function renderMagazinePanel(){
               <span style="font-size:14px;font-weight:800;color:#333">${esc(it.title || "(제목 없음)")}</span>
               ${it.source ? `<span style="font-size:10.5px;color:#999;white-space:nowrap;flex-shrink:0">${esc(it.source)}</span>` : ""}
             </div>
-            <div style="font-size:10.5px;color:#999;margin-top:3px">${esc((it.createdAt||"").slice(0,10))}</div>
+            <div style="font-size:10.5px;color:#999;margin-top:3px">${esc((it.createdAt||"").slice(0,10))}${it.updatedAt ? ` · 수정 ${esc(it.updatedAt.slice(0,10))}` : ""}</div>
           </div>
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
           <span class="magazine-toggle" data-id="${esc(it.id)}" style="cursor:pointer;font-size:11px;color:#455A64;font-weight:700;white-space:nowrap">${open?"접기 ▲":"보기 ▼"}</span>
-          ${admin ? `<button class="magazine-del-btn" data-id="${esc(it.id)}" style="font-size:10px;border:1px solid #eee;border-radius:5px;background:#fff;color:#bbb;padding:3px 8px">삭제</button>` : ""}
+          ${admin ? `<div style="display:flex;gap:4px"><button class="magazine-edit-btn" data-id="${esc(it.id)}" style="font-size:10px;border:1px solid #455A64;border-radius:5px;background:#fff;color:#455A64;padding:3px 8px;font-weight:700">✏️ 수정</button><button class="magazine-del-btn" data-id="${esc(it.id)}" style="font-size:10px;border:1px solid #eee;border-radius:5px;background:#fff;color:#bbb;padding:3px 8px">삭제</button></div>` : ""}
         </div>
       </div>
       ${open ? `
@@ -1823,13 +1907,22 @@ function renderMagazinePanel(){
 
   const adminBox = !admin ? "" : `
   <div style="margin-top:16px;border-top:1px dashed #eee;padding-top:12px">
-    <button id="magazine-admin-toggle" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:3px 9px">${magazineNavState.adminOpen?"관리 닫기":"⚙ 새 자료 올리기"}</button>
+    <button id="magazine-admin-toggle" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:3px 9px">${magazineNavState.adminOpen?(magazineNavState.editId?"수정 닫기":"관리 닫기"):"⚙ 새 자료 올리기"}</button>
     ${magazineState.msg?`<span style="font-size:11px;margin-left:8px;color:${/실패|찾지/.test(magazineState.msg)?"#C62828":"#2E7D32"}">${esc(magazineState.msg)}</span>`:""}
     ${magazineNavState.adminOpen ? `
-    <div style="margin-top:9px;background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">
-      <div style="font-size:11px;font-weight:700;color:#7A5C00;margin-bottom:8px">새 학습정보 올리기</div>
+    <div id="magazine-form" style="margin-top:9px;background:${magazineNavState.editId?"#F3F6FB":"#FCFBF6"};border:1px solid ${magazineNavState.editId?"#C9D6EA":"#EFE8D0"};border-radius:9px;padding:10px">
+      <div style="font-size:11px;font-weight:700;color:${magazineNavState.editId?"#1565C0":"#7A5C00"};margin-bottom:8px">${magazineNavState.editId?"✏️ 학습정보 수정 — 내용을 고친 뒤 「수정 저장」을 누르세요":"새 학습정보 올리기"}</div>
+      ${magazineNavState.keepUrls.length ? `
+      <div style="font-size:10px;color:#888;margin-bottom:4px">지금 올라가 있는 사진 (✕를 누르면 이 글에서 뺍니다)</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+        ${magazineNavState.keepUrls.map((url,i) => `
+        <div style="position:relative">
+          <img src="${esc(url)}" style="width:72px;height:72px;object-fit:cover;border-radius:8px;display:block;border:2px solid #C9D6EA" />
+          <button class="magazine-keep-remove-btn" data-idx="${i}" title="이 사진 빼기" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:none;background:#C62828;color:#fff;font-size:11px;line-height:20px;padding:0;cursor:pointer">✕</button>
+        </div>`).join("")}
+      </div>` : ""}
       <input type="file" accept="image/*" multiple id="magazine-file-input" style="width:100%;font-size:11.5px" />
-      <div style="font-size:10px;color:#888;margin:3px 0 8px">사진은 최대 10장까지 올릴 수 있습니다 (${magazineNavState.files.length}/10장 선택됨)</div>
+      <div style="font-size:10px;color:#888;margin:3px 0 8px">${magazineNavState.editId ? "사진을 더 붙이려면 고르세요 — " : ""}사진은 합쳐서 최대 10장까지 올릴 수 있습니다 (${magazineNavState.keepUrls.length + magazineNavState.files.length}/10장)</div>
       ${magazineNavState.previewUrls.length ? `
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
         ${magazineNavState.previewUrls.map((url,i) => `
@@ -1852,7 +1945,7 @@ function renderMagazinePanel(){
       <input type="text" id="magazine-source-input" value="${esc(magazineNavState.draftSource)}" placeholder="예) 월간 양계 2026년 9월호, OO축산신문"
         style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;margin-bottom:8px" />
       <div style="display:flex;gap:6px;align-items:center">
-        <button id="magazine-save-btn" ${magazineState.busy?"disabled":""} style="border:1px solid #B8860B;background:${magazineState.busy?"#ccc":"#B8860B"};color:#fff;border-radius:7px;padding:7px 15px;font-size:12px;font-weight:600">${magazineState.busy?"발행 중...":"발행"}</button>
+        <button id="magazine-save-btn" ${magazineState.busy?"disabled":""} style="border:1px solid #B8860B;background:${magazineState.busy?"#ccc":"#B8860B"};color:#fff;border-radius:7px;padding:7px 15px;font-size:12px;font-weight:600">${magazineState.busy?(magazineNavState.editId?"저장 중...":"발행 중..."):(magazineNavState.editId?"수정 저장":"발행")}</button>
         <button id="magazine-cancel-btn" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:6px 10px">취소</button>
       </div>
     </div>` : ""}
@@ -17604,21 +17697,48 @@ function attachEvents(){
   // 양계잡지 학습정보
   const magazineBackBtn = document.getElementById("magazine-back-btn");
   if(magazineBackBtn) magazineBackBtn.onclick = ()=>{ premiumState.view = "menu"; render(); };
+  const magazineRetry = document.getElementById("magazine-retry");
+  if(magazineRetry) magazineRetry.onclick = ()=>{ magazineState.status = "idle"; fetchMagazineNotes(); render(); };
   document.querySelectorAll(".magazine-toggle").forEach(b=>b.onclick=()=>{
     const id = b.dataset.id;
     magazineNavState.openId = magazineNavState.openId === id ? null : id;
+    render();
+  });
+  document.querySelectorAll(".magazine-edit-btn").forEach(b=>b.onclick=()=>{
+    const item = currentMagazineNotes().find(x=>x.id===b.dataset.id);
+    if(!item) return;
+    resetMagazineForm();
+    magazineNavState.editId = item.id;
+    magazineNavState.keepUrls = magazineItemImages(item).slice();
+    magazineNavState.draftTitle = item.title || "";
+    magazineNavState.draftText = item.text || "";
+    magazineNavState.draftSummary = item.summary || "";
+    magazineNavState.draftSource = item.source || "";
+    magazineNavState.adminOpen = true;
+    magazineState.msg = "";
+    render();
+    const f = document.getElementById("magazine-form");
+    if(f) f.scrollIntoView({ behavior:"smooth", block:"start" });
+  });
+  document.querySelectorAll(".magazine-keep-remove-btn").forEach(b=>b.onclick=()=>{
+    syncMagazineDraftFields();
+    const idx = Number(b.dataset.idx);
+    magazineNavState.keepUrls = magazineNavState.keepUrls.filter((_,i)=>i!==idx);
     render();
   });
   document.querySelectorAll(".magazine-del-btn").forEach(b=>b.onclick=async ()=>{
     const id = b.dataset.id;
     const item = currentMagazineNotes().find(x=>x.id===id);
     if(!item || !confirm(`"${item.title || "이 자료"}"를 삭제할까요?`)) return;
+    if(magazineState.status !== "done"){ alert("자료 목록을 아직 불러오지 못해 삭제할 수 없습니다."); return; }
+    syncMagazineDraftFields();
     const next = currentMagazineNotes().filter(x=>x.id!==id);
     magazineState.busy = true; magazineState.msg = "삭제 중..."; render();
     const r = await publishMagazineNotes(next);
     magazineState.busy = false;
     magazineState.msg = r.ok ? "삭제 완료" : ("삭제 실패: " + r.error);
     if(r.ok && magazineNavState.openId===id) magazineNavState.openId = null;
+    if(r.ok && magazineNavState.editId===id){ resetMagazineForm(); magazineNavState.adminOpen = false; }
     render();
   });
   const magazineAdminToggle = document.getElementById("magazine-admin-toggle");
@@ -17633,15 +17753,17 @@ function attachEvents(){
   if(magazineFileInput) magazineFileInput.onchange = ()=>{
     syncMagazineDraftFields();
     let picked = Array.from(magazineFileInput.files || []);
-    if(picked.length > 10){
-      picked = picked.slice(0, 10);
-      magazineState.msg = "사진은 최대 10장까지만 선택할 수 있어 앞의 10장만 선택했습니다.";
+    const room = Math.max(0, 10 - magazineNavState.keepUrls.length);
+    if(picked.length > room){
+      picked = picked.slice(0, room);
+      magazineState.msg = `사진은 합쳐서 최대 10장까지라 ${room}장만 선택했습니다.`;
     } else {
       magazineState.msg = "";
     }
     magazineNavState.files = picked;
     magazineNavState.previewUrls = picked.map(f => URL.createObjectURL(f));
-    magazineNavState.draftTitle = ""; magazineNavState.draftText = ""; magazineNavState.draftSummary = "";
+    // 새 글은 사진을 바꾸면 OCR로 다시 채우므로 비우고, 수정 중엔 입력해 둔 글을 그대로 둔다
+    if(!magazineNavState.editId){ magazineNavState.draftTitle = ""; magazineNavState.draftText = ""; magazineNavState.draftSummary = ""; }
     render();
   };
   document.querySelectorAll(".magazine-file-remove-btn").forEach(b=>b.onclick=()=>{
@@ -17662,6 +17784,7 @@ function attachEvents(){
   };
   const magazineSaveBtn = document.getElementById("magazine-save-btn");
   if(magazineSaveBtn) magazineSaveBtn.onclick = async ()=>{
+    syncMagazineDraftFields();   // 저장 중·실패 후 다시 그려도 고친 글이 원래 글로 되돌아가지 않게
     const title = (document.getElementById("magazine-title-input")?.value || "").trim();
     const text = (document.getElementById("magazine-text-input")?.value || "").trim();
     const summary = (document.getElementById("magazine-summary-input")?.value || "").trim();
@@ -17669,31 +17792,44 @@ function attachEvents(){
     const files = magazineNavState.files;
     if(!title){ alert("제목을 입력하세요."); return; }
     if(!text){ alert("본문을 입력하세요."); return; }
-    magazineState.busy = true; magazineState.msg = "발행 중..."; render();
+    // 목록을 제대로 못 불러온 상태에서 발행하면 기존 자료가 모두 지워진 채 저장되므로 막는다
+    if(magazineState.status !== "done"){ alert("자료 목록을 아직 불러오지 못해 저장할 수 없습니다. 새로고침 후 다시 시도하세요."); return; }
+    const editId = magazineNavState.editId;
+    if(editId && !currentMagazineNotes().some(x => x.id === editId)){ alert("수정하던 글이 목록에 없습니다(이미 삭제됨). 다시 열어 주세요."); return; }
+    magazineState.busy = true; magazineState.msg = editId ? "수정 내용을 저장하는 중..." : "발행 중..."; render();
     try {
-      const id = newMagazineId();
-      const imageUrls = [];
+      const id = editId || newMagazineId();
+      // 수정할 때 새로 붙이는 사진은 기존 파일과 이름이 겹치지 않게 시각을 붙인다
+      const tag = editId ? "_" + Date.now().toString(36) : "";
+      const imageUrls = editId ? magazineNavState.keepUrls.slice() : [];
       for(let i=0;i<files.length;i++){
         const file = files[i];
         const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g,"") || "jpg";
-        const ref = firebase.storage().ref("premium_content/magazine_notes_images/" + id + "_" + (i+1) + "." + ext);
+        const ref = firebase.storage().ref("premium_content/magazine_notes_images/" + id + tag + "_" + (i+1) + "." + ext);
         await withStorageTimeout(ref.put(file), 30000);
         imageUrls.push(await withStorageTimeout(ref.getDownloadURL()));
       }
-      const items = currentMagazineNotes().slice();
-      items.push({ id, title, text, summary, source, imageUrls, createdAt: new Date().toISOString() });
+      let items = currentMagazineNotes().slice();
+      if(editId){
+        items = items.map(x => x.id === editId
+          ? Object.assign({}, x, { title, text, summary, source, imageUrls, imageUrl: undefined, updatedAt: new Date().toISOString() })
+          : x);
+      } else {
+        items.push({ id, title, text, summary, source, imageUrls, createdAt: new Date().toISOString() });
+      }
       const r = await publishMagazineNotes(items);
       magazineState.busy = false;
       if(r.ok){
-        magazineState.msg = "발행 완료 — 모두에게 반영됩니다";
+        magazineState.msg = editId ? "수정 완료 — 모두에게 반영됩니다" : "발행 완료 — 모두에게 반영됩니다";
         resetMagazineForm();
         magazineNavState.adminOpen = false;
+        if(editId) magazineNavState.openId = editId;
       } else {
-        magazineState.msg = "발행 실패: " + r.error;
+        magazineState.msg = (editId ? "수정 실패: " : "발행 실패: ") + r.error;
       }
     } catch(e){
       magazineState.busy = false;
-      magazineState.msg = "발행 실패: " + (e.message || String(e));
+      magazineState.msg = (magazineNavState.editId ? "수정 실패: " : "발행 실패: ") + (e.message || String(e));
     }
     render();
   };

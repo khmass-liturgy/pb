@@ -679,3 +679,195 @@ exports.chickenChat = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 90 
   }
   return { reply };
 });
+
+
+// ─── 문자 바로 보내기 (유료서비스 점등·환우 프로그램 등의 "📤 바로 보내기") ──────────────
+// farm-pro의 send-sms(Supabase Edge Function)와 같은 구조다:
+//   브라우저 → 이 함수(로그인·승인회원 확인, 검증, 하루 한도) → sms-relay(고정 IP) → 알리고
+// 알리고 인증키는 sms-relay 서버에만 있고, 이 함수는 중계 서버 주소(SMS_RELAY_URL)와
+// 그 서버 인증용 공유 비밀값(SMS_RELAY_SECRET)만 Firebase 비밀값으로 갖는다 — 둘 다 farm-pro와
+// GitHub Actions(자동 문자 발송)가 쓰는 것과 같은 값이다. 등록:
+//   firebase functions:secrets:set SMS_RELAY_URL     (예: https://….nip.io/send-sms)
+//   firebase functions:secrets:set SMS_RELAY_SECRET
+//
+// 문자 요금이 실제로 나가는 기능이라 막아 두는 것:
+//   - 승인된 유료회원(또는 관리자)만 호출 가능
+//   - 발신번호는 클라이언트가 못 바꾼다(알리고에 등록된 대표번호 고정 — 자동 문자 발송 작업과 같은 번호)
+//   - 사이트가 만든 프로그램 문자(머리말로 확인)만, 링크 금지 — 대표번호가 아무 글이나 보내는 통로가 되지 않게
+//   - 받는 번호는 휴대폰(01X)만, 1회 최대 SMS_DIRECT_MAX_TARGETS명
+//   - 승인 클레임과 별개로 승인 명부의 만료일을 직접 확인(기간 지난 회원 차단)
+//   - 회원 1명당 하루(KST) SMS_DIRECT_DAILY_LIMIT건(받는 사람 수 기준), 관리자는 SMS_DIRECT_ADMIN_DAILY_LIMIT건
+//   - 내용 끝에 출처 한 줄을 서버가 붙인다(받는 사람이 어디서 온 문자인지 알 수 있게)
+//   - 보낸 기록은 Storage의 비공개 경로(sms_direct_log/, 클라이언트 접근 불가)에 남겨 관리자가 확인할 수 있다
+const SMS_RELAY_URL = defineSecret("SMS_RELAY_URL");
+const SMS_RELAY_SECRET = defineSecret("SMS_RELAY_SECRET");
+const SMS_DIRECT_SENDER = "01091508844";       // 최동명 수의사 대표번호 — scripts/send_sms_subscriptions.py의 SENDER_PHONE과 같은 값
+const SMS_DIRECT_MAX_TARGETS = 5;
+const SMS_DIRECT_DAILY_LIMIT = 20;
+const SMS_DIRECT_ADMIN_DAILY_LIMIT = 200;
+const SMS_DIRECT_SMS_BYTES = 90;               // 단문(SMS) 한도 — 넘으면 장문(LMS)
+const SMS_DIRECT_LMS_BYTES = 2000;             // 장문(LMS) 한도(알리고 기준)
+const SMS_DIRECT_FOOTER = "\n- 농장동물 컨설팅(polcon.cc)";
+// 바로 보내기로 보낼 수 있는 글 종류 — 대표번호로 아무 글이나 보내는 통로가 되지 않도록 사이트가 만든 글(머리말)만 받는다.
+const SMS_DIRECT_KINDS = {
+  light: ["[산란계 점등프로그램]", "[육계 점등프로그램]"],
+  molt: ["[산란계 환우 프로그램]"],
+};
+// 링크·전화번호는 막는다(대표번호로 보내는 문자가 스미싱·광고 통로가 되지 않게). 사이트가 만드는 프로그램 문자에는
+// polcon.cc 말고는 '글자.글자' 꼴의 주소나 전화번호가 나오지 않는다(환우·점등 문자 전체를 이 규칙으로 검사해 확인함).
+const SMS_DIRECT_LINK_RE = /https?:|www\.|[a-z0-9가-힣-]\.[a-z가-힣]{2,}/i;
+const SMS_DIRECT_PHONE_RE = /0\d{1,2}[-. ]?\d{3,4}[-. ]?\d{4}/;
+function smsDirectSuspicious(body) {
+  const norm = body.normalize("NFKC").replace(/[。．｡]/g, ".");
+  const stripped = norm.replace(/(^|[^a-z0-9.-])polcon\.cc(?![a-z0-9.-])/gi, "$1");
+  return SMS_DIRECT_LINK_RE.test(stripped) || SMS_DIRECT_PHONE_RE.test(stripped);
+}
+
+// EUC-KR 근사 바이트(ASCII 1, 그 외 2) — farm-pro의 js/sms.js·send-sms·sms-relay, index.html의 smsByteLength와 같은 방식
+function smsByteLength(text) {
+  let bytes = 0;
+  for (const ch of text) bytes += ch.codePointAt(0) > 0x7f ? 2 : 1;
+  return bytes;
+}
+
+function kstDateString(d) {
+  return new Date(d.getTime() + 9 * 3600 * 1000).toISOString().slice(0, 10);
+}
+
+// 승인 명부에서 회원 기간이 오늘(KST)까지 유효한지 — 클레임(approved)은 관리자가 회원을 다시 저장할 때만 바뀌어
+// 기간이 지난 회원에게도 남아 있을 수 있으므로, 요금이 나가는 기능은 명부를 직접 확인한다.
+async function memberActiveToday(email) {
+  const file = admin.storage().bucket(STORAGE_BUCKET).file("member_registry/approved.json");
+  let members;
+  try {
+    const [buf] = await file.download();
+    members = JSON.parse(buf.toString("utf-8")).members || [];
+  } catch (e) {
+    throw new HttpsError("failed-precondition", "회원 명부를 확인하지 못했습니다 — 잠시 후 다시 시도해 주세요.");
+  }
+  const me = members.find((m) => String(m.email || "").toLowerCase().trim() === email);
+  if (!me) return false;
+  return !me.expires || String(me.expires) >= kstDateString(new Date());
+}
+
+// 하루 사용량 파일을 "읽은 그 버전"에 조건을 걸고 고친다(compare-and-swap). 다른 요청이 사이에 고쳤으면 412가 나므로
+// 다시 읽어 재시도한다. update(cur) 가 null 을 돌려주면 쓰지 않고 그 값을 그대로 돌려준다.
+async function casUsage(file, update, tries = 4) {
+  for (let i = 0; i < tries; i++) {
+    let cur = 0;
+    let generation = 0;
+    try {
+      const [meta] = await file.getMetadata();
+      generation = Number(meta.generation) || 0;
+      const [buf] = await file.bucket.file(file.name, { generation: meta.generation }).download();
+      cur = Number(JSON.parse(buf.toString("utf8")).count) || 0;
+    } catch (e) {
+      if (e.code !== 404) throw e;   // 오늘 첫 발송이면 파일이 없다(generation 0 = "없을 때만 만들기")
+    }
+    const next = update(cur);
+    if (next === null) return { cur, written: false };
+    try {
+      await file.save(JSON.stringify({ count: next, updatedAt: new Date().toISOString() }), {
+        contentType: "application/json",
+        resumable: false,
+        preconditionOpts: { ifGenerationMatch: generation },
+      });
+      return { cur, next, written: true };
+    } catch (e) {
+      if (e.code !== 412 && e.code !== 404) throw e;   // 다른 요청이 먼저 고침 → 다시 읽고 재시도
+    }
+  }
+  throw new HttpsError("aborted", "동시에 여러 번 보내기를 눌렀습니다 — 잠시 후 다시 시도해 주세요.");
+}
+
+exports.sendDirectSms = onCall({ secrets: [SMS_RELAY_URL, SMS_RELAY_SECRET], timeoutSeconds: 40 }, async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
+  if (!isApprovedOrAdmin(request)) throw new HttpsError("permission-denied", "유료서비스 승인 회원만 문자를 바로 보낼 수 있습니다.");
+  const email = String(request.auth.token.email || "").toLowerCase().trim();
+  const isAdmin = ADMIN_EMAILS.includes(email);
+
+  const data = request.data || {};
+  const kind = data.kind;
+  if (!SMS_DIRECT_KINDS[kind]) throw new HttpsError("invalid-argument", "이 화면에서는 문자를 바로 보낼 수 없습니다.");
+  const rawTo = Array.isArray(data.to) ? data.to : String(data.to || "").split(/[,;\/\n]+/);
+  const targets = [...new Set(rawTo.map((s) => String(s || "").replace(/[^0-9]/g, "")).filter(Boolean))];
+  if (!targets.length) throw new HttpsError("invalid-argument", "받는 사람 휴대폰 번호를 입력하세요.");
+  if (targets.length > SMS_DIRECT_MAX_TARGETS) {
+    throw new HttpsError("invalid-argument", `한 번에 최대 ${SMS_DIRECT_MAX_TARGETS}명까지 보낼 수 있습니다.`);
+  }
+  const badNumber = targets.find((n) => !/^01[016789]\d{7,8}$/.test(n));
+  if (badNumber) throw new HttpsError("invalid-argument", `휴대폰 번호 형식이 아닙니다: ${badNumber}`);
+
+  const body = String(data.content || "").replace(/\r\n?/g, "\n").trim();
+  if (!body) throw new HttpsError("invalid-argument", "보낼 내용이 없습니다.");
+  if (!SMS_DIRECT_KINDS[kind].some((h) => body.startsWith(h))) {
+    throw new HttpsError("invalid-argument", "사이트에서 만든 프로그램 문자만 바로 보낼 수 있습니다.");
+  }
+  if (smsDirectSuspicious(body)) {
+    throw new HttpsError("invalid-argument", "문자에 인터넷 주소나 전화번호를 넣어 보낼 수 없습니다.");
+  }
+  const content = body + SMS_DIRECT_FOOTER;
+  const bytes = smsByteLength(content);
+  if (bytes > SMS_DIRECT_LMS_BYTES) {
+    throw new HttpsError("invalid-argument", `내용이 너무 깁니다(${bytes}byte, 최대 ${SMS_DIRECT_LMS_BYTES}byte). '요약'으로 바꿔 보내세요.`);
+  }
+
+  // 기간이 지난 회원 차단(관리자는 제외)
+  if (!isAdmin && !(await memberActiveToday(email))) {
+    throw new HttpsError("permission-denied", "유료서비스 이용 기간이 끝나 문자를 바로 보낼 수 없습니다.");
+  }
+
+  // 하루 한도(받는 사람 수 기준) — 비공개 Storage 파일에 날짜별로 센다. 보내기 전에 먼저 올려 둔다.
+  const bucket = admin.storage().bucket(STORAGE_BUCKET);
+  const now = new Date();
+  const today = kstDateString(now);
+  const limit = isAdmin ? SMS_DIRECT_ADMIN_DAILY_LIMIT : SMS_DIRECT_DAILY_LIMIT;
+  const usageFile = bucket.file(`sms_direct_usage/${request.auth.uid}/${today}.json`);
+  const reserved = await casUsage(usageFile, (cur) => (cur + targets.length > limit ? null : cur + targets.length));
+  if (!reserved.written) {
+    throw new HttpsError("resource-exhausted", `오늘 보낼 수 있는 문자(${limit}건)를 모두 썼습니다. 내일 다시 이용하거나 '문자 앱으로 열기'를 쓰세요.`);
+  }
+  const logFile = bucket.file(`sms_direct_log/${today.slice(0, 7)}/${now.toISOString().replace(/[:.]/g, "-")}_${request.auth.uid}.json`);
+  const writeLog = (extra) => logFile.save(JSON.stringify({ at: now.toISOString(), email, kind, to: targets, bytes, ...extra }),
+    { contentType: "application/json", resumable: false }).catch((e) => console.warn("sms log write failed:", e.message));
+
+  // 중계 서버 호출. 결과를 셋으로 나눈다:
+  //   성공 / 확실한 실패(중계 서버가 검증·인증에서 거절, 또는 알리고가 실패 코드로 응답 → 발송 안 됨, 한도 되돌림)
+  //   / 결과 불명(시간 초과·연결 끊김·응답 해석 불가 → 이미 나갔을 수 있어 한도를 되돌리지 않고 다시 보내지 말라고 안내)
+  let relayRes = null;
+  let result = null;
+  try {
+    relayRes = await fetch(SMS_RELAY_URL.value(), {
+      method: "POST",
+      headers: { Authorization: `Bearer ${SMS_RELAY_SECRET.value()}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ from: SMS_DIRECT_SENDER, content, targets: targets.map((to) => ({ to })) }),
+      signal: AbortSignal.timeout(25000),
+    });
+    result = await relayRes.json().catch(() => null);
+  } catch (e) {
+    relayRes = null;
+  }
+  if (relayRes && relayRes.ok && result && result.ok !== false) {
+    await writeLog({ ok: true, messageType: result.messageType, successCount: result.successCount, errorCount: result.errorCount });
+    return {
+      ok: true,
+      messageType: result.messageType || (bytes > SMS_DIRECT_SMS_BYTES ? "LMS" : "SMS"),
+      bytes,
+      successCount: Number(result.successCount) || 0,
+      errorCount: Number(result.errorCount) || 0,
+      remaining: Math.max(0, limit - reserved.next),
+    };
+  }
+  const errText = (result && result.error) || (relayRes ? `중계 서버 오류 (HTTP ${relayRes.status})` : "중계 서버 연결 실패/시간 초과");
+  const definiteFail = !!relayRes && !!result && (
+    [400, 401, 403, 404, 405].includes(relayRes.status) ||
+    (relayRes.status === 502 && /^알리고 발송 실패/.test(String(result.error || "")))
+  );
+  if (definiteFail) {
+    await casUsage(usageFile, (cur) => Math.max(0, cur - targets.length)).catch(() => {});   // 되돌리기 실패는 한도가 조금 일찍 차는 것뿐
+    await writeLog({ ok: false, error: errText });
+    throw new HttpsError("unavailable", `문자 발송 실패: ${errText}`);
+  }
+  await writeLog({ ok: "unknown", error: errText });
+  throw new HttpsError("deadline-exceeded", "발송 결과를 확인하지 못했습니다 — 이미 발송됐을 수 있으니 받는 분께 먼저 확인한 뒤 다시 보내세요.");
+});

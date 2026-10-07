@@ -45,6 +45,12 @@ Two pieces are **not** static, both Firebase, both under the 유료서비스 tab
   These need the Firebase secret `ANTHROPIC_API_KEY` (a separate key from the GitHub Actions secret
   of the same name used by `fetch_research_papers.py`; set with
   `firebase functions:secrets:set ANTHROPIC_API_KEY --project chicken-dx`).
+  It also holds `sendDirectSms` — the 📤 바로 보내기 button on the 점등/환우 program SMS boxes (index.html
+  `renderSmsBox`/`bindSmsBox`): approved, non-expired members (checked against `member_registry/approved.json`,
+  not just the claim) send the site-generated program text (header + no links/phone numbers) from the fixed
+  sender 010-9150-8844 through the same sms-relay as the SMS job, max 5 recipients and 20/day per member
+  (quota in private `sms_direct_usage/`, audit log in `sms_direct_log/`). Needs Firebase secrets
+  `SMS_RELAY_URL` and `SMS_RELAY_SECRET` (same values as the GitHub Actions secrets of the same name).
   It also holds read proxies for Storage JSON (`getPremiumContent`, `getPublicContent`,
   `getApprovedMembers`, `getMemberProfiles`, `getSmsSubscriptions`, `getFeatureRequests`,
   `getBoardPosts`): the browser can't `fetch()` a private Storage file's download URL
