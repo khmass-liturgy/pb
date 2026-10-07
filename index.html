@@ -9412,6 +9412,12 @@ function renderStudyPanel(){
   </div>
   <div style="display:flex;justify-content:space-between;gap:8px;margin-top:14px">
     <button id="study-prev-btn" ${nav.cardIndex===0?"disabled":""} style="flex:1;border:1px solid #ddd;border-radius:8px;background:#fff;color:${nav.cardIndex===0?"#ccc":"#333"};padding:10px;font-size:12.5px;font-weight:700">← 이전</button>
+    <select id="study-jump-sel" aria-label="카드 목록에서 바로 이동" style="flex:2;min-width:0;border:1px solid #D1C4E9;border-radius:8px;background:#F6F2FC;color:#4527A0;padding:10px 6px;font-size:12px;font-weight:700">
+      ${cardsArr.map((c,i)=>{
+        const t = String(c.front||"").replace(/\s+/g," ").trim();
+        return `<option value="${i}" ${i===nav.cardIndex?"selected":""}>${i+1}. ${esc(t.length>24?t.slice(0,24)+"…":(t||"(이미지 카드)"))}</option>`;
+      }).join("")}
+    </select>
     <button id="study-next-btn" ${nav.cardIndex>=cardsArr.length-1?"disabled":""} style="flex:1;border:1px solid #ddd;border-radius:8px;background:#fff;color:${nav.cardIndex>=cardsArr.length-1?"#ccc":"#333"};padding:10px;font-size:12.5px;font-weight:700">다음 →</button>
   </div>`;
 
@@ -18536,6 +18542,8 @@ function attachEvents(){
   };
   const studyPrevBtn = document.getElementById("study-prev-btn");
   if(studyPrevBtn) studyPrevBtn.onclick = ()=>{ studyNavState.cardIndex = Math.max(0, studyNavState.cardIndex-1); studyNavState.flipped = false; render(); };
+  const studyJumpSel = document.getElementById("study-jump-sel");
+  if(studyJumpSel) studyJumpSel.onchange = ()=>{ studyNavState.cardIndex = parseInt(studyJumpSel.value,10)||0; studyNavState.flipped = false; render(); };
   const studyNextBtn = document.getElementById("study-next-btn");
   if(studyNextBtn) studyNextBtn.onclick = ()=>{ studyNavState.cardIndex += 1; studyNavState.flipped = false; render(); };
   const cardResetForm = ()=>{
