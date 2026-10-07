@@ -18418,8 +18418,16 @@ function attachEvents(){
     if(!cfg) return;
     const digest = buildSmsDigestText(cfg.menu);
     const text = `[농장동물 컨설팅 안내]\n수신: ${cfg.phone}\n\n${digest}\n\n자세히 보기: https://polcon.cc`;
-    try { await navigator.clipboard.writeText(text); alert("문자 내용을 클립보드에 복사했습니다.\n문자 앱에 붙여넣어 발송해 주세요."); }
-    catch(e){ prompt("아래 내용을 복사해 문자 앱에 붙여넣어 주세요:", text); }
+    // 문자 앱을 바로 연다(받는 사람·본문 채워서). 클릭 직후라야 브라우저가 막지 않으므로 await보다 먼저 이동한다.
+    // 앱이 안 열리는 환경(PC 등)을 위해 클립보드 복사는 함께 해 둔다.
+    const phoneDigits = String(cfg.phone || "").replace(/[^0-9+]/g, "");
+    const sep = /iPhone|iPad|iPod/i.test(navigator.userAgent) ? "&" : "?";
+    const smsUrl = `sms:${phoneDigits}${sep}body=${encodeURIComponent(text)}`;
+    let copied = false;
+    try { await navigator.clipboard.writeText(text); copied = true; } catch(e){}
+    window.location.href = smsUrl;
+    if(!copied) setTimeout(()=>{ prompt("문자 앱이 열리지 않으면 아래 내용을 복사해 붙여넣어 주세요:", text); }, 800);
+    if(!confirm("문자 앱에서 발송을 마치셨으면 [확인]을 눌러 마지막 발송일을 오늘로 기록하세요.\n(앱이 열리지 않았거나 보내지 않았다면 [취소])")) return;
     smsAdminState.msg = "발송 처리 중..."; render();
     const r = await writeSmsSubscription(uid, Object.assign({}, cfg, { lastSentAt:new Date().toISOString() }));
     smsAdminState.msg = r.ok ? "마지막 발송일을 오늘로 기록했습니다" : ("기록 실패: " + r.error);
