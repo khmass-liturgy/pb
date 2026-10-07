@@ -10883,11 +10883,20 @@ function renderIndustryNewsPanel(){
     if(day !== lastDay){ lastDay = day; cards += `<div style="font-size:12px;font-weight:800;color:#37474F;margin:14px 0 6px">${day === todayStr ? "오늘" : day === yStr ? "어제" : day.slice(5).replace("-", "월 ") + "일"} <span style="font-weight:500;color:#aaa;font-size:11px">${day}</span></div>`; }
     const c = IN_COLORS[(i.tags || [])[0]] || "#37474F";
     const orig = i.url || i.link;
-    cards += `<div style="background:#fff;border:1px solid #eee;border-left:4px solid ${c};border-radius:10px;padding:11px 13px;margin-bottom:9px">
-      <div style="font-size:13.5px;font-weight:800;color:#222;line-height:1.5">${esc(i.title)}</div>
-      <div style="font-size:10.5px;color:#999;margin-top:2px">${esc(i.source || "")} · ${esc(i.ts.slice(11))}</div>
-      ${i.summary ? `<div style="font-size:12.5px;color:#444;line-height:1.7;margin-top:7px;background:#FAFAFA;border-radius:8px;padding:8px 10px">${i.summary_ai ? '<span style="font-size:10px;color:#6A1B9A;font-weight:800">🤖 AI 요약</span> ' : '<span style="font-size:10px;color:#888;font-weight:800">본문 발췌</span> '}${esc(i.summary)}</div>` : `<div style="font-size:11.5px;color:#aaa;margin-top:6px">요약을 만들지 못한 기사입니다. 원문에서 확인해 주세요.</div>`}
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px"><div style="display:flex;gap:4px;flex-wrap:wrap">${(i.tags || []).slice(0, 3).map(t => `<span style="font-size:10px;color:${IN_COLORS[t] || "#555"};background:#F6F6F6;border-radius:8px;padding:1px 7px;font-weight:700">${esc(t)}</span>`).join("")}</div><a href="${esc(orig)}" target="_blank" rel="noopener" style="font-size:12px;font-weight:800;color:#fff;background:${c};border-radius:8px;padding:6px 12px;text-decoration:none;white-space:nowrap">📄 원문 보기 ↗</a></div></div>`;
+    // 요약은 문장 단위로 나눠 줄을 바꿔 읽기 쉽게 보여 준다
+    const sents = (i.summary || "").split(/(?<=[.。!?]|다\.|요\.)\s+/).map(x => x.trim()).filter(Boolean);
+    const sumHtml = sents.length
+      ? `<div style="margin-top:10px;background:linear-gradient(180deg,#FFFDF6,#FFF8E6);border:1px solid #F1E2B5;border-radius:12px;padding:13px 15px">
+          <div style="font-size:11.5px;font-weight:800;color:${i.summary_ai ? "#6A1B9A" : "#8D6E00"};margin-bottom:7px">${i.summary_ai ? "🤖 AI 핵심 요약" : "📌 본문 발췌"}</div>
+          ${sents.map(s => `<div style="display:flex;gap:8px;font-size:16px;line-height:1.75;color:#222;font-weight:500;margin:3px 0"><span style="color:${c};font-weight:900">•</span><span>${esc(s)}</span></div>`).join("")}
+        </div>`
+      : `<div style="font-size:13px;color:#aaa;margin-top:8px">요약을 만들지 못한 기사입니다. 원문에서 확인해 주세요.</div>`;
+    cards += `<div style="background:#fff;border:1px solid #e8e8e8;border-top:5px solid ${c};border-radius:14px;padding:16px 16px 14px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,.05)">
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">${(i.tags || []).slice(0, 3).map(t => `<span style="font-size:11px;color:#fff;background:${IN_COLORS[t] || "#555"};border-radius:10px;padding:2px 9px;font-weight:800">${esc(t)}</span>`).join("")}</div>
+      <div style="font-size:17.5px;font-weight:900;color:#111;line-height:1.5;letter-spacing:-.2px">${esc(i.title)}</div>
+      <div style="font-size:12px;color:#888;margin-top:4px">${esc(i.source || "")} · ${esc(i.ts.slice(11))}</div>
+      ${sumHtml}
+      <div style="text-align:right;margin-top:12px"><a href="${esc(orig)}" target="_blank" rel="noopener" style="display:inline-block;font-size:14px;font-weight:800;color:#fff;background:${c};border-radius:10px;padding:9px 18px;text-decoration:none">📄 원문 보기 ↗</a></div></div>`;
   });
   return head + `
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px">${chip("전체")}${groups.map(chip).join("")}</div>
