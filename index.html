@@ -3180,6 +3180,146 @@ function buildSmsDigestText(menuKey){
   return "";
 }
 
+// "문자 준비"용 — 자동 발송 스크립트(scripts/send_sms_subscriptions.py)와 같은 내용을 만든다.
+// 위 buildSmsDigestText는 일부 메뉴만 알고 있어 나머지는 빈 문자가 되었으므로, 저장소의
+// 공개 JSON을 직접 읽어 신청한 메뉴 그대로 만든다(seasonal·treatment는 위 함수 그대로).
+async function buildSmsDigestTextAsync(menuKey){
+  const RAW = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/";
+  const getJson = async (p) => { try { const r = await fetch(RAW + p + "?t=" + Date.now()); return r.ok ? await r.json() : null; } catch(e){ return null; } };
+  const short = (s, n=60) => { s = String(s||"").split(/\s+/).filter(Boolean).join(" "); return s.length<=n ? s : s.slice(0,n-1)+"…"; };
+  const arrow = (c, p) => {
+    if(typeof c!=="number" || typeof p!=="number" || !p) return "";
+    const pct = (c-p)/p*100;
+    return ` ${pct>0.05?"▲":pct<-0.05?"▼":"─"}${Math.abs(pct).toFixed(1)}%`;
+  };
+  const num = (v, d=0) => Number(v).toLocaleString("ko-KR", { minimumFractionDigits:d, maximumFractionDigits:d });
+  const none = (title, msg) => `[${title}]\n${msg}`;
+  try {
+    if(menuKey === "seasonal"){ if(seasonalPkgState.status==="idle") await fetchSeasonalPackages(); return buildSmsDigestText(menuKey); }
+    if(menuKey === "treatment"){ if(treatmentPkgState.status==="idle") await fetchTreatmentPackages(); return buildSmsDigestText(menuKey); }
+    if(menuKey === "poultry_price" || menuKey === "research") return await (async()=>{
+      if(menuKey === "research"){
+        const cats = ((await getJson("research_papers/latest.json")) || {}).categories || {};
+        const lines = ["[이번 주 기술탐구 요약]"]; let any = false;
+        Object.values(cats).forEach(c => { const p=(c.papers||[])[0]; if(p){ any=true; lines.push("", `▶ ${c.label||""} — ${p.title_ko||""}`); } });
+        return any ? lines.join("\n") : "[기술탐구]\n아직 수집된 논문이 없습니다.";
+      }
+      const lines = ["[📊 양계 산지시세]"];
+      const egg = ((await getJson("poultry_price/latest.json")) || {}).egg || {};
+      if(Number.isInteger(egg.latest)) lines.push(`🥚 계란(${egg.grade||"특란"}): ${num(egg.latest)}${egg.unit||"원/10개"}`);
+      const bt = (await getJson("broiler_price_today/latest.json")) || {};
+      if((bt.rows||[]).length){
+        lines.push(`🐔 육계 금일시세(${bt.date_label||""})`);
+        bt.rows.forEach(r => lines.push(`- ${r.grade||""}${r.spec?"("+r.spec+")":""}: ${Number.isInteger(r.today)?num(r.today):"-"}${r.unit||""}`));
+      }
+      return lines.length===1 ? none("📊 양계 산지시세","아직 수집된 시세가 없습니다.") : lines.join("\n");
+    })();
+    if(menuKey === "briefing"){
+      const src = ((await getJson("news/briefing.json")) || {}).sources || {};
+      const lines = ["[📋 뉴스정보 브리핑]"]; let any = false;
+      [["chuksan","축산신문"],["econ","경제"],["policy","정책"]].forEach(([k,l]) => { const it=((src[k]||{}).items||[])[0]; if(it){ any=true; lines.push("", `▶ ${l} — ${it.title||""}`); } });
+      return any ? lines.join("\n") : none("📋 뉴스정보 브리핑","아직 수집된 뉴스가 없습니다.");
+    }
+    if(menuKey === "hpai_kr"){
+      const d = (await getJson("hpai_kr/latest.json")) || {};
+      const farms = (d.farms||[]).filter(f => (f.conf||"") >= "2026-09-01");
+      const wild = (d.wild||[]).filter(w => (w.conf||"") >= "2026-09-01");
+      const lines = ["[🦠 국내 AI 발생현황]", `26/27 시즌(9월~) 가금농장 ${farms.length}건 · 야생조류 ${wild.length}건`];
+      farms.sort((a,b)=>a.conf<b.conf?-1:1).slice(-4).forEach(f => lines.push(`- ${f.conf.slice(5).replace(/^0/,"").replace("-0","-").replace("-",".")} ${f.sido} ${f.sgg} ${f.breed||""} ${num(f.cnt||0)}수`));
+      (d.news||[]).slice(0,2).forEach(n => lines.push("· " + short(n.title, 50)));
+      if(d.as_of) lines.push(`(농식품부 자료 ${d.as_of.slice(0,10)} 기준)`);
+      if(!farms.length && !wild.length && !(d.news||[]).length) lines.push("지금까지 새 시즌 발생이 자료에 없습니다.");
+      return lines.join("\n");
+    }
+    if(menuKey === "hpai_world"){
+      const h = await getJson("hpai_risk/latest.json");
+      if(!h) return none("🌍 세계 AI 발생(WOAH)","아직 수집된 자료가 없습니다.");
+      const o = h.overall||{}, fw = h.flyway||{}, kr = h.korea||{};
+      const lines = ["[🌍 세계 AI 발생(WOAH)]", `최근 ${h.window_days||180}일 ${o.countries||0}개국 ${o.total||0}건(가금 ${o.poultry||0}·야생 ${o.wild||0}), 진행중 ${o.ongoing||0}건`];
+      if(Object.keys(fw).length) lines.push(`한반도 철새경로(EAAF) ${fw.total||0}건, 진행중 ${fw.ongoing||0}건`);
+      if(Object.keys(kr).length) lines.push(`국내 WOAH 신고 ${kr.total||0}건(최근 ${kr.latest||"-"})`);
+      return lines.join("\n");
+    }
+    if(menuKey === "hpai_news"){
+      if(hpaiNewsState.status==="idle" && typeof fetchHpaiNews==="function") await fetchHpaiNews();
+      const j = (hpaiNewsState.data) || (await getJson("hpai_news/news.json")) || {};
+      const items = (j.items||[]).slice().sort((a,b)=>(b.createdAt||"")<(a.createdAt||"")?-1:1).slice(0,3);
+      if(!items.length) return none("🚨 AI 방역 소식","아직 등록된 소식이 없습니다.");
+      return ["[🚨 AI 방역 소식]", ...items.map(it => `- ${(it.createdAt||"").slice(0,10)} ${short(it.title,45)}`)].join("\n");
+    }
+    if(menuKey === "egg_report"){
+      const e = await getJson("egg_report/latest.json");
+      if(!e) return none("🥚 주간 계란 수급","아직 수집된 자료가 없습니다.");
+      const lines = [`[🥚 ${e.title||"주간 계란 수급 정보"}]`];
+      if((e.summary||{}).supply_status) lines.push(`수급 판단: ${e.summary.supply_status}`);
+      (e.sections||[]).slice(0,2).forEach(s => lines.push(`▶ ${s.title||""}: ${short(s.summary,70)}`));
+      return lines.join("\n");
+    }
+    if(menuKey === "market"){
+      const m = ((await getJson("market/quotes.json")) || {}).quotes || {};
+      if(!Object.keys(m).length) return none("💹 곡물선물·환율","아직 수집된 시세가 없습니다.");
+      const lines = ["[💹 곡물선물·환율]"];
+      [["corn","🌽 옥수수"," $/bu",2],["soybean","🫘 대두"," $/bu",2],["soymeal","대두박"," $/톤",1],["wheat","🌾 밀"," $/bu",2],["usdkrw","💵 달러","원",1],["brent","🛢 브렌트유"," $/배럴",1]]
+        .forEach(([k,l,u,d]) => { const q=m[k]; if(q && typeof q.current==="number") lines.push(`${l} ${num(q.current,d)}${u}${arrow(q.current,q.prev)}`); });
+      return lines.join("\n");
+    }
+    if(menuKey === "grain_quality"){
+      const g = await getJson("grain_quality/latest.json");
+      if(!g || !g.regions) return none("🌽 사료곡물 산지 흐름","아직 수집된 자료가 없습니다.");
+      const lines = ["[🌽 사료곡물 산지 기상·곰팡이 신호]"];
+      Object.values(g.regions).forEach(r => {
+        const now = r.now||{}, mold = (now.mold||{}).score, z = now.z||{}, parts = [];
+        if(typeof mold==="number") parts.push(`곰팡이 ${Math.round(mold)}점(${mold>=60?"높음":mold>=35?"보통":"낮음"})`);
+        if(typeof z.p==="number") parts.push("강수 평년비 " + (z.p>1?"많음":z.p<-1?"적음":"비슷"));
+        lines.push(`- ${r.name||""}: ` + (parts.join(", ") || "자료 없음"));
+      });
+      lines.push("(최근 30일, 위성 재분석 기준)");
+      return lines.join("\n");
+    }
+    if(menuKey === "feed_production"){
+      const f = await getJson("feed_production/latest.json");
+      if(!f) return none("🌾 배합사료 생산","아직 수집된 자료가 없습니다.");
+      const y = f.latest.year, m = f.latest.month, cur = f.years[String(y)], prev = f.years[String(y-1)];
+      const tot = (yr, keys) => yr ? keys.reduce((s,k)=>s+((yr.groups[k]||[])[m-1]||0),0) : 0;
+      const lines = [`[🌾 배합사료 생산 ${y}년 ${m}월]`];
+      [["육계용",["broiler_starter","broiler_finisher"]],["산란계용",["layer_rearing","layer_laying"]]].forEach(([l,ks]) => {
+        const c = tot(cur,ks), p = tot(prev,ks);
+        lines.push(`${l} ${num(c)}톤${arrow(c,p)} (전년 동월 대비)`);
+      });
+      return lines.join("\n");
+    }
+    if(menuKey === "layer_stats"){
+      const s = await getJson("layer_stats/latest.json");
+      if(!s) return none("🐔 사육 마릿수 통계","아직 수집된 자료가 없습니다.");
+      const lay = s.layer||{}, br = s.broiler||{}, sg = v => (v>=0?"+":"") + (v||0).toFixed(1);
+      return [`[🐔 닭 사육 마릿수 ${s.period||""}]`,
+        `산란계 ${num((lay.birds||0)/10000)}만수(${num(lay.farms||0)}호) 전분기 ${sg(lay.birds_pct)}%`,
+        `육계 ${num((br.birds||0)/10000)}만수(${num(br.farms||0)}호) 전분기 ${sg(br.birds_pct)}%`,
+        "(축산물품질평가원 통계)"].join("\n");
+    }
+    if(menuKey === "jungchu"){
+      const j = await getJson("jungchu_price/latest.json");
+      if(!j || !Number.isInteger(j.latest)) return none("🐥 산란 중추 가격","아직 수집된 자료가 없습니다.");
+      return `[🐥 산란 중추 가격]\n${j.latest_year}년 ${j.latest_month}월 ${num(j.latest)}원\n(대한산란계협회 게시표 기준)`;
+    }
+    if(menuKey === "monthly_pick"){
+      const picks = ((await getJson("monthly_pick/picks.json")) || {}).picks || {};
+      if(!Object.keys(picks).length) return none("📌 이달의 질병","아직 선정된 질병이 없습니다.");
+      const month = new Date(Date.now()+9*3600000).toISOString().slice(0,7);
+      const key = picks[month] ? month : Object.keys(picks).sort().pop();
+      const names = {};
+      (((await getJson("poultry_disease/diseases.json")) || {}).diseases || []).forEach(d => { names[d.slug] = d.title_ko || d.title_en; });
+      const lines = [`[📌 ${key} 이달의 질병]`];
+      picks[key].slice(0,4).forEach(it => {
+        const name = names[it.slug] || it.title || "", note = it.note || "";
+        lines.push(`- ${short(name,60)}` + (note && it.slug ? ` — ${short(note,40)}` : ""));
+      });
+      return lines.join("\n");
+    }
+  } catch(e){ console.warn("문자 내용 만들기 실패:", e); }
+  return "";
+}
+
 // ── 최수의사의 온라인 학습(카드 학습) ─────────────────────────────────────────
 // 덱(주제) 하나에 카드 여러 장 — 카드는 앞면/뒷면 텍스트 + 선택적 이미지
 // 한 장. 이미지는 텍스트 메타데이터(premium_content/study_cards/latest.json)와
@@ -18416,7 +18556,8 @@ function attachEvents(){
     const uid = b.dataset.uid;
     const cfg = smsAdminState.list.find(c=>c.uid===uid);
     if(!cfg) return;
-    const digest = buildSmsDigestText(cfg.menu);
+    const digest = (await buildSmsDigestTextAsync(cfg.menu)) || buildSmsDigestText(cfg.menu);
+    if(!digest){ alert("'" + smsMenuLabel(cfg.menu) + "' 내용을 만들지 못했습니다. 잠시 후 다시 시도해 주세요."); return; }
     const text = `[농장동물 컨설팅 안내]\n수신: ${cfg.phone}\n\n${digest}\n\n자세히 보기: https://polcon.cc`;
     // 문자 앱을 바로 연다(받는 사람·본문 채워서). 클릭 직후라야 브라우저가 막지 않으므로 await보다 먼저 이동한다.
     // 앱이 안 열리는 환경(PC 등)을 위해 클립보드 복사는 함께 해 둔다.
