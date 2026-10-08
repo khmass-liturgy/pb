@@ -750,6 +750,7 @@ const PREMIUM_ITEMS = [
   { key:"study", icon:"🎓", title:"최수의사의 온라인 학습(카드 학습)", desc:"수의사가 올린 카드형 학습자료(앞면/뒷면)로 필요할 때마다 학습할 수 있습니다.", color:"#4527A0", category:"질문·학습·교육" },
   { key:"emerging", icon:"🔬", title:"최신 연구되는 질병", desc:"PubMed 최근 논문에서 요즘 많이 다뤄지는 양계질병을 편수 순으로 찾아 한글로 번역해 보여드리고, 관련 소식까지 검색합니다.", color:"#5E35B1", category:"질문·학습·교육" },
   { key:"research", icon:"📚", title:"최신 기술탐구", desc:"질병논문·사양관리기술·컨설팅도구 최신 국제논문 5편씩을 매주 한글로 번역·요약해 드립니다.", color:"#6A1B9A", category:"질문·학습·교육" },
+  { key:"diseasebrief", icon:"🧬", title:"가금 질병·백신 주간 브리핑", desc:"최근 새로 공개된 가금 질병·백신 논문, 정부·국제기구 보고서, 전문 분석 중 현장 컨설팅에 도움이 되는 핵심 3건을 매주 월요일 아침 한국어로 정리합니다. 무엇이 새로운지·현장 중요성·적용 시 주의점과 한계·원문 링크, 이번 주 체크포인트까지.", color:"#00796B", category:"질문·학습·교육" },
   { key:"magazine", icon:"📰", title:"양계잡지 학습정보", desc:"양계 전문지 지면을 사진으로 올리면 사진과 글을 분리해 게시판처럼 보여드립니다.", color:"#455A64", category:"질문·학습·교육" },
   { key:"industrynews", icon:"🗞️", title:"양계 업계관련 핵심키워드 검색소식", desc:"계란·조류인플루엔자·AI·육계·방역·양계 질병 등 양계 핵심 키워드로 국내 기사를 매일 아침 검색해 요약과 함께 카드로 보여드립니다.", color:"#455A64", category:"게시판·기타" },
   { key:"kkoko", icon:"🐔", title:"최꼬박사랑 대화", desc:"무료 탭의 최꼬꼬가 유료회원님께는 더 똑똑해진 '최꼬박사'로 변신합니다 — 더 자세하고 깊이 있는 사양관리·질병 설명을 받아보세요. 텍스트는 물론 음성으로도 대화할 수 있습니다.", color:"#F57F17", category:"질문·학습·교육" },
@@ -826,14 +827,14 @@ const PREMIUM_MENU_LEGACY_PATH = "premium_menu/items.json";
 const PREMIUM_MENU_KNOWN_KEYS = [
   "drug","treatment","seasonal","finder","disinfect","newproducts","vaccine",
   "ventfinder","lightguide","moltguide","feedstandard","feedgrain","grainprice","selfcheck","diagnosis","specimen","faq","study",
-  "research","emerging","industrynews","drugnews","magazine","kkoko","feature_board","consult","consulting","smssub",
+  "research","diseasebrief","emerging","industrynews","drugnews","magazine","kkoko","feature_board","consult","consulting","smssub",
 ];
 let premiumMenuState = { status:"idle", data:null, busy:false, msg:"", adminOpen:false, formOpen:false,
   editIndex:null, draftKey:"", draftIcon:"🆕", draftTitle:"", draftDesc:"", draftColor:"#00838F", draftCategory:"" };
 
 // 관리자가 저장한 메뉴가 있어도, 그 뒤에 새로 만든 기본 메뉴(PREMIUM_MENU_NEW_SEED_KEYS)는 빠져 보이지 않게
 // 저장된 메뉴에 없을 때만 기본 위치(앞 메뉴 뒤)에 끼워 보여 준다.
-const PREMIUM_MENU_NEW_SEED_KEYS = ["drugnews"];
+const PREMIUM_MENU_NEW_SEED_KEYS = ["drugnews", "diseasebrief"];
 function currentPremiumMenuItems(){
   const items = premiumMenuState.data && premiumMenuState.data.items;
   if(!(Array.isArray(items) && items.length)) return PREMIUM_ITEMS;
@@ -11368,6 +11369,67 @@ function renderDrugNewsPanel(){
     ${renderDrugNewsSites()}`;
 }
 
+// ── 가금 질병·백신 주간 브리핑 (유료서비스 · 질문·학습·교육) ─────────────────────────────
+// scripts/fetch_poultry_disease_brief.py 가 매주 월요일 아침 7시(KST)에 최근 새로 공개된 가금 질병·백신 논문(PubMed)·정부/국제기구
+// 보고서·전문 분석 중 현장 컨설팅에 도움이 되는 3건을 골라 poultry_disease_brief/latest.json 에 쌓는다(최근 26주).
+const DISEASE_BRIEF_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/poultry_disease_brief/latest.json";
+const diseaseBriefState = { status:"idle", data:null, week:null };
+const DB_SPECIES = { "산란계":{ icon:"🥚", color:"#00796B" }, "육계":{ icon:"🐔", color:"#D84315" }, "공통":{ icon:"🐓", color:"#5D4037" } };
+const DB_CLS = { paper:"원 논문", official:"정부·국제기구·수의기관", analysis:"전문 분석·매체" };
+async function fetchDiseaseBrief(){
+  if(diseaseBriefState.status === "loading") return;
+  diseaseBriefState.status = "loading";
+  try {
+    const r = await fetchWithTimeout(DISEASE_BRIEF_JSON_URL + "?t=" + Date.now(), 10000);
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    diseaseBriefState.data = await r.json();
+    diseaseBriefState.status = "done";
+  } catch(e){ console.warn("가금 질병·백신 브리핑 로딩 실패:", e); diseaseBriefState.status = "error"; }
+  if(premiumState.view === "diseasebrief") render();
+}
+function renderDiseaseBriefPanel(){
+  const st = diseaseBriefState;
+  const head = `<div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><div class="display" style="font-size:16px;margin-bottom:3px">🧬 가금 질병·백신 주간 브리핑</div><div style="font-size:11px;color:#aaa">최근 새로 공개된 논문·정부/국제기구 보고서·전문 분석 중 산란계·육계 현장 컨설팅에 도움이 되는 핵심 3건을 매주 월요일 아침 정리합니다</div></div><button id="diseasebrief-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button></div>`;
+  if(st.status === "idle" || st.status === "loading") return head + `<div class="card" style="text-align:center;padding:32px;color:#aaa">⏳ 브리핑을 불러오는 중...</div>`;
+  if(st.status === "error" || !st.data) return head + `<div class="card" style="text-align:center;padding:28px;color:#C62828;font-size:13px">⚠️ 브리핑을 불러오지 못했습니다.<div><button id="diseasebrief-retry" style="margin-top:10px;border:1px solid #00796B;border-radius:8px;background:#00796B;color:#fff;padding:7px 14px;font-size:12px;font-weight:700">다시 불러오기</button></div></div>`;
+  const weeks = st.data.weeks || [];
+  if(!weeks.length) return head + `<div class="card" style="text-align:center;padding:28px;color:#aaa">아직 정리된 브리핑이 없습니다. 다음 월요일 아침에 첫 브리핑이 올라옵니다.</div>`;
+  const cur = weeks.find(w => w.week === st.week) || weeks[0];
+  const weekChips = weeks.slice(0, 8).map(w => { const on = w.week === cur.week; return `<button class="db-week" data-w="${esc(w.week)}" style="border:1.5px solid ${on ? "#00796B" : "#ddd"};background:${on ? "#00796B" : "#fff"};color:${on ? "#fff" : "#555"};border-radius:16px;padding:5px 11px;font-size:11.5px;font-weight:700;cursor:pointer">${esc(w.week.slice(5).replace("-", "월 ") + "일")}${w === weeks[0] ? " · 최신" : ""}</button>`; }).join("");
+  const bullets = (arr, color) => (arr || []).map(x => `<div style="display:flex;gap:8px;font-size:13.5px;line-height:1.7;color:#222;margin:3px 0"><span style="color:${color};font-weight:900">•</span><span>${esc(x)}</span></div>`).join("");
+  const section = (no, label, arr, color, bg) => `<div style="background:${bg};border-left:6px solid ${color};border-radius:0 10px 10px 0;padding:9px 12px;margin-top:8px"><div style="font-size:12px;font-weight:800;color:${color};margin-bottom:3px">${no} ${label}</div>${bullets(arr, color)}</div>`;
+  const cards = (cur.items || []).map(i => {
+    const sp = DB_SPECIES[i.species] || DB_SPECIES["공통"];
+    return `<div class="card" style="${pkgBoxStyle(sp.color, sp.color + "10", "14px 16px")}">
+      <div style="display:flex;gap:10px;align-items:flex-start">
+        ${pkgIconCircle(sp.icon, sp.color, 44)}
+        <div style="min-width:0;flex:1">
+          <div style="margin-bottom:4px">${pkgChip(esc(i.species || "공통"), sp.color, sp.color + "26")}${pkgChip(esc(i.topic || ""), "#fff", sp.color)}${pkgChip(esc(DB_CLS[i.cls] || ""), "#555", "#EEE")}</div>
+          <div style="font-size:16.5px;font-weight:900;color:#111;line-height:1.5">${esc(i.title)}</div>
+          ${i.evidence ? `<div style="font-size:11.5px;color:#777;margin-top:3px">근거 수준 · ${esc(i.evidence)}</div>` : ""}
+        </div>
+      </div>
+      ${section("①", "무엇이 새로 나왔나", i.new, "#1565C0", "#EEF4FC")}
+      ${section("②", "왜 현장에서 중요한가", i.why, "#2E7D32", "#EFF7EF")}
+      ${section("③", "농장 적용 시 주의점", i.caution, "#E65100", "#FFF4EA")}
+      ${section("③", "연구(자료)의 한계", i.limits, "#6A1B9A", "#F6EFFA")}
+      <div style="background:#FAFAFA;border:1px solid #e6e6e6;border-radius:10px;padding:10px 12px;margin-top:8px">
+        <div style="font-size:12px;font-weight:800;color:#37474F;margin-bottom:4px">④ 원문 정보</div>
+        <div style="font-size:12.5px;color:#222;line-height:1.55;font-weight:700">${esc(i.origTitle || "")}</div>
+        <div style="font-size:11.5px;color:#666;margin-top:3px">${esc(i.publisher || "")} · 발행일 ${esc(i.date || "-")}</div>
+        <div style="text-align:right;margin-top:8px"><a href="${esc(i.url || "#")}" target="_blank" rel="noopener" style="display:inline-block;font-size:13px;font-weight:800;color:#fff;background:${sp.color};border-radius:10px;padding:8px 16px;text-decoration:none">📄 원문 바로가기 ↗</a>${i.pubmed && i.pubmed !== i.url ? ` <a href="${esc(i.pubmed)}" target="_blank" rel="noopener" style="display:inline-block;font-size:12px;font-weight:700;color:${sp.color};border:1px solid ${sp.color};border-radius:10px;padding:7px 12px;text-decoration:none;margin-left:4px">PubMed</a>` : ""}</div>
+      </div>
+    </div>`;
+  }).join("");
+  const cps = (cur.checkpoints || []).length ? `<div class="card" style="${pkgBoxStyle("#F57F17", "#FFF8E1", "12px 16px")}"><div style="font-size:13px;font-weight:900;color:#E65100;margin-bottom:5px">✅ 이번 주 현장 체크포인트</div>${(cur.checkpoints || []).map((c, k) => `<div style="display:flex;gap:8px;font-size:13.5px;line-height:1.7;color:#222;margin:3px 0"><b style="color:#E65100">${k + 1}.</b><span>${esc(c)}</span></div>`).join("")}</div>` : "";
+  return head + `
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">${weekChips}</div>
+    <div style="font-size:10.5px;color:#aaa;margin:2px 0 10px">${esc(cur.week)} 주 · 총 ${(cur.items || []).length}건 · 갱신 ${esc(st.data.updated || "")}</div>
+    ${cards || `<div class="card" style="text-align:center;padding:24px;color:#aaa">이 주에는 정리된 자료가 없습니다.</div>`}
+    ${cps}
+    <div style="font-size:9.5px;color:#aaa;line-height:1.6;margin-top:8px">※ 논문은 초록, 기관 자료·기사는 본문을 AI가 읽고 한국어로 정리한 것으로 오류가 있을 수 있습니다(원문 제목·발행기관·발행일·링크는 원자료 그대로입니다). 현장 적용 전 반드시 원문을 확인하고, 백신·항생제 사용은 수의사 처방·지도를 따르세요. 저작권은 각 발행처에 있습니다.</div>`;
+}
+
 function renderPremiumGateHeader(){
   return `
   <div style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
@@ -11568,6 +11630,11 @@ function renderPremiumTab(){
   if(premiumState.view === "industrynews"){
     if(industryNewsState.status === "idle") fetchIndustryNews();
     return renderPremiumGateHeader() + logoutBar + renderIndustryNewsPanel();
+  }
+  // 가금 질병·백신 주간 브리핑 — poultry_disease_brief/latest.json(매주 월요일 아침 자동 갱신)
+  if(premiumState.view === "diseasebrief"){
+    if(diseaseBriefState.status === "idle") fetchDiseaseBrief();
+    return renderPremiumGateHeader() + logoutBar + renderDiseaseBriefPanel();
   }
   // 동물약품 주간 소식 — animal_drug_news/latest.json(매주 금요일 아침 자동 갱신)
   if(premiumState.view === "drugnews"){
@@ -17531,6 +17598,11 @@ function attachDiseaseEvents(){
   document.querySelectorAll(".in-group").forEach(b => b.onclick = () => { industryNewsState.group = b.dataset.g; industryNewsState.limit = 30; render(); });
   const inMore = document.getElementById("in-more"); if(inMore) inMore.onclick = () => { industryNewsState.limit += 30; render(); };
   const inKw = document.querySelector(".in-kw"); if(inKw) inKw.onclick = () => { industryNewsState.showKw = !industryNewsState.showKw; render(); };
+  const dbBack = document.getElementById("diseasebrief-back-btn");
+  if(dbBack) dbBack.onclick = () => { premiumState.view = "menu"; render(); };
+  const dbRetry = document.getElementById("diseasebrief-retry");
+  if(dbRetry) dbRetry.onclick = () => { diseaseBriefState.status = "idle"; render(); };
+  document.querySelectorAll(".db-week").forEach(b => b.onclick = () => { diseaseBriefState.week = b.dataset.w; render(); });
   const dnBack = document.getElementById("drugnews-back-btn");
   if(dnBack) dnBack.onclick = () => { premiumState.view = "menu"; render(); };
   const dnRetry = document.getElementById("drugnews-retry");
