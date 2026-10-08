@@ -1392,7 +1392,7 @@ function renderLightCards(){
     const open = lightGuideState.openKey === g.key;
     const table = g.table ? `<div style="overflow-x:auto;margin-bottom:10px"><table style="width:100%;border-collapse:collapse;min-width:300px;font-size:12px"><thead><tr style="text-align:left;border-bottom:2px solid #FFE082;color:#8D6E00">${g.table.head.map(h => `<th style="padding:5px 6px">${esc(h)}</th>`).join("")}</tr></thead><tbody>${g.table.rows.map(r => `<tr style="border-top:1px solid #f6ecc4">${r.map((c, i) => `<td style="padding:5px 6px;${i === 0 ? "font-weight:700" : ""}">${esc(c)}</td>`).join("")}</tr>`).join("")}</tbody></table><div style="font-size:10px;color:#aaa;margin-top:3px">${esc(g.table.note)}</div></div>` : "";
     return `
-    <div class="card" style="border-top:4px solid #F9A825;margin-bottom:10px;padding:16px">
+    <div class="card" style="border-top:6px solid #F9A825;margin-bottom:10px;padding:16px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
         <div class="lightguide-toggle" data-key="${g.key}" style="cursor:pointer;flex:1;min-width:0">
           <div style="font-size:11px;color:#B8860B;font-weight:700">${g.icon} ${esc(g.company)}</div>
@@ -1527,8 +1527,8 @@ function renderLightGuidePanel(){
   const tabs = [["calc", "🌤️ 산란계 계절별 계산기"], ["broiler", "🍗 육계 점등 계산기"], ["guide", "📚 육종회사별 가이드"]];
   const bar = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">${tabs.map(t => `<button class="lg-tab" data-tab="${t[0]}" style="border:2px solid ${st.tab === t[0] ? "#F9A825" : "#eee"};background:${st.tab === t[0] ? "#F9A825" : "#fff"};color:${st.tab === t[0] ? "#fff" : "#444"};border-radius:10px;padding:8px 14px;font-size:12.5px;font-weight:700;cursor:pointer">${t[1]}</button>`).join("")}</div>`;
   const body = st.tab === "guide" ? renderLightCards() + `<div style="font-size:9px;color:#aaa;line-height:1.6;margin-top:6px">※ 실제 병아리를 구입한 육종회사·사료회사의 최신 공식 가이드가 우선합니다. 가이드 판·세대에 따라 수치가 바뀔 수 있습니다.</div>`
-    : st.tab === "broiler" ? `<div class="card" style="padding:14px 14px 10px;border-top:4px solid #F9A825"><div id="br-calc">${renderBroilerCalc()}</div></div>`
-    : `<div class="card" style="padding:14px 14px 10px;border-top:4px solid #F9A825"><div id="lg-calc">${renderLightCalc()}</div></div>`;
+    : st.tab === "broiler" ? `<div class="card" style="padding:14px 14px 10px;border-top:6px solid #F9A825"><div id="br-calc">${renderBroilerCalc()}</div></div>`
+    : `<div class="card" style="padding:14px 14px 10px;border-top:6px solid #F9A825"><div id="lg-calc">${renderLightCalc()}</div></div>`;
   return head + bar + body;
 }
 
@@ -1560,7 +1560,7 @@ function renderMoltGuidePanel(){
   const cards = MOLT_PROGRAM_GUIDE.map(g => {
     const open = moltGuideState.openKey === g.key;
     return `
-    <div class="card" style="border-top:4px solid #00695C;margin-bottom:10px;padding:16px">
+    <div class="card" style="border-top:6px solid #00695C;margin-bottom:10px;padding:16px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
         <div class="moltguide-toggle" data-key="${g.key}" style="cursor:pointer;flex:1;min-width:0">
           <div style="font-size:11px;color:#00695C;font-weight:700">${g.icon} ${esc(g.company)}</div>
@@ -1868,7 +1868,7 @@ function renderMagazinePanel(){
     const open = magazineNavState.openId === it.id;
     const images = magazineItemImages(it);
     return `
-    <div class="card" style="border-top:4px solid #455A64;margin-bottom:10px;padding:14px 16px">
+    <div class="card" style="border-top:6px solid #455A64;margin-bottom:10px;padding:14px 16px">
       <div style="display:flex;gap:12px;align-items:flex-start">
         <div class="magazine-toggle" data-id="${esc(it.id)}" style="cursor:pointer;display:flex;gap:12px;flex:1;min-width:0">
           ${images[0] ? `<img src="${esc(images[0])}" style="width:64px;height:64px;object-fit:cover;border-radius:8px;flex-shrink:0" />` : ""}
@@ -5087,7 +5087,7 @@ function renderHpaiNewsCard(){
   </div>`;
 
   return `
-  <div class="card" style="margin-bottom:14px;border-top:4px solid #C62828">
+  <div class="card" style="margin-bottom:14px;border-top:6px solid #C62828">
     <div class="display" style="font-size:15px;margin-bottom:4px">🦠 AI 관련 소식 ${hpaiTagline("소식이 빨라야 방역도 빠르다")}</div>
     <div style="font-size:11px;color:#aaa;margin-bottom:4px">최신 5건만 보여드립니다</div>
     <div>${list}</div>
@@ -6209,7 +6209,7 @@ function renderMonthlyPick(list){
     ? '<div style="font-size:9px;color:#c0c0c0;margin-top:8px">모든 사람에게 같은 내용이 보입니다 · 최종 발행 '+esc(pickState.data.updated)+'</div>'
     : '<div style="font-size:9px;color:#c0c0c0;margin-top:8px">모든 사람에게 같은 내용이 보입니다</div>';
 
-  return '<div class="card" style="margin-bottom:12px;border-top:4px solid #B8860B">'
+  return '<div class="card" style="margin-bottom:12px;border-top:6px solid #B8860B">'
     + '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:8px">'
     +   '<div class="display" style="font-size:15px">📌 '+esc(PICK_BY)+'가 짚어주는 이달의 질병</div>'
     +   '<span style="font-size:11px;color:#888">'+esc(monthLabel(cur))+(curList.length?' · '+curList.length+'건':'')+'</span></div>'
@@ -6590,7 +6590,7 @@ function renderEmergingDiseaseCard(opts){
     </div>
     ${embedded ? "" : `<div style="font-size:12px;color:${color};font-weight:700;white-space:nowrap">${s.open ? "접기 ▲" : "열기 ▼"}</div>`}
   </div>`;
-  const wrap = body => `<div class="card" style="margin-bottom:14px;border-top:4px solid ${color}">${head}${body}</div>`;
+  const wrap = body => `<div class="card" style="margin-bottom:14px;border-top:6px solid ${color}">${head}${body}</div>`;
   if(!s.open) return wrap("");
   if(s.status === "loading" || s.status === "idle")
     return wrap(`<div style="text-align:center;padding:26px 0;font-size:13px;color:#888">⏳ PubMed에서 최근 논문을 모으는 중... (수 초 걸립니다)</div>`);
@@ -6708,7 +6708,7 @@ function renderDiseaseTab(){
   const data = d.data, q = d.query || "";
   return head
     + renderMonthlyPick(data.diseases)
-    + '<div class="card" style="margin-bottom:12px;border-top:4px solid #00695C">'
+    + '<div class="card" style="margin-bottom:12px;border-top:6px solid #00695C">'
     +   '<div class="display" style="font-size:16px;margin-bottom:4px">🩺 양계질병 사전</div>'
     +   '<div style="font-size:11px;color:#888;margin-bottom:10px">한글 병명으로 검색하세요 — 뉴캐슬병, 콕시듐, 마렉, 감보로, 대장균증 …</div>'
     +   '<div style="display:flex;gap:6px;align-items:center">'
@@ -7132,7 +7132,7 @@ function renderHpaiSymptomCard(){
     </div>
     <div style="font-size:12px;color:${color};font-weight:700;white-space:nowrap">${s.open ? "접기 ▲" : "열기 ▼"}</div>
   </div>`;
-  const wrap = body => `<div class="card" style="margin-bottom:14px;border-top:4px solid ${color}">${head}${hgAdminBar("symptom")}${body}</div>`;
+  const wrap = body => `<div class="card" style="margin-bottom:14px;border-top:6px solid ${color}">${head}${hgAdminBar("symptom")}${body}</div>`;
   if(hpaiGuideState.edit === "symptom") return wrap(renderHpaiGuideEditor("symptom"));
   if(!s.open) return wrap("");
   const G = hg();
@@ -7242,7 +7242,7 @@ function renderHpaiPreventCard(){
     <div style="font-size:12px;color:${color};font-weight:700;white-space:nowrap">${s.open ? "접기 ▲" : "열기 ▼"}</div>
   </div>
   `;
-  const wrap = body => `<div class="card" style="margin-bottom:14px;border-top:4px solid ${color}">${head}${hgAdminBar("prevent")}${body}</div>`;
+  const wrap = body => `<div class="card" style="margin-bottom:14px;border-top:6px solid ${color}">${head}${hgAdminBar("prevent")}${body}</div>`;
   if(hpaiGuideState.edit === "prevent") return wrap(renderHpaiGuideEditor("prevent"));
   if(!s.open) return wrap("");
   const subs = [["report","🚨 조기발견·신고"],["rules","🛡️ 방역수칙"],["mgmt","🐔 사양관리요령"]];
@@ -7385,7 +7385,7 @@ function renderHpaiKrCard(){
     <div><div class="display" style="font-size:15px">🗺️ 국내 가금농장 HPAI 발생·검출 현황 ${hpaiTagline("과거를 알아야 미래가 보인다")}</div>
     <div style="font-size:11px;color:#888;margin-top:2px">25/26 시즌(2025.9.12~2026.3.31) + 26/27 시즌 자동 갱신 · 농림축산식품부 자료 기준 지도</div></div>
     <div style="font-size:12px;color:${color};font-weight:700;white-space:nowrap">${st.open ? "접기 ▲" : "열기 ▼"}</div></div>`;
-  const wrap = body => `<div class="card" style="margin-bottom:14px;border-top:4px solid ${color}">${head}${body}</div>`;
+  const wrap = body => `<div class="card" style="margin-bottom:14px;border-top:6px solid ${color}">${head}${body}</div>`;
   if(!st.open) return wrap("");
   const farms = hkFarms(), wild = hkWild(), all = HPAI_KR_FARMS;
   const tot = farms.reduce((a, f) => a + f.cnt, 0);
@@ -7473,7 +7473,7 @@ function renderHpaiTab(){
 
   // ── 국내 현황 ──
   const krCard = `
-    <div class="card" style="margin-bottom:14px;border-top:4px solid ${kr?HPAI_LEVEL[kr.level].color:"#2E7D32"}">
+    <div class="card" style="margin-bottom:14px;border-top:6px solid ${kr?HPAI_LEVEL[kr.level].color:"#2E7D32"}">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
         <div class="display" style="font-size:15px">🇰🇷 국내 현황 ${hpaiTagline("지금 우리 땅의 상황")}</div>
         ${kr ? hpaiBadge(kr.level) : hpaiBadge("quiet")}
@@ -7506,7 +7506,7 @@ function renderHpaiTab(){
     </tr>`).join("");
 
   const fwCard = `
-    <div class="card" style="margin-bottom:14px;border-top:4px solid #6A1B9A">
+    <div class="card" style="margin-bottom:14px;border-top:6px solid #6A1B9A">
       <div class="display" style="font-size:15px;margin-bottom:4px">🦆 ${esc(fw.name||"철새 이동경로")} ${hpaiTagline("철새의 길이 바이러스의 길")}</div>
       <div style="font-size:11px;color:#888;line-height:1.5;margin-bottom:10px">${esc(fw.note||"")}</div>
       <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px;font-size:12px">
@@ -7540,7 +7540,7 @@ function renderHpaiTab(){
     </div>`).join("");
 
   const regCard = `
-    <div class="card" style="margin-bottom:14px;border-top:4px solid #00695C">
+    <div class="card" style="margin-bottom:14px;border-top:6px solid #00695C">
       <div class="display" style="font-size:15px;margin-bottom:10px">🌍 대륙별 신고 현황 ${hpaiTagline("세계의 불씨가 문턱까지 온다")}</div>
       ${regRows || `<div style="color:#ccc;font-size:11px;text-align:center;padding:14px">데이터 없음</div>`}
     </div>`;
@@ -7557,7 +7557,7 @@ function renderHpaiTab(){
     </tr>`).join("");
 
   return newsCard + `
-  <div class="card" style="margin-bottom:14px;border-top:4px solid #C62828">
+  <div class="card" style="margin-bottom:14px;border-top:6px solid #C62828">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
       <div class="display" style="font-size:16px">🦠 고병원성 AI(HPAI) 발생예측통계 ${hpaiTagline("숫자가 먼저 알려 준다")}</div>
       <div style="display:flex;align-items:center;gap:6px">
@@ -7587,7 +7587,7 @@ function renderHpaiTab(){
   ${fwCard}
   ${regCard}
 
-  <div class="card" style="margin-bottom:14px;border-top:4px solid #455A64">
+  <div class="card" style="margin-bottom:14px;border-top:6px solid #455A64">
     <div class="display" style="font-size:15px;margin-bottom:10px">📊 신고 상위국 (최근 ${r.window_days}일) ${hpaiTagline("많이 나온 곳에 위험이 있다")}</div>
     <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:430px">
       <thead><tr style="border-bottom:1px solid #eee">
@@ -8635,7 +8635,7 @@ function renderResearchPanel(){
       style="flex:1;border:2px solid ${researchTabState.cat===k?"#6A1B9A":"#eee"};background:${researchTabState.cat===k?"#6A1B9A":"#fff"};color:${researchTabState.cat===k?"#fff":"#333"};border-radius:9px;padding:9px 6px;font-size:12px;font-weight:700;cursor:pointer">${esc(cats[k].label)}</button>`).join("");
 
   const cards = (cur.papers||[]).map((p,i) => `
-    <div class="card" style="border-top:4px solid #6A1B9A;margin-bottom:10px">
+    <div class="card" style="border-top:6px solid #6A1B9A;margin-bottom:10px">
       <div style="display:flex;gap:8px;align-items:flex-start">
         <span style="font-size:11px;font-weight:800;color:#6A1B9A;background:#F3E5F5;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px">${i+1}</span>
         <div style="flex:1;min-width:0">
@@ -9364,7 +9364,7 @@ function renderFarmFaqPanel(){
     ${items.map(it => {
       const open = !!faqNavState.open[it.key];
       return `
-      <div class="card faq-card" data-key="${esc(it.key)}" style="cursor:pointer;border-top:4px solid #5D4037;padding:16px">
+      <div class="card faq-card" data-key="${esc(it.key)}" style="cursor:pointer;border-top:6px solid #5D4037;padding:16px">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
           <div style="display:flex;gap:8px;align-items:flex-start;min-width:0">
             <span style="font-size:16px;flex-shrink:0">❓</span>
@@ -9582,7 +9582,7 @@ function renderStudyPanel(){
 
   if(!nav.deckKey){
     const list = decks.length ? decks.map((d, di) => { const th = studyThemeFor(d, di); return `
-    <div class="card study-deck-open" data-deck="${d.key}" style="padding:16px;margin-bottom:10px;border-top:4px solid ${th.main};border-left:6px solid ${th.main};background:linear-gradient(135deg,${th.soft},#fff 60%);cursor:pointer">
+    <div class="card study-deck-open" data-deck="${d.key}" style="padding:16px;margin-bottom:10px;border-top:6px solid ${th.main};border-left:6px solid ${th.main};background:linear-gradient(135deg,${th.soft},#fff 60%);cursor:pointer">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
         <div style="min-width:0">
           <div style="font-size:14px;font-weight:800;color:${th.ink}">${esc(d.title)}</div>
@@ -10284,7 +10284,7 @@ function renderBoardList(cfg, posts, admin){
     let label = (firstField && post.fields && post.fields[firstField.key]) ? post.fields[firstField.key].slice(0,40) : "(제목 없음)";
     if(cfg.compact && post.fields){ const sp = [post.fields.species, post.fields.specimenTypes].filter(Boolean).join(" · "); if(sp) label += " — " + sp; }
     return `
-    <div class="card" style="border-top:4px solid ${cfg.color};margin-bottom:10px;padding:14px 16px">
+    <div class="card" style="border-top:6px solid ${cfg.color};margin-bottom:10px;padding:14px 16px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
         <div class="board-toggle" data-id="${esc(post.id)}" style="cursor:pointer;flex:1;min-width:0">
           <div style="font-size:13px;font-weight:700;color:#333">${esc(label)}</div>
@@ -10536,7 +10536,7 @@ function renderFeedGrainMold(d, keys){
     </div>`;
   }).join("");
   return `
-  <div class="card" style="padding:14px 14px 8px;margin-bottom:12px;border-top:4px solid #8E24AA">
+  <div class="card" style="padding:14px 14px 8px;margin-bottom:12px;border-top:6px solid #8E24AA">
     <div style="font-size:14px;font-weight:800;color:#6A1B9A">🍄 곰팡이독소 오염 위험도 <span style="font-size:11px;font-weight:600;color:#999">고온·다습 환경 기준</span></div>
     <div style="font-size:11.5px;color:#666;line-height:1.65;margin:4px 0 10px">곰팡이는 <b>덥고 습한 날</b>이 이어질수록 잘 자라고 독소를 만듭니다. 최근 30일 중 그런 날이 며칠인지로 산지별 오염 가능성을 0~100점으로 보여줍니다.${topR.score >= 50 ? ` 지금은 <b style="color:${topLv.c}">${esc(d.regions[ranked[0]].name)}</b>이 가장 높습니다.` : ""}</div>
     ${rows}
@@ -10726,7 +10726,7 @@ function renderFeedGrainRegion(){
   const r = FG_REGIONS[sel];
   return `
   <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">${tabs}</div>
-  <div class="card" style="padding:14px 16px;margin-bottom:12px;border-top:4px solid ${r.color}">
+  <div class="card" style="padding:14px 16px;margin-bottom:12px;border-top:6px solid ${r.color}">
     <div style="font-size:15px;font-weight:800;color:${r.color}">${r.name}산 원료</div>
     <div style="font-size:12px;color:#555;line-height:1.7;margin-top:6px"><b>주요 곡종</b> · ${r.crops}</div>
     <div style="font-size:12px;color:#555;line-height:1.7"><b>수확·선적 시기</b> · ${r.season}</div>
@@ -11023,7 +11023,7 @@ function renderFeedGrainQuality(){
   <div style="display:flex;gap:8px;margin-bottom:12px">${tabs}</div>
   ${groups}
   <div style="margin-bottom:6px">${legend}</div>
-  <div class="card" style="padding:12px 14px;margin-bottom:12px;border-top:4px solid #F57F17">
+  <div class="card" style="padding:12px 14px;margin-bottom:12px;border-top:6px solid #F57F17">
     <div style="font-size:13px;font-weight:800;color:#333;margin-bottom:2px">📝 ${crop.name} 종합 평가</div>${read}
   </div>
   <div style="background:#FFF8E1;border-radius:10px;padding:10px 13px;font-size:11px;color:#6b5600;line-height:1.7;margin-bottom:10px">
@@ -11049,7 +11049,7 @@ function renderFeedGrainMethod(){
     ${steps.map(x => `<div style="padding:7px 0;border-top:1px solid #f3f3f3"><div style="font-size:12px;font-weight:800;color:#F57F17">${x[0]}</div><div style="font-size:11.5px;color:#555;line-height:1.65;margin-top:2px">${x[1]}</div></div>`).join("")}
   </div>
   <div class="card" style="padding:14px 16px;margin-bottom:12px"><div style="font-size:13px;font-weight:800;color:#333;margin-bottom:8px">🚦 신호등 기준</div>${lv}</div>
-  <div class="card" style="padding:14px 16px;margin-bottom:12px;border-top:4px solid #8E24AA">
+  <div class="card" style="padding:14px 16px;margin-bottom:12px;border-top:6px solid #8E24AA">
     <div style="font-size:13px;font-weight:800;color:#6A1B9A;margin-bottom:6px">🍄 곰팡이 오염 위험도는 이렇게 계산합니다</div>
     <div style="font-size:12px;color:#555;line-height:1.7">곰팡이는 온도와 수분(습도)이 함께 높을 때 자라고 독소를 만듭니다. 최근 30일 중 아래 조건을 만족하는 날을 센 뒤 100점 만점으로 환산합니다 (지점 3곳 평균).</div>
     <div style="font-size:12px;color:#444;line-height:1.7;margin-top:6px">
@@ -11059,8 +11059,8 @@ function renderFeedGrainMethod(){
     </div>
     <div style="font-size:11px;color:#999;line-height:1.7;margin-top:6px">공기 습도는 곡물 수분과 같지 않습니다 — 수확 후 건조·저장 상태에 따라 실제 오염은 달라집니다. 가뭄·열 스트레스를 받은 옥수수는 습도가 낮아도 아플라톡신이 생길 수 있어 건조·고온 점수와 함께 봐야 합니다.</div>
   </div>
-  <div class="card" style="padding:14px 16px;margin-bottom:12px;border-top:4px solid #2E7D32"><div style="font-size:13px;font-weight:800;color:#2E7D32;margin-bottom:4px">✅ 이 지표로 알 수 있는 것</div>${li(can)}</div>
-  <div class="card" style="padding:14px 16px;margin-bottom:12px;border-top:4px solid #C62828"><div style="font-size:13px;font-weight:800;color:#C62828;margin-bottom:4px">❌ 알 수 없는 것</div>${li(cant)}</div>
+  <div class="card" style="padding:14px 16px;margin-bottom:12px;border-top:6px solid #2E7D32"><div style="font-size:13px;font-weight:800;color:#2E7D32;margin-bottom:4px">✅ 이 지표로 알 수 있는 것</div>${li(can)}</div>
+  <div class="card" style="padding:14px 16px;margin-bottom:12px;border-top:6px solid #C62828"><div style="font-size:13px;font-weight:800;color:#C62828;margin-bottom:4px">❌ 알 수 없는 것</div>${li(cant)}</div>
   <div style="background:#FFF3E0;border-radius:10px;padding:11px 14px;font-size:12px;color:#6d4300;line-height:1.7">
     "올해 미국산 옥수수가 평년보다 위험한가"는 알 수 있어도 <b>"이 사료 로트가 안전한가"</b>는 시료 검사와 성적서로만 알 수 있습니다. 기상 지표는 사전 위험도, 검사는 최종 판정입니다.
   </div>`;
@@ -11079,7 +11079,7 @@ function renderFeedGrainPanel(){
   const subs = [["flow", "🌍 세계 품질 흐름"], ["quality", "🧪 영양·물리 비교"], ["region", "🏛️ 산지별 기관 자료"], ["method", "📖 평가 방법·한계"]];
   const bar = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">${subs.map(t => `<button class="fg-sub" data-sub="${t[0]}" style="border:2px solid ${st.sub===t[0]?"#F57F17":"#eee"};background:${st.sub===t[0]?"#F57F17":"#fff"};color:${st.sub===t[0]?"#fff":"#444"};border-radius:10px;padding:8px 12px;font-size:12.5px;font-weight:700;cursor:pointer">${t[1]}</button>`).join("")}</div>`;
   const body = st.sub === "region" ? renderFeedGrainRegion() : st.sub === "method" ? renderFeedGrainMethod() : st.sub === "quality" ? renderFeedGrainQuality() : renderFeedGrainFlow();
-  return head + bar + `<div class="card" style="padding:16px;border-top:4px solid #F57F17">${body}</div>`;
+  return head + bar + `<div class="card" style="padding:16px;border-top:6px solid #F57F17">${body}</div>`;
 }
 
 // ── 사료곡물 가격동향·전망 (유료서비스) ───────────────────────────────────────────
@@ -11129,7 +11129,7 @@ function renderGrainPriceCard(key, g, stale){
       <div style="position:relative;height:8px;background:#F1F3F4;border-radius:4px;margin:3px 0"><div style="position:absolute;left:50%;top:0;width:1px;height:8px;background:#bbb"></div><div style="position:absolute;${pos ? "left:50%" : `left:${50 - wd}%`};width:${wd}%;height:8px;background:${s > 0 ? "#EF5350" : "#42A5F5"};border-radius:4px"></div></div>
       <div style="font-size:11px;color:#666;line-height:1.55">${esc(d.text)}</div></div>`;
   }).join("");
-  return `<div class="card" style="border-top:4px solid ${col};margin-bottom:12px;padding:14px 16px">
+  return `<div class="card" style="border-top:6px solid ${col};margin-bottom:12px;padding:14px 16px">
     <div class="gp-toggle" data-key="${key}" style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;cursor:pointer">
       <div><div style="font-size:11px;color:${col};font-weight:700">${GP_ICON[key]} ${esc(GP_USE[key])}</div>
         <div style="font-size:16px;font-weight:900;color:#333;margin-top:2px">${esc(g.name)} <span style="font-size:11px;color:#aaa;font-weight:600">${esc(g.symbol)}</span>${stale ? ' <span style="font-size:10px;color:#C62828">(갱신 지연)</span>' : ""}</div></div>
@@ -11166,13 +11166,13 @@ function renderGrainPricePanel(){
   const news = (d.news || []).slice(0, 6).map(n => `<li style="margin:3px 0"><a href="${esc(n.link)}" target="_blank" rel="noopener" style="color:#333;text-decoration:none">${esc(n.title)}</a></li>`).join("");
   const cards = keys.map(k => renderGrainPriceCard(k, gs[k], stale[k])).join("");
   return head + `
-    <div class="card" style="padding:14px 16px;margin-bottom:12px;border-top:4px solid #455A64">
+    <div class="card" style="padding:14px 16px;margin-bottom:12px;border-top:6px solid #455A64">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px"><div style="font-size:14px;font-weight:900;color:#333">한눈에 보기 <span style="font-size:11px;color:#999;font-weight:500">국제 선물가 원화 환산(원/kg) · 향후 1~3개월 전망</span></div><div style="font-size:10.5px;color:#aaa">갱신 ${esc(d.updated || "")}</div></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">${tiles}</div>
       <div style="font-size:10.5px;color:#999;line-height:1.6;margin-top:8px">원/kg 은 CBOT 선물가에 원/달러 환율을 곱해 환산한 참고값입니다(운임·프리미엄·관세·사료회사 마진 미포함). 가격이 오르면 <b style="color:#D32F2F">빨강</b>, 내리면 <b style="color:#1565C0">파랑</b>으로 표시합니다.</div>
     </div>
     ${cards}
-    <div class="card" style="padding:14px 16px;margin-bottom:12px;border-top:4px solid #00897B">
+    <div class="card" style="padding:14px 16px;margin-bottom:12px;border-top:6px solid #00897B">
       <div style="font-size:14px;font-weight:900;color:#333;margin-bottom:6px">🔎 대내외 변수 종합</div>
       <div style="display:flex;gap:12px;flex-wrap:wrap">
         <div style="flex:1 1 260px"><div style="font-size:12px;font-weight:800;color:#C62828">가격 상승 요인</div><ul style="margin:3px 0 0;padding-left:16px;font-size:11.5px;color:#444;line-height:1.6">${up.map(li).join("") || '<li style="color:#aaa">뚜렷한 상승 요인 없음</li>'}</ul></div>
@@ -11991,7 +11991,7 @@ function renderFeedPotentialPanel(){
   const TITLE = "📈 육계·산란계 생산잠재력";
   const d = feedProdState;
   const shell = inner => `
-  <div class="card" style="margin-bottom:16px;border-top:4px solid #1a2744">
+  <div class="card" style="margin-bottom:16px;border-top:6px solid #1a2744">
     <div class="display" style="font-size:15px;margin-bottom:2px">${TITLE}</div>
     <div style="font-size:11px;color:#999;margin-bottom:10px">배합사료 생산량을 품종 표준 사료섭취량으로 나눠 추정한 마릿수</div>
     ${inner}
@@ -12099,7 +12099,7 @@ function renderLayerStatsPanel(){
   const TITLE = "🐔 산란계·육계 사육 통계";
   const d = layerStatsState;
   const shell = inner => `
-  <div class="card" style="margin-bottom:16px;border-top:4px solid #C2185B">
+  <div class="card" style="margin-bottom:16px;border-top:6px solid #C2185B">
     <div class="display" style="font-size:15px;margin-bottom:10px">${TITLE}</div>
     ${inner}
   </div>`;
@@ -13563,7 +13563,7 @@ function renderHusbandryPointsCard(opts){
     const msg = weatherState.status === "loading"
       ? "날씨 정보를 불러오는 중입니다..."
       : "날씨예측 탭에서 농장 위치를 먼저 설정하면 오늘 기상 기준으로 포인트를 짚어드립니다.";
-    return `<div class="card" style="margin-bottom:14px;border-top:4px solid #0288D1">
+    return `<div class="card" style="margin-bottom:14px;border-top:6px solid #0288D1">
       <div style="font-size:14px;font-weight:700;color:#333;margin-bottom:4px">${title}</div>
       <div style="font-size:11px;color:#aaa">${msg}</div>
     </div>`;
@@ -13630,7 +13630,7 @@ function renderHusbandryPointsCard(opts){
   }
 
   return `
-  <div class="card" style="margin-bottom:14px;border-top:4px solid ${lv.color}">
+  <div class="card" style="margin-bottom:14px;border-top:6px solid ${lv.color}">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:10px">
       <div>
         <div style="font-size:14px;font-weight:700;color:#333">${title}</div>
@@ -15641,7 +15641,7 @@ function renderWelfarePanel(){
     </div>
     <div style="font-size:12px;color:#1B7A3E;font-weight:700;white-space:nowrap">${open ? "접기 ▲" : "열기 ▼"}</div>
   </div>`;
-  if(!open) return `<div class="card" style="margin-bottom:16px;border-top:4px solid #1B7A3E">${head}</div>`;
+  if(!open) return `<div class="card" style="margin-bottom:16px;border-top:6px solid #1B7A3E">${head}</div>`;
 
   const vals = ws.vals[sp] || {};
   const fields = WELFARE_FIELDS[sp].filter(f => !f.show || f.show(vals));
@@ -15660,7 +15660,7 @@ function renderWelfarePanel(){
     </label>`).join("");
   const spBtn = (k, label) => `<button class="wf-sp" data-sp="${k}" style="flex:1;border:2px solid ${sp === k ? "#1B7A3E" : "#eee"};background:${sp === k ? "#1B7A3E" : "#fff"};color:${sp === k ? "#fff" : "#333"};border-radius:10px;padding:10px 6px;font-size:13px;font-weight:700;cursor:pointer">${label}</button>`;
   return `
-  <div class="card" style="margin-bottom:16px;border-top:4px solid #1B7A3E">
+  <div class="card" style="margin-bottom:16px;border-top:6px solid #1B7A3E">
     ${head}
     <div style="display:flex;gap:8px;margin:14px 0 12px">${spBtn("broiler", "🐔 육계 동물복지 인증기준")}${spBtn("layer", "🥚 산란계 동물복지 인증기준")}</div>
     <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:6px">① 내 농장 현황 입력 <span style="font-weight:400;color:#999">— 아는 것만 넣어도 됩니다 (자동 저장)</span></div>
@@ -16201,7 +16201,7 @@ function renderSolarTermPanel(){
   const pct    = Math.max(0, Math.min(100, (now - c.at.getTime()) / span * 100));
 
   return `
-  <div class="card" style="margin-bottom:14px;border-top:4px solid #7A5C00;background:linear-gradient(180deg,#FFFDF5,#fff)">
+  <div class="card" style="margin-bottom:14px;border-top:6px solid #7A5C00;background:linear-gradient(180deg,#FFFDF5,#fff)">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px">
       <div style="flex:1;min-width:150px">
         <div style="font-size:10px;color:#B8860B;font-weight:700;letter-spacing:.5px">오늘의 절기</div>
@@ -16514,7 +16514,7 @@ function renderAnomalyPanel(){
     </div>
     <div style="font-size:12px;color:#6A1B9A;font-weight:700;white-space:nowrap">${open ? "접기 ▲" : "열기 ▼"}</div>
   </div>`;
-  const wrap = body => `<div class="card" style="margin-top:16px;border-top:4px solid #6A1B9A">${head}${body}</div>`;
+  const wrap = body => `<div class="card" style="margin-top:16px;border-top:6px solid #6A1B9A">${head}${body}</div>`;
   if(!open) return wrap("");
   const stale = anomState.key && anomState.key !== weatherState.lat+","+weatherState.lng;
   if(anomState.status==="loading") return wrap(`<div style="text-align:center;padding:26px 0;font-size:13px;color:#888">⏳ 앙상블 예보와 평년 자료를 가져오는 중... (처음엔 평년 계산 때문에 10~20초 걸릴 수 있어요)</div>`);
@@ -16845,7 +16845,7 @@ function renderPolicySection(){
         농식품부 보도자료 ↗
       </a>
     </div>
-    <div class="card" style="border-top:4px solid #1B5E20">${body}</div>
+    <div class="card" style="border-top:6px solid #1B5E20">${body}</div>
   </div>`;
 }
 
@@ -16913,7 +16913,7 @@ function renderNoticesSection(){
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
 
     <!-- 축산신문 -->
-    <div class="card" style="border-top:4px solid #C62828">
+    <div class="card" style="border-top:6px solid #C62828">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div style="display:flex;align-items:center;gap:7px">
           <span style="font-size:20px">📰</span>
@@ -16931,7 +16931,7 @@ function renderNoticesSection(){
     </div>
 
     <!-- 농수축산신문 -->
-    <div class="card" style="border-top:4px solid #EF6C00">
+    <div class="card" style="border-top:6px solid #EF6C00">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div style="display:flex;align-items:center;gap:7px">
           <span style="font-size:20px">🌾</span>
@@ -16949,7 +16949,7 @@ function renderNoticesSection(){
     </div>
 
     <!-- 한돈뉴스 -->
-    <div class="card" style="border-top:4px solid #AD1457">
+    <div class="card" style="border-top:6px solid #AD1457">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div style="display:flex;align-items:center;gap:7px">
           <span style="font-size:20px">🐷</span>
@@ -16967,7 +16967,7 @@ function renderNoticesSection(){
     </div>
 
     <!-- 데일리벳 -->
-    <div class="card" style="border-top:4px solid #5E35B1">
+    <div class="card" style="border-top:6px solid #5E35B1">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div style="display:flex;align-items:center;gap:7px">
           <span style="font-size:20px">🩺</span>
@@ -16985,7 +16985,7 @@ function renderNoticesSection(){
     </div>
 
     <!-- 해외 양계질병 (조류인플루엔자 등 해외 소식 → 한글 번역) -->
-    <div class="card" style="border-top:4px solid #00695C">
+    <div class="card" style="border-top:6px solid #00695C">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div style="display:flex;align-items:center;gap:7px">
           <span style="font-size:20px">🦠</span>
@@ -17003,7 +17003,7 @@ function renderNoticesSection(){
     </div>
 
     <!-- 경제동향 뉴스 (아시아경제) -->
-    <div class="card" style="border-top:4px solid #0047A0">
+    <div class="card" style="border-top:6px solid #0047A0">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div style="display:flex;align-items:center;gap:7px">
           <span style="font-size:20px">💹</span>
