@@ -2,10 +2,10 @@ import json, re, sys, urllib.parse
 import requests
 H = {"User-Agent": "pb-embryo-photos/1.0 (https://polcon.cc; research use)"}
 QUERIES = [
-  "chicken embryo day 3", "chick embryo 4 days incubation", "chicken embryo day 7", "chicken embryo 10 days", "chicken embryo day 14",
-  "chicken embryo day 18", "chicken embryo development egg opened", "chicken egg candling", "candled egg embryo veins", "egg candling fertile",
-  "blastoderm chicken egg yolk germinal disc", "chick hatching egg pipping", "chick pipping egg shell", "chicken embryo Hamburger Hamilton stage",
-  "incubator chicken eggs hatchery", "hatchery chicks hatcher", "chicken egg cross section air cell", "chick emerging from egg",
+  "chick embryo day 18", "chicken embryo late stage unhatched", "embryo chicken egg dissected 17 days", "chicken embryo 19 days", "chicken embryo 20 days",
+  "domestic chicken hatching", "chicken hatching from egg", "hatching chick Gallus gallus domesticus", "chicks hatching incubator", "newly hatched chick egg shell",
+  "chick pipping", "chick beak egg shell hole", "egg tooth chick", "chicken embryo day 5", "chicken embryo day 8", "chicken embryo day 12", "chicken embryo day 16",
+  "chicken embryo yolk sac", "unhatched chick dead in shell", "chick breaking out of egg", "baby chick hatching egg", "Gallus gallus embryo photograph"
 ]
 seen = {}
 for q in QUERIES:
