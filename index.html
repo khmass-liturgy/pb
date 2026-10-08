@@ -6714,12 +6714,273 @@ function renderEmergingDiseaseCard(opts){
     </div>`);
 }
 
+// ── 🥚 생명탄생의 신비: 21일 부화 과정 카드 (양계질병 탭) ──────────────────────────────
+// 닭 배아가 입란부터 부화까지 21일 동안 어떻게 자라는지를 단계별 그림·일차별 설명으로 보여 주고,
+// 그 단계에서 문제가 될 수 있는 질병과 부화 과정의 문제점(원인·점검)을 함께 정리한다.
+// 구성은 제임스웨이(Jamesway Incubator Co.)가 배포한 배아 발달 월차트(wall chart)의 일차별 흐름을 참고하되,
+// 그 포스터 원본은 열람하지 못해 Auburn Univ.(ACES) 일차별 배아 발달 자료, Penn State 4-H 배아학 교재의 문제 해결 목록,
+// The Poultry Site·Merck 수의학 매뉴얼의 부화장 문제 자료를 바탕으로 직접 정리했다. 그림은 직접 그린 개략도이며
+// 실제 사진은 이미지 검색 버튼으로 연결한다. 수치는 일반 기준이므로 부화기 제조사·종계사 매뉴얼이 우선이다.
+const LM_STAGES = [
+  { key:"s0", days:"입란 전", title:"산란~입란 전 (알 보관·예열)", icon:"🥚", color:"#8D6E63", range:[0,0],
+    intro:"산란된 알은 배반(germinal disc)에서 세포 분열이 잠시 멈춘 상태입니다. 알을 모아 보관하고 입란하기까지의 취급이 부화율의 출발점입니다.",
+    days_detail:[{ d:0, t:"난황 위 배반(작은 흰 점)에서 분열이 멈춘 '휴면' 상태. 보관 중 온도·시간·오염이 이후 생존력을 좌우합니다. 입란 전 서서히 예열해 응결(땀)을 막습니다." }],
+    mgmt:["보관 기간은 가급적 짧게(일반적으로 7일 이내 권고, 길어질수록 부화율·초기 성장 저하) — 보관 온도·습도는 종계사 지침 확인",
+          "보관실에서 꺼낸 알을 바로 따뜻한 곳에 넣으면 껍질에 물방울(응결)이 맺혀 오염이 침투하기 쉬우므로 서서히 예열",
+          "파란·금 간 알, 심한 오물란·기형란은 입란 전 선별 (균열 틈으로 세균이 들어감)"],
+    diseases:[
+      { n:"살모넬라(추백리·가금티푸스·장염균)", w:"난소·난관을 통한 난계대(수직) 전파, 껍질 표면 오염", c:"감염란은 배아 사망·부화 직후 폐사의 원인. 종계 모니터링과 계군 정화가 핵심" },
+      { n:"마이코플라즈마(MG·MS)", w:"난계대 전파 가능", c:"병아리 단계 호흡기·관절 감염의 시작점이 될 수 있어 종계 검사·청정 계군 확보가 중요" },
+      { n:"전염성 빈혈(CAV)·조류 백혈병(ALV)·조류 뇌척수염(AE)·레오·아데노바이러스", w:"종계에서 알을 통해 전해질 수 있는 바이러스", c:"종계 백신 프로그램·혈청 검사로 관리 (일령 초기 면역억제·성장 불량의 원인)" },
+      { n:"대장균 등 껍질 오염균", w:"산란 직후 오물·분변, 둥지·벨트 오염", c:"깨끗한 산란 환경, 오물란 분리, 입란 후 소독" }],
+    problems:[
+      { n:"보관 기간이 길다", c:"7일을 넘기면 초기 배아 폐사 증가, 부화 시간 지연, 병아리 품질 저하", chk:"입란 일자별 보관 기록, 보관실 온도 점검" },
+      { n:"응결(땀)·오염", c:"차가운 알을 급히 따뜻한 곳에 넣거나 습도가 너무 높을 때", chk:"예열 시간 확보, 보관실 습도 점검" },
+      { n:"균열란·기형란 입란", c:"틈으로 세균 침투, 수분 손실 과다", chk:"선별 기준 준수, 알 취급 중 충격 줄이기" }],
+    imgq:"chicken egg germinal disc blastoderm unincubated" },
+
+  { key:"s1", days:"1~3일", title:"1~3일: 심장과 혈관이 생긴다", icon:"❤️", color:"#C62828", range:[1,3],
+    intro:"입란과 함께 분열이 다시 시작됩니다. 신경·머리가 먼저 만들어지고 이틀째 심장이 뛰기 시작하며 혈관이 난황 위로 퍼집니다.",
+    days_detail:[
+      { d:1, t:"배아가 고리 모양 구조 안에 나타나고 머리와 신경 조직의 원기가 생깁니다." },
+      { d:2, t:"난황 주변에 '혈도(blood islet)'가 생기고 심장이 형성되어 뛰기 시작합니다(약 44~50시간)." },
+      { d:3, t:"순환계가 자리 잡고 날개·다리의 싹(원기)이 보입니다. 양막(배아를 감싸는 주머니)과 요막(호흡·배설)이 만들어지기 시작합니다. 배아가 난황에서 분리되어 몸이 한쪽으로 돌아눕습니다." }],
+    mgmt:["입란 직후 전란(알 돌리기)이 시작되어야 합니다 — 초기에 배아가 막에 달라붙는 것을 막음",
+          "예열·입란 직후 온도 편차(핫/콜드 스팟) 점검, 정전·고장 알람 확인",
+          "7일령 검란에서 무정란/초기 폐사란을 구분할 수 있도록 입란 기록 정리"],
+    diseases:[
+      { n:"난계대 세균 감염(살모넬라 등)", w:"감염란에서 초기에 배아가 죽거나 약해짐", c:"종계 단계 관리가 원천 대책, 입란 후 알 표면 소독" },
+      { n:"껍질 오염균(대장균 등)의 침투", w:"기공으로 세균이 들어가 배아 사망 후 부패란(폭발란) 발생 가능", c:"균열란 선별, 입란 전후 위생 관리" }],
+    problems:[
+      { n:"초기 폐사(dead germ)가 많다", c:"긴 보관·고온 운송, 입란 직후 온도 과다/부족, 전란 불량, 종계 영양 결핍(비타민 B군·미네랄), 염색체 이상", chk:"보관·운송 기록, 입란 직후 온도 로그, 종계 일령·사료" },
+      { n:"무정란이 많다", c:"종계 수탉 비율·일령, 교미율, 종계 영양/건강 — 부화기에서 고칠 수 없음", chk:"종계 수정률 추이 (7일 검란)" },
+      { n:"전란이 안 된다", c:"전란 장치 고장·각도 부족 — 초기 며칠 전란 부족은 부화율을 떨어뜨림", chk:"전란 각도·횟수 점검" }],
+    imgq:"chicken embryo day 3 incubation heart blood vessels" },
+
+  { key:"s2", days:"4~7일", title:"4~7일: 눈과 사지, 난치", icon:"👁️", color:"#E65100", range:[4,7],
+    intro:"배아가 난황과 분리되어 몸 모양이 드러납니다. 눈에 검은 색소가 생기고 날개·다리가 자라며 부리와 난치(egg tooth)가 만들어집니다.",
+    days_detail:[
+      { d:4, t:"혀가 형성되고 눈에 색소가 침착되어 검은 점이 보입니다. 요막이 커지고 혈관이 거미줄처럼 뚜렷해집니다(검란 시 확인)." },
+      { d:5, t:"생식기관이 형성되고 소화관·간 등 내부 장기가 분화합니다." },
+      { d:6, t:"부리가 형성되기 시작하고 날개와 다리가 빠르게 자랍니다. 난치가 만들어지기 시작하며 배아가 스스로 움직이기 시작합니다." },
+      { d:7, t:"난치가 부리 끝에 보이고 눈이 뚜렷해집니다. 닭다운 모양을 갖추기 시작합니다. (첫 검란: 무정란·초기 폐사란 선별 시점)" }],
+    mgmt:["7일령 검란: 투명한 알(무정란)과 혈관 고리가 있는 알(초기 폐사)을 구분해 제거 — 부패란이 주변 알을 오염시키는 것을 막음",
+          "이 시기 폐사는 보통 낮지만 온도·전란·종계 영양이 맞지 않으면 늘어남",
+          "알 표면 온도(난각 온도)를 측정해 기계 설정온도와 비교 (알 적도부 기준, 무정란은 열을 내지 않아 제외)"],
+    diseases:[
+      { n:"난각 오염에 의한 세균성 배아 사망", w:"대장균·장구균·포도상구균 등 오염", c:"부패란 조기 제거, 소독·위생" },
+      { n:"난계대 감염의 지속", w:"살모넬라·마이코플라즈마 등 감염란", c:"종계 정화와 검사가 핵심" }],
+    problems:[
+      { n:"6~16일 사이 폐사가 늘었다 (드문 구간)", c:"기계 온도 과다, 환기 부족, 감염(종계 또는 껍질 오염), 영양 결핍 — 이 구간은 원래 폐사가 낮은 시기라 증가하면 원인 확인이 필요", chk:"온도 로그, 환기·CO₂, 종계 사료, 부패란 비율" },
+      { n:"부패란(폭발란)", c:"균열란·오염란에서 세균 증식, 알이 터져 주변 오염", chk:"검란 후 즉시 제거, 세정 중 알이 깨지지 않게" }],
+    imgq:"chicken embryo day 7 candling egg tooth eye pigment" },
+
+  { key:"s3", days:"8~10일", title:"8~10일: 깃털과 부리가 단단해진다", icon:"🪶", color:"#2E7D32", range:[8,10],
+    intro:"깃털 원기가 등에 줄지어 나타나고 부리가 굳기 시작합니다. 배아가 점점 새의 모습이 됩니다.",
+    days_detail:[
+      { d:8, t:"등에 깃털 원기(깃털 줄)가 나타나고 날개·발·발가락이 거의 완성됩니다." },
+      { d:9, t:"입이 열리고 배아가 새다운 모습으로 보입니다." },
+      { d:10, t:"부리가 단단해지기 시작하고 발가락·발톱이 만들어지며 솜털이 보이기 시작합니다." }],
+    mgmt:["전란(알 돌리기)은 18일령까지 계속 — 배아가 막에 붙지 않게 하루 여러 번(일반적으로 매시간 1회 정도)",
+          "환기량이 부족하면 산소 부족·CO₂ 상승 — 배아가 커질수록 필요량이 커짐",
+          "수분 손실(난중 감소)을 점검: 18일까지 총 약 11~13% 감소가 일반 기준 (제조사·종계사 기준 확인)"],
+    diseases:[
+      { n:"세균성 오염(부패란)", w:"감염된 알이 이 시기에 사망하며 냄새·가스 발생", c:"주기적 검란, 부패란 제거" },
+      { n:"곰팡이(아스페르길루스) 오염", w:"습한 환경·오염된 환기 설비에서 알 표면 오염", c:"기계·덕트 청소·소독, 곰팡이 있는 알 제거" }],
+    problems:[
+      { n:"수분 손실 이상", c:"습도가 높으면 수분 손실이 부족해 공기방이 작고(후기 익사·끈적한 병아리), 낮으면 과다 손실로 탈수·병아리 소형화", chk:"알 무게(입란일 대비) 추적, 습도계 보정" },
+      { n:"기계 내 온도 편차", c:"핫/콜드 스팟, 선반 위치별 부화 지연 차이", chk:"난각 온도 위치별 측정, 선반별 성적" }],
+    imgq:"chicken embryo day 10 feather tracts beak development" },
+
+  { key:"s4", days:"11~14일", title:"11~14일: 솜털·발톱, 부화 자세 준비", icon:"🐣", color:"#00796B", range:[11,14],
+    intro:"볏이 톱니 모양이 되고 솜털이 몸을 덮기 시작합니다. 뼈가 단단해지고 14일쯤에는 부화에 맞는 자세(머리를 공기방 쪽으로)를 잡기 시작합니다.",
+    days_detail:[
+      { d:11, t:"볏에 톱니가 생기고 깃털 영역이 넓어집니다." },
+      { d:12, t:"뼈가 석회화(골화)되기 시작하고 발톱과 솜털이 여러 부위에서 나타납니다." },
+      { d:13, t:"다리의 비늘이 만들어지고 몸의 대부분이 솜털로 덮이기 시작합니다." },
+      { d:14, t:"병아리와 많이 닮습니다. 머리를 공기방(둔단) 쪽으로 돌려 부화 자세를 잡기 시작합니다." }],
+    mgmt:["14일경 검란으로 중간 폐사 확인 — 이 구간은 전체적으로 폐사가 낮은 안정기",
+          "영양 결핍(종계 사료의 비타민·미량 미네랄)이 있으면 이 구간 이후 폐사로 나타남",
+          "난각 온도가 올라가는 시기 — 점차 설정 온도를 조절해야 하는 기계가 있음(기계별 지침 확인)"],
+    diseases:[
+      { n:"종계 영양 결핍과 관련된 배아 기형·폐사", w:"비타민 A·E·B군(리보플라빈, 비오틴), 셀레늄 등 결핍", c:"종계 사료 점검 — 부화기에서는 고칠 수 없음" },
+      { n:"세균·곰팡이 감염", w:"껍질 오염란·균열란에서 지속", c:"위생·부패란 관리" }],
+    problems:[
+      { n:"기형(다리 뒤틀림·눈 이상 등)", c:"온도 편차, 전란 문제, 종계 영양, 유전적 요인", chk:"기형 형태별 기록, 종계 일령·사료 변경 이력" },
+      { n:"난각 온도 과열 조짐", c:"배아 발열이 커지는데 환기·냉각이 따라가지 못할 때", chk:"난각 온도 38.3°C 이상 여부(일반 기준) 확인" }],
+    imgq:"chicken embryo day 14 down feathers scales claws" },
+
+  { key:"s5", days:"15~17일", title:"15~17일: 급성장과 자세 잡기", icon:"📈", color:"#1565C0", range:[15,17],
+    intro:"배아가 급속히 커져 알 안을 채워 가고 솜털이 몸 전체를 덮습니다. 머리가 오른쪽 날개 밑으로, 부리가 공기방 쪽으로 향합니다.",
+    days_detail:[
+      { d:15, t:"장이 복강(배 속) 안으로 들어가기 시작합니다." },
+      { d:16, t:"비늘·발톱·부리가 단단해지고(각질화) 솜털이 몸 전체를 덮습니다." },
+      { d:17, t:"양수가 줄어들고 머리가 오른쪽 날개 밑으로 들어갑니다. 부리가 공기방 쪽으로 향합니다." }],
+    mgmt:["산소 요구량·발열이 급증 — 환기 성능과 기계 냉각이 가장 중요한 시기",
+          "정전·환기 중단은 짧아도(예: 30분) 큰 피해 — 비상 발전기·알람 점검",
+          "이란(옮기기) 준비: 핸처 청소·소독 완료, 예열, 이란 작업 인력·시간 계획"],
+    diseases:[
+      { n:"세균 감염(난황낭 감염의 시작)", w:"난각 오염·균열란을 통한 침투가 이 시기 이후 폐사·약병아리로 나타남", c:"소독·위생, 균열란 관리" },
+      { n:"곰팡이 감염(아스페르길루스)", w:"습하고 따뜻한 환경에서 포자가 증식", c:"기계·핸처 청소, 곰팡이 알 제거" }],
+    problems:[
+      { n:"위치 불량(비정상 자세)", c:"전란 부족, 알을 거꾸로(뾰족한 쪽 위) 입란, 과열/저온, 종계 일령 — 머리가 공기방 반대쪽으로 놓인 배아는 피핑하지 못하고 폐사", chk:"입란 방향, 전란 각도·횟수, 폐사란 자세 기록" },
+      { n:"후기 폐사 증가의 전조", c:"환기 부족·과열 — 큰 배아는 과열과 산소 부족에 매우 예민", chk:"온도·CO₂ 로그, 난각 온도" }],
+    imgq:"chicken embryo day 17 positioning head under right wing" },
+
+  { key:"s6", days:"18일", title:"18일: 이란 – 핸처로 옮기는 날", icon:"🚚", color:"#6A1B9A", range:[18,18],
+    intro:"배아는 거의 다 자란 상태입니다. 전란을 멈추고 알을 핸처(부화기)로 옮겨(이란) 부화를 준비합니다.",
+    days_detail:[
+      { d:18, t:"머리가 오른쪽 날개 아래에 놓이고 양수가 거의 사라집니다. 전란을 중단하고 핸처로 이란합니다. 마지막 검란으로 폐사란·무정란을 제거합니다." }],
+    mgmt:["이란 시점에 폐사란(검란에서 투명/혈관 정지)을 정확히 제거 — 핸처 오염 방지",
+          "이란 작업 중 충격·낙하·찬 공기 노출을 줄입니다 — 큰 배아는 온도 변화와 충격에 예민",
+          "핸처는 환기를 충분히, 습도는 피핑 시기에 맞춰 높임 (일반적으로 습도를 올리고 문을 열지 않음)"],
+    diseases:[
+      { n:"교차오염(핸처 오염)", w:"폐사란·감염란이 섞이면 핸처 전체로 세균·곰팡이가 퍼짐", c:"이란 시 폐사란 완전 제거, 핸처 청소·소독 확인" },
+      { n:"곰팡이(아스페르길루스) 포자", w:"습한 핸처에서 증식 — 부화 직후 병아리 호흡기 감염의 원인", c:"핸처·덕트 청소, 곰팡이 알 제거" }],
+    problems:[
+      { n:"이란 시 손상", c:"충격, 알 낙하, 과열/냉각 노출로 후기 폐사 증가", chk:"이란 작업 절차·시간 점검" },
+      { n:"전란 중단 후 환기·온도 문제", c:"핸처 환기 부족, 온도 과다는 부화 중 폐사로 이어짐", chk:"핸처 온도·습도·CO₂ 점검" }],
+    imgq:"chicken hatchery transfer day 18 eggs hatcher candling" },
+
+  { key:"s7", days:"19~20일", title:"19~20일: 난황을 먹고 첫 숨, 피핑", icon:"🫁", color:"#00838F", range:[19,20],
+    intro:"난황낭이 배 속으로 들어가고 병아리는 공기방 막을 뚫어 폐로 첫 숨을 쉽니다. 이어서 껍질을 쪼아 구멍을 냅니다(피핑).",
+    days_detail:[
+      { d:19, t:"난황낭이 체강(배 속)으로 빨려 들어가기 시작하고 배아가 알 속을 거의 가득 채웁니다." },
+      { d:20, t:"난황낭 흡수가 마무리되고 부리가 공기방 막을 뚫고 폐호흡을 시작합니다(내부 피핑). 이어서 껍질에 첫 구멍을 냅니다(외부 피핑)." }],
+    mgmt:["핸처 문을 열지 않습니다 — 습도·온도가 흔들리면 병아리가 껍질 막에 달라붙습니다",
+          "환기는 충분히: 산소 부족이 가장 빠른 사망 원인, CO₂ 상승 주의",
+          "이 시기의 폐사(피핑 후 폐사)는 대개 환기·온도·습도 문제가 원인"],
+    diseases:[
+      { n:"아스페르길루스증(부화기 폐렴)", w:"핸처에서 곰팡이 포자를 들이마신 병아리 — 부화 직후 호흡기 감염·폐사", c:"핸처 청소·소독, 환기 덕트·가습기 위생, 곰팡이 알 제거" },
+      { n:"난황낭염(배꼽염, 옴팔라이티스)", w:"대장균·포도상구균·연쇄상구균·장구균·슈도모나스·프로테우스 등이 아물지 않은 배꼽으로 침입", c:"배꼽이 덜 아문 병아리는 부화장 온도·습도·위생 조건과 관련 — 치료보다 예방(위생·온습도)이 핵심" }],
+    problems:[
+      { n:"피핑 후 폐사 (피핑했지만 부화하지 못함)", c:"핸처 습도 부족(껍질 막이 마름), 환기 부족·산소 부족, 과열, 늦은 이란", chk:"핸처 온습도·환기 기록, 피핑 시간대별 성적" },
+      { n:"난황 흡수 불량·배꼽 미치유", c:"과열·고온 노출, 감염, 이란 후 온도 문제", chk:"병아리 배꼽 상태(단추 모양·혈흔·젖은 배꼽) 점검" },
+      { n:"공기방이 작아 익사(젖은 폐사란)", c:"수분 손실 부족(습도 과다·환기 부족)", chk:"입란~18일 알 무게 손실률" }],
+    imgq:"chicken embryo day 19 20 internal pip yolk sac absorption" },
+
+  { key:"s8", days:"21일", title:"21일: 부화 – 세상에 나오다", icon:"🐥", color:"#F9A825", range:[21,21],
+    intro:"병아리가 껍질을 한 바퀴 돌려 깨고(지핑) 나옵니다. 처음엔 젖어 있다가 몇 시간 안에 솜털이 마르고 서서 걷습니다.",
+    days_detail:[
+      { d:21, t:"병아리가 껍질을 돌려 깨며 나옵니다. 부화 시간은 24~36시간에 걸쳐 분산되며, 솜털이 마르고 움직이기 시작합니다." }],
+    mgmt:["부화 창(hatch window)이 지나치게 넓으면 입란·기계 온도 편차나 알 크기 차이를 의심",
+          "병아리를 너무 늦게까지 핸처에 두면 탈수, 너무 빨리 꺼내면 젖은 병아리 — 적정 시점에 인출",
+          "인출·선별·백신 접종·운송 단계에서 병아리 품질(배꼽, 눈, 다리, 활력) 점검 및 오염 최소화"],
+    diseases:[
+      { n:"난황낭염·대장균증", w:"배꼽이 덜 아문 병아리, 오염된 핸처", c:"1주 이내 폐사 증가 시 부화장 위생·배꼽 상태 확인" },
+      { n:"추백리·가금티푸스(살모넬라)", w:"난계대 또는 부화장 오염으로 전파", c:"부화 직후 ~2~3주 폐사 증가, 종계 검사와 위생" },
+      { n:"아스페르길루스증", w:"핸처 곰팡이로 인한 호흡기 감염", c:"1주 이내 호흡곤란·폐사, 부화장 청소" },
+      { n:"난계대 마이코플라즈마·바이러스", w:"초기 호흡기·관절 이상, 성장 불량", c:"종계 단계 관리" }],
+    problems:[
+      { n:"끈적한 병아리(sticky chick)", c:"습도 과다 또는 온도 낮음, 환기 부족", chk:"핸처 습도·온도 기록" },
+      { n:"조기/지연 부화", c:"온도가 높으면 일찍, 낮으면 늦게 부화 — 병아리 품질과 직결", chk:"난각 온도, 부화 창 기록" },
+      { n:"과열로 인한 병아리 (짧은 솜털·마름·비정상 배꼽)", c:"핸처 과열", chk:"병아리 직장(체)온도(일반 기준 약 40~41°C) 점검" },
+      { n:"다리 벌어짐·보행 이상", c:"미끄러운 바닥, 부화 후 환경, 영양·부화 조건", chk:"인출~육추 단계 바닥·온도 관리" }],
+    imgq:"chicken hatching pip zip chick emerging from egg" },
+];
+
+const LM_STATE = { open:false, stage:0, day:null };
+
+// 단계별 개략도(직접 그린 그림) — 알 단면 위에 배아 크기·구조·난황 크기·공기방 크기가 단계마다 달라진다.
+function lmEggSvg(si){
+  const yolkR   = [50,47,43,38,33,28,23,13,0][si];
+  const airRy   = [6,6,8,10,13,17,21,32,0][si];
+  const embS    = [0,0.5,0.85,1.2,1.85,2.4,2.9,3.3,0][si];
+  const ey = [0,92,112,122,126,126,124,122,0][si];
+  const egg = "M100 8C148 8 178 62 178 128C178 190 143 232 100 232C57 232 22 190 22 128C22 62 52 8 100 8Z";
+  let g = `<defs><clipPath id="lmc${si}"><path d="${egg}"/></clipPath></defs>`;
+  if(si === 8){
+    // 부화: 갈라진 껍질과 병아리
+    g += `<path d="M30 150C28 118 50 96 76 92L90 112L104 90L122 112L136 90C164 98 176 126 172 150Z" fill="#FBF3E4" stroke="#D7B98A" stroke-width="3"/>`
+       + `<path d="M34 156H168L156 190C146 214 124 226 100 226C76 226 54 214 44 190Z" fill="#FBF3E4" stroke="#D7B98A" stroke-width="3"/>`
+       + `<circle cx="100" cy="112" r="38" fill="#FFD54F"/><ellipse cx="100" cy="150" rx="34" ry="26" fill="#FFCA28"/>`
+       + `<circle cx="87" cy="106" r="5" fill="#222"/><circle cx="113" cy="106" r="5" fill="#222"/><circle cx="88.5" cy="104.5" r="1.6" fill="#fff"/><circle cx="114.5" cy="104.5" r="1.6" fill="#fff"/>`
+       + `<path d="M93 118L107 118L100 129Z" fill="#FB8C00"/><ellipse cx="66" cy="148" rx="9" ry="16" fill="#FFB300" transform="rotate(20 66 148)"/><ellipse cx="134" cy="148" rx="9" ry="16" fill="#FFB300" transform="rotate(-20 134 148)"/>`
+       + `<path d="M84 176L84 190M116 176L116 190" stroke="#FB8C00" stroke-width="3" stroke-linecap="round"/>`;
+    return `<svg viewBox="0 0 200 240" width="100%" style="max-width:240px;display:block;margin:0 auto" role="img" aria-label="부화한 병아리">${g}</svg>`;
+  }
+  // 알 껍질·알 흰자
+  g += `<path d="${egg}" fill="#FFF8E7" stroke="#D7B98A" stroke-width="4"/>`;
+  g += `<g clip-path="url(#lmc${si})">`;
+  g += `<ellipse cx="100" cy="${14 + airRy * 0.3}" rx="50" ry="${airRy}" fill="#FFFFFF" stroke="#E0D2B4" stroke-width="1.5"/>`;   // 공기방(둔단)
+  // 난황
+  const yy = si === 0 ? 118 : 128;
+  if(yolkR > 0) g += `<circle cx="100" cy="${yy}" r="${yolkR}" fill="#FFC107"/><circle cx="${100 - yolkR * 0.3}" cy="${yy - yolkR * 0.3}" r="${yolkR * 0.35}" fill="#FFE082" opacity=".8"/>`;
+  if(si === 0) g += `<circle cx="100" cy="${yy - yolkR + 5}" r="4" fill="#FFFDE7" stroke="#FFF" stroke-width="1"/>`;
+  // 혈관(1~3단계에 난황 위로 퍼짐)
+  if(si >= 1 && si <= 3){
+    const n = si === 1 ? 5 : 8;
+    for(let k = 0; k < n; k++){ const a = (k / n) * Math.PI * 2; g += `<path d="M100 ${ey} Q${100 + Math.cos(a) * 28} ${ey + Math.sin(a) * 26} ${100 + Math.cos(a) * (yolkR + 4)} ${yy + Math.sin(a) * (yolkR + 4)}" stroke="#D32F2F" stroke-width="1.4" fill="none" opacity=".75"/>`; }
+  }
+  // 배아
+  if(embS > 0){
+    const s = embS;
+    if(si >= 2 && si <= 4) g += `<ellipse cx="100" cy="${ey}" rx="${22 * s}" ry="${26 * s}" fill="#BBDEFB" opacity=".55" stroke="#90CAF9" stroke-width="1"/>`;   // 양수
+    // 몸통
+    g += `<ellipse cx="100" cy="${ey + 6 * s}" rx="${12 * s}" ry="${15 * s}" fill="${si >= 4 ? "#FFE082" : "#F8BBD0"}" stroke="#E57373" stroke-width="1"/>`;
+    // 머리
+    g += `<circle cx="${92 - 2 * s}" cy="${ey - 12 * s}" r="${9 * s}" fill="${si >= 4 ? "#FFE082" : "#F8BBD0"}" stroke="#E57373" stroke-width="1"/>`;
+    // 눈
+    if(si >= 1) g += `<circle cx="${89 - 2 * s}" cy="${ey - 13 * s}" r="${Math.max(1.5, 2.2 * s)}" fill="#212121"/>`;
+    // 부리·난치
+    if(si >= 2) g += `<path d="M${84 - 2 * s} ${ey - 10 * s}L${76 - 4 * s} ${ey - 8 * s}L${84 - 2 * s} ${ey - 6 * s}Z" fill="#FB8C00"/>`;
+    // 날개·다리
+    if(si >= 1) g += `<ellipse cx="${110 + 2 * s}" cy="${ey}" rx="${5 * s}" ry="${9 * s}" fill="#F48FB1" transform="rotate(-25 ${110 + 2 * s} ${ey})"/>`;
+    if(si >= 2) g += `<path d="M${94} ${ey + 18 * s}L${90 - 2 * s} ${ey + 28 * s}M${106} ${ey + 18 * s}L${110 + 2 * s} ${ey + 28 * s}" stroke="#E57373" stroke-width="${1 + s * 0.5}" stroke-linecap="round"/>`;
+    // 깃털·솜털
+    if(si >= 3){
+      const rows = si === 3 ? 4 : 9;
+      for(let k = 0; k < rows; k++){ const yk = ey - 6 * s + k * (14 * s / rows) * 1.6; g += `<path d="M${93 + (k % 2) * 4} ${yk}l3 -4M${100 + (k % 2) * 4} ${yk}l3 -4M${107 + (k % 2) * 3} ${yk}l3 -4" stroke="${si >= 4 ? "#F9A825" : "#C2185B"}" stroke-width="1.2" stroke-linecap="round"/>`; }
+    }
+    // 심장 박동 표시(1단계)
+    if(si === 1) g += `<circle cx="100" cy="${ey + 2}" r="3" fill="#E53935"><animate attributeName="r" values="2.4;4;2.4" dur=".9s" repeatCount="indefinite"/></circle>`;
+  }
+  // 피핑(19~20일): 껍질에 금
+  if(si === 7) g += `<path d="M118 30l8 12l-6 8l9 10" stroke="#8D6E63" stroke-width="2" fill="none"/><circle cx="117" cy="30" r="3" fill="#6D4C41"/>`;
+  g += `</g>`;
+  return `<svg viewBox="0 0 200 240" width="100%" style="max-width:240px;display:block;margin:0 auto" role="img" aria-label="${esc(LM_STAGES[si].title)} 개략도">${g}</svg>`;
+}
+
+function renderLifeMiracleCard(){
+  const st = LM_STATE;
+  const head = `<div class="lm-toggle" style="cursor:pointer;display:flex;align-items:center;gap:10px"><div style="font-size:30px">🥚</div><div style="flex:1;min-width:0"><div class="display" style="font-size:16px;margin-bottom:2px">생명탄생의 신비 <span style="font-size:11px;color:#C2185B;font-weight:700">21일 부화 과정</span></div><div style="font-size:11px;color:#888;line-height:1.5">알에서 병아리가 되기까지 단계별 그림·일차별 설명과, 그 단계에서 문제가 되는 질병·부화 문제점</div></div><span style="font-size:12px;color:#C2185B;font-weight:700;white-space:nowrap">${st.open ? "접기 ▲" : "펼치기 ▼"}</span></div>`;
+  if(!st.open) return `<div class="card" style="margin-bottom:12px;border-top:6px solid #C2185B">${head}</div>`;
+  const si = Math.min(Math.max(st.stage, 0), LM_STAGES.length - 1);
+  const S = LM_STAGES[si];
+  const chips = LM_STAGES.map((s, i) => { const on = i === si; return `<button class="lm-stage" data-i="${i}" style="border:1.5px solid ${on ? s.color : "#ddd"};background:${on ? s.color : "#fff"};color:${on ? "#fff" : "#555"};border-radius:14px;padding:5px 10px;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap">${s.icon} ${esc(s.days)}</button>`; }).join("");
+  const timeline = LM_STAGES.map((s, i) => `<span class="lm-stage" data-i="${i}" title="${esc(s.title)}" style="flex:${Math.max(1, s.range[1] - s.range[0] + 1)};height:10px;background:${i === si ? s.color : s.color + "55"};cursor:pointer;display:block"></span>`).join("");
+  const days = S.days_detail.map(x => `<div class="lm-day" style="display:flex;gap:10px;align-items:flex-start;margin:6px 0;padding:8px 10px;background:${S.color}0D;border-left:6px solid ${S.color};border-radius:0 10px 10px 0"><div style="flex:0 0 46px;text-align:center"><div style="font-size:10px;color:${S.color};font-weight:800">${x.d === 0 ? "입란 전" : "일차"}</div><div style="font-size:${x.d === 0 ? 13 : 22}px;font-weight:900;color:${S.color};line-height:1.1">${x.d === 0 ? "D-0" : x.d}</div></div><div style="font-size:13.5px;line-height:1.7;color:#222">${esc(x.t)}</div></div>`).join("");
+  const list = (arr, color) => arr.map(x => `<div style="display:flex;gap:8px;font-size:13px;line-height:1.65;color:#222;margin:3px 0"><span style="color:${color};font-weight:900">•</span><span>${esc(x)}</span></div>`).join("");
+  const dis = S.diseases.map(d => `<div style="padding:8px 10px;margin:6px 0;background:#FFF5F5;border:1px solid #F3D1D1;border-radius:10px"><div style="font-size:13px;font-weight:800;color:#B71C1C">🦠 ${esc(d.n)}</div><div style="font-size:12.5px;color:#444;line-height:1.6;margin-top:2px"><b>왜 이 단계에서?</b> ${esc(d.w)}</div><div style="font-size:12.5px;color:#444;line-height:1.6"><b>대응</b> ${esc(d.c)}</div></div>`).join("");
+  const prb = S.problems.map(p => `<div style="padding:8px 10px;margin:6px 0;background:#FFF8E1;border:1px solid #F1E2B5;border-radius:10px"><div style="font-size:13px;font-weight:800;color:#E65100">⚠️ ${esc(p.n)}</div><div style="font-size:12.5px;color:#444;line-height:1.6;margin-top:2px"><b>주요 원인</b> ${esc(p.c)}</div><div style="font-size:12.5px;color:#444;line-height:1.6"><b>점검</b> ${esc(p.chk)}</div></div>`).join("");
+  const g = q => "https://www.google.com/search?tbm=isch&q=" + encodeURIComponent(q);
+  const btn = (label, url) => `<a href="${esc(url)}" target="_blank" rel="noopener" style="display:inline-block;font-size:11.5px;font-weight:700;color:${S.color};border:1px solid ${S.color};border-radius:8px;padding:5px 10px;text-decoration:none;margin:2px 4px 2px 0">${label} ↗</a>`;
+  return `<div class="card" style="margin-bottom:12px;border-top:6px solid ${S.color}">${head}
+    <div style="margin-top:12px">
+      <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:6px">${chips}</div>
+      <div style="display:flex;border-radius:5px;overflow:hidden;margin:6px 0 2px">${timeline}</div>
+      <div style="display:flex;justify-content:space-between;font-size:9.5px;color:#aaa"><span>입란</span><span>7일</span><span>14일</span><span>18일 이란</span><span>21일 부화</span></div>
+      <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:12px">
+        <div style="flex:0 0 190px;max-width:100%;margin:0 auto">${lmEggSvg(si)}<div style="text-align:center;font-size:10px;color:#aaa;margin-top:2px">직접 그린 개략도 (실제 모습과 다를 수 있음)</div></div>
+        <div style="flex:1;min-width:230px"><div style="font-size:16px;font-weight:900;color:${S.color};line-height:1.4">${S.icon} ${esc(S.title)}</div><div style="font-size:13.5px;line-height:1.7;color:#333;margin-top:6px">${esc(S.intro)}</div></div>
+      </div>
+      <div style="font-size:13px;font-weight:900;color:#37474F;margin:14px 0 4px">📅 일차별 설명</div>${days}
+      <div style="font-size:13px;font-weight:900;color:#2E7D32;margin:14px 0 4px">🛠️ 이 단계의 관리·점검 포인트</div>${list(S.mgmt, "#2E7D32")}
+      <div style="font-size:13px;font-weight:900;color:#B71C1C;margin:14px 0 2px">🦠 이 단계에서 문제가 될 수 있는 질병</div>${dis}
+      <div style="font-size:13px;font-weight:900;color:#E65100;margin:14px 0 2px">⚠️ 이 단계의 부화 과정 문제점</div>${prb}
+      <div style="margin-top:12px;padding-top:10px;border-top:1px dashed #ddd"><div style="font-size:11.5px;font-weight:800;color:#555;margin-bottom:4px">🖼️ 실제 사진·월차트 찾기</div>
+        ${btn("이 단계 실제 사진 검색", g(S.imgq))}${btn("제임스웨이 배아 발달 월차트", g("Jamesway chicken embryo development wall chart poster"))}${btn("Penn State 4-H 배아학 자료(제임스웨이 포스터 안내)", "https://abe.psu.edu/programs/4-h/get-involved/teachers/embryology/other-web-resources")}
+      </div>
+      <div style="font-size:10px;color:#999;line-height:1.65;margin-top:10px">※ 제임스웨이(Jamesway) 월차트 원본은 열람하지 못해, 일차별 흐름은 Auburn Univ.(ACES) 일차별 배아 발달 자료와 Penn State 4-H 배아학 교재·The Poultry Site·Merck 수의학 매뉴얼의 부화장 문제 자료를 바탕으로 정리했습니다. 수치(보관일수·수분 손실률·온도 등)는 일반적인 기준이며 부화기 제조사·종계사 매뉴얼과 수의사 판단이 우선입니다. 난계대 질병은 종계 단계에서 관리해야 하며 부화기에서 고칠 수 없습니다.<br>참고: <a href="https://www.aces.edu/blog/topics/poultry/chicken-embryo-development/" target="_blank" rel="noopener" style="color:#00695C">Auburn ACES 배아 발달</a> · <a href="https://www.thepoultrysite.com/articles/investigating-the-reasons-behind-a-poor-hatch" target="_blank" rel="noopener" style="color:#00695C">The Poultry Site 부화 불량 원인</a> · <a href="https://www.thepoultrysite.com/articles/analysing-embryo-mortality" target="_blank" rel="noopener" style="color:#00695C">배아 폐사 분석</a> · <a href="https://www.merckvetmanual.com/poultry/omphalitis/overview-of-omphalitis-in-poultry" target="_blank" rel="noopener" style="color:#00695C">Merck 난황낭염</a> · <a href="https://www.merckvetmanual.com/poultry/salmonelloses-in-poultry/pullorum-disease-in-poultry" target="_blank" rel="noopener" style="color:#00695C">Merck 추백리</a></div>
+    </div></div>`;
+}
+
 function renderDiseaseTab(){
   const d = diseaseState;
   const shell = inner => '<div class="card" style="margin-bottom:16px">'+inner+'</div>';
   // 오늘 기상 기준 사양관리 포인트는 질병 자료 로딩 상태와 무관하게 항상 맨 위에
   // 둔다 — 질병 위험(호흡기·콕시듐·대장균)이 결국 오늘 사양환경에서 나오기 때문.
-  const head = renderHusbandryPointsCard({title:"📋 오늘의 사양관리 포인트", poultryOnly:true});
+  const head = renderHusbandryPointsCard({title:"📋 오늘의 사양관리 포인트", poultryOnly:true}) + renderLifeMiracleCard();
   if(d.status === "loading" || d.status === "idle")
     return head + shell('<div style="text-align:center;padding:28px;color:#aaa">⏳ 질병 자료를 불러오는 중...</div>');
   if(d.status === "error" || !d.data || !d.data.diseases)
@@ -17273,6 +17534,9 @@ function gotoDisease(slug){
 }
 
 function attachDiseaseEvents(){
+  // 생명탄생의 신비(21일 부화 과정) 카드
+  document.querySelectorAll(".lm-toggle").forEach(b => b.onclick = () => { LM_STATE.open = !LM_STATE.open; render(); });
+  document.querySelectorAll(".lm-stage").forEach(b => b.onclick = () => { LM_STATE.stage = parseInt(b.dataset.i, 10) || 0; render(); });
   const box = document.getElementById("dz-search");
   if(box){
     // input 이벤트는 한글 조합 중에도 발생한다. 조합이 끝나기 전에 결과를
