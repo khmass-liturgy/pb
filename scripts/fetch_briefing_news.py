@@ -140,6 +140,30 @@ def parse_rss(xml, limit, strip_source=False):
 # ── 파서: 축산신문 (mediaOn CMS) ──────────────────────────────────────────────
 def parse_chuksan(html):
     items, seen = [], set()
+    # 모바일 목록(sec_no=84 등): <li><a href="article.html?no=N"> … <h3>제목</h3> <ul class="ac_info"><li>날짜 시각</li><li>기자</li></ul></a></li>
+    # 제목은 <h3> 안에만 있고, 아래쪽 '인기기사' 목록에는 <h3>가 없어 자연스럽게 제외된다.
+    # 제목에 "<현장>" 같은 꺾쇠 표기가 그대로 들어오므로 알려진 HTML 태그만 걷어낸다.
+    for m in re.finditer(r'<a[^>]+href="([^"]*article\.html\?no=(\d+)[^"]*)"[^>]*>((?:(?!</a>)[\s\S]){0,1500})</a>', html):
+        href, aid, inner = m.group(1), m.group(2), m.group(3)
+        h3 = re.search(r"<h3[^>]*>([\s\S]*?)</h3>", inner)
+        if aid in seen or not h3:
+            continue
+        title = re.sub(r"</?(?:em|strong|b|i|span|br)\b[^>]*>", "", h3.group(1))
+        title = re.sub(r"\s+", " ", htmlmod.unescape(title)).strip()
+        if len(title) < 6:
+            continue
+        url = href if href.startswith("http") else \
+            "https://www.chuksannews.co.kr" + (href if href.startswith("/") else "/news/" + href)
+        url = url.replace("/mobile/article.html", "/news/article.html")   # PC 기사 주소로 통일
+        d = re.search(r"\d{4}[-.]\d{2}[-.]\d{2}", inner[h3.end():])
+        seen.add(aid)
+        items.append({"title": title, "url": url, "date": d.group(0) if d else "", "source": ""})
+        if len(items) >= PER_SOURCE:
+            break
+    if items:
+        return items
+
+    # 폴백: PC 목록 등 <h3>가 없는 레이아웃 — 예전 방식(링크 안 텍스트)으로 추출
     for m in re.finditer(r'href="([^"]*article\.html\?no=(\d+)[^"]*)"[^>]*>([\s\S]{0,300}?)</a>', html):
         href, aid, inner = m.group(1), m.group(2), m.group(3)
         if aid in seen:
@@ -149,7 +173,7 @@ def parse_chuksan(html):
             continue
         url = href if href.startswith("http") else \
             "https://www.chuksannews.co.kr" + (href if href.startswith("/") else "/news/" + href)
-        url = url.replace("/mobile/article.html", "/news/article.html")   # 모바일 목록의 기사 주소는 PC 기사 주소로 통일
+        url = url.replace("/mobile/article.html", "/news/article.html")
         seen.add(aid)
         d = re.search(r"\d{4}[-.]\d{2}[-.]\d{2}", html[m.end():m.end() + 400])
         items.append({"title": title, "url": url, "date": d.group(0) if d else "", "source": ""})

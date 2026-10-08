@@ -4360,10 +4360,14 @@ let noticesState = {
 function parseChuksanHTML(html){
   const doc=new DOMParser().parseFromString(html,"text/html");
   const out=[], seen=new Set();
+  // 모바일 목록은 기사마다 <a><h3>제목</h3><ul class="ac_info"><li>날짜</li>…</ul></a> 구조이고,
+  // 아래쪽 '인기기사' 목록에는 <h3>가 없다 — <h3>가 있는 링크가 하나라도 있으면 그것만 쓴다.
+  const hasH3=!!doc.querySelector("a[href*='article.html?no='] h3");
   doc.querySelectorAll("a[href*='article.html?no=']").forEach(a=>{
     const href0=a.getAttribute("href")||"";
     const no=(href0.match(/no=(\d+)/)||[])[1];
     if(!no||seen.has(no)) return;
+    if(hasH3 && !a.querySelector("h3")) return;
     // 카테고리·기자·본문요약 요소를 제거한 사본에서 제목 추출
     const clone=a.cloneNode(true);
     clone.querySelectorAll("[class*='cate'],[class*='writer'],[class*='date'],[class*='txt'],[class*='summary'],[class*='byline'],img").forEach(el=>el.remove());
