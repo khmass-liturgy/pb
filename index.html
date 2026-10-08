@@ -2099,10 +2099,10 @@ function renderVaccinePanel(){
   const cards = list.length ? list.map((p, ci) => {
     const open = vaccineTabState.openKey === p.key;
     const sp = TREATMENT_SPECIES_THEME[p.species] || TREATMENT_SPECIES_THEME[vaccineTabState.species] || TREATMENT_SPECIES_THEME.broiler;
-    const vc = pkgColor(ci).color;
+    const vc = pkgColorOf(p, ci).color;
     const th = `padding:10px 12px;text-align:left;font-size:13px;color:${vc};font-weight:700`;
     return pkgCardHtml({
-      color: vc, tint: pkgColor(ci).tint, icon: "🛡️",
+      color: vc, tint: pkgColorOf(p, ci).tint, icon: "🛡️",
       chips: pkgChip(sp.label, sp.color, sp.chipBg) + pkgChip("백신 프로그램", "#fff", vc),
       title: p.title, sub: p.desc, toggleClass: "vaccine-toggle", key: p.key, open,
       openLabel: "프로그램 보기 ▼", admin, editClass: "vaccine-edit-btn", delClass: "vaccine-del-btn",
@@ -2136,6 +2136,7 @@ function renderVaccinePanel(){
     ${vaccineTabState.adminOpen ? `
     <div style="margin-top:9px;background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">
       <div style="font-size:11px;font-weight:700;color:#7A5C00;margin-bottom:8px">${editing?"프로그램 수정: "+esc(editing.title):"새 프로그램 추가"} (${vaccineTabState.species==="broiler"?"육계":"산란계"})</div>
+      ${pkgColorPickerHtml("vp-color", vaccineTabState.formKey||"new", editing?editing.color:"")}
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
         <input id="vp-title" type="text" placeholder="프로그램 이름 (예: 육계 표준 백신 프로그램)" value="${esc(vaccineTabState.draftTitle)}"
           style="flex:1;min-width:180px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />
@@ -8947,6 +8948,54 @@ function pkgColor(i){
   const c = PKG_PALETTE[((i%PKG_PALETTE.length)+PKG_PALETTE.length)%PKG_PALETTE.length];
   return { color:c, tint:c+"14" };
 }
+// 관리 폼에서 카드 색을 직접 고르는 선택기 — 비워 두면(자동) 위 팔레트를 순서대로 쓴다.
+// 폼이 다시 그려져도 고른 색이 사라지지 않게 pkgColorDraft에 잠시 보관한다.
+let pkgColorDraft = {};
+function pkgValidColor(c){ return typeof c === "string" && /^#[0-9a-fA-F]{6}$/.test(c); }
+function pkgColorOf(item, i){
+  return item && pkgValidColor(item.color) ? { color:item.color, tint:item.color+"14" } : pkgColor(i);
+}
+function pkgReadColor(id){
+  const v = (document.getElementById(id)?.value || "").trim();
+  pkgColorDraft = {};
+  return pkgValidColor(v) ? v : "";
+}
+function pkgColorPickerHtml(id, ctx, current){
+  const key = id + ":" + ctx;
+  const val = pkgColorDraft[key] !== undefined ? pkgColorDraft[key] : (current || "");
+  const ring = on => on ? "#333" : "#fff";
+  return `
+      <div style="margin-bottom:8px">
+        <div style="font-size:10.5px;color:#888;margin-bottom:4px">카드 색 — 누르면 선택, 자동이면 순서대로 다른 색</div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
+          <input type="hidden" id="${id}" value="${esc(val)}" />
+          <button type="button" class="pkg-color-pick" data-target="${id}" data-ctx="${key}" data-color="" style="border:2px solid ${ring(!val)};border-radius:7px;background:#fff;color:#888;padding:3px 8px;font-size:11px">자동</button>
+          ${PKG_PALETTE.map(c => `<button type="button" class="pkg-color-pick" data-target="${id}" data-ctx="${key}" data-color="${c}" title="${c}" style="width:26px;height:26px;border-radius:50%;background:${c};border:3px solid ${ring(val===c)};box-shadow:0 0 0 1px #ccc;padding:0;cursor:pointer"></button>`).join("")}
+          <input type="color" class="pkg-color-custom" data-target="${id}" data-ctx="${key}" value="${pkgValidColor(val)?val:"#888888"}" title="직접 색 고르기" style="width:30px;height:28px;padding:0;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer" />
+        </div>
+      </div>`;
+}
+// 색 선택은 폼 전체를 다시 그리지 않고(입력 중인 글이 지워지지 않게) 그 자리에서 바로 반영한다.
+document.addEventListener("click", e => {
+  const b = e.target.closest && e.target.closest(".pkg-color-pick");
+  if(!b) return;
+  const inp = document.getElementById(b.dataset.target);
+  if(!inp) return;
+  inp.value = b.dataset.color;
+  pkgColorDraft[b.dataset.ctx] = b.dataset.color;
+  document.querySelectorAll('.pkg-color-pick[data-target="' + b.dataset.target + '"]').forEach(x => {
+    x.style.borderColor = (x === b) ? "#333" : "#fff";
+  });
+});
+document.addEventListener("input", e => {
+  const c = e.target;
+  if(!c.classList || !c.classList.contains("pkg-color-custom")) return;
+  const inp = document.getElementById(c.dataset.target);
+  if(!inp) return;
+  inp.value = c.value;
+  pkgColorDraft[c.dataset.ctx] = c.value;
+  document.querySelectorAll('.pkg-color-pick[data-target="' + c.dataset.target + '"]').forEach(x => { x.style.borderColor = "#fff"; });
+});
 function pkgChip(text, fg, bg){
   return `<span style="font-size:9.5px;font-weight:700;color:${fg};background:${bg};border-radius:10px;padding:2px 8px;margin-right:4px;display:inline-block">${text}</span>`;
 }
@@ -9040,7 +9089,7 @@ function renderTreatmentPanel(){
   const cards = list.length ? list.map((p, ci) => {
     const open = treatmentTabState.openKey === p.key;
     const { sp, sit: autoSit } = treatmentCardTheme(p);
-    const pc = pkgColor(ci);
+    const pc = pkgColorOf(p, ci);
     const sit = Object.assign({}, autoSit, { color: pc.color });   // 상황 이름·아이콘은 유지, 색은 카드마다 다르게
     return pkgCardHtml({
       color: sit.color, tint: pc.tint, icon: sit.icon,
@@ -9060,6 +9109,7 @@ function renderTreatmentPanel(){
     ${treatmentTabState.adminOpen ? `
     <div style="margin-top:9px;background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">
       <div style="font-size:11px;font-weight:700;color:#7A5C00;margin-bottom:8px">${editing?"상황 수정: "+esc(editing.title):"새 상황 추가"} (${treatmentTabState.species==="broiler"?"육계":"산란계"})</div>
+      ${pkgColorPickerHtml("tp-color", treatmentTabState.formKey||"new", editing?editing.color:"")}
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
         <input id="tp-title" type="text" placeholder="상황 제목 (예: 괴사성 장염 의심 시)" value="${esc(editing?editing.title:"")}"
           style="flex:1;min-width:180px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />
@@ -9127,7 +9177,7 @@ function renderSeasonalPanel(){
   const cards = list.length ? list.map((p, ci) => {
     const open = seasonalTabState.openKey === p.key;
     const base = SEASON_THEMES[seasonalTabState.season] || SEASON_THEMES.spring;
-    const th = Object.assign({}, base, pkgColor(ci));   // 계절 아이콘은 유지, 색은 카드마다 다르게
+    const th = Object.assign({}, base, pkgColorOf(p, ci));   // 계절 아이콘은 유지, 색은 카드마다 다르게
     return pkgCardHtml({
       color: th.color, tint: th.tint, icon: th.icon,
       chips: pkgChip(seasonLabel(seasonalTabState.season), "#fff", base.color),
@@ -9148,6 +9198,7 @@ function renderSeasonalPanel(){
     ${seasonalTabState.adminOpen ? `
     <div style="margin-top:9px;background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">
       <div style="font-size:11px;font-weight:700;color:#7A5C00;margin-bottom:8px">${editing?"항목 수정: "+esc(editing.title):"새 항목 추가"} (${seasonLabel(seasonalTabState.season)})</div>
+      ${pkgColorPickerHtml("sp-color", seasonalTabState.formKey||"new", editing?editing.color:"")}
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
         <input id="sp-title" type="text" placeholder="제목 (예: 환절기 호흡기 질환 대비)" value="${esc(editing?editing.title:"")}"
           style="flex:1;min-width:180px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />
@@ -9221,7 +9272,7 @@ function renderDisinfectPanel(){
   const list = currentDiseaseDisinfectants();
   const cards = list.length ? list.map((p, ci) => {
     const open = disinfectTabState.openKey === p.key;
-    const pc = pkgColor(ci);
+    const pc = pkgColorOf(p, ci);
     return pkgCardHtml({
       color: pc.color, tint: pc.tint, icon: "🧴",
       chips: pkgChip("질병별 소독", "#fff", pc.color),
@@ -9249,6 +9300,7 @@ function renderDisinfectPanel(){
     ${disinfectTabState.adminOpen ? `
     <div style="margin-top:9px;background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">
       <div style="font-size:11px;font-weight:700;color:#7A5C00;margin-bottom:8px">${editing?"질병 수정: "+esc(editing.disease):"새 질병 추가"}</div>
+      ${pkgColorPickerHtml("dz-color", disinfectTabState.formKey||"new", editing?editing.color:"")}
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
         <input id="dz-disease" type="text" placeholder="질병명 (예: 전염성기관지염(IB))" value="${esc(editing?editing.disease:"")}"
           style="flex:1;min-width:180px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />
@@ -9821,7 +9873,7 @@ function renderFarmFinderPanel(){
   const list = finderCasesForCategory(nav.species, nav.category);
   const cards = list.length ? list.map((c, ci) => {
     const open = nav.openKey === c.key;
-    const pc = pkgColor(ci);
+    const pc = pkgColorOf(c, ci);
     return pkgCardHtml({
       color: pc.color, tint: pc.tint, icon: "🩺",
       chips: pkgChip(finderSpeciesLabel(nav.species), pc.color, pc.color+"26") + pkgChip(esc(nav.category), "#fff", pc.color),
@@ -9854,6 +9906,7 @@ function renderFinderAdminBox(admin){
     ${nav.adminOpen ? `
     <div style="margin-top:9px;background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">
       <div style="font-size:11px;font-weight:700;color:#7A5C00;margin-bottom:8px">${editing?"사례 수정: "+esc(editing.title):"새 사례 추가"} (${finderSpeciesLabel(nav.species)})</div>
+      ${pkgColorPickerHtml("ff-color", finderNavState.formKey||"new", editing?editing.color:"")}
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
         <input id="ff-category" list="ff-category-list" type="text" placeholder="문제 카테고리 (예: 호흡기 증상)" value="${esc(editing?editing.category:(nav.category||""))}"
           style="flex:1;min-width:160px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />
@@ -17723,6 +17776,7 @@ function attachEvents(){
     const program = treatmentProgramFromText(document.getElementById("tp-program")?.value);
     const caution = (document.getElementById("tp-caution")?.value || "").trim();
     const icon = (document.getElementById("tp-icon")?.value || "").trim();
+    const color = pkgReadColor("tp-color");
     if(!title){ alert("상황 제목을 입력하세요."); return; }
     if(!program.length){ alert("투약 프로그램을 한 줄 이상 입력하세요. ('단계제목|설명' 형식)"); return; }
 
@@ -17730,9 +17784,9 @@ function attachEvents(){
     const editKey = treatmentTabState.formKey;
     if(editKey){
       const idx = packages.findIndex(p=>p.key===editKey);
-      if(idx>=0) packages[idx] = Object.assign({}, packages[idx], { title, trigger, program, caution, icon });
+      if(idx>=0) packages[idx] = Object.assign({}, packages[idx], { title, trigger, program, caution, icon, color });
     } else {
-      packages.push({ key:newTreatmentKey(), species:treatmentTabState.species, title, trigger, program, caution, icon });
+      packages.push({ key:newTreatmentKey(), species:treatmentTabState.species, title, trigger, program, caution, icon, color });
     }
     treatmentPkgState.busy = true; treatmentPkgState.msg = "발행 중..."; render();
     const r = await publishTreatmentPackages(packages, "💉 상황별 처방 패키지 " + (editKey?"수정":"추가") + ": " + title);
@@ -17809,6 +17863,7 @@ function attachEvents(){
     const title = (document.getElementById("sp-title")?.value || "").trim();
     const medication = treatmentProgramFromText(document.getElementById("sp-medication")?.value);
     const husbandry = treatmentProgramFromText(document.getElementById("sp-husbandry")?.value);
+    const color = pkgReadColor("sp-color");
     if(!title){ alert("제목을 입력하세요."); return; }
     if(!medication.length && !husbandry.length){ alert("투약 사항 또는 사양관리 주의사항을 한 줄 이상 입력하세요. ('제목|설명' 형식)"); return; }
 
@@ -17816,9 +17871,9 @@ function attachEvents(){
     const editKey = seasonalTabState.formKey;
     if(editKey){
       const idx = packages.findIndex(p=>p.key===editKey);
-      if(idx>=0) packages[idx] = Object.assign({}, packages[idx], { title, medication, husbandry });
+      if(idx>=0) packages[idx] = Object.assign({}, packages[idx], { title, medication, husbandry, color });
     } else {
-      packages.push({ key:newSeasonalKey(), season:seasonalTabState.season, title, medication, husbandry });
+      packages.push({ key:newSeasonalKey(), season:seasonalTabState.season, title, medication, husbandry, color });
     }
     seasonalPkgState.busy = true; seasonalPkgState.msg = "발행 중..."; render();
     const r = await publishSeasonalPackages(packages, "🗓️ 계절별 패키지 " + (editKey?"수정":"추가") + ": " + title);
@@ -18197,6 +18252,7 @@ function attachEvents(){
     const title = (document.getElementById("vp-title")?.value || "").trim();
     const desc = (document.getElementById("vp-desc")?.value || "").trim();
     const caution = (document.getElementById("vp-caution")?.value || "").trim();
+    const color = pkgReadColor("vp-color");
     const schedule = vaccineTabState.draftSchedule;
     if(!title){ alert("프로그램 이름을 입력하세요."); return; }
     if(!schedule.length){ alert("접종 일정을 한 항목 이상 추가하세요."); return; }
@@ -18205,9 +18261,9 @@ function attachEvents(){
     const editKey = vaccineTabState.formKey;
     if(editKey){
       const idx = programs.findIndex(p=>p.key===editKey);
-      if(idx>=0) programs[idx] = Object.assign({}, programs[idx], { title, desc, schedule, caution });
+      if(idx>=0) programs[idx] = Object.assign({}, programs[idx], { title, desc, schedule, caution, color });
     } else {
-      programs.push({ key:newVaccineKey(), species:vaccineTabState.species, title, desc, schedule, caution });
+      programs.push({ key:newVaccineKey(), species:vaccineTabState.species, title, desc, schedule, caution, color });
     }
     vaccinePkgState.busy = true; vaccinePkgState.msg = "발행 중..."; render();
     const r = await publishVaccinePrograms(programs);
@@ -18455,6 +18511,7 @@ function attachEvents(){
     const products = disinfectProductsFromText(document.getElementById("dz-products")?.value);
     const procedure = treatmentProgramFromText(document.getElementById("dz-procedure")?.value);
     const caution = (document.getElementById("dz-caution")?.value || "").trim();
+    const color = pkgReadColor("dz-color");
     if(!disease){ alert("질병명을 입력하세요."); return; }
     if(!disinfectants.length && !procedure.length){ alert("소독제 선택 기준 또는 소독요령을 한 줄 이상 입력하세요. ('제목|설명' 형식)"); return; }
 
@@ -18462,9 +18519,9 @@ function attachEvents(){
     const editKey = disinfectTabState.formKey;
     if(editKey){
       const idx = items.findIndex(p=>p.key===editKey);
-      if(idx>=0) items[idx] = Object.assign({}, items[idx], { disease, disinfectants, products, procedure, caution });
+      if(idx>=0) items[idx] = Object.assign({}, items[idx], { disease, disinfectants, products, procedure, caution, color });
     } else {
-      items.push({ key:newDisinfectKey(), disease, disinfectants, products, procedure, caution });
+      items.push({ key:newDisinfectKey(), disease, disinfectants, products, procedure, caution, color });
     }
     diseaseDisinfectState.busy = true; diseaseDisinfectState.msg = "발행 중..."; render();
     const r = await publishDiseaseDisinfectants(items, "🧴 질병별 소독제/소독요령 " + (editKey?"수정":"추가") + ": " + disease);
@@ -19144,6 +19201,7 @@ function attachEvents(){
     const cause = (document.getElementById("ff-cause")?.value || "").trim();
     const program = treatmentProgramFromText(document.getElementById("ff-program")?.value);
     const caution = (document.getElementById("ff-caution")?.value || "").trim();
+    const color = pkgReadColor("ff-color");
     if(!category){ alert("문제 카테고리를 입력하세요."); return; }
     if(!title){ alert("구체적 증상 요약을 입력하세요."); return; }
     if(!diagnosis){ alert("진단명을 입력하세요."); return; }
@@ -19153,9 +19211,9 @@ function attachEvents(){
     const editKey = finderNavState.formKey;
     if(editKey){
       const idx = cases.findIndex(c=>c.key===editKey);
-      if(idx>=0) cases[idx] = Object.assign({}, cases[idx], { category, title, diagnosis, cause, program, caution });
+      if(idx>=0) cases[idx] = Object.assign({}, cases[idx], { category, title, diagnosis, cause, program, caution, color });
     } else {
-      cases.push({ key:newFinderKey(), species:finderNavState.species, category, title, diagnosis, cause, program, caution });
+      cases.push({ key:newFinderKey(), species:finderNavState.species, category, title, diagnosis, cause, program, caution, color });
     }
     finderPkgState.busy = true; finderPkgState.msg = "발행 중..."; render();
     const r = await publishFarmFinderCases(cases, "🎯 농장 맞춤 약품 찾기 " + (editKey?"수정":"추가") + ": " + title);
