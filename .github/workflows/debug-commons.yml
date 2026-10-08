@@ -1,0 +1,15 @@
+name: debug-commons
+on:
+  push:
+    branches: [ccr-76d8fb48-ixk3no]
+    paths: ['.github/workflows/debug-commons.yml', 'scripts/_commons_search.py']
+jobs:
+  search:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install requests
+      - run: python scripts/_commons_search.py
