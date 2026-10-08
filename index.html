@@ -4376,6 +4376,7 @@ function parseChuksanHTML(html){
     if(title.length>90) title=title.slice(0,90)+"…";
     let url=href0;
     if(!url.startsWith("http")) url="https://www.chuksannews.co.kr"+(url.startsWith("/")?url:"/news/"+url);
+    url=url.replace("/mobile/article.html","/news/article.html");   // 모바일 목록의 기사 주소는 PC 기사 주소로 통일
     const date=(a.textContent.match(/\d{4}-\d{2}-\d{2}/)||[])[0]||"";
     seen.add(no);
     out.push({title,date,url});
@@ -4641,7 +4642,7 @@ async function fetchNotices(force){
   console.log("뉴스: 서버 파일 없음 → 브라우저 직접 수집으로 전환");
   if(state.tab==="briefing") render();
   const [pr,ar,cr,dr,er,or_]=await Promise.allSettled([
-    fetchOneSite("https://www.chuksannews.co.kr/news/section_list_all.html?sec_no=2", parseChuksanHTML, "축산신문"),
+    fetchOneSite("https://www.chuksannews.co.kr/mobile/section_list_all.html?sec_no=84", parseChuksanHTML, "축산신문"),
     fetchOneSite(AFL_RSS, parseAflRSS, AFL_NAME),
     fetchOneSite("https://www.pignpork.com/news/articleList.html?sc_section_code=S1N1&view_type=sm", parseHandonHTML, "한돈뉴스"),
     fetchOneSite(DAILYVET_RSS, parseGenericRSS, DAILYVET_NAME),
@@ -16919,10 +16920,10 @@ function renderNoticesSection(){
           <span style="font-size:20px">📰</span>
           <div>
             <div class="display" style="font-size:14px;color:#C62828">축산신문</div>
-            <div style="font-size:10px;color:#aaa">chuksannews.co.kr · 종합</div>
+            <div style="font-size:10px;color:#aaa">chuksannews.co.kr · 축산신문</div>
           </div>
         </div>
-        <a href="https://www.chuksannews.co.kr/news/section_list_all.html?sec_no=2" target="_blank" rel="noopener"
+        <a href="https://www.chuksannews.co.kr/mobile/section_list_all.html?sec_no=84" target="_blank" rel="noopener"
            style="font-size:11px;color:#C62828;border:1px solid #C62828;border-radius:6px;padding:4px 9px;text-decoration:none">
           전체 ↗
         </a>
