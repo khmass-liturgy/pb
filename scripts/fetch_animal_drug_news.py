@@ -73,6 +73,8 @@ LAUNCH = re.compile(r"신제품|출시|론칭|개발|launch|introduc|new vaccine
 APPROVE = re.compile(r"허가|승인|인증|고시|규제|휴약|approval|approves|approved|recommend|ban|restrict|regulat", re.I)
 BIZ = re.compile(r"인수|합병|투자|M&A|acqui|merger|invest|partnership|제휴|협약", re.I)
 PRIORITY_SRC = re.compile(r"데일리벳|검역본부|동물약품협회|thepoultrysite|poultry site|animal pharm|FDA|EMA|WATTAgNet|Feedstuffs", re.I)
+NONPOULTRY = re.compile(r"돼지|양돈|한우|젖소|소 |반추|swine|\bpig|porcine|cattle|bovine|dairy|ruminant|equine|aqua|fish|shrimp", re.I)
+MARKET_REPORT = re.compile(r"market (?:size|to|will|is|report|forecast|growth|share)|CAGR|시장 규모|시장 전망 보고서|indexbox|openPR|marketsandmarkets|globenewswire.*market", re.I)
 JUNK = re.compile(r"주가|목표가|배당|코스닥|코스피|stock price|shares|dividend|펫푸드|사료 첨가", re.I)
 
 
@@ -92,6 +94,10 @@ def score(title: str, source: str) -> int:
         s += 1
     if PET.search(title) and not POULTRY.search(title):
         s -= 4
+    if NONPOULTRY.search(title) and not POULTRY.search(title):
+        s -= 4            # 돼지·소 전용 소식은 가금 컨설팅 카드에서 제외
+    if MARKET_REPORT.search(title) or MARKET_REPORT.search(source or ""):
+        s -= 4            # 시장조사 보고서 홍보성 글
     if JUNK.search(title):
         s -= 3
     return s
@@ -176,7 +182,9 @@ def pick_with_claude(cands: list[dict], api_key: str) -> list[dict] | None:
         "당신은 산란계·육계 현장 컨설턴트(수의사)를 돕는 편집자입니다. 아래는 지난 한 주 동안 모은 동물용의약품 관련 기사 후보입니다.\n"
         f"이 중 가금(산란계·육계) 컨설팅에 중요한 소식 {PICK_MIN}~{PICK_MAX}건을 고르세요.\n"
         "기준: ① 가금 백신·항생제·구충제·신제품·투여기술 ② 국내외 허가·휴약기간·항생제 규제·GMP 변경 ③ 해외 제약업계 동향(출시·인수합병·투자) ④ 연구 결과.\n"
-        "- 같은 사건을 다룬 기사는 하나만, 국내와 해외가 섞이도록(가능하면), 광고성·반려동물 전용·주식 기사는 제외.\n"
+        "- 같은 사건을 다룬 기사는 하나만, 국내와 해외가 섞이도록(가능하면) 고르세요.\n"
+        "- 제외: 광고성, 시장조사 보고서 홍보글(시장 규모·CAGR 전망), 반려동물 전용, 돼지·소 등 가금이 아닌 축종 전용, 주식 기사, 식품안전·도계 공정만 다룬 글.\n"
+        "- 후보가 부족하면 3건 미만이어도 됩니다(억지로 채우지 마세요).\n"
         "- 각 기사에 category(다음 중 하나: " + " / ".join(CATEGORIES) + ")를 붙이세요.\n"
         '출력은 JSON 한 개만: {"picks":[{"id":번호,"category":"분류"}]}\n\n' + listing
     )
