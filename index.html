@@ -7018,16 +7018,19 @@ function renderDiseaseTab(){
   const shell = inner => '<div class="card" style="margin-bottom:16px">'+inner+'</div>';
   // 오늘 기상 기준 사양관리 포인트는 질병 자료 로딩 상태와 무관하게 항상 맨 위에
   // 둔다 — 질병 위험(호흡기·콕시듐·대장균)이 결국 오늘 사양환경에서 나오기 때문.
-  const head = renderHusbandryPointsCard({title:"📋 오늘의 사양관리 포인트", poultryOnly:true}) + renderLifeMiracleCard();
+  const head = renderHusbandryPointsCard({title:"📋 오늘의 사양관리 포인트", poultryOnly:true});
+  // 생명탄생의 신비는 양계질병 사전 카드 바로 앞에 둔다(자료가 아직 없을 때도 같은 자리)
+  const life = renderLifeMiracleCard();
   if(d.status === "loading" || d.status === "idle")
-    return head + shell('<div style="text-align:center;padding:28px;color:#aaa">⏳ 질병 자료를 불러오는 중...</div>');
+    return head + life + shell('<div style="text-align:center;padding:28px;color:#aaa">⏳ 질병 자료를 불러오는 중...</div>');
   if(d.status === "error" || !d.data || !d.data.diseases)
-    return head + shell('<div style="text-align:center;padding:20px;color:#aaa;font-size:12px">자료를 불러오지 못했습니다.<br>'
+    return head + life + shell('<div style="text-align:center;padding:20px;color:#aaa;font-size:12px">자료를 불러오지 못했습니다.<br>'
       + '<a href="https://www.thepoultrysite.com/publications/diseases-of-poultry" target="_blank" rel="noopener" style="color:#00695C;font-size:11px">🌐 The Poultry Site 원문 바로가기</a></div>');
 
   const data = d.data, q = d.query || "";
   return head
     + renderMonthlyPick(data.diseases)
+    + life
     + '<div class="card" style="margin-bottom:12px;border-top:6px solid #00695C">'
     +   '<div class="display" style="font-size:16px;margin-bottom:4px">🩺 양계질병 사전</div>'
     +   '<div style="font-size:11px;color:#888;margin-bottom:10px">한글 병명으로 검색하세요 — 뉴캐슬병, 콕시듐, 마렉, 감보로, 대장균증 …</div>'
