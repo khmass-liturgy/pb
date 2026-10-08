@@ -24,7 +24,7 @@ for t in TITLES:
         g = lambda k: re.sub(r"<[^>]+>", "", (em.get(k) or {}).get("value", "")).strip()
         url = ii.get("thumburl") or ii["url"]
         ext = ".png" if url.lower().split("?")[0].endswith(".png") else ".jpg"
-        slug = re.sub(r"[^A-Za-z0-9]+", "_", t.replace("File:", ""))[:60].strip("_") + ext
+        slug = (re.sub(r"[^A-Za-z0-9]+", "_", t.replace("File:", ""))[:60].strip("_") or "x") + ext
         img = requests.get(url, headers=H, timeout=60)
         img.raise_for_status()
         open(os.path.join(out, slug), "wb").write(img.content)
@@ -35,4 +35,4 @@ for t in TITLES:
         time.sleep(1)
     except Exception as e:
         print("ERR", t, type(e).__name__, str(e)[:100])
-json.dump(credits, open(os.path.join(out, "credits.json"), "w", ensure_ascii=False), ensure_ascii=False, indent=1)
+json.dump(credits, open(os.path.join(out, "credits.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
