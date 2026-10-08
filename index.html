@@ -8920,6 +8920,32 @@ function renderMemberManagePanel(){
   </div>`;
 }
 
+// 상황별 처방 카드 디자인 — 축종(육계/산란계)마다 바탕 색조·배지를 다르게 하고,
+// 상황(제목·증상 문구의 키워드)마다 아이콘·강조색을 다르게 한다. 저장된 데이터
+// 구조(species/title/trigger/program/caution)는 그대로라 기존 항목도 바로 적용된다.
+const TREATMENT_SPECIES_THEME = {
+  broiler: { label:"🐔 육계",   color:"#D84315", tint:"#FFF3EE", chipBg:"#FFE0D3" },
+  layer:   { label:"🥚 산란계", color:"#00796B", tint:"#EEF8F6", chipBg:"#D2EEE9" },
+};
+const TREATMENT_SITUATION_THEMES = [
+  { re:/호흡|기침|콧물|CRD|IB|ND|ILT|코라이자|마이코|천식|가래|재채기/i, icon:"🫁", name:"호흡기", color:"#1565C0" },
+  { re:/장염|설사|혈변|콕시|괴사|분변|묽은|장내|소화|사료\s*섭취/, icon:"🦠", name:"소화기·장", color:"#B71C1C" },
+  { re:/산란|난각|계란|연란|파란|난질|산란율|산란\s*저하/, icon:"🥚", name:"산란 관련", color:"#F57F17" },
+  { re:/폐사|급사|죽|폐사율|면역|감염|질병\s*발생/, icon:"⚠️", name:"폐사·긴급", color:"#37474F" },
+  { re:/고온|더위|폭염|열스트레스|저온|추위|스트레스|환우|털갈이|환기/, icon:"🌡️", name:"환경·스트레스", color:"#6A1B9A" },
+  { re:/대장균|살모넬라|세균|패혈|난황|제대|계통/, icon:"🧫", name:"세균성 질병", color:"#2E7D32" },
+  { re:/다리|보행|절뚝|관절|뼈|골격|마비|부종/, icon:"🦵", name:"다리·보행", color:"#00838F" },
+  { re:/백신|접종|면역\s*저하|초생추|입추|육추/, icon:"💉", name:"입추·백신", color:"#AD1457" },
+  { re:/기생충|이|진드기|벌레|구충/, icon:"🪱", name:"기생충", color:"#5D4037" },
+];
+function treatmentCardTheme(p){
+  const sp = TREATMENT_SPECIES_THEME[p.species] || TREATMENT_SPECIES_THEME.broiler;
+  const text = (p.title||"") + " " + (p.trigger||"");
+  const sit = TREATMENT_SITUATION_THEMES.find(t => t.re.test(text))
+    || { icon:"💊", name:"일반 처방", color:sp.color };
+  return { sp, sit };
+}
+
 function renderTreatmentPanel(){
   const head = `
   <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
@@ -8939,25 +8965,33 @@ function renderTreatmentPanel(){
   }
 
   const admin = isBoardAdmin();
-  const speciesBtns = [
-    { key:"broiler", label:"🐔 육계" },
-    { key:"layer", label:"🥚 산란계" },
-  ].map(s => `
-    <button class="treatment-species-btn" data-species="${s.key}"
-      style="flex:1;border:2px solid ${treatmentTabState.species===s.key?"#C62828":"#eee"};background:${treatmentTabState.species===s.key?"#C62828":"#fff"};color:${treatmentTabState.species===s.key?"#fff":"#333"};border-radius:10px;padding:10px 6px;font-size:13px;font-weight:700;cursor:pointer">${s.label}</button>`).join("");
+  const speciesBtns = ["broiler","layer"].map(k => {
+    const t = TREATMENT_SPECIES_THEME[k], on = treatmentTabState.species===k;
+    return `
+    <button class="treatment-species-btn" data-species="${k}"
+      style="flex:1;border:2px solid ${on?t.color:"#eee"};background:${on?t.color:"#fff"};color:${on?"#fff":"#333"};border-radius:10px;padding:10px 6px;font-size:13px;font-weight:700;cursor:pointer">${t.label}</button>`;
+  }).join("");
 
   const list = treatmentPackagesFor(treatmentTabState.species);
   const cards = list.length ? list.map(p => {
     const open = treatmentTabState.openKey === p.key;
+    const { sp, sit } = treatmentCardTheme(p);
     return `
-    <div class="card" style="border-top:4px solid #C62828;margin-bottom:10px;padding:16px">
+    <div class="card" style="border:1px solid ${sit.color}33;border-left:6px solid ${sit.color};background:linear-gradient(135deg,${sp.tint},#fff 60%);margin-bottom:10px;padding:14px 16px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
-        <div class="treatment-toggle" data-key="${p.key}" style="cursor:pointer;flex:1;min-width:0">
-          <div style="font-size:14px;font-weight:800;color:#333">${esc(p.title)}</div>
-          <div style="font-size:11px;color:#888;margin-top:4px">${esc(p.trigger)}</div>
+        <div class="treatment-toggle" data-key="${p.key}" style="cursor:pointer;flex:1;min-width:0;display:flex;gap:10px;align-items:flex-start">
+          <div style="width:40px;height:40px;border-radius:50%;background:${sit.color}1A;border:2px solid ${sit.color};display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">${sit.icon}</div>
+          <div style="min-width:0">
+            <div style="margin-bottom:4px">
+              <span style="font-size:9.5px;font-weight:700;color:${sp.color};background:${sp.chipBg};border-radius:10px;padding:2px 8px;margin-right:4px">${sp.label}</span>
+              <span style="font-size:9.5px;font-weight:700;color:#fff;background:${sit.color};border-radius:10px;padding:2px 8px">${sit.name}</span>
+            </div>
+            <div style="font-size:14px;font-weight:800;color:#333">${esc(p.title)}</div>
+            <div style="font-size:11px;color:#777;margin-top:3px;line-height:1.5">${esc(p.trigger)}</div>
+          </div>
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
-          <span class="treatment-toggle" data-key="${p.key}" style="cursor:pointer;font-size:11px;color:#C62828;font-weight:700;white-space:nowrap">${open?"접기 ▲":"처방 보기 ▼"}</span>
+          <span class="treatment-toggle" data-key="${p.key}" style="cursor:pointer;font-size:11px;color:${sit.color};font-weight:700;white-space:nowrap">${open?"접기 ▲":"처방 보기 ▼"}</span>
           ${admin ? `
           <div style="white-space:nowrap">
             <button class="treatment-edit-btn" data-key="${p.key}" style="font-size:10px;border:1px solid #C62828;border-radius:5px;background:#fff;color:#C62828;padding:3px 8px;margin-right:4px">편집</button>
@@ -8966,10 +9000,10 @@ function renderTreatmentPanel(){
         </div>
       </div>
       ${open ? `
-      <div style="margin-top:12px;padding-top:12px;border-top:1px dashed #eee">
+      <div style="margin-top:12px;padding-top:12px;border-top:1px dashed ${sit.color}66">
         ${p.program.map(s => `
-        <div style="margin-bottom:9px">
-          <div style="font-size:12.5px;font-weight:700;color:#C62828">${s.link ? `<a href="${esc(s.link)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">${esc(s.step)} ↗</a>` : esc(s.step)}</div>
+        <div style="margin-bottom:9px;padding:7px 10px;background:${sit.color}0D;border-left:3px solid ${sit.color};border-radius:0 8px 8px 0">
+          <div style="font-size:12.5px;font-weight:700;color:${sit.color}">${s.link ? `<a href="${esc(s.link)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">${esc(s.step)} ↗</a>` : esc(s.step)}</div>
           <div style="font-size:12.5px;color:#444;line-height:1.6;margin-top:2px">${esc(s.detail)}</div>
         </div>`).join("")}
         <div style="font-size:11px;color:#8D6E00;background:#FFF8E1;border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.6">⚠️ ${esc(p.caution)}</div>
