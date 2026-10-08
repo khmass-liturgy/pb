@@ -735,6 +735,7 @@ const PREMIUM_ITEMS = [
   { key:"finder", icon:"🎯", title:"내 농장에 맞는 약품 찾기", desc:"축종과 문제 증상을 단계별로 선택하면 진단·원인 분석과 추천 처방을 보여드립니다.", color:"#283593", category:"약품·투약·소독" },
   { key:"disinfect", icon:"🧴", title:"질병별 소독제 선택과 소독요령", desc:"질병을 고르면 그에 맞는 소독제 선택 기준과 소독요령을 단계별로 안내합니다.", color:"#00695C", category:"약품·투약·소독" },
   { key:"newproducts", icon:"🆕", title:"신제품 소식", desc:"항생제·영양제·백신·기타로 나눠 새로 나온 제품 정보를 카드 학습 형태로 보여드립니다.", color:"#C2185B", category:"약품·투약·소독" },
+  { key:"drugnews", icon:"💊", title:"동물약품 주간 소식", desc:"국내외 동물용의약품 신제품·백신·항생제·허가·제약업계 동향 중 중요한 소식 3~5건을 매주 금요일 아침 7시에 골라 카드로 보여드립니다. 국내외 전문 사이트 모음도 함께 봅니다.", color:"#AD1457", category:"약품·투약·소독" },
   { key:"vaccine", icon:"🛡️", title:"백신관리 프로그램", desc:"육계·산란계 일령별 백신 접종 프로그램을 관리자가 만들어 단계별로 보여드립니다.", color:"#3949AB", category:"백신관리" },
   { key:"ventfinder", icon:"💨", title:"내 농장에 맞는 환기량 찾기", desc:"오늘 날씨·계사 조건을 넣으면 최소환기량(습도 조절)과 최대환기량(터널·냉각)을 계산해 드립니다.", color:"#0288D1", category:"사양관리" },
   { key:"lightguide", icon:"💡", title:"점등 프로그램(산란계·육계, 육종회사별)", desc:"로만·하이라인·이사 공식 가이드의 점등 원칙과 입식일·지역별 자연 일장을 겹쳐, 계절에 맞는 점등시간과 조기 성성숙·산란 지연 위험을 보여드립니다.", color:"#F9A825", category:"사양관리" },
@@ -825,14 +826,28 @@ const PREMIUM_MENU_LEGACY_PATH = "premium_menu/items.json";
 const PREMIUM_MENU_KNOWN_KEYS = [
   "drug","treatment","seasonal","finder","disinfect","newproducts","vaccine",
   "ventfinder","lightguide","moltguide","feedstandard","feedgrain","grainprice","selfcheck","diagnosis","specimen","faq","study",
-  "research","emerging","industrynews","magazine","kkoko","feature_board","consult","consulting","smssub",
+  "research","emerging","industrynews","drugnews","magazine","kkoko","feature_board","consult","consulting","smssub",
 ];
 let premiumMenuState = { status:"idle", data:null, busy:false, msg:"", adminOpen:false, formOpen:false,
   editIndex:null, draftKey:"", draftIcon:"🆕", draftTitle:"", draftDesc:"", draftColor:"#00838F", draftCategory:"" };
 
+// 관리자가 저장한 메뉴가 있어도, 그 뒤에 새로 만든 기본 메뉴(PREMIUM_MENU_NEW_SEED_KEYS)는 빠져 보이지 않게
+// 저장된 메뉴에 없을 때만 기본 위치(앞 메뉴 뒤)에 끼워 보여 준다.
+const PREMIUM_MENU_NEW_SEED_KEYS = ["drugnews"];
 function currentPremiumMenuItems(){
   const items = premiumMenuState.data && premiumMenuState.data.items;
-  return (Array.isArray(items) && items.length) ? items : PREMIUM_ITEMS;
+  if(!(Array.isArray(items) && items.length)) return PREMIUM_ITEMS;
+  const out = items.slice();
+  PREMIUM_MENU_NEW_SEED_KEYS.forEach(k => {
+    if(out.some(it => it.key === k)) return;
+    const seedIdx = PREMIUM_ITEMS.findIndex(it => it.key === k);
+    const seed = PREMIUM_ITEMS[seedIdx];
+    if(!seed) return;
+    const prevKey = seedIdx > 0 ? PREMIUM_ITEMS[seedIdx-1].key : null;
+    const at = prevKey ? out.findIndex(it => it.key === prevKey) : -1;
+    if(at >= 0) out.splice(at+1, 0, seed); else out.push(seed);
+  });
+  return out;
 }
 
 async function fetchPremiumMenuItems(){
@@ -11255,6 +11270,104 @@ function renderIndustryNewsPanel(){
     <div style="font-size:9.5px;color:#aaa;line-height:1.6;margin-top:12px">※ 요약은 기사 내용을 짧게 줄인 참고용이며(AI 요약은 오류가 있을 수 있음) 기사의 저작권은 각 언론사에 있습니다. 정확한 내용은 「원문 보기」로 확인하세요.</div>`;
 }
 
+// ── 동물약품 주간 소식 (유료서비스 · 약품·투약·소독) ─────────────────────────────────────
+// scripts/fetch_animal_drug_news.py 가 매주 금요일 아침 7시(KST)에 국내외 동물용의약품 소식을 모아 가금 현장에 중요한
+// 3~5건을 골라 animal_drug_news/latest.json 에 쌓는다(최근 12주). 여기서는 주차별로 카드로 그린다.
+const DRUG_NEWS_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/animal_drug_news/latest.json";
+const drugNewsState = { status:"idle", data:null, week:null, showSites:false };
+const DN_CATS = {
+  "신제품·백신": { color:"#AD1457", icon:"💉" },
+  "항생제·약제": { color:"#E65100", icon:"🧪" },
+  "인허가·정책": { color:"#00695C", icon:"📋" },
+  "연구개발":   { color:"#6A1B9A", icon:"🔬" },
+  "업계 동향":  { color:"#455A64", icon:"🏭" },
+};
+// 국내외 동물용의약품 전문 사이트 — 주소가 확실치 않은 두 곳은 검색 링크로 연결한다
+const DN_SITES = {
+  "국내": [
+    { name:"한국동물약품협회", url:"https://www.kahpa.or.kr", info:"동물약품 산업 동향, 정부 정책, 인허가 제도, 수출입 현황, 업계 공지", top:true },
+    { name:"농림축산검역본부", url:"https://www.qia.go.kr", info:"동물용의약품 허가·관리, 백신 관련 규정, 안전성·유효성, 관련 고시", top:true },
+    { name:"데일리벳 신제품", url:"https://www.dailyvet.co.kr/news/product", info:"신규 동물약품, 백신·치료제 출시, 제약회사 소식" },
+    { name:"데일리벳", url:"https://www.dailyvet.co.kr", info:"수의·축산업계 뉴스, 동물약품 정책, 연구개발 동향" },
+    { name:"한국동물용의약품판매협회", url:"https://www.google.com/search?q=" + encodeURIComponent("한국동물용의약품판매협회"), info:"동물약품 유통, 판매업계 공지 및 관련 제도 (검색 링크)" },
+  ],
+  "해외": [
+    { name:"The Poultry Site", url:"https://www.thepoultrysite.com", info:"가금 백신, 질병 예방, 접종기술, 제품 개발" },
+    { name:"미국 FDA CVM", url:"https://www.fda.gov/animal-veterinary", info:"신약 승인, 동물약품 안전성, 항생제 규제" },
+    { name:"유럽 EMA CVMP", url:"https://www.ema.europa.eu/en/committees/committee-veterinary-medicinal-products-cvmp", info:"유럽 동물약품 허가심사, 신규 백신, 약품 평가" },
+    { name:"Animal Pharm", url:"https://www.google.com/search?q=" + encodeURIComponent("Animal Pharm animal health news"), info:"글로벌 동물약품 기업, 시장 동향, 신약 개발 및 산업 분석 (검색 링크)" },
+  ],
+};
+const DN_TIPS = [
+  ["💉 신제품·신기술", "새로운 백신, 항생제, 구충제, 투여방법"],
+  ["🔬 연구개발", "IB·ND·IBD·콕시듐·마이코플라즈마 백신의 효과 및 개선 기술"],
+  ["🏭 산업 동향", "글로벌 동물약품 회사의 제품 출시, 인수합병, 연구개발 투자"],
+  ["📋 인허가·정책", "국내외 허가 변경, 휴약기간, 항생제 규제, GMP"],
+];
+async function fetchDrugNews(){
+  if(drugNewsState.status === "loading") return;
+  drugNewsState.status = "loading";
+  try {
+    const r = await fetchWithTimeout(DRUG_NEWS_JSON_URL + "?t=" + Date.now(), 10000);
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    drugNewsState.data = await r.json();
+    drugNewsState.status = "done";
+  } catch(e){ console.warn("동물약품 주간 소식 로딩 실패:", e); drugNewsState.status = "error"; }
+  if(premiumState.view === "drugnews") render();
+}
+function renderDrugNewsSites(){
+  const row = (s) => `<a href="${esc(s.url)}" target="_blank" rel="noopener" style="display:block;text-decoration:none;${pkgBoxStyle(s.top?"#C62828":"#37474F", s.top?"#FDF1F1":"#F4F6F7", "10px 12px")};margin-bottom:6px">
+      <div style="font-size:13px;font-weight:800;color:#222">${esc(s.name)} ${s.top?pkgChip("공식 정보 우선", "#fff", "#C62828"):""} <span style="color:#999;font-weight:400">↗</span></div>
+      <div style="font-size:11.5px;color:#666;margin-top:2px;line-height:1.5">${esc(s.info)}</div></a>`;
+  return `
+    <div style="margin-top:22px">
+      <div class="display" style="font-size:14px;margin-bottom:8px">🌐 국내외 동물용의약품 전문 사이트</div>
+      <div style="font-size:12px;font-weight:800;color:#37474F;margin:8px 0 5px">🇰🇷 국내</div>
+      ${DN_SITES["국내"].map(row).join("")}
+      <div style="font-size:11px;color:#8D6E00;background:#FFF8E1;border-radius:8px;padding:8px 10px;margin:4px 0 10px;line-height:1.6">제도 변경과 허가 정보는 한국동물약품협회·농림축산검역본부를 우선 확인하세요. 데일리벳은 신제품 출시와 산업계 소식을 살펴보기에 좋습니다.</div>
+      <div style="font-size:12px;font-weight:800;color:#37474F;margin:8px 0 5px">🌍 해외</div>
+      ${DN_SITES["해외"].map(row).join("")}
+      <div style="font-size:11px;color:#8D6E00;background:#FFF8E1;border-radius:8px;padding:8px 10px;margin:4px 0 10px;line-height:1.6">The Poultry Site에서는 IBD·뉴캐슬병 백신, 콕시듐 생백신의 면역 형성 등 가금 자료를 볼 수 있습니다. 기업 후원 기사도 있으니 독립적인 연구자료와 함께 검토하세요.</div>
+      <div style="font-size:12px;font-weight:800;color:#37474F;margin:12px 0 5px">🧭 추천 정보 수집 방법 (가금 현장 컨설팅 기준)</div>
+      ${DN_TIPS.map(t => `<div style="display:flex;gap:8px;font-size:12px;line-height:1.6;color:#444;margin:3px 0"><b style="flex:0 0 112px;color:#37474F">${t[0]}</b><span>${esc(t[1])}</span></div>`).join("")}
+    </div>`;
+}
+function renderDrugNewsPanel(){
+  const st = drugNewsState;
+  const head = `<div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><div class="display" style="font-size:16px;margin-bottom:3px">💊 동물약품 주간 소식</div><div style="font-size:11px;color:#aaa">매주 금요일 오전 7시, 국내외 동물용의약품 신제품·백신·항생제·허가·제약업계 동향 중 중요한 소식 3~5건을 골라 정리합니다</div></div><button id="drugnews-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button></div>`;
+  if(st.status === "idle" || st.status === "loading") return head + `<div class="card" style="text-align:center;padding:32px;color:#aaa">⏳ 소식을 불러오는 중...</div>` + renderDrugNewsSites();
+  if(st.status === "error" || !st.data) return head + `<div class="card" style="text-align:center;padding:28px;color:#C62828;font-size:13px">⚠️ 소식을 불러오지 못했습니다.<div><button id="drugnews-retry" style="margin-top:10px;border:1px solid #AD1457;border-radius:8px;background:#AD1457;color:#fff;padding:7px 14px;font-size:12px;font-weight:700">다시 불러오기</button></div></div>` + renderDrugNewsSites();
+  const weeks = st.data.weeks || [];
+  if(!weeks.length) return head + `<div class="card" style="text-align:center;padding:28px;color:#aaa">아직 정리된 소식이 없습니다. 다음 금요일 아침에 첫 소식이 올라옵니다.</div>` + renderDrugNewsSites();
+  const cur = weeks.find(w => w.week === st.week) || weeks[0];
+  const weekChips = weeks.slice(0, 8).map(w => { const on = w.week === cur.week; return `<button class="dn-week" data-w="${esc(w.week)}" style="border:1.5px solid ${on ? "#AD1457" : "#ddd"};background:${on ? "#AD1457" : "#fff"};color:${on ? "#fff" : "#555"};border-radius:16px;padding:5px 11px;font-size:11.5px;font-weight:700;cursor:pointer">${esc(w.week.slice(5).replace("-", "월 ") + "일")}${w === weeks[0] ? " · 최신" : ""}</button>`; }).join("");
+  const cards = (cur.items || []).map(i => {
+    const cat = DN_CATS[i.category] || { color:"#455A64", icon:"💊" };
+    const sums = (i.summary || []).map(x => `<div style="display:flex;gap:8px;font-size:14px;line-height:1.7;color:#222;margin:3px 0"><span style="color:${cat.color};font-weight:900">•</span><span>${esc(x)}</span></div>`).join("");
+    const body = `${sums ? `<div style="background:#FFFDF6;border:1px solid #F1E2B5;border-radius:12px;padding:11px 13px"><div style="font-size:11px;font-weight:800;color:${i.ai ? "#6A1B9A" : "#8D6E00"};margin-bottom:5px">${i.ai ? "🤖 AI 핵심 요약" : "📌 본문 발췌"}</div>${sums}</div>` : `<div style="font-size:12.5px;color:#aaa">요약을 만들지 못한 기사입니다. 원문에서 확인해 주세요.</div>`}
+      ${i.point ? `<div style="font-size:12.5px;color:#4A148C;background:#F6EFFA;border-radius:10px;padding:9px 12px;margin-top:8px;line-height:1.6"><b>👨‍⚕️ 현장 시사점</b> · ${esc(i.point)}</div>` : ""}
+      ${i.titleOrig && i.titleOrig !== i.title ? `<div style="font-size:10.5px;color:#aaa;margin-top:8px;line-height:1.5">원문 제목: ${esc(i.titleOrig)}</div>` : ""}
+      <div style="text-align:right;margin-top:10px"><a href="${esc(i.url || "#")}" target="_blank" rel="noopener" style="display:inline-block;font-size:13px;font-weight:800;color:#fff;background:${cat.color};border-radius:10px;padding:8px 16px;text-decoration:none">📄 원문 보기 ↗</a></div>`;
+    return `<div class="card" style="${pkgBoxStyle(cat.color, cat.color + "14", "14px 16px")}">
+      <div style="display:flex;gap:10px;align-items:flex-start">
+        ${pkgIconCircle(cat.icon, cat.color, 40)}
+        <div style="min-width:0;flex:1">
+          <div style="margin-bottom:4px">${pkgChip(i.region === "해외" ? "🌍 해외" : "🇰🇷 국내", cat.color, cat.color + "26")}${pkgChip(esc(i.category || ""), "#fff", cat.color)}</div>
+          <div style="font-size:16px;font-weight:900;color:#111;line-height:1.5">${esc(i.title)}</div>
+          <div style="font-size:11.5px;color:#888;margin-top:3px">${esc(i.source || "")} · ${esc(i.date || "")}</div>
+        </div>
+      </div>
+      <div style="margin-top:10px">${body}</div>
+    </div>`;
+  }).join("");
+  return head + `
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">${weekChips}</div>
+    <div style="font-size:10.5px;color:#aaa;margin:2px 0 10px">${esc(cur.week)} 주 · 총 ${(cur.items || []).length}건 · 갱신 ${esc(st.data.updated || "")}</div>
+    ${cards || `<div class="card" style="text-align:center;padding:24px;color:#aaa">이 주에는 정리된 소식이 없습니다.</div>`}
+    <div style="font-size:9.5px;color:#aaa;line-height:1.6;margin-top:8px">※ 소식은 Google 뉴스에서 모은 기사 중 AI가 가금 현장에 중요한 것을 고르고 요약·번역한 것으로 오류가 있을 수 있습니다(제품 효능·허가 여부는 반드시 원문과 농림축산검역본부 공고로 확인). 기사의 저작권은 각 언론사에 있습니다. 항생제·백신의 실제 사용은 수의사 처방·지도를 따르세요.</div>
+    ${renderDrugNewsSites()}`;
+}
+
 function renderPremiumGateHeader(){
   return `
   <div style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
@@ -11455,6 +11568,11 @@ function renderPremiumTab(){
   if(premiumState.view === "industrynews"){
     if(industryNewsState.status === "idle") fetchIndustryNews();
     return renderPremiumGateHeader() + logoutBar + renderIndustryNewsPanel();
+  }
+  // 동물약품 주간 소식 — animal_drug_news/latest.json(매주 금요일 아침 자동 갱신)
+  if(premiumState.view === "drugnews"){
+    if(drugNewsState.status === "idle") fetchDrugNews();
+    return renderPremiumGateHeader() + logoutBar + renderDrugNewsPanel();
   }
   // 양계잡지 학습정보 화면
   if(premiumState.view === "magazine"){
@@ -17413,6 +17531,11 @@ function attachDiseaseEvents(){
   document.querySelectorAll(".in-group").forEach(b => b.onclick = () => { industryNewsState.group = b.dataset.g; industryNewsState.limit = 30; render(); });
   const inMore = document.getElementById("in-more"); if(inMore) inMore.onclick = () => { industryNewsState.limit += 30; render(); };
   const inKw = document.querySelector(".in-kw"); if(inKw) inKw.onclick = () => { industryNewsState.showKw = !industryNewsState.showKw; render(); };
+  const dnBack = document.getElementById("drugnews-back-btn");
+  if(dnBack) dnBack.onclick = () => { premiumState.view = "menu"; render(); };
+  const dnRetry = document.getElementById("drugnews-retry");
+  if(dnRetry) dnRetry.onclick = () => { drugNewsState.status = "idle"; render(); };
+  document.querySelectorAll(".dn-week").forEach(b => b.onclick = () => { drugNewsState.week = b.dataset.w; render(); });
   const emBack = document.getElementById("emerging-back-btn");
   if(emBack) emBack.onclick = () => { premiumState.view = "menu"; render(); };
   // 국내 가금농장 HPAI 발생 지도

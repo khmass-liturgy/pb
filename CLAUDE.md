@@ -141,6 +141,7 @@ Each data domain has this shape:
 | 국내 고병원성 AI 가금농장 발생·야생조류 검출(농식품부 「발생·검출 현황」 .hwp 표 + Google 뉴스 RSS 최근 3일 보도) | `scripts/fetch_hpai_kr.py` | `hpai_kr/latest.json` | fetch-hpai-kr.yml | daily 09:30·18:30 (commits only when the table or news changed) |
 | 사료곡물 가격동향·전망(CBOT 옥수수·대두박·대두·밀 + 환율·달러지수·유가·운임 + grain_quality 기상 → 6요인 가중점수 1·3개월 전망, 유료서비스 전용 카드) | `scripts/fetch_grain_price.py` | `grain_price/latest.json` | fetch-grain-price.yml | Tue–Sat 08:00 (US close; commits only when numbers changed) |
 | 양계 업계 소식(Google 뉴스 국내판에서 계란·조류인플루엔자·AI·육계·방역·양계 질병 키워드 24개 검색, 최근 14일 누적, 유료서비스 「양계 업계관련 핵심키워드 검색소식」 카드; 원문 주소는 Google 뉴스 링크를 batchexecute로 풀고, 본문 요약은 Claude Haiku(ANTHROPIC_API_KEY, 없으면 본문 앞부분 발췌)) | `scripts/fetch_industry_news.py` | `industry_news/latest.json` | fetch-industry-news.yml | daily 07:30 |
+| 동물약품 주간 소식(Google 뉴스 국내판·해외판에서 동물용의약품 신제품·백신·항생제·허가·제약업계 소식 후보를 모아 Claude Haiku가 가금 현장에 중요한 3~5건을 고르고 요약·번역, 유료서비스 「동물약품 주간 소식」 카드; 최근 12주 보관, 키가 없으면 키워드 점수·본문 발췌) | `scripts/fetch_animal_drug_news.py` | `animal_drug_news/latest.json` | fetch-animal-drug-news.yml | weekly Fri 07:00 |
 
 `fetch_hpai_kr.py` reads the MAFRA HWP table (olefile) through the same domestic relay as the feed-production job —
 the relay's `MAFRA_ALLOWED_PATH` (farm-pro `sms-relay/server.js`) must include `bbs/FMD-AI2/851`, and the VM needs the

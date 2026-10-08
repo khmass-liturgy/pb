@@ -1,0 +1,49 @@
+name: 동물약품 주간 소식 수집
+
+on:
+  schedule:
+    # 매주 금요일 한국시간 07:00 (= 목요일 22:00 UTC)
+    - cron: "0 22 * * 4"
+  workflow_dispatch:
+
+concurrency:
+  group: fetch-animal-drug-news
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-animal-drug-news:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Python 설정
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: 패키지 설치
+        run: pip install requests trafilatura
+
+      - name: 동물약품 주간 소식 수집
+        # 선별·요약은 Claude(ANTHROPIC_API_KEY — 양계 업계 소식·기술탐구 논문과 같은 저장소 시크릿)로 하고, 키가 없으면 키워드 점수·본문 발췌로 대신한다
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python scripts/fetch_animal_drug_news.py
+
+      - name: 결과 커밋
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add animal_drug_news/
+          git diff --staged --quiet && echo "변경 없음" && exit 0
+          git commit -m "💊 동물약품 주간 소식 갱신 ($(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M KST'))"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin ${GITHUB_REF_NAME} && git push && exit 0
+            echo "푸시 재시도 $i"
+            sleep 5
+          done
+          exit 1
