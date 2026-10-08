@@ -4389,7 +4389,7 @@ function parseChuksanHTML(html){
 }
 
 // 한돈뉴스 (ndsoft CMS): a[href*='articleView.html?idxno='] · 날짜 MM.DD HH:MM
-function parseHandonHTML(html){
+function parseHandonHTML(html, origin){
   const doc=new DOMParser().parseFromString(html,"text/html");
   const out=[], seen=new Set();
   const scope=doc.querySelector("#section-list")||doc;   // 본문 기사목록 우선
@@ -4399,7 +4399,7 @@ function parseHandonHTML(html){
     if(!id||seen.has(id)) return;
     const title=a.textContent.replace(/\s+/g," ").trim();
     if(title.length<8) return;
-    let url=href0.startsWith("http")?href0:"https://www.pignpork.com"+(href0.startsWith("/")?href0:"/news/"+href0);
+    let url=href0.startsWith("http")?href0:(origin||"https://www.pignpork.com")+(href0.startsWith("/")?href0:"/news/"+href0);
     const row=a.closest("li,article,div");
     const date=row?(row.textContent.match(/\d{2}\.\d{2}\s?\d{2}:\d{2}|\d{4}[-.]\d{2}[-.]\d{2}/)||[""])[0].trim():"";
     seen.add(id);
@@ -4474,7 +4474,7 @@ function parseGenericRSS(xml){
 // UTC로 해석돼 9시간 밀린다 → 문자열을 그대로 잘라 쓴다.
 const AFL_RSS  = "https://www.aflnews.co.kr/rss/S1N2.xml";
 const AFL_NAME = "농수축산신문";
-const AFL_HOME = "https://www.aflnews.co.kr/news/articleList.html?sc_section_code=S1N2&view_type=sm";
+const AFL_HOME = "https://www.aflnews.co.kr/news/articleList.html?sc_sub_section_code=S2N73&view_type=sm";
 
 function parseAflRSS(xml){
   const doc = new DOMParser().parseFromString(xml, "text/xml");
@@ -4647,7 +4647,7 @@ async function fetchNotices(force){
   if(state.tab==="briefing") render();
   const [pr,ar,cr,dr,er,or_]=await Promise.allSettled([
     fetchOneSite("https://www.chuksannews.co.kr/mobile/section_list_all.html?sec_no=84", parseChuksanHTML, "축산신문"),
-    fetchOneSite(AFL_RSS, parseAflRSS, AFL_NAME),
+    fetchOneSite(AFL_HOME, h=>parseHandonHTML(h,"https://www.aflnews.co.kr"), AFL_NAME),
     fetchOneSite("https://www.pignpork.com/news/articleList.html?sc_section_code=S1N1&view_type=sm", parseHandonHTML, "한돈뉴스"),
     fetchOneSite(DAILYVET_RSS, parseGenericRSS, DAILYVET_NAME),
     fetchEconNews(),
@@ -16942,7 +16942,7 @@ function renderNoticesSection(){
           <span style="font-size:20px">🌾</span>
           <div>
             <div class="display" style="font-size:14px;color:#EF6C00">농수축산신문</div>
-            <div style="font-size:10px;color:#aaa">aflnews.co.kr · 축산</div>
+            <div style="font-size:10px;color:#aaa">aflnews.co.kr · 농수축산신문</div>
           </div>
         </div>
         <a href="${esc(AFL_HOME)}" target="_blank" rel="noopener"
