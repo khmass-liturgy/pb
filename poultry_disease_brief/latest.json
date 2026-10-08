@@ -1,0 +1,108 @@
+{
+ "updated": "2026-10-09 07:29 KST",
+ "weeks": [
+  {
+   "week": "2026-10-05",
+   "items": [
+    {
+     "id": "pmid:42840969",
+     "title": "QX형(GI-19) IB에 대한 NDV벡터 다중에피토프 백신 방어시험(초록 기준)",
+     "species": "공통",
+     "topic": "백신·면역",
+     "cls": "paper",
+     "evidence": "백신 실험 감염 시험(SPF 병아리)",
+     "new": [
+      "NDV LaSota 벡터에 IBV S1 B세포 에피토프와 CTL 에피토프를 함께 발현시킨 재조합 백신(rNDV-IBV-T/B)을 제작, SPF 병아리에 단회 또는 부스터 안점·비강 접종(10^6 EID50) 후 QX-like(GI-19) 바이러스로 공격접종함.",
+      "부스터 접종군 비장 CD3+CD8+ T세포 비율 41.3% vs 대조군 31.9%(p<0.001), 중화항체 peak log2 GMT 5.80을 유도함.",
+      "백신접종군은 임상점수 감소, 모든 관찰 시점 기관 섬모운동 보존, 조직병변 완화, 구인두·배설강 바이러스 RNA 배출 감소(특히 부스터군에서 배설강 배출 감소가 더 일관됨)를 보임."
+     ],
+     "why": [
+      "기존 Mass형 백신이 QX형(GI-19)에 교차방어를 못 주는 현장 문제를 겨냥한 신규 벡터 백신으로 GI-19 유행 지역 대안이 될 수 있음.",
+      "중화항체뿐 아니라 CD8+ T세포(세포성 면역)도 방어에 기여함을 시사해 백신 평가·설계 방향에 참고 가능."
+     ],
+     "caution": [
+      "SPF 병아리 실험 결과로, 상용 산란계·육계의 모체이행항체·현장 혼합감염 조건에서 효능은 초록만으로는 확인할 수 없음.",
+      "국내 허가·상용화 여부 및 안점·비강 투여의 현장 적용성은 별도 확인 필요."
+     ],
+     "limits": [
+      "SPF 병아리 대상 실험감염 시험으로 현장 농장 자료가 아님.",
+      "표본 수, 사육기간, 반복시험 여부 등이 초록에 명시되지 않음.",
+      "단일 공격균주(QX-like) 결과이며 다른 유전형에 대한 교차방어는 초록만으로는 확인할 수 없음."
+     ],
+     "origTitle": "A recombinant Newcastle disease virus-vectored multi-epitope vaccine confers protection against QX-like infectious bronchitis virus in chickens.",
+     "publisher": "Frontiers in immunology",
+     "date": "2026-09-22",
+     "url": "https://doi.org/10.3389/fimmu.2026.1949497",
+     "pubmed": "https://pubmed.ncbi.nlm.nih.gov/42840969/"
+    },
+    {
+     "id": "pmid:42841775",
+     "title": "닭 마이코플라스마(MG) 서브유닛 백신의 방어기전·상관인자 분석",
+     "species": "공통",
+     "topic": "백신·면역",
+     "cls": "paper",
+     "evidence": "백신 실험 감염 시험 기반 기전·상관분석 연구",
+     "new": [
+      "기존 개발 MG 서브유닛 백신이 감염균의 in vivo vlhA 발현 양상을 변화시킴을 확인함.",
+      "공격접종 1일째 항-VlhA 3.06 IgY가 기관 점막 최대두께와, 항-MG lysate·VlhA 3.03·5.05 IgY가 균 회수량과 음의 상관을 보임.",
+      "기관 관련 γδ T세포(특히 CD8- γδ T세포)·단핵구/대식세포 비율이 균 회수량·점막두께와 음의 상관을 보였고, 구성항원 중 VlhA 3.03·3.06·5.05, GapA, CrmA는 균 회수 감소에 기여했으나 VlhA 4.07은 불필요했음."
+     ],
+     "why": [
+      "기존 bacterin·약독생균 백신의 한계를 보완할 서브유닛 백신의 방어상관인자(correlate of protection)를 규명해 향후 백신 효능평가·개량 지표로 활용 가능.",
+      "MG는 호흡기 질병으로 경제적 손실이 큰 병원체로, 작용기전 이해가 현장 적용 전략 수립에 도움이 됨."
+     ],
+     "caution": [
+      "서브유닛 백신 자체의 상용화·국내 사용 가능성은 초록만으로는 확인할 수 없음.",
+      "항체·세포반응 상관분석 결과이며 실제 야외 방어율(산란율, 호흡기 증상 감소 등) 수치는 본문에 제시되지 않음."
+     ],
+     "limits": [
+      "다섯 건의 개별 실험으로 구성된 기전연구로 대상 계종·연령·표본 수가 초록에 명시되지 않음.",
+      "실험감염 조건 기반 상관분석으로 현장 자료가 아님.",
+      "저자 그룹 자체 개발 백신 플랫폼 대상 연구로 이해관계 가능성 배제 불가."
+     ],
+     "origTitle": "Immune responses induced by a subunit vaccine against Mycoplasma gallisepticum.",
+     "publisher": "Infection and immunity",
+     "date": "2026-10-07",
+     "url": "https://doi.org/10.1128/iai.00305-26",
+     "pubmed": "https://pubmed.ncbi.nlm.nih.gov/42841775/"
+    },
+    {
+     "id": "pmid:42802923",
+     "title": "유럽 유행 IBDV A3B4·A3B2 재조합주 병원성 비교",
+     "species": "공통",
+     "topic": "변이·역학",
+     "cls": "paper",
+     "evidence": "실험 감염 시험(SPF 병아리) 기반 병원성·전사체 비교 연구",
+     "new": [
+      "유럽(폴란드 등)에서 기존 우세주 A3B2를 대체하며 확산 중인 신규 재조합 IBDV A3B4(Bug/03)주와 A3B2(75/11)주 병원성을 SPF 병아리에서 비교함.",
+      "두 균주 모두 법낭(bursa of Fabricius)에서 바이러스량 최고치를 보였으며, A3B2는 초기 바이러스 RNA량이 더 높고 A3B4는 여러 조직에서 더 오래 지속됨.",
+      "A3B4는 4일째 비슷한 바이러스량에도 더 이른 법낭 위축과 불균일한 계군 발육을 유발했고, 전사체 분석에서 A3B4는 대사·번역 경로(세포 적응), A3B2는 면역·염증(사이토카인·케모카인) 경로를 강하게 활성화함."
+     ],
+     "why": [
+      "A3B4 계열이 유럽에서 기존 우세주를 대체·확산 중인 현상의 생물학적 배경(숙주 반응 조절, 조직 내 지속성)을 시사해 유사 변이주 유입 시 임상상(불균일 발육, 지연성 법낭 위축) 예측에 참고 가능.",
+      "IBDV 병원성이 단순 증식량이 아니라 숙주 반응 양상에 좌우될 수 있음을 보여줘 기존 병독성 평가 지표 재검토 필요성 제기."
+     ],
+     "caution": [
+      "현재 국내 유행 IBDV 유전형과 A3B4/A3B2의 관련성은 초록만으로는 확인할 수 없음.",
+      "기존 IBD 백신의 A3B4 방어효과 여부는 본 자료에서 다루지 않음."
+     ],
+     "limits": [
+      "SPF 병아리 대상 실험감염 연구로 상업농장 사육조건과 다를 수 있음.",
+      "유럽 특정 지역 분리주 2종 비교로 일반화에 한계가 있음.",
+      "표본 수, 사육일령 등 세부 시험설계가 초록에 제시되지 않음."
+     ],
+     "origTitle": "Pathogenesis and Host Response to A3B4 and A3B2 Infectious Bursal Disease Virus Strains in Chickens.",
+     "publisher": "Transboundary and emerging diseases",
+     "date": "2026",
+     "url": "https://doi.org/10.1155/tbed/6522916",
+     "pubmed": "https://pubmed.ncbi.nlm.nih.gov/42802923/"
+    }
+   ],
+   "checkpoints": [
+    "GI-19(QX형) IB 유행이 의심되는 농장에서는 기존 Mass형 백신의 교차방어 한계를 재확인하고 신규 벡터 백신 동향을 주시할 것.",
+    "MG 백신 접종 농장에서는 호흡기 임상증상뿐 아니라 항체가·균 분리 양상 변화를 함께 관찰할 것.",
+    "법낭 위축이나 계군 내 발육 불균일 사례 발생 시 IBDV 재조합주(A3B4 계열 등) 가능성을 염두에 두고 유전형 확인을 고려할 것."
+   ]
+  }
+ ]
+}
