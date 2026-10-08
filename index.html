@@ -8927,6 +8927,7 @@ const TREATMENT_SPECIES_THEME = {
   broiler: { label:"🐔 육계",   color:"#D84315", tint:"#FFF3EE", chipBg:"#FFE0D3" },
   layer:   { label:"🥚 산란계", color:"#00796B", tint:"#EEF8F6", chipBg:"#D2EEE9" },
 };
+const TREATMENT_ICON_CHOICES = ["🫁","🦠","🥚","⚠️","🌡️","🧫","🦵","💉","🪱","💊","🐔","🩺","🧪","💧","🔥","❄️","🍽️","😮‍💨","🩸","🧬","🛡️","📋"];
 const TREATMENT_SITUATION_THEMES = [
   { re:/호흡|기침|콧물|CRD|IB|ND|ILT|코라이자|마이코|천식|가래|재채기/i, icon:"🫁", name:"호흡기", color:"#1565C0" },
   { re:/장염|설사|혈변|콕시|괴사|분변|묽은|장내|소화|사료\s*섭취/, icon:"🦠", name:"소화기·장", color:"#B71C1C" },
@@ -8941,8 +8942,10 @@ const TREATMENT_SITUATION_THEMES = [
 function treatmentCardTheme(p){
   const sp = TREATMENT_SPECIES_THEME[p.species] || TREATMENT_SPECIES_THEME.broiler;
   const text = (p.title||"") + " " + (p.trigger||"");
-  const sit = TREATMENT_SITUATION_THEMES.find(t => t.re.test(text))
+  const auto = TREATMENT_SITUATION_THEMES.find(t => t.re.test(text))
     || { icon:"💊", name:"일반 처방", color:sp.color };
+  // 관리자가 직접 고른 아이콘(p.icon)이 있으면 자동 분류 아이콘 대신 쓴다 (색·배지는 자동 유지).
+  const sit = p.icon ? Object.assign({}, auto, { icon: p.icon }) : auto;
   return { sp, sit };
 }
 
@@ -9027,6 +9030,15 @@ function renderTreatmentPanel(){
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
         <input id="tp-trigger" type="text" placeholder="증상/징후 (예: 혈변, 폐사 증가...)" value="${esc(editing?editing.trigger:"")}"
           style="flex:1;min-width:180px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />
+      </div>
+      <div style="margin-bottom:8px">
+        <div style="font-size:10.5px;color:#888;margin-bottom:4px">카드 아이콘 — 누르면 선택, 비워 두면 제목·증상 키워드로 자동 선택</div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
+          <input id="tp-icon" type="text" maxlength="8" placeholder="자동" value="${esc(editing&&editing.icon?editing.icon:"")}"
+            style="width:56px;padding:6px 4px;border:1px solid #ddd;border-radius:7px;font-size:18px;text-align:center" />
+          <button type="button" class="tp-icon-pick" data-icon="" style="border:1px solid #ddd;border-radius:7px;background:#fff;color:#888;padding:5px 8px;font-size:11px">자동</button>
+          ${TREATMENT_ICON_CHOICES.map(ic=>`<button type="button" class="tp-icon-pick" data-icon="${ic}" style="border:1px solid #ddd;border-radius:7px;background:#fff;padding:3px 6px;font-size:18px;line-height:1.2;cursor:pointer">${ic}</button>`).join("")}
+        </div>
       </div>
       <textarea id="tp-program" placeholder="한 줄에 한 단계씩, '단계제목|설명' 형식으로 입력${"\n"}예) 1. 원인 점검|깔짚 습도와 백신 이력을 확인합니다."
         style="width:100%;min-height:110px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;margin-bottom:4px">${esc(editing?treatmentProgramToText(editing.program):"")}</textarea>
@@ -17723,12 +17735,17 @@ function attachEvents(){
     render();
   });
 
+  document.querySelectorAll(".tp-icon-pick").forEach(b=>b.onclick=()=>{
+    const inp = document.getElementById("tp-icon");
+    if(inp) inp.value = b.dataset.icon;
+  });
   const treatmentSaveBtn = document.getElementById("tp-save");
   if(treatmentSaveBtn) treatmentSaveBtn.onclick = async ()=>{
     const title = (document.getElementById("tp-title")?.value || "").trim();
     const trigger = (document.getElementById("tp-trigger")?.value || "").trim();
     const program = treatmentProgramFromText(document.getElementById("tp-program")?.value);
     const caution = (document.getElementById("tp-caution")?.value || "").trim();
+    const icon = (document.getElementById("tp-icon")?.value || "").trim();
     if(!title){ alert("상황 제목을 입력하세요."); return; }
     if(!program.length){ alert("투약 프로그램을 한 줄 이상 입력하세요. ('단계제목|설명' 형식)"); return; }
 
@@ -17736,9 +17753,9 @@ function attachEvents(){
     const editKey = treatmentTabState.formKey;
     if(editKey){
       const idx = packages.findIndex(p=>p.key===editKey);
-      if(idx>=0) packages[idx] = Object.assign({}, packages[idx], { title, trigger, program, caution });
+      if(idx>=0) packages[idx] = Object.assign({}, packages[idx], { title, trigger, program, caution, icon });
     } else {
-      packages.push({ key:newTreatmentKey(), species:treatmentTabState.species, title, trigger, program, caution });
+      packages.push({ key:newTreatmentKey(), species:treatmentTabState.species, title, trigger, program, caution, icon });
     }
     treatmentPkgState.busy = true; treatmentPkgState.msg = "발행 중..."; render();
     const r = await publishTreatmentPackages(packages, "💉 상황별 처방 패키지 " + (editKey?"수정":"추가") + ": " + title);
