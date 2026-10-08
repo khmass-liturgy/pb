@@ -1,6 +1,8 @@
 name: debug-chuksan
 on:
-  workflow_dispatch:
+  push:
+    branches: [ccr-76d8fb48-ixk3no]
+    paths: ['.github/workflows/debug-chuksan.yml']
 jobs:
   dump:
     runs-on: ubuntu-latest
