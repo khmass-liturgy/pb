@@ -107,7 +107,7 @@
   .pm-item {
     display: flex; align-items: center; gap: 13px; width: 100%; text-align: left; color: inherit; font: inherit;
     background: linear-gradient(135deg, var(--bg), #fff 65%);
-    border: 1px solid #eee; border-left: 7.5px solid var(--c); border-radius: 14px; padding: 13px 14px;
+    border: 1px solid #eee; border-left: 6px solid var(--c); border-radius: 14px; padding: 13px 14px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.06);
   }
   button.pm-item { cursor: pointer; transition: transform .12s, box-shadow .12s, border-color .12s; }
@@ -8450,7 +8450,7 @@ function renderDrugSearchPanel(){
     <button id="drug-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button>
   </div>
 
-  <div class="card" style="border-top:5px solid #00838F">
+  <div class="card" style="border-top:6px solid #00838F">
     <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">${modeBtn("name","제품명")}${modeBtn("entp","업체명")}${modeBtn("ingr","성분명")}${modeBtn("species","축종별")}${modeBtn("symptom","증상별")}</div>
     ${useMode ? renderDrugUseForm() : `
     <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
@@ -8822,7 +8822,7 @@ function renderMemberManagePanel(){
       : active ? { text:"만료 "+m.expires, color:"#F57F17", bg:"#FFFDE7" }
       : { text:"만료됨 "+m.expires, color:"#C62828", bg:"#FFEBEE" };
     return `
-    <div class="card" style="padding:14px 16px;margin-bottom:8px;border-left:4px solid ${statusLabel.color}">
+    <div class="card" style="padding:14px 16px;margin-bottom:8px;border-left:6px solid ${statusLabel.color}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
         <div style="min-width:0">
           <div style="font-size:13.5px;font-weight:800;color:#333">${profilesLoading?"⏳ 개인정보 불러오는 중...":profilesFailed?"(개인정보 불러오기 실패)":esc(profile.name||"(이름 미입력)")} <span style="font-size:11px;color:#888;font-weight:400">${esc(m.email)}</span></div>
@@ -9509,7 +9509,7 @@ function renderSmsAdminPanel(){
   const rows = st.list.map(cfg => {
     const due = smsIsDue(cfg);
     return `
-    <div class="card" style="padding:14px 16px;margin-bottom:8px;border-left:4px solid ${due?"#2E7D32":"#ccc"}">
+    <div class="card" style="padding:14px 16px;margin-bottom:8px;border-left:6px solid ${due?"#2E7D32":"#ccc"}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
         <div style="min-width:0">
           <div style="font-size:13px;font-weight:800;color:#333">${esc(cfg.email||"")} <span style="font-size:11px;color:#888;font-weight:400">${esc(cfg.phone||"")}</span></div>
@@ -11234,7 +11234,7 @@ function renderIndustryNewsPanel(){
           ${sents.map(s => `<div style="display:flex;gap:8px;font-size:16px;line-height:1.75;color:#222;font-weight:500;margin:3px 0"><span style="color:${c};font-weight:900">•</span><span>${esc(s)}</span></div>`).join("")}
         </div>`
       : `<div style="font-size:13px;color:#aaa;margin-top:8px">요약을 만들지 못한 기사입니다. 원문에서 확인해 주세요.</div>`;
-    cards += `<div style="background:#fff;border:1px solid #e8e8e8;border-top:5px solid ${c};border-radius:14px;padding:16px 16px 14px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,.05)">
+    cards += `<div style="background:#fff;border:1px solid #e8e8e8;border-top:6px solid ${c};border-radius:14px;padding:16px 16px 14px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,.05)">
       <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">${(i.tags || []).slice(0, 3).map(t => `<span style="font-size:11px;color:#fff;background:${IN_COLORS[t] || "#555"};border-radius:10px;padding:2px 9px;font-weight:800">${esc(t)}</span>`).join("")}</div>
       <div style="font-size:17.5px;font-weight:900;color:#111;line-height:1.5;letter-spacing:-.2px">${esc(i.title)}</div>
       <div style="font-size:12px;color:#888;margin-top:4px">${esc(i.source || "")} · ${esc(i.ts.slice(11))}</div>
@@ -11660,7 +11660,7 @@ function renderCommodityPanel(data, title, link, footnote, decimals){
     const yearUp = g.current > yearAgo;
     const diffStr = (decimals===0) ? Math.abs(diff).toLocaleString() : Math.abs(diff).toFixed(2);
     return `
-    <div style="background:#fff;border-radius:14px;padding:15px;border:1px solid #efefef;border-top:4.5px solid ${g.color}">
+    <div style="background:#fff;border-radius:14px;padding:15px;border:1px solid #efefef;border-top:6px solid ${g.color}">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <div style="display:flex;align-items:center;gap:7px">
           <span style="font-size:20px">${g.icon}</span>
@@ -11745,7 +11745,7 @@ function renderChickenPricePanel(){
     { label:"병아리", val:latest.chick, prev:prev?.chick, unit:"원/수", color:"#1565C0", bg:"#EEF5FF" },
     { label:"종계노계", val:latest.breeding, prev:prev?.breeding, unit:"원/kg", color:"#AD1457", bg:"#FFF0F6" },
   ].map(c=>`
-    <div style="flex:1;min-width:130px;background:${c.bg};border-radius:12px;padding:14px;border-top:4.5px solid ${c.color}">
+    <div style="flex:1;min-width:130px;background:${c.bg};border-radius:12px;padding:14px;border-top:6px solid ${c.color}">
       <div style="font-size:10px;color:#888;font-weight:700;margin-bottom:6px">${c.label}</div>
       <div style="font-size:22px;font-weight:800;color:${c.color}">${c.val!=null?c.val.toLocaleString():"-"}<span style="font-size:11px;font-weight:400;margin-left:2px">${c.unit}</span></div>
       <div style="margin-top:5px;font-size:11px">${arrow(c.val,c.prev)} <span style="color:#aaa;font-size:10px">전일대비</span></div>
@@ -12343,7 +12343,7 @@ function renderEggPanel(){
       { label:"L (대란)",  val10:eg.l_10,  diff:eg.diff_l_10,  color:"#D4A012" },
     ];
     priceCards = grades.map(g=>`
-    <div style="flex:1;min-width:140px;background:#fff;border-radius:12px;padding:16px;border:1px solid #efefef;border-top:4.5px solid ${g.color}">
+    <div style="flex:1;min-width:140px;background:#fff;border-radius:12px;padding:16px;border:1px solid #efefef;border-top:6px solid ${g.color}">
       <div style="font-size:11px;color:#888;font-weight:600;margin-bottom:8px">${g.label}</div>
       <div style="display:flex;align-items:baseline;gap:4px">
         <span style="font-size:24px;font-weight:800;color:${g.color}">${g.val10!=null?g.val10.toLocaleString():"-"}</span>
@@ -12794,7 +12794,7 @@ function renderCoinTab(){
     const yearUp = c.current > yearAgo;
     const isCustom = !!c.custom;
     return `
-    <div style="background:#fff;border-radius:14px;padding:15px;border:1px solid #efefef;border-top:4.5px solid ${c.color};position:relative">
+    <div style="background:#fff;border-radius:14px;padding:15px;border:1px solid #efefef;border-top:6px solid ${c.color};position:relative">
       ${isCustom?`<button class="del-coin" data-id="${c.key}" title="삭제" style="position:absolute;top:8px;right:8px;border:none;background:#f5f5f5;border-radius:50%;width:22px;height:22px;font-size:12px;color:#999;line-height:1">✕</button>`:""}
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <div style="display:flex;align-items:center;gap:7px">
@@ -12869,7 +12869,7 @@ function renderStockTab(){
       const fmtNum = (n)=> n.toLocaleString(undefined,{maximumFractionDigits:2});
       const isCustom = !!s.custom;
       return `
-      <div style="background:#fff;border-radius:14px;padding:15px;border:1px solid #efefef;border-top:4.5px solid ${s.color};position:relative">
+      <div style="background:#fff;border-radius:14px;padding:15px;border:1px solid #efefef;border-top:6px solid ${s.color};position:relative">
         ${isCustom?`<button class="del-stock" data-id="${s.key}" title="삭제" style="position:absolute;top:8px;right:8px;border:none;background:#f5f5f5;border-radius:50%;width:22px;height:22px;font-size:12px;color:#999;line-height:1">✕</button>`:""}
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
           <div style="display:flex;align-items:center;gap:7px">
@@ -12917,7 +12917,7 @@ function renderStockTab(){
     const dColor = flat?"#888":up?"#1565C0":"#D32F2F";
     const fmtVal = (v)=> v>=1000 ? v.toLocaleString(undefined,{maximumFractionDigits:0}) : v.toLocaleString(undefined,{maximumFractionDigits:2});
     return `
-    <div style="background:#fff;border-radius:14px;padding:15px;border:1px solid #efefef;border-top:4.5px solid ${fx.color}">
+    <div style="background:#fff;border-radius:14px;padding:15px;border:1px solid #efefef;border-top:6px solid ${fx.color}">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <div style="display:flex;align-items:center;gap:7px">
           <span style="font-size:20px">${fx.icon}</span>
@@ -14169,7 +14169,7 @@ function renderProductionIndexPanel(){
     </div>`;
 
   return `
-  <div class="card" style="border-top:5px solid #E65100;margin-top:16px">
+  <div class="card" style="border-top:6px solid #E65100;margin-top:16px">
     <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:3px">🧮 육계 생산지수 계산기 (EPEF)</div>
     <div style="font-size:10px;color:#aaa;margin-bottom:12px">입식·출하 성적을 입력하면 생산지수를 자동 계산합니다</div>
 
@@ -14212,7 +14212,7 @@ function renderProductionIndexPanel(){
     </div>
   </div>
 
-  <div class="card" style="border-top:5px solid #6A1B9A;margin-top:16px">
+  <div class="card" style="border-top:6px solid #6A1B9A;margin-top:16px">
     <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:3px">🎯 목표 생산지수 역산</div>
     <div style="font-size:10px;color:#aaa;margin-bottom:12px">슬라이더를 움직여 목표 지수를 내려면 하루 얼마나 키워야 하는지 바로 확인하세요</div>
 
@@ -14382,7 +14382,7 @@ function renderWetBulbPanel(){
   const stillHot = targetT!=null && effectiveTemp > targetT;
 
   return `
-  <div class="card" style="border-top:5px solid #0288D1;margin-top:16px">
+  <div class="card" style="border-top:6px solid #0288D1;margin-top:16px">
     <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:3px">💧 습구온도 기반 쿨링패드+풍속 체감냉각 예측</div>
     <div style="font-size:10px;color:#aaa;margin-bottom:12px">오늘 날씨(${T}°C · 습도${RH}%) 기준 — 조지아대(UGA)·오번대(Auburn) 익스텐션 컨설턴트가 쓰는 방식</div>
 
@@ -14477,7 +14477,7 @@ function renderDewPointPanel(){
     : "권장 습도 범위(50~70%) 안에 있습니다.";
 
   return `
-  <div class="card" style="border-top:5px solid #6D4C41;margin-top:16px">
+  <div class="card" style="border-top:6px solid #6D4C41;margin-top:16px">
     <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:3px">🌫️ 이슬점 기반 결로·깔짚 습윤 위험 예측</div>
     <div style="font-size:10px;color:#aaa;margin-bottom:12px">오늘 날씨(${T}°C · 습도${RH}%) 기준 — UGA(조지아대) 익스텐션의 저온기 결로·깔짚 관리 방식</div>
 
@@ -14595,7 +14595,7 @@ function renderVentCalcPanel(){
   if(!r) return "";
 
   return `
-  <div class="card" style="border-top:5px solid #00838F;margin-top:16px">
+  <div class="card" style="border-top:6px solid #00838F;margin-top:16px">
     <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:3px">🌀 환기량 계산 (습도수지 방식)</div>
     <div style="font-size:10px;color:#aaa;margin-bottom:12px">오늘 섭취 사료 ${Math.round(feedG)}g/일·마리 기준 — UGA 익스텐션(Czarick·Fairchild)의 습도수지 계산법</div>
 
@@ -14723,7 +14723,7 @@ function renderVentFinderPanel(){
     </button>`).join("");
 
   const flockCard = `
-  <div class="card" style="border-top:5px solid #0288D1;margin-bottom:14px">
+  <div class="card" style="border-top:6px solid #0288D1;margin-bottom:14px">
     <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:8px">🐔 우리 계군</div>
     <div style="display:flex;gap:8px;margin-bottom:10px">${speciesBtns}</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">${breedBtns}</div>
@@ -14751,7 +14751,7 @@ function renderVentFinderPanel(){
       ${o.ms.toFixed(2)} m/s<br><span style="font-size:9.5px;font-weight:500;opacity:.85">${o.fpm}ft/min</span>
     </button>`).join("");
   const houseSizeCard = `
-  <div class="card" style="border-top:5px solid #0288D1;margin-bottom:14px">
+  <div class="card" style="border-top:6px solid #0288D1;margin-bottom:14px">
     <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:8px">🏠 계사 크기</div>
     <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-bottom:8px">
       <div>
@@ -14787,7 +14787,7 @@ function renderVentFinderPanel(){
   const inRH = ventFinderState.inRH!=null ? ventFinderState.inRH : 60;
 
   const weatherCard = `
-  <div class="card" style="border-top:5px solid #0288D1;margin-bottom:14px">
+  <div class="card" style="border-top:6px solid #0288D1;margin-bottom:14px">
     <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:3px">🌡️ 오늘 계사 안팎 조건</div>
     <div style="font-size:10.5px;color:#999;margin-bottom:10px;line-height:1.6">${wxNote}</div>
     <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-bottom:6px">
@@ -14819,7 +14819,7 @@ function renderVentFinderPanel(){
 
   // ── 보유 환기팬 ──
   const fanCard = `
-  <div class="card" style="border-top:5px solid #0288D1;margin-bottom:14px">
+  <div class="card" style="border-top:6px solid #0288D1;margin-bottom:14px">
     <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:8px">🌀 보유 환기팬</div>
     <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px">
       <div>
@@ -14850,7 +14850,7 @@ function renderVentFinderPanel(){
     const width = ventFinderState.houseWidth, height = ventFinderState.ceilingHeight;
     if(width==null || height==null || width<=0 || height<=0){
       maxResultCard = `
-      <div class="card" style="border-top:5px solid #ccc;text-align:center;padding:26px 16px;color:#aaa;font-size:12px">
+      <div class="card" style="border-top:6px solid #ccc;text-align:center;padding:26px 16px;color:#aaa;font-size:12px">
         계사 폭·천장고를 입력하면 계산됩니다.
       </div>`;
     } else {
@@ -14881,7 +14881,7 @@ function renderVentFinderPanel(){
         </div>`;
 
       maxResultCard = `
-      <div class="card" style="border-top:5px solid #0288D1">
+      <div class="card" style="border-top:6px solid #0288D1">
         <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:3px">🌪️ 계산 결과</div>
         <div style="font-size:10px;color:#aaa;margin-bottom:12px">계사 단면적 ${area.toFixed(1)}㎡(폭 ${width}m×천장고 ${height}m) 기준 — UGA poultryventilation.com 자료</div>
 
@@ -14913,21 +14913,21 @@ function renderVentFinderPanel(){
   let resultCard;
   if(outT==null || outRH==null || inT==null){
     resultCard = `
-    <div class="card" style="border-top:5px solid #ccc;text-align:center;padding:26px 16px;color:#aaa;font-size:12px">
+    <div class="card" style="border-top:6px solid #ccc;text-align:center;padding:26px 16px;color:#aaa;font-size:12px">
       바깥 기온·습도, 계사 목표 기온을 모두 입력하면 계산됩니다.
     </div>`;
   } else {
     const feedG = getFeedIntakeFor(ventFinderState.species, breedKey, age);
     if(feedG==null){
       resultCard = `
-      <div class="card" style="border-top:5px solid #ccc;text-align:center;padding:26px 16px;color:#aaa;font-size:12px">
+      <div class="card" style="border-top:6px solid #ccc;text-align:center;padding:26px 16px;color:#aaa;font-size:12px">
         ${esc(breed.name)} 사양표에 ${age}${ageLabel} 자료가 없습니다 — ${ageLabel}을 조정해 보세요.
       </div>`;
     } else {
       const r = calcVentilationRate(feedG, inT, outT, outRH, inRH);
       if(!r || r.ineffective){
         resultCard = `
-        <div class="card" style="border-top:5px solid #C62828">
+        <div class="card" style="border-top:6px solid #C62828">
           <div style="background:#FFEBEE;border-left:4px solid #C62828;border-radius:8px;padding:12px 14px">
             <div style="font-size:12px;font-weight:700;color:#B71C1C;margin-bottom:4px">⚠️ 지금 조건에서는 이 계산(최소환기)이 맞지 않습니다</div>
             <div style="font-size:11.5px;color:#333;line-height:1.8">
@@ -14971,7 +14971,7 @@ function renderVentFinderPanel(){
           </div>`;
 
         resultCard = `
-        <div class="card" style="border-top:5px solid #0288D1">
+        <div class="card" style="border-top:6px solid #0288D1">
           <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:3px">💨 계산 결과</div>
           <div style="font-size:10px;color:#aaa;margin-bottom:12px">${esc(breed.name)} ${age}${ageLabel}·사료섭취 ${Math.round(feedG)}g/일·마리 기준 — 습도수지 방식(UGA Czarick·Fairchild)</div>
 
@@ -15070,7 +15070,7 @@ function renderIntakePanel(){
 
   if(!hasAnyData){
     return `
-    <div class="card" style="border-top:5px solid #1565C0;margin-top:16px">
+    <div class="card" style="border-top:6px solid #1565C0;margin-top:16px">
       <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:6px">💧 ${unit}별 음수량 · 사료섭취량</div>
       <div style="font-size:11px;color:#888;line-height:1.7">${breed.name} 매뉴얼은 ${unit}별 사료섭취량·음수량 표를
       공개하지 않습니다. 음수량 관리는 아래 물:사료 비율 기준(${ratio.low}~${ratio.high} : 1 @${ratio.refTemp}°C)으로
@@ -15112,7 +15112,7 @@ function renderIntakePanel(){
     </div>` : "";
 
   return `
-  <div class="card" style="border-top:5px solid #1565C0;margin-top:16px">
+  <div class="card" style="border-top:6px solid #1565C0;margin-top:16px">
     <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:3px">💧 ${unit}별 음수량 · 사료섭취량</div>
     <div style="font-size:10px;color:#aaa;margin-bottom:12px">${breed.name} 사육표준 매뉴얼 기준 · 현재 선택 ${age}${unit} 강조</div>
 
@@ -15191,7 +15191,7 @@ function renderMgmtPointsPanel(){
     ? "Aviagen Broiler Performance Objectives — Key Management Points"
     : "Hy-Line International Commercial Layers Management Guide — Growth & Development";
   return `
-  <div class="card" style="border-top:5px solid #7B1FA2;margin-top:16px">
+  <div class="card" style="border-top:6px solid #7B1FA2;margin-top:16px">
     <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:10px">📋 사양관리 컨설팅 포인트</div>
     ${points.map(p=>`<div style="font-size:11px;color:#333;line-height:1.9;padding-left:14px;position:relative">
       <span style="position:absolute;left:0;color:#7B1FA2">·</span>${p}
@@ -15283,7 +15283,7 @@ function fcResultCard(f, mine){
   const hint = v.key === "ok" ? "" : ((FC_HINTS[f.hint] || {})[diff < 0 ? "low" : "high"] || "");
   const alertOn = fcAlertOn(f, mine);
   return `
-  <div style="border:1px solid ${v.bg};border-left:4px solid ${v.color};border-radius:10px;padding:11px 12px;background:#fff;min-width:0">
+  <div style="border:1px solid ${v.bg};border-left:6px solid ${v.color};border-radius:10px;padding:11px 12px;background:#fff;min-width:0">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:6px">
       <div style="font-size:12.5px;font-weight:800;color:#333">${f.label}</div>
       <span style="font-size:10.5px;font-weight:700;color:${v.color};background:${v.bg};border-radius:20px;padding:2px 8px;white-space:nowrap">${v.icon} ${v.label}</span>
@@ -15435,7 +15435,7 @@ function renderFarmComparePanel(breed, age){
   }
 
   return `
-  <div class="card" style="border-top:5px solid #1a2744;margin-bottom:16px">
+  <div class="card" style="border-top:6px solid #1a2744;margin-bottom:16px">
     ${head}
     ${body}
     ${footnote}
@@ -15704,7 +15704,7 @@ function renderConsultTab(){
     const [d,w,gain,cumIntake,fcr] = row;
     const intake = getIntakeAt("broiler", breed, age);
     card = `
-    <div class="card" style="border-top:5px solid #E8530A;margin-bottom:16px">
+    <div class="card" style="border-top:6px solid #E8530A;margin-bottom:16px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:14px">
         <div>
           <div style="font-size:11px;color:#aaa;font-weight:600">${breed.name} · ${d}일령</div>
@@ -15742,7 +15742,7 @@ function renderConsultTab(){
     if(phase==="rearing"){
       const [wk,bw,fi,wtr,mort] = row;
       card = `
-      <div class="card" style="border-top:5px solid #7B1FA2;margin-bottom:16px">
+      <div class="card" style="border-top:6px solid #7B1FA2;margin-bottom:16px">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:14px">
           <div>
             <div style="font-size:11px;color:#aaa;font-weight:600">${breed.name} · ${wk}주령 <span style="color:#7B1FA2">(육성기)</span>${interpolated?' · 보간값':''}</div>
@@ -15768,7 +15768,7 @@ function renderConsultTab(){
     } else {
       const [wk,hd,bw,fi,wtr,ew,mort] = row;
       card = `
-      <div class="card" style="border-top:5px solid #D4A012;margin-bottom:16px">
+      <div class="card" style="border-top:6px solid #D4A012;margin-bottom:16px">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:14px">
           <div>
             <div style="font-size:11px;color:#aaa;font-weight:600">${breed.name} · ${wk}주령 <span style="color:#D4A012">(산란기)</span>${interpolated?' · 보간값':''}</div>
@@ -15941,7 +15941,7 @@ function renderVentTab(){
     const diffLabel = diff>0 ? `목표 대비 <b style="color:#C62828">+${diff}°C</b> 높음` :
                        diff<0 ? `목표 대비 <b style="color:#1565C0">${diff}°C</b> 낮음` : `목표와 동일`;
     return `
-    <div class="card" style="border-top:5px solid ${st.color};margin-bottom:16px">
+    <div class="card" style="border-top:6px solid ${st.color};margin-bottom:16px">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
         <div>
           <div style="font-size:11px;color:#aaa;font-weight:600">오늘의 추천 환기 단계</div>
@@ -16741,7 +16741,7 @@ function renderWeatherBody(){
   </div>
 
   ${todayWind!=null ? `
-  <div class="card" style="margin-bottom:12px;border-left:5px solid ${twl.color};padding:12px 16px">
+  <div class="card" style="margin-bottom:12px;border-left:6px solid ${twl.color};padding:12px 16px">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px">
       <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap">
         <div>
