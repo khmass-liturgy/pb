@@ -1,0 +1,51 @@
+name: 가금 질병·백신 주간 브리핑 수집
+
+# 최근 새로 공개된 가금 질병·백신 논문(PubMed)·정부/국제기구 보고서·전문 분석 중 핵심 3건을 Claude가 골라
+# 한국어로 정리한다. 매주 월요일 한국시간 07:00 (= 일요일 22:00 UTC).
+on:
+  schedule:
+    - cron: "0 22 * * 0"
+  workflow_dispatch:
+
+concurrency:
+  group: fetch-poultry-disease-brief
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-poultry-disease-brief:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Python 설정
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: 패키지 설치
+        run: pip install requests trafilatura
+
+      - name: 가금 질병·백신 주간 브리핑 수집
+        # 선별·정리는 Claude(ANTHROPIC_API_KEY — 기술탐구 논문·업계 소식과 같은 저장소 시크릿)로 하며, 키가 없으면 이전 값을 유지한다
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python scripts/fetch_poultry_disease_brief.py
+
+      - name: 결과 커밋
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add poultry_disease_brief/
+          git diff --staged --quiet && echo "변경 없음" && exit 0
+          git commit -m "🧬 가금 질병·백신 주간 브리핑 갱신 ($(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M KST'))"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin ${GITHUB_REF_NAME} && git push && exit 0
+            echo "푸시 재시도 $i"
+            sleep 5
+          done
+          exit 1
