@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-09 06:56 KST",
+ "updated": "2026-10-09 06:57 KST",
  "weeks": [
   {
    "week": "2026-10-09",
@@ -7,33 +7,17 @@
     {
      "region": "해외",
      "category": "신제품·백신",
-     "source": "IndexBox",
-     "date": "2026-10-07",
-     "url": "https://www.indexbox.io/blog/coccidiosis-vaccine-for-poultry-market-to-accelerate-on-antibiotic-free-demand-driving-growth-through-2035/",
-     "titleOrig": "Coccidiosis Vaccine for Poultry Market to Accelerate on Antibiotic-Free Demand, Driving Growth Through 2035",
-     "title": "항생제 무첨가 수요로 가금 콕시디움증 백신 시장 2035년까지 지속 성장",
-     "summary": [
-      "글로벌 가금 콕시디움증 백신 시장은 2026~2035년 연 5~7% 성장률로 확대될 전망이며, 사료 첨가 항콕시디움제 감소로 백신 수요가 증가하고 있다.",
-      "생 오오시스트 백신이 전 세계 투여량의 80% 이상을 차지하며 시장을 주도하고 있고, 재조합·다가 백신도 시장 수익의 25~35%를 차지하며 성장 중이다.",
-      "육계 사육장이 전 세계 콕시디움증 백신 수요의 약 45%를 차지하는 최대 시장이며, 항생제 규제 강화와 자동화 부화 기술 도입이 백신 채택을 가속화하고 있다."
-     ],
-     "point": "항생제 무첨가 정책과 부화장 자동화 추세 속에서 생 오오시스트 백신과 자동화 투여 기술 도입이 가금 건강 관리의 표준이 되고 있으므로, 이에 대한 현장 적용 준비가 필요하다.",
-     "ai": true
-    },
-    {
-     "region": "해외",
-     "category": "신제품·백신",
      "source": "The Poultry Site",
      "date": "2026-10-05",
      "url": "https://www.thepoultrysite.com/articles/wpc-strategic-vaccination-can-help-poultry-flocks-stay-ahead-of-ibd-variants",
      "titleOrig": "WPC: Strategic vaccination can help poultry flocks stay ahead of IBD variants",
-     "title": "전략적 IBD 백신접종으로 조류 바이러스 변이 대응",
+     "title": "전략적 IBD 백신접종으로 계군 보호 강화 가능",
      "summary": [
-      "Zoetis 연구에 따르면 다양한 항원을 포함한 IBD 백신이 광범위한 바이러스 변이에 더 나은 방어력을 제공한다.",
-      "생계 초기 2주 내 IBD 감염은 면역억제로 인해 이차감염 위험을 높이므로 종계 백신접종을 통한 모체 면역 제공이 중요하다.",
-      "15년간 수집한 약 1,500개 IBD 바이러스 서열 분석 결과 북미에서 약 10~12가지 항원적으로 서로 다른 바이러스 변이가 유통 중이다."
+      "Zoetis 연구에 따르면 백신의 항원 다양성이 클수록 광범위한 IBD 바이러스 변이에 대한 보호 효과가 우수하다.",
+      "생계 감염 시기가 중요하며, 특히 생후 2주 내 감염 시 면역 억제 효과가 크므로 종계 백신접종을 통한 모체 항체 전달이 효과적이다.",
+      "북미에서 확인된 IBD 바이러스는 약 10~12개의 항원학적으로 구별되는 변이형이 순환 중이다."
      ],
-     "point": "IBD 백신 선택 시 델라웨어 변이만이 아닌 항원 다양성이 높은 제품을 고려하여 종계에 접종함으로써 병아리의 초기 보호 범위를 극대화해야 한다.",
+     "point": "종계 관리 단계에서의 백신 선택 시 항원 다양성을 고려하면 병아리의 초기 IBD 감염 예방 효과를 높일 수 있다.",
      "ai": true
     },
     {
@@ -43,27 +27,13 @@
      "date": "2026-10-07",
      "url": "https://www.thepoultrysite.com/articles/aaap-salmonella-across-broiler-production-stages",
      "titleOrig": "AAAP: Salmonella across broiler-production stages",
-     "title": "육계 생산 전 단계에서 살모넬라 전파 양상 파악",
+     "title": "육계 생산 단계별 살모넬라 전파 양상 분석",
      "summary": [
-      "육계군의 약 85%가 살모넬라 양성이며, 입식 전 약 25%의 환경샘플이 양성이었으나 입식 후 1주일 뒤 모든 육계사가 양성으로 확인되었다.",
-      "Enteritidis와 Mbandaka 혈청형은 수직전파, Infantis 혈청형은 수평전파와 이전 육계군으로부터의 농장 내 지속 패턴을 보였다.",
-      "2024년 살모넬라 Enteritidis의 약 30%가 시프로플록사신 내성(GyrA D87Y 돌연변이)을 보였으며, 이 균주는 2024년 인간에서 6,500건 이상의 감염을 유발했다."
+      "미국 6개 육계 복합 농장 연구에서 입추 전 약 25%가 살모넬라 양성이었으나 입추 1주일 후 모든 계사가 양성으로 변했다.",
+      "Enteritidis와 Mbandaka 혈청형은 수직 전파(육종계→부화장), Infantis는 수평 전파(농장 내 기존 계군)를 시사한다.",
+      "시프로플록사신 내성 살모넬라 Enteritidis(SE65758-D87Y)가 2024년 약 30%로 증가했으며 2024년 인간 감염 6,500건 이상을 유발했다."
      ],
-     "point": "혈청형별 전파 경로가 다르므로 살모넬라 제어 전략을 혈청형 특이적으로 차등 적용해야 하며, 특히 시프로플록사신 내성 Enteritidis의 증가 추세를 모니터링하고 차단 대책을 강화할 필요가 있다.",
-     "ai": true
-    },
-    {
-     "region": "국내",
-     "category": "인허가·정책",
-     "source": "뉴스1",
-     "date": "2026-10-01",
-     "url": "https://www.news1.kr/industry/general-industry/6304793",
-     "titleOrig": "베링거 돼지회장염생백신, 항생제와 병용 가능해져…허가사항 변경",
-     "title": "베링거 돼지회장염생백신, 항생제 병용 허가사항 변경",
-     "summary": [
-      "베링거 돼지회장염생백신의 항생제 병용 가능 여부에 대한 허가사항이 변경되었다."
-     ],
-     "point": "",
+     "point": "육계 농장의 살모넬라 오염 경로와 항생제 내성 균주 동향을 파악하여 혈청형별·단계별 맞춤형 방역 전략 수립이 필요함.",
      "ai": true
     },
     {
@@ -73,13 +43,28 @@
      "date": "2026-10-08",
      "url": "https://www.foodingredientsfirst.com/news/blue-light-campylobacter-chicken-food-safety",
      "titleOrig": "Blue light offers new way to tackle Campylobacter in poultry, research reveals",
-     "title": "청색광, 가금류의 캄필로박터 제어 새로운 방법 제시",
+     "title": "청색광으로 가금류 캄필로박터 제어 가능성 제시",
      "summary": [
-      "영국 연구팀이 405나노미터 파장의 청색광(VB-PDI)이 항생제 내성균을 포함한 64개 캄필로박터 균주 모두를 억제할 수 있음을 입증했다.",
-      "화학 항미생물제나 항생제를 사용하지 않는 이 기술은 가금 처리 공정에서 추가적 식품안전 장벽으로 작용할 수 있다.",
-      "다만 상용 규모의 처리 환경에서의 효과성, 확장성, 경제성에 대한 검증이 더 필요하다."
+      "영국 리딩대학과 동물식물보건청 연구팀이 405나노미터 파장의 청색광이 64개 캄필로박터 균주(항생제 내성 포함)를 모두 억제함을 확인했다.",
+      "화학 항미생물제 없이 광기반 처리로 식품안전 장벽을 추가할 수 있어 산업적 가치가 있다.",
+      "다만 실제 가공 라인에서의 효과, 확장성, 비용 검증이 필요하며 현재 상용화 가능성은 미정이다."
      ],
-     "point": "청색광 기술은 실험실 환경에서는 유망하지만, 실제 도계장의 복잡한 조건(세균의 불균등 분포, 유기물 존재, 처리 속도 등)에서 일관된 효과를 낼 수 있는지 확인이 필수이며, 캄필로박터 제어는 이 기술 하나보다는 여러 장벽의 다층적 조합으로 접근해야 한다.",
+     "point": "캄필로박터 제어를 위해 다중 장벽 전략이 필수이므로, 이 청색광 기술이 기존 위생관리 수단을 보완하는 추가 선택지로 발전할 가능성을 주시해야 한다.",
+     "ai": true
+    },
+    {
+     "region": "해외",
+     "category": "인허가·정책",
+     "source": "All about feed",
+     "date": "2026-10-06",
+     "url": "https://www.foodagribusiness.world/poultry/apha-urges-vigilance-as-salmonella-threat-persists-in-great-britain",
+     "titleOrig": "APHA urges vigilance as Salmonella cases rise and imported eggs investigated",
+     "title": "살모넬라 사례 증가 속 수입 계란 조사, APHA 주의 당부",
+     "summary": [
+      "APHA는 살모넬라 사례 증가에 대해 주의를 당부했다.",
+      "수입 계란에 대한 조사가 진행 중이다."
+     ],
+     "point": "",
      "ai": true
     }
    ]
