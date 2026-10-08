@@ -149,6 +149,7 @@ def parse_chuksan(html):
             continue
         url = href if href.startswith("http") else \
             "https://www.chuksannews.co.kr" + (href if href.startswith("/") else "/news/" + href)
+        url = url.replace("/mobile/article.html", "/news/article.html")   # 모바일 목록의 기사 주소는 PC 기사 주소로 통일
         seen.add(aid)
         d = re.search(r"\d{4}[-.]\d{2}[-.]\d{2}", html[m.end():m.end() + 400])
         items.append({"title": title, "url": url, "date": d.group(0) if d else "", "source": ""})
@@ -273,9 +274,9 @@ def translate_en_to_ko(text, session):
 # ── 소스 정의 (여기만 고치면 소스 추가/변경 완료) ─────────────────────────────
 SOURCES = [
     {"id": "chuksan", "name": "축산신문", "icon": "📰", "color": "#C62828",
-     "home": "https://www.chuksannews.co.kr/news/section_list_all.html?sec_no=2",
+     "home": "https://www.chuksannews.co.kr/mobile/section_list_all.html?sec_no=84",
      "kind": "html", "parser": parse_chuksan,
-     "urls": ["https://www.chuksannews.co.kr/news/section_list_all.html?sec_no=2"]},
+     "urls": ["https://www.chuksannews.co.kr/mobile/section_list_all.html?sec_no=84"]},
 
     # 농수축산신문: 농업·수산·축산을 함께 다뤄 전체기사에는 축산 외 기사가 많이 섞인다.
     # 축산 섹션(S1N2) 전용 RSS를 쓰면 이 대시보드에 맞는 기사만 들어온다.
