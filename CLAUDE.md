@@ -2,6 +2,14 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Workflow preference (owner's standing instruction)
+
+After finishing a change, the owner wants it shipped without asking each time: commit and push to the
+session's designated branch, open a PR against `main`, and merge it (this overrides the default
+"don't create a PR unless asked" rule for this repo). Merging to `main` is what publishes the site
+(GitHub Pages) and the JSON the dashboard reads, so still run quick sanity checks before merging and
+don't merge if something looks broken.
+
 ## What this is
 
 A single-page static dashboard (`index.html`, ~4300 lines, no build step) for livestock/poultry
