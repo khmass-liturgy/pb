@@ -2378,7 +2378,7 @@ function renderNewProductPanel(){
     ${items.map((it,i) => {
       const thumb = newProductItemImages(it)[0];
       const cur = i === nav.cardIndex;
-      const pc = pkgColor(i);
+      const pc = pkgColorOf(it, i);
       return `<button type="button" class="newproduct-list-item-btn" data-idx="${i}" style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:1px solid ${cur?pc.color:pc.color+"33"};border-left:6px solid ${pc.color};background:${cur?pc.color+"22":"linear-gradient(135deg,"+pc.tint+",#fff 60%)"};border-radius:10px;padding:8px 10px;margin-bottom:6px;cursor:pointer">
         ${thumb ? `<img src="${esc(thumb)}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;flex-shrink:0" />` : `<span style="width:40px;height:40px;border-radius:6px;background:#f2f2f2;flex-shrink:0"></span>`}
         <span style="flex:1;min-width:0;font-size:12.5px;font-weight:700;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(it.name||"(이름 없음)")}</span>
@@ -2387,10 +2387,11 @@ function renderNewProductPanel(){
     }).join("")}
   </div>`;
 
+  const ic = item ? pkgColorOf(item, nav.cardIndex).color : "#C2185B";
   const viewer = !item ? `<div class="card" style="text-align:center;padding:28px 16px;color:#aaa">아직 등록된 제품이 없습니다.${admin?"":" 곧 추가됩니다."}</div>` : `
   <div style="font-size:11px;color:#888;margin-bottom:8px;text-align:center">제품 ${nav.cardIndex+1} / ${items.length}</div>
   ${nav.listOpen ? listView : `
-  <div id="newproduct-flip-card" style="cursor:pointer;background:${nav.flipped?"linear-gradient(135deg,#FFF8E1,#FFECB3)":"linear-gradient(135deg,#AD1457,#C2185B)"};border:1px solid ${nav.flipped?"#F9D871":"#AD1457"};border-radius:14px;padding:28px 20px;min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,0.12)">
+  <div id="newproduct-flip-card" style="cursor:pointer;background:${nav.flipped?"linear-gradient(135deg,#FFF8E1,#FFECB3)":`linear-gradient(135deg,${ic}CC,${ic})`};border:1px solid ${nav.flipped?"#F9D871":ic};border-radius:14px;padding:28px 20px;min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,0.12)">
     ${curImage ? `
     <div style="position:relative;display:flex;align-items:center;justify-content:center;width:100%;margin-bottom:${itemImages.length>1?"4px":"12px"}">
       ${itemImages.length>1 ? `<button class="newproduct-img-prev-btn" type="button" ${nav.imgIndex===0?"disabled":""} style="position:absolute;left:6px;width:32px;height:32px;border-radius:50%;border:none;background:rgba(255,255,255,${nav.imgIndex===0?"0.35":"0.9"});color:#333;font-size:17px;font-weight:800;line-height:32px;padding:0;cursor:${nav.imgIndex===0?"default":"pointer"};box-shadow:0 1px 4px rgba(0,0,0,.25)">‹</button>` : ""}
@@ -2408,7 +2409,7 @@ function renderNewProductPanel(){
   </div>
   ${admin && !nav.listOpen ? `
   <div style="display:flex;gap:6px;margin-top:10px">
-    <button id="newproduct-edit-btn" data-id="${esc(item.id)}" style="flex:1;font-size:11px;border:1px solid #C2185B;border-radius:7px;background:#fff;color:#C2185B;padding:7px">편집</button>
+    <button id="newproduct-edit-btn" data-id="${esc(item.id)}" style="flex:1;font-size:11px;border:1px solid ${ic};border-radius:7px;background:#fff;color:${ic};padding:7px">편집</button>
     <button class="newproduct-del-btn" data-id="${esc(item.id)}" style="flex:1;font-size:11px;border:1px solid #eee;border-radius:7px;background:#fff;color:#bbb;padding:7px">삭제</button>
   </div>` : ""}
   `;
@@ -2435,6 +2436,7 @@ function renderNewProductPanel(){
         ${newProductItemImages(editing).map(url => `<img src="${esc(url)}" style="width:72px;height:72px;object-fit:cover;border-radius:8px" />`).join("")}
       </div>
       <div style="font-size:10px;color:#888;margin-bottom:8px">기존 사진 ${newProductItemImages(editing).length}장 유지 중 — 새 사진을 선택하면 전부 교체됩니다</div>` : "")}
+      ${pkgColorPickerHtml("np-color", nav.formId||"new", editing?editing.color:"")}
       <input type="text" id="newproduct-name-input" value="${esc(nav.draftName)}" placeholder="제품명"
         style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;margin-bottom:8px" />
 
@@ -10020,7 +10022,7 @@ function renderSelfCheckPanel(){
         <div style="margin-top:6px"><button id="selfcheck-seed-btn" ${selfCheckPkgState.busy?"disabled":""} style="border:1px solid #B8860B;background:${selfCheckPkgState.busy?"#ccc":"#B8860B"};color:#fff;border-radius:7px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer">${selfCheckPkgState.busy?"발행 중...":`기본 목록 발행 (${Object.keys(SELF_CHECK_SEED).filter(selfCheckSeedPending).map(k=>bodyPartByKey(k).num+"번").join("·")})`}</button></div>
       </div>` : ""}
       ${admin && !seedMode ? renderSelfCheckImgBatchBar(list) : ""}
-      ${list.length ? list.map((d, ci) => { const pc = pkgColor(ci); return `
+      ${list.length ? list.map((d, ci) => { const pc = pkgColorOf(d, ci); return `
       <div class="card" style="${pkgBoxStyle(pc.color,pc.tint,"12px 16px")}">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
           ${d.image && d.image.url ? `<a href="${esc(d.image.url)}" target="_blank" rel="noopener" title="눌러서 크게 보기" style="flex-shrink:0;display:block">
@@ -10120,6 +10122,7 @@ function renderSelfCheckAdminBox(admin){
     </div>
     <div style="background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">
       <div style="font-size:11px;font-weight:700;color:#7A5C00;margin-bottom:8px">${editing?"질병 수정: "+esc(editing.name):"새 질병 추가"}</div>
+      ${pkgColorPickerHtml("sc-color", nav.formKey||"new", editing?editing.color:"")}
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
         <select id="sc-part" style="flex:1;min-width:160px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px">
           ${BODY_PARTS.map(p=>`<option value="${p.key}" ${(editing?editing.part:nav.part)===p.key?"selected":""}>${p.num}. ${esc(p.label)}</option>`).join("")}
@@ -18428,6 +18431,7 @@ function attachEvents(){
     const doseFeed = newProductNavState.draftDoseFeed;
     const doseFeedCustom = (document.getElementById("np-dose-feed-custom")?.value || "").trim();
     const remark = (document.getElementById("np-remark-input")?.value || "").trim();
+    const color = pkgReadColor("np-color");
     const info = newProductInfoText(formType, packaging, doseWater, doseWaterCustom, doseFeed, doseFeedCustom, remark);
     const files = newProductNavState.files;
     const editId = newProductNavState.formId;
@@ -18452,7 +18456,7 @@ function attachEvents(){
           imageUrls.push(await withStorageTimeout(ref.getDownloadURL()));
         }
       }
-      const fields = { name, info, formType, packaging, doseWater, doseWaterCustom, doseFeed, doseFeedCustom, remark, imageUrls };
+      const fields = { name, info, formType, packaging, doseWater, doseWaterCustom, doseFeed, doseFeedCustom, remark, imageUrls, color };
       if(editId){
         const idx = items.findIndex(x=>x.id===editId);
         if(idx>=0) items[idx] = Object.assign({}, items[idx], fields);
@@ -19282,6 +19286,7 @@ function attachEvents(){
     const part = document.getElementById("sc-part")?.value || selfCheckNavState.part;
     const name = (document.getElementById("sc-name")?.value || "").trim();
     const note = (document.getElementById("sc-note")?.value || "").trim();
+    const color = pkgReadColor("sc-color");
     if(!name){ alert("질병명을 입력하세요."); return; }
 
     const diseases = currentSelfCheckDiseases().slice();
@@ -19289,9 +19294,9 @@ function attachEvents(){
     const newKey = editKey ? null : newSelfCheckKey();
     if(editKey){
       const idx = diseases.findIndex(d=>d.key===editKey);
-      if(idx>=0) diseases[idx] = Object.assign({}, diseases[idx], { part, name, note });
+      if(idx>=0) diseases[idx] = Object.assign({}, diseases[idx], { part, name, note, color });
     } else {
-      diseases.push({ key:newKey, part, name, note });
+      diseases.push({ key:newKey, part, name, note, color });
     }
     selfCheckPkgState.busy = true; selfCheckPkgState.msg = "발행 중..."; render();
     const r = await publishSelfCheckDiseases(diseases, "🐔 온라인 자가진단 " + (editKey?"수정":"추가") + ": " + name);
