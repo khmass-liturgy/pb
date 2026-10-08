@@ -8949,6 +8949,66 @@ function treatmentCardTheme(p){
   return { sp, sit };
 }
 
+// ── 투약·소독·사례 카드 공통 디자인 ────────────────────────────────────────────
+// 상황별 처방 / 계절별 패키지 / 질병별 소독제 / 농장 맞춤 찾기가 모두 같은 "눌러서
+// 펼치는 카드" 형태라 한 곳에서 그린다: 왼쪽 강조선 + 연한 바탕 + 아이콘 원 + 배지,
+// 펼치면 단계 블록(왼쪽 선)·구간 제목·주의 박스. 패널마다 색·아이콘·배지만 다르다.
+function pkgChip(text, fg, bg){
+  return `<span style="font-size:9.5px;font-weight:700;color:${fg};background:${bg};border-radius:10px;padding:2px 8px;margin-right:4px;display:inline-block">${text}</span>`;
+}
+function pkgStepsHtml(steps, color){
+  return (steps||[]).map(s => `
+        <div style="margin-bottom:9px;padding:7px 10px;background:${color}0D;border-left:3px solid ${color};border-radius:0 8px 8px 0">
+          <div style="font-size:12.5px;font-weight:700;color:${color}">${s.link ? `<a href="${esc(s.link)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">${esc(s.step)} ↗</a>` : esc(s.step)}</div>
+          <div style="font-size:12.5px;color:#444;line-height:1.6;margin-top:2px">${esc(s.detail)}</div>
+        </div>`).join("");
+}
+function pkgSectionTitle(text, color, first){
+  return `<div style="font-size:11.5px;font-weight:800;color:${color};margin:${first?"0":"14px"} 0 6px">${text}</div>`;
+}
+function pkgEmptyHtml(text){
+  return `<div style="font-size:12px;color:#aaa;margin-bottom:9px">${text}</div>`;
+}
+function pkgCautionHtml(text){
+  return text ? `<div style="font-size:11px;color:#8D6E00;background:#FFF8E1;border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.6">⚠️ ${esc(text)}</div>` : "";
+}
+// o: { color, tint, icon, chips(html), title, sub, toggleClass, key, open, openLabel,
+//      editClass, delClass, admin, body(html, 펼쳤을 때만 쓰임) }
+function pkgCardHtml(o){
+  const tint = o.tint || "#FAFAFA";
+  return `
+    <div class="card" style="border:1px solid ${o.color}33;border-left:6px solid ${o.color};background:linear-gradient(135deg,${tint},#fff 60%);margin-bottom:10px;padding:14px 16px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+        <div class="${o.toggleClass}" data-key="${o.key}" style="cursor:pointer;flex:1;min-width:0;display:flex;gap:10px;align-items:flex-start">
+          <div style="width:40px;height:40px;border-radius:50%;background:${o.color}1A;border:2px solid ${o.color};display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">${o.icon}</div>
+          <div style="min-width:0">
+            ${o.chips ? `<div style="margin-bottom:4px">${o.chips}</div>` : ""}
+            <div style="font-size:14px;font-weight:800;color:#333">${esc(o.title)}</div>
+            ${o.sub ? `<div style="font-size:11px;color:#777;margin-top:3px;line-height:1.5">${esc(o.sub)}</div>` : ""}
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
+          <span class="${o.toggleClass}" data-key="${o.key}" style="cursor:pointer;font-size:11px;color:${o.color};font-weight:700;white-space:nowrap">${o.open?"접기 ▲":o.openLabel}</span>
+          ${o.admin && o.editClass ? `
+          <div style="white-space:nowrap">
+            <button class="${o.editClass}" data-key="${o.key}" style="font-size:10px;border:1px solid ${o.color};border-radius:5px;background:#fff;color:${o.color};padding:3px 8px;margin-right:4px">편집</button>
+            <button class="${o.delClass}" data-key="${o.key}" style="font-size:10px;border:1px solid #eee;border-radius:5px;background:#fff;color:#bbb;padding:3px 8px">삭제</button>
+          </div>` : ""}
+        </div>
+      </div>
+      ${o.open ? `
+      <div style="margin-top:12px;padding-top:12px;border-top:1px dashed ${o.color}66">
+        ${o.body}
+      </div>` : ""}
+    </div>`;
+}
+const SEASON_THEMES = {
+  spring: { color:"#2E7D32", tint:"#F1F8E9", icon:"🌸" },
+  summer: { color:"#EF6C00", tint:"#FFF3E0", icon:"☀️" },
+  fall:   { color:"#8D4E2A", tint:"#FBEFE7", icon:"🍂" },
+  winter: { color:"#1565C0", tint:"#E8F1FB", icon:"❄️" },
+};
+
 function renderTreatmentPanel(){
   const head = `
   <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
@@ -8979,40 +9039,14 @@ function renderTreatmentPanel(){
   const cards = list.length ? list.map(p => {
     const open = treatmentTabState.openKey === p.key;
     const { sp, sit } = treatmentCardTheme(p);
-    return `
-    <div class="card" style="border:1px solid ${sit.color}33;border-left:6px solid ${sit.color};background:linear-gradient(135deg,${sp.tint},#fff 60%);margin-bottom:10px;padding:14px 16px">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
-        <div class="treatment-toggle" data-key="${p.key}" style="cursor:pointer;flex:1;min-width:0;display:flex;gap:10px;align-items:flex-start">
-          <div style="width:40px;height:40px;border-radius:50%;background:${sit.color}1A;border:2px solid ${sit.color};display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">${sit.icon}</div>
-          <div style="min-width:0">
-            <div style="margin-bottom:4px">
-              <span style="font-size:9.5px;font-weight:700;color:${sp.color};background:${sp.chipBg};border-radius:10px;padding:2px 8px;margin-right:4px">${sp.label}</span>
-              <span style="font-size:9.5px;font-weight:700;color:#fff;background:${sit.color};border-radius:10px;padding:2px 8px">${sit.name}</span>
-            </div>
-            <div style="font-size:14px;font-weight:800;color:#333">${esc(p.title)}</div>
-            <div style="font-size:11px;color:#777;margin-top:3px;line-height:1.5">${esc(p.trigger)}</div>
-          </div>
-        </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
-          <span class="treatment-toggle" data-key="${p.key}" style="cursor:pointer;font-size:11px;color:${sit.color};font-weight:700;white-space:nowrap">${open?"접기 ▲":"처방 보기 ▼"}</span>
-          ${admin ? `
-          <div style="white-space:nowrap">
-            <button class="treatment-edit-btn" data-key="${p.key}" style="font-size:10px;border:1px solid #C62828;border-radius:5px;background:#fff;color:#C62828;padding:3px 8px;margin-right:4px">편집</button>
-            <button class="treatment-del-btn" data-key="${p.key}" style="font-size:10px;border:1px solid #eee;border-radius:5px;background:#fff;color:#bbb;padding:3px 8px">삭제</button>
-          </div>` : ""}
-        </div>
-      </div>
-      ${open ? `
-      <div style="margin-top:12px;padding-top:12px;border-top:1px dashed ${sit.color}66">
-        ${p.program.map(s => `
-        <div style="margin-bottom:9px;padding:7px 10px;background:${sit.color}0D;border-left:3px solid ${sit.color};border-radius:0 8px 8px 0">
-          <div style="font-size:12.5px;font-weight:700;color:${sit.color}">${s.link ? `<a href="${esc(s.link)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">${esc(s.step)} ↗</a>` : esc(s.step)}</div>
-          <div style="font-size:12.5px;color:#444;line-height:1.6;margin-top:2px">${esc(s.detail)}</div>
-        </div>`).join("")}
-        <div style="font-size:11px;color:#8D6E00;background:#FFF8E1;border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.6">⚠️ ${esc(p.caution)}</div>
-        ${admin ? `<button class="treatment-sms-btn" data-key="${p.key}" style="margin-top:10px;border:1px solid #2E7D32;border-radius:7px;background:#fff;color:#2E7D32;padding:6px 12px;font-size:11px;font-weight:600">📱 문자로 보내기</button>` : ""}
-      </div>` : ""}
-    </div>`;
+    return pkgCardHtml({
+      color: sit.color, tint: sp.tint, icon: sit.icon,
+      chips: pkgChip(sp.label, sp.color, sp.chipBg) + pkgChip(sit.name, "#fff", sit.color),
+      title: p.title, sub: p.trigger, toggleClass: "treatment-toggle", key: p.key, open,
+      openLabel: "처방 보기 ▼", admin, editClass: "treatment-edit-btn", delClass: "treatment-del-btn",
+      body: pkgStepsHtml(p.program, sit.color) + pkgCautionHtml(p.caution)
+        + (admin ? `<button class="treatment-sms-btn" data-key="${p.key}" style="margin-top:10px;border:1px solid #2E7D32;border-radius:7px;background:#fff;color:#2E7D32;padding:6px 12px;font-size:11px;font-weight:600">📱 문자로 보내기</button>` : ""),
+    });
   }).join("") : `<div class="card" style="text-align:center;padding:28px 16px;color:#aaa">아직 등록된 상황이 없습니다.${admin?"":" 곧 추가됩니다."}</div>`;
 
   const editing = treatmentTabState.formKey && list.concat(currentTreatmentPackages()).find(p=>p.key===treatmentTabState.formKey);
@@ -9084,42 +9118,22 @@ function renderSeasonalPanel(){
   const admin = isBoardAdmin();
   const seasonBtns = SEASON_TABS.map(s => `
     <button class="seasonal-season-btn" data-season="${s.key}"
-      style="flex:1;border:2px solid ${seasonalTabState.season===s.key?"#795548":"#eee"};background:${seasonalTabState.season===s.key?"#795548":"#fff"};color:${seasonalTabState.season===s.key?"#fff":"#333"};border-radius:10px;padding:10px 4px;font-size:12.5px;font-weight:700;cursor:pointer">${s.label}<br><span style="font-size:10px;font-weight:500;opacity:0.85">${s.period}</span></button>`).join("");
+      style="flex:1;border:2px solid ${seasonalTabState.season===s.key?SEASON_THEMES[s.key].color:"#eee"};background:${seasonalTabState.season===s.key?SEASON_THEMES[s.key].color:"#fff"};color:${seasonalTabState.season===s.key?"#fff":"#333"};border-radius:10px;padding:10px 4px;font-size:12.5px;font-weight:700;cursor:pointer">${s.label}<br><span style="font-size:10px;font-weight:500;opacity:0.85">${s.period}</span></button>`).join("");
 
   const list = seasonalPackagesFor(seasonalTabState.season);
   const cards = list.length ? list.map(p => {
     const open = seasonalTabState.openKey === p.key;
-    return `
-    <div class="card" style="border-top:4px solid #795548;margin-bottom:10px;padding:16px">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
-        <div class="seasonal-toggle" data-key="${p.key}" style="cursor:pointer;flex:1;min-width:0">
-          <div style="font-size:14px;font-weight:800;color:#333">${esc(p.title)}</div>
-        </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
-          <span class="seasonal-toggle" data-key="${p.key}" style="cursor:pointer;font-size:11px;color:#795548;font-weight:700;white-space:nowrap">${open?"접기 ▲":"내용 보기 ▼"}</span>
-          ${admin ? `
-          <div style="white-space:nowrap">
-            <button class="seasonal-edit-btn" data-key="${p.key}" style="font-size:10px;border:1px solid #795548;border-radius:5px;background:#fff;color:#795548;padding:3px 8px;margin-right:4px">편집</button>
-            <button class="seasonal-del-btn" data-key="${p.key}" style="font-size:10px;border:1px solid #eee;border-radius:5px;background:#fff;color:#bbb;padding:3px 8px">삭제</button>
-          </div>` : ""}
-        </div>
-      </div>
-      ${open ? `
-      <div style="margin-top:12px;padding-top:12px;border-top:1px dashed #eee">
-        <div style="font-size:11.5px;font-weight:700;color:#795548;margin-bottom:6px">💊 투약(백신) 사항</div>
-        ${p.medication.length ? p.medication.map(s => `
-        <div style="margin-bottom:9px">
-          <div style="font-size:12.5px;font-weight:700;color:#333">${s.link ? `<a href="${esc(s.link)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">${esc(s.step)} ↗</a>` : esc(s.step)}</div>
-          <div style="font-size:12.5px;color:#444;line-height:1.6;margin-top:2px">${esc(s.detail)}</div>
-        </div>`).join("") : `<div style="font-size:12px;color:#aaa;margin-bottom:9px">등록된 내용이 없습니다.</div>`}
-        <div style="font-size:11.5px;font-weight:700;color:#795548;margin:12px 0 6px">🌾 사양관리 주의사항</div>
-        ${p.husbandry.length ? p.husbandry.map(s => `
-        <div style="margin-bottom:9px">
-          <div style="font-size:12.5px;font-weight:700;color:#333">${s.link ? `<a href="${esc(s.link)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">${esc(s.step)} ↗</a>` : esc(s.step)}</div>
-          <div style="font-size:12.5px;color:#444;line-height:1.6;margin-top:2px">${esc(s.detail)}</div>
-        </div>`).join("") : `<div style="font-size:12px;color:#aaa">등록된 내용이 없습니다.</div>`}
-      </div>` : ""}
-    </div>`;
+    const th = SEASON_THEMES[seasonalTabState.season] || SEASON_THEMES.spring;
+    return pkgCardHtml({
+      color: th.color, tint: th.tint, icon: th.icon,
+      chips: pkgChip(seasonLabel(seasonalTabState.season), "#fff", th.color),
+      title: p.title, toggleClass: "seasonal-toggle", key: p.key, open,
+      openLabel: "내용 보기 ▼", admin, editClass: "seasonal-edit-btn", delClass: "seasonal-del-btn",
+      body: pkgSectionTitle("💊 투약(백신) 사항", th.color, true)
+        + (p.medication.length ? pkgStepsHtml(p.medication, th.color) : pkgEmptyHtml("등록된 내용이 없습니다."))
+        + pkgSectionTitle("🌾 사양관리 주의사항", th.color)
+        + (p.husbandry.length ? pkgStepsHtml(p.husbandry, th.color) : pkgEmptyHtml("등록된 내용이 없습니다.")),
+    });
   }).join("") : `<div class="card" style="text-align:center;padding:28px 16px;color:#aaa">아직 등록된 내용이 없습니다.${admin?"":" 곧 추가됩니다."}</div>`;
 
   const editing = seasonalTabState.formKey && list.concat(currentSeasonalPackages()).find(p=>p.key===seasonalTabState.formKey);
@@ -9167,26 +9181,16 @@ function renderSeasonalPanel(){
 function renderGeneralDisinfectCards(){
   return GENERAL_DISINFECT_GUIDE.map(g => {
     const open = disinfectTabState.generalOpenKey === g.key;
-    return `
-    <div class="card" style="border-top:4px solid #B8860B;margin-bottom:10px;padding:16px">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
-        <div class="disinfect-general-toggle" data-key="${g.key}" style="cursor:pointer;flex:1;min-width:0">
-          <div style="font-size:14px;font-weight:800;color:#333">${g.icon} ${esc(g.title)}</div>
-        </div>
-        <span class="disinfect-general-toggle" data-key="${g.key}" style="cursor:pointer;font-size:11px;color:#B8860B;font-weight:700;white-space:nowrap;flex-shrink:0">${open?"접기 ▲":"내용 보기 ▼"}</span>
-      </div>
-      ${open ? `
-      <div style="margin-top:12px;padding-top:12px;border-top:1px dashed #eee">
-        ${g.intro ? `<div style="font-size:12.5px;color:#555;line-height:1.6;margin-bottom:10px">${esc(g.intro)}</div>` : ""}
-        ${g.diagram ? DISINFECT_DIAGRAM_SVG : ""}
-        ${g.sections.map(s => `
-        <div style="margin-bottom:9px">
-          <div style="font-size:12.5px;font-weight:700;color:#333">${esc(s.step)}</div>
-          <div style="font-size:12.5px;color:#444;line-height:1.6;margin-top:2px">${esc(s.detail)}</div>
-        </div>`).join("")}
-        ${g.caution ? `<div style="font-size:11px;color:#8D6E00;background:#FFF8E1;border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.6">⚠️ ${esc(g.caution)}</div>` : ""}
-      </div>` : ""}
-    </div>`;
+    return pkgCardHtml({
+      color: "#B8860B", tint: "#FFFBEA", icon: g.icon,
+      chips: pkgChip("일반 소독 지침", "#fff", "#B8860B"),
+      title: g.title, toggleClass: "disinfect-general-toggle", key: g.key, open,
+      openLabel: "내용 보기 ▼", admin: false,
+      body: (g.intro ? `<div style="font-size:12.5px;color:#555;line-height:1.6;margin-bottom:10px">${esc(g.intro)}</div>` : "")
+        + (g.diagram ? DISINFECT_DIAGRAM_SVG : "")
+        + pkgStepsHtml(g.sections, "#B8860B")
+        + pkgCautionHtml(g.caution),
+    });
   }).join("");
 }
 
@@ -9212,44 +9216,23 @@ function renderDisinfectPanel(){
   const list = currentDiseaseDisinfectants();
   const cards = list.length ? list.map(p => {
     const open = disinfectTabState.openKey === p.key;
-    return `
-    <div class="card" style="border-top:4px solid #00695C;margin-bottom:10px;padding:16px">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
-        <div class="disinfect-toggle" data-key="${p.key}" style="cursor:pointer;flex:1;min-width:0">
-          <div style="font-size:14px;font-weight:800;color:#333">${esc(p.disease)}</div>
-        </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
-          <span class="disinfect-toggle" data-key="${p.key}" style="cursor:pointer;font-size:11px;color:#00695C;font-weight:700;white-space:nowrap">${open?"접기 ▲":"내용 보기 ▼"}</span>
-          ${admin ? `
-          <div style="white-space:nowrap">
-            <button class="disinfect-edit-btn" data-key="${p.key}" style="font-size:10px;border:1px solid #00695C;border-radius:5px;background:#fff;color:#00695C;padding:3px 8px;margin-right:4px">편집</button>
-            <button class="disinfect-del-btn" data-key="${p.key}" style="font-size:10px;border:1px solid #eee;border-radius:5px;background:#fff;color:#bbb;padding:3px 8px">삭제</button>
-          </div>` : ""}
-        </div>
-      </div>
-      ${open ? `
-      <div style="margin-top:12px;padding-top:12px;border-top:1px dashed #eee">
-        <div style="font-size:11.5px;font-weight:700;color:#00695C;margin-bottom:6px">🧪 소독제 선택 기준</div>
-        ${p.disinfectants.length ? p.disinfectants.map(s => `
-        <div style="margin-bottom:9px">
-          <div style="font-size:12.5px;font-weight:700;color:#333">${esc(s.step)}</div>
-          <div style="font-size:12.5px;color:#444;line-height:1.6;margin-top:2px">${esc(s.detail)}</div>
-        </div>`).join("") : `<div style="font-size:12px;color:#aaa;margin-bottom:9px">등록된 내용이 없습니다.</div>`}
-        <div style="font-size:11.5px;font-weight:700;color:#00695C;margin:12px 0 6px">💊 추천 소독제 제품</div>
-        ${(p.products&&p.products.length) ? p.products.map(pr => `
-        <div style="margin-bottom:8px;padding:8px 10px;background:#F1F8F6;border-radius:8px">
+    return pkgCardHtml({
+      color: "#00695C", tint: "#F1F8F6", icon: "🧴",
+      chips: pkgChip("질병별 소독", "#fff", "#00695C"),
+      title: p.disease, toggleClass: "disinfect-toggle", key: p.key, open,
+      openLabel: "내용 보기 ▼", admin, editClass: "disinfect-edit-btn", delClass: "disinfect-del-btn",
+      body: pkgSectionTitle("🧪 소독제 선택 기준", "#00695C", true)
+        + (p.disinfectants.length ? pkgStepsHtml(p.disinfectants, "#00695C") : pkgEmptyHtml("등록된 내용이 없습니다."))
+        + pkgSectionTitle("💊 추천 소독제 제품", "#00695C")
+        + ((p.products&&p.products.length) ? p.products.map(pr => `
+        <div style="margin-bottom:8px;padding:8px 10px;background:#E3F1EE;border-radius:8px">
           <div style="font-size:12.5px;font-weight:700;color:#333">${esc(pr.name)}${pr.company?` <span style="font-size:11px;color:#888;font-weight:400">${esc(pr.company)}</span>`:""}</div>
           ${pr.usage?`<div style="font-size:12px;color:#444;line-height:1.6;margin-top:2px">${esc(pr.usage)}</div>`:""}
-        </div>`).join("") : `<div style="font-size:12px;color:#aaa;margin-bottom:9px">등록된 제품이 없습니다.</div>`}
-        <div style="font-size:11.5px;font-weight:700;color:#00695C;margin:12px 0 6px">🧼 소독요령</div>
-        ${p.procedure.length ? p.procedure.map(s => `
-        <div style="margin-bottom:9px">
-          <div style="font-size:12.5px;font-weight:700;color:#333">${esc(s.step)}</div>
-          <div style="font-size:12.5px;color:#444;line-height:1.6;margin-top:2px">${esc(s.detail)}</div>
-        </div>`).join("") : `<div style="font-size:12px;color:#aaa">등록된 내용이 없습니다.</div>`}
-        ${p.caution ? `<div style="font-size:11px;color:#8D6E00;background:#FFF8E1;border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.6">⚠️ ${esc(p.caution)}</div>` : ""}
-      </div>` : ""}
-    </div>`;
+        </div>`).join("") : pkgEmptyHtml("등록된 제품이 없습니다."))
+        + pkgSectionTitle("🧼 소독요령", "#00695C")
+        + (p.procedure.length ? pkgStepsHtml(p.procedure, "#00695C") : pkgEmptyHtml("등록된 내용이 없습니다."))
+        + pkgCautionHtml(p.caution),
+    });
   }).join("") : `<div class="card" style="text-align:center;padding:28px 16px;color:#aaa">아직 등록된 질병이 없습니다.${admin?"":" 곧 추가됩니다."}</div>`;
 
   const editing = disinfectTabState.formKey && list.find(p=>p.key===disinfectTabState.formKey);
@@ -9832,35 +9815,18 @@ function renderFarmFinderPanel(){
   const list = finderCasesForCategory(nav.species, nav.category);
   const cards = list.length ? list.map(c => {
     const open = nav.openKey === c.key;
-    return `
-    <div class="card" style="border-top:4px solid #283593;margin-bottom:10px;padding:16px">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
-        <div class="finder-toggle" data-key="${c.key}" style="cursor:pointer;flex:1;min-width:0">
-          <div style="font-size:14px;font-weight:800;color:#333">${esc(c.title)}</div>
-        </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
-          <span class="finder-toggle" data-key="${c.key}" style="cursor:pointer;font-size:11px;color:#283593;font-weight:700;white-space:nowrap">${open?"접기 ▲":"진단·처방 보기 ▼"}</span>
-          ${admin ? `
-          <div style="white-space:nowrap">
-            <button class="finder-edit-btn" data-key="${c.key}" style="font-size:10px;border:1px solid #283593;border-radius:5px;background:#fff;color:#283593;padding:3px 8px;margin-right:4px">편집</button>
-            <button class="finder-del-btn" data-key="${c.key}" style="font-size:10px;border:1px solid #eee;border-radius:5px;background:#fff;color:#bbb;padding:3px 8px">삭제</button>
-          </div>` : ""}
-        </div>
-      </div>
-      ${open ? `
-      <div style="margin-top:12px;padding-top:12px;border-top:1px dashed #eee">
-        <div style="font-size:13px;font-weight:800;color:#283593;margin-bottom:8px">🩺 ${esc(c.diagnosis)}</div>
-        <div style="font-size:11.5px;font-weight:700;color:#666;margin-bottom:3px">환경·사양관리 원인 분석</div>
-        <div style="font-size:12.5px;color:#444;line-height:1.6;margin-bottom:10px">${esc(c.cause)}</div>
-        <div style="font-size:11.5px;font-weight:700;color:#666;margin-bottom:5px">추천 처방(투약) 프로그램</div>
-        ${(c.program||[]).map(s => `
-        <div style="margin-bottom:9px">
-          <div style="font-size:12.5px;font-weight:700;color:#333">${s.link ? `<a href="${esc(s.link)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">${esc(s.step)} ↗</a>` : esc(s.step)}</div>
-          <div style="font-size:12.5px;color:#444;line-height:1.6;margin-top:2px">${esc(s.detail)}</div>
-        </div>`).join("")}
-        ${c.caution ? `<div style="font-size:11px;color:#8D6E00;background:#FFF8E1;border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.6">⚠️ ${esc(c.caution)}</div>` : ""}
-      </div>` : ""}
-    </div>`;
+    return pkgCardHtml({
+      color: "#283593", tint: "#EEF0FA", icon: "🩺",
+      chips: pkgChip(finderSpeciesLabel(nav.species), "#283593", "#D9DDF3") + pkgChip(esc(nav.category), "#fff", "#283593"),
+      title: c.title, toggleClass: "finder-toggle", key: c.key, open,
+      openLabel: "진단·처방 보기 ▼", admin, editClass: "finder-edit-btn", delClass: "finder-del-btn",
+      body: `<div style="font-size:13px;font-weight:800;color:#283593;margin-bottom:8px">🩺 ${esc(c.diagnosis)}</div>`
+        + pkgSectionTitle("환경·사양관리 원인 분석", "#555", true)
+        + `<div style="font-size:12.5px;color:#444;line-height:1.6;margin-bottom:10px">${esc(c.cause)}</div>`
+        + pkgSectionTitle("추천 처방(투약) 프로그램", "#283593")
+        + pkgStepsHtml(c.program, "#283593")
+        + pkgCautionHtml(c.caution),
+    });
   }).join("") : `<div class="card" style="padding:24px 16px;color:#aaa;text-align:center">아직 등록된 사례가 없습니다.</div>`;
 
   return head + breadcrumb + cards + renderFinderAdminBox(admin);
