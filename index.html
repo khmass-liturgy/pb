@@ -6882,6 +6882,43 @@ const LM_STAGES = [
 const LM_STATE = { open:false, stage:0, day:null };
 
 // 단계별 개략도(직접 그린 그림) — 알 단면 위에 배아 크기·구조·난황 크기·공기방 크기가 단계마다 달라진다.
+// 단계별 실제 사진 — Wikimedia Commons의 자유 이용 사진(퍼블릭 도메인·CC BY·CC BY-SA)을 assets/embryo/ 에 줄여서 담았다.
+// 라이선스가 요구하는 작성자·라이선스·원본 링크를 사진 아래에 반드시 표시한다(렌더링은 lmPhotosHtml).
+// 일령이 파일 설명에 없는 후기 배아 사진은 캡션에 '일령 미상'이라고 밝힌다.
+const LM_LIC = {
+  "CC BY-SA 4.0":["https://creativecommons.org/licenses/by-sa/4.0"], "CC BY-SA 3.0":["https://creativecommons.org/licenses/by-sa/3.0"],
+  "CC BY-SA 2.0":["https://creativecommons.org/licenses/by-sa/2.0"], "CC BY 4.0":["https://creativecommons.org/licenses/by/4.0"],
+  "CC BY 2.0":["https://creativecommons.org/licenses/by/2.0"], "퍼블릭 도메인":[""],
+};
+const LM_PHOTOS = {
+  0:[{ f:"egg_anatomy.jpg", cap:"알의 구조(도해): 난각·막·알끈·알흰자·난황·배반", by:"Horst Frank, -xfi-, Domsau2", lic:"CC BY-SA 3.0", page:"File:Anatomy_of_an_amiotic_egg.svg" }],
+  1:[{ f:"d3_yolk.jpg", cap:"3일령 배아와 난황: 난황 위로 혈관이 퍼진 모습", by:"PaulT (Gunther Tschuch)", lic:"CC BY-SA 4.0", page:"File:Chick_embryo_3d_yolk.jpg" },
+     { f:"d3_window.jpg", cap:"3일령 배아(껍질에 창을 내고 관찰): 혈관망", by:"Mjeltsch", lic:"CC BY-SA 4.0", page:"File:Chicken_embryo.tif" }],
+  2:[{ f:"candling_demo.jpg", cap:"검란(캔들링): 강한 빛을 비춰 알 속 혈관·배아를 확인 — 7일령 검란에 사용", by:"CDC / Laura R. Zambuto, James Gathany", lic:"퍼블릭 도메인", page:"File:CDC_microbiologist_demonstrating_how_to_candle_an_embryonated_chicken_egg.tiff" }],
+  3:[{ f:"d10_inside.jpg", cap:"10일령 배아의 내부(신장·생식선·장 등 장기가 분화한 모습)", by:"PaulT (Gunther Tschuch)", lic:"CC BY-SA 4.0", page:"File:Chick_embryo_10d_inside.jpg" }],
+  4:[{ f:"d11_candling.jpg", cap:"11일령 유정란의 검란: 배아가 알 속을 채우며 혈관이 발달한 건강한 알", by:"CDC / Dr. Joseph McDade", lic:"퍼블릭 도메인", page:"File:CDC_PHIL_10149_–_fertilized_egg,_11_days_old.jpg" }],
+  5:[{ f:"late_embryo_a.jpg", cap:"발달 후기 배아(껍질을 열어 본 모습, 정확한 일령은 자료에 표시되지 않음)", by:"Bobjgalindo", lic:"CC BY 4.0", page:"File:Unborn_chick_embryo_from_incubator.jpg" }],
+  6:[{ f:"candling_nonviable.jpg", cap:"검란에서 걸러내는 '폐사란(퀴터)': 이란 전에 제거", by:"CDC / Dr. Joseph McDade", lic:"퍼블릭 도메인", page:"File:CDC_PHIL_10148_–_candling,_fertilized_egg,_non-viable.jpg" },
+     { f:"late_embryo_b.jpg", cap:"발달 후기 배아(막에 싸인 모습, 정확한 일령은 자료에 표시되지 않음)", by:"Bobjgalindo", lic:"CC BY 4.0", page:"File:Chick_embryo_development_stage_from_incubator.jpg" }],
+  7:[{ f:"pipping_tray.jpg", cap:"피핑(껍질을 쪼기 시작한 알)과 갓 나온 병아리가 섞인 인큐베이터 트레이", by:"Reuvenk", lic:"퍼블릭 도메인", page:"File:Chicks_hatching.JPG" },
+     { f:"yolk_sac.jpg", cap:"부화 직전 병아리: 배 쪽에 난황낭(노른자 주머니)이 보임(부화하지 못한 알)", by:"Crispin Semmens", lic:"CC BY-SA 2.0", page:"File:Egg_-chick_-yolk_sac-6a.jpg" }],
+  8:[{ f:"hatching_a.jpg", cap:"껍질을 깨고 나오는 병아리", by:"grendelkhan", lic:"CC BY-SA 2.0", page:"File:Hatching.jpg" },
+     { f:"hatching_b.jpg", cap:"갓 부화한 병아리와 깨진 껍질", by:"Andrew Skowron / Otwarte Klatki", lic:"CC BY 2.0", page:"File:Newly-hatched_chickens.jpg" },
+     { f:"hatching_c.jpg", cap:"부화 중인 알과 갓 나온 병아리들(인큐베이터)", by:"Jiel Beaumadier", lic:"CC BY-SA 3.0", page:"File:Jielbeaumadier_poussins_agr_paris_2013.jpeg" }],
+};
+function lmPhotosHtml(si, color){
+  const list = LM_PHOTOS[si] || [];
+  if(!list.length) return "";
+  const item = p => {
+    const lic = (LM_LIC[p.lic] || [""])[0];
+    const credit = `${esc(p.by)} · ${lic ? `<a href="${esc(lic)}" target="_blank" rel="noopener" style="color:#777">${esc(p.lic)}</a>` : esc(p.lic)} · <a href="https://commons.wikimedia.org/wiki/${encodeURI(p.page)}" target="_blank" rel="noopener" style="color:#777">Wikimedia Commons</a>`;
+    return `<figure style="margin:0;background:#fff;border:1px solid #eee;border-radius:10px;overflow:hidden">
+      <a href="assets/embryo/${esc(p.f)}" target="_blank" rel="noopener" title="눌러서 크게 보기"><img src="assets/embryo/${esc(p.f)}" alt="${esc(p.cap)}" loading="lazy" style="display:block;width:100%;height:170px;object-fit:cover;background:#f3f3f3" /></a>
+      <figcaption style="padding:6px 8px 7px"><div style="font-size:12px;color:#333;line-height:1.5;font-weight:600">${esc(p.cap)}</div><div style="font-size:9.5px;color:#999;line-height:1.5;margin-top:3px">📷 ${credit}</div></figcaption></figure>`;
+  };
+  return `<div style="font-size:13px;font-weight:900;color:${color};margin:14px 0 6px">📷 실제 사진</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px">${list.map(item).join("")}</div>`;
+}
+
 function lmEggSvg(si){
   const yolkR   = [50,47,43,38,33,28,23,13,0][si];
   const airRy   = [6,6,8,10,13,17,21,32,0][si];
@@ -6964,14 +7001,15 @@ function renderLifeMiracleCard(){
         <div style="flex:0 0 190px;max-width:100%;margin:0 auto">${lmEggSvg(si)}<div style="text-align:center;font-size:10px;color:#aaa;margin-top:2px">직접 그린 개략도 (실제 모습과 다를 수 있음)</div></div>
         <div style="flex:1;min-width:230px"><div style="font-size:16px;font-weight:900;color:${S.color};line-height:1.4">${S.icon} ${esc(S.title)}</div><div style="font-size:13.5px;line-height:1.7;color:#333;margin-top:6px">${esc(S.intro)}</div></div>
       </div>
+      ${lmPhotosHtml(si, S.color)}
       <div style="font-size:13px;font-weight:900;color:#37474F;margin:14px 0 4px">📅 일차별 설명</div>${days}
       <div style="font-size:13px;font-weight:900;color:#2E7D32;margin:14px 0 4px">🛠️ 이 단계의 관리·점검 포인트</div>${list(S.mgmt, "#2E7D32")}
       <div style="font-size:13px;font-weight:900;color:#B71C1C;margin:14px 0 2px">🦠 이 단계에서 문제가 될 수 있는 질병</div>${dis}
       <div style="font-size:13px;font-weight:900;color:#E65100;margin:14px 0 2px">⚠️ 이 단계의 부화 과정 문제점</div>${prb}
-      <div style="margin-top:12px;padding-top:10px;border-top:1px dashed #ddd"><div style="font-size:11.5px;font-weight:800;color:#555;margin-bottom:4px">🖼️ 실제 사진·월차트 찾기</div>
+      <div style="margin-top:12px;padding-top:10px;border-top:1px dashed #ddd"><div style="font-size:11.5px;font-weight:800;color:#555;margin-bottom:4px">🖼️ 더 많은 사진·월차트 찾기</div>
         ${btn("이 단계 실제 사진 검색", g(S.imgq))}${btn("제임스웨이 배아 발달 월차트", g("Jamesway chicken embryo development wall chart poster"))}${btn("Penn State 4-H 배아학 자료(제임스웨이 포스터 안내)", "https://abe.psu.edu/programs/4-h/get-involved/teachers/embryology/other-web-resources")}
       </div>
-      <div style="font-size:10px;color:#999;line-height:1.65;margin-top:10px">※ 제임스웨이(Jamesway) 월차트 원본은 열람하지 못해, 일차별 흐름은 Auburn Univ.(ACES) 일차별 배아 발달 자료와 Penn State 4-H 배아학 교재·The Poultry Site·Merck 수의학 매뉴얼의 부화장 문제 자료를 바탕으로 정리했습니다. 수치(보관일수·수분 손실률·온도 등)는 일반적인 기준이며 부화기 제조사·종계사 매뉴얼과 수의사 판단이 우선입니다. 난계대 질병은 종계 단계에서 관리해야 하며 부화기에서 고칠 수 없습니다.<br>참고: <a href="https://www.aces.edu/blog/topics/poultry/chicken-embryo-development/" target="_blank" rel="noopener" style="color:#00695C">Auburn ACES 배아 발달</a> · <a href="https://www.thepoultrysite.com/articles/investigating-the-reasons-behind-a-poor-hatch" target="_blank" rel="noopener" style="color:#00695C">The Poultry Site 부화 불량 원인</a> · <a href="https://www.thepoultrysite.com/articles/analysing-embryo-mortality" target="_blank" rel="noopener" style="color:#00695C">배아 폐사 분석</a> · <a href="https://www.merckvetmanual.com/poultry/omphalitis/overview-of-omphalitis-in-poultry" target="_blank" rel="noopener" style="color:#00695C">Merck 난황낭염</a> · <a href="https://www.merckvetmanual.com/poultry/salmonelloses-in-poultry/pullorum-disease-in-poultry" target="_blank" rel="noopener" style="color:#00695C">Merck 추백리</a></div>
+      <div style="font-size:10px;color:#999;line-height:1.65;margin-top:10px">※ 제임스웨이(Jamesway) 월차트 원본은 열람하지 못해, 일차별 흐름은 Auburn Univ.(ACES) 일차별 배아 발달 자료와 Penn State 4-H 배아학 교재·The Poultry Site·Merck 수의학 매뉴얼의 부화장 문제 자료를 바탕으로 정리했습니다. 수치(보관일수·수분 손실률·온도 등)는 일반적인 기준이며 부화기 제조사·종계사 매뉴얼과 수의사 판단이 우선입니다. 난계대 질병은 종계 단계에서 관리해야 하며 부화기에서 고칠 수 없습니다. 사진은 Wikimedia Commons의 자유 이용 사진(퍼블릭 도메인·CC BY·CC BY-SA)으로, 각 사진 아래에 작성자·라이선스·원본 링크를 표시했고 후기 배아 사진 중 일부는 정확한 일령이 확인되지 않았습니다.<br>참고: <a href="https://www.aces.edu/blog/topics/poultry/chicken-embryo-development/" target="_blank" rel="noopener" style="color:#00695C">Auburn ACES 배아 발달</a> · <a href="https://www.thepoultrysite.com/articles/investigating-the-reasons-behind-a-poor-hatch" target="_blank" rel="noopener" style="color:#00695C">The Poultry Site 부화 불량 원인</a> · <a href="https://www.thepoultrysite.com/articles/analysing-embryo-mortality" target="_blank" rel="noopener" style="color:#00695C">배아 폐사 분석</a> · <a href="https://www.merckvetmanual.com/poultry/omphalitis/overview-of-omphalitis-in-poultry" target="_blank" rel="noopener" style="color:#00695C">Merck 난황낭염</a> · <a href="https://www.merckvetmanual.com/poultry/salmonelloses-in-poultry/pullorum-disease-in-poultry" target="_blank" rel="noopener" style="color:#00695C">Merck 추백리</a></div>
     </div></div>`;
 }
 
