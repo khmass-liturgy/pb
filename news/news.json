@@ -1,10 +1,17 @@
 {
-  "updated": "2026-10-07 11:05 KST",
+  "updated": "2026-10-08 11:31 KST",
   "channels": {
     "livestock": {
       "label": "축산·농업",
-      "items": [],
-      "count": 0
+      "items": [
+        {
+          "title": "[국감] 문대림 “농업생산액 1위가 돼지인데 업무보고엔 ‘양’자도 없어” - 팜인사이트",
+          "link": "https://news.google.com/rss/articles/CBMibEFVX3lxTE9rSEUtM242OWR6bHpmcTdJSlhBYVQtNWplWEdmVDRiRHpENU1Md05vWWFtdHJmWGRnWGhXclR1Qm9KcmZHYnJMQ29PSktBd3lPMUh5UUFkRUJSQUd3Q25GZmhZSEo3eU03Vi10WA?oc=5",
+          "date": "10/07 18:38",
+          "source": "팜인사이트"
+        }
+      ],
+      "count": 1
     },
     "vet": {
       "label": "수의·방역",
@@ -13,8 +20,15 @@
     },
     "disease": {
       "label": "가축질병",
-      "items": [],
-      "count": 0
+      "items": [
+        {
+          "title": "나주시, 가축전염병 특별방역 돌입…24시간 대응체계 가동 - 뉴스줌",
+          "link": "https://news.google.com/rss/articles/CBMiREFVX3lxTE8zVUU5Y1lsNEI0OU05NUVlZlFjWTRBTVdjWndZQlJITXpPLWd4emtpMUM2UUd0bUQ5cVFxWjhYMjBFcHpD?oc=5",
+          "date": "10/07 11:08",
+          "source": "뉴스줌"
+        }
+      ],
+      "count": 1
     },
     "feed": {
       "label": "사료·약품",
@@ -23,23 +37,30 @@
     },
     "economy": {
       "label": "경제",
-      "items": [],
-      "count": 0
+      "items": [
+        {
+          "title": "중앙은행은 금리, 환율, 경제 성장률 간의 균형을 추구합니다. - Vietnam.vn",
+          "link": "https://news.google.com/rss/articles/CBMikwFBVV95cUxOdjB0eHVxdXU1VVN4WHUzekFSTHNNelBpNjJ4Z0dYdWJJMGxEcWJ1d2x3QjVIcS1nRHhka0U3cTZPTmtmUEZWR0ZGSjROSDFGSGx2VGw2a2hJUE5WVjNPcFFtOHFIZjhlbzFkWFZCSU9zckhRYmhUVG1LZVZhci1rVmdpaFE2TFR6OVB3dXJjbnh0RlE?oc=5",
+          "date": "10/08 02:22",
+          "source": "Vietnam.vn"
+        }
+      ],
+      "count": 1
     },
     "world": {
       "label": "국제",
       "items": [
         {
-          "title": "\"中, WHO 수장 후보로 쑹리 추진\"…美공백 속 국제보건수장 노려 - Daum",
-          "link": "https://news.google.com/rss/articles/CBMiT0FVX3lxTE00ZG12bjh3UnFIWGRGVTB0UDkwMm5RNUlQZWhYcmZITTRERXpFODd4dy1XcG5lenN4N3pTdmJuM2RqVjlGZnpscHR4NkZzMHM?oc=5",
-          "date": "10/07 10:42",
-          "source": "Daum"
+          "title": "\"中, WHO 수장 후보로 쑹리 추진\"…美공백 속 국제보건수장 노려 - 뉴스1",
+          "link": "https://news.google.com/rss/articles/CBMiY0FVX3lxTE5RcTlyYzZvLTBnQ1l5Ny1mSnlzVnZFbVEycnRkcHJVeE9hQnBVTlNfRVZFUEdqTTZQUi14bWJpenhndkVaRklsYVFTT2NPVExwOVk4d1VHZjJmemcwTEotZ0JMSdIBY0FVX3lxTE5RcTlyYzZvLTBnQ1l5Ny1mSnlzVnZFbVEycnRkcHJVeE9hQnBVTlNfRVZFUEdqTTZQUi14bWJpenhndkVaRklsYVFTT2NPVExwOVk4d1VHZjJmemcwTEotZ0JMSQ?oc=5",
+          "date": "10/07 10:40",
+          "source": "뉴스1"
         },
         {
-          "title": "자화자찬 늘어놓은 트럼프, 국제법 중시한 중국…국제사회는 누굴 우려하고 있나 - 프레시안",
-          "link": "https://news.google.com/rss/articles/CBMia0FVX3lxTE0wNFM2VWljRFE1eGt2eWpHYnYwUGhybk9pdkxUSUtmSXZTWDBGRXg0d1pXQTdXYVlRcFRfMEQ4N0p6RkZGTWdpQl8zTWs5d3dFckxWcmV2ZGtMQ25aNEFYWkl0a215R1VpaVRJ?oc=5",
-          "date": "10/06 10:44",
-          "source": "프레시안"
+          "title": "미국 빠진 WHO, 중국이 접수하나…차기 수장 막판 도전장 : 국제 - 재경일보",
+          "link": "https://news.google.com/rss/articles/CBMiS0FVX3lxTE8zaXZBaEo2SnF4MUdNSnVGMEYzSlVjMzg2S0huM0stYzhKOXFtbjdBOEVCUXJJTi1nTUtUUU5TLWV3RGRHbk9nNE9xWQ?oc=5",
+          "date": "10/07 09:07",
+          "source": "재경일보"
         },
         {
           "title": "[영상] 10월 5일 국제 뉴스 요약: 미국, 영국에서 B-1 폭격기 철수; 태국, 광범위한 홍수 피해 직면; 중국, EU 제품 조사 착수 - Vietnam.vn",
