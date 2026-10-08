@@ -1892,7 +1892,7 @@ function renderMagazinePanel(){
           ${images.map(url => `<a href="${esc(url)}" target="_blank" rel="noopener" style="display:block" title="눌러서 원본 크기로 보기"><img src="${esc(url)}" style="width:96px;height:96px;object-fit:cover;border-radius:8px" /></a>`).join("")}
         </div>` : ""}
         ${it.summary ? `
-        <div style="background:#FFF8E1;border-left:4px solid #F9A825;border-radius:8px;padding:10px 12px;margin-bottom:10px">
+        <div style="background:#FFF8E1;border-left:6px solid #F9A825;border-radius:8px;padding:10px 12px;margin-bottom:10px">
           <div style="font-size:11.5px;font-weight:700;color:#7A5C00;margin-bottom:5px">📝 핵심 요약</div>
           <div style="font-size:12.5px;color:#333;white-space:pre-wrap;line-height:1.8">${esc(it.summary)}</div>
         </div>
@@ -7575,7 +7575,7 @@ function renderHpaiTab(){
       <span>진행중 <b style="color:#C62828">${o.ongoing}</b></span>
     </div>
     ${hpaiSplitBar(o.poultry, o.wild)}
-    <div style="margin-top:10px;font-size:11px;color:#777;background:#FAFAFA;border-left:3px solid #ddd;padding:8px 10px;line-height:1.6">
+    <div style="margin-top:10px;font-size:11px;color:#777;background:#FAFAFA;border-left:6px solid #ddd;padding:8px 10px;line-height:1.6">
       <b>이 화면은 위험도 점수가 아니라 관측된 신고 기록입니다.</b><br>
       ${esc(r.level_rule||"")}<br>
       가금 발생의 90% 이상이 야생조류로부터의 1차 유입이라는 EFSA 분기보고 결과에 따라,
@@ -9003,7 +9003,7 @@ function pkgChip(text, fg, bg){
 }
 function pkgStepsHtml(steps, color){
   return (steps||[]).map(s => `
-        <div style="margin-bottom:9px;padding:7px 10px;background:${color}0D;border-left:3px solid ${color};border-radius:0 8px 8px 0">
+        <div style="margin-bottom:9px;padding:7px 10px;background:${color}0D;border-left:6px solid ${color};border-radius:0 8px 8px 0">
           <div style="font-size:12.5px;font-weight:700;color:${color}">${s.link ? `<a href="${esc(s.link)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">${esc(s.step)} ↗</a>` : esc(s.step)}</div>
           <div style="font-size:12.5px;color:#444;line-height:1.6;margin-top:2px">${esc(s.detail)}</div>
         </div>`).join("");
@@ -9646,7 +9646,7 @@ function renderStudyPanel(){
   const th = studyThemeFor(deck, decks.indexOf(deck));
 
   const breadcrumb = `<div style="margin-bottom:12px"><button id="study-deck-back-btn" style="font-size:11px;border:1px solid #ddd;border-radius:6px;background:#fff;color:#666;padding:5px 10px">← 덱 목록</button>
-  <span style="font-size:12.5px;font-weight:800;color:${th.ink};background:${th.soft};border-left:4px solid ${th.main};border-radius:5px;padding:3px 9px;margin-left:8px">${esc(deck.title)}</span></div>`;
+  <span style="font-size:12.5px;font-weight:800;color:${th.ink};background:${th.soft};border-left:6px solid ${th.main};border-radius:5px;padding:3px 9px;margin-left:8px">${esc(deck.title)}</span></div>`;
 
   const viewer = !card ? `<div class="card" style="text-align:center;padding:28px 16px;color:#aaa">아직 등록된 카드가 없습니다.</div>` : `
   <div style="font-size:11px;color:#888;margin-bottom:8px;text-align:center">카드 ${nav.cardIndex+1} / ${cardsArr.length}</div>
@@ -12284,7 +12284,7 @@ function renderEggSupplyPanel(){
         <span style="font-size:13px;font-weight:700;color:#1a2744">${esc(sec.title)}</span>
         ${org?`<span style="background:#FFF3E0;color:#E8530A;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px">${esc(org)}</span>`:""}
       </div>
-      <div style="background:#fafafa;border-left:3px solid #E8530A;border-radius:0 8px 8px 0;padding:10px 13px;font-size:12px;color:#444;line-height:1.7">
+      <div style="background:#fafafa;border-left:6px solid #E8530A;border-radius:0 8px 8px 0;padding:10px 13px;font-size:12px;color:#444;line-height:1.7">
         ${body || hl(sec.summary)}
       </div>
     </div>`;
@@ -14410,7 +14410,7 @@ function renderWetBulbPanel(){
     </div>
 
     ${targetT!=null ? `
-    <div style="background:${stillHot?"#FFEBEE":"#E8F5E9"};border-left:4px solid ${stillHot?"#C62828":"#2E7D32"};border-radius:8px;padding:11px 13px">
+    <div style="background:${stillHot?"#FFEBEE":"#E8F5E9"};border-left:6px solid ${stillHot?"#C62828":"#2E7D32"};border-radius:8px;padding:11px 13px">
       <div style="font-size:12px;font-weight:700;color:${stillHot?"#B71C1C":"#1B5E20"};margin-bottom:3px">
         ${stillHot ? "⚠️ 패드+풍속 냉각으로도 목표온도 도달 어려움" : "✅ 패드+풍속 냉각으로 목표온도 도달 가능"}
       </div>
@@ -14494,7 +14494,7 @@ function renderDewPointPanel(){
       </div>
     </div>
 
-    <div style="background:${riskBg};border-left:4px solid ${riskColor};border-radius:8px;padding:11px 13px;margin-bottom:10px">
+    <div style="background:${riskBg};border-left:6px solid ${riskColor};border-radius:8px;padding:11px 13px;margin-bottom:10px">
       <div style="font-size:12px;font-weight:700;color:${riskColor};margin-bottom:3px">${riskLevel}</div>
       <div style="font-size:11px;color:#333;line-height:1.6">${riskMsg}</div>
     </div>
@@ -14600,7 +14600,7 @@ function renderVentCalcPanel(){
     <div style="font-size:10px;color:#aaa;margin-bottom:12px">오늘 섭취 사료 ${Math.round(feedG)}g/일·마리 기준 — UGA 익스텐션(Czarick·Fairchild)의 습도수지 계산법</div>
 
     ${r.ineffective ? `
-    <div style="background:#FFEBEE;border-left:4px solid #C62828;border-radius:8px;padding:11px 13px">
+    <div style="background:#FFEBEE;border-left:6px solid #C62828;border-radius:8px;padding:11px 13px">
       <div style="font-size:12px;font-weight:700;color:#B71C1C;margin-bottom:3px">⚠️ 환기로는 수분 제거 불가한 조건</div>
       <div style="font-size:11px;color:#333;line-height:1.6">오늘 바깥 공기가 목표 실내 조건보다 절대습도 기준으로 더 습합니다.
       환기를 늘려도 수분이 빠지지 않고 오히려 들어올 수 있습니다 — 제습·난방 병행을 검토하세요.</div>
@@ -14928,7 +14928,7 @@ function renderVentFinderPanel(){
       if(!r || r.ineffective){
         resultCard = `
         <div class="card" style="border-top:6px solid #C62828">
-          <div style="background:#FFEBEE;border-left:4px solid #C62828;border-radius:8px;padding:12px 14px">
+          <div style="background:#FFEBEE;border-left:6px solid #C62828;border-radius:8px;padding:12px 14px">
             <div style="font-size:12px;font-weight:700;color:#B71C1C;margin-bottom:4px">⚠️ 지금 조건에서는 이 계산(최소환기)이 맞지 않습니다</div>
             <div style="font-size:11.5px;color:#333;line-height:1.8">
               바깥 공기가 계사 목표 조건보다 절대습도 기준으로 더 습해서, 환기를 늘려도 수분이 잘 빠지지 않고 오히려 들어올 수 있는 상태입니다.
@@ -15957,7 +15957,7 @@ function renderVentTab(){
       </div>
 
       ${humDrivenUp || humVentIneffective ? `
-      <div style="background:#E3F2FD;border-left:4px solid #0288D1;border-radius:8px;padding:11px 13px;margin-bottom:10px">
+      <div style="background:#E3F2FD;border-left:6px solid #0288D1;border-radius:8px;padding:11px 13px;margin-bottom:10px">
         <div style="font-size:12px;font-weight:700;color:#01579B;margin-bottom:4px">💧 습도 기준 판정 (Munters 이중제어 로직)</div>
         <div style="font-size:11px;color:#333;line-height:1.7">
           ${humDrivenUp?`오늘 습도 ${todayHum}%는 기준치(${VENT_HUMIDITY_THRESHOLD}%)를 초과해, 온도만 보면 ${sp.stages[tempStageIdx].name}이지만 습도 요구량이 더 커서 <b>${st.name}</b>으로 상향했습니다.`:""}
