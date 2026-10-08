@@ -21,6 +21,7 @@ import json
 import os
 import re
 import sys
+import time
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
@@ -83,14 +84,26 @@ def _text(el: ET.Element | None) -> str:
     return "".join(el.itertext()).strip() if el is not None else ""
 
 
+def pubmed_get(url: str, params: dict, timeout: int = 30) -> requests.Response:
+    """NCBI는 키 없이 초당 3회까지만 받는다 — 간격을 두고, 429(너무 잦음)면 잠시 쉬었다 다시 시도한다."""
+    for attempt in range(4):
+        time.sleep(0.5)
+        r = requests.get(url, params=params, headers=PUBMED_HEADERS, timeout=timeout)
+        if r.status_code != 429:
+            r.raise_for_status()
+            return r
+        time.sleep(2 + attempt * 2)
+    r.raise_for_status()
+    return r
+
+
 def pubmed_candidates() -> tuple[list[dict], int, int]:
     ids: dict[str, None] = {}
     ok = fail = 0
     for q in PUBMED_QUERIES:
         try:
-            r = requests.get(ESEARCH_URL, params={"db": "pubmed", "term": q, "retmax": 12, "sort": "most+recent", "datetype": "edat",
-                                                  "reldate": PUBMED_DAYS, "retmode": "json"}, headers=PUBMED_HEADERS, timeout=30)
-            r.raise_for_status()
+            r = pubmed_get(ESEARCH_URL, {"db": "pubmed", "term": q, "retmax": 12, "sort": "most+recent", "datetype": "edat",
+                                         "reldate": PUBMED_DAYS, "retmode": "json"})
             for i in r.json().get("esearchresult", {}).get("idlist", []):
                 ids.setdefault(i, None)
             ok += 1
@@ -102,9 +115,7 @@ def pubmed_candidates() -> tuple[list[dict], int, int]:
         return [], ok, fail
     out = []
     try:
-        r = requests.get(EFETCH_URL, params={"db": "pubmed", "id": ",".join(pmids), "rettype": "abstract", "retmode": "xml"},
-                         headers=PUBMED_HEADERS, timeout=60)
-        r.raise_for_status()
+        r = pubmed_get(EFETCH_URL, {"db": "pubmed", "id": ",".join(pmids), "rettype": "abstract", "retmode": "xml"}, timeout=60)
         for art in ET.fromstring(r.text).findall(".//PubmedArticle"):
             pmid = _text(art.find(".//PMID"))
             title = _text(art.find(".//ArticleTitle"))
@@ -171,21 +182,25 @@ def news_candidates() -> tuple[list[dict], int, int]:
 
 # ── Claude ────────────────────────────────────────────────────────────────────
 def claude(prompt: str, api_key: str, max_tokens: int) -> str:
+    """앞 모델부터 시도한다. 거부(400/404)되거나, 응답에 text 블록이 없으면(추론 블록만 오고 잘린 경우 등) 다음 모델로 넘어간다."""
     headers = {"x-api-key": api_key, "anthropic-version": "2023-06-01", "content-type": "application/json"}
-    resp = None
+    last = "응답 없음"
     for model in MODELS:
         resp = requests.post(ANTHROPIC_URL, headers=headers, timeout=180,
                              json={"model": model, "max_tokens": max_tokens, "messages": [{"role": "user", "content": prompt}]})
-        if resp.ok:
-            break
-        print(f"  Anthropic 응답 {resp.status_code} (model={model}): {resp.text[:200]}")
-        if resp.status_code not in (400, 404):
-            break
-    resp.raise_for_status()
-    texts = [b.get("text", "") for b in resp.json().get("content", []) if b.get("type") == "text"]
-    if not texts:
-        raise ValueError("응답에 text 블록이 없음")
-    return texts[0].strip()
+        if not resp.ok:
+            print(f"  Anthropic 응답 {resp.status_code} (model={model}): {resp.text[:200]}")
+            last = f"HTTP {resp.status_code}"
+            if resp.status_code in (400, 404):
+                continue
+            resp.raise_for_status()
+        payload = resp.json()
+        texts = [b.get("text", "") for b in payload.get("content", []) if b.get("type") == "text" and b.get("text", "").strip()]
+        if texts:
+            return texts[0].strip()
+        last = f"text 블록 없음 (stop_reason={payload.get('stop_reason')}, blocks={[b.get('type') for b in payload.get('content', [])]})"
+        print(f"  {last} (model={model}) — 다음 모델로 시도")
+    raise ValueError(last)
 
 
 def parse_json(text: str):
@@ -214,7 +229,7 @@ def choose(cands: list[dict], prev_titles: list[str], api_key: str) -> list[int]
         "이전 브리핑 제목:\n" + ("\n".join("- " + t for t in prev_titles[:40]) or "(없음)") + "\n\n후보:\n"
         + "\n".join(listing(c, i) for i, c in enumerate(cands))
     )
-    data = parse_json(claude(prompt, api_key, 500)) or {}
+    data = parse_json(claude(prompt, api_key, 3000)) or {}
     out = []
     for i in data.get("picks", []):
         try:
@@ -251,7 +266,7 @@ def analyze(picks: list[dict], api_key: str) -> dict | None:
         '출력은 JSON 한 개만: {"items":[{"idx":자료번호,"title":"","species":"","topic":"","new":[],"why":[],"caution":[],"limits":[],"evidence":""}],"checkpoints":[]}\n\n'
         + "\n\n".join(blocks)
     )
-    data = parse_json(claude(prompt, api_key, 5000))
+    data = parse_json(claude(prompt, api_key, 8000))
     if not data or not isinstance(data.get("items"), list):
         return None
     return data
