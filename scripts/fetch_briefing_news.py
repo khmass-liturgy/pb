@@ -182,8 +182,8 @@ def parse_chuksan(html):
     return items
 
 
-# ── 파서: 한돈뉴스 (ndsoft CMS) ───────────────────────────────────────────────
-def parse_handon(html):
+# ── 파서: ndsoft CMS 기사 목록 (한돈뉴스·농수축산신문) ──────────────────────────
+def parse_ndsoft(html, origin):
     items, seen = [], set()
     for m in re.finditer(r'href="([^"]*articleView\.html\?idxno=(\d+)[^"]*)"[^>]*>([\s\S]{0,300}?)</a>', html):
         href, aid, inner = m.group(1), m.group(2), m.group(3)
@@ -193,13 +193,21 @@ def parse_handon(html):
         if len(title) < 8:
             continue
         url = href if href.startswith("http") else \
-            "https://www.pignpork.com" + (href if href.startswith("/") else "/news/" + href)
+            origin + (href if href.startswith("/") else "/news/" + href)
         seen.add(aid)
         d = re.search(r"\d{2}\.\d{2}\s?\d{2}:\d{2}|\d{4}[-.]\d{2}[-.]\d{2}", html[m.end():m.end() + 400])
         items.append({"title": title, "url": url, "date": d.group(0) if d else "", "source": ""})
         if len(items) >= PER_SOURCE:
             break
     return items
+
+
+def parse_handon(html):
+    return parse_ndsoft(html, "https://www.pignpork.com")
+
+
+def parse_aflnews(html):
+    return parse_ndsoft(html, "https://www.aflnews.co.kr")
 
 
 def gnews(q):
@@ -305,8 +313,9 @@ SOURCES = [
     # 농수축산신문: 농업·수산·축산을 함께 다뤄 전체기사에는 축산 외 기사가 많이 섞인다.
     # 축산 섹션(S1N2) 전용 RSS를 쓰면 이 대시보드에 맞는 기사만 들어온다.
     {"id": "aflnews", "name": "농수축산신문", "icon": "🌾", "color": "#EF6C00",
-     "home": "https://www.aflnews.co.kr/news/articleList.html?sc_section_code=S1N2&view_type=sm",
-     "kind": "rss", "urls": ["https://www.aflnews.co.kr/rss/S1N2.xml"]},
+     "home": "https://www.aflnews.co.kr/news/articleList.html?sc_sub_section_code=S2N73&view_type=sm",
+     "kind": "html", "parser": parse_aflnews,
+     "urls": ["https://www.aflnews.co.kr/news/articleList.html?sc_sub_section_code=S2N73&view_type=sm"]},
 
     {"id": "handon", "name": "한돈뉴스", "icon": "🐷", "color": "#AD1457",
      "home": "https://www.pignpork.com/news/articleList.html?sc_section_code=S1N1&view_type=sm",
