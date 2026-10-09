@@ -1,17 +1,10 @@
 {
-  "updated": "2026-10-08 11:31 KST",
+  "updated": "2026-10-09 11:47 KST",
   "channels": {
     "livestock": {
       "label": "축산·농업",
-      "items": [
-        {
-          "title": "[국감] 문대림 “농업생산액 1위가 돼지인데 업무보고엔 ‘양’자도 없어” - 팜인사이트",
-          "link": "https://news.google.com/rss/articles/CBMibEFVX3lxTE9rSEUtM242OWR6bHpmcTdJSlhBYVQtNWplWEdmVDRiRHpENU1Md05vWWFtdHJmWGRnWGhXclR1Qm9KcmZHYnJMQ29PSktBd3lPMUh5UUFkRUJSQUd3Q25GZmhZSEo3eU03Vi10WA?oc=5",
-          "date": "10/07 18:38",
-          "source": "팜인사이트"
-        }
-      ],
-      "count": 1
+      "items": [],
+      "count": 0
     },
     "vet": {
       "label": "수의·방역",
@@ -32,8 +25,15 @@
     },
     "feed": {
       "label": "사료·약품",
-      "items": [],
-      "count": 0
+      "items": [
+        {
+          "title": "[전광판] '26년 42주차 평균 도매가격 6,116원(전주 대비 2.6%, 전년 대비 4.0%) - 돼지와사람",
+          "link": "https://news.google.com/rss/articles/CBMiZEFVX3lxTE1jRWM3SElnMVVDNXJUdmZIdVFxanJ1WExGaWx5OTZQUzk1cWJFRlpMNmdkSXBnVS1aZV9PZVZacXRkdElzM1RHWnNTS2JCQ21scE84YTRvWWplOWE1T3NGSnpxRW8?oc=5",
+          "date": "10/07 16:00",
+          "source": "돼지와사람"
+        }
+      ],
+      "count": 1
     },
     "economy": {
       "label": "경제",
@@ -57,25 +57,13 @@
           "source": "뉴스1"
         },
         {
-          "title": "미국 빠진 WHO, 중국이 접수하나…차기 수장 막판 도전장 : 국제 - 재경일보",
-          "link": "https://news.google.com/rss/articles/CBMiS0FVX3lxTE8zaXZBaEo2SnF4MUdNSnVGMEYzSlVjMzg2S0huM0stYzhKOXFtbjdBOEVCUXJJTi1nTUtUUU5TLWV3RGRHbk9nNE9xWQ?oc=5",
-          "date": "10/07 09:07",
-          "source": "재경일보"
-        },
-        {
           "title": "[영상] 10월 5일 국제 뉴스 요약: 미국, 영국에서 B-1 폭격기 철수; 태국, 광범위한 홍수 피해 직면; 중국, EU 제품 조사 착수 - Vietnam.vn",
           "link": "https://news.google.com/rss/articles/CBMi4AFBVV95cUxQMHQyNkptLXJ3Z3lvQTFBaEo3cGlOVU9DaVBmUDNkb1M4YWhnZFIzeDhINW1mU3hiV240RGstTEkwZ01hUGpHanc5RFN1ZmhsSkFDUDZvMjZ6dWx0ei1adC15U2NxUE9GMXBaVnJDekVzWG92NzExNGlrMnlDVTdVVjNlUWlZWGVYTWlhdFJXRW5GcTBFRG11ZG9yWml6LUdwNzdHVXRrbWxWSkcyTnJJRjRuVlJqSjdhd1lkVVFWWEF4Um85UGZXT3JPRlZNcDJrNFVOTmhXLUxLYW43eHY1Qg?oc=5",
           "date": "10/05 21:30",
           "source": "Vietnam.vn"
-        },
-        {
-          "title": "[영상] 10월 1일 국제 뉴스 요약: 미국, 자동화 전투 사령부 창설; 일본, 영주권 자격 강화; 중국과 미국, 무역 조치 관련 조사 확대. - Vietnam.vn",
-          "link": "https://news.google.com/rss/articles/CBMi_wFBVV95cUxNWFpnVFRheXdQNEN3RVQ5TTc5X3VrcVkyaEdDTWZmZXpsWDh6ZkxNdW5mT0pxY2RaX1Fpb2ZUaUJiY3Mxb2xwSktGS1R5RWUxYllRWVJESEx5WGlkSzZ0a0xOdDc2c1J5UmRkbXFBcVl0S0NwSmpZUjFkaGNHZ2tNRl93d2FNLTVMak0wTUFWNThkTFhWR29Gd1pRcVc1M1hjaG5sYnBqVEpESTVfeHVMV1hTVWxiVWMwZVp0WDRqNW5ENGF5TVhTN2ZZWmlJLU5Ea1NsWm9uUjBISlIxNWVVX1NrOXY4bXh0dnoxRTBvaGxWcUlwNGlOVE5QalQxS0U?oc=5",
-          "date": "10/01 20:37",
-          "source": "Vietnam.vn"
         }
       ],
-      "count": 4
+      "count": 2
     }
   }
 }
