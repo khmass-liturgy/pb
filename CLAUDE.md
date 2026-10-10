@@ -171,6 +171,7 @@ Model (`pfForecast`): ridge regression of the log price change h months ahead (f
 (높음/보통/낮음/검증 불가) from backtest skill vs "no change"/"same month last year". With too little price history it returns
 `insufficient` and the UI shows **no price forecast** (only the rule-based direction indicator, `pfBuildModel`, labelled unverified).
 Never fabricate forecasts: demo mode (`pfDemoData`, seeded synthetic series) must keep the red "데모 데이터 · 실제 시장 예측 아님" banner.
+`import_status/latest.json` is a **hand-researched** (news/MAFRA press releases, with source URLs and an `as_of` date) summary of 계란·닭고기 imports shown as the 📦 수입 card in the 공급·소비 tab — not a statistics feed (no customs/UNI-PASS API is connected); update it by editing the file when new reports appear.
 Assumption constants live in `PF` (seasonal indices are 경험값, not consumption statistics; consumption data is only used if uploaded).
 
 `fetch_egg_report.py` and `fetch_egg_price.py` currently have no workflow wired up — check before

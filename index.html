@@ -12487,6 +12487,7 @@ function pfForecast(species, ser, hz, flat, supplyShift){
 
 // ── 자료: 저장소 누적본 + 관리자 발행본 + 내 PC 업로드 + 데모 ────────────────────────────────
 const PF_HISTORY_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/price_history/daily.json";
+const PF_IMPORT_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/import_status/latest.json";
 const PF_LS_KEY = "pf_uploads_v1";
 const PF_DATASET = "price_forecast_data";          // Firebase premium_content/price_forecast_data/latest.json (관리자 발행, 승인 회원만 읽기)
 const PF_HORIZONS = [
@@ -12500,7 +12501,7 @@ const PF_SPECIES = {
 
 const pfx = {
   tab: "dash", species: "egg", horizon: "1m", demo: false, histStatus: "idle", hist: null,
-  pubStatus: "idle", pub: null, local: null,
+  pubStatus: "idle", pub: null, local: null, imp: null,
   flat: 0.02, scen: null, scenOn: null,
   uploadKind: "price_egg", uploadMsg: "", uploadReport: null, log: [], cache: {}, rev: 0,
 };
@@ -12524,6 +12525,10 @@ async function pfLoadAll(){
       if(!firebaseReady){ pfx.pubStatus = "none"; return; }
       try { pfx.pub = await fetchPremiumContentJson(PF_DATASET); pfx.pubStatus = pfx.pub ? "done" : "none"; if(pfx.pub) pfLog("관리자 발행본 불러옴"); }
       catch(e){ pfx.pubStatus = "none"; }
+    })(),
+    (async () => {
+      try { const r = await fetchWithTimeout(PF_IMPORT_URL + "?t=" + Math.floor(Date.now() / 600000), 10000); if(!r.ok) throw new Error("HTTP " + r.status); pfx.imp = await r.json(); }
+      catch(e){ pfx.imp = null; pfLog("수입 현황 불러오기 실패: " + (e.message || e)); }
     })(),
     pfLoad(),                                  // 기존 사료·시세·수급 자료(규칙 기반 분석용)
   ];
@@ -12892,7 +12897,7 @@ function pfTabSpecies(species){
     main = pfInsufficientHtml(r, `${sp.name} ${pfHz(pfx.horizon).label}`) +
       (md ? `<div style="margin-top:12px"><div style="font-size:12px;font-weight:800;color:#333;margin-bottom:4px">📌 대신 보는 규칙 기반 방향 지표 <span style="font-weight:500;color:#C62828">(통계 검증 없음)</span></div>${pfRuleSpeciesCard(species, md)}</div>` : "");
   }
-  return `${pfControls(true)}${kpi}${main}${pfPriceDetailTable(species)}`;
+  return `${pfControls(true)}${kpi}${main}${pfImportBrief(species)}${pfPriceDetailTable(species)}`;
 }
 
 function pfRuleSpeciesCard(species, md){ return pfSpeciesCard(species, md.species[species], md); }
@@ -12964,6 +12969,37 @@ function pfTabFeed(){
     육성계·종계 사료는 별도 자료가 없어 분리하지 않았습니다(임의 분할하지 않음).</div>`;
 }
 
+// 📦 수입(공급 보완): 보도·농식품부 자료를 검색해 정리한 수동 조사 자료(import_status/latest.json). 통계 API가 아니다.
+const pfSafeUrl = u => /^https:\/\//.test(String(u || "")) ? String(u) : "";
+function pfImportItem(it){
+  const url = pfSafeUrl(it.source && it.source.url);
+  return `<div style="border-top:1px solid #F0F0F0;padding:8px 0">
+    <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;flex-wrap:wrap">
+      <div style="font-size:12px;font-weight:700;color:#333;flex:1 1 200px">${esc(it.title || "")}</div>
+      ${it.value ? `<span style="font-size:10.5px;font-weight:800;color:#00695C;background:#E0F2F1;border-radius:9px;padding:2px 8px;white-space:nowrap">${esc(it.value)}</span>` : ""}</div>
+    <div style="font-size:11px;color:#666;line-height:1.65;margin-top:2px">${esc(it.detail || "")}</div>
+    <div style="font-size:10px;color:#999;margin-top:2px">${esc(it.date || "")}${url ? ` · <a href="${esc(url)}" target="_blank" rel="noopener noreferrer" style="color:#00695C">${esc((it.source && it.source.name) || "출처")} ↗</a>` : it.source ? " · " + esc(it.source.name || "") : ""}</div></div>`;
+}
+function pfImportHtml(limit){
+  const d = pfx.imp;
+  if(!d || !d.eggs || !d.chicken) return `<div style="border:1px dashed #BDBDBD;border-radius:10px;padding:10px 12px;font-size:11.5px;color:#999;margin-bottom:12px">📦 수입 현황 자료를 불러오지 못했습니다. 잠시 후 다시 열어 주세요.</div>`;
+  const col = (g, color, icon) => `<div style="flex:1 1 300px;min-width:0;border:1px solid #B2DFDB;border-top:6px solid ${color};border-radius:10px;padding:10px 12px;background:#fff">
+    <div style="font-size:13px;font-weight:800;color:${color}">${icon} ${esc(g.title)}</div>
+    <div style="font-size:11px;color:#555;line-height:1.65;margin:3px 0 4px">${esc(g.summary || "")}</div>${(limit ? g.items.slice(0, limit) : g.items).map(pfImportItem).join("")}</div>`;
+  return `<div style="margin-bottom:14px">
+    <div style="font-size:12.5px;font-weight:800;color:#00695C;margin-bottom:3px">📦 수입 (국내 공급 보완)</div>
+    <div style="font-size:10.5px;color:#777;line-height:1.7;margin-bottom:8px">${esc(d.note || "")} <b>조사 기준일 ${esc(d.as_of || "")}</b>${pfx.demo ? " · 이 수입 항목은 데모가 아닌 실제 보도 자료입니다." : ""}</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">${col(d.eggs, "#F9A825", "🥚")}${col(d.chicken, "#E65100", "🍗")}</div>
+    <div style="margin-top:8px;background:#E0F2F1;border-radius:8px;padding:8px 10px;font-size:10.5px;color:#004D40;line-height:1.7">${(d.caveats || []).map(c => "· " + esc(c)).join("<br>")}</div></div>`;
+}
+function pfImportBrief(species){
+  const d = pfx.imp, g = d && (species === "egg" ? d.eggs : d.chicken); if(!g) return "";
+  return `<div style="margin-top:12px;border:1px solid #B2DFDB;border-radius:10px;padding:8px 12px;background:#F4FBFA">
+    <div style="font-size:11.5px;font-weight:800;color:#00695C">📦 ${esc(g.title)} 동향 <span style="font-weight:500;color:#888">(조사 ${esc(d.as_of || "")})</span></div>
+    <div style="font-size:11px;color:#555;line-height:1.65;margin:2px 0">${esc(g.summary || "")}</div>
+    <button type="button" data-pf-tab="balance" style="border:none;background:none;color:#00695C;font-size:11px;font-weight:700;cursor:pointer;padding:0;text-decoration:underline">수입 현황 자세히 → 공급·소비 잠재력 탭</button></div>`;
+}
+
 // 공급·소비 잠재력: 규칙 기반 도식(기존)과 월별 지수. 소비 통계가 연결되면 그 값으로, 없으면 계절지수로 대용(명시).
 function pfTabBalance(){
   const md = pfBuildModel(), { ks, f } = pfFeedMonths(), S = pfSeries();
@@ -12985,7 +13021,7 @@ function pfTabBalance(){
     });
   } else charts = `<div style="font-size:11.5px;color:#999;margin-top:10px">월별 지수 그래프는 사료 자료가 14개월 이상일 때 그려집니다(현재 ${ks.length}개월).</div>`;
   const noCons = !(S.consumption && S.consumption.length) ? `<div style="background:#FFF8E1;border-radius:8px;padding:8px 10px;font-size:11px;color:#6b5400;line-height:1.7;margin-bottom:10px">소비량 통계(월별 계란·닭고기 소비)가 연결되어 있지 않습니다. 지금의 소비 잠재력은 <b>명절·복날·방학 같은 계절지수(경험값)</b>로 대용한 것이며 실제 소비량이 아닙니다. 「데이터·방법」에서 소비 통계 CSV를 올리면 교체됩니다.</div>` : "";
-  return `${noCons}${md ? pfRuleBody(md) : `<div style="font-size:12px;color:#999">배합사료 통계를 불러오지 못했습니다.</div>`}${charts}
+  return `${noCons}${pfImportHtml(0)}${md ? pfRuleBody(md) : `<div style="font-size:12px;color:#999">배합사료 통계를 불러오지 못했습니다.</div>`}${charts}
     <div style="font-size:12px;font-weight:800;color:#333;margin:16px 0 4px">🗓 월별 계절적 가격 변동 히트맵</div>${pfHeatmaps()}`;
 }
 // 기존 규칙 기반 화면(도식 + 확률 카드 + 근거)을 재사용
@@ -13012,7 +13048,7 @@ function pfHeatmaps(){
 const PF_SCEN_FIELDS = [
   ["feed", "사료 생산량 증감", "%", -15, 15, 0.5], ["ship", "출하 마릿수 증감 (육계)", "%", -15, 15, 0.5], ["fcr", "사료요구율 악화 (육계)", "%", -10, 10, 0.5],
   ["mort", "폐사율 증가", "%p", -5, 10, 0.5], ["lay", "산란율 증감 (계란)", "%p", -10, 10, 0.5], ["cons", "소비량 증감", "%", -15, 15, 0.5],
-  ["ai", "조류인플루엔자 생산 감소", "%", 0, 20, 0.5], ["weather", "이상기후 생산 감소", "%", 0, 15, 0.5], ["imp", "수입 물량 변화 (공급 대비)", "%", -10, 10, 0.5],
+  ["ai", "조류인플루엔자 생산 감소", "%", 0, 20, 0.5], ["weather", "이상기후 생산 감소", "%", 0, 15, 0.5], ["imp", "수입 물량 변화 (국내 공급 대비)", "%", -10, 10, 0.5],
 ];
 const PF_SCEN_PRESETS = {
   base: ["기본", { }], up: ["공급 증가", { feed: 5, ship: 5, lay: 3 }], down: ["공급 감소", { feed: -5, ship: -5, ai: 5, lay: -2 }],
@@ -13056,6 +13092,7 @@ function pfTabAI(){
   return `${pfControls(false).replace(/<div><div[^>]*>품목[\s\S]*?<\/div><\/div>/, "")}
     <div style="font-size:12px;font-weight:800;color:#333;margin-bottom:4px">🤖 AI 수급 전망 요약 (${pfHz(pfx.horizon).label} 뒤)</div><ul style="margin:0 0 6px 16px;padding:0;font-size:12px;color:#444;line-height:1.7">${outlook}</ul>
     <div style="font-size:12px;font-weight:800;color:#333;margin:14px 0 6px">🎛 시나리오 조건</div>
+    <div style="font-size:10.5px;color:#777;margin:-2px 0 8px;line-height:1.6">「수입 물량 변화」에 넣을 값은 <button type="button" data-pf-tab="balance" style="border:none;background:none;color:#00695C;font-size:10.5px;font-weight:700;cursor:pointer;padding:0;text-decoration:underline">📦 최근 수입 동향</button>을 참고하세요(수입이 국내 공급의 몇 %인지는 통계가 없어 직접 가정해야 합니다).</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">${Object.entries(PF_SCEN_PRESETS).map(([k, [label]]) => `<button type="button" data-pf-preset="${k}" style="border:1px solid #CE93D8;background:#fff;color:#6A1B9A;border-radius:14px;padding:4px 11px;font-size:11.5px;cursor:pointer">${label}</button>`).join("")}</div>
     ${sliders}
     <div style="display:flex;gap:8px;margin-top:6px"><button type="button" id="pf-sc-run" style="background:#6A1B9A;color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:800;cursor:pointer">예측 다시 계산</button>
@@ -13119,6 +13156,7 @@ function pfTabData(){
     ${row("육계 협회 시세 (별도 시리즈)", "대한양계협회 · 원/kg · 오후 1시 게재", assoc.length, range(assoc), "—", "섞어 쓰지 않음")}
     ${row("배합사료 월별 생산량", S.demo ? "데모 · 임의 생성값" : "농림축산식품부 · 톤", fk.length, fk.length ? fk[0] + " ~ " + fk[fk.length - 1] : "-", "—", S.demo ? "—" : esc((feedProdState.data && feedProdState.data.updated) || "-"))}
     ${row("산란계·육계 사육 마릿수 실측", "축산물품질평가원 통계누리 · 분기 / 업로드", (S.headcount || []).length + (layerStatsState.data ? 1 : 0), layerStatsState.data ? esc(layerStatsState.data.period || "") : "-", "—", esc((layerStatsState.data && layerStatsState.data.updated) || "-"))}
+    ${row("수입(계란·닭고기)", "농식품부 보도자료·언론 보도 수동 조사 · 개·톤", pfx.imp ? pfx.imp.eggs.items.length + pfx.imp.chicken.items.length : 0, pfx.imp ? "조사 기준 " + esc(pfx.imp.as_of || "") : "-", "—", "수동 갱신(통계 API 미연결)")}
     ${row("소비량", "미연결 (업로드로만 사용)", (S.consumption || []).length, "-", "—", "—")}
   </tbody></table></div>`;
   const missing = ["육계 입식 마릿수·종계 병아리 공급량", "도계 마릿수·평균 생체중·닭고기 생산량", "육성계 입식수·도태·살처분수", "주령별 산란율·난중·등급별 생산 비율", "육계·계란 월별 소비량, 외식·급식·가공 수요", "수입·수출·재고", "기상(기온·습도)과 조류인플루엔자 발생의 모형 반영"];
