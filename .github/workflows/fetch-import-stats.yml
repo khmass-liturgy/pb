@@ -26,6 +26,9 @@ jobs:
         env:
           # 선택: data.go.kr 「관세청 품목별 국가별 수출입실적」 일반 인증키. 있으면 UN 자료보다 빠른 관세청 값을 쓴다.
           DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+          # 관세청은 해외 접속에 응답하지 않아 국내 중계 서버(farm-pro/sms-relay /fetch-customs)를 거친다 — 문자 발송과 같은 시크릿
+          SMS_RELAY_URL: ${{ secrets.SMS_RELAY_URL }}
+          SMS_RELAY_SECRET: ${{ secrets.SMS_RELAY_SECRET }}
           FULL: ${{ github.event.inputs.full || '' }}
         run: python scripts/fetch_import_stats.py
       - name: 변경이 있으면 커밋

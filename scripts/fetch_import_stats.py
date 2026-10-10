@@ -16,13 +16,14 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import ssl
 import time
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
 
 KST = timezone(timedelta(hours=9))
@@ -48,6 +49,32 @@ def month_list(n: int) -> list[str]:
         out.append(d.strftime("%Y%m"))
         d = (d - timedelta(days=1)).replace(day=1)
     return out[::-1]
+
+
+# 관세청(data.go.kr)은 해외(GitHub 러너) 접속에 응답하지 않아, 배합사료 수집과 같은 국내 중계 서버
+# (farm-pro/sms-relay 의 /fetch-customs)를 거친다. 시크릿(SMS_RELAY_URL = …/send-sms, SMS_RELAY_SECRET)을 재사용한다.
+_RELAY_URL = os.environ.get("SMS_RELAY_URL", "").strip()
+_RELAY_SECRET = os.environ.get("SMS_RELAY_SECRET", "").strip()
+RELAY_CUSTOMS = (re.sub(r"/send-sms/?$", "", _RELAY_URL) + "/fetch-customs") if _RELAY_URL and _RELAY_SECRET else None
+
+
+def customs_get(url: str, tries: int = 3, timeout: int = 40) -> str | None:
+    """관세청 주소를 받는다 — 중계 서버가 설정돼 있으면 그쪽으로, 아니면 직접."""
+    if not RELAY_CUSTOMS:
+        return http_get(url, tries=tries, timeout=timeout)
+    for i in range(tries):
+        try:
+            req = Request(f"{RELAY_CUSTOMS}?url={quote(url, safe='')}", headers={**HEADERS, "Authorization": f"Bearer {_RELAY_SECRET}"})
+            with urlopen(req, timeout=timeout, context=CTX) as r:
+                return r.read().decode("utf-8", "replace")
+        except HTTPError as e:
+            print(f"    중계 서버 HTTP {e.code}")
+            if e.code in (401, 403):
+                return None                      # 인증·허용 주소 문제는 재시도해도 같다(서버 코드 미반영 등)
+        except (URLError, OSError) as e:
+            print(f"    중계 서버 요청 실패: {type(e).__name__}: {str(e)[:100]}")
+        time.sleep(3)
+    return None
 
 
 def http_get(url: str, tries: int = 4, timeout: int = 60) -> str | None:
@@ -123,17 +150,17 @@ def fetch_customs(key: str) -> dict[str, dict[str, dict]]:
     months = month_list(MONTHS_BACK)
     # 관세청(data.go.kr)은 해외(GitHub 러너) 접속에 응답하지 않는 경우가 있다 — 첫 호출이 두 번 연달아
     # 응답이 없으면 나머지는 시도하지 않고 바로 UN 자료로 넘어간다(전부 기다리면 50분 넘게 걸린다).
-    probe = http_get(CUSTOMS + "?" + urlencode({"serviceKey": key, "strtYymm": months[-1], "endYymm": months[-1], "hsSgn": "0207", "numOfRows": 1, "pageNo": 1}),
-                     tries=2, timeout=20)
+    probe = customs_get(CUSTOMS + "?" + urlencode({"serviceKey": key, "strtYymm": months[-1], "endYymm": months[-1], "hsSgn": "0207", "numOfRows": 1, "pageNo": 1}),
+                     tries=2, timeout=30)
     if probe is None:
-        print("    관세청 서버가 응답하지 않습니다(해외 접속 차단 가능성) — 이번에는 건너뜁니다")
+        print("    관세청 서버가 응답하지 않습니다(해외 접속 차단 가능성 — 중계 서버 시크릿·배포 확인) — 이번에는 건너뜁니다")
         return out
     for gname, g in GROUPS.items():
         for hs in g["hs"]:
             for i in range(0, len(months), 12):
                 chunk = months[i:i + 12]
                 q = urlencode({"serviceKey": key, "strtYymm": chunk[0], "endYymm": chunk[-1], "hsSgn": hs, "numOfRows": 999, "pageNo": 1})
-                body = http_get(CUSTOMS + "?" + q)
+                body = customs_get(CUSTOMS + "?" + q)
                 time.sleep(1)
                 if not body:
                     continue
