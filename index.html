@@ -12700,6 +12700,7 @@ function pfSvgChart(id, cfg){
   let lo = cfg.yMin != null ? cfg.yMin : Math.min(...all), hi = cfg.yMax != null ? cfg.yMax : Math.max(...all);
   if(cfg.zero){ lo = Math.min(lo, 0); hi = Math.max(hi, 0); }
   const pad = (hi - lo) * 0.1 || Math.abs(hi) * 0.05 || 1; if(cfg.yMin == null) lo -= pad; if(cfg.yMax == null) hi += pad;
+  if(cfg.zero && !all.some(v => v < 0)) lo = 0;                  // 음수가 없는 막대 그래프는 0에서 시작
   const bw = (W - L - R) / n, x = i => L + (cfg.bars ? bw * (i + 0.5) : (n === 1 ? 0 : i * (W - L - R) / (n - 1)));
   const y = v => T + (hi - v) / (hi - lo) * (H - T - B);
   const fmt = cfg.fmt || pfFmtN;
@@ -12994,19 +12995,26 @@ function pfImportStatsHtml(){
   const groups = [["chicken", "🍗 닭고기 (HS 0207)", "#E65100"], ["egg_fresh", "🥚 신선란 (HS 040721)", "#F9A825"], ["egg_hatching", "🐣 종란 (HS 040711)", "#8D6E63"]];
   const blocks = groups.map(([k, label, color]) => {
     const m = (d.series[k] || {}).months || {}, ks = Object.keys(m).sort();
-    if(ks.length < 2) return `<div style="margin-top:8px;font-size:11px;color:#999">${label}: 수집된 달이 ${ks.length}개월뿐이라 그래프를 그리지 못합니다.</div>`;
+    const mx = ks.length ? Math.max(...ks.map(x => m[x].t)) : 0;
+    if(ks.length < 12 || mx < 5){     // 신고된 달이 12개월 미만이거나 사실상 0이면 그래프 대신 사실만 적는다
+      const nz = ks.filter(x => m[x].t >= 0.5).map(x => `${x.slice(0, 4)}-${x.slice(4)} ${pfTon(m[x].t)}t`).join(", ");
+      return `<div style="margin-top:10px;font-size:11px;color:#666;line-height:1.7"><b style="color:${color}">${label}</b>: ${ks.length ? (mx < 5 ? `UN 신고 자료의 월 수입량이 최대 ${pfTon(mx)}t로 사실상 없습니다` : `UN 신고 자료가 ${ks.length}개월분뿐이라 추이를 그리지 못합니다`) + (nz ? " (" + esc(nz) + ")" : "") + "." : "신고된 자료가 아직 없습니다."}${k === "egg_fresh" ? " 올해 정부(aT)의 신선란 수입은 UN 신고가 늦어 아직 반영되지 않았습니다 — 아래 보도 정리를 참고하세요." : ""}</div>`;
+    }
     const last = ks[ks.length - 1], ly = String(+last.slice(0, 4) - 1) + last.slice(4), cur = m[last], prv = m[ly];
     const yoy = prv && prv.t ? (cur.t / prv.t - 1) * 100 : null;
     const top = Object.entries(cur.by || {}).slice(0, 3).map(([n, t]) => `${n} ${pfTon(t)}t`).join(" · ");
     const eggs = k === "egg_fresh" ? ` (개당 60g 가정 시 약 ${Math.round(cur.t * 1e6 / 60 / 1e4).toLocaleString()}만 개)` : "";
     return `<div style="margin-top:10px"><div style="font-size:11.5px;font-weight:800;color:${color}">${label} <span style="font-weight:500;color:#999">(월 수입 중량, 톤)</span></div>
-      ${pfSvgChart("pf-imp-" + k, { label: label + " 월별 수입 중량", xl: ks.map(x => x.slice(2, 4) + "." + x.slice(4)), xfull: ks.map(x => x.slice(0, 4) + "-" + x.slice(4)), w: 360, h: 150, bars: true, fmt: pfFmtN,
+      ${pfSvgChart("pf-imp-" + k, { label: label + " 월별 수입 중량", xl: ks.map(x => x.slice(2, 4) + "." + x.slice(4)), xfull: ks.map(x => x.slice(0, 4) + "-" + x.slice(4)), w: 360, h: 150, bars: true, zero: true, fmt: pfTon,
         series: [{ name: "수입 중량(t)", kind: "bar", color, opacity: 0.7, ys: ks.map(x => m[x].t) }],
         extra: i => { const c = m[ks[i]], t = Object.entries(c.by || {}).slice(0, 3).map(([n, v]) => `${n} ${pfTon(v)}t`).join(" · "); return `금액 ${pfTon(c.kusd)}천달러${t ? " · 주요국 " + t : ""}`; } })}
       <div style="font-size:10.5px;color:#666;line-height:1.7">최신 ${last.slice(0, 4)}-${last.slice(4)}: <b>${pfTon(cur.t)}t</b>${eggs}${yoy != null ? ` · 전년 같은 달 대비 ${pfSign(yoy)}%` : ""}${top ? `<br>주요 수입국: ${esc(top)}` : ""}</div></div>`;
   }).join("");
+  const allKs = Object.values(d.series).flatMap(g => Object.keys(g.months || {})).sort(), newest = allKs.length ? allKs[allKs.length - 1] : "";
+  const lagMo = newest ? (new Date().getFullYear() - +newest.slice(0, 4)) * 12 + (new Date().getMonth() + 1 - +newest.slice(4, 6)) : 0;
+  const lagNote = newest ? `<div style="font-size:10.5px;color:#B26A00;background:#FFF3E0;border-radius:8px;padding:6px 9px;margin-top:8px;line-height:1.65">가장 최근 신고 월은 <b>${newest.slice(0, 4)}-${newest.slice(4, 6)}</b>(약 ${lagMo}개월 전)입니다. UN 자료는 신고가 늦어 올해 수입은 반영되지 않았습니다. 더 빠른 관세청 자료를 쓰려면 관리자가 data.go.kr 인증키를 저장소 비밀값 <code>DATA_GO_KR_KEY</code>로 등록하세요.</div>` : "";
   const srcs = Object.values(d.sources || {}).map(x => x.name).join(" · ");
-  return wrap(`${blocks}<div style="font-size:10px;color:#999;line-height:1.7;margin-top:8px">출처: ${esc(srcs || "-")} · 수집 ${esc(d.updated || "")}<br>UN 신고 자료는 수개월 늦게 올라와 최근 달은 비어 있을 수 있습니다(관세청 API 키가 등록되면 더 빨라집니다). 신선란은 중량(톤) 통계라 보도의 「○○만 개」와 단위가 다릅니다.</div>`);
+  return wrap(`${blocks}${lagMo >= 4 ? lagNote : ""}<div style="font-size:10px;color:#999;line-height:1.7;margin-top:8px">출처: ${esc(srcs || "-")} · 수집 ${esc(d.updated || "")}<br>신선란은 중량(톤) 통계라 보도의 「○○만 개」와 단위가 다릅니다.</div>`);
 }
 function pfImportHtml(limit){
   const d = pfx.imp;

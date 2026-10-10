@@ -9,9 +9,6 @@ on:
       full:
         description: "1이면 최근 36개월 전체를 다시 받는다(처음 한 번)"
         required: false
-  push:
-    branches: [ccr-76d8fb48-ixk3no]
-    paths: ["scripts/.import_stats_trigger"]
 
 permissions:
   contents: write
@@ -29,7 +26,7 @@ jobs:
         env:
           # 선택: data.go.kr 「관세청 품목별 국가별 수출입실적」 일반 인증키. 있으면 UN 자료보다 빠른 관세청 값을 쓴다.
           DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
-          FULL: ${{ github.event.inputs.full || (github.event_name == 'push' && '1') || '' }}
+          FULL: ${{ github.event.inputs.full || '' }}
         run: python scripts/fetch_import_stats.py
       - name: 변경이 있으면 커밋
         run: |
