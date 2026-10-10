@@ -1,0 +1,42 @@
+name: 배합사료 생산실적 과거 연도 소급 수집
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ccr-76d8fb48-ixk3no]
+    paths: ["scripts/.backfill_feed_trigger"]
+
+permissions:
+  contents: write
+
+jobs:
+  backfill-feed:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install requests xlrd
+      - name: 과거 연도 사료 생산실적 수집(국내 중계 서버)
+        env:
+          SMS_RELAY_URL: ${{ secrets.SMS_RELAY_URL }}
+          SMS_RELAY_SECRET: ${{ secrets.SMS_RELAY_SECRET }}
+        run: python scripts/backfill_feed_production.py
+      - name: 가격·사료 누적 파일 다시 만들기
+        run: python scripts/accumulate_price_history.py
+      - name: 변경이 있으면 커밋
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add feed_production/ price_history/
+          if git diff --cached --quiet; then
+            echo "변경 없음"
+            exit 0
+          fi
+          git commit -m "🌾 사료 생산실적 과거 연도 소급 수집"
+          for i in 1 2 3 4; do
+            git pull --rebase --autostash origin ${GITHUB_REF_NAME} && git push && exit 0
+            sleep $((i * 3))
+          done
+          exit 1
