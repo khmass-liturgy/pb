@@ -1,0 +1,48 @@
+name: 계란·닭고기 수입 통계 수집
+
+on:
+  schedule:
+    # 수입 통계는 월 단위이고 신고가 늦다 — 매주 화요일 10:20 KST(01:20 UTC)에 새 달이 있는지 확인한다
+    - cron: "20 1 * * 2"
+  workflow_dispatch:
+    inputs:
+      full:
+        description: "1이면 최근 36개월 전체를 다시 받는다(처음 한 번)"
+        required: false
+  push:
+    branches: [ccr-76d8fb48-ixk3no]
+    paths: ["scripts/.import_stats_trigger"]
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-import-stats:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: 수입 통계 수집
+        env:
+          # 선택: data.go.kr 「관세청 품목별 국가별 수출입실적」 일반 인증키. 있으면 UN 자료보다 빠른 관세청 값을 쓴다.
+          DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+          FULL: ${{ github.event.inputs.full || (github.event_name == 'push' && '1') || '' }}
+        run: python scripts/fetch_import_stats.py
+      - name: 변경이 있으면 커밋
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add import_status/stats.json
+          if git diff --cached --quiet; then
+            echo "변경 없음"
+            exit 0
+          fi
+          git commit -m "📦 계란·닭고기 수입 통계 갱신"
+          for i in 1 2 3 4; do
+            git pull --rebase --autostash origin ${GITHUB_REF_NAME} && git push && exit 0
+            sleep $((i * 3))
+          done
+          exit 1
