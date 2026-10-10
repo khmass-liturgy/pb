@@ -17648,10 +17648,24 @@ function renderNoticesSection(){
 }
 
 
+// 홈 하단(모든 탭 공통)에 작게 붙이는 사업자 정보 한 줄 — 값은 PREMIUM_BIZ_INFO에서 읽는다.
+function renderBizFooterLine(){
+  let b;
+  try { b = PREMIUM_BIZ_INFO; } catch(_) { return ""; }
+  if(!b) return "";
+  const parts = [
+    b.name && `상호 ${b.name}`, b.rep && `대표 ${b.rep}`, b.bizNo && `사업자등록번호 ${b.bizNo}`,
+    b.mailOrderNo && `통신판매업 신고번호 ${b.mailOrderNo}`, b.address && `주소 ${b.address}`,
+    b.tel && `전화 ${b.tel}`, b.email && `이메일 ${b.email}`,
+  ].filter(Boolean);
+  if(!parts.length) return "";
+  return `<div style="margin-top:10px;padding-top:8px;border-top:1px solid #eee;font-size:10px;color:#ccc;line-height:1.7">${parts.map(esc).join(" · ")}</div>`;
+}
+
 function renderFooter(){
   const links=allSites().map((s,i)=>`<a href="${esc(s.home)}" target="_blank" rel="noopener" style="color:#aaa">${esc(s.name)}</a>${i<allSites().length-1?" · ":""}`).join("");
   return `
-  <div style="margin-top:20px;font-size:11px;color:#bbb;text-align:center;line-height:1.8">데이터 출처 · ${links}<br>※ 시세는 업계 평균 수준을 반영한 참고 데이터입니다. 정확한 시세·공지는 각 협회 공식 사이트를 확인하세요.<br>※ 게시된 내용은 상황에 따라서 다르게 적용될 수 있으며, 처방전이 필요한 항생제의 사용은 반드시 담당 전문 수의사를 통하여 지도를 받으시기 바랍니다.</div>`;
+  <div style="margin-top:20px;font-size:11px;color:#bbb;text-align:center;line-height:1.8">데이터 출처 · ${links}<br>※ 시세는 업계 평균 수준을 반영한 참고 데이터입니다. 정확한 시세·공지는 각 협회 공식 사이트를 확인하세요.<br>※ 게시된 내용은 상황에 따라서 다르게 적용될 수 있으며, 처방전이 필요한 항생제의 사용은 반드시 담당 전문 수의사를 통하여 지도를 받으시기 바랍니다.${renderBizFooterLine()}</div>`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
