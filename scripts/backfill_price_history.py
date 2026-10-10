@@ -23,7 +23,7 @@ from urllib.error import URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-from fetch_poultry_price import HEADERS, RowParser, row_numbers
+from fetch_poultry_price import HEADERS, RowParser, cell_number
 from accumulate_price_history import SERIES_META, merge_rows
 
 KST = timezone(timedelta(hours=9))
@@ -31,10 +31,14 @@ OUT = Path("price_history/daily.json")
 START = date(2018, 3, 1)
 SSL_CONTEXT = ssl.create_default_context()
 BASE = "https://www.ekapepia.com/v3/price/livestock/"
-# (시리즈, 주소, menuSn, 값이 들어 있는 숫자 칸 번호, 허용 범위)
+# (시리즈, 주소, menuSn, 값이 들어 있는 "칸 위치"(날짜 칸이 0), 허용 범위)
+# 칸 위치로 읽는다 — 값이 없는 칸은 "-"로 오는데, 숫자만 골라 읽으면 칸이 밀려 다른 가격(소매가 등)을 읽게 된다
+# (2020년 5월 이전 육계 생계유통(대)는 전부 "-"였다).
+#   계란: [날짜, 산지 XL 원/30개, 산지 XL 원/10개, 도매 30개, 도매 10개, 소비자]  → 2번 칸
+#   육계: [날짜, 산지매입 생계유통(대), 도매 …]                                    → 1번 칸
 SOURCES = [
-    ("egg", BASE + "egg/distrPrice.do", "36", 1, (800, 6000)),
-    ("broiler_live", BASE + "chicken/distrPrice.do", "35", 0, (500, 5000)),
+    ("egg", BASE + "egg/distrPrice.do", "36", 2, (300, 6000)),
+    ("broiler_live", BASE + "chicken/distrPrice.do", "35", 1, (500, 5000)),
 ]
 
 
@@ -71,9 +75,8 @@ def parse_window(page: str, idx: int, lo_hi: tuple[int, int], year: int) -> tupl
                 d = date(year, int(m.group(1)), int(m.group(2))).isoformat()
             except ValueError:
                 d = None
-        nums = row_numbers(row) if d else []
-        if d and len(nums) > idx:
-            v = nums[idx]
+        v = cell_number(row[idx]) if d and len(row) > idx and row[idx] not in ("", "-") else None
+        if d and v is not None:
             if lo_hi[0] <= v <= lo_hi[1]:
                 rows.setdefault(d, v)
             else:

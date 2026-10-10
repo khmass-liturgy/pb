@@ -12408,6 +12408,12 @@ function pfNested(recs, h, flat){
 }
 function pfGrade(score){
   if(!score) return { t: "검증 불가", c: "#757575", bg: "#EEEEEE", why: "백테스트 표본이 부족합니다" };
+  const g = pfGrade0(score);
+  if(score.n < 24 && g.t !== "낮음") return { t: "낮음", c: "#C62828", bg: "#FFEBEE", why: `검증 표본이 ${score.n}건뿐이라 높게 평가하지 않습니다(24건 미만)` };
+  if(score.n < 36 && g.t === "높음") return { t: "보통", c: "#EF6C00", bg: "#FFF3E0", why: `검증 표본 ${score.n}건 — 36건 이상이어야 "높음"으로 봅니다` };
+  return g;
+}
+function pfGrade0(score){
   const skill = 1 - score.model.wape / score.naive.wape, okBrier = score.brier < score.brierClim, okCov = score.cover80 >= 0.7 && score.cover80 <= 0.9;
   if(skill >= 0.1 && okBrier && okCov) return { t: "높음", c: "#2E7D32", bg: "#E8F5E9", why: `가격 오차가 "변화 없음" 가정보다 ${(skill * 100).toFixed(0)}% 작고 확률도 평균 빈도보다 정확` };
   if((skill >= 0 || okBrier) && score.cover80 >= 0.62 && score.cover80 <= 0.95) return { t: "보통", c: "#EF6C00", bg: "#FFF3E0", why: "일부 지표만 단순 기준보다 낫습니다" };
@@ -12535,6 +12541,17 @@ function pfMergeRows(...lists){
   return [...m.entries()].sort((a, b) => a[0] < b[0] ? -1 : 1);
 }
 
+// 일별 가격의 명백한 튐(앞뒤 3건 중앙값보다 40% 넘게 벗어남 — 조사처 입력 오류 가능성)을 빼고 개수를 센다.
+function pfClean(rows){
+  const out = []; let dropped = 0;
+  for(let i = 0; i < rows.length; i++){
+    const w = []; for(let k = Math.max(0, i - 3); k <= Math.min(rows.length - 1, i + 3); k++) if(k !== i) w.push(rows[k][1]);
+    w.sort((a, b) => a - b); const med = w.length ? w[Math.floor(w.length / 2)] : rows[i][1];
+    if(Math.abs(rows[i][1] / med - 1) > 0.4){ dropped++; continue; }
+    out.push(rows[i]);
+  }
+  return { rows: out, dropped };
+}
 // 데모용 가짜 자료 — 같은 시드로 항상 같은 값이 나온다. 실제 시장 자료가 아니다.
 function pfDemoData(){
   let s = 20260101;
@@ -12575,6 +12592,9 @@ function pfSeries(){
   const h = (pfx.hist && pfx.hist.series) || {}, p = (pfx.pub && pfx.pub.prices) || {}, l = pfx.local.prices || {};
   const feed = { ...((pfx.hist && pfx.hist.feed_monthly) || {}), ...((pfx.pub && pfx.pub.feed) || {}), ...(pfx.local.feed || {}) };
   const price = { egg: pfMergeRows((h.egg || {}).rows, p.egg, l.egg), broiler: pfMergeRows((h.broiler_live || {}).rows, p.broiler, l.broiler) };
+  const ck = "clean|" + pfx.rev;
+  if(!pfx.cache[ck]){ const ce = pfClean(price.egg), cb = pfClean(price.broiler); pfx.cache[ck] = { egg: ce.rows, broiler: cb.rows }; if(ce.dropped || cb.dropped) pfLog(`가격 이상값 제외: 계란 ${ce.dropped}건 · 육계 ${cb.dropped}건(앞뒤 중앙값 대비 40% 초과)`); }
+  price.egg = pfx.cache[ck].egg; price.broiler = pfx.cache[ck].broiler;
   return { egg: { price: price.egg, feed }, broiler: { price: price.broiler, feed }, feed,
     headcount: [...((pfx.pub && pfx.pub.headcount) || []), ...(pfx.local.headcount || [])],
     consumption: [...((pfx.pub && pfx.pub.consumption) || []), ...(pfx.local.consumption || [])], demo: false };
