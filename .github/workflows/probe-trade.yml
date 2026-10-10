@@ -1,0 +1,11 @@
+name: probe-trade (임시)
+on:
+  push:
+    branches: [ccr-76d8fb48-ixk3no]
+    paths: ["scripts/_probe_trade.py"]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: python scripts/_probe_trade.py
