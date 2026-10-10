@@ -23,13 +23,11 @@ jobs:
           SMS_RELAY_URL: ${{ secrets.SMS_RELAY_URL }}
           SMS_RELAY_SECRET: ${{ secrets.SMS_RELAY_SECRET }}
         run: python scripts/backfill_feed_production.py
-      - name: 가격·사료 누적 파일 다시 만들기
-        run: python scripts/accumulate_price_history.py
       - name: 변경이 있으면 커밋
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add feed_production/ price_history/
+          git add feed_production/
           if git diff --cached --quiet; then
             echo "변경 없음"
             exit 0
