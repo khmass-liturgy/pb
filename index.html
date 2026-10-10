@@ -13890,6 +13890,11 @@ function lsDelta(pct){
   const c = flat ? "#888" : (pct > 0 ? "#D32F2F" : "#1565C0");
   return `<span style="color:${c};font-weight:600;font-size:11px">${flat?"─":pct>0?"▲":"▼"}${Math.abs(pct).toFixed(1)}%</span>`;
 }
+// "2026 2/4" → "2026년 2분기 (6월 1일 기준)" — 가축동향조사는 3·6·9·12월 1일 기준 분기 통계다.
+function lsPeriodLabel(p){
+  const m = /^(\d{4})\s*([1-4])\/4$/.exec(p || "");
+  return m ? `${m[1]}년 ${m[2]}분기 (${m[2]*3}월 1일 기준)` : (p ? p + " 기준" : "");
+}
 const lsNum = v => (v == null ? "-" : v.toLocaleString());
 
 function lsSpeciesCard(key, d){
@@ -14194,8 +14199,8 @@ function renderLayerStatsPanel(){
 
   return shell(`
     <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-      <span style="font-size:11px;background:#FCE4EC;color:#C2185B;border-radius:10px;padding:2px 9px;font-weight:600">${esc(r.period||"")} 기준</span>
-      ${r.prev_period?`<span style="font-size:10px;color:#aaa">증감은 ${esc(r.prev_period)} 대비</span>`:""}
+      <span style="font-size:11px;background:#FCE4EC;color:#C2185B;border-radius:10px;padding:2px 9px;font-weight:600">${esc(lsPeriodLabel(r.period))}</span>
+      ${r.prev_period?`<span style="font-size:10px;color:#aaa">증감은 ${esc(lsPeriodLabel(r.prev_period).replace(/ \(.*$/,""))} 대비 · 분기마다 갱신</span>`:""}
       ${r.stale?`<span style="font-size:10px;color:#E65100;background:#FFF3E0;border-radius:9px;padding:2px 7px">수집 실패 · 이전 자료</span>`:""}
     </div>
 
