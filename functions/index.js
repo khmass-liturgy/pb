@@ -586,7 +586,7 @@ exports.getBoardPosts = onCall(async (request) => {
 // 답변 길이(max_tokens)를 짧게 제한해 둔다(본격적인 악용 방지가 필요해지면
 // Firebase App Check 추가를 검토할 것).
 //
-// 승인된 유료회원(또는 관리자)이 호출한 경우엔 더 좋은 모델(claude-opus-5)과
+// 승인된 유료회원(또는 관리자)이 호출한 경우엔 더 좋은 모델(claude-sonnet-5-5)과
 // 더 긴 답변 한도로 올려 준다 — isApprovedOrAdmin(request)는 클라이언트가
 // 보내는 값이 아니라 Firebase가 검증한 로그인 토큰(request.auth)을 그대로
 // 보는 것이라 위조할 수 없다(유료서비스 메뉴를 통해 들어왔든, 무료 탭을 직접
@@ -632,7 +632,7 @@ function chickenChatLength(name, premium){
 }
 
 const CHICKEN_CHAT_FREE_MAX_TOKENS = 400;
-const CHICKEN_CHAT_PREMIUM_MAX_TOKENS = 1600;
+const CHICKEN_CHAT_PREMIUM_MAX_TOKENS = 2400;       // 답변 분량은 프롬프트로 제한하고, 이 값은 생각 토큰까지 포함한 여유 한도
 const CHICKEN_CHAT_FREE_MSG_CHARS = 300;
 const CHICKEN_CHAT_PREMIUM_MSG_CHARS = 600;
 const CHICKEN_CHAT_FREE_HISTORY = 12;
@@ -661,12 +661,14 @@ exports.chickenChat = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 90 
   const name = premium ? "최꼬박사" : "최꼬꼬";
   const response = await callClaude({
     // 다른 AI 기능(generateAiDraft 등)은 기본값인 claude-opus-5를 그대로 쓰지만,
-    // 이 캐릭터 잡담 기능은 공개 호출이라 트래픽이 많을 수 있어 무료 이용자는
-    // 훨씬 저렴한 Haiku로 지정해 둔다 — 승인된 유료회원만 Opus로 올린다.
-    model: premium ? "claude-opus-5" : "claude-haiku-4-5-20251001",
+    // 이 캐릭터 대화 기능은 호출이 잦아 비용이 커지므로 모델을 낮춰 둔다 — 무료 이용자는
+    // 훨씬 저렴한 Haiku, 승인된 유료회원은 Sonnet 5.5(Opus 5의 5분의 2 단가).
+    // 유료회원 대화는 effort를 "low"로 두어 생각(thinking)에 쓰는 토큰을 줄인다(잡담·설명 위주라 충분).
+    model: premium ? "claude-sonnet-5-5" : "claude-haiku-4-5-20251001",
     system: chickenChatPersona(name, premium) + chickenChatLength(name, premium),
     messages,
     max_tokens: premium ? CHICKEN_CHAT_PREMIUM_MAX_TOKENS : CHICKEN_CHAT_FREE_MAX_TOKENS,
+    ...(premium ? { output_config: { effort: "low" } } : {}),
   });
   let reply = responseText(response);
   if (!reply) throw new HttpsError("internal", `${name}가 대답을 못 찾았어요 — 다시 물어봐 주세요.`);
