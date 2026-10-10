@@ -152,11 +152,26 @@ updated server.js deployed or the workflow fails. The board is updated only now 
 2026-09-01 (`HPAI_KR_NEW_SEASON`) from that JSON on top of the built-in 25/26 season data (`HPAI_KR_FARMS`/`HPAI_KR_WILD`)
 and draws them in purple/teal.
 
-The 유료서비스 「육계·계란 시세예측」(`priceforecast`, index.html `PF` 상수·`pfBuildModel`) has no fetch script of its own: it
-reads the existing JSON (`feed_production`, `poultry_price`, `broiler_price_today`, `layer_stats`, `egg_report`) in the browser.
-Supply pressure = 배합사료 월 생산량의 전년 대비 증감(육계 사료 → 마릿수, 산란계는 산란 중 + 육성 병아리 가중), demand pull = 월별
-계절지수(`PF.seasonal`, 경험값) + 최근 한 달 가격 흐름, 둘의 차를 3상태(상승/보합/하락) softmax로 1·2·3개월 확률로 바꾼다. It is a
-rule-based reference model, not backtested — keep that disclaimer in the UI, and tune the assumptions only through the `PF` constants.
+The 유료서비스 「육계·계란 시세예측」(`priceforecast`, index.html `pf*`/`PF*` — engine, data, charts, 8 sub-tabs) runs entirely in the browser
+(no server model). Inputs: `price_history/daily.json` (egg 특란 원/10개 and 육계 생계유통(대) 원/kg daily series + monthly feed tonnage;
+**separate series per source, never mixed** — the 협회 broiler quote is its own `broiler_assoc` series), the existing JSON
+(`feed_production`, `poultry_price`, `broiler_price_today`, `layer_stats`, `egg_report`), admin-published uploads in Firebase
+`premium_content/price_forecast_data/latest.json` (members read it through `getPremiumContent`, admin writes with
+`writePremiumContentJson`) and per-viewer CSV uploads kept in localStorage (`pf_uploads_v1`).
+`scripts/accumulate_price_history.py` (workflow accumulate-price-history.yml, daily 09:40 + 14:40 KST) appends new days to
+`price_history/daily.json` and folds `feed_production/history.json` into `feed_monthly`. One-off backfills (workflow_dispatch):
+`backfill-price-history.yml` → `scripts/backfill_price_history.py` (ekapepia serves daily tables from 2018-03-01 when given
+`radioChk=day&startYYMMDD&endYYMMDD&searchStartDate&searchEndDate`; date cells have **no year** ("01월 12일") and empty cells are "-",
+so values are read **by cell position**, not by "n-th number" — the egg XL 원/10개 column is cell 2, 육계 생계유통(대) cell 1; before
+2020-06 the 육계 cells are all "-"), and `backfill-feed-production.yml` → `scripts/backfill_feed_production.py` (MAFRA board keeps only
+the last ~3 years of 배합사료 posts, so older years must come from an admin CSV upload).
+Model (`pfForecast`): ridge regression of the log price change h months ahead (features: feed-based supply pressure, seasonal change,
+1-month momentum, deviation from 12-month mean; 1·2 week horizons use daily features), rolling-origin backtest, forecast size shrunk
+0–1× by the backtest slope, interval/probabilities from out-of-sample residuals, probabilities calibrated by reliability bins, grade
+(높음/보통/낮음/검증 불가) from backtest skill vs "no change"/"same month last year". With too little price history it returns
+`insufficient` and the UI shows **no price forecast** (only the rule-based direction indicator, `pfBuildModel`, labelled unverified).
+Never fabricate forecasts: demo mode (`pfDemoData`, seeded synthetic series) must keep the red "데모 데이터 · 실제 시장 예측 아님" banner.
+Assumption constants live in `PF` (seasonal indices are 경험값, not consumption statistics; consumption data is only used if uploaded).
 
 `fetch_egg_report.py` and `fetch_egg_price.py` currently have no workflow wired up — check before
 assuming their output is refreshed automatically.

@@ -2,9 +2,6 @@ name: 배합사료 생산실적 과거 연도 소급 수집
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ccr-76d8fb48-ixk3no]
-    paths: ["scripts/.backfill_feed_trigger"]
 
 permissions:
   contents: write

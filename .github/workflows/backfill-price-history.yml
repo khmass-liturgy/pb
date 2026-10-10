@@ -9,9 +9,6 @@ on:
       to_year:
         description: "끝 연도(비우면 올해)"
         required: false
-  push:
-    branches: [ccr-76d8fb48-ixk3no]
-    paths: ["scripts/.backfill_trigger"]
 
 permissions:
   contents: write
