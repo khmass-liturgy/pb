@@ -631,7 +631,7 @@ function chickenChatLength(name, premium){
 - 답변은 2~4문장 정도로 짧고 대화체로 합니다 — 교과서처럼 길게 늘어놓지 않습니다. 문장이 중간에 끊기지 않게 항상 끝까지 마무리합니다.`;
 }
 
-const CHICKEN_CHAT_FREE_MAX_TOKENS = 400;
+const CHICKEN_CHAT_FREE_MAX_TOKENS = 1000;          // 답변 분량은 프롬프트가 제한 — 생각 토큰·새 토크나이저(같은 글이 약 30% 더 많은 토큰)를 감안한 여유 한도
 const CHICKEN_CHAT_PREMIUM_MAX_TOKENS = 2400;       // 답변 분량은 프롬프트로 제한하고, 이 값은 생각 토큰까지 포함한 여유 한도
 const CHICKEN_CHAT_FREE_MSG_CHARS = 300;
 const CHICKEN_CHAT_PREMIUM_MSG_CHARS = 600;
@@ -662,13 +662,15 @@ exports.chickenChat = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 90 
   const response = await callClaude({
     // 다른 AI 기능(generateAiDraft 등)은 기본값인 claude-opus-5를 그대로 쓰지만,
     // 이 캐릭터 대화 기능은 호출이 잦아 비용이 커지므로 모델을 낮춰 둔다 — 무료 이용자는
-    // 훨씬 저렴한 Haiku, 승인된 유료회원은 Sonnet 5.5(Opus 5의 5분의 2 단가).
-    // 유료회원 대화는 effort를 "low"로 두어 생각(thinking)에 쓰는 토큰을 줄인다(잡담·설명 위주라 충분).
-    model: premium ? "claude-sonnet-5-5" : "claude-haiku-4-5-20251001",
+    // 가장 저렴한 Haiku 5.5($0.10/$0.50), 승인된 유료회원은 Sonnet 5.5(Opus 5의 5분의 2 단가).
+    // 두 모델 모두 effort를 "low"로 두어 생각(thinking)에 쓰는 토큰을 줄인다(잡담·설명 위주라 충분).
+    model: premium ? "claude-sonnet-5-5" : "claude-haiku-5-5",
     system: chickenChatPersona(name, premium) + chickenChatLength(name, premium),
     messages,
     max_tokens: premium ? CHICKEN_CHAT_PREMIUM_MAX_TOKENS : CHICKEN_CHAT_FREE_MAX_TOKENS,
-    ...(premium ? { output_config: { effort: "low" } } : {}),
+    output_config: { effort: "low" },
+    // Haiku 5.5에는 서버 쪽 대체 모델(fallbacks)이 없다 — callClaude의 기본값(fallbacks·베타 헤더)을 이 요청에서는 뺀다.
+    ...(premium ? {} : { fallbacks: undefined, betas: undefined }),
   });
   let reply = responseText(response);
   if (!reply) throw new HttpsError("internal", `${name}가 대답을 못 찾았어요 — 다시 물어봐 주세요.`);
