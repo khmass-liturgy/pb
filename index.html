@@ -746,8 +746,8 @@ const PREMIUM_ITEMS = [
   { key:"moltguide", icon:"🪶", title:"산란계 환우 프로그램(육종회사별)", desc:"하이라인·로만 등 육종회사가 권장하는 품종별 인위환우(강제환우) 프로그램을 비교해 보여드립니다.", color:"#00695C", category:"사양관리" },
   { key:"feedstandard", icon:"🌾", title:"내 농장의 사료영양 관리", desc:"육계·산란계 사육단계별 국제 사료 영양 표준(에너지·단백질·칼슘 등)과 평균 사료 교체일령을 한눈에 보여드립니다.", color:"#F57F17", category:"사양관리" },
   { key:"feedgrain", icon:"🌽", title:"사료곡물 원료 품질평가", desc:"미국·브라질·아르헨티나·유럽 곡물 산지의 기상 흐름과 곰팡이 위험을 신호등·13주 흐름 띠로 보고, 옥수수·대두·밀의 영양·물리 품질을 나라별로 비교합니다.", color:"#F57F17", category:"사양관리" },
-  { key:"grainprice", icon:"📈", title:"사료곡물 가격동향·전망", desc:"세계 곡물 선물시장(옥수수·대두박·대두·밀)의 가격 흐름을 카드로 보고, 환율·달러·유가·산지 기상 등 대내외 변수로 1~3개월 가격 전망을 확인합니다.", color:"#EF6C00", category:"사양관리" },
-  { key:"priceforecast", icon:"🔮", title:"육계·계란 시세예측", desc:"배합사료 생산량으로 추정한 마릿수(생산잠재력)와 과거 소비 패턴(소비잠재력)을 견줘 육계·계란 산지 시세가 1·2·3개월 뒤 오를지·보합일지·내릴지 확률로 보여드립니다. 예측이 만들어지는 과정을 도식으로 함께 봅니다.", color:"#4527A0", category:"사양관리" },
+  { key:"grainprice", icon:"📈", title:"사료곡물 가격동향·전망", desc:"세계 곡물 선물시장(옥수수·대두박·대두·밀)의 가격 흐름을 카드로 보고, 환율·달러·유가·산지 기상 등 대내외 변수로 1~3개월 가격 전망을 확인합니다.", color:"#EF6C00", category:"시세 예측·분석" },
+  { key:"priceforecast", icon:"🔮", title:"육계·계란 시세예측", desc:"배합사료 생산량으로 추정한 마릿수(생산잠재력)와 과거 소비 패턴(소비잠재력)을 견줘 육계·계란 산지 시세가 1·2·3개월 뒤 오를지·보합일지·내릴지 확률로 보여드립니다. 예측이 만들어지는 과정을 도식으로 함께 봅니다.", color:"#4527A0", category:"시세 예측·분석" },
   { key:"selfcheck", icon:"🐔", title:"온라인 자가진단", desc:"닭 해부도에서 장기를 클릭하면 그 장기의 기능과 흔히 나타나는 질병을 보여드립니다.", color:"#AD1457", category:"진단" },
   { key:"diagnosis", icon:"🔍", title:"온라인 진단", desc:"닭의 외부모습·분변상태·부검사진(기관지·간·신장·소장)을 올리면 최동명 수의사가 직접 진단합니다. 사진·진단 내용은 작성자만 볼 수 있습니다.", color:"#2E7D32", category:"진단" },
   { key:"specimen", icon:"🧪", title:"가검물 의뢰(유료)", desc:"혈청·부검·조직 등 가검물 검사를 의뢰서 양식 그대로 입력해 온라인으로 의뢰합니다. 접수 후 최동명 수의사가 확인해 안내합니다.", color:"#00695C", category:"진단" },
@@ -771,6 +771,7 @@ const PREMIUM_CATEGORY_COLORS = {
   "약품·투약·소독": "#00838F",
   "백신관리": "#3949AB",
   "사양관리": "#0288D1",
+  "시세 예측·분석": "#5E35B1",
   "진단": "#2E7D32",
   "질문·학습·교육": "#6A1B9A",
   "게시판·기타": "#D84315",
@@ -840,10 +841,12 @@ let premiumMenuState = { status:"idle", data:null, busy:false, msg:"", adminOpen
 // 관리자가 저장한 메뉴가 있어도, 그 뒤에 새로 만든 기본 메뉴(PREMIUM_MENU_NEW_SEED_KEYS)는 빠져 보이지 않게
 // 저장된 메뉴에 없을 때만 기본 위치(앞 메뉴 뒤)에 끼워 보여 준다.
 const PREMIUM_MENU_NEW_SEED_KEYS = ["drugnews", "diseasebrief", "priceforecast"];
+// 관리자가 예전에 저장한 메뉴에는 두 항목이 「사양관리」로 들어 있으므로, 분류만 새 묶음으로 강제한다.
+const PREMIUM_MENU_FORCE_CATEGORY = { grainprice:"시세 예측·분석", priceforecast:"시세 예측·분석" };
 function currentPremiumMenuItems(){
   const items = premiumMenuState.data && premiumMenuState.data.items;
   if(!(Array.isArray(items) && items.length)) return PREMIUM_ITEMS;
-  const out = items.slice();
+  const out = items.map(it => PREMIUM_MENU_FORCE_CATEGORY[it.key] ? Object.assign({}, it, {category:PREMIUM_MENU_FORCE_CATEGORY[it.key]}) : it);
   PREMIUM_MENU_NEW_SEED_KEYS.forEach(k => {
     if(out.some(it => it.key === k)) return;
     const seedIdx = PREMIUM_ITEMS.findIndex(it => it.key === k);
