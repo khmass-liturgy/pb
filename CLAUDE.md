@@ -152,6 +152,12 @@ updated server.js deployed or the workflow fails. The board is updated only now 
 2026-09-01 (`HPAI_KR_NEW_SEASON`) from that JSON on top of the built-in 25/26 season data (`HPAI_KR_FARMS`/`HPAI_KR_WILD`)
 and draws them in purple/teal.
 
+The 유료서비스 「육계·계란 시세예측」(`priceforecast`, index.html `PF` 상수·`pfBuildModel`) has no fetch script of its own: it
+reads the existing JSON (`feed_production`, `poultry_price`, `broiler_price_today`, `layer_stats`, `egg_report`) in the browser.
+Supply pressure = 배합사료 월 생산량의 전년 대비 증감(육계 사료 → 마릿수, 산란계는 산란 중 + 육성 병아리 가중), demand pull = 월별
+계절지수(`PF.seasonal`, 경험값) + 최근 한 달 가격 흐름, 둘의 차를 3상태(상승/보합/하락) softmax로 1·2·3개월 확률로 바꾼다. It is a
+rule-based reference model, not backtested — keep that disclaimer in the UI, and tune the assumptions only through the `PF` constants.
+
 `fetch_egg_report.py` and `fetch_egg_price.py` currently have no workflow wired up — check before
 assuming their output is refreshed automatically.
 
