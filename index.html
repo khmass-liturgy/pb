@@ -11821,21 +11821,12 @@ const PREMIUM_TERMS = [
   { h:"제6조 (정보의 성격과 책임의 한계)", t:"서비스의 정보와 AI 답변은 농장 관리에 참고하시라고 제공하는 자료이며, 수의사의 대면 진료나 처방을 대신하지 않습니다. 시세·뉴스·통계는 외부 자료를 바탕으로 하므로 지연되거나 달라질 수 있습니다. 약품 사용과 방역 결정은 현장 상황을 확인하고 관련 법령과 제품 설명서를 따라 이용자가 판단해 주세요." },
   { h:"제7조 (개인정보)", t:"가입 승인과 상담을 위해 이름, 연락처, 이메일, 가입일과 상담 게시판에 올린 글·사진을 수집합니다. 수집한 정보는 회원 확인, 상담 답변, 서비스 안내 목적으로만 쓰며 비공개로 보관하고, 이용 종료 후 요청하시면 삭제합니다. 법령에서 보관을 요구하는 거래 기록은 정해진 기간 동안 보관합니다. 개인정보 문의는 아래 연락처로 해 주세요." },
   { h:"제8조 (서비스 변경과 중단)", t:"시스템 점검, 외부 서비스 장애, 천재지변 등으로 서비스가 일시 중단될 수 있습니다. 서비스를 종료하는 경우 미리 알리고 남은 기간에 해당하는 이용료를 환불합니다." },
-  { h:"제9조 (문의)", t:"가입, 결제, 환불, 개인정보 관련 문의는 사업자 정보에 적힌 연락처로 해 주세요." },
+  { h:"제9조 (문의)", t:"가입, 결제, 환불, 개인정보 관련 문의는 010-9150-8844(문자) 또는 trsumun@daum.net으로 해 주세요." },
 ];
 function renderPremiumBizAndTerms(){
-  const b = PREMIUM_BIZ_INFO;
-  const rows = [
-    ["상호", b.name], ["대표자", b.rep], ["사업자등록번호", b.bizNo], ["사업장 주소", b.address],
-    ["통신판매업 신고번호", b.mailOrderNo], ["연락처", b.tel], ["이메일", b.email],
-  ].filter(r => r[1]);
   return `
   <div style="margin-top:24px;text-align:left">
-    <div style="font-size:11px;color:#888;font-weight:700;margin-bottom:8px;text-align:center">🏢 사업자 정보</div>
-    <div style="border:1px solid #eee;border-radius:10px;padding:10px 12px;font-size:11.5px;color:#666;line-height:1.8">
-      ${rows.map(r => `<div><span style="display:inline-block;min-width:112px;color:#999">${esc(r[0])}</span>${esc(r[1])}</div>`).join("")}
-    </div>
-    <details style="margin-top:10px;border:1px solid #eee;border-radius:10px;padding:10px 12px">
+    <details style="border:1px solid #eee;border-radius:10px;padding:10px 12px">
       <summary style="cursor:pointer;font-size:12px;font-weight:700;color:#333">📄 유료서비스 이용약관 보기</summary>
       <div style="margin-top:10px;font-size:11.5px;color:#666;line-height:1.7">
         ${PREMIUM_TERMS.map(x => `<div style="margin-bottom:8px"><b style="color:#333">${esc(x.h)}</b><br>${esc(x.t)}</div>`).join("")}
