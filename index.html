@@ -747,6 +747,7 @@ const PREMIUM_ITEMS = [
   { key:"feedstandard", icon:"🌾", title:"내 농장의 사료영양 관리", desc:"육계·산란계 사육단계별 국제 사료 영양 표준(에너지·단백질·칼슘 등)과 평균 사료 교체일령을 한눈에 보여드립니다.", color:"#F57F17", category:"사양관리" },
   { key:"feedgrain", icon:"🌽", title:"사료곡물 원료 품질평가", desc:"미국·브라질·아르헨티나·유럽 곡물 산지의 기상 흐름과 곰팡이 위험을 신호등·13주 흐름 띠로 보고, 옥수수·대두·밀의 영양·물리 품질을 나라별로 비교합니다.", color:"#F57F17", category:"사양관리" },
   { key:"grainprice", icon:"📈", title:"사료곡물 가격동향·전망", desc:"세계 곡물 선물시장(옥수수·대두박·대두·밀)의 가격 흐름을 카드로 보고, 환율·달러·유가·산지 기상 등 대내외 변수로 1~3개월 가격 전망을 확인합니다.", color:"#EF6C00", category:"사양관리" },
+  { key:"priceforecast", icon:"🔮", title:"육계·계란 시세예측", desc:"배합사료 생산량으로 추정한 마릿수(생산잠재력)와 과거 소비 패턴(소비잠재력)을 견줘 육계·계란 산지 시세가 1·2·3개월 뒤 오를지·보합일지·내릴지 확률로 보여드립니다. 예측이 만들어지는 과정을 도식으로 함께 봅니다.", color:"#4527A0", category:"사양관리" },
   { key:"selfcheck", icon:"🐔", title:"온라인 자가진단", desc:"닭 해부도에서 장기를 클릭하면 그 장기의 기능과 흔히 나타나는 질병을 보여드립니다.", color:"#AD1457", category:"진단" },
   { key:"diagnosis", icon:"🔍", title:"온라인 진단", desc:"닭의 외부모습·분변상태·부검사진(기관지·간·신장·소장)을 올리면 최동명 수의사가 직접 진단합니다. 사진·진단 내용은 작성자만 볼 수 있습니다.", color:"#2E7D32", category:"진단" },
   { key:"specimen", icon:"🧪", title:"가검물 의뢰(유료)", desc:"혈청·부검·조직 등 가검물 검사를 의뢰서 양식 그대로 입력해 온라인으로 의뢰합니다. 접수 후 최동명 수의사가 확인해 안내합니다.", color:"#00695C", category:"진단" },
@@ -830,7 +831,7 @@ const PREMIUM_MENU_LEGACY_PATH = "premium_menu/items.json";
 // 항목이라 목록에서 뺀다).
 const PREMIUM_MENU_KNOWN_KEYS = [
   "drug","treatment","seasonal","finder","disinfect","newproducts","vaccine",
-  "ventfinder","lightguide","moltguide","feedstandard","feedgrain","grainprice","selfcheck","diagnosis","specimen","faq","study",
+  "ventfinder","lightguide","moltguide","feedstandard","feedgrain","grainprice","priceforecast","selfcheck","diagnosis","specimen","faq","study",
   "research","diseasebrief","emerging","industrynews","drugnews","magazine","kkoko","feature_board","consult","consulting","smssub",
 ];
 let premiumMenuState = { status:"idle", data:null, busy:false, msg:"", adminOpen:false, formOpen:false,
@@ -838,7 +839,7 @@ let premiumMenuState = { status:"idle", data:null, busy:false, msg:"", adminOpen
 
 // 관리자가 저장한 메뉴가 있어도, 그 뒤에 새로 만든 기본 메뉴(PREMIUM_MENU_NEW_SEED_KEYS)는 빠져 보이지 않게
 // 저장된 메뉴에 없을 때만 기본 위치(앞 메뉴 뒤)에 끼워 보여 준다.
-const PREMIUM_MENU_NEW_SEED_KEYS = ["drugnews", "diseasebrief"];
+const PREMIUM_MENU_NEW_SEED_KEYS = ["drugnews", "diseasebrief", "priceforecast"];
 function currentPremiumMenuItems(){
   const items = premiumMenuState.data && premiumMenuState.data.items;
   if(!(Array.isArray(items) && items.length)) return PREMIUM_ITEMS;
@@ -11887,6 +11888,318 @@ function renderPremiumPreview(){
   </div>`;
 }
 
+// ── 육계·계란 시세예측 (유료서비스) ───────────────────────────────────────────
+// 「생산잠재력」(배합사료 생산량 → 추정 마릿수 → 공급 압력)과 「소비잠재력」(과거 계절 소비 패턴 +
+// 최근 가격 흐름)을 견주어, 1·2·3개월 뒤 산지 가격이 오를/보합/내릴 확률을 구한다.
+// 백테스트로 검증한 통계 모형이 아니라, 아래 상수로 가정을 드러낸 규칙 기반 참고 모형이다.
+// 가정은 PF 상수만 바꾸면 전체 계산과 화면이 따라 바뀐다.
+const PF = {
+  // 소비잠재력의 계절지수(평월=0, 1월부터). 명절·복날·방학·급식 같은 과거 소비 패턴에 대한 경험값이다.
+  seasonal: {
+    broiler: [-1, -1, 0, 0, 0.5, 1, 2, 1, 1, 0, -1, 0],
+    egg:     [0.5, 0.5, 1, 0.5, 0, 0, -1, -1, 1.5, -0.5, 0.5, 0.5],
+  },
+  layerWeights: [0.8, 0.6, 0.4],   // 계란 공급: 현재 산란계(산란 중) 비중. 나머지는 육성 중인 병아리(곧 산란에 들어옴)
+  shrink: [1, 0.8, 0.65],          // 먼 미래일수록 신호를 약하게 반영(불확실성)
+  supplyPerPoint: 3,               // 공급량이 전년보다 3% 많으면 하락 쪽 1점
+  momentumPerPoint: 5,             // 최근 한 달 가격이 5% 움직이면 같은 방향 1점
+  momentumCap: 1.5,
+  k: 0.6, flatWeight: 1.5,         // 확률 계산 기울기와 보합 쪽 기본 무게
+};
+const PF_COLORS = { up: "#D32F2F", flat: "#9E9E9E", down: "#1565C0" };   // 가격 상승=빨강, 하락=파랑(한국 시세 관례)
+const pfState = { status: "idle", showTable: false };
+
+async function pfLoad(){
+  if(pfState.status === "loading") return;
+  pfState.status = "loading";
+  const jobs = [];
+  if(feedProdState.status === "idle") jobs.push(fetchFeedProduction());
+  if(poultryPriceState.status === "idle") jobs.push(fetchPoultryPrices());
+  if(broilerPriceTodayState.status === "idle") jobs.push(fetchBroilerPriceToday());
+  if(layerStatsState.status === "idle") jobs.push(fetchLayerStats());
+  if(eggReportState.status === "idle") jobs.push(fetchEggReport());
+  try { await Promise.all(jobs); } catch(_) {}
+  pfState.status = "done";
+  if(state.tab === "premium" && premiumState.view === "priceforecast") render();
+}
+
+const pfClip = (v, lim) => Math.max(-lim, Math.min(lim, v));
+
+// 최근 n개월 합계의 전년 같은 달 대비 증감률(%) — 마릿수는 사료량에 비례하므로 사료 증감률이 곧 마릿수 증감률이다.
+function pfYoY(cur, prv, upto, n, daysAdj){
+  let a = 0, b = 0, used = 0;
+  for(let i = upto - n + 1; i <= upto; i++){
+    if(i < 0 || cur[i] == null || prv[i] == null) continue;
+    a += cur[i]; b += prv[i]; used++;
+  }
+  return used && b ? (a / b - 1) * 100 : null;
+}
+
+function pfProbs(z){
+  const e = Math.exp(PF.k * z), f = PF.flatWeight, d = Math.exp(-PF.k * z);
+  const s = e + f + d;
+  return { up: e / s, flat: f / s, down: d / s };
+}
+
+function pfBuildModel(){
+  const fp = feedProdState.data;
+  if(!fp || !fp.latest || !fp.years) return null;
+  const cy = fp.latest.year, m = fp.latest.month;
+  const cur = fp.years[String(cy)], prv = fp.years[String(cy - 1)];
+  if(!cur || !prv) return null;
+  const gc = cur.groups, gp = prv.groups, i = m - 1;
+  const sumBr = (g, k) => g.broiler_starter[k] == null || g.broiler_finisher[k] == null ? null : g.broiler_starter[k] + g.broiler_finisher[k];
+  const brC = gc.broiler_starter.map((_, k) => sumBr(gc, k)), brP = gp.broiler_starter.map((_, k) => sumBr(gp, k));
+  const supply = {
+    broiler: pfYoY(brC, brP, i, 3),
+    layerLaying: pfYoY(gc.layer_laying, gp.layer_laying, i, 3),
+    layerRearing: pfYoY(gc.layer_rearing, gp.layer_rearing, i, 3),
+  };
+  if([supply.broiler, supply.layerLaying, supply.layerRearing].some(v => v == null)) return null;
+
+  // 추정 마릿수(생산잠재력) — 기존 「육계·산란계 생산잠재력」 카드와 같은 표준값·가정
+  const std = feedPotentialStandards();
+  const days = (yr, k) => new Date(yr, k + 1, 0).getDate();
+  const birds = {
+    broiler: brC[i] == null ? null : brC[i] * 1e6 / std.broilerTotalG,
+    broilerPrev: brP[i] == null ? null : brP[i] * 1e6 / std.broilerTotalG,
+    laying: gc.layer_laying[i] == null ? null : gc.layer_laying[i] * 1e6 / (std.layerLayingG * days(cy, i)),
+    layingPrev: gp.layer_laying[i] == null ? null : gp.layer_laying[i] * 1e6 / (std.layerLayingG * days(cy - 1, i)),
+    rearing: gc.layer_rearing[i] == null ? null : gc.layer_rearing[i] * 1e6 / (std.layerRearingG * days(cy, i)),
+    rearingPrev: gp.layer_rearing[i] == null ? null : gp.layer_rearing[i] * 1e6 / (std.layerRearingG * days(cy - 1, i)),
+  };
+
+  // 최근 가격 흐름(소비잠재력의 보조 신호)
+  const pp = poultryPriceState.data;
+  let eggMom = null, eggNow = null;
+  const er = pp && pp.egg && pp.egg.rows;
+  if(er && er.length >= 8){
+    eggNow = er[0].value;
+    const old = er[Math.min(er.length - 1, 17)];     // 보통 한 달 전쯤
+    if(old && old.value) eggMom = (eggNow / old.value - 1) * 100;
+  }
+  const bt = broilerPriceTodayState.data;
+  const big = bt && bt.rows && bt.rows.find(r => r.grade === "대");
+  const brMom = big && big.last_month ? (big.today / big.last_month - 1) * 100 : null;
+  const brYoy = big && big.last_year ? (big.today / big.last_year - 1) * 100 : null;
+
+  const nowM = new Date(Date.now() + 9 * 3600e3).getUTCMonth();   // KST 기준 현재 월(0~11)
+  const species = {};
+  [["broiler", brMom], ["egg", eggMom]].forEach(([key, mom]) => {
+    species[key] = [1, 2, 3].map(h => {
+      const tgt = (nowM + h) % 12;
+      const supplyYoY = key === "broiler"
+        ? supply.broiler
+        : PF.layerWeights[h - 1] * supply.layerLaying + (1 - PF.layerWeights[h - 1]) * supply.layerRearing;
+      const supplyPts = supplyYoY / PF.supplyPerPoint;
+      const seasonDelta = PF.seasonal[key][tgt] - PF.seasonal[key][nowM];
+      const momPts = mom == null ? 0 : pfClip(mom / PF.momentumPerPoint, PF.momentumCap);
+      const demandPts = seasonDelta + momPts;
+      const z = (demandPts - supplyPts) * PF.shrink[h - 1];
+      return { h, month: tgt + 1, supplyYoY, supplyPts, seasonDelta, momPts, demandPts, z, p: pfProbs(z) };
+    });
+  });
+  return { cy, m, supply, birds, eggNow, eggMom, brMom, brYoy, brNow: big && big.today, species,
+           nowMonth: nowM + 1, updated: fp.updated, source: fp.source, stale: !!fp.stale };
+}
+
+function pfVerdict(p){
+  const d = p.up - p.down;
+  if(p.up >= 0.4 && p.up > p.down + 0.1) return { t: "상승 우세", ic: "🔺", c: PF_COLORS.up, bg: "#FFEBEE" };
+  if(p.down >= 0.4 && p.down > p.up + 0.1) return { t: "하락 우세", ic: "🔻", c: PF_COLORS.down, bg: "#E3F2FD" };
+  return { t: Math.abs(d) < 0.1 ? "보합권" : (d > 0 ? "보합~소폭 상승" : "보합~소폭 하락"), ic: "➖", c: "#616161", bg: "#F5F5F5" };
+}
+
+const pfSign = v => { const r = Math.round(v * 10) / 10; return (r > 0 ? "+" : r < 0 ? "−" : "") + Math.abs(r).toFixed(1); };
+
+// 확률 막대 한 줄: 하락(파랑) · 보합(회색) · 상승(빨강). 색만으로 구분하지 않도록 숫자와 글자를 함께 쓴다.
+function pfBar(p){
+  const seg = (v, c, label) => v < 0.001 ? "" : `
+    <div style="flex:${v};min-width:0;background:${c};color:#fff;font-size:10.5px;font-weight:700;text-align:center;padding:4px 0;white-space:nowrap;overflow:hidden" title="${label} ${Math.round(v * 100)}%">${v >= 0.14 ? Math.round(v * 100) + "%" : ""}</div>`;
+  return `<div style="display:flex;border-radius:6px;overflow:hidden;background:#eee" role="img"
+      aria-label="하락 ${Math.round(p.down * 100)}%, 보합 ${Math.round(p.flat * 100)}%, 상승 ${Math.round(p.up * 100)}%">
+    ${seg(p.down, PF_COLORS.down, "하락")}${seg(p.flat, PF_COLORS.flat, "보합")}${seg(p.up, PF_COLORS.up, "상승")}
+  </div>`;
+}
+
+function pfSpeciesCard(key, rows, md){
+  const meta = key === "broiler"
+    ? { icon: "🍗", name: "육계 (산지 생계 시세)", color: "#E65100", bar: "#FFCC80" }
+    : { icon: "🥚", name: "계란 (산지 특란 시세)", color: "#F9A825", bar: "#FFE082" };
+  const nowTxt = key === "broiler"
+    ? (md.brNow != null ? `오늘 대(1.6kg↑) ${md.brNow.toLocaleString()}원/kg · 한 달 전 대비 ${md.brMom == null ? "-" : pfSign(md.brMom) + "%"} · 작년 대비 ${md.brYoy == null ? "-" : pfSign(md.brYoy) + "%"}` : "시세 자료 없음")
+    : (md.eggNow != null ? `최근 특란 ${md.eggNow.toLocaleString()}원/10개 · 한 달 전 대비 ${md.eggMom == null ? "-" : pfSign(md.eggMom) + "%"}` : "시세 자료 없음");
+  const lines = rows.map(r => {
+    const v = pfVerdict(r.p);
+    return `
+    <div style="margin-top:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap">
+        <span style="font-size:12px;font-weight:700;color:#333">${r.h}개월 뒤 <span style="color:#999;font-weight:500">(${r.month}월)</span></span>
+        <span style="font-size:11px;font-weight:800;color:${v.c};background:${v.bg};border-radius:10px;padding:2px 9px">${v.ic} ${v.t}</span>
+      </div>
+      ${pfBar(r.p)}
+    </div>`;
+  }).join("");
+  return `
+  <div style="flex:1 1 300px;min-width:0;border:1px solid ${meta.bar};border-top:6px solid ${meta.color};border-radius:10px;padding:12px 14px;background:#fff">
+    <div style="display:flex;align-items:center;gap:6px"><span style="font-size:18px">${meta.icon}</span><span style="font-size:13.5px;font-weight:800;color:${meta.color}">${meta.name}</span></div>
+    <div style="font-size:10.5px;color:#888;margin-top:3px">${nowTxt}</div>
+    <div style="display:flex;gap:10px;font-size:10px;color:#777;margin-top:8px">
+      <span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${PF_COLORS.down};vertical-align:middle"></span> 하락</span>
+      <span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${PF_COLORS.flat};vertical-align:middle"></span> 보합</span>
+      <span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${PF_COLORS.up};vertical-align:middle"></span> 상승</span>
+    </div>
+    ${lines}
+  </div>`;
+}
+
+// 예측이 만들어지는 흐름을 한 장으로 보여주는 도식(세로 흐름이라 휴대폰에서도 글자가 읽힌다).
+function pfDiagram(md){
+  const box = (x, y, w, h, fill, stroke, lines) => {
+    const t = lines.map((l, k) => `<text x="${x + w / 2}" y="${y + 17 + k * 15}" text-anchor="middle" font-size="${l.s || 11}" font-weight="${l.b ? 800 : 500}" fill="${l.c || "#333"}">${esc(l.t)}</text>`).join("");
+    return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="9" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>${t}`;
+  };
+  const arrow = (x1, y1, x2, y2) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2 - 5}" stroke="#90A4AE" stroke-width="2" marker-end="url(#pf-ah)"/>`;
+  const bird = v => v == null ? "-" : fpBirds(v);
+  const b = md.birds;
+  const yb = fpPct(b.broiler, b.broilerPrev), yl = fpPct(b.laying, b.layingPrev), yr = fpPct(b.rearing, b.rearingPrev);
+  const pc = v => v == null ? "" : ` (${pfSign(v)}%)`;
+  const e1 = md.species.egg[0], b1 = md.species.broiler[0];
+  const bal = r => `수요 ${pfSign(r.demandPts)} · 공급 ${pfSign(-r.supplyPts)}`;
+  return `
+  <svg viewBox="0 0 360 602" width="100%" style="display:block;max-width:560px;margin:0 auto" role="img"
+    aria-label="예측 흐름: 배합사료 생산량에서 추정 마릿수와 공급 압력을 구하고, 과거 계절 소비와 최근 가격 흐름에서 소비 견인을 구해 비교한 뒤 상승·보합·하락 확률로 바꿉니다">
+    <defs><marker id="pf-ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#90A4AE"/></marker></defs>
+
+    <text x="90" y="14" text-anchor="middle" font-size="11" font-weight="800" fill="#1565C0">① 생산잠재력(공급)</text>
+    <text x="270" y="14" text-anchor="middle" font-size="11" font-weight="800" fill="#2E7D32">② 소비잠재력(수요)</text>
+
+    ${box(10, 22, 160, 56, "#E3F2FD", "#90CAF9", [{ t: "🌾 배합사료 생산량", b: 1 }, { t: "농식품부 월별 통계(톤)", s: 10, c: "#666" }, { t: `${md.cy}년 ${md.m}월까지`, s: 10, c: "#666" }])}
+    ${box(190, 22, 160, 56, "#E8F5E9", "#A5D6A7", [{ t: "📅 과거 소비 패턴", b: 1 }, { t: "명절·복날·방학 계절지수", s: 10, c: "#666" }, { t: "+ 최근 한 달 가격 흐름", s: 10, c: "#666" }])}
+
+    ${arrow(90, 78, 90, 100)}${arrow(270, 78, 270, 100)}
+
+    ${box(10, 100, 160, 92, "#fff", "#90CAF9", [
+      { t: "🐔 추정 마릿수", b: 1 },
+      { t: `육계 월 ${bird(b.broiler)}${pc(yb)}`, s: 10 },
+      { t: `산란계 ${bird(b.laying)}${pc(yl)}`, s: 10 },
+      { t: `중추 ${bird(b.rearing)}${pc(yr)}`, s: 10 },
+      { t: "(괄호는 작년 같은 달 대비)", s: 9, c: "#999" }])}
+    ${box(190, 100, 160, 92, "#fff", "#A5D6A7", [
+      { t: "🛒 소비 견인 점수", b: 1 },
+      { t: `계절 변화 ${pfSign(b1.seasonDelta)}점 (육계, 1개월)`, s: 10 },
+      { t: `가격 흐름 ${pfSign(b1.momPts)}점 (육계)`, s: 10 },
+      { t: `계란: ${pfSign(e1.seasonDelta)}점 · ${pfSign(e1.momPts)}점`, s: 10 },
+      { t: "(+면 수요가 늘어나는 쪽)", s: 9, c: "#999" }])}
+
+    ${arrow(90, 192, 90, 216)}
+
+    ${box(10, 216, 160, 74, "#FFF8E1", "#FFE082", [
+      { t: "⏱ 시차 반영", b: 1 },
+      { t: "육계: 사료 → 약 1개월 뒤 출하", s: 10 },
+      { t: "산란계: 육성 병아리 → 약 4개월", s: 10 },
+      { t: "뒤 산란 시작", s: 10 }])}
+    ${arrow(90, 290, 90, 314)}
+    ${box(10, 314, 160, 58, "#fff", "#90CAF9", [
+      { t: "📦 공급 압력 점수", b: 1 },
+      { t: `육계 ${pfSign(-b1.supplyPts)} · 계란 ${pfSign(-e1.supplyPts)} (1개월)`, s: 10 },
+      { t: "(−면 공급이 넘치는 쪽)", s: 9, c: "#999" }])}
+
+    ${arrow(270, 192, 270, 314)}
+    ${box(190, 314, 160, 58, "#fff", "#A5D6A7", [
+      { t: "🛒 수요 견인 점수", b: 1 },
+      { t: `육계 ${pfSign(b1.demandPts)} · 계란 ${pfSign(e1.demandPts)} (1개월)`, s: 10 },
+      { t: "(+면 수요가 강한 쪽)", s: 9, c: "#999" }])}
+
+    <line x1="90" y1="372" x2="90" y2="392" stroke="#90A4AE" stroke-width="2"/>
+    <line x1="270" y1="372" x2="270" y2="392" stroke="#90A4AE" stroke-width="2"/>
+    <line x1="90" y1="392" x2="270" y2="392" stroke="#90A4AE" stroke-width="2"/>
+    <line x1="180" y1="392" x2="180" y2="410" stroke="#90A4AE" stroke-width="2" marker-end="url(#pf-ah)"/>
+
+    ${box(40, 412, 280, 84, "#EDE7F6", "#B39DDB", [
+      { t: "⚖️ 수요 − 공급 균형 (1개월 뒤)", b: 1, c: "#4527A0" },
+      { t: "수요가 앞서면 상승 쪽, 공급이 앞서면 하락 쪽", s: 10 },
+      { t: `육계 ${bal(b1)}`, s: 10, c: "#666" },
+      { t: `계란 ${bal(e1)}`, s: 10, c: "#666" }])}
+    ${arrow(180, 496, 180, 516)}
+    ${box(40, 516, 280, 76, "#fff", "#B39DDB", [
+      { t: "📊 1·2·3개월 뒤 확률", b: 1, c: "#4527A0" },
+      { t: "균형 점수를 상승·보합·하락 확률로 바꿉니다", s: 10 },
+      { t: "먼 미래일수록 신호를 약하게 반영(불확실)", s: 10, c: "#666" },
+      { t: "↓ 아래 카드에서 확인", s: 10, c: "#4527A0", b: 1 }])}
+  </svg>`;
+}
+
+function pfEvidence(md){
+  const row = (a, b, c) => `<tr style="border-top:1px solid #F3F3F3"><td style="padding:4px 5px;color:#555">${a}</td><td style="padding:4px 5px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700">${b}</td><td style="padding:4px 5px;color:#888">${c}</td></tr>`;
+  const s = md.supply;
+  const hdr = `<tr style="color:#999"><th style="text-align:left;font-weight:500;padding:3px 5px">항목</th><th style="text-align:right;font-weight:500;padding:3px 5px">값</th><th style="text-align:left;font-weight:500;padding:3px 5px">설명</th></tr>`;
+  const rows = [
+    row("육계 사료(전기+후기)", pfSign(s.broiler) + "%", `최근 3개월 합계, 작년 같은 달 대비 → 육계 마릿수 증감과 같음`),
+    row("산란계 사료(산란 중)", pfSign(s.layerLaying) + "%", `최근 3개월, 작년 대비 → 지금 알 낳는 닭의 증감`),
+    row("산란계 사료(육성기)", pfSign(s.layerRearing) + "%", `최근 3개월, 작년 대비 → 앞으로 산란에 들어올 병아리의 증감`),
+    row("육계 가격 흐름", md.brMom == null ? "-" : pfSign(md.brMom) + "%", "대(1.6kg↑) 오늘 vs 한 달 전"),
+    row("계란 가격 흐름", md.eggMom == null ? "-" : pfSign(md.eggMom) + "%", "특란 최근 vs 약 한 달 전"),
+  ].join("");
+  const tbl = k => md.species[k].map(r => row(
+    `${r.h}개월 뒤(${r.month}월)`,
+    `상승 ${Math.round(r.p.up * 100)} · 보합 ${Math.round(r.p.flat * 100)} · 하락 ${Math.round(r.p.down * 100)}`,
+    `공급 ${pfSign(-r.supplyPts)}점 · 계절 ${pfSign(r.seasonDelta)}점 · 가격 ${pfSign(r.momPts)}점`)).join("");
+  return `
+  <details style="margin-top:10px"${pfState.showTable ? " open" : ""}>
+    <summary id="pf-evidence" style="font-size:11.5px;color:#555;font-weight:700;cursor:pointer">🔎 계산에 쓴 근거 보기</summary>
+    <table style="width:100%;border-collapse:collapse;margin-top:6px;font-size:10.5px"><thead>${hdr}</thead><tbody>${rows}</tbody></table>
+    <div style="font-size:11px;font-weight:700;color:#E65100;margin-top:10px">육계</div>
+    <table style="width:100%;border-collapse:collapse;font-size:10.5px"><tbody>${tbl("broiler")}</tbody></table>
+    <div style="font-size:11px;font-weight:700;color:#F9A825;margin-top:10px">계란</div>
+    <table style="width:100%;border-collapse:collapse;font-size:10.5px"><tbody>${tbl("egg")}</tbody></table>
+  </details>`;
+}
+
+function renderPriceForecastPanel(){
+  const head = `
+    <div class="display" style="font-size:16px;margin-bottom:2px">🔮 육계·계란 시세예측</div>
+    <div style="font-size:11px;color:#999;margin-bottom:12px">배합사료 생산량(공급 잠재력)과 과거 소비 패턴(수요 잠재력)을 견줘 1~3개월 뒤 가격 방향을 확률로 봅니다</div>`;
+  const shell = inner => `<div class="card" style="border-top:6px solid #4527A0">${head}${inner}</div>`;
+  const loading = [feedProdState, poultryPriceState, broilerPriceTodayState, layerStatsState, eggReportState].some(s => s.status === "loading" || s.status === "idle");
+  if(loading) return shell(`<div style="text-align:center;padding:24px;color:#aaa">⏳ 자료를 불러오는 중...</div>`);
+  const md = pfBuildModel();
+  if(!md) return shell(`<div style="text-align:center;padding:18px;color:#aaa;font-size:12px">예측에 필요한 배합사료 생산 통계를 불러오지 못했습니다.<br>잠시 후 다시 열어 주세요.</div>`);
+
+  const er = eggReportState.data, ls = layerStatsState.data;
+  const refs = [];
+  if(er && er.summary && er.summary.supply_status) refs.push(`🥚 주간 계란 수급: <b>${esc(er.summary.supply_status)}</b>${er.title ? " · " + esc(er.title) : ""}`);
+  if(ls && ls.layer && ls.broiler) refs.push(`🐔 사육 마릿수(${esc(ls.period || "")}): 산란계 <b>${fpBirds(ls.layer.birds)}</b>${ls.layer.birds_pct != null ? " (직전 분기 " + pfSign(ls.layer.birds_pct) + "%)" : ""} · 육용계 <b>${fpBirds(ls.broiler.birds)}</b>${ls.broiler.birds_pct != null ? " (" + pfSign(ls.broiler.birds_pct) + "%)" : ""}`);
+
+  return shell(`
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+      <span style="font-size:11px;background:#EDE7F6;color:#4527A0;border-radius:10px;padding:2px 9px;font-weight:700">${md.cy}년 ${md.m}월까지 사료 통계 기준</span>
+      <span style="font-size:10px;color:#aaa">현재 ${md.nowMonth}월 · 예측 대상은 산지 시세의 방향</span>
+      ${md.stale ? `<span style="font-size:10px;color:#E65100;background:#FFF3E0;border-radius:9px;padding:2px 7px">수집 실패 · 이전 자료</span>` : ""}
+    </div>
+
+    <div style="font-size:12px;font-weight:800;color:#333;margin-bottom:6px">📌 예측은 이렇게 만들어집니다</div>
+    ${pfDiagram(md)}
+
+    <div style="font-size:12px;font-weight:800;color:#333;margin:16px 0 8px">📊 1·2·3개월 뒤 가격 방향 확률</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      ${pfSpeciesCard("broiler", md.species.broiler, md)}
+      ${pfSpeciesCard("egg", md.species.egg, md)}
+    </div>
+    ${pfEvidence(md)}
+    ${refs.length ? `<div style="margin-top:10px;background:#F5F5F5;border-radius:8px;padding:8px 10px;font-size:11px;color:#555;line-height:1.8">
+      <div style="font-weight:700;color:#777;margin-bottom:2px">함께 볼 현재 지표</div>${refs.join("<br>")}</div>` : ""}
+
+    <div style="margin-top:12px;background:#FFF8E1;border-radius:8px;padding:9px 11px;font-size:10.5px;color:#6b5400;line-height:1.75">
+      <b>이 예측을 볼 때 알아 두세요</b><br>
+      · 확률은 통계적으로 검증된 값이 아니라, 아래 가정으로 계산한 <b>참고용 방향 지표</b>입니다. 출하·입식·투자 결정의 근거로 쓰지 마세요.<br>
+      · 공급은 배합사료 생산량에서 추정한 마릿수입니다. 자가배합·수입 사료와 실제 사육 성적은 반영되지 않고, 수출입·재고·방역(AI 살처분) 같은 돌발 변수도 들어 있지 않습니다.<br>
+      · 소비잠재력의 계절지수(명절·복날·방학 등)는 과거 소비 패턴에 대한 경험값이고, 가격 흐름은 최근 한 달 변동만 봅니다. 가격 자료가 쌓이면 실제 과거 통계로 바꿀 수 있습니다.<br>
+      · 시차(육계 약 1개월, 산란계 병아리 약 4개월)와 먼 미래일수록 약해지는 가중치는 가정입니다.
+    </div>
+    <div style="font-size:9px;color:#bbb;margin-top:8px">출처: ${esc(md.source || "농림축산식품부 배합사료 생산실적")} · 수집 ${esc(md.updated || "")} · 산지시세·주간 수급·사육 통계는 이 사이트 자동 수집 자료</div>`);
+}
+
 function renderPremiumTab(){
   // Firebase 설정이 아직 안 된 경우(콘솔에서 FIREBASE_CONFIG 값을 안 넣은 상태)
   if(!firebaseReady){
@@ -12029,6 +12342,11 @@ function renderPremiumTab(){
   if(premiumState.view === "grainprice"){
     if(grainPriceState.status === "idle") fetchGrainPrice();
     return renderPremiumGateHeader() + logoutBar + renderGrainPricePanel();
+  }
+  // 육계·계란 시세예측 — 배합사료 생산량(공급 잠재력) + 과거 소비 패턴(수요 잠재력)으로 1~3개월 방향 확률
+  if(premiumState.view === "priceforecast"){
+    if(pfState.status === "idle") pfLoad();
+    return renderPremiumGateHeader() + logoutBar + renderPriceForecastPanel();
   }
   // 업계관련 소식 — industry_news/latest.json(매일 자동 갱신)
   if(premiumState.view === "industrynews"){
