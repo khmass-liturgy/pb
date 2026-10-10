@@ -13182,7 +13182,9 @@ function renderPriceForecastPanel(){
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap">
       <div><div class="display" style="font-size:16px;margin-bottom:2px">🔮 육계·계란 시세예측</div>
       <div style="font-size:11px;color:#999;margin-bottom:10px">사료 생산량(공급 잠재력)·과거 소비 패턴·가격 이력으로 1주~6개월 뒤 산지가격을 확률로 분석합니다</div></div>
-      <label style="font-size:11px;color:#555;display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" id="pf-demo" ${pfx.demo ? "checked" : ""}> 데모 모드</label></div>`;
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <label style="font-size:11px;color:#555;display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" id="pf-demo" ${pfx.demo ? "checked" : ""}> 데모 모드</label>
+        <button id="priceforecast-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button></div></div>`;
   const tabs = `<div style="display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid #eee;margin-bottom:12px;padding-bottom:0" role="tablist">${PF_TABS.map(([k, label]) =>
     `<button type="button" role="tab" aria-selected="${k === pfx.tab}" data-pf-tab="${k}" style="flex:0 0 auto;border:none;border-bottom:3px solid ${k === pfx.tab ? "#4527A0" : "transparent"};background:none;color:${k === pfx.tab ? "#4527A0" : "#777"};font-weight:${k === pfx.tab ? 800 : 500};font-size:12px;padding:8px 10px;cursor:pointer;white-space:nowrap">${label}</button>`).join("")}</div>`;
   const shell = inner => `<div class="card" id="pf-root" style="border-top:6px solid #4527A0">${head}${pfBanner()}${tabs}${inner}</div>`;
@@ -13221,6 +13223,7 @@ async function pfPublish(){
 function pfBind(){
   if(!(state.tab === "premium" && premiumState.view === "priceforecast")) return;
   const $ = id => document.getElementById(id), re = () => render();
+  const back = $("priceforecast-back-btn"); if(back) back.onclick = () => { premiumState.view = "menu"; render(); };
   document.querySelectorAll("[data-pf-tab]").forEach(b => b.onclick = () => { pfx.tab = b.dataset.pfTab; re(); });
   document.querySelectorAll("[data-pf-species]").forEach(b => b.onclick = () => { pfx.species = b.dataset.pfSpecies; re(); });
   document.querySelectorAll("[data-pf-hz]").forEach(b => b.onclick = () => { pfx.horizon = b.dataset.pfHz; re(); });
