@@ -12808,8 +12808,6 @@ function pfControls(withSpecies){
   return `<div style="display:flex;gap:10px 16px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
     ${withSpecies ? `<div><div style="font-size:10px;color:#999;margin-bottom:3px">품목</div>${pfChips([["broiler", "🍗 육계"], ["egg", "🥚 계란"]], pfx.species, "data-pf-species")}</div>` : ""}
     <div><div style="font-size:10px;color:#999;margin-bottom:3px">예측 기간</div>${pfChips(PF_HORIZONS.map(h => [h.k, h.label]), pfx.horizon, "data-pf-hz")}</div>
-    <div><div style="font-size:10px;color:#999;margin-bottom:3px">지역</div><select disabled style="border:1px solid #ddd;border-radius:8px;padding:5px 8px;font-size:12px;color:#888"><option>전국</option></select>
-      <span style="font-size:9.5px;color:#aaa;display:block;margin-top:2px">지역별 자료가 연결되면 선택할 수 있습니다</span></div>
   </div>`;
 }
 
