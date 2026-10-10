@@ -17654,9 +17654,7 @@ function renderBizFooterLine(){
   try { b = PREMIUM_BIZ_INFO; } catch(_) { return ""; }
   if(!b) return "";
   const parts = [
-    b.name && `상호 ${b.name}`, b.rep && `대표 ${b.rep}`, b.bizNo && `사업자등록번호 ${b.bizNo}`,
-    b.mailOrderNo && `통신판매업 신고번호 ${b.mailOrderNo}`, b.address && `주소 ${b.address}`,
-    b.tel && `전화 ${b.tel}`, b.email && `이메일 ${b.email}`,
+    b.name, b.rep, b.bizNo, b.mailOrderNo, b.address, b.tel, b.email,
   ].filter(Boolean);
   if(!parts.length) return "";
   return `<div style="margin-top:10px;padding-top:8px;border-top:1px solid #eee;font-size:10px;color:#ccc;line-height:1.7">${parts.map(esc).join(" · ")}</div>`;
