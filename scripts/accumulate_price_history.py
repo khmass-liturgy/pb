@@ -87,6 +87,19 @@ def main() -> int:
                 continue
             feed[f"{year}-{i + 1:02d}"] = {"broiler": round(s + f, 1), "layer_laying": lay, "layer_rearing": rear}
 
+    # 소급 수집한 과거 연도(feed_production/history.json) — 월별 사료 생산량을 같은 모양으로 합친다.
+    hist = load(Path("feed_production/history.json")) or {}
+    for year, yd in (hist.get("years") or {}).items():
+        g = yd.get("groups") or {}
+        for i in range(12):
+            def hv(name):
+                arr = g.get(name) or []
+                return arr[i] if i < len(arr) else None
+            s, f, lay, rear = hv("broiler_starter"), hv("broiler_finisher"), hv("layer_laying"), hv("layer_rearing")
+            if None in (s, f, lay, rear):
+                continue
+            feed.setdefault(f"{year}-{i + 1:02d}", {"broiler": round(s + f, 1), "layer_laying": lay, "layer_rearing": rear})
+
     out = {
         "updated": datetime.now(KST).strftime("%Y-%m-%d %H:%M KST"),
         "note": "다봄·대한양계협회·농식품부 자료를 날짜별로 이어 붙인 누적 자료. 시리즈별 조사처가 다르므로 서로 섞어 쓰지 않는다.",
