@@ -11800,15 +11800,15 @@ function renderPremiumWhyPaid(){
   </div>`;
 }
 
-// 가입 초기화면에 붙이는 "신규 회원가입 안내" — 입금 → 입금 문자 → 아이디·
+// 가입 초기화면에 붙이는 "신규 회원가입 안내" — 문자 문의 → 안내 → 아이디·
 // 비밀번호 문자 수신 → 로그인 4단계를 숫자로 안내한다. 실제 계정 발급은
 // 관리자가 Firebase 콘솔에서 직접 만들어 문자로 전달하는 방식이라(자동화된
 // 결제 연동이 아니다), 여기는 안내문일 뿐 결제·가입을 처리하는 폼이 아니다.
 function renderPremiumSignupGuide(){
   const steps = [
-    { n:1, title:"계좌 입금", detail:`년회원 <b>200,000원</b> 입금<br>농협 <b>172404-51-001771</b> (예금주: 최동명)` },
-    { n:2, title:"입금 문자 전송", detail:`입금자명을 <b>010-9150-8844</b>로 문자 전송` },
-    { n:3, title:"아이디·비밀번호 수신", detail:`입금 확인 후 로그인용 아이디(이메일)·비밀번호를 문자로 받습니다` },
+    { n:1, title:"문자 문의", detail:`가입을 원하시면 <b>010-9150-8844</b>로 성함·연락처를 문자로 보내 주세요` },
+    { n:2, title:"가입 안내 받기", detail:`회원 안내와 결제 방법을 문자로 답해 드립니다` },
+    { n:3, title:"아이디·비밀번호 수신", detail:`가입이 확정되면 로그인용 아이디(이메일)·비밀번호를 문자로 받습니다` },
     { n:4, title:"로그인", detail:`위 "아이디/비밀번호 로그인" 버튼에서 전달받은 아이디·비밀번호로 로그인` },
   ];
   return `
@@ -11824,7 +11824,7 @@ function renderPremiumSignupGuide(){
         </div>
       </div>`).join("")}
     </div>
-    <div style="font-size:10.5px;color:#aaa;margin-top:8px;text-align:center">입금 확인은 영업일 기준으로 다소 시간이 걸릴 수 있습니다.</div>
+    <div style="font-size:10.5px;color:#aaa;margin-top:8px;text-align:center">문자 답변은 영업일 기준으로 다소 시간이 걸릴 수 있습니다.</div>
   </div>`;
 }
 
@@ -11864,7 +11864,7 @@ function renderPremiumTab(){
     <div class="card" style="text-align:center;padding:32px 16px">
       <div style="font-size:30px;margin-bottom:10px">🔒</div>
       <div class="display" style="font-size:15px;margin-bottom:8px">승인된 회원만 이용할 수 있습니다</div>
-      <div style="font-size:12px;color:#888;margin-bottom:20px;line-height:1.7">계좌 입금 후 입금자명을 문자로 전송하면 유료회원 아이디·비밀번호를 발급하여 전달해 드립니다.<br>전달받은 아이디(이메일)·비밀번호로 로그인해 주세요.<br>로그인 후에도 관리자 승인 전까지는 상담·진단·컨설팅 내용을 볼 수 없습니다.</div>
+      <div style="font-size:12px;color:#888;margin-bottom:20px;line-height:1.7">010-9150-8844로 가입 문의 문자를 보내 주시면 안내 후 유료회원 아이디·비밀번호를 발급하여 전달해 드립니다.<br>전달받은 아이디(이메일)·비밀번호로 로그인해 주세요.<br>로그인 후에도 관리자 승인 전까지는 상담·진단·컨설팅 내용을 볼 수 없습니다.</div>
       <div style="display:flex;gap:14px;justify-content:center;align-items:center;flex-wrap:wrap;margin-bottom:14px">
         <button id="btn-premium-email" style="border:1px solid #1a2744;border-radius:10px;background:#fff;color:#1a2744;padding:12px 24px;font-size:13px;font-weight:600">🔑 아이디/비밀번호 로그인</button>
       </div>
