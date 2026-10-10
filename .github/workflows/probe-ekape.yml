@@ -1,0 +1,11 @@
+name: probe-ekape (임시)
+on:
+  push:
+    branches: [ccr-76d8fb48-ixk3no]
+    paths: ["scripts/_probe_ekape.py"]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: cd scripts && python _probe_ekape.py
