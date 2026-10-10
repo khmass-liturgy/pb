@@ -50,10 +50,10 @@ def month_list(n: int) -> list[str]:
     return out[::-1]
 
 
-def http_get(url: str, tries: int = 4) -> str | None:
+def http_get(url: str, tries: int = 4, timeout: int = 60) -> str | None:
     for i in range(tries):
         try:
-            with urlopen(Request(url, headers=HEADERS), timeout=60, context=CTX) as r:
+            with urlopen(Request(url, headers=HEADERS), timeout=timeout, context=CTX) as r:
                 return r.read().decode("utf-8", "replace")
         except HTTPError as e:
             if e.code == 429:                       # 호출 제한 — 길게 쉬었다가 다시
@@ -121,6 +121,13 @@ def fetch_customs(key: str) -> dict[str, dict[str, dict]]:
     """관세청 품목별 국가별 수출입실적(data.go.kr). 응답은 XML — 필드명이 문서와 다를 수 있어 여러 이름을 허용한다."""
     out: dict[str, dict[str, dict]] = {g: {} for g in GROUPS}
     months = month_list(MONTHS_BACK)
+    # 관세청(data.go.kr)은 해외(GitHub 러너) 접속에 응답하지 않는 경우가 있다 — 첫 호출이 두 번 연달아
+    # 응답이 없으면 나머지는 시도하지 않고 바로 UN 자료로 넘어간다(전부 기다리면 50분 넘게 걸린다).
+    probe = http_get(CUSTOMS + "?" + urlencode({"serviceKey": key, "strtYymm": months[-1], "endYymm": months[-1], "hsSgn": "0207", "numOfRows": 1, "pageNo": 1}),
+                     tries=2, timeout=20)
+    if probe is None:
+        print("    관세청 서버가 응답하지 않습니다(해외 접속 차단 가능성) — 이번에는 건너뜁니다")
+        return out
     for gname, g in GROUPS.items():
         for hs in g["hs"]:
             for i in range(0, len(months), 12):
