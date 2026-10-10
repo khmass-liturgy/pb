@@ -4937,12 +4937,25 @@ function currentHpaiNews(){
   return (hpaiNewsState.data && hpaiNewsState.data.items) || [];
 }
 
-async function publishHpaiNews(items){
+function currentHpaiAuto(){
+  return (hpaiNewsState.data && hpaiNewsState.data.auto) || {};
+}
+// 매일 아침 서버(scripts/post_hpai_news_daily.py)가 소식 1건을 자동으로 올리고 `auto`(켜짐 여부·마지막 등록·이미 올린 기사 목록)를 같은 파일에 적는다.
+// 관리자가 화면을 열어 둔 사이에 서버가 올린 기사가 사라지지 않도록, 저장 직전에 최신본을 읽어 ① 이 화면이 아직 모르는 자동 등록 기사를 합치고
+// ② auto 설정은 최신본 값을 이어 받는다(opts.auto로 일부만 바꿀 수 있다). 이 화면에서 지운 기사는 이미 알고 있던 것이라 되살아나지 않는다.
+async function publishHpaiNews(items, opts){
+  opts = opts || {};
+  let remote = null;
+  try { if(firebaseReady) remote = await fetchPublicContentJson("hpai_news"); } catch(e){}
+  const known = new Set(currentHpaiNews().map(x => x.id)), have = new Set(items.map(x => x.id));
+  const added = (remote && Array.isArray(remote.items)) ? remote.items.filter(r => r && r.auto && !known.has(r.id) && !have.has(r.id)) : [];
+  const auto = Object.assign({}, (remote && remote.auto) || currentHpaiAuto(), opts.auto || {});
   const body = {
     updated: new Date().toISOString().slice(0,16).replace("T"," ") + " UTC",
     by: PICK_BY,
     note: "AI(고병원성 조류인플루엔자) 관련 소식 — 화면에서 저장하면 이 파일이 갱신되고 모든 사람에게 같은 내용이 보입니다.",
-    items: items,
+    items: added.concat(items),
+    ...(Object.keys(auto).length ? { auto } : {}),
   };
   const r = await publishPublicContent("hpai_news", body);
   if(r.ok) hpaiNewsState.data = body;
@@ -5039,7 +5052,7 @@ function renderHpaiNewsCard(){
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
         <div class="hpainews-toggle" data-id="${esc(it.id)}" style="cursor:pointer;min-width:0;flex:1">
           <div style="font-size:13px;font-weight:700;color:#333">${esc(it.title)}</div>
-          <div style="font-size:10px;color:#aaa;margin-top:4px">${esc((it.createdAt||"").slice(0,10))} · ${open?"접기 ▲":"내용 보기 ▼"}</div>
+          <div style="font-size:10px;color:#aaa;margin-top:4px">${esc((it.createdAt||"").slice(0,10))}${it.auto?` · <span style="color:#1565C0;font-weight:700">🤖 자동 등록</span>`:""} · ${open?"접기 ▲":"내용 보기 ▼"}</div>
         </div>
         ${admin ? `
         <div style="white-space:nowrap;flex-shrink:0">
@@ -5067,6 +5080,16 @@ function renderHpaiNewsCard(){
     ${hpaiNewsState.msg?`<span style="font-size:11px;margin-left:8px;color:${/실패|오류|않|없/.test(hpaiNewsState.msg)?"#C62828":"#2E7D32"}">${esc(hpaiNewsState.msg)}</span>`:""}
     ${hpaiNewsState.adminOpen ? `
     <div style="margin-top:9px;background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">
+      ${(() => {
+        const au = currentHpaiAuto(), on = au.enabled !== false;
+        return `<div style="background:#F3F8FF;border:1px solid #D4E4FA;border-radius:8px;padding:9px 10px;margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+          <div style="min-width:0;flex:1"><div style="font-size:12px;font-weight:800;color:#1565C0">🤖 하루 1건 자동 등록 <span style="font-size:10.5px;font-weight:700;color:${on?"#2E7D32":"#999"}">${on?"● 켜짐":"○ 꺼짐"}</span></div>
+          <div style="font-size:10.5px;color:#666;line-height:1.55;margin-top:3px">매일 아침(약 8시 20분) 검색어 <b>「${esc(au.keyword || "조류인플루엔자")}」</b>로 최근 기사를 찾아, 이미 올라온 소식과 겹치지 않는 기사 1건을 요약과 원문 링크로 올립니다. 올라온 기사는 아래에서 편집·삭제할 수 있고 삭제한 기사는 다시 올라오지 않습니다.</div></div>
+          <button id="hpainews-auto-toggle" ${hpaiNewsState.busy?"disabled":""} style="border:1px solid ${on?"#999":"#1565C0"};background:${on?"#fff":"#1565C0"};color:${on?"#666":"#fff"};border-radius:7px;padding:6px 12px;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap">${on?"자동 등록 끄기":"자동 등록 켜기"}</button>
+        </div>
+        <div style="font-size:10.5px;color:#888;margin-top:6px;line-height:1.5">${au.lastRun ? `마지막 실행 ${esc(au.lastRun)} · ${esc(au.lastStatus || "")}${au.lastTitle ? ` · 최근 등록: ${esc(au.lastTitle)}` : ""}` : "아직 자동 등록한 기록이 없습니다 — 내일 아침부터 시작되며, 지금 바로 하려면 GitHub Actions의 「AI 관련 소식 자동 등록」을 실행하세요."}</div>
+      </div>`; })()}
       <div style="font-size:11px;font-weight:700;color:#7A5C00;margin-bottom:8px">${editing?"소식 수정":"새 소식 추가"}</div>
 
       <div style="background:#fff;border:1px solid #eee;border-radius:8px;padding:8px;margin-bottom:10px">
@@ -17748,6 +17771,15 @@ function attachDiseaseEvents(){
     hpaiNewsState.msg = r.ok ? "삭제 완료" : ("발행 실패: " + r.error);
     render();
   });
+  const hpainewsAutoToggle = document.getElementById("hpainews-auto-toggle");
+  if(hpainewsAutoToggle) hpainewsAutoToggle.onclick = async ()=>{
+    const on = currentHpaiAuto().enabled !== false;
+    hpaiNewsState.busy = true; hpaiNewsState.msg = "저장 중..."; render();
+    const r = await publishHpaiNews(currentHpaiNews(), { auto: { enabled: !on } });
+    hpaiNewsState.busy = false;
+    hpaiNewsState.msg = r.ok ? ("자동 등록을 " + (on ? "껐습니다" : "켰습니다")) : ("저장 실패: " + r.error);
+    render();
+  };
   const hnSearchBtn = document.getElementById("hn-search-btn");
   if(hnSearchBtn) hnSearchBtn.onclick = ()=>{ syncHpaiNewsDraftFields(); searchHpaiPortalNews(); };
   const hnSearchInput = document.getElementById("hn-search-input");

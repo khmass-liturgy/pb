@@ -1,0 +1,44 @@
+name: AI 관련 소식 자동 등록
+
+# 매일 아침 검색어 「조류인플루엔자」로 기사를 찾아 중복 없는 1건을 AI관련정보 탭의 「AI 관련 소식」에 올린다.
+# 한국시간 08:20 (= 전날 23:20 UTC). 화면의 관리 상자에서 자동 등록을 끄면 아무것도 하지 않는다.
+on:
+  schedule:
+    - cron: "20 23 * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "오늘 이미 자동 등록했어도 다시 실행(1)"
+        required: false
+        default: ""
+
+concurrency:
+  group: post-hpai-news-daily
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Python 설정
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: 패키지 설치
+        run: pip install requests trafilatura firebase-admin
+
+      - name: AI 관련 소식 1건 자동 등록
+        # FIREBASE_SERVICE_ACCOUNT_JSON: 자동 문자 발송 작업과 같은 저장소 시크릿(chicken-dx 서비스 계정). 요약은 ANTHROPIC_API_KEY(없으면 본문 발췌)
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          FORCE: ${{ github.event.inputs.force }}
+        run: python scripts/post_hpai_news_daily.py
