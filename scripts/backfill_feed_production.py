@@ -20,8 +20,29 @@ import fetch_feed_production as ff
 OUT = Path("feed_production/history.json")
 
 
+def list_all_posts(max_pages: int = 40) -> list[dict]:
+    """ff.list_posts는 작년 12월분을 찾으면 멈춘다 — 여기서는 더 오래된 글까지 끝(빈 쪽)까지 훑는다."""
+    posts, empty = [], 0
+    for page in range(1, max_pages + 1):
+        html = ff._get(f"{ff.LIST_URL}?page={page}")
+        if not html:
+            break
+        found = 0
+        for href, art_id, inner in ff.POST_RE.findall(html):
+            title = ff.re.sub(r"\s*새글$", "", ff.re.sub(r"<[^>]+>|\s+", " ", inner).strip())
+            m = ff.TITLE_RE.search(title)
+            if m:
+                found += 1
+                posts.append({"year": int(m.group(1)), "month": int(m.group(2)), "id": int(art_id), "title": title, "url": ff.urljoin(ff.BASE, href)})
+        empty = 0 if found else empty + 1
+        if empty >= 3:                       # 연속 3쪽에 해당 글이 없으면 더 오래된 글이 없다고 본다
+            break
+    print(f"  게시판 {page}쪽까지 확인, 글 {len(posts)}건")
+    return posts
+
+
 def main(argv: list[str]) -> int:
-    posts = ff.list_posts(max_pages=30)
+    posts = list_all_posts()
     if not posts:
         print("게시판에서 글을 찾지 못함")
         return 1
