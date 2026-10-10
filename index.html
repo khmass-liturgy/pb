@@ -12857,6 +12857,7 @@ const PF_REASON = { supply: "공급(사료 생산 증감)", season: "계절 패�
 function pfReasons(r){
   if(!r.pred || !r.pred.contrib || !r.pred.contrib.length) return `<div style="font-size:11px;color:#999">이 기간은 가격 흐름만으로 계산해 원인 분해가 없습니다.</div>`;
   const top = r.pred.contrib.slice(0, 3);
+  if(top.every(c => Math.abs(c.v) < 0.0005)) return `<div style="font-size:11.5px;color:#777;line-height:1.7">과거 검증에서 계절·가격 추세·공급 같은 요인이 이 기간 가격을 예측하는 데 도움이 되지 않아(예측 보정 계수 ${(r.pred.alpha * 100).toFixed(0)}%), 예측 변화량이 0에 가깝습니다. 구간과 확률은 과거 오차 분포에서 나옵니다.</div>`;
   return top.map((c, i) => `<div style="display:flex;gap:8px;align-items:center;font-size:11.5px;margin-top:4px"><span style="width:18px;height:18px;border-radius:50%;background:#EDE7F6;color:#4527A0;font-weight:800;font-size:10.5px;display:flex;align-items:center;justify-content:center">${i + 1}</span>
     <span style="color:#333">${PF_REASON[c.key] || c.key}</span><span style="color:${c.v >= 0 ? PF_COLORS.up : PF_COLORS.down};font-weight:700">${c.v >= 0 ? "가격 ▲" : "가격 ▼"} ${(Math.abs(c.v) * 100).toFixed(1)}%p</span></div>`).join("");
 }
@@ -12917,6 +12918,7 @@ function pfTabDash(){
     return `<div style="flex:1 1 260px;border:1px solid #E8E8E8;border-top:6px solid ${S.color};border-radius:10px;padding:10px 12px;background:#fff">
       <div style="display:flex;justify-content:space-between;align-items:center"><b style="color:${S.color}">${S.icon} ${S.name}</b><span style="font-size:11px;font-weight:800;color:${v.c};background:${v.bg};border-radius:10px;padding:2px 9px">${v.ic} ${v.t}</span></div>
       <div style="font-size:11px;color:#888;margin-top:4px">${pfHz(pfx.horizon).label} 뒤 · 현재 ${pfWon(p.base)} → P50 <b style="color:#333">${pfWon(p.p50)}</b> (${pfPct1(p.p50 / p.base - 1)})</div>
+      <div style="font-size:10.5px;margin-top:3px"><span style="font-weight:800;color:${r.grade.c};background:${r.grade.bg};border-radius:9px;padding:1px 7px">신뢰도 ${r.grade.t}</span>${r.grade.t === "낮음" || r.grade.t === "검증 불가" ? ' <span style="color:#999">— 참고만 하세요</span>' : ""}</div>
       <div style="margin-top:6px">${pfBar(r.calib)}</div></div>`;
   }).join("");
   return `${pfControls(false)}
