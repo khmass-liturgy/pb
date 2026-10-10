@@ -11941,7 +11941,7 @@ function pfProbs(z){
   return { up: e / s, flat: f / s, down: d / s };
 }
 
-function pfBuildModel(){
+function pfBuildModel(adj){
   const fp = feedProdState.data;
   if(!fp || !fp.latest || !fp.years) return null;
   const cy = fp.latest.year, m = fp.latest.month;
@@ -11956,6 +11956,7 @@ function pfBuildModel(){
     layerRearing: pfYoY(gc.layer_rearing, gp.layer_rearing, i, 3),
   };
   if([supply.broiler, supply.layerLaying, supply.layerRearing].some(v => v == null)) return null;
+  if(adj){ supply.broiler += adj.broiler || 0; supply.layerLaying += adj.egg || 0; supply.layerRearing += adj.egg || 0; }   // 시나리오: 공급 증감(%) 가감
 
   // 추정 마릿수(생산잠재력) — 기존 「육계·산란계 생산잠재력」 카드와 같은 표준값·가정
   const std = feedPotentialStandards();
@@ -12156,48 +12157,1094 @@ function pfEvidence(md){
   </details>`;
 }
 
+// ── 육계·계란 시세예측 엔진 (브라우저에서 실행되는 순수 계산부) ─────────────────────────────
+// 월별 가격(로그) 변화율을 릿지 회귀로 예측하고, 학습 잔차의 분포로 P50·예측구간·상승/보합/하락 확률을 구한다.
+// 같은 계산을 과거 시점마다 되풀이(롤링 오리진 백테스트)해 오차·방향 적중률·Brier·구간 포함률을 잰다.
+// 자료가 모형을 학습하기에 모자라면 예측값을 만들지 않고 "검증 불가"로 돌려준다(임의 숫자를 내놓지 않는다).
+const PF_MODEL_VERSION = "pf-ridge-1.0";
+const PF_MIN_TRAIN = 18;          // 학습 표본 최소 개수
+const PF_MIN_BACKTEST = 12;       // 백테스트 표본이 이보다 적으면 정확도·보정을 표시하지 않는다
+const PF_LAMBDA = 3;              // 릿지 규제 강도(표준화된 특성 기준)
+
+const pfMean = a => a.reduce((s, v) => s + v, 0) / (a.length || 1);
+const pfStd = a => { const m = pfMean(a); return Math.sqrt(a.reduce((s, v) => s + (v - m) * (v - m), 0) / (a.length || 1)); };
+function pfQuantile(sorted, q){
+  if(!sorted.length) return NaN;
+  const pos = (sorted.length - 1) * q, lo = Math.floor(pos), hi = Math.ceil(pos);
+  return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
+}
+
+// 연립방정식(가우스 소거) — 특성이 5개 이하라 충분하다.
+function pfSolve(A, b){
+  const n = b.length, M = A.map((r, i) => [...r, b[i]]);
+  for(let c = 0; c < n; c++){
+    let p = c;
+    for(let r = c + 1; r < n; r++) if(Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r;
+    if(Math.abs(M[p][c]) < 1e-12) return null;
+    [M[c], M[p]] = [M[p], M[c]];
+    for(let r = 0; r < n; r++){
+      if(r === c) continue;
+      const f = M[r][c] / M[c][c];
+      for(let k = c; k <= n; k++) M[r][k] -= f * M[c][k];
+    }
+  }
+  return M.map((r, i) => r[n] / r[i]);
+}
+
+// X의 첫 열은 상수항(규제하지 않음). 나머지 열은 평균 0·표준편차 1로 맞춰 학습한다.
+function pfRidgeFit(X, y, lambda){
+  const n = X.length, k = X[0].length;
+  const mu = [0], sd = [1];
+  for(let j = 1; j < k; j++){ const col = X.map(r => r[j]); mu.push(pfMean(col)); sd.push(pfStd(col) || 1); }
+  const Z = X.map(r => r.map((v, j) => j === 0 ? 1 : (v - mu[j]) / sd[j]));
+  const A = Array.from({ length: k }, () => new Array(k).fill(0)), b = new Array(k).fill(0);
+  for(let i = 0; i < n; i++) for(let p = 0; p < k; p++){ b[p] += Z[i][p] * y[i]; for(let q = 0; q < k; q++) A[p][q] += Z[i][p] * Z[i][q]; }
+  for(let j = 1; j < k; j++) A[j][j] += lambda;
+  const beta = pfSolve(A, b);
+  return beta ? { beta, mu, sd } : null;
+}
+const pfRidgePredict = (m, x) => m.beta.reduce((s, bj, j) => s + bj * (j === 0 ? 1 : (x[j] - m.mu[j]) / m.sd[j]), 0);
+// 표준화 전 특성 하나가 예측에 기여한 크기(로그 수익률 단위)
+const pfContrib = (m, x, j) => m.beta[j] * (x[j] - m.mu[j]) / m.sd[j];
+
+// 일별 자료 → 월평균. 빠진 달은 앞뒤 달을 이어 채우고(filled로 표시) 길이를 맞춘다.
+function pfMonthly(rows){
+  const acc = new Map();
+  for(const [d, v] of rows){
+    if(!(v > 0) || typeof d !== "string" || d.length < 7) continue;
+    const ym = d.slice(0, 7), o = acc.get(ym) || { s: 0, n: 0 };
+    o.s += v; o.n++; acc.set(ym, o);
+  }
+  const keys = [...acc.keys()].sort();
+  if(!keys.length) return { ym: [], v: [], filled: 0, obs: 0 };
+  const next = ym => { let [y, m] = ym.split("-").map(Number); m++; if(m > 12){ m = 1; y++; } return y + "-" + String(m).padStart(2, "0"); };
+  const ym = [], v = []; let filled = 0;
+  for(let k = keys[0]; ; k = next(k)){
+    ym.push(k);
+    if(acc.has(k)) v.push(acc.get(k).s / acc.get(k).n); else { v.push(null); filled++; }
+    if(k === keys[keys.length - 1]) break;
+  }
+  for(let i = 0; i < v.length; i++) if(v[i] == null){
+    let a = i - 1, b = i + 1; while(a >= 0 && v[a] == null) a--; while(b < v.length && v[b] == null) b++;
+    v[i] = a >= 0 && b < v.length ? v[a] + (v[b] - v[a]) * (i - a) / (b - a) : (a >= 0 ? v[a] : v[b]);
+  }
+  return { ym, v, filled, obs: rows.length };
+}
+
+// 공급 압력(%): 사료 3개월 합계의 전년 같은 기간 대비 증감. 월별 사료 {ym:{broiler,layer_laying,layer_rearing}}를 달력에 맞춰 읽는다.
+function pfSupplySeries(ymList, feed, species){
+  const val = (ym, key) => feed && feed[ym] ? feed[ym][key] : null;
+  const shift = (ym, n) => { let [y, m] = ym.split("-").map(Number); m += n; while(m < 1){ m += 12; y--; } while(m > 12){ m -= 12; y++; } return y + "-" + String(m).padStart(2, "0"); };
+  const yoy3 = (ym, key) => {
+    let a = 0, b = 0;
+    for(let k = 0; k < 3; k++){
+      const c = val(shift(ym, -k), key), p = val(shift(ym, -k - 12), key);
+      if(c == null || p == null || !p) return null;
+      a += c; b += p;
+    }
+    return (a / b - 1) * 100;
+  };
+  return ymList.map(ym => {
+    if(species === "broiler") return yoy3(ym, "broiler");
+    const l = yoy3(ym, "layer_laying"), r = yoy3(ym, "layer_rearing");
+    if(l == null) return null;
+    return r == null ? l : 0.6 * l + 0.4 * r;       // 지금 알 낳는 닭 60% + 곧 산란에 들어올 육성 병아리 40%
+  });
+}
+
+// 월별 계절지수: 각 달의 (로그가격 − 직전 12개월 평균)을 같은 달끼리 평균. origin 이전 자료만 쓴다.
+function pfSeasonality(y, upto){
+  const sum = new Array(12).fill(0), cnt = new Array(12).fill(0);
+  for(let t = 11; t <= upto; t++){
+    const dev = y[t] - pfMean(y.slice(t - 11, t + 1));
+    const m = t % 12; sum[m] += dev; cnt[m]++;
+  }
+  // 달력의 달이 아니라 시리즈 위치(t%12)로 묶으므로 호출한 쪽에서 시작 월에 맞춰 다시 읽는다.
+  const idx = sum.map((s, i) => cnt[i] ? s / cnt[i] : 0), mu = pfMean(idx);
+  return idx.map(v => v - mu);
+}
+
+// 월 시리즈의 특성 행렬. 열: 상수 · 공급압력 · 계절 변화 · 최근 한 달 변화 · 12개월 평균 대비 위치
+function pfMonthlyX(y, sp, seas, t, h, useSupply){
+  const row = [1];
+  if(useSupply) row.push(sp[t] / 3);
+  row.push(seas[(t + h) % 12] - seas[t % 12]);
+  row.push(y[t] - y[t - 1]);
+  row.push(y[t] - pfMean(y.slice(t - 11, t + 1)));
+  return row;
+}
+const PF_FEATURE_NAMES = { supply: "공급(사료 생산 증감)", season: "계절 패턴", momentum: "최근 가격 추세", revert: "평균 회귀" };
+
+// origin(=T) 시점까지의 자료만으로 horizon h개월 뒤 로그 변화율의 분포를 학습한다. 표본이 모자라면 null.
+function pfFitMonthly(y, sp, T, h, useSupply){
+  const seas = pfSeasonality(y, T);
+  const X = [], Y = [];
+  for(let t = 12; t + h <= T; t++){
+    if(useSupply && sp[t] == null) continue;
+    X.push(pfMonthlyX(y, sp, seas, t, h, useSupply)); Y.push(y[t + h] - y[t]);
+  }
+  if(X.length < PF_MIN_TRAIN) return null;
+  const m = pfRidgeFit(X, Y, PF_LAMBDA);
+  if(!m) return null;
+  const k = X[0].length, infl = Math.sqrt(X.length / Math.max(1, X.length - k));
+  const resid = X.map((r, i) => (Y[i] - pfRidgePredict(m, r)) * infl);
+  return { m, seas, resid, n: X.length, useSupply, h };
+}
+
+function pfNames(useSupply){
+  return useSupply ? ["const", "supply", "season", "momentum", "revert"] : ["const", "season", "momentum", "revert"];
+}
+
+// 학습한 모형으로 시점 t의 예측 요약(P50·구간·확률·원인 기여도)을 만든다. supplyShift는 시나리오용 공급 압력(%) 가감.
+function pfPredictMonthly(fit, y, sp, t, flat, supplyShift, opts){
+  const spAdj = sp.slice(); if(fit.useSupply && spAdj[t] != null) spAdj[t] = spAdj[t] + (supplyShift || 0);
+  const x = pfMonthlyX(y, spAdj, fit.seas, t, fit.h, fit.useSupply);
+  const alpha = opts && opts.alpha != null ? opts.alpha : 1;
+  const r = alpha * pfRidgePredict(fit.m, x);
+  const sorted = ((opts && opts.resid) || fit.resid).slice().sort((a, b) => a - b);
+  const q = p => r + pfQuantile(sorted, p);
+  const up = Math.log(1 + flat), dn = Math.log(1 - flat), n = sorted.length;
+  let pu = 0, pd = 0;
+  for(const e of sorted){ const v = r + e; if(v > up) pu++; else if(v < dn) pd++; }
+  const sm = 0.5;                                  // 표본이 적을 때 0%·100%로 쏠리지 않게 하는 약한 평활
+  const pUp = (pu + sm) / (n + 3 * sm), pDown = (pd + sm) / (n + 3 * sm);
+  const base = Math.exp(y[t]);
+  const names = pfNames(fit.useSupply);
+  const contrib = [];
+  names.forEach((nm, j) => { if(nm !== "const") contrib.push({ key: nm, v: pfContrib(fit.m, x, j) }); });
+  contrib.sort((a, b) => Math.abs(b.v) - Math.abs(a.v));
+  return {
+    base, r, p50: base * Math.exp(q(0.5)),
+    lo80: base * Math.exp(q(0.1)), hi80: base * Math.exp(q(0.9)),
+    lo90: base * Math.exp(q(0.05)), hi90: base * Math.exp(q(0.95)),
+    p: { up: pUp, flat: 1 - pUp - pDown, down: pDown }, contrib: contrib.map(c => ({ key: c.key, v: c.v * alpha })), nTrain: fit.n, alpha,
+    coef: Object.fromEntries(names.map((nm, j) => [nm, fit.m.beta[j]])),
+  };
+}
+
+// 롤링 오리진 백테스트: 각 시점 T에서 T까지의 자료만으로 학습·예측하고 실제 값과 견준다.
+function pfBacktestMonthly(M, sp, h, flat, useSupply){
+  const y = M.v.map(Math.log), n = y.length, recs = [];
+  for(let T = 12 + h + PF_MIN_TRAIN - 1; T + h < n; T++){
+    const fit = pfFitMonthly(y, sp, T, h, useSupply);
+    if(!fit || (useSupply && sp[T] == null)) continue;
+    const pr = pfPredictMonthly(fit, y, sp, T, flat, 0);
+    const actual = Math.exp(y[T + h]), cur = Math.exp(y[T]);
+    const chg = actual / cur - 1;
+    const cls = chg > flat ? "up" : chg < -flat ? "down" : "flat";
+    // 비교 기준 1: 가격이 그대로라는 가정 / 기준 2: 1년 전 같은 달 가격(계절 단순예측)
+    const seasonalNaive = T + h - 12 >= 0 ? Math.exp(y[T + h - 12]) : null;
+    recs.push({ T, r: pr.r, a: y[T + h] - y[T], ym: M.ym[T], target: M.ym[T + h], cur, actual, pred: pr.p50, lo80: pr.lo80, hi80: pr.hi80, lo90: pr.lo90, hi90: pr.hi90, p: pr.p, cls, naive: cur, snaive: seasonalNaive });
+  }
+  return recs;
+}
+
+function pfScore(recs, flat){
+  if(recs.length < PF_MIN_BACKTEST) return null;
+  const mae = f => pfMean(recs.map(r => Math.abs(r.actual - f(r))));
+  const rmse = f => Math.sqrt(pfMean(recs.map(r => (r.actual - f(r)) ** 2)));
+  const wape = f => recs.reduce((s, r) => s + Math.abs(r.actual - f(r)), 0) / recs.reduce((s, r) => s + r.actual, 0);
+  const sn = recs.filter(r => r.snaive != null);
+  const clim = { up: pfMean(recs.map(r => r.cls === "up" ? 1 : 0)), flat: pfMean(recs.map(r => r.cls === "flat" ? 1 : 0)), down: pfMean(recs.map(r => r.cls === "down" ? 1 : 0)) };
+  const brier = (get) => pfMean(recs.map(r => { const p = get(r); return ["up", "flat", "down"].reduce((s, k) => s + (p[k] - (r.cls === k ? 1 : 0)) ** 2, 0); }));
+  const moved = recs.filter(r => r.cls !== "flat");
+  const hit = moved.length ? moved.filter(r => (r.p.up >= r.p.down ? "up" : "down") === r.cls).length / moved.length : null;
+  const cover = (lo, hi) => recs.filter(r => r.actual >= r[lo] && r.actual <= r[hi]).length / recs.length;
+  return {
+    n: recs.length, from: recs[0].ym, to: recs[recs.length - 1].ym,
+    model: { mae: mae(r => r.pred), rmse: rmse(r => r.pred), wape: wape(r => r.pred) },
+    naive: { mae: mae(r => r.naive), rmse: rmse(r => r.naive), wape: wape(r => r.naive) },
+    seasonal: sn.length ? { mae: pfMean(sn.map(r => Math.abs(r.actual - r.snaive))), wape: sn.reduce((s, r) => s + Math.abs(r.actual - r.snaive), 0) / sn.reduce((s, r) => s + r.actual, 0), n: sn.length } : null,
+    hit, hitN: moved.length, brier: brier(r => r.p), brierClim: brier(() => clim), cover80: cover("lo80", "hi80"), cover90: cover("lo90", "hi90"), clim,
+  };
+}
+
+// 확률 보정: 백테스트에서 "상승 확률 x%"라고 했던 구간이 실제로는 몇 % 실현됐는지를 구간별로 구해,
+// 예측 확률을 그 실현 빈도 쪽으로 절반만 당긴다(표본이 적은 구간의 과적합 방지). 백테스트 표본이 모자라면 보정하지 않는다.
+function pfCalibrationTable(recs){
+  if(recs.length < PF_MIN_BACKTEST * 3) return null;
+  const out = {};
+  for(const k of ["up", "flat", "down"]){
+    const bins = Array.from({ length: 5 }, () => ({ n: 0, hit: 0, p: 0 }));
+    for(const r of recs){ const b = Math.min(4, Math.floor(r.p[k] * 5)); bins[b].n++; bins[b].hit += r.cls === k ? 1 : 0; bins[b].p += r.p[k]; }
+    out[k] = bins;
+  }
+  return out;
+}
+function pfCalibrate(p, table){
+  if(!table) return { ...p, calibrated: false };
+  const adj = {};
+  for(const k of ["up", "flat", "down"]){
+    const b = table[k][Math.min(4, Math.floor(p[k] * 5))];
+    adj[k] = b.n >= 5 ? 0.5 * p[k] + 0.5 * (b.hit / b.n) : p[k];
+  }
+  const s = adj.up + adj.flat + adj.down;
+  return { up: adj.up / s, flat: adj.flat / s, down: adj.down / s, calibrated: true };
+}
+
+// 백테스트에서 "예측한 변화율"과 "실제 변화율"의 관계로 예측의 크기를 보정한다(0~1배로만 줄인다 — 과신 방지).
+// 보정 후의 오차(표본 밖 오차)를 구간·확률의 기준 분포로 쓰면 80% 구간이 실제로 80%에 가깝게 맞는다.
+function pfShrink(recs){
+  if(recs.length < PF_MIN_BACKTEST * 2) return null;
+  let sxy = 0, sxx = 0; for(const r of recs){ sxy += r.r * r.a; sxx += r.r * r.r; }
+  const alpha = sxx > 0 ? Math.max(0, Math.min(1, sxy / sxx)) : 0;
+  return { alpha, resid: recs.map(r => r.a - alpha * r.r) };
+}
+// 최종 예측 방식(보정 계수 + 표본 밖 오차 분포)을 과거 시점마다 "그때까지 확정된 결과만으로" 다시 적용한 기록.
+// 정확도·구간 포함률·확률 보정은 이 기록으로 잰다 — 실제로 화면에 내는 방식 그대로를 검증하기 위해서다.
+function pfNested(recs, h, flat){
+  const out = [], up = Math.log(1 + flat), dn = Math.log(1 - flat);
+  for(const rc of recs){
+    const past = recs.filter(j => j.T + h <= rc.T);
+    if(past.length < PF_MIN_BACKTEST) continue;
+    const sh = pfShrink(past) || { alpha: 1, resid: past.map(j => j.a - j.r) };
+    const r = sh.alpha * rc.r, sorted = sh.resid.slice().sort((a, b) => a - b), n = sorted.length;
+    const q = p => rc.cur * Math.exp(r + pfQuantile(sorted, p));
+    let pu = 0, pd = 0; for(const e of sorted){ const v = r + e; if(v > up) pu++; else if(v < dn) pd++; }
+    const pUp = (pu + 0.5) / (n + 1.5), pDown = (pd + 0.5) / (n + 1.5);
+    out.push({ ...rc, pred: q(0.5), lo80: q(0.1), hi80: q(0.9), lo90: q(0.05), hi90: q(0.95), p: { up: pUp, flat: 1 - pUp - pDown, down: pDown } });
+  }
+  return out;
+}
+function pfGrade(score){
+  if(!score) return { t: "검증 불가", c: "#757575", bg: "#EEEEEE", why: "백테스트 표본이 부족합니다" };
+  const g = pfGrade0(score);
+  if(score.n < 24 && g.t !== "낮음") return { t: "낮음", c: "#C62828", bg: "#FFEBEE", why: `검증 표본이 ${score.n}건뿐이라 높게 평가하지 않습니다(24건 미만)` };
+  if(score.n < 36 && g.t === "높음") return { t: "보통", c: "#EF6C00", bg: "#FFF3E0", why: `검증 표본 ${score.n}건 — 36건 이상이어야 "높음"으로 봅니다` };
+  return g;
+}
+function pfGrade0(score){
+  const skill = 1 - score.model.wape / score.naive.wape, okBrier = score.brier < score.brierClim, okCov = score.cover80 >= 0.7 && score.cover80 <= 0.9;
+  if(skill >= 0.1 && okBrier && okCov) return { t: "높음", c: "#2E7D32", bg: "#E8F5E9", why: `가격 오차가 "변화 없음" 가정보다 ${(skill * 100).toFixed(0)}% 작고 확률도 평균 빈도보다 정확` };
+  if((skill >= 0 || okBrier) && score.cover80 >= 0.62 && score.cover80 <= 0.95) return { t: "보통", c: "#EF6C00", bg: "#FFF3E0", why: "일부 지표만 단순 기준보다 낫습니다" };
+  return { t: "낮음", c: "#C62828", bg: "#FFEBEE", why: "단순 기준(변화 없음·1년 전 가격)보다 나은 점이 확인되지 않았습니다" };
+}
+
+// 주 단위(일별 자료) 예측 — 관측 h건 뒤의 변화율. 특성: 최근 5건 변화, 40건 평균 대비 위치
+function pfDailyX(y, t){ return [1, y[t] - y[t - 5], y[t] - pfMean(y.slice(t - 39, t + 1))]; }
+function pfFitDaily(y, T, h){
+  const X = [], Y = [];
+  for(let t = 40; t + h <= T; t++){ X.push(pfDailyX(y, t)); Y.push(y[t + h] - y[t]); }
+  if(X.length < 30) return null;
+  const m = pfRidgeFit(X, Y, PF_LAMBDA);
+  if(!m) return null;
+  const infl = Math.sqrt(X.length / Math.max(1, X.length - X[0].length));
+  return { m, resid: X.map((r, i) => (Y[i] - pfRidgePredict(m, r)) * infl), n: X.length, h };
+}
+function pfPredictDaily(fit, y, t, flat, opts){
+  const alpha = opts && opts.alpha != null ? opts.alpha : 1;
+  const r = alpha * pfRidgePredict(fit.m, pfDailyX(y, t)), sorted = ((opts && opts.resid) || fit.resid).slice().sort((a, b) => a - b), n = sorted.length;
+  const up = Math.log(1 + flat), dn = Math.log(1 - flat); let pu = 0, pd = 0;
+  for(const e of sorted){ const v = r + e; if(v > up) pu++; else if(v < dn) pd++; }
+  const pUp = (pu + 0.5) / (n + 1.5), pDown = (pd + 0.5) / (n + 1.5), base = Math.exp(y[t]), q = p => base * Math.exp(r + pfQuantile(sorted, p));
+  return { base, r, p50: q(0.5), lo80: q(0.1), hi80: q(0.9), lo90: q(0.05), hi90: q(0.95), p: { up: pUp, flat: 1 - pUp - pDown, down: pDown }, nTrain: n, contrib: [], alpha };
+}
+function pfBacktestDaily(rows, h, flat){
+  const y = rows.map(r => Math.log(r[1])), recs = [];
+  let fit = null, fitAt = -1;
+  for(let T = 40 + h + 30; T + h < y.length; T++){
+    if(!fit || T - fitAt >= 10){ fit = pfFitDaily(y, T, h); fitAt = T; }      // 10건마다 다시 학습(그 시점까지의 자료만 사용)
+    if(!fit) continue;
+    const pr = pfPredictDaily(fit, y, T, flat), actual = Math.exp(y[T + h]), cur = Math.exp(y[T]), chg = actual / cur - 1;
+    recs.push({ T, r: pr.r, a: y[T + h] - y[T], ym: rows[T][0], target: rows[T + h][0], cur, actual, pred: pr.p50, lo80: pr.lo80, hi80: pr.hi80, lo90: pr.lo90, hi90: pr.hi90, p: pr.p, cls: chg > flat ? "up" : chg < -flat ? "down" : "flat", naive: cur, snaive: null });
+  }
+  return recs;
+}
+
+// 한 종(species)·한 기간(horizon)에 대한 종합 결과. 호출 쪽이 자료를 모아 넘긴다.
+//  ser: { price:[[date,value]...] (일별), feed:{ym:{...}} }, hz: {k,label,n,freq}
+function pfForecast(species, ser, hz, flat, supplyShift){
+  const out = { species, hz, status: "ok", note: "" };
+  if(hz.freq === "d"){
+    const rows = ser.price.filter(r => r[1] > 0);
+    out.nObs = rows.length;
+    if(rows.length < 40 + hz.n + 30){ out.status = "insufficient"; out.note = `일별 가격 ${rows.length}건 — 주 단위 예측에는 최소 ${40 + hz.n + 30}건이 필요합니다.`; return out; }
+    const y = rows.map(r => Math.log(r[1])), T = y.length - 1, fit = pfFitDaily(y, T, hz.n);
+    if(!fit){ out.status = "insufficient"; out.note = "학습 표본이 부족합니다."; return out; }
+    const raw = pfBacktestDaily(rows, hz.n, flat), shrink = pfShrink(raw), recs = pfNested(raw, hz.n, flat), table = pfCalibrationTable(recs);
+    const pr = pfPredictDaily(fit, y, T, flat, shrink);
+    out.pred = pr; out.recs = recs; out.score = pfScore(recs, flat); out.shrink = shrink; out.grade = pfGrade(out.score);
+    out.calib = pfCalibrate(pr.p, table); out.lastDate = rows[T][0];
+    return out;
+  }
+  const M = pfMonthly(ser.price);
+  out.M = M; out.nMonths = M.ym.length; out.filled = M.filled;
+  if(M.ym.length < 12 + hz.n + PF_MIN_TRAIN){ out.status = "insufficient"; out.note = `월별 가격 ${M.ym.length}개월 — ${hz.label} 예측에는 최소 ${12 + hz.n + PF_MIN_TRAIN}개월이 필요합니다.`; return out; }
+  const sp = pfSupplySeries(M.ym, ser.feed, species);
+  const have = sp.filter(v => v != null).length;
+  const useSupply = have >= M.ym.length * 0.5;
+  const y = M.v.map(Math.log), T = y.length - 1;
+  let fit = pfFitMonthly(y, sp, T, hz.n, useSupply && sp[T] != null);
+  const useS = !!(fit && fit.useSupply);
+  if(!fit){ out.status = "insufficient"; out.note = "학습 표본이 부족합니다."; return out; }
+  const raw = pfBacktestMonthly(M, sp, hz.n, flat, useS), shrink = pfShrink(raw), recs = pfNested(raw, hz.n, flat), table = pfCalibrationTable(recs);
+  const pr = pfPredictMonthly(fit, y, sp, T, flat, supplyShift, shrink);
+  out.useSupply = useS; out.sp = sp; out.pred = pr; out.recs = recs; out.score = pfScore(recs, flat); out.shrink = shrink; out.grade = pfGrade(out.score);
+  out.calib = pfCalibrate(pr.p, table);
+  out.lastYm = M.ym[T]; out.table = table; out.fit = fit;
+  return out;
+}
+
+// ── 자료: 저장소 누적본 + 관리자 발행본 + 내 PC 업로드 + 데모 ────────────────────────────────
+const PF_HISTORY_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/price_history/daily.json";
+const PF_LS_KEY = "pf_uploads_v1";
+const PF_DATASET = "price_forecast_data";          // Firebase premium_content/price_forecast_data/latest.json (관리자 발행, 승인 회원만 읽기)
+const PF_HORIZONS = [
+  { k: "1w", label: "1주", n: 5, freq: "d" }, { k: "2w", label: "2주", n: 10, freq: "d" },
+  { k: "1m", label: "1개월", n: 1, freq: "m" }, { k: "3m", label: "3개월", n: 3, freq: "m" }, { k: "6m", label: "6개월", n: 6, freq: "m" },
+];
+const PF_SPECIES = {
+  egg:     { name: "계란", icon: "🥚", color: "#F9A825", price: "계란 특란(XL) 산지가격", unit: "원/10개", basis: "전국 산지가격 특란(XL), 원/10개 기준(30개 가격은 ÷3 환산)" },
+  broiler: { name: "육계", icon: "🍗", color: "#E65100", price: "육계 생계유통(대)", unit: "원/kg", basis: "생계유통가격 대(1.6kg 이상), 원/kg" },
+};
+
+const pfx = {
+  tab: "dash", species: "egg", horizon: "1m", demo: false, histStatus: "idle", hist: null,
+  pubStatus: "idle", pub: null, local: null,
+  flat: 0.02, scen: null, scenOn: null,
+  uploadKind: "price_egg", uploadMsg: "", uploadReport: null, log: [], cache: {}, rev: 0,
+};
+function pfLog(msg){ pfx.log.unshift(new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 19).replace("T", " ") + " " + msg); if(pfx.log.length > 60) pfx.log.length = 60; }
+function pfLoadLocal(){
+  try { const j = JSON.parse(localStorage.getItem(PF_LS_KEY) || "null"); if(j && typeof j === "object") return j; } catch(_) {}
+  return { prices: { egg: [], broiler: [] }, feed: {}, headcount: [], consumption: [] };
+}
+function pfSaveLocal(){ try { localStorage.setItem(PF_LS_KEY, JSON.stringify(pfx.local)); } catch(_) {} }
+pfx.local = pfLoadLocal();
+
+async function pfLoadAll(){
+  if(pfx.histStatus === "loading") return;
+  pfx.histStatus = "loading"; pfx.pubStatus = pfx.pubStatus === "idle" ? "loading" : pfx.pubStatus;
+  const jobs = [
+    (async () => {
+      try { const r = await fetchWithTimeout(PF_HISTORY_URL + "?t=" + Math.floor(Date.now() / 600000), 15000); if(!r.ok) throw new Error("HTTP " + r.status); pfx.hist = await r.json(); pfx.histStatus = "done"; pfLog("저장소 누적 자료 불러옴"); }
+      catch(e){ pfx.histStatus = "error"; pfLog("저장소 누적 자료 실패: " + (e.message || e)); }
+    })(),
+    (async () => {
+      if(!firebaseReady){ pfx.pubStatus = "none"; return; }
+      try { pfx.pub = await fetchPremiumContentJson(PF_DATASET); pfx.pubStatus = pfx.pub ? "done" : "none"; if(pfx.pub) pfLog("관리자 발행본 불러옴"); }
+      catch(e){ pfx.pubStatus = "none"; }
+    })(),
+    pfLoad(),                                  // 기존 사료·시세·수급 자료(규칙 기반 분석용)
+  ];
+  await Promise.all(jobs);
+  if(typeof pfx.flat !== "number") pfx.flat = 0.02;
+  const ds = pfx.pub && pfx.pub.settings && pfx.pub.settings.flat; if(typeof ds === "number" && ds > 0 && ds < 0.2) pfx.flat = ds;
+  pfx.rev++;
+  if(state.tab === "premium" && premiumState.view === "priceforecast") render();
+}
+
+// 날짜별로 겹치면 뒤쪽(내 업로드 > 관리자 발행 > 저장소)이 이긴다.
+function pfMergeRows(...lists){
+  const m = new Map();
+  for(const l of lists) for(const r of (l || [])) if(Array.isArray(r) && r[1] > 0) m.set(r[0], r[1]);
+  return [...m.entries()].sort((a, b) => a[0] < b[0] ? -1 : 1);
+}
+
+// 일별 가격의 명백한 튐(앞뒤 3건 중앙값보다 40% 넘게 벗어남 — 조사처 입력 오류 가능성)을 빼고 개수를 센다.
+function pfClean(rows){
+  const out = []; let dropped = 0;
+  for(let i = 0; i < rows.length; i++){
+    const w = []; for(let k = Math.max(0, i - 3); k <= Math.min(rows.length - 1, i + 3); k++) if(k !== i) w.push(rows[k][1]);
+    w.sort((a, b) => a - b); const med = w.length ? w[Math.floor(w.length / 2)] : rows[i][1];
+    if(Math.abs(rows[i][1] / med - 1) > 0.4){ dropped++; continue; }
+    out.push(rows[i]);
+  }
+  return { rows: out, dropped };
+}
+// 데모용 가짜 자료 — 같은 시드로 항상 같은 값이 나온다. 실제 시장 자료가 아니다.
+function pfDemoData(){
+  let s = 20260101;
+  const rnd = () => { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  const gauss = () => Math.sqrt(-2 * Math.log(rnd() + 1e-9)) * Math.cos(2 * Math.PI * rnd());
+  const feed = {}, prices = { egg: [], broiler: [] };
+  const seasE = [0.05, 0.06, 0.03, 0, -0.04, -0.03, 0.05, 0.07, 0.1, 0.02, -0.02, 0.03];
+  const seasB = [-0.06, -0.08, -0.02, 0, 0.03, 0.08, 0.15, 0.09, 0.06, -0.02, -0.05, -0.03];
+  let supE = 0, supB = 0, le = Math.log(1900), lb = Math.log(1700);
+  const months = [];
+  for(let y = 2017; y <= 2026; y++) for(let m = 1; m <= 12; m++){ if(y === 2026 && m > 9) break; months.push([y, m]); }
+  const feedE = [], feedB = [];
+  months.forEach(([y, m], i) => {
+    supE = 0.8 * supE + 0.25 * gauss(); supB = 0.8 * supB + 0.2 * gauss();   // 공급 충격(자기상관)
+    const fe = 250000 * (1 + 0.04 * Math.sin(i / 5) + 0.05 * supE), fb = 105000 * (1 + 0.06 * Math.sin(i / 3 + 1) + 0.06 * supB);
+    const ym = y + "-" + String(m).padStart(2, "0");
+    feed[ym] = { broiler: Math.round(fb * 1.9), layer_laying: Math.round(fe), layer_rearing: Math.round(fe * 0.14) };
+    feedE.push(supE); feedB.push(supB);
+    // 가격: 계절 + 공급 충격이 1~3개월 뒤 가격에 반영(역방향) + 잡음
+    const lagE = i >= 2 ? feedE[i - 2] : 0, lagB = i >= 1 ? feedB[i - 1] : 0;
+    le = 0.55 * le + 0.45 * (Math.log(1900) + seasE[m - 1] - 0.18 * lagE + 0.0006 * i) + 0.03 * gauss();
+    lb = 0.55 * lb + 0.45 * (Math.log(1700) + seasB[m - 1] - 0.14 * lagB + 0.0004 * i) + 0.035 * gauss();
+    const dim = new Date(y, m, 0).getDate();
+    for(let d = 1; d <= dim; d++){
+      const dow = new Date(y, m - 1, d).getDay(); if(dow === 0 || dow === 6) continue;
+      const ds = ym + "-" + String(d).padStart(2, "0");
+      prices.egg.push([ds, Math.round(Math.exp(le + 0.006 * gauss()) / 5) * 5]);
+      prices.broiler.push([ds, Math.round(Math.exp(lb + 0.008 * gauss()) / 10) * 10]);
+    }
+  });
+  const lay = feed["2026-06"];
+  return { prices, feed, headcount: [{ period: "2026-06", layer: Math.round(lay.layer_laying * 1e6 / 4800 / 30 * 1.02), broiler: null }], consumption: [] };
+}
+
+// 화면에서 쓰는 한 벌의 자료. 데모면 가짜, 아니면 저장소 + 관리자 발행 + 내 업로드를 합친다.
+function pfSeries(){
+  if(pfx.demo){ const c = pfx.cache.demoData || (pfx.cache.demoData = pfDemoData()); return { egg: { price: c.prices.egg, feed: c.feed }, broiler: { price: c.prices.broiler, feed: c.feed }, headcount: c.headcount, consumption: c.consumption, demo: true, feed: c.feed }; }
+  const h = (pfx.hist && pfx.hist.series) || {}, p = (pfx.pub && pfx.pub.prices) || {}, l = pfx.local.prices || {};
+  const feed = { ...((pfx.hist && pfx.hist.feed_monthly) || {}), ...((pfx.pub && pfx.pub.feed) || {}), ...(pfx.local.feed || {}) };
+  const price = { egg: pfMergeRows((h.egg || {}).rows, p.egg, l.egg), broiler: pfMergeRows((h.broiler_live || {}).rows, p.broiler, l.broiler) };
+  const ck = "clean|" + pfx.rev;
+  if(!pfx.cache[ck]){ const ce = pfClean(price.egg), cb = pfClean(price.broiler); pfx.cache[ck] = { egg: ce.rows, broiler: cb.rows }; if(ce.dropped || cb.dropped) pfLog(`가격 이상값 제외: 계란 ${ce.dropped}건 · 육계 ${cb.dropped}건(앞뒤 중앙값 대비 40% 초과)`); }
+  price.egg = pfx.cache[ck].egg; price.broiler = pfx.cache[ck].broiler;
+  return { egg: { price: price.egg, feed }, broiler: { price: price.broiler, feed }, feed,
+    headcount: [...((pfx.pub && pfx.pub.headcount) || []), ...(pfx.local.headcount || [])],
+    consumption: [...((pfx.pub && pfx.pub.consumption) || []), ...(pfx.local.consumption || [])], demo: false };
+}
+
+// CSV/탭 구분 텍스트 파싱(첫 줄이 머리글이면 건너뜀). 쉼표·탭·세미콜론을 모두 허용하고 숫자의 천 단위 쉼표는 따옴표로 둘러싼 경우만 처리한다.
+function pfParseTable(text){
+  const rows = [];
+  for(const raw of String(text).replace(/^﻿/, "").split(/\r?\n/)){
+    const line = raw.trim(); if(!line) continue;
+    const cells = []; let cur = "", q = false;
+    for(const ch of line){
+      if(ch === '"'){ q = !q; continue; }
+      if(!q && (ch === "," || ch === "\t" || ch === ";")){ cells.push(cur.trim()); cur = ""; continue; }
+      cur += ch;
+    }
+    cells.push(cur.trim()); rows.push(cells);
+  }
+  return rows;
+}
+const pfNum = s => { const v = parseFloat(String(s).replace(/[,\s원톤마리개]/g, "")); return isFinite(v) ? v : null; };
+function pfNormDate(s){
+  const m = String(s).trim().match(/^(\d{4})[-./](\d{1,2})(?:[-./](\d{1,2}))?$/); if(!m) return null;
+  const y = +m[1], mo = +m[2], d = m[3] ? +m[3] : null;
+  if(mo < 1 || mo > 12 || (d != null && (d < 1 || d > 31))) return null;
+  return y + "-" + String(mo).padStart(2, "0") + (d != null ? "-" + String(d).padStart(2, "0") : "");
+}
+
+// 업로드한 표를 검사하고(형식·중복·이상값·빠진 구간) 저장할 모양으로 바꾼다. 오류가 있어도 가능한 행만 살리고 모두 보고한다.
+function pfIngest(kind, text){
+  const rows = pfParseTable(text), rep = { kind, total: 0, ok: 0, bad: [], dup: 0, outliers: [], gaps: [], from: null, to: null };
+  const out = { prices: null, feed: null, headcount: null, consumption: null };
+  const data = rows.filter((r, i) => !(i === 0 && pfNormDate(r[0]) == null));      // 머리글 제외
+  rep.total = data.length;
+  if(kind === "price_egg" || kind === "price_broiler"){
+    const lim = kind === "price_egg" ? [800, 6000] : [500, 5000], seen = new Set(), list = [];
+    data.forEach((r, i) => {
+      const d = pfNormDate(r[0]), v = pfNum(r[1]);
+      if(!d || d.length < 10 || v == null){ rep.bad.push(`${i + 1}행: 날짜(YYYY-MM-DD)나 숫자를 읽지 못함 → ${r.slice(0, 2).join(" | ")}`); return; }
+      if(seen.has(d)){ rep.dup++; return; }
+      seen.add(d);
+      if(v < lim[0] || v > lim[1]){ rep.outliers.push(`${d} ${v} (허용 범위 ${lim[0]}~${lim[1]} 밖)`); return; }
+      list.push([d, v]);
+    });
+    list.sort((a, b) => a[0] < b[0] ? -1 : 1); rep.ok = list.length;
+    if(list.length > 8){                                                          // 로버스트 이상치(전후 중앙값 대비 ±35% 이상)
+      const vals = list.map(r => r[1]);
+      list.forEach((r, i) => { const w = vals.slice(Math.max(0, i - 3), i + 4).sort((a, b) => a - b), med = w[Math.floor(w.length / 2)]; if(Math.abs(r[1] / med - 1) > 0.35) rep.outliers.push(`${r[0]} ${r[1]} (주변 중앙값 ${Math.round(med)} 대비 ${((r[1] / med - 1) * 100).toFixed(0)}%)`); });
+    }
+    const M = pfMonthly(list); rep.gaps = M.ym.filter((ym, i) => !list.some(r => r[0].startsWith(ym))).slice(0, 12);
+    if(list.length){ rep.from = list[0][0]; rep.to = list[list.length - 1][0]; }
+    out.prices = { [kind === "price_egg" ? "egg" : "broiler"]: list };
+  } else if(kind === "feed"){
+    const feed = {}, seen = new Set();
+    data.forEach((r, i) => {
+      const ym = pfNormDate(r[0]), b = pfNum(r[1]), l = pfNum(r[2]), g = pfNum(r[3]);
+      if(!ym || ym.length !== 7 || b == null || l == null){ rep.bad.push(`${i + 1}행: 월(YYYY-MM), 육계사료, 산란계사료를 읽지 못함 → ${r.slice(0, 4).join(" | ")}`); return; }
+      if(seen.has(ym)){ rep.dup++; return; } seen.add(ym);
+      if(b < 10000 || b > 600000 || l < 30000 || l > 800000) rep.outliers.push(`${ym} 육계 ${b} · 산란 ${l} (평소 규모 밖 — 단위가 톤인지 확인)`);
+      feed[ym] = { broiler: b, layer_laying: l, layer_rearing: g == null ? Math.round(l * 0.14) : g };
+    });
+    const ks = Object.keys(feed).sort(); rep.ok = ks.length; if(ks.length){ rep.from = ks[0]; rep.to = ks[ks.length - 1]; }
+    out.feed = feed;
+  } else if(kind === "headcount" || kind === "consumption"){
+    const list = [];
+    data.forEach((r, i) => {
+      const p = pfNormDate(r[0]), a = pfNum(r[1]), b = pfNum(r[2]);
+      if(!p || p.length !== 7 || a == null){ rep.bad.push(`${i + 1}행: 월(YYYY-MM)과 숫자를 읽지 못함 → ${r.slice(0, 3).join(" | ")}`); return; }
+      list.push(kind === "headcount" ? { period: p, layer: a, broiler: b } : { period: p, egg: a, broiler: b });
+    });
+    rep.ok = list.length; if(list.length){ rep.from = list[0].period; rep.to = list[list.length - 1].period; }
+    out[kind] = list;
+  }
+  return { rep, out };
+}
+function pfApplyLocal(out){
+  const L = pfx.local;
+  if(out.prices) for(const k of Object.keys(out.prices)) L.prices[k] = pfMergeRows(L.prices[k], out.prices[k]);
+  if(out.feed) L.feed = { ...L.feed, ...out.feed };
+  for(const k of ["headcount", "consumption"]) if(out[k]){ const m = new Map((L[k] || []).map(r => [r.period, r])); out[k].forEach(r => m.set(r.period, r)); L[k] = [...m.values()].sort((a, b) => a.period < b.period ? -1 : 1); }
+  pfSaveLocal(); pfx.cache = {}; pfx.rev++;
+}
+
+// ── 차트: 선·막대·예측구간 음영·점을 한 함수로 그리고, 마우스·터치로 값을 읽는다 ───────────────────────
+const PF_CHARTS = {};
+const pfFmtN = v => v == null || !isFinite(v) ? "-" : Math.abs(v) >= 1e8 ? (v / 1e8).toFixed(2) + "억" : Math.abs(v) >= 1e4 ? Math.round(v / 1e4).toLocaleString() + "만" : Math.round(v).toLocaleString();
+function pfSvgChart(id, cfg){
+  const W = cfg.w || 340, H = cfg.h || 200, L = 46, R = 12, T = 12, B = 24, n = cfg.xl.length;
+  const all = [];
+  cfg.series.forEach(s => s.ys.forEach(v => { if(v != null && isFinite(v)) all.push(v); }));
+  if(cfg.band) for(const b of [].concat(cfg.band)) { b.lo.forEach(v => v != null && all.push(v)); b.hi.forEach(v => v != null && all.push(v)); }
+  if(!all.length || n < 2) return `<div style="font-size:11px;color:#aaa;text-align:center;padding:14px">표시할 자료가 없습니다</div>`;
+  let lo = cfg.yMin != null ? cfg.yMin : Math.min(...all), hi = cfg.yMax != null ? cfg.yMax : Math.max(...all);
+  if(cfg.zero){ lo = Math.min(lo, 0); hi = Math.max(hi, 0); }
+  const pad = (hi - lo) * 0.1 || Math.abs(hi) * 0.05 || 1; if(cfg.yMin == null) lo -= pad; if(cfg.yMax == null) hi += pad;
+  const bw = (W - L - R) / n, x = i => L + (cfg.bars ? bw * (i + 0.5) : (n === 1 ? 0 : i * (W - L - R) / (n - 1)));
+  const y = v => T + (hi - v) / (hi - lo) * (H - T - B);
+  const fmt = cfg.fmt || pfFmtN;
+  PF_CHARTS[id] = { cfg, W, L, R, n, x, y, fmt };
+  let g = "";
+  for(let k = 0; k <= 3; k++){ const v = lo + (hi - lo) * k / 3; g += `<line x1="${L}" x2="${W - R}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" stroke="#EEE"/><text x="${L - 5}" y="${(y(v) + 3).toFixed(1)}" text-anchor="end" font-size="8.5" fill="#999">${fmt(v)}</text>`; }
+  if(cfg.zero) g += `<line x1="${L}" x2="${W - R}" y1="${y(0).toFixed(1)}" y2="${y(0).toFixed(1)}" stroke="#BBB"/>`;
+  const step = Math.max(1, Math.ceil(n / 6));
+  for(let i = 0; i < n; i += step) g += `<text x="${x(i).toFixed(1)}" y="${H - 7}" text-anchor="middle" font-size="8.5" fill="#999">${esc(cfg.xl[i])}</text>`;
+  let body = "";
+  if(cfg.band) for(const b of [].concat(cfg.band)){
+    const pts = []; for(let i = 0; i < n; i++) if(b.lo[i] != null) pts.push(i);
+    if(pts.length > 1){
+      const up = pts.map(i => `${x(i).toFixed(1)},${y(b.hi[i]).toFixed(1)}`), dn = pts.slice().reverse().map(i => `${x(i).toFixed(1)},${y(b.lo[i]).toFixed(1)}`);
+      body += `<polygon points="${up.concat(dn).join(" ")}" fill="${b.color}" fill-opacity="${b.opacity}"/>`;
+    }
+  }
+  cfg.series.forEach(s => {
+    if(s.kind === "bar"){
+      s.ys.forEach((v, i) => { if(v == null) return; const y0 = y(cfg.zero ? 0 : lo), yv = y(v); const c = typeof s.color === "function" ? s.color(v) : s.color;
+        body += `<rect x="${(x(i) - bw * 0.36).toFixed(1)}" width="${(bw * 0.72).toFixed(1)}" y="${Math.min(y0, yv).toFixed(1)}" height="${Math.max(1, Math.abs(yv - y0)).toFixed(1)}" fill="${c}" opacity="${s.opacity || 0.85}"/>`; });
+    } else if(s.kind === "dot"){
+      s.ys.forEach((v, i) => { if(v != null) body += `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="4" fill="${s.color}" stroke="#fff" stroke-width="1.5"/>`; });
+    } else {
+      let d = "", pen = false;
+      s.ys.forEach((v, i) => { if(v == null){ if(!s.connect) pen = false; return; } d += (pen ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1); pen = true; });
+      if(d) body += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="${s.w || 2}" ${s.dash ? 'stroke-dasharray="5 4"' : ""} stroke-linejoin="round" stroke-linecap="round"/>`;
+    }
+  });
+  if(cfg.vline != null) body += `<line x1="${x(cfg.vline).toFixed(1)}" x2="${x(cfg.vline).toFixed(1)}" y1="${T}" y2="${H - B}" stroke="#B0BEC5" stroke-dasharray="2 3"/><text x="${(x(cfg.vline) + 3).toFixed(1)}" y="${T + 8}" font-size="8.5" fill="#78909C">${esc(cfg.vlabel || "")}</text>`;
+  const legend = cfg.series.concat(cfg.band ? [].concat(cfg.band).map(b => ({ name: b.name, color: b.color, band: true })) : []).filter(s => s.name).map(s =>
+    `<span style="white-space:nowrap">${s.band ? `<span style="display:inline-block;width:12px;height:8px;background:${s.color};opacity:.35;vertical-align:middle;margin-right:3px"></span>` : s.kind === "bar" ? `<span style="display:inline-block;width:9px;height:9px;background:${typeof s.color === "function" ? "#90A4AE" : s.color};vertical-align:middle;margin-right:3px"></span>` : s.kind === "dot" ? `<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${s.color};vertical-align:middle;margin-right:3px"></span>` : `<span style="display:inline-block;width:16px;border-top:2px ${s.dash ? "dashed" : "solid"} ${s.color};vertical-align:middle;margin-right:3px"></span>`}${esc(s.name)}</span>`).join("");
+  return `
+  <div style="position:relative">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;font-size:10.5px;color:#666;margin:2px 0 4px">${legend}</div>
+    <svg class="pf-chart" data-id="${id}" viewBox="0 0 ${W} ${H}" width="100%" tabindex="0" role="img" aria-label="${esc(cfg.label || "차트")}" style="display:block;touch-action:pan-y;cursor:crosshair;outline-offset:2px">
+      ${g}${body}
+      <line class="pf-cross" x1="0" x2="0" y1="${T}" y2="${H - B}" stroke="#9E9E9E" stroke-width="1" style="visibility:hidden"/>
+    </svg>
+    <div class="pf-tip" style="position:absolute;top:22px;left:0;visibility:hidden;pointer-events:none;background:#fff;border:1px solid #E3E3E3;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.1);padding:7px 9px;font-size:11px;line-height:1.5;z-index:5;max-width:230px"></div>
+  </div>`;
+}
+function pfBindCharts(){
+  document.querySelectorAll(".pf-chart").forEach(svg => {
+    const c = PF_CHARTS[svg.dataset.id]; if(!c) return;
+    const tip = svg.parentElement.querySelector(".pf-tip"), cross = svg.querySelector(".pf-cross");
+    const show = i => {
+      const xs = c.x(i); cross.setAttribute("x1", xs); cross.setAttribute("x2", xs); cross.style.visibility = "visible";
+      tip.replaceChildren();
+      const head = document.createElement("div"); head.textContent = c.cfg.xfull ? c.cfg.xfull[i] : c.cfg.xl[i]; head.style.cssText = "font-weight:700;color:#555;margin-bottom:3px"; tip.appendChild(head);
+      c.cfg.series.forEach(s => { const v = s.ys[i]; if(v == null) return;
+        const row = document.createElement("div"); row.style.cssText = "display:flex;align-items:center;gap:6px;white-space:nowrap";
+        const k = document.createElement("span"); k.style.cssText = `display:inline-block;width:10px;height:10px;border-radius:2px;background:${typeof s.color === "function" ? "#90A4AE" : s.color}`;
+        const b = document.createElement("b"); b.textContent = (s.fmt || c.fmt)(v); b.style.cssText = "color:#222;font-variant-numeric:tabular-nums";
+        const l = document.createElement("span"); l.textContent = s.name || ""; l.style.color = "#888"; row.append(k, b, l); tip.appendChild(row); });
+      if(c.cfg.band) for(const b of [].concat(c.cfg.band)) if(b.lo[i] != null){ const r = document.createElement("div"); r.style.cssText = "color:#777;margin-top:2px"; r.textContent = `${b.name} ${c.fmt(b.lo[i])} ~ ${c.fmt(b.hi[i])}`; tip.appendChild(r); }
+      if(c.cfg.extra){ const t = c.cfg.extra(i); if(t){ const r = document.createElement("div"); r.style.cssText = "color:#555;margin-top:4px;border-top:1px solid #F0F0F0;padding-top:3px;white-space:normal"; r.textContent = t; tip.appendChild(r); } }
+      tip.style.visibility = "visible";
+      const w = svg.getBoundingClientRect().width, px = xs / c.W * w; let left = px + 10; if(left + tip.offsetWidth > w) left = px - tip.offsetWidth - 10; tip.style.left = Math.max(0, left) + "px";
+    };
+    const idxAt = e => { const r = svg.getBoundingClientRect(), vx = (e.clientX - r.left) / r.width * c.W; let best = 0, bd = 1e9; for(let i = 0; i < c.n; i++){ const d = Math.abs(c.x(i) - vx); if(d < bd){ bd = d; best = i; } } return best; };
+    const hide = () => { cross.style.visibility = "hidden"; tip.style.visibility = "hidden"; };
+    svg.addEventListener("pointermove", e => show(idxAt(e)));
+    svg.addEventListener("pointerdown", e => show(idxAt(e)));
+    svg.addEventListener("pointerleave", hide);
+    let f = c.n - 1;
+    svg.addEventListener("focus", () => show(f));
+    svg.addEventListener("keydown", e => { if(e.key === "ArrowLeft"){ f = Math.max(0, f - 1); show(f); e.preventDefault(); } else if(e.key === "ArrowRight"){ f = Math.min(c.n - 1, f + 1); show(f); e.preventDefault(); } else if(e.key === "Escape") hide(); });
+    svg.addEventListener("blur", hide);
+  });
+}
+
+// ── 화면 ① 공통 도우미·종합 대시보드·종별 탭 ──────────────────────────────────────────────
+const PF_TABS = [
+  ["dash", "📊 종합 대시보드"], ["broiler", "🍗 육계 산지가격"], ["egg", "🥚 계란 산지가격"], ["feed", "🌾 사료·사육 분석"],
+  ["balance", "⚖️ 공급·소비 잠재력"], ["ai", "🤖 AI 전망·시나리오"], ["acc", "🎯 예측 정확도"], ["data", "📚 데이터·방법"],
+];
+const pfHz = k => PF_HORIZONS.find(h => h.k === k) || PF_HORIZONS[2];
+const pfWon = (v, unit) => v == null || !isFinite(v) ? "-" : Math.round(v).toLocaleString() + (unit === "원/kg" ? "원" : "원");
+const pfPct1 = v => v == null || !isFinite(v) ? "-" : (v >= 0 ? "+" : "−") + Math.abs(v * 100).toFixed(1) + "%";
+
+// 시나리오 입력 → 종별 공급 증감(%) 가감. 소비 증가는 공급 감소와 같은 효과(초과공급 = 공급 − 소비)로 본다.
+const PF_SCEN_DEFAULT = { feed: 0, ship: 0, fcr: 0, mort: 0, lay: 0, cons: 0, ai: 0, weather: 0, imp: 0 };
+function pfScenShift(sc, species){
+  if(!sc) return 0;
+  const common = -sc.mort - sc.ai - sc.weather + sc.imp - sc.cons + sc.feed;
+  return species === "broiler" ? common + sc.ship - sc.fcr : common + sc.lay;
+}
+function pfScenActive(){ return pfx.scenOn && Object.keys(PF_SCEN_DEFAULT).some(k => pfx.scenOn[k] !== 0); }
+
+function pfResult(species, hzKey, withScenario){
+  const shift = withScenario && pfx.scenOn ? pfScenShift(pfx.scenOn, species) : 0;
+  const key = [species, hzKey, shift, pfx.rev, pfx.flat, pfx.demo ? 1 : 0].join("|");
+  if(pfx.cache[key]) return pfx.cache[key];
+  const S = pfSeries(); let r;
+  try { r = pfForecast(species, { price: S[species].price, feed: S.feed }, pfHz(hzKey), pfx.flat, shift); }
+  catch(e){ r = { status: "error", note: String(e.message || e) }; pfLog("계산 오류(" + species + "/" + hzKey + "): " + (e.message || e)); }
+  pfx.cache[key] = r; return r;
+}
+
+function pfBanner(){
+  const S = pfSeries();
+  const demo = S.demo ? `<div role="alert" style="background:#C62828;color:#fff;font-weight:800;font-size:12.5px;text-align:center;padding:9px 10px;border-radius:8px;margin-bottom:10px">⚠ 데모 데이터 · 실제 시장 예측 아님 — 아래 모든 숫자와 그래프는 화면 시연용으로 임의 생성한 값입니다</div>` : "";
+  const mk = sp => { const rows = S[sp].price; return `${PF_SPECIES[sp].icon} ${PF_SPECIES[sp].name} ${rows.length.toLocaleString()}건${rows.length ? " (" + rows[0][0].slice(0, 7) + "~" + rows[rows.length - 1][0].slice(0, 7) + ")" : ""}`; };
+  const fk = Object.keys(S.feed || {}).sort();
+  return demo + `<div style="font-size:10.5px;color:#777;background:#F5F5F5;border-radius:8px;padding:6px 10px;margin-bottom:10px;line-height:1.7">
+    <b style="color:#555">사용 중인 자료</b> · ${mk("egg")} · ${mk("broiler")} · 🌾 사료 ${fk.length}개월${fk.length ? " (" + fk[0] + "~" + fk[fk.length - 1] + ")" : ""}
+    ${pfx.histStatus === "error" ? ' · <span style="color:#C62828">저장소 누적 자료를 불러오지 못했습니다</span>' : ""}</div>`;
+}
+
+function pfChips(items, cur, attr){
+  return `<div style="display:flex;gap:6px;flex-wrap:wrap">${items.map(([k, label]) =>
+    `<button type="button" ${attr}="${k}" style="border:1px solid ${k === cur ? "#4527A0" : "#ddd"};background:${k === cur ? "#4527A0" : "#fff"};color:${k === cur ? "#fff" : "#555"};border-radius:16px;padding:5px 12px;font-size:12px;font-weight:${k === cur ? 800 : 500};cursor:pointer">${label}</button>`).join("")}</div>`;
+}
+function pfControls(withSpecies){
+  return `<div style="display:flex;gap:10px 16px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+    ${withSpecies ? `<div><div style="font-size:10px;color:#999;margin-bottom:3px">품목</div>${pfChips([["broiler", "🍗 육계"], ["egg", "🥚 계란"]], pfx.species, "data-pf-species")}</div>` : ""}
+    <div><div style="font-size:10px;color:#999;margin-bottom:3px">예측 기간</div>${pfChips(PF_HORIZONS.map(h => [h.k, h.label]), pfx.horizon, "data-pf-hz")}</div>
+    <div><div style="font-size:10px;color:#999;margin-bottom:3px">지역</div><select disabled style="border:1px solid #ddd;border-radius:8px;padding:5px 8px;font-size:12px;color:#888"><option>전국</option></select>
+      <span style="font-size:9.5px;color:#aaa;display:block;margin-top:2px">지역별 자료가 연결되면 선택할 수 있습니다</span></div>
+  </div>`;
+}
+
+function pfInsufficientHtml(r, label){
+  return `<div style="border:1px dashed #BDBDBD;border-radius:10px;padding:12px 14px;background:#FAFAFA;font-size:12px;color:#666;line-height:1.7">
+    <b style="color:#555">${esc(label || "")} 예측값 없음 — 자료가 모자랍니다</b><br>${esc(r.note || "")}<br>
+    <span style="font-size:11px;color:#999">임의로 만든 숫자를 보여 드리지 않습니다. 「데이터·방법」 탭에서 과거 시세 파일(CSV)을 올리거나 관리자 발행본을 사용하면 계산됩니다.</span></div>`;
+}
+
+// 가격 실적(실선) + 예측(점선) + 80·90% 구간(반투명 음영)
+function pfPriceChart(species, id){
+  const sp = PF_SPECIES[species], S = pfSeries();
+  const M = pfMonthly(S[species].price);
+  if(M.ym.length < 4) return `<div style="font-size:11px;color:#aaa;text-align:center;padding:14px">월별 가격 자료가 ${M.ym.length}개월뿐이라 추이 그래프를 그리지 못합니다</div>`;
+  const keep = Math.min(M.ym.length, 60), off = M.ym.length - keep, ym = M.ym.slice(off), hist = M.v.slice(off);
+  const ext = 6, xl = ym.map(s => s.slice(2, 4) + "." + s.slice(5)), xfull = ym.slice();
+  const nextYm = s => { let [y, m] = s.split("-").map(Number); m++; if(m > 12){ m = 1; y++; } return y + "-" + String(m).padStart(2, "0"); };
+  let last = ym[ym.length - 1]; for(let k = 0; k < ext; k++){ last = nextYm(last); xl.push(last.slice(2, 4) + "." + last.slice(5)); xfull.push(last + " (예측)"); }
+  const actual = hist.concat(new Array(ext).fill(null)), fc = new Array(xl.length).fill(null);
+  const bands = [{ name: "80% 구간", color: sp.color, opacity: 0.22, lo: new Array(xl.length).fill(null), hi: new Array(xl.length).fill(null) }, { name: "90% 구간", color: sp.color, opacity: 0.1, lo: new Array(xl.length).fill(null), hi: new Array(xl.length).fill(null) }];
+  const probs = {};
+  const anchor = hist.length - 1; fc[anchor] = hist[anchor]; bands.forEach(b => { b.lo[anchor] = hist[anchor]; b.hi[anchor] = hist[anchor]; });
+  for(const hz of PF_HORIZONS.filter(h => h.freq === "m")){
+    const r = pfResult(species, hz.k, false); if(r.status !== "ok") continue;
+    const i = anchor + hz.n, p = r.pred;
+    fc[i] = p.p50; bands[0].lo[i] = p.lo80; bands[0].hi[i] = p.hi80; bands[1].lo[i] = p.lo90; bands[1].hi[i] = p.hi90; probs[i] = r;
+  }
+  const extra = i => { const r = probs[i]; if(!r) return ""; const c = r.calib; return `${pfHz(r.hz.k).label} 뒤 · 상승 ${Math.round(c.up * 100)}% · 보합 ${Math.round(c.flat * 100)}% · 하락 ${Math.round(c.down * 100)}%`; };
+  return pfSvgChart(id, { label: `${sp.name} 산지가격 월평균 실적과 예측`, xl, xfull, w: 360, h: 210, vline: anchor, vlabel: "예측 →", fmt: v => Math.round(v).toLocaleString(), extra,
+    series: [{ name: `${sp.name} 월평균 실적(${sp.unit})`, color: sp.color, ys: actual }, { name: "AI 예상(P50)", color: "#4527A0", ys: fc, dash: true, connect: true }], band: bands });
+}
+
+function pfProbRows(r){
+  return PF_HORIZONS.map(hz => {
+    const rr = r(hz.k); if(rr.status !== "ok") return `<div style="margin-top:8px;font-size:11px;color:#aaa">${hz.label} 뒤: 자료 부족으로 계산 불가</div>`;
+    const p = rr.calib, v = pfVerdict(p), pr = rr.pred;
+    return `<div style="margin-top:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:4px">
+        <span style="font-size:12px;font-weight:700;color:#333">${hz.label} 뒤 <span style="color:#999;font-weight:500">P50 ${Math.round(pr.p50).toLocaleString()} · 80% ${Math.round(pr.lo80).toLocaleString()}~${Math.round(pr.hi80).toLocaleString()}</span></span>
+        <span style="font-size:11px;font-weight:800;color:${v.c};background:${v.bg};border-radius:10px;padding:2px 9px">${v.ic} ${v.t} · ${pfPct1(pr.p50 / pr.base - 1)}</span></div>
+      ${pfBar(p)}</div>`;
+  }).join("");
+}
+const PF_REASON = { supply: "공급(사료 생산 증감)", season: "계절 패턴", momentum: "최근 가격 추세", revert: "평균 회귀(장기 수준으로 복귀)" };
+function pfReasons(r){
+  if(!r.pred || !r.pred.contrib || !r.pred.contrib.length) return `<div style="font-size:11px;color:#999">이 기간은 가격 흐름만으로 계산해 원인 분해가 없습니다.</div>`;
+  const top = r.pred.contrib.slice(0, 3);
+  if(top.every(c => Math.abs(c.v) < 0.0005)) return `<div style="font-size:11.5px;color:#777;line-height:1.7">과거 검증에서 계절·가격 추세·공급 같은 요인이 이 기간 가격을 예측하는 데 도움이 되지 않아(예측 보정 계수 ${(r.pred.alpha * 100).toFixed(0)}%), 예측 변화량이 0에 가깝습니다. 구간과 확률은 과거 오차 분포에서 나옵니다.</div>`;
+  return top.map((c, i) => `<div style="display:flex;gap:8px;align-items:center;font-size:11.5px;margin-top:4px"><span style="width:18px;height:18px;border-radius:50%;background:#EDE7F6;color:#4527A0;font-weight:800;font-size:10.5px;display:flex;align-items:center;justify-content:center">${i + 1}</span>
+    <span style="color:#333">${PF_REASON[c.key] || c.key}</span><span style="color:${c.v >= 0 ? PF_COLORS.up : PF_COLORS.down};font-weight:700">${c.v >= 0 ? "가격 ▲" : "가격 ▼"} ${(Math.abs(c.v) * 100).toFixed(1)}%p</span></div>`).join("");
+}
+
+function pfKpi(label, val, sub, color){
+  return `<div style="flex:1 1 150px;min-width:140px;border:1px solid #E8E8E8;border-radius:10px;padding:9px 11px;background:#fff">
+    <div style="font-size:10.5px;color:#888">${label}</div><div style="font-size:${String(val).replace(/<[^>]*>/g, "").length > 11 ? 14 : 19}px;font-weight:900;color:${color || "#222"};font-variant-numeric:tabular-nums;margin-top:1px;line-height:1.35">${val}</div><div style="font-size:10px;color:#999;margin-top:1px;line-height:1.5">${sub || ""}</div></div>`;
+}
+
+function pfTabSpecies(species){
+  const sp = PF_SPECIES[species], r = pfResult(species, pfx.horizon, false), S = pfSeries();
+  const rows = S[species].price, lastRow = rows[rows.length - 1];
+  let kpi = "", main = "";
+  if(r.status === "ok"){
+    const p = r.pred, c = r.calib, hz = pfHz(pfx.horizon), g = r.grade;
+    const supplyTxt = r.sp && r.sp[r.sp.length - 1] != null ? `사료 기준 공급 ${pfSign(r.sp[r.sp.length - 1])}% (전년 대비)` : "공급 자료 없음";
+    const sc = pfScenActive() ? pfResult(species, pfx.horizon, true) : null;
+    kpi = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      ${pfKpi("현재 산지가격", pfWon(p.base), `${sp.unit} · 기준 ${esc(r.lastYm || r.lastDate || "")} 월평균`, sp.color)}
+      ${pfKpi(`AI 예상가격 (${hz.label} 뒤 P50)`, pfWon(p.p50), `80% 구간 ${pfWon(p.lo80)}~${pfWon(p.hi80)} · 90% ${pfWon(p.lo90)}~${pfWon(p.hi90)}`, "#4527A0")}
+      ${pfKpi("가격 상승 확률", Math.round(c.up * 100) + "%", `기준 +${(pfx.flat * 100).toFixed(1)}% 초과 · ${c.calibrated ? "과거 검증으로 보정" : "보정 전(표본 부족)"}`, PF_COLORS.up)}
+      ${pfKpi("가격 하락 확률", Math.round(c.down * 100) + "%", `기준 −${(pfx.flat * 100).toFixed(1)}% 미만 · 보합 ${Math.round(c.flat * 100)}%`, PF_COLORS.down)}
+      ${pfKpi("예상 공급·소비 격차", supplyTxt, S.consumption && S.consumption.length ? "소비 통계 연결됨" : "소비 통계 미연결 — 계절지수로 대용", "#555")}
+      ${pfKpi("데이터·예측 신뢰도", `<span style="color:${g.c}">${g.t}</span>`, esc(g.why) + (S.demo ? " (데모 자료 기준)" : ""), g.c)}
+    </div>`;
+    main = `<div style="font-size:12px;font-weight:800;color:#333;margin:4px 0 2px">📈 가격 실적(실선) · 예측(점선) · 예측구간(음영)</div>${pfPriceChart(species, "pf-price-" + species)}
+      <div style="font-size:12px;font-weight:800;color:#333;margin:14px 0 2px">📊 기간별 상승·보합·하락 확률</div>
+      ${pfProbRows(k => pfResult(species, k, false))}
+      <div style="font-size:12px;font-weight:800;color:#333;margin:14px 0 2px">🔑 ${pfHz(pfx.horizon).label} 뒤 가격을 움직이는 주요 원인 3가지</div>${pfReasons(r)}
+      ${sc && sc.status === "ok" ? `<div style="margin-top:12px;background:#F3E5F5;border-radius:8px;padding:8px 10px;font-size:11.5px;color:#4A148C;line-height:1.7"><b>적용 중인 시나리오(조건부 추정)</b> — ${hz.label} 뒤 P50 ${pfWon(sc.pred.p50)} (${pfPct1(sc.pred.p50 / p.p50 - 1)} vs 기본) · 상승 ${Math.round(sc.calib.up * 100)}% · 하락 ${Math.round(sc.calib.down * 100)}%</div>` : ""}`;
+  } else {
+    kpi = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">${pfKpi("현재 산지가격", lastRow ? pfWon(lastRow[1]) : "-", lastRow ? `${sp.unit} · ${esc(lastRow[0])}` : "자료 없음", sp.color)}${pfKpi("AI 예상가격", "—", "자료 부족", "#999")}${pfKpi("데이터·예측 신뢰도", '<span style="color:#757575">검증 불가</span>', "가격 이력이 부족", "#757575")}</div>`;
+    const md = pfBuildModel();
+    main = pfInsufficientHtml(r, `${sp.name} ${pfHz(pfx.horizon).label}`) +
+      (md ? `<div style="margin-top:12px"><div style="font-size:12px;font-weight:800;color:#333;margin-bottom:4px">📌 대신 보는 규칙 기반 방향 지표 <span style="font-weight:500;color:#C62828">(통계 검증 없음)</span></div>${pfRuleSpeciesCard(species, md)}</div>` : "");
+  }
+  return `${pfControls(true)}${kpi}${main}${pfPriceDetailTable(species)}`;
+}
+
+function pfRuleSpeciesCard(species, md){ return pfSpeciesCard(species, md.species[species], md); }
+
+// 모든 기간 한눈에: P50·구간·확률·등락률 표
+function pfPriceDetailTable(species){
+  const head = `<tr style="color:#999"><th style="text-align:left;font-weight:500;padding:3px 4px">기간</th><th style="text-align:right;font-weight:500;padding:3px 4px">P50</th><th style="text-align:right;font-weight:500;padding:3px 4px">80% 구간</th><th style="text-align:right;font-weight:500;padding:3px 4px">등락</th><th style="text-align:right;font-weight:500;padding:3px 4px">상승/보합/하락</th></tr>`;
+  const rows = PF_HORIZONS.map(hz => { const r = pfResult(species, hz.k, false);
+    if(r.status !== "ok") return `<tr style="border-top:1px solid #F3F3F3"><td style="padding:4px">${hz.label}</td><td colspan="4" style="padding:4px;color:#aaa">자료 부족</td></tr>`;
+    const p = r.pred, c = r.calib;
+    return `<tr style="border-top:1px solid #F3F3F3"><td style="padding:4px;font-weight:700">${hz.label}</td><td style="padding:4px;text-align:right">${Math.round(p.p50).toLocaleString()}</td><td style="padding:4px;text-align:right;color:#777">${Math.round(p.lo80).toLocaleString()}~${Math.round(p.hi80).toLocaleString()}</td><td style="padding:4px;text-align:right">${pfPct1(p.p50 / p.base - 1)}</td><td style="padding:4px;text-align:right">${Math.round(c.up * 100)}/${Math.round(c.flat * 100)}/${Math.round(c.down * 100)}%</td></tr>`; }).join("");
+  return `<details style="margin-top:12px"><summary style="font-size:11.5px;font-weight:700;color:#555;cursor:pointer">🔎 전 기간 예측 표 (${PF_SPECIES[species].unit})</summary><table style="width:100%;border-collapse:collapse;margin-top:6px;font-size:10.5px"><thead>${head}</thead><tbody>${rows}</tbody></table></details>`;
+}
+
+function pfTabDash(){
+  const sp = pfx.species === "broiler" ? "broiler" : "egg";
+  const both = ["broiler", "egg"].map(s => {
+    const r = pfResult(s, pfx.horizon, false), S = PF_SPECIES[s];
+    if(r.status !== "ok") return `<div style="flex:1 1 260px;border:1px dashed #ccc;border-radius:10px;padding:10px 12px;font-size:11.5px;color:#888"><b>${S.icon} ${S.name}</b><br>${esc(r.note || "자료 부족")}</div>`;
+    const v = pfVerdict(r.calib), p = r.pred;
+    return `<div style="flex:1 1 260px;border:1px solid #E8E8E8;border-top:6px solid ${S.color};border-radius:10px;padding:10px 12px;background:#fff">
+      <div style="display:flex;justify-content:space-between;align-items:center"><b style="color:${S.color}">${S.icon} ${S.name}</b><span style="font-size:11px;font-weight:800;color:${v.c};background:${v.bg};border-radius:10px;padding:2px 9px">${v.ic} ${v.t}</span></div>
+      <div style="font-size:11px;color:#888;margin-top:4px">${pfHz(pfx.horizon).label} 뒤 · 현재 ${pfWon(p.base)} → P50 <b style="color:#333">${pfWon(p.p50)}</b> (${pfPct1(p.p50 / p.base - 1)})</div>
+      <div style="font-size:10.5px;margin-top:3px"><span style="font-weight:800;color:${r.grade.c};background:${r.grade.bg};border-radius:9px;padding:1px 7px">신뢰도 ${r.grade.t}</span>${r.grade.t === "낮음" || r.grade.t === "검증 불가" ? ' <span style="color:#999">— 참고만 하세요</span>' : ""}</div>
+      <div style="margin-top:6px">${pfBar(r.calib)}</div></div>`;
+  }).join("");
+  return `${pfControls(false)}
+    <div style="font-size:12px;font-weight:800;color:#333;margin-bottom:6px">두 품목 한눈에 (${pfHz(pfx.horizon).label} 뒤)</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">${both}</div>
+    <div style="font-size:11px;color:#999;margin-bottom:8px">아래는 선택한 품목의 상세입니다.</div>
+    ${pfChips([["broiler", "🍗 육계"], ["egg", "🥚 계란"]], sp, "data-pf-species")}<div style="height:10px"></div>
+    ${pfTabSpecies(sp).replace(pfControls(true), "")}`;
+}
+
+// ── 화면 ② 사료·사육 · 공급·소비 · AI 전망·시나리오 · 정확도 · 데이터·방법 ───────────────────────────
+function pfFeedMonths(){
+  const f = pfSeries().feed || {}, ks = Object.keys(f).sort();
+  return { ks, f };
+}
+const pfMA = (a, n) => a.map((_, i) => i < n - 1 || a.slice(i - n + 1, i + 1).some(v => v == null) ? null : pfMean(a.slice(i - n + 1, i + 1)));
+
+function pfTabFeed(){
+  const { ks, f } = pfFeedMonths();
+  if(ks.length < 4) return `<div style="font-size:12px;color:#888;padding:14px;text-align:center">월별 사료 생산 자료가 ${ks.length}개월뿐입니다. 「데이터·방법」 탭에서 사료 생산량 CSV를 올리면 그래프가 그려집니다.</div>`;
+  const xl = ks.map(k => k.slice(2, 4) + "." + k.slice(5));
+  const mk = (id, key, name, color) => {
+    const ys = ks.map(k => f[k][key]), ma = pfMA(ys, 3), last = ys.length - 1;
+    const yoy = ys.map((v, i) => i >= 12 && ys[i - 12] ? (v / ys[i - 12] - 1) * 100 : null);
+    return `<div style="margin-bottom:14px"><div style="font-size:12px;font-weight:800;color:#333">${name} <span style="font-weight:500;color:#999">(톤)</span></div>
+      ${pfSvgChart(id, { label: name + " 월별 생산량", xl, xfull: ks, w: 360, h: 190, bars: true, fmt: pfFmtN, extra: i => yoy[i] != null ? `전년 같은 달 대비 ${pfSign(yoy[i])}%` : "",
+        series: [{ name: "월 생산량", kind: "bar", color, ys, opacity: 0.55 }, { name: "3개월 이동평균", color: "#37474F", ys: ma }] })}
+      <div style="font-size:10.5px;color:#777">최근 ${ks[last]}: ${pfFmtN(ys[last])}톤${yoy[last] != null ? ` · 전년 대비 ${pfSign(yoy[last])}%` : ""}</div></div>`;
+  };
+  // 사육 마릿수 추정 vs 실측: 산란 중 사료 ÷ (표준 1일 섭취량 × 일수). 실측은 업로드한 사육 통계(분기·월)와 사이트가 수집한 통계누리 자료.
+  const std = feedPotentialStandards(), days = k => new Date(+k.slice(0, 4), +k.slice(5), 0).getDate();
+  const est = ks.map(k => f[k].layer_laying * 1e6 / (std.layerLayingG * days(k)));
+  const actual = new Array(ks.length).fill(null);
+  const S = pfSeries(), ls = layerStatsState.data;
+  const pts = [...(S.headcount || []).filter(h => h.layer).map(h => [h.period, h.layer])];
+  if(ls && ls.layer && ls.layer.birds && ls.period_code){ const y = ls.period_code.slice(0, 4), q = +ls.period_code.slice(4); pts.push([y + "-" + String(q * 3).padStart(2, "0"), ls.layer.birds]); }
+  pts.forEach(([p, v]) => { const i = ks.indexOf(p); if(i >= 0) actual[i] = v; });
+  const hasAct = actual.some(v => v != null);
+  const gap = hasAct ? actual.map((a, i) => a != null ? (est[i] / a - 1) * 100 : null).filter(v => v != null) : [];
+  return `${mk("pf-feed-b", "broiler", "육계 사료(초기·전기·후기) 월 생산량", "#E65100")}${mk("pf-feed-l", "layer_laying", "산란계 사료(산란 중) 월 생산량", "#F9A825")}
+    <div style="font-size:12px;font-weight:800;color:#333">산란계 사육 마릿수 — 사료 기반 추정 vs 실제 조사 <span style="font-weight:500;color:#999">(마리)</span></div>
+    ${pfSvgChart("pf-heads", { label: "산란계 사육 마릿수 추정과 조사치", xl, xfull: ks, w: 360, h: 190, fmt: pfFmtN,
+      series: [{ name: "사료 기반 추정", color: "#F9A825", ys: est }, { name: "실제 조사치", kind: "dot", color: "#1565C0", ys: actual }] })}
+    <div style="font-size:10.5px;color:#777;line-height:1.7">${hasAct ? `추정과 조사치 차이: ${gap.map(v => pfSign(v) + "%").join(" · ")} — 차이가 큰 달은 자가배합·수입사료·표준 섭취량 가정 때문일 수 있어 보정에 쓰입니다.` : "실제 조사치(통계누리 사육 마릿수, 업로드한 사육 통계)가 이 기간과 겹치지 않아 비교점이 없습니다. 「데이터·방법」에서 사육 마릿수 CSV(월, 산란계, 육계)를 올리면 비교됩니다."}
+    육성계·종계 사료는 별도 자료가 없어 분리하지 않았습니다(임의 분할하지 않음).</div>`;
+}
+
+// 공급·소비 잠재력: 규칙 기반 도식(기존)과 월별 지수. 소비 통계가 연결되면 그 값으로, 없으면 계절지수로 대용(명시).
+function pfTabBalance(){
+  const md = pfBuildModel(), { ks, f } = pfFeedMonths(), S = pfSeries();
+  let charts = "";
+  if(ks.length >= 14){
+    const idxs = ks.map((k, i) => i).filter(i => i >= 12), xl = idxs.map(i => ks[i].slice(2, 4) + "." + ks[i].slice(5));
+    ["egg", "broiler"].forEach(key => {
+      const supYoY = pfSupplySeries(ks, f, key), sup = idxs.map(i => supYoY[i] == null ? null : 100 + supYoY[i]);
+      const cons = (S.consumption || []).filter(c => c[key] != null);
+      const base = cons.length >= 12 ? cons : null;
+      const dem = idxs.map(i => { const m = +ks[i].slice(5) - 1; if(base){ const r = base.find(c => c.period === ks[i]), p = base.find(c => c.period === ks[i - 12]); return r && p ? 100 + (r[key] / p[key] - 1) * 100 : null; } return 100 + PF.seasonal[key][m] * 1.5; });
+      const gapv = sup.map((v, i) => v != null && dem[i] != null ? v - dem[i] : null);
+      charts += `<div style="margin-top:14px"><div style="font-size:12px;font-weight:800;color:${PF_SPECIES[key].color}">${PF_SPECIES[key].icon} ${PF_SPECIES[key].name} 생산 잠재력 vs 소비 잠재력 <span style="font-weight:500;color:#999">(지수, 전년 같은 달=100)</span></div>
+        ${pfSvgChart("pf-bal-" + key, { label: PF_SPECIES[key].name + " 공급·소비 잠재력 지수", xl, xfull: idxs.map(i => ks[i]), w: 360, h: 180, fmt: v => v.toFixed(0),
+          series: [{ name: "생산 잠재력(사료 기반)", color: PF_SPECIES[key].color, ys: sup }, { name: base ? "소비 잠재력(업로드한 소비 통계)" : "소비 잠재력(계절지수 대용·경험값)", color: "#1565C0", dash: !base, ys: dem }] })}
+        <div style="font-size:11.5px;font-weight:700;color:#555;margin-top:6px">공급 부족·과잉 지수 <span style="font-weight:500;color:#999">(양수=공급 과잉 → 하락 압력, 음수=공급 부족 → 상승 압력)</span></div>
+        ${pfSvgChart("pf-gap-" + key, { label: PF_SPECIES[key].name + " 공급 과잉·부족 지수", xl, xfull: idxs.map(i => ks[i]), w: 360, h: 150, bars: true, zero: true, fmt: v => v.toFixed(0),
+          series: [{ name: "과잉(+)/부족(−)", kind: "bar", color: v => v > 0 ? PF_COLORS.down : PF_COLORS.up, ys: gapv }] })}</div>`;
+    });
+  } else charts = `<div style="font-size:11.5px;color:#999;margin-top:10px">월별 지수 그래프는 사료 자료가 14개월 이상일 때 그려집니다(현재 ${ks.length}개월).</div>`;
+  const noCons = !(S.consumption && S.consumption.length) ? `<div style="background:#FFF8E1;border-radius:8px;padding:8px 10px;font-size:11px;color:#6b5400;line-height:1.7;margin-bottom:10px">소비량 통계(월별 계란·닭고기 소비)가 연결되어 있지 않습니다. 지금의 소비 잠재력은 <b>명절·복날·방학 같은 계절지수(경험값)</b>로 대용한 것이며 실제 소비량이 아닙니다. 「데이터·방법」에서 소비 통계 CSV를 올리면 교체됩니다.</div>` : "";
+  return `${noCons}${md ? pfRuleBody(md) : `<div style="font-size:12px;color:#999">배합사료 통계를 불러오지 못했습니다.</div>`}${charts}
+    <div style="font-size:12px;font-weight:800;color:#333;margin:16px 0 4px">🗓 월별 계절적 가격 변동 히트맵</div>${pfHeatmaps()}`;
+}
+// 기존 규칙 기반 화면(도식 + 확률 카드 + 근거)을 재사용
+function pfRuleBody(md){
+  return `<div style="font-size:12px;font-weight:800;color:#333;margin-bottom:6px">📌 사료 → 마릿수 → 공급·소비 균형 → 확률 흐름</div>${pfDiagram(md)}
+    <div style="font-size:12px;font-weight:800;color:#333;margin:14px 0 6px">규칙 기반 방향 확률 <span style="font-weight:500;color:#C62828">(통계 검증 없는 참고 지표)</span></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">${pfSpeciesCard("broiler", md.species.broiler, md)}${pfSpeciesCard("egg", md.species.egg, md)}</div>${pfEvidence(md)}`;
+}
+function pfHeatmaps(){
+  const S = pfSeries();
+  return ["broiler", "egg"].map(key => {
+    const M = pfMonthly(S[key].price);
+    if(M.ym.length < 13) return `<div style="font-size:11px;color:#aaa;margin:6px 0">${PF_SPECIES[key].icon} ${PF_SPECIES[key].name}: 월별 가격이 ${M.ym.length}개월뿐이라 히트맵을 만들 수 없습니다(13개월 이상 필요).</div>`;
+    const by = {}; M.ym.forEach((ym, i) => { const y = ym.slice(0, 4); (by[y] = by[y] || {})[+ym.slice(5)] = M.v[i]; });
+    const years = Object.keys(by).sort(), mean = y => pfMean(Object.values(by[y]));
+    const col = d => { const a = Math.min(1, Math.abs(d) / 0.12); return d >= 0 ? `rgba(211,47,47,${(0.12 + a * 0.7).toFixed(2)})` : `rgba(21,101,192,${(0.12 + a * 0.7).toFixed(2)})`; };
+    const rows = years.map(y => `<tr><td style="padding:2px 4px;color:#777;font-size:10px">${y}</td>${Array.from({ length: 12 }, (_, m) => { const v = by[y][m + 1]; if(v == null) return `<td style="background:#F5F5F5"></td>`; const d = v / mean(y) - 1; return `<td title="${y}년 ${m + 1}월: 그해 평균 대비 ${pfSign(d * 100)}%" style="background:${col(d)};text-align:center;font-size:9px;color:#222;padding:3px 0">${(d * 100).toFixed(0)}</td>`; }).join("")}</tr>`).join("");
+    return `<div style="margin:8px 0"><div style="font-size:11.5px;font-weight:700;color:${PF_SPECIES[key].color}">${PF_SPECIES[key].icon} ${PF_SPECIES[key].name} <span style="font-weight:500;color:#999">(그해 평균 대비 %, 빨강=높음 · 파랑=낮음)</span></div>
+      <div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;min-width:300px;margin-top:3px"><thead><tr><th></th>${Array.from({ length: 12 }, (_, m) => `<th style="font-size:9px;color:#999;font-weight:500">${m + 1}월</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  }).join("");
+}
+
+// 시나리오: 슬라이더는 값만 갱신하고, 「예측 다시 계산」을 눌러야 모형에 반영한다.
+const PF_SCEN_FIELDS = [
+  ["feed", "사료 생산량 증감", "%", -15, 15, 0.5], ["ship", "출하 마릿수 증감 (육계)", "%", -15, 15, 0.5], ["fcr", "사료요구율 악화 (육계)", "%", -10, 10, 0.5],
+  ["mort", "폐사율 증가", "%p", -5, 10, 0.5], ["lay", "산란율 증감 (계란)", "%p", -10, 10, 0.5], ["cons", "소비량 증감", "%", -15, 15, 0.5],
+  ["ai", "조류인플루엔자 생산 감소", "%", 0, 20, 0.5], ["weather", "이상기후 생산 감소", "%", 0, 15, 0.5], ["imp", "수입 물량 변화 (공급 대비)", "%", -10, 10, 0.5],
+];
+const PF_SCEN_PRESETS = {
+  base: ["기본", { }], up: ["공급 증가", { feed: 5, ship: 5, lay: 3 }], down: ["공급 감소", { feed: -5, ship: -5, ai: 5, lay: -2 }],
+  cup: ["소비 증가", { cons: 5 }], cdown: ["소비 감소", { cons: -5 }],
+};
+function pfTabAI(){
+  if(!pfx.scen) pfx.scen = { ...PF_SCEN_DEFAULT };
+  const sc = pfx.scen, cmp = pfx.scenOn;
+  const outlook = ["broiler", "egg"].map(s => {
+    const r = pfResult(s, pfx.horizon, false);
+    if(r.status !== "ok") return `<li style="margin-bottom:4px">${PF_SPECIES[s].icon} ${PF_SPECIES[s].name}: ${esc(r.note || "자료 부족")}</li>`;
+    const v = pfVerdict(r.calib), top = r.pred.contrib && r.pred.contrib[0];
+    return `<li style="margin-bottom:4px">${PF_SPECIES[s].icon} <b>${PF_SPECIES[s].name}</b> ${pfHz(pfx.horizon).label} 뒤 <b style="color:${v.c}">${v.t}</b> (P50 ${pfWon(r.pred.p50)}, 상승 ${Math.round(r.calib.up * 100)}% · 하락 ${Math.round(r.calib.down * 100)}%)${top ? ` — 가장 큰 요인: ${PF_REASON[top.key]}` : ""}</li>`;
+  }).join("");
+  const sliders = PF_SCEN_FIELDS.map(([k, label, unit, lo, hi, st]) => `<div style="margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;font-size:11.5px;color:#444"><label for="pf-sc-${k}">${label}</label><b id="pf-sc-v-${k}" style="font-variant-numeric:tabular-nums">${sc[k] > 0 ? "+" : ""}${sc[k]}${unit}</b></div>
+      <input type="range" id="pf-sc-${k}" data-pf-sc="${k}" data-unit="${unit}" min="${lo}" max="${hi}" step="${st}" value="${sc[k]}" style="width:100%"></div>`).join("");
+  let result = `<div style="font-size:11.5px;color:#999;margin-top:10px">조건을 바꾼 뒤 <b>예측 다시 계산</b>을 누르면 결과가 여기에 표시됩니다.</div>`;
+  if(cmp && ["broiler", "egg"].every(s => pfResult(s, "1m", false).status !== "ok")){
+    // 가격 이력이 모자라 통계 모형을 못 돌릴 때: 규칙 기반 방향 지표로 같은 시나리오를 견준다(가격 수준은 계산하지 않는다).
+    const m0 = pfBuildModel(), m1 = pfBuildModel({ broiler: pfScenShift(cmp, "broiler"), egg: pfScenShift(cmp, "egg") });
+    const rr = !m0 || !m1 ? "" : ["broiler", "egg"].map(s => [0, 1, 2].map(k => { const a0 = m0.species[s][k].p, a1 = m1.species[s][k].p;
+      return `<tr style="border-top:1px solid #F3F3F3"><td style="padding:4px;font-weight:700">${PF_SPECIES[s].icon} ${k + 1}개월</td><td style="padding:4px;text-align:right">${Math.round(a0.up * 100)}% / ${Math.round(a0.down * 100)}%</td><td style="padding:4px;text-align:right;font-weight:700;color:#4A148C">${Math.round(a1.up * 100)}% / ${Math.round(a1.down * 100)}%</td></tr>`; }).join("")).join("");
+    result = `<div style="margin-top:12px;border:2px solid #CE93D8;border-radius:10px;padding:10px 12px;background:#FCF7FD">
+      <div style="font-size:12px;font-weight:800;color:#6A1B9A">조건부 추정값(규칙 기반 방향 지표) — 실제 통계가 아닙니다</div>
+      <div style="font-size:10.5px;color:#7B1FA2;margin:2px 0 6px">가격 이력이 모자라 통계 모형 대신 방향 지표로 비교합니다. 가격 수준(원)은 계산하지 않습니다.</div>
+      <table style="width:100%;border-collapse:collapse;font-size:10.5px"><thead><tr style="color:#999"><th style="text-align:left;font-weight:500;padding:3px 4px">품목·기간</th><th style="text-align:right;font-weight:500;padding:3px 4px">기본 상승/하락</th><th style="text-align:right;font-weight:500;padding:3px 4px">시나리오 상승/하락</th></tr></thead><tbody>${rr}</tbody></table>
+      <div style="font-size:10.5px;color:#777;margin-top:6px">적용한 공급 증감: 육계 ${pfSign(pfScenShift(cmp, "broiler"))}% · 계란 ${pfSign(pfScenShift(cmp, "egg"))}%</div></div>`;
+  } else if(cmp){
+    const rows = ["broiler", "egg"].map(s => PF_HORIZONS.filter(h => h.freq === "m").map(hz => {
+      const b = pfResult(s, hz.k, false), c = pfResult(s, hz.k, true);
+      if(b.status !== "ok" || c.status !== "ok") return `<tr style="border-top:1px solid #F3F3F3"><td style="padding:4px">${PF_SPECIES[s].name} ${hz.label}</td><td colspan="3" style="padding:4px;color:#aaa">자료 부족</td></tr>`;
+      return `<tr style="border-top:1px solid #F3F3F3"><td style="padding:4px;font-weight:700">${PF_SPECIES[s].icon} ${hz.label}</td><td style="padding:4px;text-align:right">${pfWon(b.pred.p50)}</td><td style="padding:4px;text-align:right;font-weight:700;color:#4A148C">${pfWon(c.pred.p50)} <span style="font-weight:500;color:#777">(${pfPct1(c.pred.p50 / b.pred.p50 - 1)})</span></td><td style="padding:4px;text-align:right">${Math.round(b.calib.up * 100)}→${Math.round(c.calib.up * 100)}% / ${Math.round(b.calib.down * 100)}→${Math.round(c.calib.down * 100)}%</td></tr>`;
+    }).join("")).join("");
+    result = `<div style="margin-top:12px;border:2px solid #CE93D8;border-radius:10px;padding:10px 12px;background:#FCF7FD">
+      <div style="font-size:12px;font-weight:800;color:#6A1B9A">조건부 추정값 — 실제 통계가 아닙니다</div>
+      <div style="font-size:10.5px;color:#7B1FA2;margin:2px 0 6px">공급 증감(사료·출하·폐사·산란율·AI·기후·수입)과 소비 증감을 합쳐 사료 기반 공급 압력에 더한 뒤 같은 모형으로 다시 계산했습니다. 소비 +1%는 공급 −1%와 같게 취급합니다.</div>
+      <table style="width:100%;border-collapse:collapse;font-size:10.5px"><thead><tr style="color:#999"><th style="text-align:left;font-weight:500;padding:3px 4px">품목·기간</th><th style="text-align:right;font-weight:500;padding:3px 4px">기본 P50</th><th style="text-align:right;font-weight:500;padding:3px 4px">시나리오 P50</th><th style="text-align:right;font-weight:500;padding:3px 4px">상승·하락 확률(기본→시나리오)</th></tr></thead><tbody>${rows}</tbody></table>
+      <div style="font-size:10.5px;color:#777;margin-top:6px">적용한 공급 증감: 육계 ${pfSign(pfScenShift(cmp, "broiler"))}% · 계란 ${pfSign(pfScenShift(cmp, "egg"))}%</div></div>`;
+  }
+  return `${pfControls(false).replace(/<div><div[^>]*>품목[\s\S]*?<\/div><\/div>/, "")}
+    <div style="font-size:12px;font-weight:800;color:#333;margin-bottom:4px">🤖 AI 수급 전망 요약 (${pfHz(pfx.horizon).label} 뒤)</div><ul style="margin:0 0 6px 16px;padding:0;font-size:12px;color:#444;line-height:1.7">${outlook}</ul>
+    <div style="font-size:12px;font-weight:800;color:#333;margin:14px 0 6px">🎛 시나리오 조건</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">${Object.entries(PF_SCEN_PRESETS).map(([k, [label]]) => `<button type="button" data-pf-preset="${k}" style="border:1px solid #CE93D8;background:#fff;color:#6A1B9A;border-radius:14px;padding:4px 11px;font-size:11.5px;cursor:pointer">${label}</button>`).join("")}</div>
+    ${sliders}
+    <div style="display:flex;gap:8px;margin-top:6px"><button type="button" id="pf-sc-run" style="background:#6A1B9A;color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:800;cursor:pointer">예측 다시 계산</button>
+      <button type="button" id="pf-sc-reset" style="background:#fff;color:#777;border:1px solid #ddd;border-radius:8px;padding:9px 14px;font-size:12px;cursor:pointer">초기화</button></div>${result}`;
+}
+
+// 정확도: 롤링 오리진 백테스트 결과를 기간별로 공개한다.
+function pfTabAcc(){
+  const rows = []; let any = false;
+  ["broiler", "egg"].forEach(s => PF_HORIZONS.forEach(hz => {
+    const r = pfResult(s, hz.k, false), sc = r.score;
+    if(r.status !== "ok" || !sc){ rows.push(`<tr style="border-top:1px solid #F3F3F3"><td style="padding:4px;font-weight:700">${PF_SPECIES[s].icon} ${hz.label}</td><td colspan="8" style="padding:4px;color:#aaa">${r.status === "ok" ? "백테스트 표본 부족 — 정확도 검증 불가" : "자료 부족 — 계산 불가"}</td></tr>`); return; }
+    any = true; const g = r.grade, pf = v => (v * 100).toFixed(1) + "%";
+    rows.push(`<tr style="border-top:1px solid #F3F3F3"><td style="padding:4px;font-weight:700;white-space:nowrap">${PF_SPECIES[s].icon} ${hz.label}</td><td style="padding:4px;text-align:right">${sc.n}</td>
+      <td style="padding:4px;text-align:right">${Math.round(sc.model.mae).toLocaleString()}</td><td style="padding:4px;text-align:right">${Math.round(sc.model.rmse).toLocaleString()}</td><td style="padding:4px;text-align:right"><b>${pf(sc.model.wape)}</b><br><span style="color:#999">무변화 ${pf(sc.naive.wape)}${sc.seasonal ? `<br>1년전 ${pf(sc.seasonal.wape)}` : ""}</span></td>
+      <td style="padding:4px;text-align:right">${sc.hit == null ? "-" : Math.round(sc.hit * 100) + "%"}<br><span style="color:#999">${sc.hitN}건</span></td><td style="padding:4px;text-align:right">${sc.brier.toFixed(3)}<br><span style="color:#999">평균빈도 ${sc.brierClim.toFixed(3)}</span></td>
+      <td style="padding:4px;text-align:right">${Math.round(sc.cover80 * 100)}% / ${Math.round(sc.cover90 * 100)}%</td><td style="padding:4px"><span style="font-weight:800;color:${g.c};background:${g.bg};border-radius:9px;padding:1px 7px;white-space:nowrap">${g.t}</span></td></tr>`);
+  }));
+  const r1 = pfResult(pfx.species, pfx.horizon, false);
+  let chart = "";
+  if(r1.status === "ok" && r1.recs && r1.recs.length > 3){
+    const rc = r1.recs, xl = rc.map(x => x.target.slice(2, 7).replace("-", ".")), fmt = v => Math.round(v).toLocaleString();
+    chart = `<div style="font-size:12px;font-weight:800;color:#333;margin:14px 0 2px">${PF_SPECIES[pfx.species].icon} ${PF_SPECIES[pfx.species].name} ${pfHz(pfx.horizon).label} 뒤 — 과거 AI 예측 vs 실제 가격</div>
+      ${pfSvgChart("pf-acc", { label: "과거 예측과 실제 가격", xl, xfull: rc.map(x => x.target), w: 360, h: 200, fmt,
+        series: [{ name: "실제 가격", color: PF_SPECIES[pfx.species].color, ys: rc.map(x => x.actual) }, { name: "그때의 AI 예측(P50)", color: "#4527A0", dash: true, ys: rc.map(x => x.pred) }],
+        band: [{ name: "그때의 80% 구간", color: "#4527A0", opacity: 0.15, lo: rc.map(x => x.lo80), hi: rc.map(x => x.hi80) }],
+        extra: i => `예측 ${Math.round(rc[i].pred).toLocaleString()} vs 실제 ${Math.round(rc[i].actual).toLocaleString()} (오차 ${pfPct1(rc[i].pred / rc[i].actual - 1)})` })}
+      <div style="margin-top:8px">${pfReliability(r1)}</div>`;
+  }
+  return `${pfControls(true)}
+    <div style="font-size:11.5px;color:#555;line-height:1.7;margin-bottom:8px">각 시점에서 <b>그때까지 발표된 자료만</b>으로 학습·예측한 뒤 실제 값과 견줍니다(시계열 순차 검증). 화면에 내는 방식(예측 크기 보정 + 표본 밖 오차 분포) 그대로를 검증한 결과입니다.</div>
+    <div style="overflow-x:auto"><table style="width:100%;min-width:560px;border-collapse:collapse;font-size:10.5px"><thead><tr style="color:#999"><th style="text-align:left;font-weight:500;padding:3px 4px">품목·기간</th><th style="text-align:right;font-weight:500;padding:3px 4px">검증 표본</th><th style="text-align:right;font-weight:500;padding:3px 4px">MAE</th><th style="text-align:right;font-weight:500;padding:3px 4px">RMSE</th><th style="text-align:right;font-weight:500;padding:3px 4px">WAPE (비교)</th><th style="text-align:right;font-weight:500;padding:3px 4px">방향 적중률</th><th style="text-align:right;font-weight:500;padding:3px 4px">Brier</th><th style="text-align:right;font-weight:500;padding:3px 4px">80%/90% 구간 포함률</th><th style="padding:3px 4px;font-weight:500;color:#999">신뢰도</th></tr></thead><tbody>${rows.join("")}</tbody></table></div>
+    ${any ? "" : `<div style="margin-top:10px;border:1px dashed #BDBDBD;border-radius:8px;padding:10px 12px;font-size:11.5px;color:#777;line-height:1.7">검증할 만큼 가격 이력이 쌓이지 않았습니다. 월별 가격이 약 ${12 + 1 + PF_MIN_TRAIN + PF_MIN_BACKTEST}개월 이상 있어야 1개월 예측의 백테스트가 가능합니다. 부족하면 임의 수치를 만들지 않고 "검증 불가"로 표시합니다.</div>`}
+    <div style="font-size:10px;color:#999;margin-top:6px">MAE·RMSE는 가격 단위, WAPE는 오차 합계 ÷ 실제 가격 합계, 방향 적중률은 ±${(pfx.flat * 100).toFixed(1)}%를 넘게 움직인 경우만 계산, Brier는 3분류 확률 오차(낮을수록 좋음), 비교 기준은 "가격 변화 없음"과 "1년 전 같은 달 가격"입니다.</div>${chart}`;
+}
+function pfReliability(r){
+  const t = r.table; if(!t) return `<div style="font-size:10.5px;color:#999">확률 보정표는 백테스트 표본이 ${PF_MIN_BACKTEST * 3}건 이상일 때 만들어집니다.</div>`;
+  const rows = [["up", "상승", PF_COLORS.up], ["flat", "보합", "#757575"], ["down", "하락", PF_COLORS.down]].map(([k, name, col]) => `<tr><td style="padding:3px 4px;color:${col};font-weight:700">${name}</td>${t[k].map(b => `<td style="padding:3px 4px;text-align:center;font-size:10px;color:${b.n ? "#333" : "#ccc"}">${b.n ? Math.round(b.hit / b.n * 100) + "%<br><span style='color:#aaa'>(" + b.n + ")</span>" : "-"}</td>`).join("")}</tr>`).join("");
+  return `<div style="font-size:11.5px;font-weight:700;color:#555;margin-bottom:2px">확률 보정표 <span style="font-weight:500;color:#999">— "이 확률이라고 했을 때 실제 실현 비율(건수)"</span></div>
+    <table style="width:100%;border-collapse:collapse"><thead><tr style="color:#999;font-size:10px"><th></th><th>0~20%</th><th>20~40%</th><th>40~60%</th><th>60~80%</th><th>80~100%</th></tr></thead><tbody>${rows}</tbody></table>
+    <div style="font-size:10px;color:#999;margin-top:2px">예측 확률은 이 실현 비율 쪽으로 절반만 당겨 보정합니다(구간 표본 5건 이상일 때).</div>`;
+}
+
+// ── 화면 ③ 데이터·방법 · 업로드 · 관리자 · 전체 조립 · 이벤트 ──────────────────────────────────
+const PF_UP_KINDS = {
+  price_egg: ["계란 특란 산지가격 (일별)", "date,value", "2026-10-08,1934", "날짜(YYYY-MM-DD), 원/10개"],
+  price_broiler: ["육계 생계유통(대) 가격 (일별)", "date,value", "2026-10-08,1900", "날짜(YYYY-MM-DD), 원/kg"],
+  feed: ["배합사료 월별 생산량 (톤)", "month,broiler_ton,layer_laying_ton,layer_rearing_ton", "2026-08,214500,242553,34340", "월(YYYY-MM), 육계 전체, 산란계(산란 중), 육성계(생략 가능)"],
+  headcount: ["사육 마릿수 실측 (월)", "month,layer_birds,broiler_birds", "2026-06,78985355,110898477", "월(YYYY-MM), 산란계, 육계(생략 가능)"],
+  consumption: ["소비량 (월, 계란 개수·닭고기 kg)", "month,egg_count,broiler_kg", "2026-08,1050000000,", "월(YYYY-MM), 계란 소비 개수, 닭고기 소비 kg(생략 가능)"],
+};
+function pfTabData(){
+  const S = pfSeries(), h = pfx.hist || {}, hs = h.series || {};
+  const range = rows => rows.length ? `${rows[0][0]} ~ ${rows[rows.length - 1][0]}` : "-";
+  const gaps = rows => { const M = pfMonthly(rows); return M.filled ? `${M.filled}개월 보간` : "없음"; };
+  const fk = Object.keys(S.feed || {}).sort(), assoc = (hs.broiler_assoc || {}).rows || [];
+  const row = (a, b, c, d, e, f) => `<tr style="border-top:1px solid #F3F3F3"><td style="padding:4px;font-weight:700">${a}</td><td style="padding:4px">${b}</td><td style="padding:4px;text-align:right">${c}</td><td style="padding:4px;color:#666">${d}</td><td style="padding:4px;color:#666">${e}</td><td style="padding:4px;color:#888">${f}</td></tr>`;
+  const table = `<div style="overflow-x:auto"><table style="width:100%;min-width:560px;border-collapse:collapse;font-size:10.5px"><thead><tr style="color:#999"><th style="text-align:left;font-weight:500;padding:3px 4px">자료</th><th style="text-align:left;font-weight:500;padding:3px 4px">출처·단위</th><th style="text-align:right;font-weight:500;padding:3px 4px">건수</th><th style="text-align:left;font-weight:500;padding:3px 4px">실제 기간</th><th style="text-align:left;font-weight:500;padding:3px 4px">결측</th><th style="text-align:left;font-weight:500;padding:3px 4px">갱신</th></tr></thead><tbody>
+    ${row("계란 산지가격(특란)", S.demo ? "데모 · 임의 생성값" : "다봄(ekapepia) 전국 · 원/10개", S.egg.price.length.toLocaleString(), range(S.egg.price), gaps(S.egg.price), S.demo ? "—" : esc(h.updated || "-"))}
+    ${row("육계 생계유통(대)", S.demo ? "데모 · 임의 생성값" : "다봄(ekapepia) · 원/kg", S.broiler.price.length.toLocaleString(), range(S.broiler.price), gaps(S.broiler.price), S.demo ? "—" : esc(h.updated || "-"))}
+    ${row("육계 협회 시세 (별도 시리즈)", "대한양계협회 · 원/kg · 오후 1시 게재", assoc.length, range(assoc), "—", "섞어 쓰지 않음")}
+    ${row("배합사료 월별 생산량", S.demo ? "데모 · 임의 생성값" : "농림축산식품부 · 톤", fk.length, fk.length ? fk[0] + " ~ " + fk[fk.length - 1] : "-", "—", S.demo ? "—" : esc((feedProdState.data && feedProdState.data.updated) || "-"))}
+    ${row("산란계·육계 사육 마릿수 실측", "축산물품질평가원 통계누리 · 분기 / 업로드", (S.headcount || []).length + (layerStatsState.data ? 1 : 0), layerStatsState.data ? esc(layerStatsState.data.period || "") : "-", "—", esc((layerStatsState.data && layerStatsState.data.updated) || "-"))}
+    ${row("소비량", "미연결 (업로드로만 사용)", (S.consumption || []).length, "-", "—", "—")}
+  </tbody></table></div>`;
+  const missing = ["육계 입식 마릿수·종계 병아리 공급량", "도계 마릿수·평균 생체중·닭고기 생산량", "육성계 입식수·도태·살처분수", "주령별 산란율·난중·등급별 생산 비율", "육계·계란 월별 소비량, 외식·급식·가공 수요", "수입·수출·재고", "기상(기온·습도)과 조류인플루엔자 발생의 모형 반영"];
+  return `${table}
+    <div style="margin-top:10px;font-size:11px;color:#6b5400;background:#FFF8E1;border-radius:8px;padding:8px 10px;line-height:1.75"><b>현재 연결되지 않은 자료</b> — 정상 연결된 것처럼 꾸미지 않습니다. 파일이 있으면 아래 업로드로 쓸 수 있습니다(가격·사료·사육·소비).<br>${missing.map(m => "· " + m).join("<br>")}<br>
+    조류인플루엔자·기상은 이 사이트의 다른 탭에서 보여 주지만 이 예측 모형의 입력에는 아직 넣지 않았고, 시나리오(AI 생산 감소·이상기후)로만 가정해 볼 수 있습니다.</div>
+    ${pfMethodHtml()}${pfUploadHtml()}${isBoardAdmin() ? pfAdminHtml() : ""}
+    <div style="margin-top:12px;font-size:10px;color:#999;line-height:1.7">접근 통제: 이 메뉴는 로그인한 승인 회원에게만 보입니다. 다만 가격·사료 원자료는 이 사이트가 공개 저장소에서 읽는 자료라 서버에서 따로 막혀 있지 않습니다. 관리자가 발행한 자료(업로드본)는 승인 회원만 읽을 수 있는 Firebase 저장소에 있고, 읽기 권한은 서버(Cloud Function)가 확인합니다. API 키·결제 정보는 이 화면에 없습니다.</div>`;
+}
+function pfMethodHtml(){
+  return `<details style="margin-top:12px"><summary style="font-size:12px;font-weight:800;color:#333;cursor:pointer">🧪 분석 방법 (펼치기)</summary>
+    <div style="font-size:11.5px;color:#555;line-height:1.8;margin-top:6px">
+    <b>1. 공급 잠재력</b> — 배합사료 월 생산량을 품종 표준 사료섭취량(육계 Ross 308, 산란계 Hy-Line Brown)으로 나눠 마릿수를 추정합니다. 육계는 전기·후기 사료와 33일 출하 기준, 산란계는 산란 중 사료 ÷ (1일 섭취량 × 일수)입니다. 재고·유통 시차 보정과 육성계·종계 분리는 자료가 없어 하지 않았고, 육계·산란계 사료가 합쳐진 통계는 임의로 나누지 않습니다. 실제 사육 통계와는 「사료·사육 분석」에서 견줍니다.<br>
+    <b>2. 소비 잠재력</b> — 소비 통계가 연결되면 그 값을, 아니면 명절·복날·방학 같은 계절지수(경험값)를 대용으로 씁니다. 가격 데이터에서는 12개월 평균 대비 계절 편차를 학습해 계절 변화로 넣습니다.<br>
+    <b>3. 가격 예측</b> — 월평균 가격(로그)의 h개월 뒤 변화율을 릿지 회귀로 예측합니다. 특성은 ①사료 기반 공급 압력(전년 대비 3개월) ②계절 변화 ③최근 한 달 가격 변화 ④12개월 평균 대비 위치입니다. 1·2주는 일별 가격으로 최근 5건 변화와 40건 평균 대비 위치를 씁니다. 6개월 예측은 신뢰도가 낮으니 참고만 하세요.<br>
+    <b>4. 확률·구간</b> — 과거에 같은 방식으로 예측했을 때의 오차(표본 밖 오차) 분포를 예측값에 더해 P50, 80%·90% 구간, 상승·보합·하락 확률을 구합니다. 예측 크기는 백테스트로 0~1배 보정(과신 방지), 확률은 실현 빈도표로 절반만 당겨 보정합니다. 보합 범위는 ±${(pfx.flat * 100).toFixed(1)}%(관리자가 변경).<br>
+    <b>5. 검증</b> — 「예측 정확도」 탭의 시계열 순차 백테스트(MAE·RMSE·WAPE·방향 적중률·Brier·구간 포함률, "변화 없음"·"1년 전 가격"과 비교). 표본이 모자라면 예측값은 표시하지 않거나 신뢰도를 "검증 불가"로 표시합니다.<br>
+    <b>한계</b> — 통계 모형은 구조 변화(질병 대량 살처분, 정책, 수입 급증)를 미리 알지 못합니다. 이 화면은 의사결정 보조 자료이며 출하·입식·투자를 대신 결정하지 않습니다.</div></details>`;
+}
+function pfUploadHtml(){
+  const k = pfx.uploadKind, info = PF_UP_KINDS[k], rep = pfx.uploadReport;
+  const L = pfx.local, cnt = (L.prices.egg || []).length + (L.prices.broiler || []).length + Object.keys(L.feed || {}).length + (L.headcount || []).length + (L.consumption || []).length;
+  const rp = rep ? `<div style="margin-top:8px;border:1px solid ${rep.rep.bad.length || rep.rep.outliers.length ? "#FFB74D" : "#A5D6A7"};border-radius:8px;padding:8px 10px;font-size:11px;line-height:1.7;background:#FAFAFA">
+    <b>검사 결과</b> — 읽은 행 ${rep.rep.total} · 사용 가능 <b>${rep.rep.ok}</b>${rep.rep.from ? ` · 기간 ${esc(rep.rep.from)} ~ ${esc(rep.rep.to)}` : ""} · 중복 ${rep.rep.dup}${rep.rep.gaps.length ? ` · 빠진 달 ${rep.rep.gaps.length}개(${esc(rep.rep.gaps.slice(0, 4).join(", "))}${rep.rep.gaps.length > 4 ? "…" : ""})` : ""}
+    ${rep.rep.bad.length ? `<br><span style="color:#C62828">형식 오류 ${rep.rep.bad.length}건</span>: ${esc(rep.rep.bad.slice(0, 3).join(" / "))}` : ""}
+    ${rep.rep.outliers.length ? `<br><span style="color:#E65100">이상값 의심 ${rep.rep.outliers.length}건</span>: ${esc(rep.rep.outliers.slice(0, 3).join(" / "))}` : ""}</div>` : "";
+  return `<div style="margin-top:14px;border:1px solid #D1C4E9;border-radius:10px;padding:10px 12px;background:#FCFAFF">
+    <div style="font-size:12px;font-weight:800;color:#4527A0">⬆ 자료 올리기 (CSV·텍스트)</div>
+    <div style="font-size:10.5px;color:#777;margin:2px 0 8px;line-height:1.6">올린 자료는 <b>내 브라우저에만</b> 저장되어 이 화면의 계산에 쓰입니다(현재 ${cnt}건). 엑셀 파일은 「다른 이름으로 저장 → CSV」로 바꿔 올려 주세요. 같은 날짜·달은 올린 값이 이깁니다.</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <select id="pf-up-kind" style="border:1px solid #ccc;border-radius:8px;padding:6px 8px;font-size:12px">${Object.entries(PF_UP_KINDS).map(([kk, v]) => `<option value="${kk}" ${kk === k ? "selected" : ""}>${v[0]}</option>`).join("")}</select>
+      <input type="file" id="pf-up-file" accept=".csv,.txt,.tsv" style="font-size:11px">
+      <button type="button" id="pf-up-tpl" style="border:1px solid #B39DDB;background:#fff;color:#4527A0;border-radius:8px;padding:5px 10px;font-size:11px;cursor:pointer">양식 내려받기</button></div>
+    <div style="font-size:10.5px;color:#888;margin:4px 0">형식: <code>${esc(info[1])}</code> — ${esc(info[3])}</div>
+    <textarea id="pf-up-text" rows="5" placeholder="${esc(info[1] + "\n" + info[2])}" style="width:100%;box-sizing:border-box;border:1px solid #ccc;border-radius:8px;padding:8px;font-size:11px;font-family:monospace">${esc(pfx.uploadText || "")}</textarea>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"><button type="button" id="pf-up-check" style="border:1px solid #4527A0;background:#fff;color:#4527A0;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer">검사만 하기</button>
+      <button type="button" id="pf-up-apply" style="border:none;background:#4527A0;color:#fff;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:800;cursor:pointer">검사 후 적용</button>
+      <button type="button" id="pf-up-clear" style="border:1px solid #ddd;background:#fff;color:#888;border-radius:8px;padding:7px 12px;font-size:11.5px;cursor:pointer">내 업로드 모두 지우기</button></div>
+    ${rp}${pfx.uploadMsg ? `<div style="margin-top:6px;font-size:11.5px;color:#2E7D32;font-weight:700">${esc(pfx.uploadMsg)}</div>` : ""}</div>`;
+}
+function pfAdminHtml(){
+  const pub = pfx.pub, pubTxt = pub ? `발행본 ${esc(pub.updated || "")} · ${esc(pub.by || "")}` : "발행본 없음";
+  return `<div style="margin-top:14px;border:2px solid #4527A0;border-radius:10px;padding:10px 12px;background:#F7F4FD">
+    <div style="font-size:12.5px;font-weight:800;color:#4527A0">⚙ 관리자 — 자료 발행·설정 <span style="font-weight:500;color:#888">(모델 ${PF_MODEL_VERSION})</span></div>
+    <div style="font-size:11px;color:#666;margin:3px 0 8px;line-height:1.7">① 위 업로드로 자료를 검사·적용 → ② 아래 「승인 회원에게 발행」을 누르면 모든 승인 회원 화면에 반영됩니다(Firebase 저장소, 서버가 읽기 권한 확인). 현재: ${pubTxt}</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+      <label style="font-size:11.5px;color:#444">보합 범위 ± <input id="pf-flat" type="number" min="0.5" max="10" step="0.5" value="${(pfx.flat * 100).toFixed(1)}" style="width:64px;border:1px solid #ccc;border-radius:6px;padding:4px 6px;font-size:12px"> %</label>
+      <button type="button" id="pf-publish" style="border:none;background:#4527A0;color:#fff;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:800;cursor:pointer">승인 회원에게 발행</button>
+      <button type="button" id="pf-csv" style="border:1px solid #4527A0;background:#fff;color:#4527A0;border-radius:8px;padding:7px 12px;font-size:12px;cursor:pointer">예측 리포트 CSV</button>
+      <button type="button" id="pf-print" style="border:1px solid #4527A0;background:#fff;color:#4527A0;border-radius:8px;padding:7px 12px;font-size:12px;cursor:pointer">PDF로 인쇄</button></div>
+    <div style="font-size:10.5px;color:#777;line-height:1.7">· 데이터 품질검사: 업로드 때 형식 오류·중복·이상값·빠진 달을 자동 표시합니다. · 수정 이력: 발행할 때마다 시각·발행자·건수가 발행본의 log에 쌓입니다. · 회원 구독 권한은 「회원 관리」 화면의 승인·만료일 설정이 그대로 적용됩니다(별도 결제 연동 없음). · 통계 API 자동 연결: 다봄·농식품부 자료는 이 저장소의 자동 수집이 매일 갱신하며, 그 밖의 자료는 업로드로 넣습니다.</div>
+    <details style="margin-top:6px"><summary style="font-size:11px;color:#555;cursor:pointer">실행 로그 (${pfx.log.length})</summary><div style="font-size:10px;color:#666;line-height:1.6;max-height:140px;overflow:auto;margin-top:4px;font-family:monospace">${pfx.log.map(esc).join("<br>") || "없음"}</div></details></div>`;
+}
+
+// ── 조립 ──
 function renderPriceForecastPanel(){
+  const loading = pfx.histStatus === "idle" || pfx.histStatus === "loading" || pfState.status === "loading" || [feedProdState, poultryPriceState, broilerPriceTodayState, layerStatsState, eggReportState].some(s => s.status === "loading");
   const head = `
-    <div class="display" style="font-size:16px;margin-bottom:2px">🔮 육계·계란 시세예측</div>
-    <div style="font-size:11px;color:#999;margin-bottom:12px">배합사료 생산량(공급 잠재력)과 과거 소비 패턴(수요 잠재력)을 견줘 1~3개월 뒤 가격 방향을 확률로 봅니다</div>`;
-  const shell = inner => `<div class="card" style="border-top:6px solid #4527A0">${head}${inner}</div>`;
-  const loading = [feedProdState, poultryPriceState, broilerPriceTodayState, layerStatsState, eggReportState].some(s => s.status === "loading" || s.status === "idle");
-  if(loading) return shell(`<div style="text-align:center;padding:24px;color:#aaa">⏳ 자료를 불러오는 중...</div>`);
-  const md = pfBuildModel();
-  if(!md) return shell(`<div style="text-align:center;padding:18px;color:#aaa;font-size:12px">예측에 필요한 배합사료 생산 통계를 불러오지 못했습니다.<br>잠시 후 다시 열어 주세요.</div>`);
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap">
+      <div><div class="display" style="font-size:16px;margin-bottom:2px">🔮 육계·계란 시세예측</div>
+      <div style="font-size:11px;color:#999;margin-bottom:10px">사료 생산량(공급 잠재력)·과거 소비 패턴·가격 이력으로 1주~6개월 뒤 산지가격을 확률로 분석합니다</div></div>
+      <label style="font-size:11px;color:#555;display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" id="pf-demo" ${pfx.demo ? "checked" : ""}> 데모 모드</label></div>`;
+  const tabs = `<div style="display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid #eee;margin-bottom:12px;padding-bottom:0" role="tablist">${PF_TABS.map(([k, label]) =>
+    `<button type="button" role="tab" aria-selected="${k === pfx.tab}" data-pf-tab="${k}" style="flex:0 0 auto;border:none;border-bottom:3px solid ${k === pfx.tab ? "#4527A0" : "transparent"};background:none;color:${k === pfx.tab ? "#4527A0" : "#777"};font-weight:${k === pfx.tab ? 800 : 500};font-size:12px;padding:8px 10px;cursor:pointer;white-space:nowrap">${label}</button>`).join("")}</div>`;
+  const shell = inner => `<div class="card" id="pf-root" style="border-top:6px solid #4527A0">${head}${pfBanner()}${tabs}${inner}</div>`;
+  if(loading) return `<div class="card" style="border-top:6px solid #4527A0">${head}<div style="text-align:center;padding:26px;color:#aaa">⏳ 자료를 불러오는 중...</div></div>`;
+  let body;
+  try {
+    body = pfx.tab === "dash" ? pfTabDash() : pfx.tab === "broiler" ? pfTabSpecies("broiler") : pfx.tab === "egg" ? pfTabSpecies("egg") :
+      pfx.tab === "feed" ? pfTabFeed() : pfx.tab === "balance" ? pfTabBalance() : pfx.tab === "ai" ? pfTabAI() : pfx.tab === "acc" ? pfTabAcc() : pfTabData();
+  } catch(e){ pfLog("화면 오류(" + pfx.tab + "): " + (e.message || e)); body = `<div style="color:#C62828;font-size:12px;padding:12px">이 화면을 그리지 못했습니다: ${esc(e.message || String(e))}<br><span style="color:#999">관리자 로그에서 확인할 수 있습니다.</span></div>`; }
+  const foot = `<div style="margin-top:14px;background:#FFF8E1;border-radius:8px;padding:9px 11px;font-size:10.5px;color:#6b5400;line-height:1.75"><b>유의</b> · 이 분석은 통계 모형과 가정에 기반한 <b>참고 자료</b>이며 실제 가격을 보장하지 않습니다. 예측 정확도는 「예측 정확도」 탭에서 확인하고, 검증이 부족한 기간은 신뢰도를 낮게 표시합니다. 출하·입식·투자의 최종 판단은 이용자 책임입니다.</div>`;
+  return shell(body + foot);
+}
 
-  const er = eggReportState.data, ls = layerStatsState.data;
-  const refs = [];
-  if(er && er.summary && er.summary.supply_status) refs.push(`🥚 주간 계란 수급: <b>${esc(er.summary.supply_status)}</b>${er.title ? " · " + esc(er.title) : ""}`);
-  if(ls && ls.layer && ls.broiler) refs.push(`🐔 사육 마릿수(${esc(ls.period || "")}): 산란계 <b>${fpBirds(ls.layer.birds)}</b>${ls.layer.birds_pct != null ? " (직전 분기 " + pfSign(ls.layer.birds_pct) + "%)" : ""} · 육용계 <b>${fpBirds(ls.broiler.birds)}</b>${ls.broiler.birds_pct != null ? " (" + pfSign(ls.broiler.birds_pct) + "%)" : ""}`);
-
-  return shell(`
-    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
-      <span style="font-size:11px;background:#EDE7F6;color:#4527A0;border-radius:10px;padding:2px 9px;font-weight:700">${md.cy}년 ${md.m}월까지 사료 통계 기준</span>
-      <span style="font-size:10px;color:#aaa">현재 ${md.nowMonth}월 · 예측 대상은 산지 시세의 방향</span>
-      ${md.stale ? `<span style="font-size:10px;color:#E65100;background:#FFF3E0;border-radius:9px;padding:2px 7px">수집 실패 · 이전 자료</span>` : ""}
-    </div>
-
-    <div style="font-size:12px;font-weight:800;color:#333;margin-bottom:6px">📌 예측은 이렇게 만들어집니다</div>
-    ${pfDiagram(md)}
-
-    <div style="font-size:12px;font-weight:800;color:#333;margin:16px 0 8px">📊 1·2·3개월 뒤 가격 방향 확률</div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap">
-      ${pfSpeciesCard("broiler", md.species.broiler, md)}
-      ${pfSpeciesCard("egg", md.species.egg, md)}
-    </div>
-    ${pfEvidence(md)}
-    ${refs.length ? `<div style="margin-top:10px;background:#F5F5F5;border-radius:8px;padding:8px 10px;font-size:11px;color:#555;line-height:1.8">
-      <div style="font-weight:700;color:#777;margin-bottom:2px">함께 볼 현재 지표</div>${refs.join("<br>")}</div>` : ""}
-
-    <div style="margin-top:12px;background:#FFF8E1;border-radius:8px;padding:9px 11px;font-size:10.5px;color:#6b5400;line-height:1.75">
-      <b>이 예측을 볼 때 알아 두세요</b><br>
-      · 확률은 통계적으로 검증된 값이 아니라, 아래 가정으로 계산한 <b>참고용 방향 지표</b>입니다. 출하·입식·투자 결정의 근거로 쓰지 마세요.<br>
-      · 공급은 배합사료 생산량에서 추정한 마릿수입니다. 자가배합·수입 사료와 실제 사육 성적은 반영되지 않고, 수출입·재고·방역(AI 살처분) 같은 돌발 변수도 들어 있지 않습니다.<br>
-      · 소비잠재력의 계절지수(명절·복날·방학 등)는 과거 소비 패턴에 대한 경험값이고, 가격 흐름은 최근 한 달 변동만 봅니다. 가격 자료가 쌓이면 실제 과거 통계로 바꿀 수 있습니다.<br>
-      · 시차(육계 약 1개월, 산란계 병아리 약 4개월)와 먼 미래일수록 약해지는 가중치는 가정입니다.
-    </div>
-    <div style="font-size:9px;color:#bbb;margin-top:8px">출처: ${esc(md.source || "농림축산식품부 배합사료 생산실적")} · 수집 ${esc(md.updated || "")} · 산지시세·주간 수급·사육 통계는 이 사이트 자동 수집 자료</div>`);
+// ── 이벤트 ──
+function pfDownload(name, text, mime){ const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["﻿" + text], { type: mime || "text/csv;charset=utf-8" })); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); }
+function pfReportCsv(){
+  const lines = ["품목,기간,기준일,현재가,P50,80%하한,80%상한,90%하한,90%상한,상승확률,보합확률,하락확률,신뢰도,데모여부"];
+  ["broiler", "egg"].forEach(s => PF_HORIZONS.forEach(hz => { const r = pfResult(s, hz.k, false); if(r.status !== "ok") { lines.push(`${PF_SPECIES[s].name},${hz.label},,,,,,,,,,,자료 부족,${pfx.demo ? "데모" : ""}`); return; }
+    const p = r.pred, c = r.calib; lines.push([PF_SPECIES[s].name, hz.label, r.lastYm || r.lastDate, Math.round(p.base), Math.round(p.p50), Math.round(p.lo80), Math.round(p.hi80), Math.round(p.lo90), Math.round(p.hi90), (c.up * 100).toFixed(1), (c.flat * 100).toFixed(1), (c.down * 100).toFixed(1), r.grade.t, pfx.demo ? "데모(실제 예측 아님)" : ""].join(",")); }));
+  return lines.join("\n");
+}
+async function pfPublish(){
+  const L = pfx.local, pub = pfx.pub || {}, now = new Date().toISOString(), by = (typeof premiumUserLabel === "function" ? premiumUserLabel() : "관리자");
+  const body = {
+    updated: now.slice(0, 16).replace("T", " ") + " UTC", by,
+    prices: { egg: pfMergeRows((pub.prices || {}).egg, L.prices.egg), broiler: pfMergeRows((pub.prices || {}).broiler, L.prices.broiler) },
+    feed: { ...(pub.feed || {}), ...(L.feed || {}) },
+    headcount: [...(pub.headcount || []), ...(L.headcount || [])], consumption: [...(pub.consumption || []), ...(L.consumption || [])],
+    settings: { flat: pfx.flat },
+    log: [...(pub.log || []).slice(-49), { at: now, by, egg: (L.prices.egg || []).length, broiler: (L.prices.broiler || []).length, feed: Object.keys(L.feed || {}).length, flat: pfx.flat }],
+  };
+  await writePremiumContentJson(PF_DATASET, body);
+  pfx.pub = body; pfx.pubStatus = "done"; pfx.local = { prices: { egg: [], broiler: [] }, feed: {}, headcount: [], consumption: [] }; pfSaveLocal(); pfx.cache = {}; pfx.rev++;
+  pfLog("관리자 발행 완료"); pfx.uploadMsg = "승인 회원에게 발행했습니다. 내 브라우저 업로드는 발행본에 합쳐졌습니다.";
+}
+function pfBind(){
+  if(!(state.tab === "premium" && premiumState.view === "priceforecast")) return;
+  const $ = id => document.getElementById(id), re = () => render();
+  document.querySelectorAll("[data-pf-tab]").forEach(b => b.onclick = () => { pfx.tab = b.dataset.pfTab; re(); });
+  document.querySelectorAll("[data-pf-species]").forEach(b => b.onclick = () => { pfx.species = b.dataset.pfSpecies; re(); });
+  document.querySelectorAll("[data-pf-hz]").forEach(b => b.onclick = () => { pfx.horizon = b.dataset.pfHz; re(); });
+  const demo = $("pf-demo"); if(demo) demo.onchange = () => { pfx.demo = demo.checked; pfx.cache = {}; pfx.rev++; pfLog("데모 모드 " + (pfx.demo ? "켬" : "끔")); re(); };
+  document.querySelectorAll("[data-pf-sc]").forEach(el => el.oninput = () => { const v = parseFloat(el.value); pfx.scen[el.dataset.pfSc] = v; const o = $("pf-sc-v-" + el.dataset.pfSc); if(o) o.textContent = (v > 0 ? "+" : "") + v + el.dataset.unit; });
+  document.querySelectorAll("[data-pf-preset]").forEach(b => b.onclick = () => { pfx.scen = { ...PF_SCEN_DEFAULT, ...PF_SCEN_PRESETS[b.dataset.pfPreset][1] }; pfx.scenOn = null; re(); });
+  const run = $("pf-sc-run"); if(run) run.onclick = () => { pfx.scenOn = { ...pfx.scen }; pfx.cache = {}; pfLog("시나리오 계산: " + JSON.stringify(pfx.scenOn)); re(); };
+  const rs = $("pf-sc-reset"); if(rs) rs.onclick = () => { pfx.scen = { ...PF_SCEN_DEFAULT }; pfx.scenOn = null; re(); };
+  const kind = $("pf-up-kind"); if(kind) kind.onchange = () => { pfx.uploadKind = kind.value; pfx.uploadReport = null; pfx.uploadMsg = ""; re(); };
+  const txt = $("pf-up-text"); if(txt) txt.oninput = () => { pfx.uploadText = txt.value; };
+  const file = $("pf-up-file"); if(file) file.onchange = () => { const f = file.files && file.files[0]; if(!f) return; const rd = new FileReader(); rd.onload = () => { pfx.uploadText = String(rd.result || ""); pfx.uploadReport = null; re(); }; rd.readAsText(f, "utf-8"); };
+  const tpl = $("pf-up-tpl"); if(tpl) tpl.onclick = () => { const i = PF_UP_KINDS[pfx.uploadKind]; pfDownload("시세예측_" + pfx.uploadKind + "_양식.csv", i[1] + "\n" + i[2] + "\n"); };
+  const check = (apply) => { const t = (($("pf-up-text") || {}).value || "").trim(); pfx.uploadText = t; if(!t){ pfx.uploadMsg = "내용이 비어 있습니다."; pfx.uploadReport = null; re(); return; }
+    const res = pfIngest(pfx.uploadKind, t); pfx.uploadReport = res; pfx.uploadMsg = "";
+    if(apply){ if(!res.rep.ok){ pfx.uploadMsg = "사용 가능한 행이 없어 적용하지 않았습니다. 형식을 확인해 주세요."; } else { pfApplyLocal(res.out); pfLog(`업로드 적용(${pfx.uploadKind}): ${res.rep.ok}건`); pfx.uploadMsg = `${res.rep.ok}건을 적용했습니다. 위 화면의 예측이 새 자료로 다시 계산됩니다.`; } }
+    re(); };
+  const c1 = $("pf-up-check"); if(c1) c1.onclick = () => check(false);
+  const c2 = $("pf-up-apply"); if(c2) c2.onclick = () => check(true);
+  const c3 = $("pf-up-clear"); if(c3) c3.onclick = () => { if(!confirm("이 브라우저에 올려 둔 자료를 모두 지울까요?")) return; pfx.local = { prices: { egg: [], broiler: [] }, feed: {}, headcount: [], consumption: [] }; pfSaveLocal(); pfx.cache = {}; pfx.rev++; pfx.uploadMsg = "지웠습니다."; pfLog("내 업로드 삭제"); re(); };
+  const fl = $("pf-flat"); if(fl) fl.onchange = () => { const v = parseFloat(fl.value) / 100; if(v > 0 && v < 0.2){ pfx.flat = v; pfx.cache = {}; pfx.rev++; pfLog("보합 범위 ±" + (v * 100).toFixed(1) + "%"); re(); } };
+  const pb = $("pf-publish"); if(pb) pb.onclick = async () => { if(!isBoardAdmin()) return; if(!confirm("현재 올린 자료와 설정을 승인 회원 모두에게 발행할까요?")) return; pb.disabled = true; try { await pfPublish(); } catch(e){ pfx.uploadMsg = "발행 실패: " + (e.message || e); pfLog("발행 실패: " + (e.message || e)); } re(); };
+  const csv = $("pf-csv"); if(csv) csv.onclick = () => pfDownload("육계계란_시세예측_리포트.csv", pfReportCsv());
+  const pr = $("pf-print"); if(pr) pr.onclick = () => window.print();
+  pfBindCharts();
 }
 
 function renderPremiumTab(){
@@ -12345,7 +13392,7 @@ function renderPremiumTab(){
   }
   // 육계·계란 시세예측 — 배합사료 생산량(공급 잠재력) + 과거 소비 패턴(수요 잠재력)으로 1~3개월 방향 확률
   if(premiumState.view === "priceforecast"){
-    if(pfState.status === "idle") pfLoad();
+    if(pfx.histStatus === "idle") pfLoadAll();
     return renderPremiumGateHeader() + logoutBar + renderPriceForecastPanel();
   }
   // 업계관련 소식 — industry_news/latest.json(매일 자동 갱신)
@@ -18544,6 +19591,7 @@ window.addEventListener("resize", updateTabArrows);
 function attachEvents(){
   document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
   setupTabArrows();
+  pfBind();                                  // 육계·계란 시세예측(탭·차트·시나리오·업로드·관리자)
   const headerSolarTerm = document.getElementById("header-solar-term");
   if(headerSolarTerm) headerSolarTerm.onclick = ()=>switchTab("weather");
 

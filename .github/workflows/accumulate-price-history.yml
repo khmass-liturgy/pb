@@ -1,0 +1,38 @@
+name: 시세예측용 과거 자료 누적
+
+on:
+  schedule:
+    # GitHub Actions cron is UTC: 00:40 UTC = 매일 한국시간 09:40 (산지시세 수집 09:00 이후)
+    - cron: "40 0 * * *"
+    # 금일 육계시세(협회, 13:20 KST 수집)까지 반영
+    - cron: "40 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  accumulate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: 과거 자료 이어 붙이기
+        run: python scripts/accumulate_price_history.py
+      - name: 변경이 있으면 커밋
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add price_history/
+          if git diff --cached --quiet; then
+            echo "변경 없음"
+            exit 0
+          fi
+          git commit -m "📈 시세예측용 과거 자료 누적"
+          for i in 1 2 3 4; do
+            git pull --rebase --autostash && git push && exit 0
+            sleep $((i * 3))
+          done
+          exit 1

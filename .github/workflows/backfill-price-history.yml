@@ -1,0 +1,48 @@
+name: 시세예측용 과거 시세 소급 수집
+
+on:
+  workflow_dispatch:
+    inputs:
+      from_year:
+        description: "시작 연도(비우면 2018)"
+        required: false
+      to_year:
+        description: "끝 연도(비우면 올해)"
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: 다봄 일별 시세 소급 수집
+        env:
+          FROM_YEAR: ${{ github.event.inputs.from_year }}
+          TO_YEAR: ${{ github.event.inputs.to_year }}
+        run: |
+          if [ -n "$FROM_YEAR" ] && [ -n "$TO_YEAR" ]; then
+            python scripts/backfill_price_history.py "$FROM_YEAR" "$TO_YEAR"
+          else
+            python scripts/backfill_price_history.py --reset
+          fi
+      - name: 변경이 있으면 커밋
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add price_history/
+          if git diff --cached --quiet; then
+            echo "변경 없음"
+            exit 0
+          fi
+          git commit -m "📈 시세예측용 과거 시세 소급 수집"
+          for i in 1 2 3 4; do
+            git pull --rebase --autostash && git push && exit 0
+            sleep $((i * 3))
+          done
+          exit 1
