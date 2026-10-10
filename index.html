@@ -12488,6 +12488,7 @@ function pfForecast(species, ser, hz, flat, supplyShift){
 // ── 자료: 저장소 누적본 + 관리자 발행본 + 내 PC 업로드 + 데모 ────────────────────────────────
 const PF_HISTORY_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/price_history/daily.json";
 const PF_IMPORT_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/import_status/latest.json";
+const PF_IMPORT_STATS_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/import_status/stats.json";
 const PF_LS_KEY = "pf_uploads_v1";
 const PF_DATASET = "price_forecast_data";          // Firebase premium_content/price_forecast_data/latest.json (관리자 발행, 승인 회원만 읽기)
 const PF_HORIZONS = [
@@ -12501,7 +12502,7 @@ const PF_SPECIES = {
 
 const pfx = {
   tab: "dash", species: "egg", horizon: "1m", demo: false, histStatus: "idle", hist: null,
-  pubStatus: "idle", pub: null, local: null, imp: null,
+  pubStatus: "idle", pub: null, local: null, imp: null, impStats: null,
   flat: 0.02, scen: null, scenOn: null,
   uploadKind: "price_egg", uploadMsg: "", uploadReport: null, log: [], cache: {}, rev: 0,
 };
@@ -12529,6 +12530,10 @@ async function pfLoadAll(){
     (async () => {
       try { const r = await fetchWithTimeout(PF_IMPORT_URL + "?t=" + Math.floor(Date.now() / 600000), 10000); if(!r.ok) throw new Error("HTTP " + r.status); pfx.imp = await r.json(); }
       catch(e){ pfx.imp = null; pfLog("수입 현황 불러오기 실패: " + (e.message || e)); }
+    })(),
+    (async () => {
+      try { const r = await fetchWithTimeout(PF_IMPORT_STATS_URL + "?t=" + Math.floor(Date.now() / 600000), 10000); if(!r.ok) throw new Error("HTTP " + r.status); pfx.impStats = await r.json(); }
+      catch(e){ pfx.impStats = null; }
     })(),
     pfLoad(),                                  // 기존 사료·시세·수급 자료(규칙 기반 분석용)
   ];
@@ -12695,6 +12700,7 @@ function pfSvgChart(id, cfg){
   let lo = cfg.yMin != null ? cfg.yMin : Math.min(...all), hi = cfg.yMax != null ? cfg.yMax : Math.max(...all);
   if(cfg.zero){ lo = Math.min(lo, 0); hi = Math.max(hi, 0); }
   const pad = (hi - lo) * 0.1 || Math.abs(hi) * 0.05 || 1; if(cfg.yMin == null) lo -= pad; if(cfg.yMax == null) hi += pad;
+  if(cfg.zero && !all.some(v => v < 0)) lo = 0;                  // 음수가 없는 막대 그래프는 0에서 시작
   const bw = (W - L - R) / n, x = i => L + (cfg.bars ? bw * (i + 0.5) : (n === 1 ? 0 : i * (W - L - R) / (n - 1)));
   const y = v => T + (hi - v) / (hi - lo) * (H - T - B);
   const fmt = cfg.fmt || pfFmtN;
@@ -12980,6 +12986,36 @@ function pfImportItem(it){
     <div style="font-size:11px;color:#666;line-height:1.65;margin-top:2px">${esc(it.detail || "")}</div>
     <div style="font-size:10px;color:#999;margin-top:2px">${esc(it.date || "")}${url ? ` · <a href="${esc(url)}" target="_blank" rel="noopener noreferrer" style="color:#00695C">${esc((it.source && it.source.name) || "출처")} ↗</a>` : it.source ? " · " + esc(it.source.name || "") : ""}</div></div>`;
 }
+// 📊 수입 통계(자동 수집): import_status/stats.json — 월별 수입 중량(톤)과 주요 수입국. 신고 지연으로 최근 달은 비어 있을 수 있다.
+const pfTon = v => v == null || !isFinite(v) ? "-" : Math.round(v).toLocaleString();
+function pfImportStatsHtml(){
+  const d = pfx.impStats;
+  const wrap = inner => `<div style="margin-bottom:12px;border:1px solid #B2DFDB;border-radius:10px;padding:10px 12px;background:#fff"><div style="font-size:12px;font-weight:800;color:#00695C;margin-bottom:4px">📊 수입 통계 (자동 수집)</div>${inner}</div>`;
+  if(!d || !d.series) return wrap(`<div style="font-size:11px;color:#999;line-height:1.7">월별 수입 통계는 매주 자동으로 수집됩니다. 아직 수집된 자료가 없어 아래 보도 정리만 표시합니다.</div>`);
+  const groups = [["chicken", "🍗 닭고기 (HS 0207)", "#E65100"], ["egg_fresh", "🥚 신선란 (HS 040721)", "#F9A825"], ["egg_hatching", "🐣 종란 (HS 040711)", "#8D6E63"]];
+  const blocks = groups.map(([k, label, color]) => {
+    const m = (d.series[k] || {}).months || {}, ks = Object.keys(m).sort();
+    const mx = ks.length ? Math.max(...ks.map(x => m[x].t)) : 0;
+    if(ks.length < 12 || mx < 5){     // 신고된 달이 12개월 미만이거나 사실상 0이면 그래프 대신 사실만 적는다
+      const nz = ks.filter(x => m[x].t >= 0.5).map(x => `${x.slice(0, 4)}-${x.slice(4)} ${pfTon(m[x].t)}t`).join(", ");
+      return `<div style="margin-top:10px;font-size:11px;color:#666;line-height:1.7"><b style="color:${color}">${label}</b>: ${ks.length ? (mx < 5 ? `UN 신고 자료의 월 수입량이 최대 ${pfTon(mx)}t로 사실상 없습니다` : `UN 신고 자료가 ${ks.length}개월분뿐이라 추이를 그리지 못합니다`) + (nz ? " (" + esc(nz) + ")" : "") + "." : "신고된 자료가 아직 없습니다."}${k === "egg_fresh" ? " 올해 정부(aT)의 신선란 수입은 UN 신고가 늦어 아직 반영되지 않았습니다 — 아래 보도 정리를 참고하세요." : ""}</div>`;
+    }
+    const last = ks[ks.length - 1], ly = String(+last.slice(0, 4) - 1) + last.slice(4), cur = m[last], prv = m[ly];
+    const yoy = prv && prv.t ? (cur.t / prv.t - 1) * 100 : null;
+    const top = Object.entries(cur.by || {}).slice(0, 3).map(([n, t]) => `${n} ${pfTon(t)}t`).join(" · ");
+    const eggs = k === "egg_fresh" ? ` (개당 60g 가정 시 약 ${Math.round(cur.t * 1e6 / 60 / 1e4).toLocaleString()}만 개)` : "";
+    return `<div style="margin-top:10px"><div style="font-size:11.5px;font-weight:800;color:${color}">${label} <span style="font-weight:500;color:#999">(월 수입 중량, 톤)</span></div>
+      ${pfSvgChart("pf-imp-" + k, { label: label + " 월별 수입 중량", xl: ks.map(x => x.slice(2, 4) + "." + x.slice(4)), xfull: ks.map(x => x.slice(0, 4) + "-" + x.slice(4)), w: 360, h: 150, bars: true, zero: true, fmt: pfTon,
+        series: [{ name: "수입 중량(t)", kind: "bar", color, opacity: 0.7, ys: ks.map(x => m[x].t) }],
+        extra: i => { const c = m[ks[i]], t = Object.entries(c.by || {}).slice(0, 3).map(([n, v]) => `${n} ${pfTon(v)}t`).join(" · "); return `금액 ${pfTon(c.kusd)}천달러${t ? " · 주요국 " + t : ""}`; } })}
+      <div style="font-size:10.5px;color:#666;line-height:1.7">최신 ${last.slice(0, 4)}-${last.slice(4)}: <b>${pfTon(cur.t)}t</b>${eggs}${yoy != null ? ` · 전년 같은 달 대비 ${pfSign(yoy)}%` : ""}${top ? `<br>주요 수입국: ${esc(top)}` : ""}</div></div>`;
+  }).join("");
+  const allKs = Object.values(d.series).flatMap(g => Object.keys(g.months || {})).sort(), newest = allKs.length ? allKs[allKs.length - 1] : "";
+  const lagMo = newest ? (new Date().getFullYear() - +newest.slice(0, 4)) * 12 + (new Date().getMonth() + 1 - +newest.slice(4, 6)) : 0;
+  const lagNote = newest ? `<div style="font-size:10.5px;color:#B26A00;background:#FFF3E0;border-radius:8px;padding:6px 9px;margin-top:8px;line-height:1.65">가장 최근 신고 월은 <b>${newest.slice(0, 4)}-${newest.slice(4, 6)}</b>(약 ${lagMo}개월 전)입니다. UN 자료는 신고가 늦어 올해 수입은 반영되지 않았습니다. 더 빠른 관세청 자료를 쓰려면 관리자가 data.go.kr 인증키를 저장소 비밀값 <code>DATA_GO_KR_KEY</code>로 등록하세요.</div>` : "";
+  const srcs = Object.values(d.sources || {}).map(x => x.name).join(" · ");
+  return wrap(`${blocks}${lagMo >= 4 ? lagNote : ""}<div style="font-size:10px;color:#999;line-height:1.7;margin-top:8px">출처: ${esc(srcs || "-")} · 수집 ${esc(d.updated || "")}<br>신선란은 중량(톤) 통계라 보도의 「○○만 개」와 단위가 다릅니다.</div>`);
+}
 function pfImportHtml(limit){
   const d = pfx.imp;
   if(!d || !d.eggs || !d.chicken) return `<div style="border:1px dashed #BDBDBD;border-radius:10px;padding:10px 12px;font-size:11.5px;color:#999;margin-bottom:12px">📦 수입 현황 자료를 불러오지 못했습니다. 잠시 후 다시 열어 주세요.</div>`;
@@ -12988,6 +13024,8 @@ function pfImportHtml(limit){
     <div style="font-size:11px;color:#555;line-height:1.65;margin:3px 0 4px">${esc(g.summary || "")}</div>${(limit ? g.items.slice(0, limit) : g.items).map(pfImportItem).join("")}</div>`;
   return `<div style="margin-bottom:14px">
     <div style="font-size:12.5px;font-weight:800;color:#00695C;margin-bottom:3px">📦 수입 (국내 공급 보완)</div>
+    ${pfImportStatsHtml()}
+    <div style="font-size:11.5px;font-weight:800;color:#00695C;margin:6px 0 3px">📰 최근 수입 동향 (보도·농식품부 자료 정리)</div>
     <div style="font-size:10.5px;color:#777;line-height:1.7;margin-bottom:8px">${esc(d.note || "")} <b>조사 기준일 ${esc(d.as_of || "")}</b>${pfx.demo ? " · 이 수입 항목은 데모가 아닌 실제 보도 자료입니다." : ""}</div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">${col(d.eggs, "#F9A825", "🥚")}${col(d.chicken, "#E65100", "🍗")}</div>
     <div style="margin-top:8px;background:#E0F2F1;border-radius:8px;padding:8px 10px;font-size:10.5px;color:#004D40;line-height:1.7">${(d.caveats || []).map(c => "· " + esc(c)).join("<br>")}</div></div>`;
@@ -13156,7 +13194,8 @@ function pfTabData(){
     ${row("육계 협회 시세 (별도 시리즈)", "대한양계협회 · 원/kg · 오후 1시 게재", assoc.length, range(assoc), "—", "섞어 쓰지 않음")}
     ${row("배합사료 월별 생산량", S.demo ? "데모 · 임의 생성값" : "농림축산식품부 · 톤", fk.length, fk.length ? fk[0] + " ~ " + fk[fk.length - 1] : "-", "—", S.demo ? "—" : esc((feedProdState.data && feedProdState.data.updated) || "-"))}
     ${row("산란계·육계 사육 마릿수 실측", "축산물품질평가원 통계누리 · 분기 / 업로드", (S.headcount || []).length + (layerStatsState.data ? 1 : 0), layerStatsState.data ? esc(layerStatsState.data.period || "") : "-", "—", esc((layerStatsState.data && layerStatsState.data.updated) || "-"))}
-    ${row("수입(계란·닭고기)", "농식품부 보도자료·언론 보도 수동 조사 · 개·톤", pfx.imp ? pfx.imp.eggs.items.length + pfx.imp.chicken.items.length : 0, pfx.imp ? "조사 기준 " + esc(pfx.imp.as_of || "") : "-", "—", "수동 갱신(통계 API 미연결)")}
+    ${row("수입 통계(계란·닭고기)", "관세청 API(키 있을 때) / UN Comtrade 대한민국 신고분 · 톤", pfx.impStats ? Object.values(pfx.impStats.series || {}).reduce((a, g) => a + Object.keys(g.months || {}).length, 0) : 0, pfx.impStats ? esc(Object.values(pfx.impStats.series || {}).map(g => { const k = Object.keys(g.months || {}).sort(); return k.length ? k[0] + "~" + k[k.length - 1] : ""; }).filter(Boolean).join(" / ")) : "-", "신고 지연 구간 비어 있음", pfx.impStats ? esc(pfx.impStats.updated || "") : "수집 대기")}
+    ${row("수입 동향(보도 정리)", "농식품부 보도자료·언론 보도 수동 조사 · 개·톤", pfx.imp ? pfx.imp.eggs.items.length + pfx.imp.chicken.items.length : 0, pfx.imp ? "조사 기준 " + esc(pfx.imp.as_of || "") : "-", "—", "수동 갱신(통계 API 미연결)")}
     ${row("소비량", "미연결 (업로드로만 사용)", (S.consumption || []).length, "-", "—", "—")}
   </tbody></table></div>`;
   const missing = ["육계 입식 마릿수·종계 병아리 공급량", "도계 마릿수·평균 생체중·닭고기 생산량", "육성계 입식수·도태·살처분수", "주령별 산란율·난중·등급별 생산 비율", "육계·계란 월별 소비량, 외식·급식·가공 수요", "수입·수출·재고", "기상(기온·습도)과 조류인플루엔자 발생의 모형 반영"];
