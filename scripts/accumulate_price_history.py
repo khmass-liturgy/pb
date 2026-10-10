@@ -35,9 +35,10 @@ def load(path: Path):
 
 
 def merge_rows(existing: list, new_rows: list[tuple[str, float]]) -> list:
-    by_date = {r[0]: r[1] for r in (existing or []) if isinstance(r, list) and len(r) == 2}
+    limit = (datetime.now(KST) + timedelta(days=1)).strftime("%Y-%m-%d")      # 오늘보다 뒤 날짜는 잘못 읽은 값
+    by_date = {r[0]: r[1] for r in (existing or []) if isinstance(r, list) and len(r) == 2 and r[0] <= limit}
     for d, v in new_rows:
-        if isinstance(v, (int, float)) and v > 0:
+        if isinstance(v, (int, float)) and v > 0 and d <= limit:
             by_date[d] = v
     return [[d, by_date[d]] for d in sorted(by_date)]
 

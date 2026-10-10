@@ -13,6 +13,7 @@ accumulate_price_history.py와 같은 파일·같은 시리즈 이름(egg, broil
 from __future__ import annotations
 
 import json
+import re
 import ssl
 import sys
 import time
@@ -22,7 +23,7 @@ from urllib.error import URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-from fetch_poultry_price import HEADERS, RowParser, normalize_date, row_numbers
+from fetch_poultry_price import HEADERS, RowParser, row_numbers
 from accumulate_price_history import SERIES_META, merge_rows
 
 KST = timezone(timedelta(hours=9))
@@ -53,12 +54,23 @@ def fetch_window(url: str, menu: str, start: date, end: date) -> str | None:
     return None
 
 
-def parse_window(page: str, idx: int, lo_hi: tuple[int, int]) -> tuple[list[tuple[str, int]], int]:
+DAY_RE = re.compile(r"^(\d{1,2})월\s*(\d{1,2})일$")
+
+
+def parse_window(page: str, idx: int, lo_hi: tuple[int, int], year: int) -> tuple[list[tuple[str, int]], int]:
+    """다봄의 일별 표는 날짜 칸이 "01월 12일"처럼 연도 없이 나온다 — 조회한 구간의 연도를 붙인다.
+    표 아래쪽의 월별 요약표("26년 01월")는 날짜 모양이 달라 걸러진다."""
     parser = RowParser()
     parser.feed(page)
     rows, dropped = {}, 0
     for row in parser.rows:
-        d = normalize_date(row[0]) if row else None
+        m = DAY_RE.match(row[0]) if row else None
+        d = None
+        if m:
+            try:
+                d = date(year, int(m.group(1)), int(m.group(2))).isoformat()
+            except ValueError:
+                d = None
         nums = row_numbers(row) if d else []
         if d and len(nums) > idx:
             v = nums[idx]
@@ -70,6 +82,8 @@ def parse_window(page: str, idx: int, lo_hi: tuple[int, int]) -> tuple[list[tupl
 
 
 def main(argv: list[str]) -> int:
+    reset = "--reset" in argv
+    argv = [a for a in argv if a != "--reset"]
     today = datetime.now(KST).date()
     if len(argv) >= 2:
         y0, y1 = int(argv[0]), int(argv[1])
@@ -80,6 +94,8 @@ def main(argv: list[str]) -> int:
     for key, url, menu, idx, lo_hi in SOURCES:
         cur = series.get(key) or {}
         cur.update(SERIES_META[key])
+        if reset:
+            cur["rows"] = []
         total = 0
         for year in range(y0, y1 + 1):
             start, end = max(date(year, 1, 1), START), min(date(year, 12, 31), today)
@@ -89,7 +105,8 @@ def main(argv: list[str]) -> int:
             if page is None:
                 print(f"  [{key}] {year}: 가져오기 실패 — 건너뜀")
                 continue
-            rows, dropped = parse_window(page, idx, lo_hi)
+            rows, dropped = parse_window(page, idx, lo_hi, year)
+            rows = [r for r in rows if start.isoformat() <= r[0] <= end.isoformat()]
             print(f"  [{key}] {year}: {len(rows)}건 (범위 밖 {dropped}건 제외)" + (f", {rows[0][0]} ~ {rows[-1][0]}" if rows else ""))
             cur["rows"] = merge_rows(cur.get("rows"), rows)
             total += len(rows)

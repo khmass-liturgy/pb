@@ -32,7 +32,7 @@ jobs:
           if [ -n "$FROM_YEAR" ] && [ -n "$TO_YEAR" ]; then
             python scripts/backfill_price_history.py "$FROM_YEAR" "$TO_YEAR"
           else
-            python scripts/backfill_price_history.py
+            python scripts/backfill_price_history.py --reset
           fi
       - name: 변경이 있으면 커밋
         run: |
