@@ -11771,6 +11771,35 @@ function renderPremiumGateHeader(){
   </div>`;
 }
 
+// 가입 초기화면에 붙이는 "왜 유료로 운영되나요?" — 비용 구조를 짧게 알려 가입을 권하는 안내문.
+// 금액·수치는 적지 않는다(바뀔 수 있고, 근거 없는 숫자를 보여 주지 않기 위해).
+function renderPremiumWhyPaid(){
+  const reasons = [
+    { icon:"🤖", title:"인공지능 운영비", detail:`최꼬박사 상담, 논문 번역·요약, 질병·백신 브리핑, 동물약품 소식은 <b>AI를 쓸 때마다 사용료</b>가 듭니다. 질문이 늘수록 비용도 늘어납니다.` },
+    { icon:"🖥️", title:"서버·저장소 운영비", detail:`회원 로그인, 상담 게시판의 사진·답변 보관, 유료 자료 보호에 클라우드 서버와 저장공간이 쓰입니다.` },
+    { icon:"🔄", title:"매일 자동 수집·갱신", detail:`시세, 뉴스, 질병 발생, 사료곡물 전망을 <b>매일·매주 자동으로 모아 정리</b>합니다. 멈추지 않도록 계속 관리해야 합니다.` },
+    { icon:"🩺", title:"전문가 검수·새 메뉴 개발", detail:`현장 컨설턴트가 자료를 가려 뽑고 확인합니다. 새 메뉴와 기능도 <b>가입비로 계속 추가</b>됩니다.` },
+  ];
+  return `
+  <div style="margin-top:24px;text-align:left">
+    <div style="font-size:11px;color:#888;font-weight:700;margin-bottom:4px;text-align:center">💡 왜 유료로 운영되나요?</div>
+    <div style="font-size:11.5px;color:#666;line-height:1.6;text-align:center;margin-bottom:10px">광고 없이 믿을 수 있는 자료를 계속 제공하려면 꾸준한 운영비가 필요합니다.</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
+      ${reasons.map(r => `
+      <div style="display:flex;gap:10px;align-items:flex-start;border:1px solid #eee;border-left:6px solid #F9C74F;border-radius:10px;padding:12px">
+        <span style="flex-shrink:0;font-size:20px;line-height:1.2">${r.icon}</span>
+        <div style="min-width:0">
+          <div style="font-size:12.5px;font-weight:700;color:#333">${esc(r.title)}</div>
+          <div style="font-size:11.5px;color:#666;line-height:1.6;margin-top:2px">${r.detail}</div>
+        </div>
+      </div>`).join("")}
+    </div>
+    <div style="margin-top:10px;background:#FFF8E1;border-radius:10px;padding:10px 12px;font-size:11.5px;color:#6b5400;line-height:1.7;text-align:center">
+      가입비는 전부 <b>서비스 유지와 개선</b>에 쓰입니다. 농장 현장에서 바로 쓰는 자료를 믿고 이용하시려면 지금 가입해 주세요. 🐔
+    </div>
+  </div>`;
+}
+
 // 가입 초기화면에 붙이는 "신규 회원가입 안내" — 입금 → 입금 문자 → 아이디·
 // 비밀번호 문자 수신 → 로그인 4단계를 숫자로 안내한다. 실제 계정 발급은
 // 관리자가 Firebase 콘솔에서 직접 만들어 문자로 전달하는 방식이라(자동화된
@@ -11842,6 +11871,7 @@ function renderPremiumTab(){
       <div style="margin-top:12px">
         <button id="btn-premium-reset" style="border:none;background:none;color:#888;font-size:11px;text-decoration:underline;cursor:pointer">비밀번호를 잊으셨나요?</button>
       </div>
+      ${renderPremiumWhyPaid()}
       ${renderPremiumSignupGuide()}
       ${renderPremiumPreview()}
     </div>`;
