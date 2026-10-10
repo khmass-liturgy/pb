@@ -69,7 +69,7 @@ def http_get(url: str, tries: int = 4) -> str | None:
     return None
 
 
-def fetch_comtrade(prev_months: dict[str, dict], full: bool) -> dict[str, dict[str, dict]]:
+def fetch_comtrade(prev_months: dict[str, dict], full: bool, skip: dict[str, set] | None = None) -> dict[str, dict[str, dict]]:
     """{그룹: {YYYYMM: {"t": 톤, "kusd": 천달러, "by": {국가: 톤}}}}
 
     한 번에 한 달·한 품목씩 부른다(기간 여러 개나 자릿수가 다른 HS를 섞으면 400이 난다). 국가를 지정하지 않으면
@@ -83,6 +83,8 @@ def fetch_comtrade(prev_months: dict[str, dict], full: bool) -> dict[str, dict[s
         misses = 0
         for per in reversed(months):                       # 최근 달부터 — 신고 지연 구간은 빈 응답
             if not full and per in have and per not in recent:
+                continue
+            if skip and per in skip.get(gname, set()):           # 관세청 값이 이미 있는 달은 UN에 묻지 않는다(호출 제한 절약)
                 continue
             q = urlencode({"reporterCode": "410", "period": per, "cmdCode": g["hs"][0], "flowCode": "M",
                            "maxRecords": "500", "includeDesc": "true"})
@@ -133,6 +135,12 @@ def fetch_customs(key: str) -> dict[str, dict[str, dict]]:
                 except ET.ParseError:
                     print("    XML 해석 실패:", body[:120].replace("\n", " "))
                     continue
+                code = (root.findtext(".//resultCode") or root.findtext(".//returnReasonCode") or "").strip()
+                if code and code not in ("00", "0", "000"):
+                    print(f"    관세청 응답 오류 {code}: {(root.findtext('.//resultMsg') or root.findtext('.//returnAuthMsg') or '')[:80]}")
+                    continue
+                n_items = len(list(root.iter("item")))
+                print(f"    {hs} {chunk[0]}~{chunk[-1]}: item {n_items}건")
                 for it in root.iter("item"):
                     f = {c.tag: (c.text or "").strip() for c in it}
                     ym = (f.get("year") or f.get("yymm") or "").replace(".", "").replace("-", "")
@@ -165,11 +173,13 @@ def main() -> int:
     if key:
         print("관세청 공공데이터 API 시도")
         customs = fetch_customs(key)
+        print("  관세청 결과:", {g: f"{len(v)}개월" + (f" ({min(v)}~{max(v)})" if v else "") for g, v in customs.items()})
         sources["customs"] = {"name": "관세청 품목별 국가별 수출입실적(data.go.kr)", "months": sum(len(v) for v in customs.values())}
     else:
         print("DATA_GO_KR_KEY 없음 — 관세청 API는 건너뜁니다")
     print("UN Comtrade 공개 API 시도")
-    comtrade = fetch_comtrade({g: (v or {}).get("months", {}) for g, v in (prev.get("series") or {}).items()}, os.environ.get("FULL") == "1")
+    comtrade = fetch_comtrade({g: (v or {}).get("months", {}) for g, v in (prev.get("series") or {}).items()}, os.environ.get("FULL") == "1",
+                              {g: set(v) for g, v in customs.items()})
     sources["comtrade"] = {"name": "UN Comtrade(대한민국 신고분, 공개 미리보기)", "months": sum(len(v) for v in comtrade.values())}
 
     series = {}
