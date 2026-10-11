@@ -11482,6 +11482,7 @@ const tradeYm = k => k.slice(0, 4) + "." + k.slice(4);
 const tradeSum = (a, i, n) => { let s = 0; for(let j = i - n + 1; j <= i; j++){ if(j < 0) return null; s += a[j] || 0; } return s; };
 const tradePct = (c, p) => p ? (c / p - 1) * 100 : null;
 const tradeBadge = pct => { if(pct != null && pct >= 1000) return `<span style="font-size:11px;font-weight:800;color:#D32F2F;background:#FFEBEE;border-radius:9px;padding:1px 7px">▲ 10배 이상</span>`; if(pct == null) return `<span style="font-size:10.5px;color:#aaa">전년 비교 불가</span>`; const flat = Math.abs(pct) < 0.05, c = flat ? "#888" : pct > 0 ? "#D32F2F" : "#1565C0"; return `<span style="font-size:11px;font-weight:800;color:${c};background:${flat ? "#F2F2F2" : pct > 0 ? "#FFEBEE" : "#E3F2FD"};border-radius:9px;padding:1px 7px">${flat ? "─" : pct > 0 ? "▲" : "▼"} ${Math.abs(pct).toFixed(1)}%</span>`; };
+const tradePctTxt = pct => pct >= 1000 ? "10배 이상" : Math.abs(pct).toFixed(1) + "%";
 const tradeMoney = kusd => { const v = Math.abs(kusd || 0); return (kusd < 0 ? "−" : "") + (v >= 1000 ? (v / 1000).toLocaleString(undefined, { maximumFractionDigits: 1 }) + "백만$" : Math.round(v).toLocaleString() + "천$"); };
 function tradeSpark(ys, color, w, h){
   const n = ys.length, mx = Math.max(1e-9, ...ys), bw = w / n;
@@ -11491,7 +11492,7 @@ function tradeSpark(ys, color, w, h){
 function tradePartners(it, i, n, field, totalArr){
   const acc = {}; let tot = 0;
   for(let j = Math.max(0, i - n + 1); j <= i; j++){ tot += totalArr[j] || 0; for(const [k, v] of Object.entries(it.cells[j][field] || {})) acc[k] = (acc[k] || 0) + v; }
-  const list = Object.entries(acc).sort((a, b) => b[1] - a[1]), top = list.slice(0, 5), used = top.reduce((s, x) => s + x[1], 0);
+  const list = Object.entries(acc).sort((a, b) => b[1] - a[1]), top = list.slice(0, 5).filter(x => x[1] >= tot * 0.005), used = top.reduce((s, x) => s + x[1], 0);
   return { tot, rows: top.concat(tot - used > tot * 0.005 ? [["기타", tot - used]] : []) };
 }
 function tradePartnerBar(p, unit){
@@ -11538,7 +11539,7 @@ function tradeItem(M, key){
   const chart1 = `<div style="font-size:12px;font-weight:800;color:#333;margin:4px 0 2px">📈 월별 수입(막대)·수출(선) 중량 <span style="font-weight:500;color:#999">(톤)</span></div>
     ${pfSvgChart("trade-vol-" + key, { label: meta.short + " 월별 수입·수출 중량", xl, xfull: xf, w: 360, h: 190, bars: true, zero: true, fmt: pfFmtN,
       series: [{ name: "수입(t)", kind: "bar", color: meta.color, opacity: 0.75, ys: it.t.slice(off) }].concat(it.hasEx ? [{ name: "수출(t)", color: "#37474F", ys: it.ex.slice(off), w: 2 }] : []),
-      extra: j => { const g = j + off, p = it.t[g - 12]; return `수입 금액 ${tradeMoney(it.usd[g])}${p ? ` · 전년비 ${pfSign(tradePct(it.t[g], p))}%` : ""}${it.hasEx ? ` · 수출 금액 ${tradeMoney(it.exUsd[g])}` : ""}`; } })}`;
+      extra: j => { const g = j + off, p = it.t[g - 12]; return `수입 금액 ${tradeMoney(it.usd[g])}${p ? ` · 전년비 ${tradePct(it.t[g], p) >= 1000 ? "10배 이상" : pfSign(tradePct(it.t[g], p)) + "%"}` : ""}${it.hasEx ? ` · 수출 금액 ${tradeMoney(it.exUsd[g])}` : ""}`; } })}`;
   const hasPrice = price.some(v => v != null);
   const chart2 = hasPrice ? `<div style="font-size:12px;font-weight:800;color:#333;margin:16px 0 2px">💲 수입 단가 <span style="font-weight:500;color:#999">(US$/kg · 수입 금액 ÷ 수입 중량)</span></div>
     ${pfSvgChart("trade-prc-" + key, { label: meta.short + " 수입 단가", xl, xfull: xf, w: 360, h: 150, fmt: v => "$" + v.toFixed(2), series: [{ name: "수입 단가", color: "#00695C", ys: price.slice(off), w: 2.2, connect: true }] })}` : "";
@@ -11553,8 +11554,8 @@ function tradeItem(M, key){
       <tbody>${rows.map(j => { const top = Object.entries(it.cells[j].by || {})[0], pc = tradePct(it.t[j], it.t[j - 12]); return `<tr style="border-bottom:1px solid #f6f6f6"><td style="padding:5px 6px;white-space:nowrap">${tradeYm(M.ks[j])}</td><td style="padding:5px 6px;text-align:right;font-weight:700;color:${meta.color}">${pfTon(it.t[j])}</td><td style="padding:5px 6px;text-align:right">${pc == null ? "-" : tradeBadge(pc)}</td><td style="padding:5px 6px;text-align:right;color:#666">${tradeMoney(it.usd[j])}</td><td style="padding:5px 6px;text-align:right">${it.hasEx ? pfTon(it.ex[j]) : "-"}</td><td style="padding:5px 6px;color:#555;white-space:nowrap">${top ? esc(top[0]) : "-"}</td></tr>`; }).join("")}</tbody></table></div>`;
   // 한눈에 읽는 요약(자동 문장) — 숫자는 모두 위 표·그래프와 같은 값
   const notes = [];
-  notes.push(`${tradeYm(M.ks[i])} 수입은 <b>${pfTon(cur)}t</b>${prv ? ` — 전년 같은 달보다 <b>${Math.abs(tradePct(cur, prv)).toFixed(1)}% ${cur >= prv ? "많습니다" : "적습니다"}</b>` : ""}.`);
-  if(y12 != null && y12p) notes.push(`최근 12개월 누적 수입은 ${pfTon(y12)}t로 직전 12개월보다 ${Math.abs(tradePct(y12, y12p)).toFixed(1)}% ${y12 >= y12p ? "늘었습니다" : "줄었습니다"}.`);
+  notes.push(`${tradeYm(M.ks[i])} 수입은 <b>${pfTon(cur)}t</b>${prv ? ` — 전년 같은 달보다 <b>${tradePctTxt(tradePct(cur, prv))} ${cur >= prv ? "많습니다" : "적습니다"}</b>` : ""}.`);
+  if(y12 != null && y12p) notes.push(`최근 12개월 누적 수입은 ${pfTon(y12)}t로 직전 12개월보다 ${tradePctTxt(tradePct(y12, y12p))} ${y12 >= y12p ? "늘었습니다" : "줄었습니다"}.`);
   if(p12.rows.length && p12.tot > 0) notes.push(`수입 비중 1위는 ${esc(p12.rows[0][0])}(${(p12.rows[0][1] / p12.tot * 100).toFixed(0)}%)입니다.`);
   if(key === "egg_fresh" && cur > 0) notes.push(`신선란은 중량 통계라, 개당 60g으로 보면 ${tradeYm(M.ks[i])} 수입은 약 ${Math.round(cur * 1e6 / 60 / 1e4).toLocaleString()}만 개입니다.`);
   if(key === "egg_hatching") notes.push("종란은 수입 시기가 드문드문하고 월별 변동이 커서, 한 달 값보다 12개월 누적을 보는 것이 좋습니다.");
