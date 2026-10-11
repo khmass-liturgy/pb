@@ -211,7 +211,9 @@ def main() -> int:
     sources = {}
     customs = {}
     if key:
-        print("관세청 공공데이터 API 시도")
+        # 키 값은 찍지 않고 모양만 — 길이·문자 종류로 시크릿에 엉뚱한 값이 들어갔는지 가려낸다
+        kind = "16진수만" if re.fullmatch(r"[0-9a-fA-F]+", key) else ("영숫자만" if re.fullmatch(r"[0-9A-Za-z]+", key) else "기호 포함")
+        print(f"관세청 공공데이터 API 시도 (키 길이 {len(key)}자, {kind}, % 디코딩 {'함' if '%' in os.environ.get('DATA_GO_KR_KEY', '') else '안 함'})")
         customs = fetch_customs(key)
         print("  관세청 결과:", {g: f"{len(v)}개월" + (f" ({min(v)}~{max(v)})" if v else "") for g, v in customs.items()})
         sources["customs"] = {"name": "관세청 품목별 국가별 수출입실적(data.go.kr)", "months": sum(len(v) for v in customs.values())}
