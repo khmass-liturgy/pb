@@ -23,7 +23,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.error import HTTPError, URLError
-from urllib.parse import quote, urlencode
+from urllib.parse import quote, unquote, urlencode
 from urllib.request import Request, urlopen
 
 KST = timezone(timedelta(hours=9))
@@ -206,6 +206,8 @@ def main() -> int:
         except ValueError:
             prev = {}
     key = os.environ.get("DATA_GO_KR_KEY", "").strip()
+    if "%" in key:                      # data.go.kr 「Encoding」 키(이미 % 인코딩)를 넣어도 두 번 인코딩되지 않게 원래 키로 되돌린다
+        key = unquote(key)
     sources = {}
     customs = {}
     if key:
