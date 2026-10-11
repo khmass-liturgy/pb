@@ -39,7 +39,7 @@ GROUPS = {
     "egg_hatching": {"label": "종란 (HS 040711)", "hs": ["040711"]},
 }
 COMTRADE = "https://comtradeapi.un.org/public/v1/preview/C/M/HS"
-CUSTOMS = "https://apis.data.go.kr/1220000/Itemtrade/getItemtradeList"
+CUSTOMS = "https://apis.data.go.kr/1220000/nitemtrade/getNitemtradeList"        # 관세청_품목별 국가별 수출입실적(GW)
 
 
 def month_list(n: int) -> list[str]:
