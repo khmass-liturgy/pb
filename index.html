@@ -9042,6 +9042,18 @@ let studyNavState = { deckKey: null, cardIndex: 0, flipped: false, adminOpen: fa
 function treatmentProgramToText(program){
   return (program||[]).map(s => `${s.step}|${s.link ? s.link + "|" : ""}${s.detail}`).join("\n");
 }
+// AI 초안 줄 형식 → 입력칸 값. "증상:"·"주의:" 줄은 각각 증상/징후·주의사항 칸으로, 나머지("원인|…", "해결 n. 제목|…")는 프로그램 칸으로.
+function treatmentParseAiDraft(text){
+  const out = { symptom: "", caution: "", program: "" }, lines = [];
+  for(const raw of String(text || "").split("\n")){
+    const line = raw.replace(/^[\s*•\-]+/, "").trim(); if(!line) continue;
+    const m = line.match(/^(증상|주의)\s*[:：]\s*(.*)$/);
+    if(m){ out[m[1] === "증상" ? "symptom" : "caution"] = m[2].trim(); continue; }
+    if(line.includes("|")) lines.push(line.replace(/^해결\s*(\d+)\.\s*/, "$1. "));
+  }
+  out.program = lines.join("\n");
+  return out;
+}
 function treatmentProgramFromText(text){
   return String(text||"").split("\n").map(l=>l.trim()).filter(Boolean).map(line=>{
     const idx = line.indexOf("|");
@@ -9470,7 +9482,9 @@ function renderTreatmentPanel(){
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
         <input id="tp-title" type="text" placeholder="상황 제목 (예: 괴사성 장염 의심 시)" value="${esc(editing?editing.title:"")}"
           style="flex:1;min-width:180px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />
+        <button id="tp-ai-btn" type="button" style="border:1px solid #6A1B9A;border-radius:7px;background:#fff;color:#6A1B9A;padding:6px 11px;font-size:11.5px;font-weight:700;white-space:nowrap">🤖 AI로 증상·원인·해결책 요점 입력</button>
       </div>
+      <div id="tp-ai-msg" style="font-size:11px;color:#6A1B9A;margin:-2px 0 6px;min-height:0"></div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
         <input id="tp-trigger" type="text" placeholder="증상/징후 (예: 혈변, 폐사 증가...)" value="${esc(editing?editing.trigger:"")}"
           style="flex:1;min-width:180px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" />
@@ -20082,6 +20096,33 @@ function attachEvents(){
     const inp = document.getElementById("tp-icon");
     if(inp) inp.value = b.dataset.icon;
   });
+  // 상황 제목 → AI가 증상·원인·해결책 요점 초안을 입력칸에 채운다(발행은 하지 않음 — 확인·수정 후 「추가 발행」).
+  // 입력 중인 내용이 render()로 지워지지 않도록 화면을 다시 그리지 않고 입력칸만 직접 바꾼다.
+  const tpAiBtn = document.getElementById("tp-ai-btn"), tpAiMsg = document.getElementById("tp-ai-msg");
+  const tpSetMsg = (t, err)=>{ if(tpAiMsg){ tpAiMsg.textContent = t; tpAiMsg.style.color = err ? "#C62828" : "#6A1B9A"; } };
+  let tpAiBusy = false;
+  const tpRunAi = async (force)=>{
+    if(tpAiBusy) return;
+    const $ = id => document.getElementById(id);
+    const title = ($("tp-title")?.value || "").trim(), progEl = $("tp-program"), trigEl = $("tp-trigger"), cauEl = $("tp-caution");
+    if(!title){ tpSetMsg("상황 제목을 먼저 입력하세요.", true); return; }
+    if(progEl && progEl.value.trim() && !(force && confirm("지금 입력한 투약 프로그램을 AI 초안으로 바꿀까요?"))) return;
+    tpAiBusy = true; if(tpAiBtn) tpAiBtn.disabled = true;
+    tpSetMsg("🤖 AI가 증상·원인·해결책 요점을 정리하는 중... (보통 10~30초)");
+    const sp = treatmentTabState.species === "broiler" ? "육계" : "산란계";
+    const r = await generateAiDraft("treatment", title, sp + (trigEl && trigEl.value.trim() ? " / 입력된 증상: " + trigEl.value.trim() : ""));
+    tpAiBusy = false; if(tpAiBtn) tpAiBtn.disabled = false;
+    if(!r.ok){ tpSetMsg("AI 초안 실패: " + r.error, true); return; }
+    const d = treatmentParseAiDraft(r.text);
+    if(!d.program.length){ tpSetMsg(d.symptom === "해당 없음" ? "이 제목은 양계 사양·질병 상황이 아니라고 판단했습니다. 제목을 확인하세요." : "AI 응답에서 해결 단계를 읽지 못했습니다. 다시 시도해 주세요.", true); return; }
+    if(trigEl && !trigEl.value.trim() && d.symptom) trigEl.value = d.symptom;
+    if(progEl) progEl.value = d.program;
+    if(cauEl && !cauEl.value.trim() && d.caution) cauEl.value = d.caution;
+    tpSetMsg("AI 초안을 넣었습니다 — 내용을 확인·수정한 뒤 「추가 발행」을 누르세요. (약품·용량은 수의사가 직접 정합니다)");
+  };
+  if(tpAiBtn) tpAiBtn.onclick = ()=>tpRunAi(true);
+  const tpTitleEl = document.getElementById("tp-title");
+  if(tpTitleEl) tpTitleEl.onchange = ()=>{ if(!treatmentTabState.formKey) tpRunAi(false); };   // 새 상황 추가 중이고 프로그램 칸이 비어 있을 때만 자동
   const treatmentSaveBtn = document.getElementById("tp-save");
   if(treatmentSaveBtn) treatmentSaveBtn.onclick = async ()=>{
     const title = (document.getElementById("tp-title")?.value || "").trim();
