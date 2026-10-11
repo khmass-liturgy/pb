@@ -68,7 +68,11 @@ def customs_get(url: str, tries: int = 3, timeout: int = 40) -> str | None:
             with urlopen(req, timeout=timeout, context=CTX) as r:
                 return r.read().decode("utf-8", "replace")
         except HTTPError as e:
-            print(f"    중계 서버 HTTP {e.code}")
+            try:
+                detail = e.read().decode("utf-8", "replace")[:300].replace(chr(10), " ")
+            except Exception:
+                detail = ""
+            print(f"    중계 서버 HTTP {e.code}: {detail}")        # 서버 응답 본문(허용 주소 오류인지 관세청 쪽 오류인지 구분)
             if e.code in (401, 403):
                 return None                      # 인증·허용 주소 문제는 재시도해도 같다(서버 코드 미반영 등)
         except (URLError, OSError) as e:
@@ -211,6 +215,9 @@ def main() -> int:
         sources["customs"] = {"name": "관세청 품목별 국가별 수출입실적(data.go.kr)", "months": sum(len(v) for v in customs.values())}
     else:
         print("DATA_GO_KR_KEY 없음 — 관세청 API는 건너뜁니다")
+    if os.environ.get("CUSTOMS_ONLY") == "1":
+        print("CUSTOMS_ONLY — UN Comtrade 단계는 건너뜁니다(관세청 연결 점검용)")
+        return 0
     print("UN Comtrade 공개 API 시도")
     comtrade = fetch_comtrade({g: (v or {}).get("months", {}) for g, v in (prev.get("series") or {}).items()}, os.environ.get("FULL") == "1",
                               {g: set(v) for g, v in customs.items()})
