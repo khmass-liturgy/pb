@@ -11899,6 +11899,10 @@ const PF = {
   momentumPerPoint: 5,             // 최근 한 달 가격이 5% 움직이면 같은 방향 1점
   momentumCap: 1.5,
   k: 0.6, flatWeight: 1.5,         // 확률 계산 기울기와 보합 쪽 기본 무게
+  // 수입 반영(공급 압력 가산): 수입량의 전년 대비 증감(톤)을 국내 월 공급량에 대한 %p로 바꿔 사료 기준 공급 압력에 더한다.
+  // domesticT는 월 국내 공급량 경험값(통계가 아닌 가정)이다. 검증에서 오차가 줄 때만 실제 예측에 쓰고, 아니면 참고로만 보여 준다.
+  importDomesticT: { broiler: 85000, egg: 60000 },
+  importMinMonths: 10,             // 수입 반영 효과를 검증하려면 수입 가산이 있는 달이 이만큼은 있어야 한다
 };
 const PF_COLORS = { up: "#D32F2F", flat: "#9E9E9E", down: "#1565C0" };   // 가격 상승=빨강, 하락=파랑(한국 시세 관례)
 const pfState = { status: "idle", showTable: false };
@@ -12246,6 +12250,30 @@ function pfSupplySeries(ymList, feed, species){
   });
 }
 
+// 수입 공급 압력(%p): 최근 3개월 수입량 합계의 전년 같은 기간 대비 증감(톤) ÷ (3개월 × 월 국내 공급량 가정). 둘 중 한쪽이라도 자료가 없으면 null.
+// 닭고기는 HS 0207, 계란은 신선란(040721)만 쓴다(종란은 소비용이 아님). stats: import_status/stats.json
+function pfImportSeries(ymList, stats, species){
+  const g = stats && stats.series && stats.series[species === "broiler" ? "chicken" : "egg_fresh"];
+  const mon = g && g.months;
+  const D = PF.importDomesticT[species];
+  if(!mon || !D) return ymList.map(() => null);
+  const key = ym => ym.replace("-", "");
+  const shift = (ym, n) => { let [y, m] = ym.split("-").map(Number); m += n; while(m < 1){ m += 12; y--; } while(m > 12){ m -= 12; y++; } return y + "-" + String(m).padStart(2, "0"); };
+  // 관세청·UN 통계는 수입이 없는 달을 행으로 주지 않는다 — 수집 범위(전 품목 월 중 가장 이른 달~가장 늦은 달) 안의 빈 달은 0톤으로 본다.
+  const all = Object.values(stats.series).flatMap(x => Object.keys((x && x.months) || {})).sort();
+  const lo = all[0], hi = all[all.length - 1];
+  const val = ym => { const k = key(ym), c = mon[k]; if(c && typeof c.t === "number") return c.t; return lo && k >= lo && k <= hi ? 0 : null; };
+  return ymList.map(ym => {
+    let a = 0, b = 0;
+    for(let k = 0; k < 3; k++){
+      const c = val(shift(ym, -k)), p = val(shift(ym, -k - 12));
+      if(c == null || p == null) return null;
+      a += c; b += p;
+    }
+    return (a - b) / (3 * D) * 100;
+  });
+}
+
 // 월별 계절지수: 각 달의 (로그가격 − 직전 12개월 평균)을 같은 달끼리 평균. origin 이전 자료만 쓴다.
 function pfSeasonality(y, upto){
   const sum = new Array(12).fill(0), cnt = new Array(12).fill(0);
@@ -12464,18 +12492,43 @@ function pfForecast(species, ser, hz, flat, supplyShift){
   const M = pfMonthly(ser.price);
   out.M = M; out.nMonths = M.ym.length; out.filled = M.filled;
   if(M.ym.length < 12 + hz.n + PF_MIN_TRAIN){ out.status = "insufficient"; out.note = `월별 가격 ${M.ym.length}개월 — ${hz.label} 예측에는 최소 ${12 + hz.n + PF_MIN_TRAIN}개월이 필요합니다.`; return out; }
-  const sp = pfSupplySeries(M.ym, ser.feed, species);
-  const have = sp.filter(v => v != null).length;
-  const useSupply = have >= M.ym.length * 0.5;
+  const sp0 = pfSupplySeries(M.ym, ser.feed, species);
+  const spImp = pfImportSeries(M.ym, ser.imports, species);
   const y = M.v.map(Math.log), T = y.length - 1;
-  let fit = pfFitMonthly(y, sp, T, hz.n, useSupply && sp[T] != null);
-  const useS = !!(fit && fit.useSupply);
-  if(!fit){ out.status = "insufficient"; out.note = "학습 표본이 부족합니다."; return out; }
-  const raw = pfBacktestMonthly(M, sp, hz.n, flat, useS), shrink = pfShrink(raw), recs = pfNested(raw, hz.n, flat), table = pfCalibrationTable(recs);
-  const pr = pfPredictMonthly(fit, y, sp, T, flat, supplyShift, shrink);
-  out.useSupply = useS; out.sp = sp; out.pred = pr; out.recs = recs; out.score = pfScore(recs, flat); out.shrink = shrink; out.grade = pfGrade(out.score);
-  out.calib = pfCalibrate(pr.p, table);
-  out.lastYm = M.ym[T]; out.table = table; out.fit = fit;
+  const run = (sp, force) => {
+    const have = sp.filter(v => v != null).length;
+    const useSupply = force || have >= M.ym.length * 0.5;
+    const fit = pfFitMonthly(y, sp, T, hz.n, useSupply && sp[T] != null);
+    if(!fit) return null;
+    const useS = !!fit.useSupply;
+    const raw = pfBacktestMonthly(M, sp, hz.n, flat, useS), shrink = pfShrink(raw), recs = pfNested(raw, hz.n, flat), table = pfCalibrationTable(recs);
+    return { sp, fit, useS, shrink, recs, table, score: pfScore(recs, flat) };
+  };
+  const base = run(sp0);
+  if(!base){ out.status = "insufficient"; out.note = "학습 표본이 부족합니다."; return out; }
+  // 수입 반영: 후보 모형(사료 공급 압력 + 수입 증감 %p, 사료 자료가 모자라면 수입 증감만)으로 같은 검증을 한 번 더 돌려
+  // 가격 오차(WAPE)가 줄어든 때만 채택한다. 수입 자료가 없는 달은 가산 0(중립)이라 학습 표본이 줄지 않는다.
+  let use = base, impEffect = null;
+  if(ser.imports){
+    const nImp = spImp.filter(v => v != null).length;
+    impEffect = { months: nImp, wapeBase: null, wapeWith: null, used: false, last: [...spImp].reverse().find(v => v != null) ?? null, mode: base.useS ? "feed+import" : "import-only" };
+    let cand = null;
+    if(nImp >= PF.importMinMonths){
+      const spAll = base.useS ? sp0.map((v, i) => v == null ? null : v + (spImp[i] == null ? 0 : spImp[i])) : spImp;
+      cand = run(spAll, !base.useS);                 // 사료 자료가 짧아 기본 모형이 공급 특성을 안 쓰는 경우엔 수입 증감만 공급 특성으로 시험
+    }
+    const wb = base.score && base.score.model.wape, wi = cand && cand.useS && cand.score && cand.score.model.wape;
+    impEffect.wapeBase = wb == null ? null : wb; impEffect.wapeWith = wi || null;
+    if(wb != null && wi && wi < wb){ use = cand; impEffect.used = true; }
+    else if(nImp < PF.importMinMonths) impEffect.why = `수입 자료가 있는 달이 ${nImp}개월뿐이라(최소 ${PF.importMinMonths}개월) 효과를 검증할 수 없습니다`;
+    else if(!wi) impEffect.why = "수입 증감만으로는 검증 표본이 모자라(수입 자료가 2023년 11월부터라 전년 대비를 구할 수 있는 달이 짧음) 효과를 검증할 수 없습니다";
+    else impEffect.why = "수입을 더해 검증했더니 오차가 줄지 않아 예측에는 반영하지 않았습니다";
+  }
+  const pr = pfPredictMonthly(use.fit, y, use.sp, T, flat, supplyShift, use.shrink);
+  out.useSupply = use.useS; out.sp = use.sp; out.spFeed = sp0; out.spImp = spImp; out.impEffect = impEffect;
+  out.pred = pr; out.recs = use.recs; out.score = use.score; out.shrink = use.shrink; out.grade = pfGrade(out.score);
+  out.calib = pfCalibrate(pr.p, use.table);
+  out.lastYm = M.ym[T]; out.table = use.table; out.fit = use.fit;
   return out;
 }
 
@@ -12592,7 +12645,7 @@ function pfDemoData(){
 
 // 화면에서 쓰는 한 벌의 자료. 데모면 가짜, 아니면 저장소 + 관리자 발행 + 내 업로드를 합친다.
 function pfSeries(){
-  if(pfx.demo){ const c = pfx.cache.demoData || (pfx.cache.demoData = pfDemoData()); return { egg: { price: c.prices.egg, feed: c.feed }, broiler: { price: c.prices.broiler, feed: c.feed }, headcount: c.headcount, consumption: c.consumption, demo: true, feed: c.feed }; }
+  if(pfx.demo){ const c = pfx.cache.demoData || (pfx.cache.demoData = pfDemoData()); return { egg: { price: c.prices.egg, feed: c.feed }, broiler: { price: c.prices.broiler, feed: c.feed }, headcount: c.headcount, consumption: c.consumption, demo: true, feed: c.feed, imports: null }; }
   const h = (pfx.hist && pfx.hist.series) || {}, p = (pfx.pub && pfx.pub.prices) || {}, l = pfx.local.prices || {};
   const feed = { ...((pfx.hist && pfx.hist.feed_monthly) || {}), ...((pfx.pub && pfx.pub.feed) || {}), ...(pfx.local.feed || {}) };
   const price = { egg: pfMergeRows((h.egg || {}).rows, p.egg, l.egg), broiler: pfMergeRows((h.broiler_live || {}).rows, p.broiler, l.broiler) };
@@ -12601,7 +12654,7 @@ function pfSeries(){
   price.egg = pfx.cache[ck].egg; price.broiler = pfx.cache[ck].broiler;
   return { egg: { price: price.egg, feed }, broiler: { price: price.broiler, feed }, feed,
     headcount: [...((pfx.pub && pfx.pub.headcount) || []), ...(pfx.local.headcount || [])],
-    consumption: [...((pfx.pub && pfx.pub.consumption) || []), ...(pfx.local.consumption || [])], demo: false };
+    consumption: [...((pfx.pub && pfx.pub.consumption) || []), ...(pfx.local.consumption || [])], demo: false, imports: pfx.impStats || null };
 }
 
 // CSV/탭 구분 텍스트 파싱(첫 줄이 머리글이면 건너뜀). 쉼표·탭·세미콜론을 모두 허용하고 숫자의 천 단위 쉼표는 따옴표로 둘러싼 경우만 처리한다.
@@ -12790,7 +12843,7 @@ function pfResult(species, hzKey, withScenario){
   const key = [species, hzKey, shift, pfx.rev, pfx.flat, pfx.demo ? 1 : 0].join("|");
   if(pfx.cache[key]) return pfx.cache[key];
   const S = pfSeries(); let r;
-  try { r = pfForecast(species, { price: S[species].price, feed: S.feed }, pfHz(hzKey), pfx.flat, shift); }
+  try { r = pfForecast(species, { price: S[species].price, feed: S.feed, imports: S.imports }, pfHz(hzKey), pfx.flat, shift); }
   catch(e){ r = { status: "error", note: String(e.message || e) }; pfLog("계산 오류(" + species + "/" + hzKey + "): " + (e.message || e)); }
   pfx.cache[key] = r; return r;
 }
@@ -12876,14 +12929,16 @@ function pfTabSpecies(species){
   let kpi = "", main = "";
   if(r.status === "ok"){
     const p = r.pred, c = r.calib, hz = pfHz(pfx.horizon), g = r.grade;
-    const supplyTxt = r.sp && r.sp[r.sp.length - 1] != null ? `사료 기준 공급 ${pfSign(r.sp[r.sp.length - 1])}% (전년 대비)` : "공급 자료 없음";
+    const ie = r.impEffect, spLast = r.sp && r.sp[r.sp.length - 1];
+    const supplyTxt = spLast != null ? `${ie && ie.used ? "사료+수입 기준" : "사료 기준"} 공급 ${pfSign(spLast)}% (전년 대비)` : "공급 자료 없음";
+    const impTxt = ie ? (ie.used ? ` · 수입 ${ie.last != null ? pfSign(ie.last) + "%p " : ""}반영(검증 통과)` : ` · 최근 수입 공급 압력 ${ie.last != null ? pfSign(ie.last) + "%p" : "-"} — 예측에는 미반영(효과 검증 전)`) : "";
     const sc = pfScenActive() ? pfResult(species, pfx.horizon, true) : null;
     kpi = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
       ${pfKpi("현재 산지가격", pfWon(p.base), `${sp.unit} · 기준 ${esc(r.lastYm || r.lastDate || "")} 월평균`, sp.color)}
       ${pfKpi(`AI 예상가격 (${hz.label} 뒤 P50)`, pfWon(p.p50), `80% 구간 ${pfWon(p.lo80)}~${pfWon(p.hi80)} · 90% ${pfWon(p.lo90)}~${pfWon(p.hi90)}`, "#4527A0")}
       ${pfKpi("가격 상승 확률", Math.round(c.up * 100) + "%", `기준 +${(pfx.flat * 100).toFixed(1)}% 초과 · ${c.calibrated ? "과거 검증으로 보정" : "보정 전(표본 부족)"}`, PF_COLORS.up)}
       ${pfKpi("가격 하락 확률", Math.round(c.down * 100) + "%", `기준 −${(pfx.flat * 100).toFixed(1)}% 미만 · 보합 ${Math.round(c.flat * 100)}%`, PF_COLORS.down)}
-      ${pfKpi("예상 공급·소비 격차", supplyTxt, S.consumption && S.consumption.length ? "소비 통계 연결됨" : "소비 통계 미연결 — 계절지수로 대용", "#555")}
+      ${pfKpi("예상 공급·소비 격차", supplyTxt, (S.consumption && S.consumption.length ? "소비 통계 연결됨" : "소비 통계 미연결 — 계절지수로 대용") + impTxt, "#555")}
       ${pfKpi("데이터·예측 신뢰도", `<span style="color:${g.c}">${g.t}</span>`, esc(g.why) + (S.demo ? " (데모 자료 기준)" : ""), g.c)}
     </div>`;
     main = `<div style="font-size:12px;font-weight:800;color:#333;margin:4px 0 2px">📈 가격 실적(실선) · 예측(점선) · 예측구간(음영)</div>${pfPriceChart(species, "pf-price-" + species)}
@@ -13202,6 +13257,7 @@ function pfTabData(){
 function pfMethodHtml(){
   return `<details style="margin-top:12px"><summary style="font-size:12px;font-weight:800;color:#333;cursor:pointer">🧪 분석 방법 (펼치기)</summary>
     <div style="font-size:11.5px;color:#555;line-height:1.8;margin-top:6px">
+    <b>수입 연결</b> — 관세청 월별 수입량(닭고기 HS 0207, 신선란 040721)의 최근 3개월 합계가 전년 같은 기간보다 늘거나 준 양(톤)을 국내 월 공급량 가정(육계 8.5만 톤, 계란 6만 톤)으로 나눠 공급 압력(%p)으로 바꿉니다. 이 값을 가격 모형에 넣은 버전과 넣지 않은 버전을 같은 방식으로 과거 검증해서, **오차가 줄어든 경우에만** 예측에 반영합니다. 수입 자료가 2023년 11월부터라 아직 검증할 표본이 모자라 현재는 참고 표시만 하며, 자료가 쌓이면 자동으로 다시 판단합니다.<br>
     <b>1. 공급 잠재력</b> — 배합사료 월 생산량을 품종 표준 사료섭취량(육계 Ross 308, 산란계 Hy-Line Brown)으로 나눠 마릿수를 추정합니다. 육계는 전기·후기 사료와 33일 출하 기준, 산란계는 산란 중 사료 ÷ (1일 섭취량 × 일수)입니다. 재고·유통 시차 보정과 육성계·종계 분리는 자료가 없어 하지 않았고, 육계·산란계 사료가 합쳐진 통계는 임의로 나누지 않습니다. 실제 사육 통계와는 「사료·사육 분석」에서 견줍니다.<br>
     <b>2. 소비 잠재력</b> — 소비 통계가 연결되면 그 값을, 아니면 명절·복날·방학 같은 계절지수(경험값)를 대용으로 씁니다. 가격 데이터에서는 12개월 평균 대비 계절 편차를 학습해 계절 변화로 넣습니다.<br>
     <b>3. 가격 예측</b> — 월평균 가격(로그)의 h개월 뒤 변화율을 릿지 회귀로 예측합니다. 특성은 ①사료 기반 공급 압력(전년 대비 3개월) ②계절 변화 ③최근 한 달 가격 변화 ④12개월 평균 대비 위치입니다. 1·2주는 일별 가격으로 최근 5건 변화와 40건 평균 대비 위치를 씁니다. 6개월 예측은 신뢰도가 낮으니 참고만 하세요.<br>
