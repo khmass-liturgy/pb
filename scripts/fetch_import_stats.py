@@ -148,6 +148,38 @@ def fetch_comtrade(prev_months: dict[str, dict], full: bool, skip: dict[str, set
     return out
 
 
+def customs_variants(key: str) -> None:
+    """관세청 API가 어떤 요청변수 조합을 받는지 점검(CUSTOMS_ONLY=1일 때만). 키는 찍지 않고 응답 모양만 로그에 남긴다."""
+    months = month_list(MONTHS_BACK)
+    last_full = months[-10]                      # 최근 달은 아직 집계 전일 수 있어 조금 지난 달로
+    tests = [
+        ("닭고기 0207, 국가 없음", {"strtYymm": last_full, "endYymm": last_full, "hsSgn": "0207"}),
+        ("닭고기 0207, 국가 BR", {"strtYymm": last_full, "endYymm": last_full, "hsSgn": "0207", "cntyCd": "BR"}),
+        ("닭고기 0207, 국가 없음, 12개월 범위", {"strtYymm": months[-22], "endYymm": months[-11], "hsSgn": "0207"}),
+        ("닭고기 10자리 0207131000, 국가 BR", {"strtYymm": last_full, "endYymm": last_full, "hsSgn": "0207131000", "cntyCd": "BR"}),
+        ("신선란 040721, 국가 없음", {"strtYymm": last_full, "endYymm": last_full, "hsSgn": "040721"}),
+        ("신선란 040721, 국가 US", {"strtYymm": last_full, "endYymm": last_full, "hsSgn": "040721", "cntyCd": "US"}),
+    ]
+    for label, params in tests:
+        q = urlencode({"serviceKey": key, **params, "numOfRows": 5, "pageNo": 1})
+        body = customs_get(CUSTOMS + "?" + q, tries=1)
+        if not body:
+            print(f"  [{label}] 응답 없음")
+            time.sleep(1)
+            continue
+        try:
+            root = ET.fromstring(body)
+        except ET.ParseError:
+            print(f"  [{label}] XML 아님: {body[:150]!r}")
+            continue
+        code = (root.findtext(".//resultCode") or root.findtext(".//returnReasonCode") or "").strip()
+        msg = (root.findtext(".//resultMsg") or root.findtext(".//returnAuthMsg") or root.findtext(".//errMsg") or "").strip()
+        items = list(root.iter("item"))
+        first = {c.tag: (c.text or "").strip() for c in items[0]} if items else {}
+        print(f"  [{label}] 코드={code or '-'} 메시지={msg[:60] or '-'} item={len(items)}건 totalCount={root.findtext('.//totalCount') or '-'} 첫항목={first}")
+        time.sleep(1)
+
+
 def fetch_customs(key: str) -> dict[str, dict[str, dict]]:
     """관세청 품목별 국가별 수출입실적(data.go.kr). 응답은 XML — 필드명이 문서와 다를 수 있어 여러 이름을 허용한다."""
     out: dict[str, dict[str, dict]] = {g: {} for g in GROUPS}
@@ -219,6 +251,9 @@ def main() -> int:
         sources["customs"] = {"name": "관세청 품목별 국가별 수출입실적(data.go.kr)", "months": sum(len(v) for v in customs.values())}
     else:
         print("DATA_GO_KR_KEY 없음 — 관세청 API는 건너뜁니다")
+    if os.environ.get("CUSTOMS_ONLY") == "1" and key:
+        print("관세청 요청변수 조합 점검")
+        customs_variants(key)
     if os.environ.get("CUSTOMS_ONLY") == "1":
         print("CUSTOMS_ONLY — UN Comtrade 단계는 건너뜁니다(관세청 연결 점검용)")
         return 0
