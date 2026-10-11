@@ -9,6 +9,9 @@ on:
       full:
         description: "1이면 최근 36개월 전체를 다시 받는다(처음 한 번)"
         required: false
+      customs_only:
+        description: "1이면 관세청 연결만 점검하고 UN 자료 단계는 건너뛴다(몇 분)"
+        required: false
 
 permissions:
   contents: write
@@ -30,6 +33,7 @@ jobs:
           SMS_RELAY_URL: ${{ secrets.SMS_RELAY_URL }}
           SMS_RELAY_SECRET: ${{ secrets.SMS_RELAY_SECRET }}
           FULL: ${{ github.event.inputs.full || '' }}
+          CUSTOMS_ONLY: ${{ github.event.inputs.customs_only || '' }}
         run: python scripts/fetch_import_stats.py
       - name: 변경이 있으면 커밋
         run: |
