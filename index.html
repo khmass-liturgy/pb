@@ -2040,7 +2040,7 @@ function vaccineSameAge(a, b){
 // 임시로 들고 있다가, 항목을 추가·수정할 때 그 행에 같이 저장한다(직접
 // 타이핑한 백신명에는 링크가 없다). 행을 편집할 때는 그 행에 이미 저장된
 // 링크로 다시 채운다.
-let vaccineTabState = { species: "broiler", openKey: null, adminOpen: false, formKey: undefined,
+let vaccineTabState = { view: "program", species: "broiler", openKey: null, adminOpen: false, formKey: undefined,
   draftTitle: "", draftDesc: "", draftCaution: "", draftSchedule: [], rowEditIndex: null, draftRowLink: "" };
 
 function resetVaccineForm(editing){
@@ -2110,9 +2110,12 @@ function renderVaccinePanel(){
     <button id="vaccine-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button>
   </div>`;
 
+  const viewBar = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px" role="tablist">${[["program", "📅 접종 프로그램"], ["guide", "💉 접종방법·백신 종류"]].map(([k, l]) => `<button type="button" role="tab" aria-selected="${vaccineTabState.view === k}" class="vaccine-view-btn" data-view="${k}" style="border:1px solid ${vaccineTabState.view === k ? "#3949AB" : "#ddd"};background:${vaccineTabState.view === k ? "#3949AB" : "#fff"};color:${vaccineTabState.view === k ? "#fff" : "#555"};border-radius:16px;padding:6px 14px;font-size:12.5px;font-weight:${vaccineTabState.view === k ? 800 : 500};cursor:pointer">${l}</button>`).join("")}</div>`;
+  if(vaccineTabState.view === "guide") return head + viewBar + renderVaccineGuide();
+
   const st = vaccinePkgState;
   if(st.status === "idle" || st.status === "loading"){
-    return head + `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⏳ 불러오는 중...</div>`;
+    return head + viewBar + `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⏳ 불러오는 중...</div>`;
   }
 
   const admin = isBoardAdmin();
@@ -2234,7 +2237,7 @@ function renderVaccinePanel(){
     </div>` : ""}
   </div>`;
 
-  return head + `
+  return head + viewBar + `
   <div style="display:flex;gap:8px;margin-bottom:14px">${speciesBtns}</div>
   ${cards}
   ${adminBox}
@@ -2242,6 +2245,145 @@ function renderVaccinePanel(){
     ※ 백신 프로그램은 지역·계열사·농장 발병 이력에 따라 달라질 수 있는 참고 자료입니다. 실제 접종은 반드시 담당 수의사와 상의해 조정하세요.
     새로운 프로그램은 계속 추가됩니다.
   </div>`;
+}
+
+// ── 백신 접종방법·백신 종류 안내 (백신관리 프로그램 안의 두 번째 보기) ─────────────────────────────
+// 접종방법(음수·분무·사독 주사·천자·점안)과 백신 종류(생독·생균·사독)를 분류별로 특징·해당 백신·사용요령과 함께 보여 준다.
+// 처음에는 아래 기본 내용(VACCINE_GUIDE_SEED)이 보이고, 관리자가 「⚙ 관리」에서 고쳐 발행하면 premium_content/vaccine_guide가 그 자리를 대신한다.
+// 일반적인 수의학 지식을 요점으로 정리한 참고 자료이며, 제품별 허가 용법·설명서가 우선한다.
+const VACCINE_GUIDE_SEED = {
+  methods: [
+    { key: "m_water", icon: "💧", color: "#1565C0", name: "음수백신", summary: "물에 타서 먹이는 단체 접종 — 노동력이 적고 스트레스가 적습니다.",
+      features: "많은 수수를 짧은 시간에 접종할 수 있고 닭을 잡지 않아 스트레스가 적습니다.\n닭마다 마시는 물의 양이 달라 면역이 고르지 않을 수 있습니다.\n물속 염소·소독제·금속 이온·오염물이 생백신 바이러스를 죽입니다.\n주로 생독백신(뉴캣슬·전염성기관지염·전염성F낭병)에 쓰입니다.",
+      vaccines: "뉴캣슬병 생백신(B1·라소타 계열)\n전염성기관지염(IB) 생백신\n전염성F낭병(IBD·감보로) 생백신\n닭콜레라(파스튜렐라) 생균백신 — 음수용 제품에 한함",
+      tips: "접종 전에 급수라인을 청소하고 물의 염소·소독제를 중화합니다(안정제 사용은 제품 설명서에 따릅니다).\n접종 전에 물을 잠시 끊어 갈증을 만든 뒤, 백신 물이 1~2시간 안에 소진되도록 물량을 계산합니다(제품 설명서 우선).\n모든 닭이 마실 수 있도록 급수기 수와 위치를 확인합니다.\n백신 물에 항생제·소독제를 함께 넣지 않고, 접종 전후의 소독제 급수는 쉽니다.\n용해한 백신은 즉시 쓰고 남은 것은 폐기합니다." },
+    { key: "m_spray", icon: "🌫️", color: "#00838F", name: "분무백신", summary: "미세 입자로 뿌려 호흡기·눈 점막으로 접종 — 부화장·계사에서 단체 접종합니다.",
+      features: "한 번에 많은 닭을 접종하고 호흡기 점막(국소) 면역이 잘 만들어집니다.\n입자 크기가 중요합니다. 입자가 작을수록 폐 깊이 들어가 호흡기 반응(백신 반응)이 심해질 수 있어, 초생추에는 입자가 큰 분무를 주로 씁니다(장비·제품 설명서 확인).\n고르게 닿지 않으면 접종 누락이 생기고, 먼지·암모니아가 심하면 호흡기 반응이 커집니다.",
+      vaccines: "뉴캣슬병 생백신\n전염성기관지염(IB) 생백신\n콕시듐증 생백신(부화장 분무형 제품)",
+      tips: "분무기 노즐·압력·입자 크기를 점검하고, 제품이 지정한 희석액으로 시험 분무를 해 봅니다.\n부화장에서는 병아리 상자 전체에 고르게 분무하고, 솜털이 마를 때까지 보온합니다.\n농장 접종 때는 닭이 조용한 상태에서 분무하고 일정 시간 뒤 환기를 되돌립니다.\n접종자는 마스크·보안경을 착용합니다(생백신 흡입 주의)." },
+    { key: "m_inject", icon: "💉", color: "#6A1B9A", name: "사독백신(주사접종)", summary: "죽인 병원체와 보강제를 근육·피하에 주사 — 개체별로 정확하게, 면역이 오래 갑니다.",
+      features: "한 마리씩 정확한 양을 접종하므로 면역이 고르고 오래 갑니다(산란계·종계에 널리 사용).\n노동력이 많이 들고 닭이 스트레스를 받으며 주사 부위 반응(붓기, 도계 시 육질 불량)이 생길 수 있습니다.\n주사 부위는 가슴 근육이나 목 뒤 피하(제품 설명서에 따릅니다).\n마렉병 백신처럼 생독이어도 부화장에서 주사로 접종하는 제품이 있습니다.",
+      vaccines: "뉴캣슬병·전염성기관지염·산란저하증후군(EDS) 사독 백신(오일·겔)\n전염성F낭병·레오바이러스 사독 백신(종계)\n살모넬라(엔테리티디스) 사독 백신\n마렉병 백신(부화장 피하 접종, 생독)",
+      tips: "냉장 보관한 백신은 접종 전에 실온 가까이 되돌립니다(차가운 오일은 주입이 어렵고 반응이 큽니다).\n아픈 개체는 나중에 접종하거나 제외합니다.\n바늘은 자주 바꾸고 소독해 감염 전파를 막습니다.\n접종 후 주사 부위 반응과 쓰러지는 닭이 있는지 살핍니다.\n육계는 도계 전 접종 간격을 지켜 육질 불량을 막습니다(제품 설명서)." },
+    { key: "m_wing", icon: "🪶", color: "#E65100", name: "천자백신", summary: "날개막(날개 안쪽의 얇은 부분)을 바늘로 찔러 접종합니다.",
+      features: "날개막에 백신 바이러스를 접종해 피부에서 증식시켜 면역을 만듭니다.\n접종 후 5~7일에 접종 부위에 작은 부종·딱지(take, 반응)가 생겨야 접종이 성공한 것입니다. 반응이 없으면 접종이 안 된 것입니다.\n날개 혈관·뼈·관절을 찌르지 않도록 주의합니다.\n한 마리씩 접종하므로 노동력이 들지만 접종 여부를 눈으로 확인할 수 있습니다.",
+      vaccines: "계두 생백신\n뇌척수염(AE) 생백신(계두 혼합 백신 포함)\n닭콜레라 생균백신 — 천자용 제품에 한함",
+      tips: "전용 천자침(두 갈래 침)으로 날개막에서 혈관이 없는 부분을 찌릅니다.\n침 끝에 백신액을 충분히 적신 뒤 찌릅니다.\n접종 후 7일 전후로 일부 닭의 접종 부위 반응(take)을 확인합니다.\n계두·뇌척수염 접종 시기는 프로그램(일령)을 따릅니다." },
+    { key: "m_eye", icon: "👁️", color: "#2E7D32", name: "점안백신", summary: "눈에 한 방울씩 떨어뜨려 접종 — 개체별 정확한 접종, 호흡기 점막 면역이 확실합니다.",
+      features: "눈 점막(하더선)으로 한 마리씩 정확한 양이 들어가 호흡기 면역이 확실하게 만들어집니다.\n노동력이 많이 들어 병아리나 중요한 단계에서 주로 씁니다.\n점적병(점적기)으로 한 방울의 양을 정확히 맞추어야 합니다.",
+      vaccines: "뉴캣슬병·전염성기관지염 생백신\n전염성후두기관염(ILT) 생백신(점안·점비)\n마이코플라스마(MG) 생균백신",
+      tips: "제품이 지정한 희석액으로 풀고, 한 방울이 정확한 양이 되도록 점적병·점적기를 점검합니다.\n한 방울을 눈(또는 콧구멍)에 떨어뜨리고 눈을 깜박일 때까지 잠시 잡고 있습니다.\n용해한 백신은 1~2시간 안에 쓰고 빛·고온을 피해 차게 둡니다(제품 설명서 우선).\n색소가 들어간 백신은 눈 주위의 착색으로 접종 여부를 확인할 수 있습니다." },
+  ],
+  types: [
+    { key: "t_live_virus", icon: "🦠", color: "#C62828", name: "생독백신", summary: "약하게 만든 살아 있는 바이러스 — 몸에서 증식해 빠르고 강한 면역을 만듭니다.",
+      features: "닭 몸에서 증식하며 체액·세포성·점막 면역을 모두 빠르게 만듭니다.\n소량으로 단체 접종(음수·분무·점안·천자)이 가능하고 값이 상대적으로 쌉니다.\n모체이행항체가 높으면 접종 바이러스가 중화돼 면역이 덜 생길 수 있어 접종 시기를 맞춥니다.\n일부 백신주는 호흡기 반응 등 백신 반응을 일으키고 다른 닭으로 퍼질 수 있습니다.\n접종 방법: 음수·분무·점안·천자(마렉병 백신은 주사).",
+      vaccines: "뉴캣슬병(B1·라소타) 생백신\n전염성기관지염(IB) 생백신\n전염성F낭병(IBD) 생백신\n계두·뇌척수염(AE) 생백신\n전염성후두기관염(ILT) 생백신\n마렉병(HVT) 생백신",
+      tips: "냉장(제품 지정 조건) 보관을 지키고, 용해 후 즉시 사용합니다.\n소독제·세척제에 닿으면 불활화되므로 기구·급수라인의 잔류 소독제를 씻어 냅니다.\n접종 후 호흡기 반응이 심하면 환기·온도·먼지를 점검하고 수의사와 상의합니다." },
+    { key: "t_live_bact", icon: "🧫", color: "#00838F", name: "생균백신", summary: "약하게 만든 살아 있는 세균 — 세균성 질병을 막는 데 씁니다.",
+      features: "약독화 세균이 닭의 장·호흡기에서 증식해 면역을 만듭니다.\n접종 전후 일정 기간 해당 세균에 듣는 항생제·소독제를 쓰면 백신균이 죽어 효과가 없어집니다.\n접종한 균이 한동안 몸에 머물 수 있어 도계·산란 전 접종 기록과 제품 설명서의 제한 기간을 확인합니다.\n접종 방법: 음수·분무·점안·천자(제품별).",
+      vaccines: "살모넬라 생균백신(엔테리티디스·티피뮤리움 등)\n마이코플라스마(MG) 생균백신\n닭콜레라(파스튜렐라 멀토시다) 생균백신\n대장균(약독화) 생균백신 — 제품에 따라",
+      tips: "접종 전에 항생제 투여 여부를 확인하고, 접종 전후 항생제를 쉬는 기간은 제품 설명서를 따릅니다.\n용해 후 즉시 사용하고 냉장 보관을 지킵니다.\n접종 후에는 해당 균에 대한 항생제 사용 계획을 수의사와 미리 조정합니다." },
+    { key: "t_inactivated", icon: "🧴", color: "#6A1B9A", name: "사독백신(겔·오일)", summary: "죽인(불활화) 병원체에 보강제를 섞은 백신 — 안전하고 항체가 오래 갑니다.",
+      features: "닭 몸에서 증식하지 않아 병을 일으킬 위험이 없고 안전합니다.\n항체가 높고 오래 가 산란계·종계에 널리 씁니다. 생백신으로 기초 면역을 만든 뒤 추가(부스터) 접종으로 쓰는 경우가 많습니다.\n주사(근육·피하)로 접종하며 노동력이 들고 주사 부위 반응이 있을 수 있습니다.\n겔백신: 수산화알루미늄 겔을 보강제로 씁니다. 주사 반응이 약하고 다루기 쉬우나 면역 지속은 비교적 짧습니다.\n오일백신: 기름(유중수형)을 보강제로 씁니다. 항체가 높고 오래 가지만 점도가 높아 주사가 어렵고 주사 부위에 조직 반응이 남을 수 있습니다.",
+      vaccines: "[오일] 뉴캣슬병·전염성기관지염·산란저하증후군(EDS) 사독 백신(종계·산란계)\n[오일] 전염성F낭병·레오바이러스 사독 백신(종계)\n[오일] 살모넬라 사독 백신\n[겔] 닭전염성코라이자(IC) 사독 백신\n[겔] 뉴캣슬병·전염성기관지염 사독 백신 — 제품에 따라",
+      tips: "냉장 보관 후 접종 전에 실온 가까이 되돌리고, 접종 직전에 잘 흔들어 섞습니다.\n주사 부위·깊이·용량은 제품 설명서에 따르고, 바늘은 자주 바꾸어 소독합니다.\n육계·도계 예정 계군은 접종 후 도계까지의 제한 기간을 확인합니다.\n접종 부위 반응이 심하거나 쓰러지는 닭이 많으면 수의사와 상의합니다." },
+  ],
+};
+const vaccineGuideState = { status: "idle", data: null, busy: false, msg: "", adminOpen: false, open: {}, sec: "methods", editKey: undefined, draft: null };
+const vgLines = t => String(t || "").split("\n").map(x => x.trim().replace(/^[-•·]\s*/, "")).filter(Boolean);
+function vgData(){
+  const d = vaccineGuideState.data;
+  return { methods: d && Array.isArray(d.methods) && d.methods.length ? d.methods : VACCINE_GUIDE_SEED.methods, types: d && Array.isArray(d.types) && d.types.length ? d.types : VACCINE_GUIDE_SEED.types, published: !!d };
+}
+async function fetchVaccineGuide(){
+  if(vaccineGuideState.status === "loading") return;
+  vaccineGuideState.status = "loading";
+  try { const j = await fetchPremiumContentJson("vaccine_guide"); vaccineGuideState.data = j && (j.methods || j.types) ? j : null; }
+  catch(e){ vaccineGuideState.data = null; }          // 아직 발행 전이면 기본 내용을 보여 준다
+  vaccineGuideState.status = "done";
+  if(state.tab === "premium" && premiumState.view === "vaccine") render();
+}
+async function vgPublish(methods, types){
+  const body = { updated: new Date().toISOString().slice(0, 16).replace("T", " ") + " UTC", by: PICK_BY, note: "백신 접종방법·백신 종류 안내 — 화면에서 저장하면 이 파일이 갱신되고 승인된 회원 모두에게 같은 내용이 보입니다.", methods, types };
+  try { await writePremiumContentJson("vaccine_guide", body); vaccineGuideState.data = body; return { ok: true }; }
+  catch(e){ return { ok: false, error: e.message || String(e) }; }
+}
+function vgCard(it, i, sec){
+  const c = pkgValidColor(it.color) ? it.color : pkgColor(i).color, open = !!vaccineGuideState.open[sec + ":" + it.key], vac = vgLines(it.vaccines);
+  const bul = (arr, col) => `<ul style="margin:3px 0 0;padding:0;list-style:none">${arr.map(t => `<li style="display:flex;gap:7px;font-size:12.5px;color:#444;line-height:1.75;margin-bottom:2px"><span style="color:${col};font-weight:900;flex:0 0 auto">•</span><span>${esc(t)}</span></li>`).join("")}</ul>`;
+  const num = arr => `<ol style="margin:3px 0 0;padding:0;list-style:none">${arr.map((t, k) => `<li style="display:flex;gap:8px;font-size:12.5px;color:#444;line-height:1.75;margin-bottom:3px"><span style="flex:0 0 auto;width:18px;height:18px;border-radius:50%;background:${c};color:#fff;font-size:10.5px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-top:3px">${k + 1}</span><span>${esc(t)}</span></li>`).join("")}</ol>`;
+  const lab = (t, col) => `<div style="font-size:12px;font-weight:800;color:${col};margin:12px 0 2px">${t}</div>`;
+  const vchip = t => { const m = t.match(/^\[([^\]]+)\]\s*(.*)$/); return m ? `<span style="font-size:10px;font-weight:800;color:#fff;background:${c};border-radius:8px;padding:1px 6px;margin-right:4px">${esc(m[1])}</span>${esc(m[2])}` : esc(t); };
+  return `<div style="border:1px solid ${c}55;border-left:6px solid ${c};border-radius:12px;background:${c}0D;margin-bottom:10px;overflow:hidden">
+    <button type="button" class="vg-toggle" data-sec="${sec}" data-key="${esc(it.key)}" aria-expanded="${open}" style="all:unset;box-sizing:border-box;width:100%;cursor:pointer;display:block;padding:11px 13px">
+      <div style="display:flex;align-items:center;gap:8px"><span style="font-size:22px">${esc(it.icon || "💉")}</span><span style="flex:1;font-size:15.5px;font-weight:900;color:${c}">${esc(it.name)}</span><span style="font-size:11px;color:${c};font-weight:700">${open ? "접기 ▲" : "자세히 ▼"}</span></div>
+      <div style="font-size:12.5px;color:#555;line-height:1.65;margin-top:4px">${esc(it.summary || "")}</div>
+      ${open ? "" : `<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:7px">${vac.slice(0, 3).map(t => `<span style="font-size:10.5px;background:#fff;border:1px solid ${c}55;color:#555;border-radius:10px;padding:2px 8px">${vchip(t.length > 26 ? t.slice(0, 26) + "…" : t)}</span>`).join("")}${vac.length > 3 ? `<span style="font-size:10.5px;color:#999;padding:2px 4px">외 ${vac.length - 3}종</span>` : ""}</div>`}
+    </button>
+    ${open ? `<div style="padding:0 14px 13px;border-top:1px dashed ${c}55">
+      ${lab("✨ 특징", c)}${bul(vgLines(it.features), c)}
+      ${lab("🧪 해당되는 백신", c)}<ul style="margin:3px 0 0;padding:0;list-style:none">${vac.map(t => `<li style="display:flex;gap:7px;font-size:12.5px;color:#444;line-height:1.75;margin-bottom:2px"><span style="color:${c};font-weight:900;flex:0 0 auto">•</span><span>${vchip(t)}</span></li>`).join("")}</ul>
+      ${vgLines(it.tips).length ? lab("📝 사용요령", c) + num(vgLines(it.tips)) : ""}
+    </div>` : ""}
+  </div>`;
+}
+function renderVaccineGuide(){
+  const st = vaccineGuideState, d = vgData(), admin = isBoardAdmin();
+  if(st.status === "idle" || st.status === "loading") return `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⏳ 불러오는 중...</div>`;
+  const sec = (title, sub, list, key) => `<div style="margin-bottom:6px"><div style="font-size:15px;font-weight:900;color:#333">${title} <span style="font-size:11px;font-weight:500;color:#999">${sub}</span></div></div>${list.map((it, i) => vgCard(it, i, key)).join("")}`;
+  let adminBox = "";
+  if(admin){
+    const sc = st.sec, list = d[sc], ed = st.editKey !== undefined, draft = st.draft || { name: "", icon: "", summary: "", features: "", vaccines: "", tips: "", color: "" };
+    const field = (id, label, val, rows, ph) => `<div style="font-size:10.5px;color:#888;margin:6px 0 3px">${label}</div><textarea id="${id}" placeholder="${esc(ph || "")}" style="width:100%;min-height:${rows * 21 + 14}px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit">${esc(val)}</textarea>`;
+    adminBox = `<div style="margin-top:16px;border-top:1px dashed #eee;padding-top:12px">
+      <button id="vg-admin-toggle" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:3px 9px">${st.adminOpen ? "관리 닫기" : "⚙ 관리"}</button>
+      ${st.msg ? `<span style="font-size:11px;margin-left:8px;color:${/실패|오류|않|없/.test(st.msg) ? "#C62828" : "#2E7D32"}">${esc(st.msg)}</span>` : ""}
+      ${st.adminOpen ? `<div style="margin-top:9px;background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">
+        <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">${[["methods", "접종방법"], ["types", "백신 종류"]].map(([k, l]) => `<button type="button" class="vg-sec-btn" data-sec="${k}" style="border:1px solid ${k === sc ? "#7A5C00" : "#ddd"};background:${k === sc ? "#7A5C00" : "#fff"};color:${k === sc ? "#fff" : "#555"};border-radius:14px;padding:4px 12px;font-size:11.5px;font-weight:${k === sc ? 800 : 500}">${l}</button>`).join("")}</div>
+        <div style="overflow-x:auto;margin-bottom:8px"><table style="width:100%;border-collapse:collapse;font-size:12px"><tbody>${list.map((it, i) => `<tr style="border-bottom:1px solid #f3f3f3${st.editKey === it.key ? ";background:#FFF3E0" : ""}"><td style="padding:5px 6px;white-space:nowrap">${esc(it.icon || "")} <b>${esc(it.name)}</b></td><td style="padding:5px 6px;text-align:right;white-space:nowrap"><button class="vg-up" data-i="${i}" ${i ? "" : "disabled"} style="font-size:10px;border:1px solid #ddd;border-radius:4px;background:#fff;padding:2px 6px;margin-right:2px">▲</button><button class="vg-down" data-i="${i}" ${i < list.length - 1 ? "" : "disabled"} style="font-size:10px;border:1px solid #ddd;border-radius:4px;background:#fff;padding:2px 6px;margin-right:3px">▼</button><button class="vg-edit" data-i="${i}" style="font-size:10px;border:1px solid #3949AB;border-radius:4px;background:#fff;color:#3949AB;padding:2px 6px;margin-right:3px">편집</button><button class="vg-del" data-i="${i}" style="font-size:10px;border:1px solid #eee;border-radius:4px;background:#fff;color:#bbb;padding:2px 6px">삭제</button></td></tr>`).join("")}</tbody></table></div>
+        <div style="font-size:11px;font-weight:700;color:#7A5C00;margin-bottom:4px">${ed ? "분류 수정: " + esc(draft.name) : "새 분류 추가"} (${sc === "methods" ? "접종방법" : "백신 종류"})</div>
+        ${pkgColorPickerHtml("vg-color", sc + ":" + (st.editKey || "new"), draft.color)}
+        <div style="display:flex;gap:6px;flex-wrap:wrap"><input id="vg-name" type="text" placeholder="분류 이름 (예: 점안백신)" value="${esc(draft.name)}" style="flex:1;min-width:150px;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px" /><input id="vg-icon" type="text" maxlength="8" placeholder="아이콘" value="${esc(draft.icon)}" style="width:62px;padding:6px 4px;border:1px solid #ddd;border-radius:7px;font-size:16px;text-align:center" /></div>
+        ${field("vg-summary", "한 줄 요약", draft.summary, 2, "카드를 접었을 때 보이는 한두 문장")}
+        ${field("vg-features", "특징 — 한 줄에 하나씩", draft.features, 5, "한 줄에 하나씩 입력")}
+        ${field("vg-vaccines", "해당되는 백신 — 한 줄에 하나씩 ([오일]·[겔]처럼 앞에 [태그]를 붙이면 배지로 보입니다)", draft.vaccines, 5, "예) 뉴캣슬병 생백신")}
+        ${field("vg-tips", "사용요령 — 한 줄에 하나씩(순서대로 번호가 붙습니다, 선택)", draft.tips, 4, "")}
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:9px"><button id="vg-save" ${st.busy ? "disabled" : ""} style="border:1px solid #B8860B;background:${st.busy ? "#ccc" : "#B8860B"};color:#fff;border-radius:7px;padding:7px 15px;font-size:12px;font-weight:600">${st.busy ? "발행 중..." : (ed ? "수정 발행" : "추가 발행")}</button>${ed ? `<button id="vg-cancel" style="font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:6px 10px">취소</button>` : ""}<button id="vg-reset" style="font-size:10px;border:1px solid #eee;border-radius:5px;background:#fff;color:#bbb;padding:6px 10px;margin-left:auto">기본 내용으로 되돌리기</button></div>
+      </div>` : ""}
+    </div>`;
+  }
+  return `${sec("💉 접종방법", "— 어떻게 접종하는가", d.methods, "methods")}<div style="height:8px"></div>${sec("🧪 백신의 종류", "— 어떤 백신인가", d.types, "types")}${adminBox}
+    <div style="font-size:9.5px;color:#aaa;line-height:1.6;margin-top:8px">※ 일반적인 수의학 지식을 요점으로 정리한 참고 자료입니다. 접종 방법·용량·보관·휴약 등은 제품별 허가 용법과 설명서, 담당 수의사의 지시가 우선합니다.</div>`;
+}
+function vgSyncDraft(){
+  const g = id => { const e = document.getElementById(id); return e ? e.value : null; };
+  if(g("vg-name") == null) return;
+  vaccineGuideState.draft = { name: g("vg-name"), icon: g("vg-icon"), summary: g("vg-summary"), features: g("vg-features"), vaccines: g("vg-vaccines"), tips: g("vg-tips"), color: g("vg-color") || "" };
+}
+function vgBind(){
+  if(!(state.tab === "premium" && premiumState.view === "vaccine" && vaccineTabState.view === "guide")) return;
+  const st = vaccineGuideState, $ = id => document.getElementById(id), re = () => render();
+  document.querySelectorAll(".vg-toggle").forEach(b => b.onclick = () => { const k = b.dataset.sec + ":" + b.dataset.key; st.open[k] = !st.open[k]; vgSyncDraft(); re(); });
+  const tg = $("vg-admin-toggle"); if(tg) tg.onclick = () => { st.adminOpen = !st.adminOpen; st.editKey = undefined; st.draft = null; st.msg = ""; re(); };
+  document.querySelectorAll(".vg-sec-btn").forEach(b => b.onclick = () => { st.sec = b.dataset.sec; st.editKey = undefined; st.draft = null; re(); });
+  const lists = () => { const d = vgData(); return { methods: d.methods.slice(), types: d.types.slice() }; };
+  const run = async (next, okMsg) => { st.busy = true; st.msg = "발행 중..."; re(); const r = await vgPublish(next.methods, next.types); st.busy = false; st.msg = r.ok ? okMsg : "발행 실패: " + r.error; if(r.ok){ st.editKey = undefined; st.draft = null; } re(); };
+  document.querySelectorAll(".vg-edit").forEach(b => b.onclick = () => { const it = vgData()[st.sec][+b.dataset.i]; if(!it) return; st.editKey = it.key; st.draft = { name: it.name || "", icon: it.icon || "", summary: it.summary || "", features: it.features || "", vaccines: it.vaccines || "", tips: it.tips || "", color: it.color || "" }; re(); });
+  document.querySelectorAll(".vg-up,.vg-down").forEach(b => b.onclick = () => { const L = lists(), a = L[st.sec], i = +b.dataset.i, j = b.classList.contains("vg-up") ? i - 1 : i + 1; if(j < 0 || j >= a.length) return; [a[i], a[j]] = [a[j], a[i]]; run(L, "순서를 바꿨습니다 — 모두에게 반영됩니다"); });
+  document.querySelectorAll(".vg-del").forEach(b => b.onclick = () => { const L = lists(), it = L[st.sec][+b.dataset.i]; if(!it || !confirm(`"${it.name}" 분류를 삭제할까요?`)) return; L[st.sec].splice(+b.dataset.i, 1); run(L, "삭제 완료 — 모두에게 반영됩니다"); });
+  const cancel = $("vg-cancel"); if(cancel) cancel.onclick = () => { st.editKey = undefined; st.draft = null; re(); };
+  const reset = $("vg-reset"); if(reset) reset.onclick = () => { if(!confirm("접종방법·백신 종류를 모두 처음 기본 내용으로 되돌려 발행할까요? 지금까지 고친 내용은 사라집니다.")) return; run({ methods: VACCINE_GUIDE_SEED.methods.slice(), types: VACCINE_GUIDE_SEED.types.slice() }, "기본 내용으로 되돌렸습니다"); };
+  const save = $("vg-save"); if(save) save.onclick = () => {
+    vgSyncDraft(); const dr = st.draft || {}, name = (dr.name || "").trim();
+    if(!name){ alert("분류 이름을 입력하세요."); return; }
+    if(!vgLines(dr.features).length || !vgLines(dr.vaccines).length){ alert("특징과 해당되는 백신을 한 줄 이상 입력하세요."); return; }
+    const L = lists(), a = L[st.sec], icon = (dr.icon || "").trim() || "💉", color = pkgValidColor(dr.color) ? dr.color : "";
+    const item = { key: st.editKey || ("g" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)), name, icon, summary: (dr.summary || "").trim(), features: (dr.features || "").trim(), vaccines: (dr.vaccines || "").trim(), tips: (dr.tips || "").trim(), color };
+    const idx = st.editKey ? a.findIndex(x => x.key === st.editKey) : -1;
+    if(idx >= 0) a[idx] = item; else a.push(item);
+    pkgColorDraft = {};
+    run(L, "발행 완료 — 승인된 회원 모두에게 반영됩니다");
+  };
 }
 
 // ── 약품·투약·소독: 신제품 소식(항생제·영양제·백신·기타) ─────────────────────
@@ -13795,6 +13937,7 @@ function renderPremiumTab(){
   // 백신관리 프로그램 화면
   if(premiumState.view === "vaccine"){
     if(vaccinePkgState.status === "idle") fetchVaccinePrograms();
+    if(vaccineTabState.view === "guide" && vaccineGuideState.status === "idle") fetchVaccineGuide();
     return renderPremiumGateHeader() + logoutBar + renderVaccinePanel();
   }
   // 신제품 소식 화면
@@ -20551,6 +20694,8 @@ function attachEvents(){
   // 백신관리 프로그램
   const vaccineBackBtn = document.getElementById("vaccine-back-btn");
   if(vaccineBackBtn) vaccineBackBtn.onclick = ()=>{ premiumState.view = "menu"; render(); };
+  document.querySelectorAll(".vaccine-view-btn").forEach(b=>b.onclick=()=>{ vaccineTabState.view = b.dataset.view; render(); });
+  vgBind();
   document.querySelectorAll(".vaccine-species-btn").forEach(b=>b.onclick=()=>{
     vaccineTabState.species = b.dataset.species;
     vaccineTabState.openKey = null;
