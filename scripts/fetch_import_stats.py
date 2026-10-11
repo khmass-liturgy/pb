@@ -218,15 +218,21 @@ def fetch_customs(key: str) -> dict[str, dict[str, dict]]:
                         continue
                     try:
                         wgt, dlr = float(f.get("impWgt") or 0), float(f.get("impDlr") or 0)
+                        ewgt, edlr = float(f.get("expWgt") or 0), float(f.get("expDlr") or 0)
                     except ValueError:
                         continue
-                    if not wgt:
+                    if not wgt and not ewgt:
                         continue
-                    cell = out[gname].setdefault(ym, {"t": 0.0, "kusd": 0.0, "by": {}})
+                    cell = out[gname].setdefault(ym, {"t": 0.0, "kusd": 0.0, "by": {}, "ex_t": 0.0, "ex_kusd": 0.0, "ex_by": {}})
+                    name = f.get("statCdCntnKor1") or f.get("cntyNm") or f.get("statCd") or "기타"
                     cell["t"] += wgt / 1000.0                       # kg → t
                     cell["kusd"] += dlr / 1000.0                    # USD → 천 달러
-                    name = f.get("statCdCntnKor1") or f.get("cntyNm") or f.get("statCd") or "기타"
-                    cell["by"][name] = cell["by"].get(name, 0.0) + wgt / 1000.0
+                    if wgt:
+                        cell["by"][name] = cell["by"].get(name, 0.0) + wgt / 1000.0
+                    cell["ex_t"] += ewgt / 1000.0                   # 수출(같은 표의 expWgt·expDlr)
+                    cell["ex_kusd"] += edlr / 1000.0
+                    if ewgt:
+                        cell["ex_by"][name] = cell["ex_by"].get(name, 0.0) + ewgt / 1000.0
     return {g: d for g, d in out.items()}
 
 
@@ -272,12 +278,15 @@ def main() -> int:
         for cell in merged.values():
             cell["t"] = round(cell["t"], 1); cell["kusd"] = round(cell.get("kusd", 0), 1)
             cell["by"] = {k: round(v, 1) for k, v in sorted(cell.get("by", {}).items(), key=lambda kv: -kv[1])[:8]}
+            if "ex_t" in cell:                                                         # 관세청 값에만 수출이 있다(UN 값은 수입만)
+                cell["ex_t"] = round(cell["ex_t"], 1); cell["ex_kusd"] = round(cell.get("ex_kusd", 0), 1)
+                cell["ex_by"] = {k: round(v, 1) for k, v in sorted(cell.get("ex_by", {}).items(), key=lambda kv: -kv[1])[:8]}
         series[g] = {"label": meta["label"], "months": dict(sorted(merged.items()))}
     have = sum(len(s["months"]) for s in series.values())
     if not have:
         print("받은 자료가 없어 파일을 만들지 않습니다")
         return 0
-    out = {"updated": datetime.now(KST).strftime("%Y-%m-%d %H:%M KST"), "unit": {"weight": "톤(t)", "value": "천 달러(kUSD)"},
+    out = {"updated": datetime.now(KST).strftime("%Y-%m-%d %H:%M KST"), "unit": {"weight": "톤(t)", "value": "천 달러(kUSD)", "export": "ex_t(톤)·ex_kusd(천 달러)·ex_by — 관세청 값에만 있음"},
            "note": "관세청 API가 있으면 그 값을, 없으면 UN Comtrade 신고분을 쓴다. Comtrade는 신고가 수개월 늦다.", "sources": sources, "series": series}
     if prev.get("series") == out["series"]:
         print("새 자료 없음 — 변경 없음")
