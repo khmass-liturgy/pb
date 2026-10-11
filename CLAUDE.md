@@ -40,7 +40,7 @@ Two pieces are **not** static, both Firebase, both under the 유료서비스 tab
   checking the caller's verified Firebase ID token email against `ADMIN_EMAILS` in
   `functions/index.js` — no separate secret. Deploy with `firebase deploy --only functions`.
   It also holds the admin-only AI helpers for the 관리 screens: `generateAiDraft` (Claude writes a
-  draft FAQ answer / study-card back / study-deck description into the form — never publishes) and
+  draft FAQ answer / study-card back / study-deck description / 상황별 처방 증상·원인·해결책 요점 (`kind:"treatment"`, parsed by `treatmentParseAiDraft`) into the form — never publishes) and
   `findCardImage` (Claude picks Commons search terms, `functions/commons.js` gathers free-license
   CC0/PD/CC BY/CC BY-SA candidates from Wikimedia Commons, then Claude looks at the thumbnails and
   picks the one that shows the card's representative sign — Commons results are noisy, e.g. "MD"

@@ -302,11 +302,41 @@ const DECK_SYSTEM_PROMPT = `당신은 현장 양계 전문 수의사가 만든 �
 덱 제목: 호흡기 질병 기초
 설명: 뉴캣슬병·전염성기관지염·마이코플라스마 등 닭 호흡기 질병의 대표 증상과 구별 포인트를 카드로 익힙니다. 계군에서 기침·콧물이 보일 때 먼저 의심할 질병을 빠르게 떠올리는 데 도움이 됩니다.`;
 
+// 「상황별 처방(투약) 패키지」 관리 화면 — 상황 제목만 주면 증상·원인·해결책의 요점을 정해진 줄 형식으로 씁니다.
+// 화면(index.html)이 줄 머리("증상:"·"주의:")를 보고 입력칸에 나눠 넣고, 나머지는 "단계제목|설명" 줄로 프로그램 칸에 넣습니다.
+const TREATMENT_SYSTEM_PROMPT = `당신은 현장 양계 전문 수의사가 운영하는 농장동물 컨설팅 서비스의 「상황별 처방(투약) 패키지」 초안을 씁니다. 상황 제목(예: 괴사성 장염 의심 시)과 축종(육계·산란계)이 주어지면 그 상황의 증상, 원인, 해결책을 요점만 정리합니다. 초안은 수의사가 검토·수정한 뒤에만 발행됩니다.
+
+출력 형식(이 형식의 줄만 쓰고, 다른 설명·인사말·마크다운은 쓰지 않습니다)
+증상: 이 상황에서 흔히 보이는 증상·징후를 쉼표로 3~5개(한 줄)
+원인|주된 원인 2~4개를 " · "로 구분(원인마다 짧은 구)
+해결 1. 단계제목|해야 할 일 요점 한 문장(45자 이내)
+해결 2. 단계제목|해야 할 일 요점 한 문장(45자 이내)
+해결 3. 단계제목|해야 할 일 요점 한 문장(45자 이내)
+(해결은 3~5단계. 먼저 확인·진단, 환경·사양 조정, 치료·지원 순서로)
+주의: 꼭 지킬 한두 가지를 한 줄로
+
+지켜야 할 것
+- 모든 문장은 요점만 짧게 씁니다. 줄글 설명을 쓰지 않습니다.
+- 항생제 등 동물용의약품은 계열·성분군 수준까지만 쓰고 제품명·용량·투약일수를 정해 주지 않습니다. 약이 필요한 단계에는 "수의사 진단·처방 후" 사용한다고 밝힙니다(수의사처방제 대상, 휴약기간 준수).
+- 고병원성 AI·뉴캣슬병 등 신고대상 질병이 의심되는 상황이면 해결 1단계에 가축방역기관 신고를 넣고, 자체 치료를 권하지 않습니다.
+- 확실하지 않은 수치는 지어내지 않습니다.
+- 상황 제목이 농장동물 사양·질병·방역과 관계없으면 "증상: 해당 없음" 한 줄만 씁니다.
+
+예시
+상황: 괴사성 장염 의심 시 (육계)
+증상: 혈변·묽은 변, 갑작스러운 폐사 증가, 활력 저하, 깔짚 습윤
+원인|콕시듐 감염 · 장내 클로스트리디움 증식 · 사료 급변·곰팡이독소 · 깔짚 습도 과다
+해결 1. 진단 확인|부검으로 소장 괴사 병변을 확인하고 콕시듐 감염 여부를 함께 봅니다.
+해결 2. 환경 관리|깔짚을 건조하게 유지하고 환기·사육밀도를 조정합니다.
+해결 3. 투약 지원|수의사 진단·처방 후 항생제를 사용하고 장 건강 보조제를 병행합니다.
+주의: 항생제는 처방·휴약기간을 지키고, 폐사가 급증하면 즉시 수의사와 상의하세요.`;
+
 // contextLabel: 함께 넘기는 참고 정보의 이름(없으면 안 붙인다). contextMax: 그 길이 한도.
 const AI_DRAFT_KINDS = {
   faq:  { system: FAQ_SYSTEM_PROMPT,  label: "질문",    contextLabel: "",               contextMax: 0 },
   card: { system: CARD_SYSTEM_PROMPT, label: "앞면",    contextLabel: "덱 주제",         contextMax: 200 },
   deck: { system: DECK_SYSTEM_PROMPT, label: "덱 제목", contextLabel: "이 덱의 카드 앞면", contextMax: 1500 },
+  treatment: { system: TREATMENT_SYSTEM_PROMPT, label: "상황 제목", contextLabel: "축종·참고", contextMax: 300 },
 };
 
 // Claude 호출 공통부. 안전 분류기가 거절하면 서버가 권장 모델로 자동 재시도하고
@@ -357,7 +387,7 @@ exports.generateAiDraft = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds:
   assertAdmin(request);
   const data = request.data || {};
   const kind = AI_DRAFT_KINDS[data.kind];
-  if (!kind) throw new HttpsError("invalid-argument", "kind는 faq, card, deck 중 하나여야 합니다.");
+  if (!kind) throw new HttpsError("invalid-argument", "kind는 faq, card, deck, treatment 중 하나여야 합니다.");
   const text = String(data.text || "").trim();
   const context = String(data.context || "").trim().slice(0, kind.contextMax);
   if (!text) throw new HttpsError("invalid-argument", `${kind.label}을 입력하세요.`);
