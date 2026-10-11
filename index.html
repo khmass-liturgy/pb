@@ -740,7 +740,8 @@ const PREMIUM_ITEMS = [
   { key:"disinfect", icon:"🧴", title:"질병별 소독제 선택과 소독요령", desc:"질병을 고르면 그에 맞는 소독제 선택 기준과 소독요령을 단계별로 안내합니다.", color:"#00695C", category:"약품·투약·소독" },
   { key:"newproducts", icon:"🆕", title:"신제품 소식", desc:"항생제·영양제·백신·기타로 나눠 새로 나온 제품 정보를 카드 학습 형태로 보여드립니다.", color:"#C2185B", category:"약품·투약·소독" },
   { key:"drugnews", icon:"💊", title:"동물약품 주간 소식", desc:"국내외 동물용의약품 신제품·백신·항생제·허가·제약업계 동향 중 중요한 소식 3~5건을 매주 금요일 아침 7시에 골라 카드로 보여드립니다. 국내외 전문 사이트 모음도 함께 봅니다.", color:"#AD1457", category:"약품·투약·소독" },
-  { key:"vaccine", icon:"🛡️", title:"백신관리 프로그램", desc:"육계·산란계 일령별 백신 접종 프로그램을 관리자가 만들어 단계별로 보여드립니다.", color:"#3949AB", category:"백신관리" },
+  { key:"vaccine", icon:"🛡️", title:"백신관리 프로그램", desc:"육계·산란계 일령별 백신 접종 프로그램을 관리자가 만들어 단계별로 보여드립니다.", color:"#3949AB", category:"백신·약품관리" },
+  { key:"supplement", icon:"🌿", title:"영양제 종류별 사용요령", desc:"영양제·전해질·대사촉진제·간기능개선제·면역증강제·기타로 나눠 각 제제의 기능과 적응증, 쓰는 요령과 주의점을 한눈에 정리했습니다.", color:"#2E7D32", category:"백신·약품관리" },
   { key:"ventfinder", icon:"💨", title:"내 농장에 맞는 환기량 찾기", desc:"오늘 날씨·계사 조건을 넣으면 최소환기량(습도 조절)과 최대환기량(터널·냉각)을 계산해 드립니다.", color:"#0288D1", category:"사양관리" },
   { key:"lightguide", icon:"💡", title:"점등 프로그램(산란계·육계, 육종회사별)", desc:"로만·하이라인·이사 공식 가이드의 점등 원칙과 입식일·지역별 자연 일장을 겹쳐, 계절에 맞는 점등시간과 조기 성성숙·산란 지연 위험을 보여드립니다.", color:"#F9A825", category:"사양관리" },
   { key:"moltguide", icon:"🪶", title:"산란계 환우 프로그램(육종회사별)", desc:"하이라인·로만 등 육종회사가 권장하는 품종별 인위환우(강제환우) 프로그램을 비교해 보여드립니다.", color:"#00695C", category:"사양관리" },
@@ -770,7 +771,7 @@ const PREMIUM_ITEMS = [
 // 없는(향후 추가될) category는 CSS 기본색(#555)로 그냥 둔다.
 const PREMIUM_CATEGORY_COLORS = {
   "약품·투약·소독": "#00838F",
-  "백신관리": "#3949AB",
+  "백신·약품관리": "#3949AB",
   "사양관리": "#0288D1",
   "시세 예측·분석": "#5E35B1",
   "진단": "#2E7D32",
@@ -833,7 +834,7 @@ const PREMIUM_MENU_LEGACY_PATH = "premium_menu/items.json";
 // 항목이라 목록에서 뺀다).
 const PREMIUM_MENU_KNOWN_KEYS = [
   "drug","treatment","seasonal","finder","disinfect","newproducts","vaccine",
-  "ventfinder","lightguide","moltguide","feedstandard","feedgrain","grainprice","priceforecast","tradestats","selfcheck","diagnosis","specimen","faq","study",
+  "ventfinder","lightguide","moltguide","feedstandard","feedgrain","grainprice","priceforecast","tradestats","supplement","selfcheck","diagnosis","specimen","faq","study",
   "research","diseasebrief","emerging","industrynews","drugnews","magazine","kkoko","feature_board","consult","consulting","smssub",
 ];
 let premiumMenuState = { status:"idle", data:null, busy:false, msg:"", adminOpen:false, formOpen:false,
@@ -841,13 +842,15 @@ let premiumMenuState = { status:"idle", data:null, busy:false, msg:"", adminOpen
 
 // 관리자가 저장한 메뉴가 있어도, 그 뒤에 새로 만든 기본 메뉴(PREMIUM_MENU_NEW_SEED_KEYS)는 빠져 보이지 않게
 // 저장된 메뉴에 없을 때만 기본 위치(앞 메뉴 뒤)에 끼워 보여 준다.
-const PREMIUM_MENU_NEW_SEED_KEYS = ["drugnews", "diseasebrief", "priceforecast", "tradestats"];
+const PREMIUM_MENU_NEW_SEED_KEYS = ["drugnews", "diseasebrief", "priceforecast", "tradestats", "supplement"];
 // 관리자가 예전에 저장한 메뉴에는 두 항목이 「사양관리」로 들어 있으므로, 분류만 새 묶음으로 강제한다.
+// 분류 이름이 바뀐 경우(관리자가 예전에 저장한 메뉴에 옛 이름이 남아 있어도 새 이름으로 묶는다)
+const PREMIUM_MENU_CATEGORY_RENAME = { "백신관리": "백신·약품관리" };
 const PREMIUM_MENU_FORCE_CATEGORY = { grainprice:"시세 예측·분석", priceforecast:"시세 예측·분석" };
 function currentPremiumMenuItems(){
   const items = premiumMenuState.data && premiumMenuState.data.items;
   if(!(Array.isArray(items) && items.length)) return PREMIUM_ITEMS;
-  const out = items.map(it => PREMIUM_MENU_FORCE_CATEGORY[it.key] ? Object.assign({}, it, {category:PREMIUM_MENU_FORCE_CATEGORY[it.key]}) : it);
+  const out = items.map(it => PREMIUM_MENU_FORCE_CATEGORY[it.key] ? Object.assign({}, it, {category:PREMIUM_MENU_FORCE_CATEGORY[it.key]}) : (PREMIUM_MENU_CATEGORY_RENAME[it.category] ? Object.assign({}, it, {category:PREMIUM_MENU_CATEGORY_RENAME[it.category]}) : it));
   PREMIUM_MENU_NEW_SEED_KEYS.forEach(k => {
     if(out.some(it => it.key === k)) return;
     const seedIdx = PREMIUM_ITEMS.findIndex(it => it.key === k);
@@ -11456,6 +11459,83 @@ function renderFeedGrainPanel(){
 // 산지 기상(grain_quality)을 모아 계산해 grain_price/latest.json 에 둔다. 여기서는 그 결과만 그린다.
 // 전망은 6개 요인(추세·가격 위치·계절성·달러·유가·산지 기상)의 가중 점수이며 투자·구매 권유가 아닌 참고 자료다.
 const GRAIN_PRICE_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/grain_price/latest.json";
+// ── 영양제 종류별 사용요령 — 정적 참고 자료(백신·약품관리) ─────────────────────────────────────────
+// 일반적인 수의영양 지식을 요점으로 정리한 참고용이다. 제품명·용량은 적지 않는다(제품 라벨과 담당 수의사 지시가 우선).
+const SUPP_GROUPS = [
+  { key: "vit", icon: "🍊", name: "영양제", sub: "비타민·아미노산·미량광물", color: "#EF6C00", soft: "#FFF3E0", line: "#FFCC80",
+    func: "사료만으로 모자라기 쉬운 비타민(A·D3·E·B군·C)·아미노산(메티오닌·라이신 등)·미량 미네랄(셀레늄·아연 등)을 보충해 성장·산란·면역의 기초 체력을 받쳐 줍니다.",
+    parts: ["종합비타민", "비타민 A·D3·E", "비타민 B군·C", "아미노산(메티오닌·라이신 등)", "미량 미네랄(셀레늄·아연 등)"],
+    ind: ["백신 접종·이동·고온 등 스트레스를 받은 계군", "병아리 초기 약추·성장 지연·균일도 저하", "질병에서 회복 중인 계군(식욕 부진·체중 회복)", "산란 후기 난각 불량·산란율 저하", "환우(털갈이) 전후 회복기"],
+    how: ["음수 투여는 물에 잘 녹는 제품을 쓰고, 하루 음수량이 많은 시간대에 몰아서 먹이면 흡수가 좋습니다.", "급수 라인의 바이오필름·찌꺼기를 먼저 청소합니다 — 영양분이 세균 증식의 먹이가 될 수 있습니다.", "조제한 물은 당일 소진하고 직사광선·고온을 피합니다.", "소독제·항생제·백신과 같은 물에 섞어 먹일 때는 서로 효과를 떨어뜨리지 않는지 제품 설명서로 확인하고 시간을 나눕니다.", "사료 자체의 영양 균형이 먼저입니다 — 영양제로 사료 결핍을 덮지 않습니다."],
+    caution: ["지용성 비타민(A·D3·E)은 과량이 쌓일 수 있어 사료 첨가량과 합쳐 라벨 범위를 지킵니다.", "원인 불명의 폐사·산란 저하에는 영양제보다 진단이 먼저입니다."] },
+  { key: "elec", icon: "💧", name: "전해질", sub: "나트륨·칼륨·염소·중탄산", color: "#1565C0", soft: "#E3F2FD", line: "#90CAF9",
+    func: "몸속 수분과 염류(나트륨·칼륨·염소)를 채우고 산-염기 균형을 맞춥니다. 탈수·열스트레스 때 음수량을 유지하고 체액 손실을 줄이는 데 씁니다.",
+    parts: ["염화나트륨·염화칼륨", "중탄산나트륨(열스트레스 시 호흡성 알칼리증 완화)", "포도당 병용 제제(장 흡수 보조)", "유기산 계열 전해질"],
+    ind: ["폭염·열스트레스(헐떡임, 음수 증가, 얇은 난각)", "설사·장염 뒤 탈수", "입추 직후 병아리의 수분·에너지 보충", "수송·출하 전후, 투약·백신 뒤 회복", "수분 섭취가 줄어 사료 섭취까지 떨어지는 때"],
+    how: ["시원한 물에 타서 먹이고, 급수 온도가 오르지 않도록 라인·탱크를 관리합니다.", "설사로 인한 탈수에는 포도당이 함께 든 제품이 흡수에 유리합니다.", "열스트레스 대응은 환기·온도·밀도 조정이 먼저이고, 전해질은 보조입니다.", "투여 기간은 필요한 때에 짧게 쓰고 증상이 가라앉으면 중단합니다.", "사료에 이미 소금·중탄산이 들어 있는지 확인해 중복을 피합니다."],
+    caution: ["나트륨을 지나치게 먹이면 물설사로 깔짚이 젖을 수 있습니다.", "신장·요산 대사에 문제가 있는 계군(통풍 의심)은 칼륨·나트륨 과다에 주의하고 수의사와 상의합니다."] },
+  { key: "meta", icon: "⚡", name: "대사촉진제", sub: "에너지·단백 대사 보조", color: "#6A1B9A", soft: "#F3E5F5", line: "#CE93D8",
+    func: "에너지(포도당)·아미노산·B군 비타민·L-카르니틴·베타인·콜린 등으로 에너지·단백질·지방 대사를 돕고, 체중 회복과 사료 효율 개선을 지원합니다.",
+    parts: ["포도당·덱스트로스", "B군 비타민", "L-카르니틴", "베타인·콜린", "아미노산 복합"],
+    ind: ["성장이 정체되거나 균일도가 나쁜 계군", "산란 피크 진입·유지 시기의 에너지 부족", "사료 효율이 떨어지는 계군", "질병 회복기의 체중·활력 회복", "환우 뒤 재산란 개시를 돕고 싶을 때"],
+    how: ["에너지·영양 요구가 높은 시기(입추 직후, 산란 상승기)에 맞춰 단기간 보조합니다.", "사료가 모자라 생기는 문제는 사료 영양밀도·급이량부터 점검합니다.", "고온기에는 사료 섭취가 줄어 에너지가 모자라기 쉬우니 사료 영양밀도 조정과 함께 씁니다.", "포도당 계열은 급수 라인에 세균이 늘기 쉬우므로 급여 뒤 라인을 씻어 냅니다."],
+    caution: ["포도당을 과량 먹이면 사료 섭취가 줄거나 변이 묽어질 수 있습니다.", "대사촉진제는 질병 치료제가 아니며 감염·영양 결핍의 근본 원인을 해결하지 않습니다."] },
+  { key: "liver", icon: "🫀", name: "간기능개선제", sub: "간 보호·해독·지방대사", color: "#2E7D32", soft: "#E8F5E9", line: "#A5D6A7",
+    func: "간세포를 보호하고 해독·지방 대사를 도와 간에 쌓이는 부담을 줄입니다. 약물·곰팡이독소·에너지 과잉으로 간이 힘들 때 회복을 지원합니다.",
+    parts: ["콜린·베타인·메티오닌(지방 대사)", "실리마린(밀크시슬)", "비타민 E·셀레늄(항산화)", "L-카르니틴", "라이신 등 아미노산"],
+    ind: ["지방간(산란계 지방간출혈증후군: 비만, 볏 창백, 산란 저하, 갑작스러운 폐사)", "곰팡이독소가 의심되는 사료(식욕 저하, 설사, 간 종대·황달 소견)", "항생제·구충제 등을 길게 쓴 뒤 해독 부담이 큰 계군", "고온기 에너지 과잉 급여 계군", "담즙 정체가 의심되는 황색·녹색 변"],
+    how: ["간 병변은 부검으로 확인한 뒤 쓰는 것이 정확합니다 — 증상만으로 간 문제를 단정하지 않습니다.", "원인 교정을 함께 합니다: 에너지 과잉 사료 조정, 곰팡이 사료 교체와 흡착제, 약물 사용 기간 단축.", "약물 투여 중이나 직후에 단기간 보조하고, 사양 조정 효과가 나타나는 데 시간이 걸린다는 점을 감안합니다.", "산란계 후기·과비만 계군은 체중 관리(급이 제한·에너지 조정)가 핵심입니다."],
+    caution: ["이미 진행된 간 병변은 영양제로 되돌리기 어렵습니다 — 조기 대응이 중요합니다.", "황달·급사가 늘면 감염병(전염성 질병) 가능성도 함께 수의사와 점검합니다."] },
+  { key: "imm", icon: "🛡️", name: "면역증강제", sub: "면역 보조·항산화·장 방어", color: "#C62828", soft: "#FFEBEE", line: "#EF9A9A",
+    func: "면역세포 활성과 점막(장·호흡기) 방어를 거들어 백신 반응과 질병 저항력을 보조합니다. 방역·백신을 대신하는 것이 아니라 받쳐 주는 역할입니다.",
+    parts: ["베타글루칸·만난올리고당(MOS)", "비타민 E·셀레늄·아연", "유기산·생균제(장 점막 방어)", "식물 추출물·사포닌 계열", "핵산·효모 유래 성분"],
+    ind: ["백신 접종 전후 스트레스가 큰 계군", "입추 초기 면역이 약한 병아리", "면역억제성 질병(IBD·CIA·마렉 등) 병력이 있거나 의심되는 농장", "환경 급변·고온·밀사로 스트레스가 큰 때", "호흡기·장염이 반복되는 농장"],
+    how: ["백신 접종 전후 며칠간 스트레스 완화 목적으로 쓰는 경우가 많습니다.", "백신을 물에 타서 먹일 때는 소독제·항생제는 물론 면역증강제를 같은 물에 섞어도 되는지 백신·제품 설명서를 확인하고, 필요하면 시간을 나눕니다.", "효과는 개체가 아니라 계군 단위의 경향으로 나타나므로 폐사율·균일도 같은 기록으로 비교해 봅니다.", "백신 프로그램·차단방역·계사 환경이 먼저이고 면역증강제는 그 위에 얹습니다."],
+    caution: ["제품마다 근거 수준이 달라 효과가 과장된 광고를 그대로 믿지 않습니다 — 시험 자료를 확인합니다.", "면역증강제를 쓴다고 해서 백신 일정을 줄이거나 건너뛰지 않습니다."] },
+  { key: "etc", icon: "🧩", name: "기타", sub: "생균제·유기산·항산화·독소흡착·효소", color: "#455A64", soft: "#ECEFF1", line: "#B0BEC5",
+    func: "장내 균형을 맞추고 사료 소화·이용을 돕거나, 곰팡이독소·산화 스트레스처럼 특정 문제를 줄이는 보조 제제입니다.",
+    parts: ["생균제·프리바이오틱스(장내 균형)", "유기산·산도조절제(음수·장내 pH)", "곰팡이독소 흡착제", "항산화제", "소화효소제"],
+    ind: ["항생제를 쓴 뒤 장내 균총을 회복시킬 때", "미소화 사료가 보이는 변·습변", "장마·고온다습으로 곰팡이독소 위험이 큰 시기", "음수 pH가 높거나 급수 라인 오염이 반복될 때", "사료 원료가 바뀌었거나 질이 흔들릴 때"],
+    how: ["생균제는 항생제와 같은 시기에 쓰면 죽을 수 있어 투약이 끝난 뒤에 이어서 먹입니다.", "유기산은 음수 pH를 낮춰 장내·급수 위생에 도움이 되지만, 금속 급수 설비 부식과 음수 섭취량 감소를 살핍니다.", "곰팡이독소 흡착제는 사료 검사에서 위험이 확인되거나 위험 시기에 예방적으로 쓰고, 오염 원료 자체를 바꾸는 것이 우선입니다.", "여러 제제를 한꺼번에 섞기보다 목적을 정해 하나씩 점검합니다."],
+    caution: ["효과가 불분명한 제품을 겹쳐 쓰면 비용만 늘고 원인 파악이 어려워집니다.", "동물용의약품·의약외품·사료첨가제는 구분이 다르니 제품 허가 구분과 휴약기간 표시를 라벨에서 확인합니다."] },
+];
+const suppState = { tab: "all" };
+function renderSupplementPanel(){
+  const head = `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:10px"><div><div class="display" style="font-size:16px;margin-bottom:2px">🌿 영양제 종류별 사용요령</div><div style="font-size:11px;color:#999">영양제·전해질·대사촉진제·간기능개선제·면역증강제·기타의 기능과 적응증, 쓰는 요령</div></div><button id="supp-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button></div>`;
+  const tab = SUPP_GROUPS.some(g => g.key === suppState.tab) ? suppState.tab : "all";
+  const chips = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px" role="tablist">${[["all", "📋 한눈에 비교", "#37474F"]].concat(SUPP_GROUPS.map(g => [g.key, `${g.icon} ${g.name}`, g.color])).map(([k, label, c]) => `<button type="button" role="tab" aria-selected="${k === tab}" data-supp-tab="${k}" style="border:1px solid ${k === tab ? c : "#ddd"};background:${k === tab ? c : "#fff"};color:${k === tab ? "#fff" : "#555"};border-radius:16px;padding:6px 12px;font-size:12px;font-weight:${k === tab ? 800 : 500};cursor:pointer">${label}</button>`).join("")}</div>`;
+  const list = (arr, c) => `<ul style="margin:3px 0 0 0;padding:0;list-style:none">${arr.map(t => `<li style="display:flex;gap:7px;font-size:12px;color:#444;line-height:1.7;margin-bottom:2px"><span style="color:${c};font-weight:900;flex:0 0 auto">•</span><span>${esc(t)}</span></li>`).join("")}</ul>`;
+  const steps = (arr, c) => `<ol style="margin:3px 0 0 0;padding:0;list-style:none">${arr.map((t, i) => `<li style="display:flex;gap:8px;font-size:12px;color:#444;line-height:1.7;margin-bottom:3px"><span style="flex:0 0 auto;width:18px;height:18px;border-radius:50%;background:${c};color:#fff;font-size:10.5px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-top:2px">${i + 1}</span><span>${esc(t)}</span></li>`).join("")}</ol>`;
+  const lab = (t, c) => `<div style="font-size:11.5px;font-weight:800;color:${c};margin:12px 0 2px">${t}</div>`;
+  let body;
+  if(tab === "all"){
+    body = `<div style="display:flex;flex-direction:column;gap:9px">${SUPP_GROUPS.map(g => `
+      <button type="button" data-supp-tab="${g.key}" style="all:unset;box-sizing:border-box;cursor:pointer;display:block;background:${g.soft};border:1px solid ${g.line};border-left:5px solid ${g.color};border-radius:11px;padding:10px 12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap"><span style="font-size:13.5px;font-weight:800;color:${g.color}">${g.icon} ${g.name}</span><span style="font-size:10.5px;color:#888">${esc(g.sub)}</span></div>
+        <div style="font-size:11.5px;color:#444;line-height:1.7;margin-top:4px"><b style="color:${g.color}">기능</b> ${esc(g.func)}</div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px">${g.ind.slice(0, 3).map(t => `<span style="font-size:10.5px;background:#fff;border:1px solid ${g.line};color:#555;border-radius:10px;padding:2px 8px">${esc(t.replace(/\(.*$/, "").trim())}</span>`).join("")}</div>
+        <div style="font-size:10.5px;font-weight:700;color:${g.color};margin-top:6px">적응증·사용요령 보기 ›</div></button>`).join("")}</div>
+      <div style="margin-top:12px;background:#F5F5F5;border-radius:9px;padding:9px 12px;font-size:11.5px;color:#555;line-height:1.8"><b>쓰는 순서</b> ① 증상·부검으로 원인을 먼저 확인(수의사) → ② 원인을 교정(환기·사료·급수·방역) → ③ 영양제는 회복·보조로 짧게 → ④ 효과를 폐사율·균일도·산란율 기록으로 확인</div>`;
+  } else {
+    const g = SUPP_GROUPS.find(x => x.key === tab);
+    body = `<div style="background:${g.soft};border:1px solid ${g.line};border-top:5px solid ${g.color};border-radius:12px;padding:13px 14px">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-size:20px">${g.icon}</span><span style="font-size:16px;font-weight:900;color:${g.color}">${g.name}</span><span style="font-size:11px;color:#777">${esc(g.sub)}</span></div>
+      ${lab("⚙️ 기능", g.color)}<div style="font-size:12.5px;color:#333;line-height:1.8">${esc(g.func)}</div>
+      ${lab("🧪 대표 성분·종류", g.color)}<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:3px">${g.parts.map(t => `<span style="font-size:11.5px;background:#fff;border:1px solid ${g.line};color:#444;border-radius:11px;padding:3px 9px">${esc(t)}</span>`).join("")}</div>
+      ${lab("🎯 적응증 — 이런 때 씁니다", g.color)}${list(g.ind, g.color)}
+      ${lab("📝 사용요령", g.color)}${steps(g.how, g.color)}
+      ${lab("⚠️ 주의", "#C62828")}${list(g.caution, "#C62828")}
+    </div>`;
+  }
+  const foot = `<div style="margin-top:14px;background:#FFF8E1;border-radius:8px;padding:9px 11px;font-size:10.5px;color:#6b5400;line-height:1.75"><b>유의</b> · 일반적인 사양·수의영양 지식을 요점으로 정리한 <b>참고 자료</b>입니다. 영양제는 질병 치료제가 아니며, 제품명·용량·투여 기간은 제품 라벨과 담당 수의사의 지시를 따르세요. 항생제 등 동물용의약품은 수의사 처방과 휴약기간을 지켜야 합니다.</div>`;
+  return `<div class="card" id="supp-root" style="border-top:6px solid #2E7D32">${head}${chips}${body}${foot}</div>`;
+}
+function suppBind(){
+  if(!(state.tab === "premium" && premiumState.view === "supplement")) return;
+  const back = document.getElementById("supp-back-btn"); if(back) back.onclick = () => { premiumState.view = "menu"; render(); };
+  document.querySelectorAll("[data-supp-tab]").forEach(b => b.onclick = () => { suppState.tab = b.dataset.suppTab; render(); });
+}
+
 // ── 계육·계란·종란 수출입 동향 — import_status/stats.json(관세청 품목별 국가별 수출입실적, 매주 자동 수집) ─────────────
 // 수입은 UN Comtrade로도 받지만 수출(ex_*)은 관세청 값에만 있다. 월 값이 없는 달(수집 범위 안)은 수출입이 없던 달이라 0으로 본다.
 const TRADE_ITEMS = {
@@ -13682,6 +13762,10 @@ function renderPremiumTab(){
   if(premiumState.view === "priceforecast"){
     if(pfx.histStatus === "idle") pfLoadAll();
     return renderPremiumGateHeader() + logoutBar + renderPriceForecastPanel();
+  }
+  // 영양제 종류별 사용요령 — 정적 참고 자료
+  if(premiumState.view === "supplement"){
+    return renderPremiumGateHeader() + logoutBar + renderSupplementPanel();
   }
   // 계육·계란·종란 수출입 동향 — import_status/stats.json(관세청, 매주 자동 갱신)
   if(premiumState.view === "tradestats"){
@@ -19891,6 +19975,7 @@ function attachEvents(){
   setupTabArrows();
   pfBind();                                  // 육계·계란 시세예측(탭·차트·시나리오·업로드·관리자)
   tradeBind();                               // 계육·계란·종란 수출입 동향
+  suppBind();                                // 영양제 종류별 사용요령
   const headerSolarTerm = document.getElementById("header-solar-term");
   if(headerSolarTerm) headerSolarTerm.onclick = ()=>switchTab("weather");
 
