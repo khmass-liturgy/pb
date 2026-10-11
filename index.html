@@ -758,6 +758,7 @@ const PREMIUM_ITEMS = [
   { key:"diseasebrief", icon:"🧬", title:"가금 질병·백신 주간 브리핑", desc:"최근 새로 공개된 가금 질병·백신 논문, 정부·국제기구 보고서, 전문 분석 중 현장 컨설팅에 도움이 되는 핵심 3건을 매주 월요일 아침 한국어로 정리합니다. 무엇이 새로운지·현장 중요성·적용 시 주의점과 한계·원문 링크, 이번 주 체크포인트까지.", color:"#00796B", category:"질문·학습·교육" },
   { key:"magazine", icon:"📰", title:"양계잡지 학습정보", desc:"양계 전문지 지면을 사진으로 올리면 사진과 글을 분리해 게시판처럼 보여드립니다.", color:"#455A64", category:"질문·학습·교육" },
   { key:"industrynews", icon:"🗞️", title:"양계 업계관련 핵심키워드 검색소식", desc:"계란·조류인플루엔자·AI·육계·방역·양계 질병 등 양계 핵심 키워드로 국내 기사를 매일 아침 검색해 요약과 함께 카드로 보여드립니다.", color:"#455A64", category:"게시판·기타" },
+  { key:"tradestats", icon:"🌐", title:"계육·계란·종란 수출입 동향", desc:"관세청 통관 통계로 계육(닭고기)·계란·종란의 월별 수입·수출 물량, 금액, 수입 단가, 상대국 비중을 그래프와 표로 한눈에 보여드립니다. 매주 자동 갱신됩니다.", color:"#00695C", category:"게시판·기타" },
   { key:"kkoko", icon:"🐔", title:"최꼬박사랑 대화", desc:"무료 탭의 최꼬꼬가 유료회원님께는 더 똑똑해진 '최꼬박사'로 변신합니다 — 더 자세하고 깊이 있는 사양관리·질병 설명을 받아보세요. 텍스트는 물론 음성으로도 대화할 수 있습니다.", color:"#F57F17", category:"질문·학습·교육" },
   { key:"feature_board", icon:"💡", title:"기능 요청 게시판", desc:"필요한 기능을 자유롭게 제안해 주세요. 작성자는 다른 회원에게 익명으로 표시됩니다.", color:"#00838F", category:"게시판·기타" },
   { key:"consult", icon:"💬", title:"온라인 상담", desc:"농장 현안(사양·환기·질병 등)을 질문하면 최동명 수의사가 답변합니다. 사진 첨부 가능, 답변은 작성자만 볼 수 있습니다.", color:"#1565C0", category:"게시판·기타" },
@@ -832,7 +833,7 @@ const PREMIUM_MENU_LEGACY_PATH = "premium_menu/items.json";
 // 항목이라 목록에서 뺀다).
 const PREMIUM_MENU_KNOWN_KEYS = [
   "drug","treatment","seasonal","finder","disinfect","newproducts","vaccine",
-  "ventfinder","lightguide","moltguide","feedstandard","feedgrain","grainprice","priceforecast","selfcheck","diagnosis","specimen","faq","study",
+  "ventfinder","lightguide","moltguide","feedstandard","feedgrain","grainprice","priceforecast","tradestats","selfcheck","diagnosis","specimen","faq","study",
   "research","diseasebrief","emerging","industrynews","drugnews","magazine","kkoko","feature_board","consult","consulting","smssub",
 ];
 let premiumMenuState = { status:"idle", data:null, busy:false, msg:"", adminOpen:false, formOpen:false,
@@ -840,7 +841,7 @@ let premiumMenuState = { status:"idle", data:null, busy:false, msg:"", adminOpen
 
 // 관리자가 저장한 메뉴가 있어도, 그 뒤에 새로 만든 기본 메뉴(PREMIUM_MENU_NEW_SEED_KEYS)는 빠져 보이지 않게
 // 저장된 메뉴에 없을 때만 기본 위치(앞 메뉴 뒤)에 끼워 보여 준다.
-const PREMIUM_MENU_NEW_SEED_KEYS = ["drugnews", "diseasebrief", "priceforecast"];
+const PREMIUM_MENU_NEW_SEED_KEYS = ["drugnews", "diseasebrief", "priceforecast", "tradestats"];
 // 관리자가 예전에 저장한 메뉴에는 두 항목이 「사양관리」로 들어 있으므로, 분류만 새 묶음으로 강제한다.
 const PREMIUM_MENU_FORCE_CATEGORY = { grainprice:"시세 예측·분석", priceforecast:"시세 예측·분석" };
 function currentPremiumMenuItems(){
@@ -11441,6 +11442,150 @@ function renderFeedGrainPanel(){
 // 산지 기상(grain_quality)을 모아 계산해 grain_price/latest.json 에 둔다. 여기서는 그 결과만 그린다.
 // 전망은 6개 요인(추세·가격 위치·계절성·달러·유가·산지 기상)의 가중 점수이며 투자·구매 권유가 아닌 참고 자료다.
 const GRAIN_PRICE_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/grain_price/latest.json";
+// ── 계육·계란·종란 수출입 동향 — import_status/stats.json(관세청 품목별 국가별 수출입실적, 매주 자동 수집) ─────────────
+// 수입은 UN Comtrade로도 받지만 수출(ex_*)은 관세청 값에만 있다. 월 값이 없는 달(수집 범위 안)은 수출입이 없던 달이라 0으로 본다.
+const TRADE_ITEMS = {
+  chicken:      { label: "계육(닭고기)", short: "계육", icon: "🍗", color: "#E65100", soft: "#FFF3E0", line: "#FFCC80", hs: "HS 0207" },
+  egg_fresh:    { label: "계란(신선란)", short: "계란", icon: "🥚", color: "#F9A825", soft: "#FFF8E1", line: "#FFE082", hs: "HS 040721" },
+  egg_hatching: { label: "종란(부화용)", short: "종란", icon: "🐣", color: "#8D6E63", soft: "#EFEBE9", line: "#BCAAA4", hs: "HS 040711" },
+};
+const TRADE_PALETTE = ["#1565C0", "#2E7D32", "#C62828", "#6A1B9A", "#00838F", "#EF6C00"];
+const tradeState = { status: "idle", data: null, tab: "all" };
+async function fetchTradeStats(){
+  if(tradeState.status === "loading") return;
+  tradeState.status = "loading";
+  try {
+    const r = await fetchWithTimeout("https://raw.githubusercontent.com/khmass-liturgy/pb/main/import_status/stats.json?t=" + Math.floor(Date.now() / 600000), 10000);
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    tradeState.data = await r.json(); tradeState.status = "done";
+  } catch(e){ tradeState.status = "error"; }
+  if(state.tab === "premium" && premiumState.view === "tradestats") render();
+}
+// 월 목록(가장 이른 달~가장 늦은 달, 빈 달 포함)과 품목별 월 값
+function tradeModel(d){
+  const ser = d && d.series || {};
+  const all = Object.values(ser).flatMap(g => Object.keys((g && g.months) || {})).sort();
+  if(!all.length) return null;
+  const next = k => { let y = +k.slice(0, 4), m = +k.slice(4) + 1; if(m > 12){ m = 1; y++; } return y + String(m).padStart(2, "0"); };
+  const ks = []; for(let k = all[0]; k <= all[all.length - 1]; k = next(k)) ks.push(k);
+  const zero = { t: 0, kusd: 0, by: {}, ex_t: 0, ex_kusd: 0, ex_by: {} };
+  const items = {};
+  for(const key of Object.keys(TRADE_ITEMS)){
+    const m = (ser[key] || {}).months || {};
+    const cells = ks.map(k => m[k] || zero);
+    const hasEx = Object.values(m).some(c => c && c.ex_t != null);
+    items[key] = { m, cells, hasEx, t: cells.map(c => c.t || 0), ex: cells.map(c => c.ex_t || 0), usd: cells.map(c => c.kusd || 0), exUsd: cells.map(c => c.ex_kusd || 0) };
+  }
+  return { ks, items, last: ks[ks.length - 1] };
+}
+const tradeYm = k => k.slice(0, 4) + "." + k.slice(4);
+const tradeSum = (a, i, n) => { let s = 0; for(let j = i - n + 1; j <= i; j++){ if(j < 0) return null; s += a[j] || 0; } return s; };
+const tradePct = (c, p) => p ? (c / p - 1) * 100 : null;
+const tradeBadge = pct => { if(pct != null && pct >= 1000) return `<span style="font-size:11px;font-weight:800;color:#D32F2F;background:#FFEBEE;border-radius:9px;padding:1px 7px">▲ 10배 이상</span>`; if(pct == null) return `<span style="font-size:10.5px;color:#aaa">전년 비교 불가</span>`; const flat = Math.abs(pct) < 0.05, c = flat ? "#888" : pct > 0 ? "#D32F2F" : "#1565C0"; return `<span style="font-size:11px;font-weight:800;color:${c};background:${flat ? "#F2F2F2" : pct > 0 ? "#FFEBEE" : "#E3F2FD"};border-radius:9px;padding:1px 7px">${flat ? "─" : pct > 0 ? "▲" : "▼"} ${Math.abs(pct).toFixed(1)}%</span>`; };
+const tradeMoney = kusd => { const v = Math.abs(kusd || 0); return (kusd < 0 ? "−" : "") + (v >= 1000 ? (v / 1000).toLocaleString(undefined, { maximumFractionDigits: 1 }) + "백만$" : Math.round(v).toLocaleString() + "천$"); };
+function tradeSpark(ys, color, w, h){
+  const n = ys.length, mx = Math.max(1e-9, ...ys), bw = w / n;
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" preserveAspectRatio="none" aria-hidden="true" style="display:block">${ys.map((v, i) => { const bh = Math.max(v > 0 ? 1.5 : 0, v / mx * (h - 2)); return `<rect x="${(i * bw + bw * 0.12).toFixed(1)}" y="${(h - bh).toFixed(1)}" width="${(bw * 0.76).toFixed(1)}" height="${bh.toFixed(1)}" rx="1" fill="${color}" opacity="${i === n - 1 ? 1 : 0.5}"/>`; }).join("")}</svg>`;
+}
+// 최근 n개월 합계의 국가별 비중. by에는 월별 상위 8개국만 있어 합이 총량보다 작으면 나머지는 「기타」로 둔다.
+function tradePartners(it, i, n, field, totalArr){
+  const acc = {}; let tot = 0;
+  for(let j = Math.max(0, i - n + 1); j <= i; j++){ tot += totalArr[j] || 0; for(const [k, v] of Object.entries(it.cells[j][field] || {})) acc[k] = (acc[k] || 0) + v; }
+  const list = Object.entries(acc).sort((a, b) => b[1] - a[1]), top = list.slice(0, 5), used = top.reduce((s, x) => s + x[1], 0);
+  return { tot, rows: top.concat(tot - used > tot * 0.005 ? [["기타", tot - used]] : []) };
+}
+function tradePartnerBar(p, unit){
+  if(!(p.tot > 0)) return `<div style="font-size:11px;color:#aaa;padding:6px 0">이 기간에는 거래가 없습니다</div>`;
+  const seg = p.rows.map(([n, v], i) => ({ n, v, pct: v / p.tot * 100, c: n === "기타" ? "#BDBDBD" : TRADE_PALETTE[i % TRADE_PALETTE.length] }));
+  return `<div style="display:flex;height:18px;border-radius:9px;overflow:hidden;background:#F2F2F2" role="img" aria-label="국가별 비중">${seg.map(s => `<div title="${esc(s.n)} ${s.pct.toFixed(1)}%" style="width:${s.pct.toFixed(2)}%;background:${s.c}"></div>`).join("")}</div>
+    <div style="display:flex;flex-direction:column;gap:3px;margin-top:7px">${seg.map(s => `<div style="display:flex;align-items:center;gap:7px;font-size:11.5px"><span style="width:10px;height:10px;border-radius:3px;background:${s.c};flex:0 0 auto"></span><span style="flex:1;color:#444">${esc(s.n)}</span><span style="color:#666;font-variant-numeric:tabular-nums">${pfTon(s.v)}${unit}</span><b style="width:46px;text-align:right;color:#222;font-variant-numeric:tabular-nums">${s.pct.toFixed(1)}%</b></div>`).join("")}</div>`;
+}
+function tradeKpi(label, val, sub, color){
+  return `<div style="flex:1 1 150px;min-width:140px;background:#fff;border:1px solid #ECECEC;border-left:4px solid ${color};border-radius:10px;padding:9px 11px"><div style="font-size:10.5px;color:#888">${label}</div><div style="font-size:19px;font-weight:900;color:${color};font-variant-numeric:tabular-nums;line-height:1.35">${val}</div><div style="font-size:10.5px;color:#888;line-height:1.55">${sub || ""}</div></div>`;
+}
+function tradeOverview(M){
+  const i = M.ks.length - 1;
+  const cards = Object.entries(TRADE_ITEMS).map(([key, meta]) => {
+    const it = M.items[key], cur = it.t[i], prv = it.t[i - 12], ex = it.ex[i], y12 = tradeSum(it.t, i, 12), y12p = tradeSum(it.t, i - 12, 12);
+    const top = Object.entries(it.cells[i].by || {})[0], last24 = it.t.slice(-24);
+    const eggs = key === "egg_fresh" && cur > 0 ? `<div style="font-size:10.5px;color:#888">60g 가정 시 약 ${Math.round(cur * 1e6 / 60 / 1e4).toLocaleString()}만 개</div>` : "";
+    return `<button type="button" data-trade-tab="${key}" style="all:unset;box-sizing:border-box;cursor:pointer;display:block;flex:1 1 220px;min-width:210px;background:${meta.soft};border:1px solid ${meta.line};border-radius:12px;padding:12px 13px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:6px"><span style="font-size:13.5px;font-weight:800;color:${meta.color}">${meta.icon} ${meta.label}</span><span style="font-size:10px;color:#999">${meta.hs}</span></div>
+      <div style="font-size:10.5px;color:#888;margin-top:6px">${tradeYm(M.ks[i])} 수입</div>
+      <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><span style="font-size:24px;font-weight:900;color:${meta.color};font-variant-numeric:tabular-nums">${pfTon(cur)}<span style="font-size:12px;font-weight:700"> t</span></span>${tradeBadge(tradePct(cur, prv))}</div>
+      ${eggs}
+      <div style="margin:8px 0 4px">${tradeSpark(last24, meta.color, 240, 38)}<div style="display:flex;justify-content:space-between;font-size:9px;color:#aaa"><span>${tradeYm(M.ks[Math.max(0, M.ks.length - 24)])}</span><span>${tradeYm(M.ks[i])}</span></div></div>
+      <div style="font-size:11px;color:#555;line-height:1.7">최근 12개월 수입 <b>${y12 == null ? "-" : pfTon(y12) + "t"}</b> ${y12 != null && y12p ? tradeBadge(tradePct(y12, y12p)) : ""}<br>${it.hasEx ? `수출 ${tradeYm(M.ks[i])} <b>${pfTon(ex)}t</b>` : '<span style="color:#aaa">수출 자료 수집 대기</span>'}${top ? `<br>수입 1위 ${esc(top[0])} ${pfTon(top[1])}t` : ""}</div>
+      <div style="font-size:10.5px;font-weight:700;color:${meta.color};margin-top:6px">자세히 보기 ›</div></button>`;
+  }).join("");
+  return `<div style="display:flex;gap:10px;flex-wrap:wrap">${cards}</div>
+    <div style="margin-top:12px;font-size:11px;color:#666;line-height:1.75;background:#F5F5F5;border-radius:8px;padding:8px 11px">카드를 누르면 품목별 월별 수입·수출 추이, 수입 단가, 수입국·수출국 비중, 월별 표를 볼 수 있습니다. 수입이 없는 달은 0톤으로 표시합니다.</div>`;
+}
+function tradeItem(M, key){
+  const meta = TRADE_ITEMS[key], it = M.items[key], i = M.ks.length - 1, c = it.cells[i];
+  const cur = it.t[i], prv = it.t[i - 12], y12 = tradeSum(it.t, i, 12), y12p = tradeSum(it.t, i - 12, 12);
+  const unit = (usd, t) => t > 0.5 ? usd / t : null, price = it.t.map((t, j) => unit(it.usd[j], t));
+  const curP = price[i], prvP = price[i - 12];
+  const bal = it.hasEx ? (it.exUsd[i] - it.usd[i]) : null;
+  const n = Math.min(M.ks.length, 36), off = M.ks.length - n, xl = M.ks.slice(off).map(k => k.slice(2, 4) + "." + k.slice(4)), xf = M.ks.slice(off).map(tradeYm);
+  const ex = (t, kusd) => `금액 ${tradeMoney(kusd)}`;
+  const kpis = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+    ${tradeKpi(`${tradeYm(M.ks[i])} 수입량`, `${pfTon(cur)}<span style="font-size:11px"> t</span>`, `${tradeBadge(tradePct(cur, prv))} 전년 같은 달 ${pfTon(prv)}t`, meta.color)}
+    ${tradeKpi("최근 12개월 수입", y12 == null ? "-" : `${pfTon(y12)}<span style="font-size:11px"> t</span>`, y12 != null && y12p ? `${tradeBadge(tradePct(y12, y12p))} 직전 12개월 ${pfTon(y12p)}t` : "비교 자료 부족", "#455A64")}
+    ${tradeKpi("수입 단가", curP == null ? "-" : `US$ ${curP.toFixed(2)}<span style="font-size:11px">/kg</span>`, curP != null && prvP ? `${tradeBadge(tradePct(curP, prvP))} 전년 같은 달 $${prvP.toFixed(2)}` : "수입 금액 ÷ 중량", "#00695C")}
+    ${it.hasEx ? tradeKpi(`${tradeYm(M.ks[i])} 수출량`, `${pfTon(it.ex[i])}<span style="font-size:11px"> t</span>`, `${ex(it.ex[i], it.exUsd[i])} · 무역수지 <b style="color:${bal >= 0 ? "#2E7D32" : "#C62828"}">${tradeMoney(bal)}</b>`, "#37474F") : tradeKpi("수출", "—", "수출 자료는 다음 수집부터 표시됩니다", "#9E9E9E")}
+  </div>`;
+  const chart1 = `<div style="font-size:12px;font-weight:800;color:#333;margin:4px 0 2px">📈 월별 수입(막대)·수출(선) 중량 <span style="font-weight:500;color:#999">(톤)</span></div>
+    ${pfSvgChart("trade-vol-" + key, { label: meta.short + " 월별 수입·수출 중량", xl, xfull: xf, w: 360, h: 190, bars: true, zero: true, fmt: pfFmtN,
+      series: [{ name: "수입(t)", kind: "bar", color: meta.color, opacity: 0.75, ys: it.t.slice(off) }].concat(it.hasEx ? [{ name: "수출(t)", color: "#37474F", ys: it.ex.slice(off), w: 2 }] : []),
+      extra: j => { const g = j + off, p = it.t[g - 12]; return `수입 금액 ${tradeMoney(it.usd[g])}${p ? ` · 전년비 ${pfSign(tradePct(it.t[g], p))}%` : ""}${it.hasEx ? ` · 수출 금액 ${tradeMoney(it.exUsd[g])}` : ""}`; } })}`;
+  const hasPrice = price.some(v => v != null);
+  const chart2 = hasPrice ? `<div style="font-size:12px;font-weight:800;color:#333;margin:16px 0 2px">💲 수입 단가 <span style="font-weight:500;color:#999">(US$/kg · 수입 금액 ÷ 수입 중량)</span></div>
+    ${pfSvgChart("trade-prc-" + key, { label: meta.short + " 수입 단가", xl, xfull: xf, w: 360, h: 150, fmt: v => "$" + v.toFixed(2), series: [{ name: "수입 단가", color: "#00695C", ys: price.slice(off), w: 2.2, connect: true }] })}` : "";
+  const p12 = tradePartners(it, i, 12, "by", it.t), pe12 = tradePartners(it, i, 12, "ex_by", it.ex);
+  const partners = `<div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:16px">
+    <div style="flex:1 1 250px;min-width:230px"><div style="font-size:12px;font-weight:800;color:#333;margin-bottom:6px">🌍 수입국 비중 <span style="font-weight:500;color:#999">(최근 12개월)</span></div>${tradePartnerBar(p12, "t")}</div>
+    ${it.hasEx ? `<div style="flex:1 1 250px;min-width:230px"><div style="font-size:12px;font-weight:800;color:#333;margin-bottom:6px">🚢 수출국 비중 <span style="font-weight:500;color:#999">(최근 12개월)</span></div>${tradePartnerBar(pe12, "t")}</div>` : ""}</div>`;
+  const rows = []; for(let j = i; j > Math.max(-1, i - 8); j--) rows.push(j);
+  const table = `<div style="font-size:12px;font-weight:800;color:#333;margin:16px 0 4px">🗓️ 최근 8개월 표</div>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:420px;font-size:11.5px;font-variant-numeric:tabular-nums">
+      <thead><tr style="border-bottom:1px solid #eee;color:#999;font-size:10px"><th style="text-align:left;padding:4px 6px;font-weight:500">월</th><th style="text-align:right;padding:4px 6px;font-weight:500">수입(t)</th><th style="text-align:right;padding:4px 6px;font-weight:500">전년비</th><th style="text-align:right;padding:4px 6px;font-weight:500">수입 금액</th><th style="text-align:right;padding:4px 6px;font-weight:500">수출(t)</th><th style="text-align:left;padding:4px 6px;font-weight:500">수입 1위</th></tr></thead>
+      <tbody>${rows.map(j => { const top = Object.entries(it.cells[j].by || {})[0], pc = tradePct(it.t[j], it.t[j - 12]); return `<tr style="border-bottom:1px solid #f6f6f6"><td style="padding:5px 6px;white-space:nowrap">${tradeYm(M.ks[j])}</td><td style="padding:5px 6px;text-align:right;font-weight:700;color:${meta.color}">${pfTon(it.t[j])}</td><td style="padding:5px 6px;text-align:right">${pc == null ? "-" : tradeBadge(pc)}</td><td style="padding:5px 6px;text-align:right;color:#666">${tradeMoney(it.usd[j])}</td><td style="padding:5px 6px;text-align:right">${it.hasEx ? pfTon(it.ex[j]) : "-"}</td><td style="padding:5px 6px;color:#555;white-space:nowrap">${top ? esc(top[0]) : "-"}</td></tr>`; }).join("")}</tbody></table></div>`;
+  // 한눈에 읽는 요약(자동 문장) — 숫자는 모두 위 표·그래프와 같은 값
+  const notes = [];
+  notes.push(`${tradeYm(M.ks[i])} 수입은 <b>${pfTon(cur)}t</b>${prv ? ` — 전년 같은 달보다 <b>${Math.abs(tradePct(cur, prv)).toFixed(1)}% ${cur >= prv ? "많습니다" : "적습니다"}</b>` : ""}.`);
+  if(y12 != null && y12p) notes.push(`최근 12개월 누적 수입은 ${pfTon(y12)}t로 직전 12개월보다 ${Math.abs(tradePct(y12, y12p)).toFixed(1)}% ${y12 >= y12p ? "늘었습니다" : "줄었습니다"}.`);
+  if(p12.rows.length && p12.tot > 0) notes.push(`수입 비중 1위는 ${esc(p12.rows[0][0])}(${(p12.rows[0][1] / p12.tot * 100).toFixed(0)}%)입니다.`);
+  if(key === "egg_fresh" && cur > 0) notes.push(`신선란은 중량 통계라, 개당 60g으로 보면 ${tradeYm(M.ks[i])} 수입은 약 ${Math.round(cur * 1e6 / 60 / 1e4).toLocaleString()}만 개입니다.`);
+  if(key === "egg_hatching") notes.push("종란은 수입 시기가 드문드문하고 월별 변동이 커서, 한 달 값보다 12개월 누적을 보는 것이 좋습니다.");
+  if(it.hasEx && it.ex[i] > 0) notes.push(`같은 달 수출은 ${pfTon(it.ex[i])}t, 수출입 금액 차이(무역수지)는 ${tradeMoney(bal)}입니다.`);
+  const sum = `<div style="background:${meta.soft};border:1px solid ${meta.line};border-radius:10px;padding:9px 12px;margin-bottom:12px;font-size:12px;color:#444;line-height:1.8"><b style="color:${meta.color}">${meta.icon} 한눈에 보기</b><ul style="margin:3px 0 0 16px;padding:0">${notes.map(t => `<li>${t}</li>`).join("")}</ul></div>`;
+  return sum + kpis + chart1 + chart2 + partners + table;
+}
+function renderTradePanel(){
+  const st = tradeState, tabs = [["all", "📊 한눈에"]].concat(Object.entries(TRADE_ITEMS).map(([k, m]) => [k, `${m.icon} ${m.short}`]));
+  const head = `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:10px"><div><div class="display" style="font-size:16px;margin-bottom:2px">🌐 계육·계란·종란 수출입 동향</div><div style="font-size:11px;color:#999">관세청 통관 통계 기준 월별 수출입 물량·금액·단가·상대국 (매주 자동 갱신)</div></div><button id="tradestats-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button></div>`;
+  const shell = inner => `<div class="card" id="trade-root" style="border-top:6px solid #00695C">${head}${inner}</div>`;
+  if(st.status === "idle" || st.status === "loading") return shell(`<div style="text-align:center;padding:26px;color:#aaa">⏳ 불러오는 중...</div>`);
+  const M = st.status === "done" ? tradeModel(st.data) : null;
+  if(!M) return shell(`<div style="text-align:center;padding:20px;color:#888;font-size:12px;line-height:1.8">수출입 통계를 불러오지 못했거나 아직 수집된 자료가 없습니다.<br><button id="tradestats-retry" style="margin-top:8px;border:1px solid #00695C;color:#00695C;background:#fff;border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer">다시 불러오기</button></div>`);
+  const tab = TRADE_ITEMS[st.tab] ? st.tab : "all";
+  const chips = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px" role="tablist">${tabs.map(([k, label]) => `<button type="button" role="tab" aria-selected="${k === tab}" data-trade-tab="${k}" style="border:1px solid ${k === tab ? "#00695C" : "#ddd"};background:${k === tab ? "#00695C" : "#fff"};color:${k === tab ? "#fff" : "#555"};border-radius:16px;padding:6px 14px;font-size:12px;font-weight:${k === tab ? 800 : 500};cursor:pointer">${label}</button>`).join("")}</div>`;
+  let body;
+  try { body = tab === "all" ? tradeOverview(M) : tradeItem(M, tab); }
+  catch(e){ body = `<div style="color:#C62828;font-size:12px;padding:12px">이 화면을 그리지 못했습니다: ${esc(e.message || String(e))}</div>`; }
+  const d = st.data, srcs = Object.values(d.sources || {}).filter(s => s.months).map(s => s.name).join(" · ");
+  const foot = `<div style="margin-top:14px;background:#F5F5F5;border-radius:8px;padding:9px 11px;font-size:10.5px;color:#666;line-height:1.75"><b>자료 안내</b> · 출처: ${esc(srcs || "관세청 품목별 국가별 수출입실적(data.go.kr)")} · 수집 ${esc(d.updated || "")}. 통관(수출입 신고 수리) 기준 월별 확정 전 잠정치로, 가장 최근 달은 이후 수정될 수 있습니다. 수입이 없는 달은 0톤으로 표시하며, 상대국 비중은 월별 상위 국가 합계로 계산해 나머지는 「기타」로 둡니다. 수출 자료는 관세청 값에만 있어 UN 값으로 채워진 과거 달은 수출이 비어 있을 수 있습니다.</div>`;
+  return shell(chips + body + foot);
+}
+function tradeBind(){
+  if(!(state.tab === "premium" && premiumState.view === "tradestats")) return;
+  const back = document.getElementById("tradestats-back-btn"); if(back) back.onclick = () => { premiumState.view = "menu"; render(); };
+  const retry = document.getElementById("tradestats-retry"); if(retry) retry.onclick = () => { tradeState.status = "idle"; render(); };
+  document.querySelectorAll("[data-trade-tab]").forEach(b => b.onclick = () => { tradeState.tab = b.dataset.tradeTab; render(); });
+  pfBindCharts();
+}
+
 const grainPriceState = { status:"idle", data:null, open:{ corn:true }, showMethod:false };
 const GP_ORDER = ["corn", "soymeal", "soybean", "wheat"];
 const GP_ICON = { corn:"🌽", soymeal:"🫘", soybean:"🌱", wheat:"🌾" };
@@ -13522,6 +13667,11 @@ function renderPremiumTab(){
   if(premiumState.view === "priceforecast"){
     if(pfx.histStatus === "idle") pfLoadAll();
     return renderPremiumGateHeader() + logoutBar + renderPriceForecastPanel();
+  }
+  // 계육·계란·종란 수출입 동향 — import_status/stats.json(관세청, 매주 자동 갱신)
+  if(premiumState.view === "tradestats"){
+    if(tradeState.status === "idle") fetchTradeStats();
+    return renderPremiumGateHeader() + logoutBar + renderTradePanel();
   }
   // 업계관련 소식 — industry_news/latest.json(매일 자동 갱신)
   if(premiumState.view === "industrynews"){
@@ -19725,6 +19875,7 @@ function attachEvents(){
   document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
   setupTabArrows();
   pfBind();                                  // 육계·계란 시세예측(탭·차트·시나리오·업로드·관리자)
+  tradeBind();                               // 계육·계란·종란 수출입 동향
   const headerSolarTerm = document.getElementById("header-solar-term");
   if(headerSolarTerm) headerSolarTerm.onclick = ()=>switchTab("weather");
 
