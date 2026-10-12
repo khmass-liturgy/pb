@@ -748,6 +748,7 @@ let premiumState = {
 // category는 메뉴 화면에서 큰 묶음 제목으로 쓰인다(renderPremiumMenuItems) —
 // 배열 순서가 곧 화면에 보이는 순서이므로, 같은 category끼리는 붙여서 둔다.
 const PREMIUM_ITEMS = [
+  { key:"ibteam", icon:"🧬", title:"전염성기관지염(IB)차단 AI공동연구팀", desc:"IB 기초 질병학부터 위험요인·국내 실태·진단·백신 방어·논문 연구·시범농장 실증·예방시스템까지 8단계로 순차 연구합니다. 단계마다 기초 이론·전문 심화·육계/산란계 비교·현장 사례·문헌 검토·농장 점검표를 제공합니다.", color:"#C62828", category:"AI공동연구팀" },
   { key:"drug", icon:"💊", title:"약품조회 및 휴약기간 검색", desc:"동물용의약품을 제품명·업체명·성분명·축종·증상으로 검색하고, 축종별 휴약기간을 QIA 공식 데이터로 바로 확인합니다.", color:"#00838F", category:"약품·투약·소독" },
   { key:"treatment", icon:"💉", title:"상황별 처방(투약) 패키지", desc:"육계·산란계 농장 상황을 고르면 그에 맞는 투약(처방) 프로그램을 보여드립니다. 상황은 계속 추가됩니다.", color:"#C62828", category:"약품·투약·소독" },
   { key:"seasonal", icon:"🗓️", title:"계절별 투약(관리) 패키지", desc:"봄·여름·가을·겨울 시기별로 챙겨야 할 투약(백신)과 사양관리 주의사항을 안내합니다.", color:"#795548", category:"약품·투약·소독" },
@@ -785,6 +786,7 @@ const PREMIUM_ITEMS = [
 // 카테고리 큰 제목마다 다른 색을 준다 — 묶음별로 한눈에 구분되게. 목록에
 // 없는(향후 추가될) category는 CSS 기본색(#555)로 그냥 둔다.
 const PREMIUM_CATEGORY_COLORS = {
+  "AI공동연구팀": "#C62828",
   "약품·투약·소독": "#00838F",
   "백신·약품관리": "#3949AB",
   "사양관리": "#0288D1",
@@ -848,7 +850,7 @@ const PREMIUM_MENU_LEGACY_PATH = "premium_menu/items.json";
 // 제공한다(회원관리·자동문자발송관리는 별도로 자동 추가되는 관리자 전용
 // 항목이라 목록에서 뺀다).
 const PREMIUM_MENU_KNOWN_KEYS = [
-  "drug","treatment","seasonal","finder","disinfect","newproducts","vaccine",
+  "ibteam","drug","treatment","seasonal","finder","disinfect","newproducts","vaccine",
   "ventfinder","lightguide","moltguide","feedstandard","feedgrain","grainprice","priceforecast","tradestats","supplement","selfcheck","diagnosis","specimen","faq","study",
   "research","diseasebrief","emerging","industrynews","drugnews","magazine","kkoko","feature_board","consult","consulting","smssub",
 ];
@@ -857,7 +859,7 @@ let premiumMenuState = { status:"idle", data:null, busy:false, msg:"", adminOpen
 
 // 관리자가 저장한 메뉴가 있어도, 그 뒤에 새로 만든 기본 메뉴(PREMIUM_MENU_NEW_SEED_KEYS)는 빠져 보이지 않게
 // 저장된 메뉴에 없을 때만 기본 위치(앞 메뉴 뒤)에 끼워 보여 준다.
-const PREMIUM_MENU_NEW_SEED_KEYS = ["drugnews", "diseasebrief", "priceforecast", "tradestats", "supplement"];
+const PREMIUM_MENU_NEW_SEED_KEYS = ["ibteam", "drugnews", "diseasebrief", "priceforecast", "tradestats", "supplement"];
 // 관리자가 예전에 저장한 메뉴에는 두 항목이 「사양관리」로 들어 있으므로, 분류만 새 묶음으로 강제한다.
 // 분류 이름이 바뀐 경우(관리자가 예전에 저장한 메뉴에 옛 이름이 남아 있어도 새 이름으로 묶는다)
 const PREMIUM_MENU_CATEGORY_RENAME = { "백신관리": "백신·약품관리" };
@@ -873,7 +875,7 @@ function currentPremiumMenuItems(){
     if(!seed) return;
     const prevKey = seedIdx > 0 ? PREMIUM_ITEMS[seedIdx-1].key : null;
     const at = prevKey ? out.findIndex(it => it.key === prevKey) : -1;
-    if(at >= 0) out.splice(at+1, 0, seed); else out.push(seed);
+    if(at >= 0) out.splice(at+1, 0, seed); else if(seedIdx === 0) out.unshift(seed); else out.push(seed);
   });
   return out;
 }
@@ -11693,6 +11695,394 @@ function suppBind(){
   document.querySelectorAll("[data-supp-tab]").forEach(b => b.onclick = () => { suppState.tab = b.dataset.suppTab; render(); });
 }
 
+// ── 전염성기관지염(IB) 차단 AI공동연구팀 — 단계별 연구 과정(정적 자료) ─────────────────────────
+// 연구는 1단계부터 순차적으로 공개한다. 새 강의를 공개할 때는 IB_LECTURES에 내용을 넣고 ready:true로 바꾸고,
+// 다음 단계를 열 때만 IB_CURRENT_STAGE를 올린다(사용자가 「다음 단계」를 지시하기 전에는 올리지 않는다).
+// 각 강의는 ①~⑨ 순서(목표·기초·심화·육계/산란계·현장·문헌·예방관리·요약·다음 제안)를 지킨다.
+// 문헌은 실제로 존재가 확인된 자료만 싣고, 원문·PMID·DOI를 직접 확인하지 못했으면 반드시 그렇게 표시한다.
+const IB_CURRENT_STAGE = 1;
+const IB_COLOR = "#C62828";
+const IB_STAGES = [
+  { no:1, title:"IB 기초 질병학", items:["IBV의 정의와 분류","코로나바이러스의 구조와 S 단백질","감염경로 및 전파 양상","기관·기관지·신장·난관에 미치는 영향","육계와 산란계의 임상증상","부검 소견과 생산성 저하 기전","IB 발생과 경제적 피해의 관계"] },
+  { no:2, title:"발생 원인과 위험요인", items:["외부 바이러스 유입경로","농장 간 전파","차량·사람·기구 등 매개 위험","밀집사육 및 계사 환기","암모니아·분진·온습도","면역억제 및 복합감염","바이러스 변이와 항원 차이","백신 면역 형성에 영향을 주는 요인"] },
+  { no:3, title:"국내 농장 발생 실태", items:["국내 IB 발생과 유행주 변화","육계·산란계 발생 양상의 차이","백신 접종 이력과 발병 시점","호흡기 증상 및 신장 병변","산란율·난각품질 변화","폐사율·출하성적·경제손실","발생 농장과 비발생 농장 비교"] },
+  { no:4, title:"진단과 역학", items:["임상진단과 확진의 차이","RT-PCR 및 유전자 분석","ELISA 등 혈청학적 검사","검사 시점과 검체 종류의 영향","백신주와 야외주 감별의 한계","S1 유전자 및 유전자형 분석","다른 호흡기 질병과의 감별진단","농장 단위 유행 원인 추정"] },
+  { no:5, title:"IB 백신 방어체계", items:["생독백신과 불활화백신의 특징","점안·분무·음수 접종의 장단점","국소점막 면역과 전신면역","모체이행항체와 초기 면역 형성","백신 접종 균일도","접종 후 항체반응 해석","국내 유행주와 교차방어 연구","백신 접종 후 발병하는 원인","현장에 적합한 백신 프로그램 평가"],
+    note:"실제 백신 조합, 접종일령 및 접종방법은 국내 허가사항, 농장 위험도, 검사 결과를 토대로 담당 수의사와 검토합니다." },
+  { no:6, title:"국내외 학술논문 심층 연구", items:["최근 5년 주요 연구","역사적으로 중요한 원저 논문","국내 유행주 유전적 변화","백신과 야외주 사이의 항원적 차이","백신 교차방어 및 면역 지속성","농장 환경과 질병 발생의 상관관계","실험 결과와 실제 농장 결과의 차이","아직 해결되지 않은 연구 과제"] },
+  { no:7, title:"시범농장 실증", items:["참여농장 선정 기준","과거 발생 이력 및 기초자료 수집","위험요인 점검 및 우선순위","방역·백신·환경관리 개선","개선 전후 또는 비교농장 분석","IB 확진 발생률 비교","생산성·경제적 손실 평가","혼란변수와 연구의 한계 검토"] },
+  { no:8, title:"예방시스템 완성", items:["농장 유형별 IB 위험관리 매뉴얼","출입·소독·동선관리 기준","환경관리 및 사육관리 표준화","백신 접종 품질관리 기준","검사·감시 및 조기경보체계","이상 징후 발생 시 초기 대응","월별·분기별 평가","새로운 변이주 발생 시 대응전략","지속적인 개선 및 교육체계"] },
+];
+const IB_SECTIONS = [
+  [1, "연구 목표"], [2, "기초 이론"], [3, "전문 심화"], [4, "육계·산란계 비교"], [5, "현장 사례·문제"],
+  [6, "논문·국제기구 자료"], [7, "예방·관리 방안"], [8, "요약·점검 질문"], [9, "다음 연구 제안"],
+];
+const IB_CIRCLED = ["", "①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨"];
+// 근거 구분 배지 — 확인된 사실 / 연구자 가설 / 논쟁 중 / 현장 적용을 위한 추론
+const IB_TAGS = {
+  fact:   ["확인된 사실", "#2E7D32", "#E8F5E9"],
+  hypo:   ["가설",        "#6A1B9A", "#F3E5F5"],
+  debate: ["논쟁 중",     "#E65100", "#FFF3E0"],
+  infer:  ["현장 추론",   "#1565C0", "#E3F2FD"],
+};
+function ibTag(k){ const t = IB_TAGS[k]; return t ? `<span style="display:inline-block;font-size:10px;font-weight:800;color:${t[1]};background:${t[2]};border:1px solid ${t[1]}55;border-radius:5px;padding:0 5px;margin-right:4px;vertical-align:1px;white-space:nowrap">${t[0]}</span>` : ""; }
+function ibTable(head, rows, opts){
+  const o = opts || {};
+  return `<div style="overflow-x:auto;margin:8px 0 10px"><table style="border-collapse:collapse;width:100%;min-width:${o.minW || 0}px;font-size:12px;line-height:1.6">
+    <thead><tr>${head.map(h => `<th style="background:${IB_COLOR}14;color:#5b1111;text-align:left;padding:6px 8px;border:1px solid #eed;white-space:nowrap">${h}</th>`).join("")}</tr></thead>
+    <tbody>${rows.map(r => `<tr>${r.map((c, i) => `<td style="padding:6px 8px;border:1px solid #eee;vertical-align:top;${i === 0 ? "font-weight:700;color:#333;white-space:nowrap;background:#fafafa" : "color:#444"}">${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+}
+function ibBox(title, body, c){ const col = c || "#455A64"; return `<div style="border:1px solid ${col}33;border-left:4px solid ${col};background:${col}0d;border-radius:9px;padding:9px 11px;margin:9px 0"><div style="font-size:12.5px;font-weight:800;color:${col};margin-bottom:4px">${title}</div><div style="font-size:12.5px;color:#333;line-height:1.75">${body}</div></div>`; }
+function ibList(arr){ return `<ul style="margin:4px 0 6px;padding-left:18px;font-size:12.5px;line-height:1.8;color:#333">${arr.map(x => `<li>${x}</li>`).join("")}</ul>`; }
+function ibH(t){ return `<div style="font-size:13.5px;font-weight:800;color:#222;margin:14px 0 4px">${t}</div>`; }
+function ibP(t){ return `<p style="font-size:12.8px;color:#333;line-height:1.85;margin:4px 0 8px">${t}</p>`; }
+// 흐름도 — 상자를 화살표로 잇는다(좁은 화면에서는 줄바꿈)
+function ibFlow(steps, c){ const col = c || IB_COLOR; return `<div style="display:flex;flex-wrap:wrap;align-items:stretch;gap:4px;margin:8px 0 10px">${steps.map((s, i) => `${i ? `<div style="align-self:center;color:${col};font-weight:900">→</div>` : ""}<div style="flex:1 1 110px;min-width:96px;background:#fff;border:1.5px solid ${col}66;border-radius:8px;padding:6px 8px;font-size:11.5px;line-height:1.55;color:#333"><b style="color:${col}">${s[0]}</b><br>${s[1]}</div>`).join("")}</div>`; }
+function ibQuiz(list){ return list.map((q, i) => `<details style="border:1px solid #e5e5e5;border-radius:8px;padding:7px 10px;margin:6px 0;background:#fff"><summary style="cursor:pointer;font-size:12.5px;font-weight:700;color:#333">Q${i + 1}. ${q[0]}</summary><div style="font-size:12.3px;color:#444;line-height:1.75;margin-top:6px;padding-top:6px;border-top:1px dashed #ddd">${q[1]}</div></details>`).join(""); }
+function ibChecklist(id, items){
+  let saved = {}; try { saved = JSON.parse(localStorage.getItem("ib_check_v1") || "{}") || {}; } catch(_) {}
+  return `<div style="display:flex;flex-direction:column;gap:5px;margin:8px 0">${items.map((t, i) => { const k = id + ":" + i; return `<label style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;line-height:1.6;color:#333;background:#fff;border:1px solid #eee;border-radius:8px;padding:6px 9px;cursor:pointer"><input type="checkbox" data-ib-check="${k}" ${saved[k] ? "checked" : ""} style="margin-top:3px;accent-color:${IB_COLOR}"><span>${t}</span></label>`; }).join("")}</div>`;
+}
+// IBV 유전체 도식 — 실제 길이 비율을 대략적으로 나타낸 그림(정밀 지도가 아님)
+function ibGenomeBar(){
+  const seg = [["5′", 1.5, "#B0BEC5", ""], ["1a / 1ab (복제효소, replicase)", 73, "#90A4AE", "약 20 kb"], ["S", 12.5, IB_COLOR, "S1 + S2"], ["3a·3b·E", 2.5, "#FFB74D", ""], ["M", 2.6, "#81C784", ""], ["5a·5b", 1.8, "#FFD54F", ""], ["N", 4.3, "#64B5F6", ""], ["3′", 1.3, "#B0BEC5", ""]];
+  return `<div style="margin:8px 0 4px"><div style="display:flex;height:30px;border-radius:6px;overflow:hidden;border:1px solid #ccc">${seg.map(s => `<div title="${s[0]}" style="flex:${s[1]};background:${s[2]};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#222;overflow:hidden;white-space:nowrap">${s[1] > 4 ? s[0].split(" (")[0] : ""}</div>`).join("")}</div>
+  <div style="display:flex;justify-content:space-between;font-size:10px;color:#888;margin-top:3px"><span>5′ 말단</span><span>3′ 말단</span></div><div style="font-size:10px;color:#888;text-align:center">유전체 약 27.6 kb, 양성(+) 단일가닥 RNA — 비율은 대략적 도식</div>
+  <div style="font-size:11px;color:#555;margin-top:4px">유전자 순서: 5′ — 1a/1ab — <b style="color:${IB_COLOR}">S</b> — 3a·3b·E — M — 5a·5b — N — 3′</div></div>`;
+}
+
+const IB_LECTURES = {
+  1: [
+    { no:1, title:"IB란 어떤 질병인가?", ready:true, minutes:"기본 12~15분 · 심화 별도", html: () => ibLecture1() },
+    { no:2, title:"IBV는 어떤 바이러스인가?", ready:false },
+    { no:3, title:"IBV는 어떻게 전파되는가?", ready:false },
+    { no:4, title:"바이러스는 닭의 어느 조직을 손상시키는가?", ready:false },
+    { no:5, title:"육계와 산란계의 피해는 왜 다른가?", ready:false },
+  ],
+};
+// 1단계 학습 차례 — 연구 과제 7개가 5개 강의 어디서 다뤄지는지
+const IB_STAGE1_MAP = [
+  ["IBV의 정의와 분류", "제1강(개요) → 제2강(상세)"],
+  ["코로나바이러스의 구조와 S 단백질", "제1강(개요) → 제2강(상세)"],
+  ["감염경로 및 전파 양상", "제3강"],
+  ["기관·기관지·신장·난관에 미치는 영향", "제1강(개요) → 제4강(상세)"],
+  ["육계와 산란계의 임상증상", "제1강(비교표) → 제5강"],
+  ["부검 소견과 생산성 저하 기전", "제4강 · 제5강"],
+  ["IB 발생과 경제적 피해의 관계", "제1강(구조) → 제5강(지표)"],
+];
+
+function ibLecture1(){
+  const S = {};
+  S[1] = `
+    ${ibP("제1강은 1단계(IB 기초 질병학) 전체의 지도를 그리는 강의입니다. 세부 기전은 제2~5강에서 다루고, 여기서는 <b>IB가 무엇이고, 왜 농장에 손실을 주며, 언제 의심해야 하는지</b>를 잡습니다.")}
+    ${ibH("이 강의를 마치면 할 수 있어야 하는 것")}
+    ${ibList([
+      "IB를 한 문장으로 정의하고, 원인체(IBV)의 이름과 소속을 말할 수 있다.",
+      "이름은 ‘기관지염’이지만 <b>호흡기·신장·난관(생식기)</b>까지 침범하는 질병임을 설명할 수 있다.",
+      "<b>혈청형(serotype)·유전자형(genotype)·방어형(protectotype)</b>이 서로 다른 개념임을 구별할 수 있다.",
+      "육계와 산란계에서 손실이 나타나는 방식이 왜 다른지 개요를 말할 수 있다.",
+      "IB 손실을 직접 손실과 간접 손실로 나누고, 농장에서 매일 봐야 할 지표를 꼽을 수 있다.",
+    ])}
+    ${ibBox("학습 분량", "기본 학습(②·④·⑤·⑦·⑧) 약 12~15분 · 전문 심화(③·⑥)는 별도로 읽습니다.", "#455A64")}
+    ${ibBox("이 강의에서 답할 농장 적용 질문", "농장에서 실제로 생기는 문제는? · 발생 가능성을 높이는 원인은? · 무엇을 측정해야 하나? · 어떤 조치를 할 수 있나? · 효과는 어떻게 확인하나? · 비용 대비 실효성은? — ⑤·⑦에서 표로 답합니다.", IB_COLOR)}`;
+
+  S[2] = `
+    ${ibH("1. 한 문장 정의")}
+    ${ibBox("전염성기관지염 (Infectious Bronchitis, IB)", "닭 전염성기관지염 바이러스(<b>Infectious Bronchitis Virus, IBV</b>)가 일으키는 닭의 <b>급성·고전염성</b> 바이러스 질병으로, 호흡기를 시작으로 <b>신장</b>과 <b>난관(생식기)</b>까지 손상시켜 폐사·성장 지연·산란 저하·난질 저하를 일으킨다.", IB_COLOR)}
+    ${ibP(`${ibTag("fact")}IBV는 <b>코로나바이러스</b>의 한 종류입니다. 하지만 사람의 코로나19 바이러스(SARS-CoV-2, 베타코로나바이러스 속)와는 <b>다른 속(감마코로나바이러스, Gammacoronavirus)</b>이며, IB는 사람에게 옮는 병이 아닙니다.`)}
+    ${ibH("2. 비유로 이해하기 — 기관의 ‘빗자루’가 망가지는 병")}
+    ${ibP("닭의 기관(숨관) 안쪽은 <b>섬모(cilia)</b>라는 아주 작은 털이 빽빽하게 덮고 있습니다. 섬모는 빗자루처럼 쉬지 않고 움직이며, 숨과 함께 들어온 먼지·세균을 점액에 묻혀 밖으로 쓸어냅니다.")}
+    ${ibFlow([["① 흡입", "공기·먼지 속 IBV가 코·기관으로"], ["② 섬모 손상", "섬모상피세포 감염, 섬모가 멈추고 떨어짐"], ["③ 청소 기능 마비", "먼지·대장균이 쌓임"], ["④ 2차 세균 감염", "기낭염·심낭염(대장균증)"], ["⑤ 손실", "폐사·도태·성장 지연·도계 폐기"]])}
+    ${ibP(`${ibTag("fact")}그래서 IB 자체보다 <b>뒤따르는 대장균 감염(대장균증, colibacillosis)</b> 때문에 폐사가 커지는 경우가 많습니다. 항생제는 이 2차 세균에 쓰는 것이고, 바이러스(IBV) 자체를 죽이지는 못합니다.`)}
+    ${ibH("3. ‘기관지염’인데 왜 신장과 난관도?")}
+    ${ibP(`${ibTag("fact")}IBV는 호흡기에서 먼저 증식한 뒤 혈액을 타고 다른 장기로 퍼질 수 있습니다. 균주(바이러스 종류)에 따라 잘 침범하는 장기가 다르며, 이를 <b>조직친화성(tissue tropism)</b>이라고 합니다.`)}
+    ${ibTable(["침범 장기", "생기는 일", "농장에서 보이는 모습"], [
+      ["호흡기(기관·기관지·기낭)", "섬모 손상, 점액 증가", "‘가르랑’ 호흡음(라음, rales), 재채기, 콧물, 개구호흡"],
+      ["신장", "신장 세뇨관 손상, 요산 배출 장애", "물을 많이 먹음, 묽은 흰 똥, 폐사 증가(신장 붓고 요산 침착)"],
+      ["난관(생식기)", "난관 상피 손상, 어린 시기 감염 시 영구 손상", "산란율 저하, 연각·기형란, 묽은 난백, 산란 개시 후 산란이 안 오르는 무리"],
+    ])}
+    ${ibH("4. 왜 막기 어려운가 — 세 가지 이유")}
+    ${ibTable(["이유", "쉽게 말하면"], [
+      ["전파가 매우 빠르다", `${ibTag("fact")}잠복기가 짧아(문헌상 대개 하루~하루 반 안팎) 계사 하나에 들어오면 며칠 안에 대부분의 닭이 감염될 수 있습니다.`],
+      ["종류(형)가 많다", `${ibTag("fact")}바이러스 겉면 단백질(S 단백질)이 조금만 달라져도 백신이 만든 항체가 잘 맞지 않을 수 있습니다. 전 세계에 많은 유전자형·계통이 있고 계속 새로 보고됩니다.`],
+      ["다른 문제와 겹친다", `${ibTag("fact")}암모니아·먼지·추위 같은 환경 스트레스, 마이코플라스마(MG)·대장균 같은 다른 병원체가 겹치면 피해가 훨씬 커집니다.`],
+    ])}
+    ${ibH("5. 꼭 알아야 할 용어 (영문·한국어)")}
+    ${ibTable(["영문", "한국어", "뜻"], [
+      ["Infectious Bronchitis (IB)", "전염성기관지염", "질병 이름"],
+      ["IBV", "전염성기관지염 바이러스", "원인 바이러스"],
+      ["Spike (S) protein / S1", "스파이크(S) 단백질 / S1 부위", "바이러스 겉면의 돌기. 세포에 붙고, 항체가 주로 겨냥하는 곳"],
+      ["Serotype", "혈청형", "중화시험(항체로 바이러스를 막는 시험)으로 나눈 형"],
+      ["Genotype / Lineage", "유전자형 / 계통", "S1 유전자 서열로 나눈 형"],
+      ["Protectotype", "방어형", "공격접종 시험에서 서로 방어해 주는지로 묶은 형"],
+      ["Tissue tropism", "조직친화성", "바이러스가 잘 침범하는 장기"],
+      ["Nephropathogenic", "신장병원성", "신장을 잘 침범하는 성질"],
+      ["Colibacillosis", "대장균증", "IB 뒤에 흔히 따라오는 2차 세균 감염"],
+      ["False layer", "가짜 산란계(비산란계)", "어릴 때 난관이 손상돼 겉보기엔 정상이지만 알을 못 낳는 닭"],
+    ])}
+    ${ibH("6. 역사 한 줄")}
+    ${ibP(`${ibTag("fact")}IB는 1930년대 초 미국에서 병아리의 새로운 호흡기 질병으로 처음 보고되었습니다(Schalk & Hawn, 1931). 이후 세계 양계 지역 대부분에서 발생이 확인되었고, 지금도 백신을 쓰는 나라에서도 계속 문제가 되는 대표적인 질병입니다.`)}`;
+
+  S[3] = `
+    ${ibBox("🎓 전문 심화학습 — 중급·전문가용", "기본 학습만으로도 제1강의 목표는 달성됩니다. 이 부분은 진단·백신 선택을 다루는 4·5단계의 바탕이 되는 개념을 미리 정리합니다.", "#4527A0")}
+    ${ibH("1. 분류학적 위치")}
+    ${ibTable(["계급", "명칭"], [
+      ["목(Order)", "Nidovirales"],
+      ["과(Family)", "Coronaviridae"],
+      ["아과(Subfamily)", "Orthocoronavirinae"],
+      ["속(Genus)", "Gammacoronavirus (감마코로나바이러스)"],
+      ["아속(Subgenus)", "Igacovirus"],
+      ["종(Species)", "Avian coronavirus — IBV는 이 종에 속하는 닭의 바이러스"],
+    ])}
+    ${ibP(`${ibTag("fact")}바이러스 분류 명칭은 ICTV(국제바이러스분류위원회) 개정에 따라 바뀔 수 있으므로, 공식 문서에 쓸 때는 최신 ICTV 목록을 다시 확인합니다.`)}
+    ${ibH("2. 유전체와 S 단백질")}
+    ${ibGenomeBar()}
+    ${ibList([
+      `${ibTag("fact")}외피(envelope)가 있는 양성(+) 단일가닥 RNA 바이러스이며, 유전체는 약 27.6 kb입니다. 앞쪽 약 2/3는 복제효소(1a/1ab)를, 뒤쪽은 구조단백질(S·E·M·N)과 부속단백질(3a·3b·5a·5b)을 암호화합니다.`,
+      `${ibTag("fact")}S 단백질은 세포 안에서 <b>S1</b>(바깥쪽, 수용체 결합·중화항체 결합 부위 대부분)과 <b>S2</b>(막 쪽, 막 융합)로 잘립니다. S1에는 아미노산 변이가 몰리는 <b>초가변 영역(hypervariable region)</b>이 있습니다.`,
+      `${ibTag("fact")}그래서 혈청형과 유전자형 분류는 주로 <b>S1 유전자</b>에 기반합니다. 다만 S1의 작은 차이가 방어 효과를 크게 바꾸기도 하고, 큰 차이가 있어도 일부 교차방어가 관찰되기도 해 S1 서열 차이와 방어 정도가 1:1로 대응하지는 않습니다.`,
+      `${ibTag("fact")}변이(점돌연변이)와 함께, 한 닭에 두 균주가 동시에 감염될 때 생기는 <b>재조합(recombination)</b>이 새 변이주 출현의 중요한 경로로 보고되어 있습니다. 생독백신주가 재조합에 참여한 사례 보고도 있습니다.`,
+    ])}
+    ${ibH("3. 혈청형·유전자형·방어형 — 반드시 구별할 것")}
+    ${ibTable(["구분", "기준", "알 수 있는 것", "한계"], [
+      ["혈청형 (Serotype)", "바이러스 중화시험(VN) 등 항체와의 반응", "항원적으로 얼마나 다른가", "실험실 간 차이, 노동집약적, 방어와 완전히 일치하지 않음"],
+      ["유전자형 (Genotype·Lineage)", "S1 유전자 염기서열 계통분석", "어느 계통에 속하는가, 유행주 추적", "<b>유전자형이 같다고 방어가 보장되지 않음</b>, 분석 부위·방법에 따라 결과 차이"],
+      ["방어형 (Protectotype)", "백신 접종 후 공격접종(challenge) 시험의 방어 결과", "실제로 막아 주는가(기관 섬모 보존, 바이러스 재분리 등)", "시간·비용이 많이 들고 실험 조건이 농장과 다름"],
+    ], { minW: 560 })}
+    ${ibBox("연구팀 원칙", `${ibTag("fact")}유전자형 일치만으로 백신의 교차방어력을 확정하지 않습니다. 백신 선택·평가는 방어형 근거(공격접종 시험)와 현장 성적을 함께 봅니다. 항체가 상승이나 PCR 양성만으로 방어 성공·실패를 판정하지 않습니다.`, "#4527A0")}
+    ${ibH("4. 국제 분류 체계")}
+    ${ibP(`${ibTag("fact")}Valastro 등(2016)은 전 세계 S1 전체 서열을 모아 계통분석을 하고, <b>유전자형(GI, GII …)과 그 아래 계통(lineage, 예: GI-1, GI-19)</b>으로 나누는 통일 분류를 제안했습니다. 예를 들어 Mass형은 GI-1, QX형은 GI-19 계통으로 불립니다. 이 분류는 이후 새 유전자형·계통이 추가 보고되며 확장되고 있습니다.`)}
+    ${ibP(`${ibTag("infer")}국내 유행주(국내 고유 계통, QX계 등)의 구체적인 계통·시기별 변화는 3단계(국내 발생 실태)와 6단계(논문 심층 연구)에서 원문을 확인하며 정리합니다. 이번 강의에서는 국내 계통 이름을 단정하지 않습니다.`)}
+    ${ibH("5. 병원성 기전의 큰 줄기")}
+    ${ibFlow([["호흡기 증식", "기관 섬모상피 — 감염 후 수일 내 섬모 정지(ciliostasis)"], ["바이러스혈증", "혈류로 전신 확산(균주에 따라 차이)"], ["표적 장기", "신장 세뇨관·난관·(일부 균주) 선위 등"], ["지속 감염", "맹장편도·신장 — 장기간 분변 배출 보고"], ["2차 감염", "대장균·MG와 복합 시 손상 증폭"]], "#4527A0")}
+    ${ibList([
+      `${ibTag("fact")}어린 병아리 시기에 난관이 감염되면 난관 발달이 영구적으로 손상되어, 성성숙 후 겉보기 정상이지만 산란하지 못하는 닭(false layer)이 생길 수 있습니다. 낭종성 난관(cystic oviduct)이 대표 소견입니다.`,
+      `${ibTag("fact")}실험 연구에서는 감염 후 수주 이상 분변으로 바이러스가 배출되는 사례가 보고되어 있습니다.`,
+      `${ibTag("debate")}일부 균주(예: 793/B·4/91형)와 선위염(proventriculitis)의 관련성은 보고가 있으나 인과관계와 현장 중요도는 연구마다 해석이 엇갈립니다.`,
+      `${ibTag("hypo")}지속 감염 닭이 다음 입추군의 감염원이 되는지는 농장 구조(올인올아웃 여부, 공시기간)에 따라 달라질 것으로 추정되며, 현장 근거는 7단계 실증에서 확인할 과제입니다.`,
+    ])}
+    ${ibH("6. 경제적 피해의 구조")}
+    ${ibTable(["구분", "육계", "산란계"], [
+      ["직접 손실", "폐사, 도태, 증체 저하, 사료효율 악화", "산란율 저하, 상품란 비율 저하(연각·기형·파란), 폐사"],
+      ["간접 손실", "도계장 폐기(기낭염·심낭염), 치료 약품비, 출하 지연", "난질 저하로 등급·단가 하락, 산란 피크 미달, false layer 무리의 사료비"],
+      ["예방 비용", "백신·접종 인건비, 소독·차단방역", "다회 생독·불활화 백신, 항체 검사"],
+    ])}
+    ${ibP(`${ibTag("infer")}손실 크기는 균주, 일령, 백신 면역 상태, 복합감염, 계사 환경에 따라 크게 달라서 하나의 숫자로 말할 수 없습니다. 7단계에서 농장 자료로 손실을 계산하는 틀을 만듭니다.`)}`;
+
+  S[4] = `
+    ${ibP("육계와 산란계는 사육기간, 백신 운용, 성적 지표가 달라서 IB 피해를 반드시 따로 봐야 합니다.")}
+    ${ibTable(["항목", "🐥 육계", "🥚 산란계"], [
+      ["사육기간", "짧음 — 대개 한 달 남짓 후 출하(농장·출하체중에 따라 다름)", "김 — 육성기 약 18주 + 산란기(대개 70~80주령 이상까지)"],
+      ["가장 큰 피해", "호흡기 감염 → <b>대장균 기낭염·심낭염</b> → 폐사·도태·도계 폐기", "<b>산란율 저하·난질 저하</b>, 육추기 감염 시 <b>난관 영구손상(false layer)</b>"],
+      ["신장형 IB", "어린 일령에서 폐사 증가 요인", "육성기·산란기 모두 발생 가능, 요산 침착"],
+      ["위험 시기", "모체이행항체가 줄어들고 백신 면역이 아직 덜 생긴 초기, 환기를 줄이는 추운 시기", "육추·육성기(난관 손상), 산란 개시·피크 전후"],
+      ["백신 운용(개념)", "주로 생독백신 위주, 짧은 기간 안에 면역 형성", "생독백신 여러 차례 + 산란 전 불활화(오일) 백신으로 장기 방어"],
+      ["봐야 할 지표", "일일 폐사, 사료·음수량, 증체, 사료요구율(FCR), 생산지수, 도계 폐기율", "일일 산란율, 난중, 연각·기형·파란 비율, 난각색, 난백 높이(호우 단위), 산란 피크 높이·지속"],
+      ["회복", "출하가 빨라 회복할 시간이 거의 없음 → 한 번 꺾이면 그 무리 성적이 그대로 확정", "산란율은 회복되기도 하지만 난질과 피크가 완전히 돌아오지 않을 수 있음"],
+    ], { minW: 560 })}
+    ${ibP(`${ibTag("fact")}표의 사육기간·백신 운용은 일반적인 양상입니다. 실제 백신 조합·접종일령·방법은 국내 허가사항, 농장 위험도, 검사 결과를 토대로 담당 수의사와 정합니다(5단계).`)}`;
+
+  S[5] = `
+    ${ibBox("읽기 전에", "아래 사례는 IB에서 흔히 보고되는 양상을 교육용으로 재구성한 <b>전형적 시나리오</b>입니다. 특정 농장의 실제 기록이 아니며, 수치는 예시가 아니라 관찰할 지표를 보여 주기 위한 것입니다. 실제 국내 발생 사례는 3단계에서 자료 출처와 함께 정리합니다.", "#E65100")}
+    ${ibH("시나리오 A — 육계, 입추 후 3주 무렵 호흡기음과 폐사 증가")}
+    ${ibList(["밤에 계사에 들어가면 ‘가르랑’ 소리가 들리고, 며칠 뒤 사료·음수량이 꺾임", "폐사체 부검에서 기낭 혼탁·심낭염(대장균 소견) — 항생제를 써도 폐사가 바로 줄지 않음", "환기를 줄인 추운 시기, 암모니아 냄새가 강한 계사에서 더 심함", `${ibTag("infer")}현장 문제: “대장균 문제”로만 보고 원인(IB 등 1차 바이러스)을 확인하지 않으면 다음 입추에서도 반복될 수 있음`])}
+    ${ibH("시나리오 B — 산란계, 산란율이 갑자기 떨어지고 난질이 나빠짐")}
+    ${ibList(["며칠 사이 산란율 하락, 연각란·기형란·난각색이 옅은 알 증가", "깨 보면 난백이 물처럼 묽음(수양성 난백)", "호흡기 증상은 가볍거나 거의 안 보일 수 있음", `${ibTag("infer")}현장 문제: 사료·스트레스 문제로 오인하기 쉬움 — 산란 기록과 난질 기록이 있어야 IB를 의심할 수 있음`])}
+    ${ibH("시나리오 C — 산란 개시 후 피크가 오르지 않는 무리")}
+    ${ibList(["겉보기엔 건강한데 일부 닭이 알을 낳지 않음, 복부가 늘어진 닭", "부검 시 물이 찬 낭종성 난관(cystic oviduct)", `${ibTag("fact")}육추기 IB 감염으로 인한 난관 손상과 연관될 수 있음`, `${ibTag("infer")}현장 문제: 원인이 수개월 전(육추기)에 있어 산란 농장과 육성 농장이 다르면 원인 추적이 어려움`])}
+    ${ibH("농장 적용 6문답 (제1강 수준)")}
+    ${ibTable(["질문", "답"], [
+      ["실제로 생기는 문제는?", "육계: 호흡기 → 대장균 2차 감염 → 폐사·폐기 / 산란계: 산란율·난질 저하, 육추기 감염 시 false layer"],
+      ["발생 가능성을 높이는 원인은?", "외부 유입(사람·차량·기구·인접 농장), 백신 면역 부족·불균일, 암모니아·먼지·추위, 다른 질병과의 복합감염 — 2단계에서 상세"],
+      ["무엇을 측정해야 하나?", "매일: 폐사·사료·음수량·산란율·난질 / 이상 시: 부검 소견, 검사(PCR·혈청) — 4단계에서 검사 해석"],
+      ["어떤 조치를 할 수 있나?", "차단방역, 환경 개선, 백신 접종 품질 관리, 이상 시 조기 검사·2차 감염 관리"],
+      ["효과는 어떻게 확인하나?", "같은 조건의 이전 무리·비교 계사와 폐사율·FCR·산란율·폐기율 비교, 검사 결과 추이 — 7단계 실증 설계"],
+      ["비용 대비 실효성은?", `${ibTag("infer")}매일 기록과 기본 차단방역은 비용이 낮고 효과의 기반 / 검사·백신 변경은 농장 위험도에 따라 수의사와 판단`],
+    ])}`;
+
+  const ref = (o) => `
+    <div style="border:1px solid #e3e3e3;border-radius:10px;padding:10px 12px;margin:10px 0;background:#fff">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px"><span style="font-size:10.5px;font-weight:800;color:#fff;background:${o.levelColor};border-radius:5px;padding:1px 7px">${o.level}</span><span style="font-size:10.5px;font-weight:700;color:#B71C1C;background:#FFEBEE;border-radius:5px;padding:1px 7px">원문 미확인</span></div>
+      ${ibTable(["항목", "내용"], [
+        ["1. 논문 제목", o.title], ["2. 연구자·연도", o.who], ["3. 게재지", o.journal], ["4. DOI / PMID", o.id],
+        ["5. 목적·방법", o.method], ["6. 대상·표본 수", o.sample], ["7. 핵심 결과", o.result], ["8. 통계·효과 크기", o.stats],
+        ["9. 한계", o.limit], ["10. 국내 농장 적용", o.apply],
+      ])}
+    </div>`;
+  S[6] = `
+    ${ibBox("자료 확인 상태 (정직하게 표시)", "이 강의를 작성한 환경에서는 PubMed 접속이 차단되어 <b>논문 원문과 PMID·DOI를 직접 확인하지 못했습니다.</b> 아래 서지 정보는 학계에서 널리 인용되는 자료를 기억에 근거해 적은 것이며, DOI·PMID는 <b>확인 필요</b>로 표시했습니다. 6단계에서 원문을 확인하고 표를 갱신합니다. 존재가 불확실한 자료는 싣지 않았습니다.", "#B71C1C")}
+    ${ibP("제1강은 ‘질병의 정의와 큰 그림’이므로 실험 논문보다 <b>종설·공식 진단 매뉴얼·분류 연구</b>가 핵심 근거입니다. 근거 수준은 실험실 연구 / 공격접종 시험 / 관찰연구 / 현장 실증 / 종설·매뉴얼로 구분합니다.")}
+    ${ref({ level:"종설 (Review)", levelColor:"#455A64",
+      title:"Coronavirus avian infectious bronchitis virus",
+      who:"Cavanagh D. (2007)", journal:"Veterinary Research 38(2) (권·호 확인 필요)",
+      id:"DOI 10.1051/vetres:2006055 (확인 필요) · PMID 미확인",
+      method:"IBV의 분자생물학, 병원성, 면역, 백신, 변이에 관한 기존 연구 종합", sample:"해당 없음(종설)",
+      result:"IBV 구조·S1 변이와 혈청형의 관계, 조직친화성, 백신 교차방어의 복잡성을 정리한 대표 종설", stats:"해당 없음(종설)",
+      limit:"2007년 이후의 유전자형 분류 개편·최근 유행주는 반영되지 않음", apply:"기초 개념(제1~2강)의 근거로 적합 · 국내 유행주 판단에는 최신 국내 자료가 별도로 필요" })}
+    ${ref({ level:"종설 (Review)", levelColor:"#455A64",
+      title:"Review of infectious bronchitis virus around the world",
+      who:"Jackwood M.W. (2012)", journal:"Avian Diseases 56(4) (권·호 확인 필요)",
+      id:"DOI 10.1637/10227-043012-Review.1 (확인 필요) · PMID 미확인",
+      method:"대륙·국가별 IBV 유형 분포와 백신 사용 현황 문헌 정리", sample:"해당 없음(종설)",
+      result:"지역마다 유행 유형이 다르고 새 변이주가 계속 보고되어, 지역 유행주에 맞는 백신 전략이 필요함을 정리", stats:"해당 없음(종설)",
+      limit:"2012년 기준 — 이후 유행 변화 미반영, 국가별 감시 수준 차이", apply:"국내도 해외와 다른 유행 양상을 보일 수 있다는 근거 · 3단계 국내 실태 조사의 출발점" })}
+    ${ref({ level:"분자계통 분류 연구", levelColor:"#00695C",
+      title:"S1 gene-based phylogeny of infectious bronchitis virus: An attempt to harmonize virus classification",
+      who:"Valastro V., Holmes E.C., Britton P., Fusaro A., Jackwood M.W., Cattoli G., Monne I. (2016)", journal:"Infection, Genetics and Evolution (권·쪽 확인 필요)",
+      id:"DOI 10.1016/j.meegid.2016.02.015 (확인 필요) · PMID 미확인",
+      method:"공개된 IBV S1 전체 염기서열을 모아 계통분석으로 유전자형·계통 기준 제안", sample:"공개 S1 서열 다수(정확한 수 원문 확인 필요)",
+      result:"유전자형(GI~) 아래 계통(lineage) 단위의 통일 명명법 제안 — 이후 국제적으로 널리 사용", stats:"계통분석 지지도(부트스트랩 등) — 수치 원문 확인 필요",
+      limit:"유전자 분류이지 방어 분류가 아님 · 이후 새 유전자형 추가로 확장 중", apply:"국내 검사 결과(유전자형 보고)를 읽는 공통 언어 · 단, 백신 교차방어 판단에 그대로 쓰지 말 것" })}
+    ${ref({ level:"공식 진단 매뉴얼 (국제기구)", levelColor:"#1565C0",
+      title:"Avian infectious bronchitis — WOAH Manual of Diagnostic Tests and Vaccines for Terrestrial Animals (Terrestrial Manual)",
+      who:"WOAH(세계동물보건기구) — 장(章) 번호·최신 개정 연도 확인 필요", journal:"WOAH 공식 매뉴얼(웹 공개)",
+      id:"DOI·PMID 해당 없음 · WOAH 누리집에서 최신판 확인 필요",
+      method:"IB 진단(바이러스 분리, RT-PCR, 혈청검사)과 백신 제조·품질 기준 국제 표준", sample:"해당 없음",
+      result:"진단·백신 품질의 국제 기준 제시", stats:"해당 없음",
+      limit:"국제 표준이라 국내 허가·검사 체계와 세부가 다를 수 있음", apply:"4단계(진단)·5단계(백신)의 기준 문서 · 국내 기관(농림축산검역본부 등) 기준과 함께 확인" })}
+    ${ref({ level:"원저 논문 (역사적, 임상 관찰)", levelColor:"#6D4C41",
+      title:"An apparently new respiratory disease of baby chicks",
+      who:"Schalk A.F., Hawn M.C. (1931)", journal:"Journal of the American Veterinary Medical Association (권·쪽 확인 필요)",
+      id:"DOI·PMID 없음(1931년 문헌) — 원문 미확인",
+      method:"병아리에서 발생한 새로운 호흡기 질병의 임상·병리 관찰 보고", sample:"원문 확인 필요",
+      result:"IB의 최초 보고로 널리 인용됨", stats:"해당 없음(관찰 보고)",
+      limit:"당시 바이러스 분리·분자진단 불가 — 현재 기준의 확진 근거는 아님", apply:"역사적 의의 위주 · 현장 적용은 제한적" })}
+    ${ibH("이번 강의에 아직 넣지 않은 자료 (확인 후 추가)")}
+    ${ibList(["국내 IBV 유전자형·유행주 변화 원저 논문(국내외 학술지) — 3·6단계", "국내 공식 방역기관(농림축산검역본부 등)의 IB 질병 정보·검사 지침", "최근 5년 IBV 재조합·신규 계통 보고 — 6단계", "Diseases of Poultry(교과서) IB 장 — 최신판 확인 필요"])}`;
+
+  S[7] = `
+    ${ibP("제1강은 기초 강의라서, 여기서는 <b>어떤 농장에서도 바로 할 수 있는 기본 원칙</b>만 정리합니다. 구체적인 백신 프로그램과 검사 계획은 4·5단계에서 다룹니다.")}
+    ${ibTable(["영역", "할 일", "근거 구분"], [
+      ["차단방역", "출입 인원·차량 기록, 계사별 전용 장화·작업복, 기구 공유 금지, 올인올아웃과 충분한 공시기간·세척·소독", ibTag("fact") + "IBV는 사람·기구·공기로 퍼짐"],
+      ["환경", "추운 시기에도 최소환기 유지, 암모니아·먼지 줄이기(냄새가 느껴지면 이미 높은 편), 깔짚 습도 관리", ibTag("fact") + "섬모 손상을 키우는 요인 · " + ibTag("infer") + "목표 수치는 2단계에서 정리"],
+      ["백신 품질", "백신 보관 온도, 희석·접종 방법, 접종 균일도 확인 — 담당 수의사와 프로그램 검토", ibTag("fact") + "균일하지 않은 접종은 방어 공백"],
+      ["조기 감지", "매일 폐사·사료·음수량·산란율·난질 기록, 밤 시간 호흡기음 청취, 폐사체 부검", ibTag("infer") + "기록이 있어야 이상을 빨리 알아챔"],
+      ["확진", "의심되면 수의사 진료와 검사(PCR·혈청) — 증상만으로 IB를 확정하지 않음", ibTag("fact") + "다른 호흡기 질병과 증상이 겹침"],
+      ["2차 감염 관리", "대장균 기낭염 관리, 항생제는 수의사 처방과 휴약기간 준수", ibTag("fact") + "항생제는 IBV에 듣지 않음"],
+    ], { minW: 520 })}
+    ${ibH("📋 농장 기본 점검표 (체크하면 이 기기에 저장)")}
+    ${ibChecklist("s1l1", [
+      "계사 입구에 출입 기록부가 있고 매일 기록한다",
+      "계사별 전용 장화·작업복을 쓰고, 기구를 다른 계사와 같이 쓰지 않는다",
+      "추운 날에도 최소환기를 끄지 않는다 (암모니아 냄새·눈 따가움 점검)",
+      "매일 폐사·사료·음수량(산란계는 산란율·난질)을 같은 시간에 기록한다",
+      "백신 보관 온도와 접종 방법을 접종 때마다 확인하고 기록한다",
+      "폐사가 늘거나 산란율이 떨어지면 수의사에게 연락하는 기준이 정해져 있다",
+      "출하(도태) 후 세척·소독과 공시기간을 지킨다",
+    ])}
+    ${ibBox("비용 대비 실효성", `${ibTag("infer")}기록·출입 관리·환기 유지는 비용이 적고 다른 질병 예방에도 함께 효과가 있어 우선순위가 가장 높습니다. 백신 변경이나 정기 검사는 비용이 들므로 농장 발생 이력과 위험도를 바탕으로 수의사와 결정합니다.`, "#2E7D32")}`;
+
+  S[8] = `
+    ${ibH("핵심 결론 5가지")}
+    ${ibList([
+      "IB는 감마코로나바이러스인 IBV가 일으키는 닭의 고전염성 질병이며, 사람에게는 옮지 않는다.",
+      "‘기관지염’이라는 이름과 달리 호흡기·신장·난관을 침범하고, 균주마다 잘 침범하는 장기가 다르다.",
+      "폐사의 상당 부분은 섬모 손상 뒤 따라오는 대장균 등 2차 감염에서 생긴다.",
+      "혈청형·유전자형·방어형은 다른 개념이며, 유전자형 일치만으로 백신 방어를 확정할 수 없다.",
+      "육계는 폐사·사료효율·도계 폐기, 산란계는 산란율·난질·false layer로 손실이 나타나므로 따로 평가해야 한다.",
+    ])}
+    ${ibH("농장에서 확인할 사항 5가지")}
+    ${ibList([
+      "매일 같은 시간에 폐사·사료·음수량(산란계는 산란율·난질)을 기록하고 있는가?",
+      "밤 시간 호흡기음, 묽은 흰 똥, 연각·기형란 같은 IB 의심 신호를 알아볼 수 있는가?",
+      "폐사가 늘 때 부검을 하고 기낭염·신장 요산 침착·난관 이상을 확인하는가?",
+      "백신 보관·희석·접종 방법과 접종 일자가 기록으로 남아 있는가?",
+      "추운 시기에도 최소환기를 유지해 암모니아·먼지를 관리하는가?",
+    ])}
+    ${ibH("점검 질문 (눌러서 답 보기)")}
+    ${ibQuiz([
+      ["IB는 사람의 코로나19와 같은 바이러스인가?", "아니다. 둘 다 코로나바이러스과에 속하지만 IBV는 감마코로나바이러스 속, 코로나19 바이러스는 베타코로나바이러스 속이며 IB는 사람에게 옮지 않는다."],
+      ["IB에 걸린 육계 무리에서 항생제를 써도 폐사가 바로 줄지 않는 이유는?", "항생제는 2차 세균(대장균 등)에만 듣고 IBV 자체에는 효과가 없다. 섬모가 손상된 상태가 회복될 때까지 2차 감염이 계속 생길 수 있고, 환경 요인이 그대로면 더 오래 간다."],
+      ["‘검사에서 백신과 같은 유전자형이 나왔으니 이 백신이면 막힌다’는 판단의 문제점은?", "유전자형은 S1 서열에 따른 분류일 뿐 방어를 보장하지 않는다. 방어 여부는 방어형(공격접종 시험) 근거와 현장 성적으로 판단해야 하며, 검출된 것이 백신주인지 야외주인지도 구별해야 한다(4단계)."],
+      ["산란 개시 후 일부 닭이 알을 낳지 않고 부검 시 물찬 난관이 보인다. 무엇을 의심하나?", "육추기 IB 감염으로 인한 난관 영구손상(false layer, 낭종성 난관)을 의심할 수 있다. 원인 시점이 육추기이므로 육성 기록·백신 이력을 함께 확인한다. 다른 원인과의 감별은 수의사 진단이 필요하다."],
+      ["IB 손실을 확인하려면 육계와 산란계에서 각각 어떤 지표를 봐야 하나?", "육계: 일일 폐사, 사료·음수량, 증체, 사료요구율(FCR), 도계 폐기율 / 산란계: 산란율, 난중, 연각·기형·파란 비율, 난백 품질, 산란 피크 높이·지속."],
+    ])}
+    ${ibH("아직 해결되지 않은 문제")}
+    ${ibList([
+      `${ibTag("debate")}S1 서열 차이와 교차방어 정도 사이의 정량적 관계(몇 % 차이부터 방어가 떨어지는가)는 균주 조합마다 달라 일반화하기 어렵다.`,
+      `${ibTag("debate")}일부 균주와 선위염의 인과관계`,
+      `${ibTag("hypo")}지속 감염(맹장편도·신장) 닭이 농장 내 다음 무리 감염원으로서 차지하는 실제 비중`,
+      `${ibTag("infer")}국내 육계·산란계에서 IB가 전체 호흡기 손실 중 차지하는 비중 — 국내 자료 확인 필요(3단계)`,
+    ])}`;
+
+  S[9] = `
+    ${ibH("제2강 예고 — IBV는 어떤 바이러스인가?")}
+    ${ibList(["코로나바이러스의 구조: 외피, 스파이크, 막·외피·뉴클레오캡시드 단백질", "S1·S2의 역할과 초가변 영역 — 왜 작은 변이가 백신 효과를 바꾸는가", "변이와 재조합: 새 변이주가 생기는 두 경로", "유전자형(GI~)·계통 분류 읽는 법과 국내 검사 결과 보고서 예시 읽기", "실험실에서 IBV를 다루는 방법(발육란 계대, 기관 조직 배양)의 기초"])}
+    ${ibH("1단계 남은 강의")}
+    ${ibTable(["강의", "주제"], [["제2강", "IBV는 어떤 바이러스인가?"], ["제3강", "IBV는 어떻게 전파되는가?"], ["제4강", "바이러스는 닭의 어느 조직을 손상시키는가?"], ["제5강", "육계와 산란계의 피해는 왜 다른가?"]])}
+    ${ibH("추가로 검토할 논문·자료")}
+    ${ibList(["국내 IBV 유전자형 분석 원저 논문(국내 고유 계통·QX계 관련) — 원문 확인 후 추가", "WOAH Terrestrial Manual IB 장 최신판", "IBV 재조합·S1 변이와 교차방어에 관한 공격접종 시험 논문", "농림축산검역본부 IB 질병 정보"])}
+    ${ibBox("다음으로 넘어가기 전 확인할 사항", "· 혈청형·유전자형·방어형의 차이를 설명할 수 있는가?<br>· 육계·산란계에서 IB 손실이 나타나는 지표를 각각 말할 수 있는가?<br>· 농장 기본 점검표에서 지금 안 되고 있는 항목이 무엇인가?", IB_COLOR)}`;
+  return S;
+}
+
+const ibState = { lecture: 1, sec: 1 };
+function ibReadMap(){ try { return JSON.parse(localStorage.getItem("ib_read_v1") || "{}") || {}; } catch(_) { return {}; } }
+function ibMarkRead(k){ try { const m = ibReadMap(); if(!m[k]){ m[k] = 1; localStorage.setItem("ib_read_v1", JSON.stringify(m)); } } catch(_) {} }
+
+function renderIbTeamPanel(){
+  const head = `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:10px"><div><div class="display" style="font-size:16px;margin-bottom:2px">🧬 전염성기관지염(IB) 차단 AI공동연구팀</div><div style="font-size:11px;color:#999">Infectious Bronchitis 단계별 공동연구 — 기초 질병학부터 예방시스템 완성까지</div></div><button id="ib-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button></div>`;
+  // 8단계 로드맵 — 현재 단계까지만 열림
+  const road = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;margin-bottom:12px">${IB_STAGES.map(s => {
+    const open = s.no <= IB_CURRENT_STAGE, cur = s.no === IB_CURRENT_STAGE;
+    return `<details style="border:1.5px solid ${cur ? IB_COLOR : "#e3e3e3"};background:${cur ? IB_COLOR + "0d" : open ? "#fff" : "#fafafa"};border-radius:9px;padding:6px 9px">
+      <summary style="cursor:pointer;font-size:12px;font-weight:800;color:${open ? (cur ? IB_COLOR : "#333") : "#9e9e9e"};list-style:none">${open ? (cur ? "▶" : "✓") : "🔒"} ${s.no}단계 · ${s.title}</summary>
+      <div style="font-size:11px;color:#666;line-height:1.65;margin-top:5px">${s.items.map(x => "· " + x).join("<br>")}${s.note ? `<div style="margin-top:5px;color:#B71C1C">※ ${s.note}</div>` : ""}${open ? "" : `<div style="margin-top:5px;color:#999">앞 단계를 마친 뒤 연구팀이 공개합니다.</div>`}</div></details>`;
+  }).join("")}</div>`;
+  const stage = IB_STAGES[IB_CURRENT_STAGE - 1];
+  const lectures = IB_LECTURES[IB_CURRENT_STAGE] || [];
+  const lec = lectures.find(l => l.no === ibState.lecture && l.ready) || lectures.find(l => l.ready);
+  const read = ibReadMap();
+  const toc = `<div style="background:#fff;border:1px solid #eee;border-radius:10px;padding:10px 12px;margin-bottom:12px">
+    <div style="font-size:13px;font-weight:800;color:${IB_COLOR};margin-bottom:6px">📚 ${stage.no}단계 학습 차례 — ${stage.title}</div>
+    <div style="display:flex;flex-direction:column;gap:4px">${lectures.map(l => {
+      const on = lec && l.no === lec.no;
+      const done = l.ready && IB_SECTIONS.every(([n]) => read[`${stage.no}-${l.no}-${n}`]);
+      return l.ready
+        ? `<button type="button" data-ib-lec="${l.no}" style="all:unset;box-sizing:border-box;cursor:pointer;display:flex;justify-content:space-between;gap:8px;padding:7px 10px;border-radius:8px;border:1px solid ${on ? IB_COLOR : "#e5e5e5"};background:${on ? IB_COLOR + "12" : "#fff"};font-size:12.5px"><span><b style="color:${IB_COLOR}">제${l.no}강</b> ${l.title}</span><span style="font-size:10.5px;color:${done ? "#2E7D32" : "#888"};white-space:nowrap">${done ? "✓ 학습 완료" : (l.minutes || "")}</span></button>`
+        : `<div style="display:flex;justify-content:space-between;gap:8px;padding:7px 10px;border-radius:8px;border:1px dashed #ddd;background:#fafafa;font-size:12.5px;color:#9e9e9e"><span><b>제${l.no}강</b> ${l.title}</span><span style="font-size:10.5px;white-space:nowrap">🔒 작성 예정</span></div>`;
+    }).join("")}</div>
+    <details style="margin-top:8px"><summary style="cursor:pointer;font-size:11.5px;color:#666">연구 과제가 어느 강의에서 다뤄지나요?</summary>${ibTable(["1단계 연구 과제", "다루는 강의"], IB_STAGE1_MAP)}</details>
+  </div>`;
+  if(!lec) return `<div class="card" id="ib-root" style="border-top:6px solid ${IB_COLOR}">${head}${road}${toc}</div>`;
+  const sections = lec.html();
+  const sec = IB_SECTIONS.some(([n]) => n === ibState.sec) ? ibState.sec : 1;
+  ibMarkRead(`${stage.no}-${lec.no}-${sec}`);
+  const read2 = ibReadMap();
+  const nav = `<div style="display:flex;gap:5px;flex-wrap:wrap;margin:6px 0 10px" role="tablist">${IB_SECTIONS.map(([n, t]) => {
+    const on = n === sec, seen = read2[`${stage.no}-${lec.no}-${n}`];
+    return `<button type="button" role="tab" aria-selected="${on}" data-ib-sec="${n}" style="border:1px solid ${on ? IB_COLOR : seen ? IB_COLOR + "55" : "#ddd"};background:${on ? IB_COLOR : "#fff"};color:${on ? "#fff" : seen ? IB_COLOR : "#555"};border-radius:16px;padding:5px 10px;font-size:11.5px;font-weight:${on ? 800 : 600};cursor:pointer">${IB_CIRCLED[n]} ${t}</button>`;
+  }).join("")}</div>`;
+  const secTitle = IB_SECTIONS.find(([n]) => n === sec)[1];
+  const pager = `<div style="display:flex;justify-content:space-between;gap:8px;margin-top:14px">
+    ${sec > 1 ? `<button type="button" data-ib-sec="${sec - 1}" style="border:1px solid #ddd;background:#fff;color:#555;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer">← ${IB_CIRCLED[sec - 1]} 이전</button>` : "<span></span>"}
+    ${sec < 9 ? `<button type="button" data-ib-sec="${sec + 1}" style="border:none;background:${IB_COLOR};color:#fff;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer">${IB_CIRCLED[sec + 1]} ${IB_SECTIONS[sec][1]} →</button>` : `<span style="font-size:11.5px;color:#2E7D32;font-weight:700;align-self:center">제${lec.no}강 끝 — 다음 강의는 연구팀이 순차 공개합니다</span>`}
+  </div>`;
+  const legend = `<div style="font-size:10.5px;color:#777;margin:2px 0 8px">근거 표시: ${Object.keys(IB_TAGS).map(ibTag).join(" ")}</div>`;
+  const body = `<div style="border:1px solid ${IB_COLOR}22;border-radius:12px;padding:12px 13px;background:#fff">
+    <div style="font-size:11px;color:#999">${stage.no}단계 · 제${lec.no}강</div>
+    <div class="display" style="font-size:17px;color:#222;margin:2px 0 4px">${lec.title}</div>
+    ${legend}${nav}
+    <div style="font-size:14.5px;font-weight:800;color:${IB_COLOR};margin:4px 0 6px">${IB_CIRCLED[sec]} ${secTitle}</div>
+    <div id="ib-sec-body">${sections[sec]}</div>${pager}</div>`;
+  const foot = `<div style="margin-top:14px;background:#FFF8E1;border-radius:8px;padding:9px 11px;font-size:10.5px;color:#6b5400;line-height:1.75"><b>유의</b> · 교육·연구용 일반 자료이며 개별 농장의 진단·처방을 대신하지 않습니다. 실제 백신 조합, 접종일령·방법과 약품 사용은 국내 허가사항, 농장 위험도, 검사 결과를 토대로 담당 수의사와 결정하세요. 문헌 정보 중 ‘확인 필요’로 표시된 부분은 원문 확인 후 갱신합니다.</div>`;
+  return `<div class="card" id="ib-root" style="border-top:6px solid ${IB_COLOR}">${head}${road}${toc}${body}${foot}</div>`;
+}
+function ibBind(){
+  if(!(state.tab === "premium" && premiumState.view === "ibteam")) return;
+  const back = document.getElementById("ib-back-btn"); if(back) back.onclick = () => { premiumState.view = "menu"; render(); };
+  const root = document.getElementById("ib-root");
+  const toTop = () => { if(root) root.scrollIntoView({ behavior: "smooth", block: "start" }); };
+  document.querySelectorAll("[data-ib-lec]").forEach(b => b.onclick = () => { ibState.lecture = +b.dataset.ibLec; ibState.sec = 1; render(); toTop(); });
+  document.querySelectorAll("[data-ib-sec]").forEach(b => b.onclick = () => {
+    ibState.sec = +b.dataset.ibSec; render();
+    const sb = document.getElementById("ib-sec-body"); if(sb) sb.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+  document.querySelectorAll("[data-ib-check]").forEach(c => c.onchange = () => {
+    try { const m = JSON.parse(localStorage.getItem("ib_check_v1") || "{}") || {}; if(c.checked) m[c.dataset.ibCheck] = 1; else delete m[c.dataset.ibCheck]; localStorage.setItem("ib_check_v1", JSON.stringify(m)); } catch(_) {}
+  });
+}
+
 // ── 계육·계란·종란 수출입 동향 — import_status/stats.json(관세청 품목별 국가별 수출입실적, 매주 자동 수집) ─────────────
 // 수입은 UN Comtrade로도 받지만 수출(ex_*)은 관세청 값에만 있다. 월 값이 없는 달(수집 범위 안)은 수출입이 없던 달이라 0으로 본다.
 const TRADE_ITEMS = {
@@ -13920,6 +14310,10 @@ function renderPremiumTab(){
     if(pfx.histStatus === "idle") pfLoadAll();
     return renderPremiumGateHeader() + logoutBar + renderPriceForecastPanel();
   }
+  // 전염성기관지염(IB) 차단 AI공동연구팀 — 단계별 연구 과정(정적 자료)
+  if(premiumState.view === "ibteam"){
+    return renderPremiumGateHeader() + logoutBar + renderIbTeamPanel();
+  }
   // 영양제 종류별 사용요령 — 정적 참고 자료
   if(premiumState.view === "supplement"){
     return renderPremiumGateHeader() + logoutBar + renderSupplementPanel();
@@ -14135,6 +14529,7 @@ function renderHeaderSolarTerm(now){
 // go: {tab} 일반 탭으로 / {premium:"메뉴key"} 유료서비스의 그 화면으로(승인·로그인 안내는 그 화면이 처리) / {premium:"vaccine", vaccineView:"guide"} 처럼 보기까지 지정.
 const NEW_FEATURE_DAYS = 21;
 const NEW_FEATURES = [
+  { key:"ibteam",         date:"2026-10-13", label:"IB 차단 AI공동연구팀 (1단계 제1강)", where:"유료서비스 · 최상단",       go:{ premium:"ibteam" } },
   { key:"weather-news",   date:"2026-10-12", label:"오늘의 날씨 뉴스 카드",         where:"날씨예측 탭",               go:{ tab:"weather" } },
   { key:"vaccine-guide",  date:"2026-10-12", label:"백신 접종방법·백신 종류 안내", where:"유료서비스 · 백신·약품관리", go:{ premium:"vaccine", vaccineView:"guide" } },
   { key:"supplement",     date:"2026-10-11", label:"영양제 종류별 사용요령",       where:"유료서비스 · 백신·약품관리", go:{ premium:"supplement" } },
@@ -20308,6 +20703,7 @@ function attachEvents(){
   tradeBind();                               // 계육·계란·종란 수출입 동향
   wnBind();                                  // 오늘의 날씨 뉴스
   suppBind();                                // 영양제 종류별 사용요령
+  ibBind();                                  // IB 차단 AI공동연구팀
   const headerSolarTerm = document.getElementById("header-solar-term");
   if(headerSolarTerm) headerSolarTerm.onclick = ()=>switchTab("weather");
   // 메뉴 아래 새 기능 안내 띠 — 항목을 누르면 그 기능으로 가고 확인한 것으로 기억, ✕는 지금 보이는 항목 모두 닫기
