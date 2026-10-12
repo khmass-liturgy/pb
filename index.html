@@ -218,6 +218,21 @@
 /* ── 🐔 최꼬꼬랑 대화 — 닭 캐릭터 애니메이션 ──
    render()가 매번 #app.innerHTML을 통째로 새로 그리므로, 이 keyframes는
    (다시 그려지지 않는) 전역 <style>에 둬야 재생 중 끊기지 않는다. */
+/* 메뉴 아래 「새 기능」 흐르는 안내 띠 — 글자가 오른쪽에서 왼쪽으로 흐르고, 올려 두거나 누르고 있으면 멈춘다 */
+.nf-strip { display:flex; align-items:center; gap:8px; margin:8px 0 2px; padding:5px 6px 5px 8px; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.2); border-radius:10px; color:#fff; }
+.nf-badge { flex:0 0 auto; font-size:10px; font-weight:900; letter-spacing:.5px; color:#3b2a00; background:#F9C74F; border-radius:8px; padding:2px 7px; animation:nf-pulse 1.8s ease-in-out infinite; }
+.nf-view { flex:1 1 auto; min-width:0; overflow:hidden; white-space:nowrap; -webkit-mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent); mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent); }
+.nf-track { display:inline-flex; white-space:nowrap; animation:nf-scroll var(--nf-dur,28s) linear infinite; }
+.nf-view:hover .nf-track, .nf-view:focus-within .nf-track, .nf-view:active .nf-track { animation-play-state:paused; }
+.nf-item { all:unset; box-sizing:border-box; cursor:pointer; display:inline-flex; align-items:center; gap:6px; padding:0 22px 0 0; font-size:12.5px; color:#fff; }
+.nf-item:hover b, .nf-item:focus-visible b { text-decoration:underline; }
+.nf-item i { font-style:normal; font-size:10px; font-weight:800; color:#3b2a00; background:#F9C74F; border-radius:6px; padding:0 5px; }
+.nf-item em { font-style:normal; font-size:10.5px; opacity:.7; }
+.nf-close { flex:0 0 auto; background:none; border:none; color:#fff; opacity:.7; font-size:14px; line-height:1; cursor:pointer; padding:2px 6px; }
+.nf-close:hover { opacity:1; }
+@keyframes nf-scroll { from { transform:translateX(0); } to { transform:translateX(-50%); } }
+@keyframes nf-pulse { 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.08); } }
+@media (prefers-reduced-motion: reduce) { .nf-track { animation:none; } .nf-view { overflow-x:auto; -webkit-mask-image:none; mask-image:none; } .nf-badge { animation:none; } }
 @keyframes kkoko-idle-bob { 0%,100%{ transform: translateY(0) rotate(0deg); } 50%{ transform: translateY(-4px) rotate(-1.5deg); } }
 @keyframes kkoko-talk-bob { 0%,100%{ transform: translateY(0) rotate(0deg); } 25%{ transform: translateY(-2px) rotate(2deg); } 75%{ transform: translateY(-2px) rotate(-2deg); } }
 @keyframes kkoko-bounce { 0%,100%{ transform: translateY(0) scale(1) rotate(0deg); } 25%{ transform: translateY(-16px) scale(1.05) rotate(-4deg); } 50%{ transform: translateY(0) scale(1) rotate(3deg); } 75%{ transform: translateY(-9px) scale(1.03) rotate(-2deg); } }
@@ -14114,6 +14129,44 @@ function renderHeaderSolarTerm(now){
         </button>`;
 }
 
+// ── 새 기능·새 메뉴 안내(메뉴 아래 흐르는 띠) ───────────────────────────────────
+// 새 기능을 추가할 때 이 목록 맨 위에 한 줄만 넣으면 된다. date부터 NEW_FEATURE_DAYS일 동안만 보이고,
+// 사용자가 항목을 눌러 확인하거나 ✕로 닫으면(브라우저에 기억) 그 항목은 다시 안 보인다.
+// go: {tab} 일반 탭으로 / {premium:"메뉴key"} 유료서비스의 그 화면으로(승인·로그인 안내는 그 화면이 처리) / {premium:"vaccine", vaccineView:"guide"} 처럼 보기까지 지정.
+const NEW_FEATURE_DAYS = 21;
+const NEW_FEATURES = [
+  { key:"vaccine-guide",  date:"2026-10-12", label:"백신 접종방법·백신 종류 안내", where:"유료서비스 · 백신·약품관리", go:{ premium:"vaccine", vaccineView:"guide" } },
+  { key:"supplement",     date:"2026-10-11", label:"영양제 종류별 사용요령",       where:"유료서비스 · 백신·약품관리", go:{ premium:"supplement" } },
+  { key:"tradestats",     date:"2026-10-11", label:"계육·계란·종란 수출입 동향",   where:"유료서비스 · 게시판·기타",   go:{ premium:"tradestats" } },
+  { key:"priceforecast",  date:"2026-10-08", label:"육계·계란 시세예측",           where:"유료서비스 · 시세 예측·분석", go:{ premium:"priceforecast" } },
+];
+const NF_LS_KEY = "nf_seen_v1";
+function nfSeen(){ try { const j = JSON.parse(localStorage.getItem(NF_LS_KEY) || "[]"); return Array.isArray(j) ? j : []; } catch(_) { return []; } }
+function nfMarkSeen(keys){ try { localStorage.setItem(NF_LS_KEY, JSON.stringify([...new Set(nfSeen().concat(keys))].slice(-60))); } catch(_) {} }
+function nfActive(now){
+  const seen = nfSeen(), t = (now || new Date()).getTime();
+  return NEW_FEATURES.filter(f => !seen.includes(f.key) && t - new Date(f.date + "T00:00:00+09:00").getTime() <= NEW_FEATURE_DAYS * 86400000);
+}
+function renderNewFeatureStrip(embedded){
+  if(embedded) return "";
+  const list = nfActive(); if(!list.length) return "";
+  const one = list.map(f => `<button type="button" class="nf-item" data-nf="${esc(f.key)}" title="${esc(f.where)}"><i>NEW</i><b>${esc(f.label)}</b><em>${esc(f.where)}</em></button>`).join("");
+  const chars = list.reduce((n, f) => n + f.label.length + f.where.length + 6, 0), dur = Math.max(18, Math.round(chars * 0.3));
+  // 같은 내용을 두 번 이어 붙여 끊김 없이 흐르게 한다(둘째 묶음은 화면 읽기 도구에서 숨김)
+  return `<div class="nf-strip" role="region" aria-label="새 기능 안내"><span class="nf-badge">NEW</span><div class="nf-view"><div class="nf-track" style="--nf-dur:${dur}s">${one}<span aria-hidden="true" style="display:inline-flex">${one.replace(/<button /g, '<button tabindex="-1" ')}</span></div></div><button type="button" class="nf-close" id="nf-close" aria-label="새 기능 안내 닫기" title="닫기">✕</button></div>`;
+}
+function nfGo(key){
+  const f = NEW_FEATURES.find(x => x.key === key); if(!f) return;
+  nfMarkSeen([key]);
+  if(f.go && f.go.premium){
+    switchTab("premium");
+    premiumState.view = f.go.premium;
+    if(f.go.vaccineView) vaccineTabState.view = f.go.vaccineView;
+    render(); window.scrollTo(0, 0);
+  } else if(f.go && f.go.tab){ switchTab(f.go.tab); window.scrollTo(0, 0); }
+  else render();
+}
+
 function renderHeader(){
   const now=new Date();
   const embedded=isEmbedded();
@@ -14152,6 +14205,7 @@ function renderHeader(){
     </div>
     <button class="tabs-arrow right" type="button" aria-label="뒤쪽 메뉴 보기" tabindex="-1"><span>›</span></button>
     </div>
+    ${renderNewFeatureStrip(embedded)}
   </div></header>`;
 }
 
@@ -20121,6 +20175,10 @@ function attachEvents(){
   suppBind();                                // 영양제 종류별 사용요령
   const headerSolarTerm = document.getElementById("header-solar-term");
   if(headerSolarTerm) headerSolarTerm.onclick = ()=>switchTab("weather");
+  // 메뉴 아래 새 기능 안내 띠 — 항목을 누르면 그 기능으로 가고 확인한 것으로 기억, ✕는 지금 보이는 항목 모두 닫기
+  document.querySelectorAll(".nf-item").forEach(b => b.onclick = () => nfGo(b.dataset.nf));
+  const nfClose = document.getElementById("nf-close");
+  if(nfClose) nfClose.onclick = () => { nfMarkSeen(nfActive().map(f => f.key)); render(); };
   // 상단 제목·날짜를 누르면 양계 시세-통계(첫 탭)로 이동 — 마우스·터치·키보드(Enter/Space) 모두
   ["header-title-link", "header-date-link"].forEach(id => {
     const el = document.getElementById(id); if(!el) return;
