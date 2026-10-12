@@ -18579,7 +18579,7 @@ function renderVentTab(){
   // 7일 예보 기준 단계 변화 미리보기
   const weekPreview = !noWeather ? `
   <div class="card" style="margin-bottom:16px">
-    <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:10px">📅 7일 환기단계 예보 <span style="font-size:9px;color:#0288D1;font-weight:500">· 💧는 습도(${VENT_HUMIDITY_THRESHOLD}%↑)로 단계가 상향된 날</span></div>
+    <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:10px">📅 7일 환기단계 예보 <span style="font-size:9px;color:#0288D1;font-weight:500">· 💧는 습도(${VENT_HUMIDITY_THRESHOLD}%↑), 🌡️는 이상고온(평년 대비)으로 단계가 상향된 날</span></div>
     <div style="display:flex;gap:5px;overflow-x:auto;padding-bottom:2px">
       ${fc.slice(0,7).map((d,i)=>{
         const dn=["일","월","화","수","목","금","토"];
@@ -18590,7 +18590,7 @@ function renderVentTab(){
         const tsi = dfi!=null ? determineVentStage(dfi) : null;
         const hsi = determineHumidityStage(dh);
         let si = tsi!=null ? Math.max(tsi, hsi) : null;
-        const hotUp = i===0 && si!=null && anomHot && si < sp.stages.length-1;   // 오늘 칸은 위 추천과 같게 이상고온 상향 반영
+        const aj = anomTodayJudge(d), hotUp = si!=null && !!aj && aj.z >= ANOM_Z && si < sp.stages.length-1;   // 그날 예보 평균기온이 평년보다 이상고온이면(오늘 추천과 같은 기준) 한 단계 상향
         if(hotUp) si += 1;
         const stg = si!=null ? sp.stages[si] : null;
         const humUp = tsi!=null && hsi>tsi;
