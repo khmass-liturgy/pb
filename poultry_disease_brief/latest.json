@@ -1,6 +1,107 @@
 {
- "updated": "2026-10-09 07:29 KST",
+ "updated": "2026-10-12 09:54 KST",
  "weeks": [
+  {
+   "week": "2026-10-12",
+   "items": [
+    {
+     "id": "pmid:42859459",
+     "title": "조류인플루엔자 백신 현황과 차세대 플랫폼 리뷰",
+     "species": "공통",
+     "topic": "백신·면역",
+     "cls": "paper",
+     "evidence": "문헌 고찰(리뷰) - 백신 플랫폼 비교 분석",
+     "new": [
+      "불활화·약독화 생백신 외에 재조합 서브유닛, 바이러스벡터, DNA, mRNA, VLP 등 차세대 백신 플랫폼을 비교 분석함",
+      "불활화 백신은 안전·대량생산에 유리하나 세포성·점막면역이 제한적이고 항원 매칭이 필요함",
+      "약독화 생백신은 광범위한 면역과 대규모 접종에 유리하나 생물안전성·재조합(reassortment)·유전적 안정성 우려가 있음"
+     ],
+     "why": [
+      "H5/H7 고병원성 AI는 양계산업·교역·공중보건에 큰 위협이므로 백신 플랫폼 이해가 방역 전략 수립에 직결됨",
+      "기존 불활화 백신은 바이러스 배출 감소가 불완전해 차세대 플랫폼 동향이 향후 백신 선택에 참고가 될 수 있음"
+     ],
+     "caution": [
+      "단일 플랫폼이 지속성·점막면역·DIVA 호환·현장 적용성을 모두 충족하지 못하므로 신기술 백신 단독 도입은 신중해야 함",
+      "차세대 플랫폼의 전달·안정성·제조·현장검증 과제가 남아 있어 실제 상용화·방어효과 수준은 초록만으로는 확인할 수 없음"
+     ],
+     "limits": [
+      "자체 실험 데이터 없이 기존 문헌을 종합한 리뷰 논문임",
+      "구체적 방어율·항체가 등 수치는 제시되지 않아 초록만으로는 확인할 수 없음"
+     ],
+     "origTitle": "Advances and challenges in avian influenza vaccines: From conventional approaches to next-generation strategies.",
+     "publisher": "Veterinary and animal science",
+     "date": "2026-09-27",
+     "url": "https://doi.org/10.1016/j.vas.2026.100883",
+     "pubmed": "https://pubmed.ncbi.nlm.nih.gov/42859459/"
+    },
+    {
+     "id": "pmid:42854494",
+     "title": "닭 콕시듐증(Eimeria) 항콕시듐 백신 개발 리뷰",
+     "species": "공통",
+     "topic": "백신·면역",
+     "cls": "paper",
+     "evidence": "문헌 고찰(리뷰) - 항콕시듐 백신 개발 방법론 비교",
+     "new": [
+      "생백신은 비약독화 방식과 계란/닭 계대·방사선·화학처리·열처리·이오노포어 내성주 등 약독화 방식으로 생산됨",
+      "생백신 생산은 오오시스트 생산을 위한 닭 감염 과정이 필요해 고비용이며 안전성 품질관리시험 부담이 큼",
+      "재조합 DNA 기술 기반 서브유닛·DNA 백신은 병원체 항원 일부 또는 유전물질만을 무해한 벡터/보조제와 함께 사용함"
+     ],
+     "why": [
+      "콕시듐증은 경제적 손실이 큰 장관 질병으로 백신 개발 동향 이해가 현장 방역 전략 수립에 도움이 됨",
+      "체중증가·사료효율·오오시스트 생산·장병변 등 평가지표의 표준화 부족이 백신 효능 해석에 영향을 줄 수 있음"
+     ],
+     "caution": [
+      "면역학적 평가를 정확히 예측할 표준 검사법·지침이 부족하므로 실험실/현장 시험 결과 해석에 주의가 필요함",
+      "서브유닛·DNA 백신은 아직 개발 난이도가 높아 현장 상용화 가능 시점은 초록만으로는 확인할 수 없음"
+     ],
+     "limits": [
+      "자체 실험 데이터 없이 기존 문헌을 종합한 리뷰 논문임",
+      "표준화된 평가 가이드라인 부재가 언급되어 문헌 간 비교가 제한적임을 시사함"
+     ],
+     "origTitle": "Review on anticoccidial vaccine development for chickens: Past progress, modern methods, and production bottlenecks.",
+     "publisher": "Poultry science",
+     "date": "2026-10-05",
+     "url": "https://doi.org/10.1016/j.psj.2026.107875",
+     "pubmed": "https://pubmed.ncbi.nlm.nih.gov/42854494/"
+    },
+    {
+     "id": "pmid:42854492",
+     "title": "ND 백신 접종 후 닭 품종별 TLR 발현 차이 비교 연구",
+     "species": "공통",
+     "topic": "백신·면역",
+     "cls": "paper",
+     "evidence": "백신 접종 후 분자면역지표(TLR 발현) 비교 연구",
+     "new": [
+      "15개 유전적으로 다양한 닭 집단(외래종·토착종·애완종·합성계통·육계 종계)에서 genotype II ND 백신 접종 후 TLR2A,3,4,5,7,21 발현을 PBMC에서 qPCR로 측정함",
+      "6개 TLR 모두에서 품종 간 유의한 차이(P<0.001)가 관찰되어 병원체 초기 인식 단계의 유전적 다양성을 확인함",
+      "토착종(Aseel Red, Kadaknath)은 세균·바이러스 인식 수용체 발현이 넓었고, 육계 종계(BCSFL)는 대부분 TLR 발현이 상대적으로 낮았음"
+     ],
+     "why": [
+      "육계 종계(BCSFL)가 다른 품종 대비 TLR 발현이 낮게 나타나 백신 반응의 유전적 배경 차이가 백신 프로그램 설계 참고자료가 될 수 있음",
+      "품종별 선천면역 특성 차이는 향후 정밀육종·백신평가 바이오마커 개발 가능성을 시사함"
+     ],
+     "caution": [
+      "TLR mRNA 발현 차이가 실제 강독 NDV에 대한 방어력으로 이어지는지는 본 연구만으로 확인되지 않음",
+      "국내 상용 산란계·육계 품종과 연구 대상 품종(토착종·애완종 등)이 달라 직접 적용에는 주의가 필요함"
+     ],
+     "limits": [
+      "강독 NDV 공격접종 시험 없이 PBMC TLR 발현만 측정한 관찰적 분자실험이며, 저자도 추가 검증 필요성을 명시함",
+      "단일 시점·단일 백신주(genotype II) 접종 결과로 다른 백신·시기에 대한 일반화는 확인할 수 없음",
+      "제안된 복합면역지수(VRI, BRI 등)는 가설 생성 단계로 독립 집단에서의 검증이 필요함(저자 명시)"
+     ],
+     "origTitle": "Comparative Toll-like receptor profiling reveals breed-specific innate immune architecture following Newcastle disease vaccination.",
+     "publisher": "Poultry science",
+     "date": "2026-10-05",
+     "url": "https://doi.org/10.1016/j.psj.2026.107908",
+     "pubmed": "https://pubmed.ncbi.nlm.nih.gov/42854492/"
+    }
+   ],
+   "checkpoints": [
+    "AI 차세대 백신(mRNA, DNA, 벡터 등)은 현장 상용화·방어효과 수준이 아직 확인되지 않으므로 기존 불활화/생백신 프로그램을 유지하며 동향만 주시할 것",
+    "콕시듐증 백신 효능 평가 지표가 표준화되지 않았으므로 현장에서는 오오시스트 카운트·장병변 점수·증체 등 복수 지표로 모니터링할 것",
+    "육계 종계 계통에서 ND 백신 후 TLR 반응이 낮다는 보고가 있으니 접종 후 항체가(HI) 모니터링으로 실제 방어력을 별도 확인할 것"
+   ]
+  },
   {
    "week": "2026-10-05",
    "items": [
