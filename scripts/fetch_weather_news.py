@@ -29,7 +29,7 @@ import fetch_industry_news as fin
 KST = timezone(timedelta(hours=9))
 OUT_PATH = Path("weather_news/latest.json")
 KEEP_DAYS = 3
-MAX_ITEMS = 60
+MAX_ITEMS = 70
 MAX_NEW_SUMMARIES = 40
 HEADERS = fin.HEADERS
 
@@ -52,11 +52,39 @@ TAG_WORDS = {
 }
 WEATHER = re.compile(r"날씨|기상|폭염|무더위|열대야|한파|추위|영하|태풍|호우|폭우|장마|대설|폭설|강풍|황사|미세먼지|이상기후|이상기온|기온|서리|우박|가뭄|특보|예보|일교차|안개")
 # 날씨 말고 다른 이야기(주가·부동산·연예·스포츠 광고성)가 제목의 중심인 기사는 거른다 — 재난 날씨 단어가 함께 있으면 남긴다
-NOT_WEATHER = re.compile(r"코스피|코스닥|증시|주가|분양|청약|부동산|아파트|연예|드라마|예능|야구|축구|골프|이벤트|프로모션|쿠폰|할인|출시")
+NOT_WEATHER = re.compile(r"베트남|태국|필리핀|인도네시아|Vietnam|코스피|코스닥|증시|주가|분양|청약|부동산|아파트|연예|드라마|예능|야구|축구|골프|이벤트|프로모션|쿠폰|할인|출시")
 DISASTER = re.compile(r"폭염|한파|태풍|호우|폭우|대설|폭설|강풍|황사|특보|피해|경보")
 
 
-def relevant(title: str) -> bool:
+# 태그 우선순위 — 구체적인 분류가 앞(카드 색·첫 배지가 「오늘 날씨」 하나로 쏠리지 않게)
+TAG_ORDER = ["농업·축산 기상", "폭염·한파", "호우·태풍", "눈·바람·먼지", "기상 전망", "오늘 날씨"]
+# 분류별 최대 보관 건수 — 「오늘 날씨」 기사는 비슷한 것이 수십 건씩 나와 다른 분류를 밀어내므로 상한을 둔다(기사는 첫 태그 기준으로 센다)
+TAG_CAP = {"농업·축산 기상": 16, "폭염·한파": 14, "호우·태풍": 14, "눈·바람·먼지": 10, "기상 전망": 10, "오늘 날씨": 16}
+
+
+def order_tags(tags: list[str]) -> list[str]:
+    return sorted(dict.fromkeys(tags), key=lambda t: TAG_ORDER.index(t) if t in TAG_ORDER else 99)
+
+
+def cap_items(items: list[dict]) -> list[dict]:
+    used: dict[str, int] = {}
+    out = []
+    for it in items:                                    # 최신순으로 들어오므로 분류마다 최신 기사부터 남는다
+        it["tags"] = order_tags(it.get("tags") or [])
+        k = it["tags"][0] if it["tags"] else ""
+        if used.get(k, 0) >= TAG_CAP.get(k, 10):
+            continue
+        used[k] = used.get(k, 0) + 1
+        out.append(it)
+    return out[:MAX_ITEMS]
+
+
+SKIP_SOURCES = re.compile(r"Vietnam\.vn|VnExpress|Thanh Nien", re.I)     # 외국 지역 날씨를 다루는 매체
+
+
+def relevant(title: str, source: str = "") -> bool:
+    if source and SKIP_SOURCES.search(source):
+        return False
     if not WEATHER.search(title):
         return False
     if NOT_WEATHER.search(title) and not DISASTER.search(title):
@@ -81,7 +109,7 @@ def search(q: str) -> list[dict]:
             ts = parsedate_to_datetime(it.findtext("pubDate")).astimezone(KST)
         except Exception:
             continue
-        if title and relevant(title):
+        if title and relevant(title, src):
             items.append({"title": title, "source": src, "link": it.findtext("link") or "", "ts": ts.strftime("%Y-%m-%d %H:%M")})
     return items
 
@@ -153,9 +181,9 @@ def main() -> int:
         return 1
 
     cutoff = (datetime.now(KST) - timedelta(days=KEEP_DAYS)).strftime("%Y-%m-%d %H:%M")
-    merged = {fin.key_of(i["title"]): i for i in (prev.get("items") or []) if i.get("ts", "") >= cutoff and relevant(i.get("title", ""))}
+    merged = {fin.key_of(i["title"]): i for i in (prev.get("items") or []) if i.get("ts", "") >= cutoff and relevant(i.get("title", ""), i.get("source", ""))}
     merged.update({k: {**merged.get(k, {}), **v} for k, v in found.items()})        # 이미 채운 요약·원문 주소는 새 검색 결과로 덮지 않는다
-    items = sorted(merged.values(), key=lambda i: i["ts"], reverse=True)[:MAX_ITEMS]
+    items = cap_items(sorted(merged.values(), key=lambda i: i["ts"], reverse=True))
     todo = [i for i in items if "summary" not in i or not i.get("url")][:MAX_NEW_SUMMARIES]
     if todo:
         api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip() or None
