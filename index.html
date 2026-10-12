@@ -19000,7 +19000,7 @@ function anomCompute(h, clim){
     const c = clim.d[anomDoy(d)], cm=c[0], cs=Math.max(c[1],0.5);
     const means = mem.map(m=>m.mean).sort((a,b)=>a-b);
     days.push({
-      date:d, model:mdl, clim:cm, mean:anomMean(means), p10:anomPct(means,0.1), p90:anomPct(means,0.9),
+      date:d, model:mdl, clim:cm, sd:cs, mean:anomMean(means), p10:anomPct(means,0.1), p90:anomPct(means,0.9),
       pHot: share(mem, m=>m.mean >= cm + ANOM_Z*cs), pCold: share(mem, m=>m.mean <= cm - ANOM_Z*cs),
       pHeat: share(mem, m=>m.max >= 33), pFreeze: share(mem, m=>m.min <= -12),
       rainMean: rain.length ? anomMean(rain) : null, pHeavy: rain.length ? share(rain, r=>r>=30) : null, pRain: rain.length ? share(rain, r=>r>=1) : null,
@@ -19036,6 +19036,36 @@ async function anomRun(quick){
     anomState.status = "error"; anomState.err = String(e && e.message || e);
   }
   render();
+}
+
+// 날씨 탭 맨 위 「오늘 최고/최저」 카드 아래에 붙이는 한 줄 「이상기온 체크」 멘트.
+// 오늘 예보 일평균기온((최고+최저)/2)을 1991~2020 평년(같은 날짜 ±7일)과 비교한 z값으로 평년 수준·다소 높음/낮음·이상고온/이상저온을 가르고,
+// 앞으로 3일의 앙상블 신호(이상고온·이상저온 40%↑, 폭염·한파 30%↑, 기온 급변)를 덧붙인다. 평년·앙상블은 이상기온 예측(anomRun)이 채운다.
+function anomTodayLine(f0){
+  const box = (c, bg, inner) => `<div style="margin-top:10px;border-top:1px dashed #e5e5e5;padding-top:9px"><div class="anom-info-open" role="button" tabindex="0" title="눌러서 이상기온 판정 기준 보기" style="cursor:pointer;display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap"><span style="font-size:16px;font-weight:800;color:${c};background:${bg};border-radius:7px;padding:2px 9px;white-space:nowrap">🌡️ 이상기온 체크</span><span style="font-size:20px;color:#444;line-height:1.55;flex:1;min-width:240px">${inner}</span></div></div>`;
+  if(anomState.status === "loading" || anomState.status === "idle") return box("#888", "#f3f3f3", `<span style="color:#aaa">평년과 비교하는 중...</span>`);
+  const days = anomState.data && anomState.data.days;
+  if(anomState.status !== "done" || !days || !days.length) return box("#888", "#f3f3f3", `<span style="color:#aaa">평년 비교 자료를 불러오지 못했습니다(이상기온 예측 카드에서 다시 계산할 수 있습니다)</span>`);
+  const todayStr = new Date().toISOString().slice(0, 10), t0 = days.find(d => d.date === (f0 && f0.date)) || days.find(d => d.date === todayStr) || days[0];
+  const hasF = f0 && f0.tMax != null && f0.tMin != null, mean = hasF ? (f0.tMax + f0.tMin) / 2 : t0.mean, diff = mean - t0.clim, sd = Math.max(t0.sd || 2, 0.5), z = diff / sd;
+  let c = "#2E7D32", bg = "#E8F5E9", head, tip = "";
+  if(z >= ANOM_Z){ c = "#B71C1C"; bg = "#FFEBEE"; head = `<b style="color:${c}">이상고온</b> — 오늘 평균 ${mean.toFixed(1)}°C로 평년(${t0.clim.toFixed(1)}°C)보다 <b>+${diff.toFixed(1)}°C</b> 높습니다`; tip = " 환기량·급수·사료 급이 시간을 점검하세요."; }
+  else if(z <= -ANOM_Z){ c = "#0D47A1"; bg = "#E3F2FD"; head = `<b style="color:${c}">이상저온</b> — 오늘 평균 ${mean.toFixed(1)}°C로 평년(${t0.clim.toFixed(1)}°C)보다 <b>${diff.toFixed(1)}°C</b> 낮습니다`; tip = " 보온·최소환기·급수라인 동결을 점검하세요."; }
+  else if(z >= 0.7){ c = "#E65100"; bg = "#FFF3E0"; head = `평년(${t0.clim.toFixed(1)}°C)보다 <b>+${diff.toFixed(1)}°C</b> 다소 높습니다 — 이상기온까지는 아닙니다`; }
+  else if(z <= -0.7){ c = "#1565C0"; bg = "#E3F2FD"; head = `평년(${t0.clim.toFixed(1)}°C)보다 <b>${diff.toFixed(1)}°C</b> 다소 낮습니다 — 이상기온까지는 아닙니다`; }
+  else head = `<b style="color:${c}">정상</b> — 오늘 평균 ${mean.toFixed(1)}°C는 평년(${t0.clim.toFixed(1)}°C) 수준입니다(${diff >= 0 ? "+" : ""}${diff.toFixed(1)}°C)`;
+  // 앞으로 3일(오늘 다음 날부터) 신호
+  const dn = ["일","월","화","수","목","금","토"], fmt = ds => { const d = new Date(ds + "T00:00:00"); return `${d.getMonth() + 1}/${d.getDate()}(${dn[d.getDay()]})`; };
+  const i0 = Math.max(0, days.indexOf(t0)), nxt = days.slice(i0 + 1, i0 + 4), sig = [];
+  const h = nxt.filter(d => d.pHot >= 0.4), co = nxt.filter(d => d.pCold >= 0.4), he = nxt.filter(d => d.pHeat >= 0.3), fr = nxt.filter(d => d.pFreeze >= 0.3);
+  if(h.length) sig.push(`🔥 이상고온 가능 ${h.map(d => fmt(d.date)).join("·")}`);
+  if(co.length) sig.push(`🥶 이상저온 가능 ${co.map(d => fmt(d.date)).join("·")}`);
+  if(he.length) sig.push(`☀️ 폭염(33°C↑) 가능 ${he.map(d => fmt(d.date)).join("·")}`);
+  if(fr.length) sig.push(`❄️ 한파(−12°C↓) 가능 ${fr.map(d => fmt(d.date)).join("·")}`);
+  for(let i = 0; i < nxt.length; i++){ const prev = i === 0 ? t0 : nxt[i - 1], dv = nxt[i].mean - prev.mean; if(Math.abs(dv) >= 6) sig.push(`↕️ 기온 급변 ${fmt(nxt[i].date)} 전일 대비 ${dv > 0 ? "+" : ""}${dv.toFixed(1)}°C`); }
+  const out = sig.length ? ` · 앞으로 3일: <b>${sig.join(" / ")}</b>` : ` · 앞으로 3일도 뚜렷한 이상기온 신호 없음`;
+  if(sig.length && c === "#2E7D32"){ c = "#E65100"; bg = "#FFF3E0"; }
+  return box(c, bg, head + "." + tip + out);
 }
 
 // 오늘의 축산 관리 포인트 카드에 끼우는 "이상기온 신호" 블록 (앞으로 7일).
@@ -19333,6 +19363,7 @@ function renderWeatherBody(){
       </div>
       <div style="font-size:22px;color:#555;max-width:420px;text-align:right">${twl.note}</div>
     </div>
+    ${anomTodayLine(fc[0])}
   </div>` : ""}
 
   <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:12px">
