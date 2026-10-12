@@ -18856,11 +18856,14 @@ const WN_TAGS = {
 async function fetchWeatherNews(){
   if(weatherNewsState.status === "loading") return;
   weatherNewsState.status = "loading";
-  try {
-    const r = await fetchWithTimeout(WEATHER_NEWS_URL + "?t=" + Math.floor(Date.now() / 600000), 10000);
-    if(!r.ok) throw new Error("HTTP " + r.status);
-    weatherNewsState.data = await r.json(); weatherNewsState.status = "done";
-  } catch(e){ weatherNewsState.status = "error"; }
+  // 네트워크가 잠깐 흔들리거나 파일이 막 갱신되는 순간일 수 있어 한 번은 다시 시도한다
+  for(let k = 0; k < 2; k++){
+    try {
+      const r = await fetchWithTimeout(WEATHER_NEWS_URL + "?t=" + Math.floor(Date.now() / 600000), 10000);
+      if(!r.ok) throw new Error("HTTP " + r.status);
+      weatherNewsState.data = await r.json(); weatherNewsState.status = "done"; break;
+    } catch(e){ weatherNewsState.status = "error"; if(k === 0) await new Promise(res => setTimeout(res, 2500)); }
+  }
   if(state.tab === "weather") render();
 }
 function wnAgo(ts){
