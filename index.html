@@ -18523,6 +18523,8 @@ function renderVentTab(){
         </div>
       </div>
 
+      <div style="margin:-2px 0 12px">${anomTodayLine(today, true)}</div>
+
       ${humDrivenUp || humVentIneffective ? `
       <div style="background:#E3F2FD;border-left:6px solid #0288D1;border-radius:8px;padding:11px 13px;margin-bottom:10px">
         <div style="font-size:12px;font-weight:700;color:#01579B;margin-bottom:4px">💧 습도 기준 판정 (Munters 이중제어 로직)</div>
@@ -19041,8 +19043,9 @@ async function anomRun(quick){
 // 날씨 탭 맨 위 「오늘 최고/최저」 카드 아래에 붙이는 한 줄 「이상기온 체크」 멘트.
 // 오늘 예보 일평균기온((최고+최저)/2)을 1991~2020 평년(같은 날짜 ±7일)과 비교한 z값으로 평년 수준·다소 높음/낮음·이상고온/이상저온을 가르고,
 // 앞으로 3일의 앙상블 신호(이상고온·이상저온 40%↑, 폭염·한파 30%↑, 기온 급변)를 덧붙인다. 평년·앙상블은 이상기온 예측(anomRun)이 채운다.
-function anomTodayLine(f0){
-  const box = (c, bg, inner) => `<div style="margin-top:10px;border-top:1px dashed #e5e5e5;padding-top:9px"><div class="anom-info-open" role="button" tabindex="0" title="눌러서 이상기온 판정 기준 보기" style="cursor:pointer;display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap"><span style="font-size:16px;font-weight:800;color:${c};background:${bg};border-radius:7px;padding:2px 9px;white-space:nowrap">🌡️ 이상기온 체크</span><span style="font-size:20px;color:#444;line-height:1.55;flex:1;min-width:240px">${inner}</span></div></div>`;
+function anomTodayLine(f0, compact){
+  const fs1 = compact ? 12 : 16, fs2 = compact ? 11.5 : 20;       // compact=환기가이드 탭처럼 글자가 작은 카드용
+  const box = (c, bg, inner) => `<div style="margin-top:10px;border-top:1px dashed #e5e5e5;padding-top:9px"><div class="anom-info-open" role="button" tabindex="0" title="눌러서 이상기온 판정 기준 보기" style="cursor:pointer;display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap"><span style="font-size:${fs1}px;font-weight:800;color:${c};background:${bg};border-radius:7px;padding:2px 9px;white-space:nowrap">🌡️ 이상기온 체크</span><span style="font-size:${fs2}px;color:#444;line-height:1.6;flex:1;min-width:200px">${inner}</span></div></div>`;
   if(anomState.status === "loading" || anomState.status === "idle") return box("#888", "#f3f3f3", `<span style="color:#aaa">평년과 비교하는 중...</span>`);
   const days = anomState.data && anomState.data.days;
   if(anomState.status !== "done" || !days || !days.length) return box("#888", "#f3f3f3", `<span style="color:#aaa">평년 비교 자료를 불러오지 못했습니다(이상기온 예측 카드에서 다시 계산할 수 있습니다)</span>`);
