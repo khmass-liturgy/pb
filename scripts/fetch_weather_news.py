@@ -105,6 +105,8 @@ def search(q: str) -> list[dict]:
         raw = (it.findtext("title") or "").strip()
         src = (it.findtext("source") or "").strip()
         title, src = fin.split_source(raw, src)
+        if src.startswith("http"):                               # 언론사 이름 대신 주소가 온 경우 호스트 이름으로
+            src = re.sub(r"^https?://(www\.)?", "", src).split("/")[0]
         try:
             ts = parsedate_to_datetime(it.findtext("pubDate")).astimezone(KST)
         except Exception:
