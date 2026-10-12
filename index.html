@@ -11698,6 +11698,7 @@ function suppBind(){
 // ── 전염성기관지염(IB) 차단 AI공동연구팀 — 단계별 연구 과정(정적 자료) ─────────────────────────
 // 연구는 1단계부터 순차적으로 공개한다. 새 강의를 공개할 때는 IB_LECTURES에 내용을 넣고 ready:true로 바꾸고,
 // 다음 단계를 열 때만 IB_CURRENT_STAGE를 올린다(사용자가 「다음 단계」를 지시하기 전에는 올리지 않는다).
+// 관리자는 화면의 「⚙ 관리」·「✏️ 이 항목 수정」으로 본문·강의 목록·공개 단계를 고칠 수 있다(아래 ibContentState, Firebase 편집본이 기본 내용을 덮어씀).
 // 각 강의는 ①~⑨ 순서(목표·기초·심화·육계/산란계·현장·문헌·예방관리·요약·다음 제안)를 지킨다.
 // 문헌은 실제로 존재가 확인된 자료만 싣고, 원문·PMID·DOI를 직접 확인하지 못했으면 반드시 그렇게 표시한다.
 const IB_CURRENT_STAGE = 1;
@@ -11740,8 +11741,8 @@ function ibP(t){ return `<p style="font-size:12.8px;color:#333;line-height:1.85;
 function ibFlow(steps, c){ const col = c || IB_COLOR; return `<div style="display:flex;flex-wrap:wrap;align-items:stretch;gap:4px;margin:8px 0 10px">${steps.map((s, i) => `${i ? `<div style="align-self:center;color:${col};font-weight:900">→</div>` : ""}<div style="flex:1 1 110px;min-width:96px;background:#fff;border:1.5px solid ${col}66;border-radius:8px;padding:6px 8px;font-size:11.5px;line-height:1.55;color:#333"><b style="color:${col}">${s[0]}</b><br>${s[1]}</div>`).join("")}</div>`; }
 function ibQuiz(list){ return list.map((q, i) => `<details style="border:1px solid #e5e5e5;border-radius:8px;padding:7px 10px;margin:6px 0;background:#fff"><summary style="cursor:pointer;font-size:12.5px;font-weight:700;color:#333">Q${i + 1}. ${q[0]}</summary><div style="font-size:12.3px;color:#444;line-height:1.75;margin-top:6px;padding-top:6px;border-top:1px dashed #ddd">${q[1]}</div></details>`).join(""); }
 function ibChecklist(id, items){
-  let saved = {}; try { saved = JSON.parse(localStorage.getItem("ib_check_v1") || "{}") || {}; } catch(_) {}
-  return `<div style="display:flex;flex-direction:column;gap:5px;margin:8px 0">${items.map((t, i) => { const k = id + ":" + i; return `<label style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;line-height:1.6;color:#333;background:#fff;border:1px solid #eee;border-radius:8px;padding:6px 9px;cursor:pointer"><input type="checkbox" data-ib-check="${k}" ${saved[k] ? "checked" : ""} style="margin-top:3px;accent-color:${IB_COLOR}"><span>${t}</span></label>`; }).join("")}</div>`;
+  // 체크 상태는 ibBind가 기기 저장값으로 채운다(기본 내용 HTML이 사람마다 달라지지 않게)
+  return `<div style="display:flex;flex-direction:column;gap:5px;margin:8px 0">${items.map((t, i) => { const k = id + ":" + i; return `<label style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;line-height:1.6;color:#333;background:#fff;border:1px solid #eee;border-radius:8px;padding:6px 9px;cursor:pointer"><input type="checkbox" data-ib-check="${k}" style="margin-top:3px;accent-color:${IB_COLOR}"><span>${t}</span></label>`; }).join("")}</div>`;
 }
 // IBV 유전체 도식 — 실제 길이 비율을 대략적으로 나타낸 그림(정밀 지도가 아님)
 function ibGenomeBar(){
@@ -12020,67 +12021,244 @@ const ibState = { lecture: 1, sec: 1 };
 function ibReadMap(){ try { return JSON.parse(localStorage.getItem("ib_read_v1") || "{}") || {}; } catch(_) { return {}; } }
 function ibMarkRead(k){ try { const m = ibReadMap(); if(!m[k]){ m[k] = 1; localStorage.setItem("ib_read_v1", JSON.stringify(m)); } } catch(_) {} }
 
+// ── 관리자 수정·편집 — premium_content/ib_research/latest.json ───────────────────────────────
+// 기본 내용(위 IB_LECTURES·ibLecture1)은 코드에 있고, 관리자가 고친 것만 덮어쓴다:
+//   sections["단계-강-항목"] = { html, seedHash, at }   ← 항목(①~⑨) 본문 편집본
+//   lectures["단계-강"]      = { title, minutes, ready } ← 강의 제목·분량·공개 여부(새 강의 추가 포함)
+//   stage                    = { value, seed }           ← 공개 단계. seed가 지금 IB_CURRENT_STAGE와 다르면(코드에서 단계를 올림) 무시
+// seedHash는 편집할 당시의 기본 내용 지문 — 그 뒤 코드에서 기본 내용이 바뀌면 관리자에게만 「기본 내용이 갱신됨」을 알린다.
+const ibContentState = { status: "idle", data: null, busy: false, msg: "", adminOpen: false, editing: null, draft: null, htmlMode: false };
+function ibHash(s){ let h = 5381; s = String(s || ""); for(let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0; return h.toString(36) + "." + s.length; }
+async function fetchIbContent(){
+  if(ibContentState.status === "loading") return;
+  ibContentState.status = "loading";
+  try { const j = firebaseReady ? await fetchPremiumContentJson("ib_research") : null; ibContentState.data = j && typeof j === "object" ? j : null; }
+  catch(e){ ibContentState.data = null; }             // 아직 발행 전이거나 읽기 실패 → 기본 내용
+  ibContentState.status = "done";
+  if(state.tab === "premium" && premiumState.view === "ibteam") render();
+}
+function ibData(){ const d = ibContentState.data || {}; return { sections: d.sections || {}, lectures: d.lectures || {}, stage: d.stage || null }; }
+async function ibPublish(mutate, okMsg){
+  const st = ibContentState;
+  if(!isBoardAdmin()){ st.msg = "관리자 계정으로 로그인돼 있지 않습니다."; render(); return false; }
+  const cur = ibData(), next = { sections: Object.assign({}, cur.sections), lectures: Object.assign({}, cur.lectures), stage: cur.stage };
+  mutate(next);
+  const body = { updated: new Date().toISOString().slice(0, 16).replace("T", " ") + " UTC", by: PICK_BY, note: "IB 차단 AI공동연구팀 — 관리자 편집본(기본 내용은 index.html). 화면에서 저장하면 승인된 회원 모두에게 반영됩니다.", sections: next.sections, lectures: next.lectures, stage: next.stage };
+  st.busy = true; st.msg = "발행 중..."; render();
+  try { await writePremiumContentJson("ib_research", body); st.data = body; st.msg = okMsg; st.busy = false; render(); return true; }
+  catch(e){ st.busy = false; st.msg = "발행 실패: " + (e.message || String(e)); render(); return false; }
+}
+function ibEffStage(){
+  const s = ibData().stage;
+  return s && s.seed === IB_CURRENT_STAGE && s.value >= 1 && s.value <= IB_STAGES.length ? s.value : IB_CURRENT_STAGE;
+}
+// 단계의 강의 목록 = 기본 강의 + 관리자가 추가한 강의, 제목·분량·공개 여부는 편집본 우선
+function ibLectureList(stageNo){
+  const meta = ibData().lectures, seed = IB_LECTURES[stageNo] || [];
+  const list = seed.map(l => Object.assign({}, l, { seeded: true }));
+  Object.keys(meta).forEach(k => { const [s, n] = k.split("-").map(Number); if(s === stageNo && !list.some(l => l.no === n)) list.push({ no: n, title: "", ready: false, seeded: false }); });
+  return list.map(l => { const m = meta[stageNo + "-" + l.no]; return m ? Object.assign(l, { title: m.title != null && m.title !== "" ? m.title : l.title, minutes: m.minutes != null ? m.minutes : l.minutes, ready: m.ready != null ? !!m.ready : l.ready }) : l; }).sort((a, b) => a.no - b.no);
+}
+const ibSeedCache = {};
+function ibSeedSections(stageNo, lec){
+  const k = stageNo + "-" + lec.no;
+  if(!(k in ibSeedCache)){ const src = (IB_LECTURES[stageNo] || []).find(l => l.no === lec.no); ibSeedCache[k] = src && src.html ? src.html() : {}; }
+  return ibSeedCache[k];
+}
+// 편집본 HTML 정리 — 관리자만 쓸 수 있는 자료지만 스크립트·이벤트 속성·위험한 링크는 걸러 내고,
+// 체크 상태(사람마다 다름)·펼침 상태·편집 속성은 저장하지 않는다.
+function ibSanitize(html){
+  const doc = new DOMParser().parseFromString(`<div id="ib-x">${html}</div>`, "text/html"), root = doc.getElementById("ib-x");
+  root.querySelectorAll("script,style,iframe,object,embed,link,meta,form,textarea,select,button").forEach(e => e.remove());
+  root.querySelectorAll("*").forEach(e => {
+    [...e.attributes].forEach(a => {
+      const n = a.name.toLowerCase(), v = String(a.value || "").trim().toLowerCase();
+      if(n.startsWith("on") || n === "contenteditable" || n === "checked" || n === "open" || ((n === "href" || n === "src") && /^(javascript|data|vbscript):/.test(v))) e.removeAttribute(a.name);
+    });
+    if(e.tagName === "INPUT" && e.type !== "checkbox") e.remove();
+    if(e.tagName === "A" && e.getAttribute("href")){ e.setAttribute("target", "_blank"); e.setAttribute("rel", "noopener"); }
+  });
+  return root.innerHTML.trim();
+}
+// 편집 도구 — 서식 단추(굵게·강조색·목록·소제목·표 줄 추가/삭제·근거 배지)
+const IB_TOOLS = [
+  ["bold", "<b>B</b>", "굵게"], ["red", `<span style="color:${IB_COLOR};font-weight:800">가</span>`, "강조색"], ["ul", "• 목록", "글머리 목록"], ["ol", "1. 목록", "번호 목록"],
+  ["h", "소제목", "소제목"], ["p", "본문", "보통 문단"], ["clear", "서식 지움", "서식 지우기"], ["rowadd", "표 ＋줄", "커서가 있는 표 줄 아래에 새 줄"], ["rowdel", "표 －줄", "커서가 있는 표 줄 삭제"],
+  ["tag:fact", "＋사실", "확인된 사실 배지"], ["tag:hypo", "＋가설", "가설 배지"], ["tag:debate", "＋논쟁", "논쟁 중 배지"], ["tag:infer", "＋추론", "현장 추론 배지"],
+];
+function ibToolRun(cmd){
+  const ed = document.getElementById("ib-editor"); if(!ed) return;
+  ed.focus();
+  const ex = (c, v) => { try { document.execCommand(c, false, v); } catch(_) {} };
+  if(cmd === "bold") ex("bold");
+  else if(cmd === "red") ex("foreColor", IB_COLOR);
+  else if(cmd === "ul") ex("insertUnorderedList");
+  else if(cmd === "ol") ex("insertOrderedList");
+  else if(cmd === "h") ex("formatBlock", "h4");
+  else if(cmd === "p") ex("formatBlock", "p");
+  else if(cmd === "clear") ex("removeFormat");
+  else if(cmd.startsWith("tag:")) ex("insertHTML", ibTag(cmd.slice(4)) + "&nbsp;");
+  else if(cmd === "rowadd" || cmd === "rowdel"){
+    const sel = window.getSelection(); let n = sel && sel.anchorNode; while(n && n !== ed && n.nodeName !== "TR") n = n.parentNode;
+    if(!n || n === ed){ alert("표 안의 칸을 먼저 누른 뒤 사용하세요."); return; }
+    if(cmd === "rowadd"){ const c = n.cloneNode(true); c.querySelectorAll("td,th").forEach(td => { td.innerHTML = "&nbsp;"; }); n.after(c); }
+    else if(n.parentNode.querySelectorAll("tr").length > 1) n.remove();
+  }
+  ibContentState.draft = ed.innerHTML;
+}
+
+function renderIbAdminBox(stageNo, lectures){
+  const st = ibContentState, d = ibData(), eff = ibEffStage(), nEdits = Object.keys(d.sections).length;
+  const btn = (id, label, c, dis) => `<button type="button" id="${id}" ${dis || st.busy ? "disabled" : ""} style="border:1px solid ${c};background:${c};color:#fff;border-radius:7px;padding:6px 12px;font-size:11.5px;font-weight:700;cursor:pointer">${label}</button>`;
+  const head = `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 10px"><button type="button" id="ib-admin-toggle" style="font-size:11px;border:1px solid #ccc;border-radius:6px;background:#fff;color:#666;padding:4px 10px;cursor:pointer">${st.adminOpen ? "관리 닫기" : "⚙ 관리 (단계·강의·편집 현황)"}</button>${st.msg ? `<span style="font-size:11px;color:${/실패|않|없/.test(st.msg) ? "#C62828" : "#2E7D32"}">${esc(st.msg)}</span>` : ""}${ibContentState.data ? `<span style="font-size:10.5px;color:#999">편집본 발행 ${esc(ibContentState.data.updated || "")}</span>` : `<span style="font-size:10.5px;color:#999">아직 편집본 없음 — 기본 내용 표시 중</span>`}</div>`;
+  if(!st.adminOpen) return head;
+  const inp = "padding:5px 7px;border:1px solid #ddd;border-radius:6px;font-size:12px;font-family:inherit";
+  return head + `<div style="background:#FCFBF6;border:1px solid #EFE8D0;border-radius:10px;padding:10px 12px;margin-bottom:12px">
+    <div style="font-size:12px;font-weight:800;color:#7A5C00;margin-bottom:5px">① 공개 단계</div>
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><select id="ib-stage-sel" style="${inp}">${IB_STAGES.map(s => `<option value="${s.no}" ${s.no === eff ? "selected" : ""}>${s.no}단계 · ${esc(s.title)}까지 공개</option>`).join("")}</select>${btn("ib-stage-save", "단계 저장", "#7A5C00")}</div>
+    <div style="font-size:10.5px;color:#888;margin-top:3px">회원에게는 선택한 단계까지 열리고, 그 단계의 강의 목록이 보입니다.</div>
+    <div style="font-size:12px;font-weight:800;color:#7A5C00;margin:12px 0 5px">② ${stageNo}단계 강의 목록 (제목·분량·공개)</div>
+    <div style="display:flex;flex-direction:column;gap:5px">${lectures.map(l => `<div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap" data-ib-lrow="${l.no}"><b style="font-size:12px;width:42px">제${l.no}강</b><input type="text" data-ib-ltitle value="${esc(l.title || "")}" placeholder="강의 제목" style="${inp};flex:1;min-width:150px"><input type="text" data-ib-lmin value="${esc(l.minutes || "")}" placeholder="분량 (예: 기본 12분)" style="${inp};width:140px"><label style="font-size:11.5px;display:flex;gap:3px;align-items:center"><input type="checkbox" data-ib-lready ${l.ready ? "checked" : ""}>회원 공개</label></div>`).join("")}</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:7px">${btn("ib-lec-save", "강의 목록 저장", "#7A5C00")}${btn("ib-lec-add", "＋ 강의 추가", "#8D6E63")}</div>
+    <div style="font-size:10.5px;color:#888;margin-top:3px">공개하지 않은 강의도 관리자에게는 보여서 미리 내용을 써 둘 수 있습니다. 본문은 강의 화면의 「✏️ 이 항목 수정」으로 고칩니다.</div>
+    <div style="font-size:12px;font-weight:800;color:#7A5C00;margin:12px 0 5px">③ 편집 현황</div>
+    <div style="font-size:11.5px;color:#555">수정된 항목 ${nEdits}개${nEdits ? " — " + Object.keys(d.sections).sort().map(k => { const [s, l, n] = k.split("-"); return `${s}단계 제${l}강 ${IB_CIRCLED[+n] || n}`; }).join(", ") : ""}</div>
+    <div style="margin-top:7px">${btn("ib-reset-all", "전체 기본 내용으로 되돌리기", "#C62828", !(nEdits || Object.keys(d.lectures).length || d.stage))}</div>
+  </div>`;
+}
+
+// 지금 보여 줄 강의 — 고른 강의가 없거나(아직 발행 전 등) 볼 수 없으면 첫 공개 강의, 관리자는 첫 강의
+function ibPickLecture(lectures, admin){
+  return lectures.find(l => l.no === ibState.lecture && (l.ready || admin)) || lectures.find(l => l.ready) || (admin ? lectures[0] : null) || null;
+}
 function renderIbTeamPanel(){
+  const st = ibContentState, admin = isBoardAdmin();
   const head = `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:10px"><div><div class="display" style="font-size:16px;margin-bottom:2px">🧬 전염성기관지염(IB) 차단 AI공동연구팀</div><div style="font-size:11px;color:#999">Infectious Bronchitis 단계별 공동연구 — 기초 질병학부터 예방시스템 완성까지</div></div><button id="ib-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button></div>`;
-  // 8단계 로드맵 — 현재 단계까지만 열림
+  if(st.status === "idle" || st.status === "loading") return `<div class="card" id="ib-root" style="border-top:6px solid ${IB_COLOR}">${head}<div style="text-align:center;padding:28px 0;color:#aaa">⏳ 불러오는 중...</div></div>`;
+  const eff = ibEffStage();
+  // 8단계 로드맵 — 공개 단계까지만 열림
   const road = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;margin-bottom:12px">${IB_STAGES.map(s => {
-    const open = s.no <= IB_CURRENT_STAGE, cur = s.no === IB_CURRENT_STAGE;
+    const open = s.no <= eff, cur = s.no === eff;
     return `<details style="border:1.5px solid ${cur ? IB_COLOR : "#e3e3e3"};background:${cur ? IB_COLOR + "0d" : open ? "#fff" : "#fafafa"};border-radius:9px;padding:6px 9px">
       <summary style="cursor:pointer;font-size:12px;font-weight:800;color:${open ? (cur ? IB_COLOR : "#333") : "#9e9e9e"};list-style:none">${open ? (cur ? "▶" : "✓") : "🔒"} ${s.no}단계 · ${s.title}</summary>
       <div style="font-size:11px;color:#666;line-height:1.65;margin-top:5px">${s.items.map(x => "· " + x).join("<br>")}${s.note ? `<div style="margin-top:5px;color:#B71C1C">※ ${s.note}</div>` : ""}${open ? "" : `<div style="margin-top:5px;color:#999">앞 단계를 마친 뒤 연구팀이 공개합니다.</div>`}</div></details>`;
   }).join("")}</div>`;
-  const stage = IB_STAGES[IB_CURRENT_STAGE - 1];
-  const lectures = IB_LECTURES[IB_CURRENT_STAGE] || [];
-  const lec = lectures.find(l => l.no === ibState.lecture && l.ready) || lectures.find(l => l.ready);
+  const stage = IB_STAGES[eff - 1];
+  const lectures = ibLectureList(eff);
+  const visible = l => l.ready || admin;               // 비공개 강의는 관리자에게만(미리 작성용)
+  const lec = ibPickLecture(lectures, admin);
   const read = ibReadMap();
   const toc = `<div style="background:#fff;border:1px solid #eee;border-radius:10px;padding:10px 12px;margin-bottom:12px">
     <div style="font-size:13px;font-weight:800;color:${IB_COLOR};margin-bottom:6px">📚 ${stage.no}단계 학습 차례 — ${stage.title}</div>
-    <div style="display:flex;flex-direction:column;gap:4px">${lectures.map(l => {
+    <div style="display:flex;flex-direction:column;gap:4px">${lectures.length ? lectures.map(l => {
       const on = lec && l.no === lec.no;
       const done = l.ready && IB_SECTIONS.every(([n]) => read[`${stage.no}-${l.no}-${n}`]);
-      return l.ready
-        ? `<button type="button" data-ib-lec="${l.no}" style="all:unset;box-sizing:border-box;cursor:pointer;display:flex;justify-content:space-between;gap:8px;padding:7px 10px;border-radius:8px;border:1px solid ${on ? IB_COLOR : "#e5e5e5"};background:${on ? IB_COLOR + "12" : "#fff"};font-size:12.5px"><span><b style="color:${IB_COLOR}">제${l.no}강</b> ${l.title}</span><span style="font-size:10.5px;color:${done ? "#2E7D32" : "#888"};white-space:nowrap">${done ? "✓ 학습 완료" : (l.minutes || "")}</span></button>`
-        : `<div style="display:flex;justify-content:space-between;gap:8px;padding:7px 10px;border-radius:8px;border:1px dashed #ddd;background:#fafafa;font-size:12.5px;color:#9e9e9e"><span><b>제${l.no}강</b> ${l.title}</span><span style="font-size:10.5px;white-space:nowrap">🔒 작성 예정</span></div>`;
-    }).join("")}</div>
-    <details style="margin-top:8px"><summary style="cursor:pointer;font-size:11.5px;color:#666">연구 과제가 어느 강의에서 다뤄지나요?</summary>${ibTable(["1단계 연구 과제", "다루는 강의"], IB_STAGE1_MAP)}</details>
+      const title = esc(l.title || "(제목 없음)");
+      return visible(l)
+        ? `<button type="button" data-ib-lec="${l.no}" style="all:unset;box-sizing:border-box;cursor:pointer;display:flex;justify-content:space-between;gap:8px;padding:7px 10px;border-radius:8px;border:1px ${l.ready ? "solid" : "dashed"} ${on ? IB_COLOR : "#e5e5e5"};background:${on ? IB_COLOR + "12" : "#fff"};font-size:12.5px"><span><b style="color:${IB_COLOR}">제${l.no}강</b> ${title}</span><span style="font-size:10.5px;color:${done ? "#2E7D32" : l.ready ? "#888" : "#E65100"};white-space:nowrap">${l.ready ? (done ? "✓ 학습 완료" : esc(l.minutes || "")) : "비공개 · 관리자만"}</span></button>`
+        : `<div style="display:flex;justify-content:space-between;gap:8px;padding:7px 10px;border-radius:8px;border:1px dashed #ddd;background:#fafafa;font-size:12.5px;color:#9e9e9e"><span><b>제${l.no}강</b> ${title}</span><span style="font-size:10.5px;white-space:nowrap">🔒 작성 예정</span></div>`;
+    }).join("") : `<div style="font-size:12px;color:#999;padding:6px 2px">이 단계의 강의는 연구팀이 준비하고 있습니다.</div>`}</div>
+    ${eff === 1 ? `<details style="margin-top:8px"><summary style="cursor:pointer;font-size:11.5px;color:#666">연구 과제가 어느 강의에서 다뤄지나요?</summary>${ibTable(["1단계 연구 과제", "다루는 강의"], IB_STAGE1_MAP)}</details>` : ""}
   </div>`;
-  if(!lec) return `<div class="card" id="ib-root" style="border-top:6px solid ${IB_COLOR}">${head}${road}${toc}</div>`;
-  const sections = lec.html();
+  const adminBox = admin ? renderIbAdminBox(eff, lectures) : "";
+  const foot = `<div style="margin-top:14px;background:#FFF8E1;border-radius:8px;padding:9px 11px;font-size:10.5px;color:#6b5400;line-height:1.75"><b>유의</b> · 교육·연구용 일반 자료이며 개별 농장의 진단·처방을 대신하지 않습니다. 실제 백신 조합, 접종일령·방법과 약품 사용은 국내 허가사항, 농장 위험도, 검사 결과를 토대로 담당 수의사와 결정하세요. 문헌 정보 중 ‘확인 필요’로 표시된 부분은 원문 확인 후 갱신합니다.</div>`;
+  if(!lec) return `<div class="card" id="ib-root" style="border-top:6px solid ${IB_COLOR}">${head}${adminBox}${road}${toc}${foot}</div>`;
+  const seed = ibSeedSections(eff, lec), edits = ibData().sections;
   const sec = IB_SECTIONS.some(([n]) => n === ibState.sec) ? ibState.sec : 1;
-  ibMarkRead(`${stage.no}-${lec.no}-${sec}`);
+  const key = `${eff}-${lec.no}-${sec}`, ed = edits[key], seedHtml = seed[sec] || "";
+  const html = ed && ed.html ? ed.html : seedHtml;
+  if(lec.ready) ibMarkRead(key);
   const read2 = ibReadMap();
   const nav = `<div style="display:flex;gap:5px;flex-wrap:wrap;margin:6px 0 10px" role="tablist">${IB_SECTIONS.map(([n, t]) => {
-    const on = n === sec, seen = read2[`${stage.no}-${lec.no}-${n}`];
-    return `<button type="button" role="tab" aria-selected="${on}" data-ib-sec="${n}" style="border:1px solid ${on ? IB_COLOR : seen ? IB_COLOR + "55" : "#ddd"};background:${on ? IB_COLOR : "#fff"};color:${on ? "#fff" : seen ? IB_COLOR : "#555"};border-radius:16px;padding:5px 10px;font-size:11.5px;font-weight:${on ? 800 : 600};cursor:pointer">${IB_CIRCLED[n]} ${t}</button>`;
+    const on = n === sec, seen = read2[`${eff}-${lec.no}-${n}`], mark = admin && edits[`${eff}-${lec.no}-${n}`] ? " ✎" : "";
+    return `<button type="button" role="tab" aria-selected="${on}" data-ib-sec="${n}" style="border:1px solid ${on ? IB_COLOR : seen ? IB_COLOR + "55" : "#ddd"};background:${on ? IB_COLOR : "#fff"};color:${on ? "#fff" : seen ? IB_COLOR : "#555"};border-radius:16px;padding:5px 10px;font-size:11.5px;font-weight:${on ? 800 : 600};cursor:pointer">${IB_CIRCLED[n]} ${t}${mark}</button>`;
   }).join("")}</div>`;
   const secTitle = IB_SECTIONS.find(([n]) => n === sec)[1];
-  const pager = `<div style="display:flex;justify-content:space-between;gap:8px;margin-top:14px">
+  const editing = admin && st.editing === key;
+  const pager = editing ? "" : `<div style="display:flex;justify-content:space-between;gap:8px;margin-top:14px">
     ${sec > 1 ? `<button type="button" data-ib-sec="${sec - 1}" style="border:1px solid #ddd;background:#fff;color:#555;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer">← ${IB_CIRCLED[sec - 1]} 이전</button>` : "<span></span>"}
     ${sec < 9 ? `<button type="button" data-ib-sec="${sec + 1}" style="border:none;background:${IB_COLOR};color:#fff;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer">${IB_CIRCLED[sec + 1]} ${IB_SECTIONS[sec][1]} →</button>` : `<span style="font-size:11.5px;color:#2E7D32;font-weight:700;align-self:center">제${lec.no}강 끝 — 다음 강의는 연구팀이 순차 공개합니다</span>`}
   </div>`;
   const legend = `<div style="font-size:10.5px;color:#777;margin:2px 0 8px">근거 표시: ${Object.keys(IB_TAGS).map(ibTag).join(" ")}</div>`;
+  // 관리자 도구줄 — 보기 상태: 수정 단추(+기본 내용 갱신 알림), 편집 상태: 서식 도구 + 저장/취소
+  let tools = "";
+  if(admin && !editing){
+    const stale = ed && seedHtml && ed.seedHash && ed.seedHash !== ibHash(seedHtml);
+    tools = `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 8px">
+      <button type="button" id="ib-edit-start" style="border:1px solid #7A5C00;background:#fff;color:#7A5C00;border-radius:7px;padding:5px 11px;font-size:11.5px;font-weight:700;cursor:pointer">✏️ 이 항목 수정</button>
+      ${ed ? `<span style="font-size:10.5px;color:#7A5C00;background:#FFF3E0;border-radius:5px;padding:2px 6px">관리자 편집본 표시 중</span><button type="button" id="ib-sec-reset" ${st.busy ? "disabled" : ""} style="border:1px solid #ccc;background:#fff;color:#888;border-radius:7px;padding:4px 9px;font-size:11px;cursor:pointer">↺ 이 항목 기본 내용으로</button>` : ""}
+    </div>${stale ? `<div style="font-size:11px;color:#E65100;background:#FFF3E0;border:1px solid #FFCC80;border-radius:7px;padding:6px 9px;margin-bottom:8px">이 항목의 기본 내용이 편집 이후 갱신되었습니다(연구팀 업데이트). 지금은 편집본이 회원에게 보입니다 — 새 기본 내용을 쓰려면 「↺ 이 항목 기본 내용으로」를 누르세요.</div>` : ""}`;
+  } else if(editing){
+    tools = `<div style="position:sticky;top:0;z-index:5;background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:7px;margin:0 0 8px">
+      <div style="display:flex;gap:4px;flex-wrap:wrap">${st.htmlMode ? "" : IB_TOOLS.map(([c, l, t]) => `<button type="button" data-ib-tool="${c}" title="${t}" style="border:1px solid #ddd;background:#fff;border-radius:6px;padding:4px 8px;font-size:11.5px;cursor:pointer">${l}</button>`).join("")}
+        <button type="button" id="ib-html-toggle" style="border:1px solid #999;background:${st.htmlMode ? "#555" : "#fff"};color:${st.htmlMode ? "#fff" : "#555"};border-radius:6px;padding:4px 8px;font-size:11.5px;cursor:pointer">${st.htmlMode ? "화면 편집으로" : "HTML 직접 편집"}</button></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px"><button type="button" id="ib-edit-save" ${st.busy ? "disabled" : ""} style="border:1px solid #B8860B;background:${st.busy ? "#ccc" : "#B8860B"};color:#fff;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer">${st.busy ? "발행 중..." : "💾 저장(발행)"}</button><button type="button" id="ib-edit-cancel" style="border:1px solid #ccc;background:#fff;color:#666;border-radius:7px;padding:6px 12px;font-size:12px;cursor:pointer">취소</button><span style="font-size:10.5px;color:#888">글자를 바로 고치면 됩니다 · 표는 칸을 누른 뒤 「표 ＋줄」</span></div>
+    </div>`;
+  }
+  const draft = editing && st.draft != null ? st.draft : html;
+  const content = editing
+    ? (st.htmlMode
+      ? `<textarea id="ib-editor-src" style="width:100%;min-height:420px;padding:8px;border:1.5px solid #B8860B;border-radius:8px;font-size:11.5px;font-family:monospace;line-height:1.5">${esc(draft)}</textarea>`
+      : `<div id="ib-editor" contenteditable="true" style="outline:none;border:1.5px dashed #B8860B;border-radius:8px;padding:8px 9px;min-height:200px;background:#FFFDF7">${draft}</div>`)
+    : (html ? html : `<div style="text-align:center;padding:26px 0;color:#aaa;font-size:12.5px">아직 작성된 내용이 없습니다.${admin ? "<br>「✏️ 이 항목 수정」으로 내용을 써 넣으세요." : ""}</div>`);
   const body = `<div style="border:1px solid ${IB_COLOR}22;border-radius:12px;padding:12px 13px;background:#fff">
-    <div style="font-size:11px;color:#999">${stage.no}단계 · 제${lec.no}강</div>
-    <div class="display" style="font-size:17px;color:#222;margin:2px 0 4px">${lec.title}</div>
-    ${legend}${nav}
+    <div style="font-size:11px;color:#999">${stage.no}단계 · 제${lec.no}강${lec.ready ? "" : ` <span style="color:#E65100;font-weight:700">· 비공개(관리자만 보임)</span>`}</div>
+    <div class="display" style="font-size:17px;color:#222;margin:2px 0 4px">${esc(lec.title || "(제목 없음)")}</div>
+    ${legend}${editing ? "" : nav}
     <div style="font-size:14.5px;font-weight:800;color:${IB_COLOR};margin:4px 0 6px">${IB_CIRCLED[sec]} ${secTitle}</div>
-    <div id="ib-sec-body">${sections[sec]}</div>${pager}</div>`;
-  const foot = `<div style="margin-top:14px;background:#FFF8E1;border-radius:8px;padding:9px 11px;font-size:10.5px;color:#6b5400;line-height:1.75"><b>유의</b> · 교육·연구용 일반 자료이며 개별 농장의 진단·처방을 대신하지 않습니다. 실제 백신 조합, 접종일령·방법과 약품 사용은 국내 허가사항, 농장 위험도, 검사 결과를 토대로 담당 수의사와 결정하세요. 문헌 정보 중 ‘확인 필요’로 표시된 부분은 원문 확인 후 갱신합니다.</div>`;
-  return `<div class="card" id="ib-root" style="border-top:6px solid ${IB_COLOR}">${head}${road}${toc}${body}${foot}</div>`;
+    ${tools}<div id="ib-sec-body">${content}</div>${pager}</div>
+    <style>#ib-sec-body h4{font-size:13.5px;font-weight:800;color:#222;margin:14px 0 4px}#ib-sec-body p{font-size:12.8px;color:#333;line-height:1.85;margin:4px 0 8px}</style>`;
+  return `<div class="card" id="ib-root" style="border-top:6px solid ${IB_COLOR}">${head}${adminBox}${road}${toc}${body}${foot}</div>`;
 }
 function ibBind(){
   if(!(state.tab === "premium" && premiumState.view === "ibteam")) return;
-  const back = document.getElementById("ib-back-btn"); if(back) back.onclick = () => { premiumState.view = "menu"; render(); };
-  const root = document.getElementById("ib-root");
+  const st = ibContentState, $ = id => document.getElementById(id);
+  const back = $("ib-back-btn"); if(back) back.onclick = () => { if(st.editing && !confirm("저장하지 않은 수정 내용이 있습니다. 나갈까요?")) return; st.editing = null; st.draft = null; premiumState.view = "menu"; render(); };
+  const root = $("ib-root");
   const toTop = () => { if(root) root.scrollIntoView({ behavior: "smooth", block: "start" }); };
-  document.querySelectorAll("[data-ib-lec]").forEach(b => b.onclick = () => { ibState.lecture = +b.dataset.ibLec; ibState.sec = 1; render(); toTop(); });
+  document.querySelectorAll("[data-ib-lec]").forEach(b => b.onclick = () => { if(st.editing && !confirm("저장하지 않은 수정 내용이 있습니다. 다른 강의로 갈까요?")) return; st.editing = null; st.draft = null; ibState.lecture = +b.dataset.ibLec; ibState.sec = 1; render(); toTop(); });
   document.querySelectorAll("[data-ib-sec]").forEach(b => b.onclick = () => {
     ibState.sec = +b.dataset.ibSec; render();
-    const sb = document.getElementById("ib-sec-body"); if(sb) sb.scrollIntoView({ behavior: "smooth", block: "start" });
+    const sb = $("ib-sec-body"); if(sb) sb.scrollIntoView({ behavior: "smooth", block: "start" });
   });
-  document.querySelectorAll("[data-ib-check]").forEach(c => c.onchange = () => {
-    try { const m = JSON.parse(localStorage.getItem("ib_check_v1") || "{}") || {}; if(c.checked) m[c.dataset.ibCheck] = 1; else delete m[c.dataset.ibCheck]; localStorage.setItem("ib_check_v1", JSON.stringify(m)); } catch(_) {}
+  // 점검표 체크 상태는 보는 사람 기기에만 저장(편집본에는 남기지 않는다)
+  let saved = {}; try { saved = JSON.parse(localStorage.getItem("ib_check_v1") || "{}") || {}; } catch(_) {}
+  if(!$("ib-editor")) document.querySelectorAll("#ib-sec-body [data-ib-check]").forEach(c => {
+    c.checked = !!saved[c.dataset.ibCheck];
+    c.onchange = () => { try { const m = JSON.parse(localStorage.getItem("ib_check_v1") || "{}") || {}; if(c.checked) m[c.dataset.ibCheck] = 1; else delete m[c.dataset.ibCheck]; localStorage.setItem("ib_check_v1", JSON.stringify(m)); } catch(_) {} };
   });
+  if(!isBoardAdmin()) return;
+  const cur = () => { const eff = ibEffStage(), lec = ibPickLecture(ibLectureList(eff), true); return { eff, lec, key: lec ? `${eff}-${lec.no}-${ibState.sec}` : null }; };
+  const tg = $("ib-admin-toggle"); if(tg) tg.onclick = () => { st.adminOpen = !st.adminOpen; st.msg = ""; render(); };
+  // 공개 단계
+  const ss = $("ib-stage-save"); if(ss) ss.onclick = () => { const v = +$("ib-stage-sel").value; ibState.lecture = 1; ibState.sec = 1; ibPublish(n => { n.stage = v === IB_CURRENT_STAGE ? null : { value: v, seed: IB_CURRENT_STAGE }; }, `${v}단계까지 공개했습니다 — 회원 모두에게 반영됩니다`); };
+  // 강의 목록(제목·분량·공개)
+  const readRows = () => [...document.querySelectorAll("[data-ib-lrow]")].map(r => ({ no: +r.dataset.ibLrow, title: r.querySelector("[data-ib-ltitle]").value.trim(), minutes: r.querySelector("[data-ib-lmin]").value.trim(), ready: r.querySelector("[data-ib-lready]").checked }));
+  const saveRows = (rows, extraNo, msg) => { const eff = ibEffStage(); ibPublish(n => {
+    rows.forEach(r => { const k = eff + "-" + r.no, s = (IB_LECTURES[eff] || []).find(l => l.no === r.no);
+      const same = s && r.title === s.title && (r.minutes || "") === (s.minutes || "") && r.ready === !!s.ready;
+      if(same) delete n.lectures[k]; else n.lectures[k] = { title: r.title, minutes: r.minutes, ready: r.ready }; });
+    if(extraNo) n.lectures[eff + "-" + extraNo] = { title: "새 강의", minutes: "", ready: false };
+  }, msg); };
+  const ls = $("ib-lec-save"); if(ls) ls.onclick = () => saveRows(readRows(), 0, "강의 목록을 저장했습니다");
+  const la = $("ib-lec-add"); if(la) la.onclick = () => { const rows = readRows(), next = rows.reduce((m, r) => Math.max(m, r.no), 0) + 1; ibState.lecture = next; ibState.sec = 1; saveRows(rows, next, `제${next}강을 추가했습니다 — 제목을 고치고 내용을 써 넣은 뒤 「회원 공개」를 켜세요`); };
+  const ra = $("ib-reset-all"); if(ra) ra.onclick = () => { if(!confirm("IB 연구팀의 모든 편집(본문·강의 목록·공개 단계)을 지우고 기본 내용으로 되돌릴까요? 되돌린 뒤에는 복구할 수 없습니다.")) return; ibPublish(n => { n.sections = {}; n.lectures = {}; n.stage = null; }, "기본 내용으로 되돌렸습니다"); };
+  // 항목 본문 편집
+  const es = $("ib-edit-start"); if(es) es.onclick = () => { const c = cur(); st.editing = c.key; st.draft = null; st.htmlMode = false; render(); };
+  const sr = $("ib-sec-reset"); if(sr) sr.onclick = () => { const c = cur(); if(!confirm("이 항목의 편집본을 지우고 기본 내용으로 되돌릴까요?")) return; ibPublish(n => { delete n.sections[c.key]; }, "이 항목을 기본 내용으로 되돌렸습니다"); };
+  const edDiv = $("ib-editor"); if(edDiv) edDiv.oninput = () => { st.draft = edDiv.innerHTML; };
+  const edSrc = $("ib-editor-src"); if(edSrc) edSrc.oninput = () => { st.draft = edSrc.value; };
+  document.querySelectorAll("[data-ib-tool]").forEach(b => { b.onmousedown = e => e.preventDefault(); b.onclick = () => ibToolRun(b.dataset.ibTool); });
+  const ht = $("ib-html-toggle"); if(ht) ht.onclick = () => { if(edDiv) st.draft = edDiv.innerHTML; if(edSrc) st.draft = edSrc.value; st.htmlMode = !st.htmlMode; render(); };
+  const ec = $("ib-edit-cancel"); if(ec) ec.onclick = () => { if(st.draft != null && !confirm("수정한 내용을 버릴까요?")) return; st.editing = null; st.draft = null; st.htmlMode = false; render(); };
+  const sv = $("ib-edit-save"); if(sv) sv.onclick = async () => {
+    const c = cur(); if(c.key !== st.editing) return;
+    const raw = edSrc ? edSrc.value : edDiv ? edDiv.innerHTML : (st.draft || "");
+    const clean = ibSanitize(raw), seedHtml = c.lec ? (ibSeedSections(c.eff, c.lec)[ibState.sec] || "") : "";
+    const sameAsSeed = seedHtml && clean === ibSanitize(seedHtml);
+    const ok = await ibPublish(n => { if(sameAsSeed || !clean) delete n.sections[c.key]; else n.sections[c.key] = { html: clean, seedHash: ibHash(seedHtml), at: new Date().toISOString().slice(0, 16) }; }, sameAsSeed ? "기본 내용과 같아 편집본을 지웠습니다" : "저장했습니다 — 승인된 회원 모두에게 반영됩니다");
+    if(ok){ st.editing = null; st.draft = null; st.htmlMode = false; render(); }
+  };
 }
 
 // ── 계육·계란·종란 수출입 동향 — import_status/stats.json(관세청 품목별 국가별 수출입실적, 매주 자동 수집) ─────────────
@@ -14312,6 +14490,7 @@ function renderPremiumTab(){
   }
   // 전염성기관지염(IB) 차단 AI공동연구팀 — 단계별 연구 과정(정적 자료)
   if(premiumState.view === "ibteam"){
+    if(ibContentState.status === "idle") fetchIbContent();
     return renderPremiumGateHeader() + logoutBar + renderIbTeamPanel();
   }
   // 영양제 종류별 사용요령 — 정적 참고 자료
