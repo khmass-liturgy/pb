@@ -18462,7 +18462,8 @@ function renderVentTab(){
   // 이상고온(오늘 평균기온이 평년보다 상위 약 10% 이상 높음)이면 위 판정에서 한 단계 올린다(최고 단계는 그대로).
   // 평년 비교가 아직 끝나지 않았으면 올리지 않는다.
   const anomJ = recIdxBase != null ? anomTodayJudge(today) : null;
-  const anomHot = !!(anomJ && anomJ.z >= ANOM_Z);
+  const anomHot = anomIsHot(anomJ), anomByZ = !!(anomJ && anomJ.z >= ANOM_Z), anomByProb = !!(anomJ && anomJ.pHot >= ANOM_HOT_PROB);
+  const anomWhy = anomHot ? [anomByZ ? `평년보다 +${anomJ.diff.toFixed(1)}°C` : "", anomByProb ? `앙상블 예보 이상고온 가능성 ${Math.round(anomJ.pHot * 100)}%` : ""].filter(Boolean).join(", ") : "";
   const recIdx = recIdxBase != null && anomHot ? Math.min(sp.stages.length - 1, recIdxBase + 1) : recIdxBase;
   const anomRaised = recIdxBase != null && recIdx > recIdxBase;
   const humDrivenUp = tempStageIdx != null && humStageIdx > tempStageIdx;
@@ -18531,7 +18532,7 @@ function renderVentTab(){
         </div>
       </div>
 
-      <div style="margin:-2px 0 12px">${anomTodayLine(today, true)}${anomRaised ? `<div style="font-size:11.5px;color:#B71C1C;background:#FFEBEE;border-radius:8px;padding:7px 10px;margin-top:6px;line-height:1.65">🌡️ <b>이상고온(평년보다 +${anomJ.diff.toFixed(1)}°C)</b>이라 환기 단계를 <b>${sp.stages[recIdxBase].name}</b>에서 <b>${st0name(sp, recIdx)}</b>로 한 단계 올렸습니다. 외기가 평소보다 훨씬 더워 같은 단계로는 열 배출이 모자랄 수 있습니다.</div>` : (anomHot && recIdxBase != null ? `<div style="font-size:11.5px;color:#B71C1C;background:#FFEBEE;border-radius:8px;padding:7px 10px;margin-top:6px;line-height:1.65">🌡️ 이상고온이지만 이미 <b>가장 높은 환기 단계</b>입니다. 환기량을 최대로 유지하고 냉각·급수·밀도를 점검하세요.</div>` : "")}</div>
+      <div style="margin:-2px 0 12px">${anomTodayLine(today, true)}${anomRaised ? `<div style="font-size:11.5px;color:#B71C1C;background:#FFEBEE;border-radius:8px;padding:7px 10px;margin-top:6px;line-height:1.65">🌡️ <b>이상고온(${anomWhy})</b>이라 환기 단계를 <b>${sp.stages[recIdxBase].name}</b>에서 <b>${st0name(sp, recIdx)}</b>로 한 단계 올렸습니다. 외기가 평소보다 훨씬 더워 같은 단계로는 열 배출이 모자랄 수 있습니다.</div>` : (anomHot && recIdxBase != null ? `<div style="font-size:11.5px;color:#B71C1C;background:#FFEBEE;border-radius:8px;padding:7px 10px;margin-top:6px;line-height:1.65">🌡️ 이상고온이지만 이미 <b>가장 높은 환기 단계</b>입니다. 환기량을 최대로 유지하고 냉각·급수·밀도를 점검하세요.</div>` : "")}</div>
 
       ${humDrivenUp || humVentIneffective ? `
       <div style="background:#E3F2FD;border-left:6px solid #0288D1;border-radius:8px;padding:11px 13px;margin-bottom:10px">
@@ -18579,7 +18580,7 @@ function renderVentTab(){
   // 7일 예보 기준 단계 변화 미리보기
   const weekPreview = !noWeather ? `
   <div class="card" style="margin-bottom:16px">
-    <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:10px">📅 7일 환기단계 예보 <span style="font-size:9px;color:#0288D1;font-weight:500">· 💧는 습도(${VENT_HUMIDITY_THRESHOLD}%↑), 🌡️는 이상고온(평년 대비)으로 단계가 상향된 날</span></div>
+    <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:10px">📅 7일 환기단계 예보 <span style="font-size:9px;color:#0288D1;font-weight:500">· 💧는 습도(${VENT_HUMIDITY_THRESHOLD}%↑), 🌡️는 이상고온(평년 대비·앙상블 확률 40%↑)으로 단계가 상향된 날</span></div>
     <div style="display:flex;gap:5px;overflow-x:auto;padding-bottom:2px">
       ${fc.slice(0,7).map((d,i)=>{
         const dn=["일","월","화","수","목","금","토"];
@@ -18590,7 +18591,7 @@ function renderVentTab(){
         const tsi = dfi!=null ? determineVentStage(dfi) : null;
         const hsi = determineHumidityStage(dh);
         let si = tsi!=null ? Math.max(tsi, hsi) : null;
-        const aj = anomTodayJudge(d), hotUp = si!=null && !!aj && aj.z >= ANOM_Z && si < sp.stages.length-1;   // 그날 예보 평균기온이 평년보다 이상고온이면(오늘 추천과 같은 기준) 한 단계 상향
+        const hotUp = si!=null && anomIsHot(anomTodayJudge(d)) && si < sp.stages.length-1;   // 그날이 이상고온이면(예보 평균기온 평년 대비 또는 앙상블 확률 40%↑ — 오늘 추천과 같은 기준) 한 단계 상향
         if(hotUp) si += 1;
         const stg = si!=null ? sp.stages[si] : null;
         const humUp = tsi!=null && hsi>tsi;
@@ -19081,14 +19082,17 @@ function anomTodayLine(f0, compact){
   return box(c, bg, head + "." + tip + out);
 }
 
-// 오늘 일평균기온이 평년보다 얼마나 벗어났는지(z)만 돌려준다 — 환기가이드가 「이상고온이면 한 단계 상향」을 정할 때 쓴다.
+// 환기 단계를 올릴 이상고온인가 — ① 그날 예보 평균기온이 평년보다 상위 약 10% 이상 높거나(z≥1.28), ② 앙상블 예보에서 이상고온 가능성이 40% 이상(이상기온 신호 표시 기준과 같음).
+const ANOM_HOT_PROB = 0.4;
+const anomIsHot = j => !!j && (j.z >= ANOM_Z || j.pHot >= ANOM_HOT_PROB);
+// 오늘 일평균기온이 평년보다 얼마나 벗어났는지(z)와 앙상블 이상고온 확률(pHot)을 돌려준다 — 환기가이드가 「이상고온이면 한 단계 상향」을 정할 때 쓴다.
 // anomTodayLine의 판정과 같은 계산이며, 평년 자료가 아직 없으면 null(이때는 단계를 올리지 않는다).
 function anomTodayJudge(f0){
   if(anomState.status !== "done") return null;
   const days = anomState.data && anomState.data.days; if(!days || !days.length || !f0 || f0.tMax == null || f0.tMin == null) return null;
   const t0 = days.find(d => d.date === f0.date); if(!t0) return null;
   const mean = (f0.tMax + f0.tMin) / 2, diff = mean - t0.clim, sd = Math.max(t0.sd || 2, 0.5);
-  return { z: diff / sd, diff, clim: t0.clim, mean };
+  return { z: diff / sd, diff, clim: t0.clim, mean, pHot: t0.pHot || 0 };
 }
 
 // 오늘의 축산 관리 포인트 카드에 끼우는 "이상기온 신호" 블록 (앞으로 7일).
