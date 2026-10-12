@@ -18436,6 +18436,7 @@ function determineHumidityStage(hum){
   return 0;
 }
 
+function st0name(sp, i){ return sp.stages[i] ? sp.stages[i].name : ""; }
 function renderVentTab(){
   const speciesInfo = {
     broiler: {label:"육계", icon:"🐔", table:BROILER_TARGET_TEMP, stages:POULTRY_VENT_STAGES, unit:"day"},
@@ -18457,7 +18458,13 @@ function renderVentTab(){
   const tempStageIdx = diff != null ? determineVentStage(diff) : null;
   const humStageIdx  = determineHumidityStage(todayHum);
   // Munters Rotem Trio 이중제어 로직: 온도요구·습도요구 중 더 큰 쪽을 따른다
-  const recIdx = tempStageIdx != null ? Math.max(tempStageIdx, humStageIdx) : null;
+  const recIdxBase = tempStageIdx != null ? Math.max(tempStageIdx, humStageIdx) : null;
+  // 이상고온(오늘 평균기온이 평년보다 상위 약 10% 이상 높음)이면 위 판정에서 한 단계 올린다(최고 단계는 그대로).
+  // 평년 비교가 아직 끝나지 않았으면 올리지 않는다.
+  const anomJ = recIdxBase != null ? anomTodayJudge(today) : null;
+  const anomHot = !!(anomJ && anomJ.z >= ANOM_Z);
+  const recIdx = recIdxBase != null && anomHot ? Math.min(sp.stages.length - 1, recIdxBase + 1) : recIdxBase;
+  const anomRaised = recIdxBase != null && recIdx > recIdxBase;
   const humDrivenUp = tempStageIdx != null && humStageIdx > tempStageIdx;
   // PIC 규칙: 외기온이 이미 목표온도를 넘어선 상태에서 습도까지 높으면
   // 환기를 더 늘려도 습도가 안 떨어진다(밖 공기 자체가 덥고 습하므로) — 별도 경고
@@ -18520,10 +18527,11 @@ function renderVentTab(){
           <div style="font-size:22px;font-weight:800;color:#333">${todayHigh}°C <span style="font-size:14px;color:${todayHum!=null&&todayHum>VENT_HUMIDITY_THRESHOLD?"#0288D1":"#999"};font-weight:700">💧${todayHum!=null?todayHum+"%":"-"}</span></div>
           <div style="font-size:11px;color:#666;margin-top:1px">목표 ${targetT}°C · ${diffLabel}</div>
           ${humDrivenUp?`<div style="font-size:10px;color:#0288D1;font-weight:700;margin-top:2px">💧 습도 기준으로 단계 상향됨</div>`:""}
+          ${anomRaised?`<div style="font-size:10px;color:#B71C1C;font-weight:700;margin-top:2px">🌡️ 이상고온으로 한 단계 상향됨</div>`:""}
         </div>
       </div>
 
-      <div style="margin:-2px 0 12px">${anomTodayLine(today, true)}</div>
+      <div style="margin:-2px 0 12px">${anomTodayLine(today, true)}${anomRaised ? `<div style="font-size:11.5px;color:#B71C1C;background:#FFEBEE;border-radius:8px;padding:7px 10px;margin-top:6px;line-height:1.65">🌡️ <b>이상고온(평년보다 +${anomJ.diff.toFixed(1)}°C)</b>이라 환기 단계를 <b>${sp.stages[recIdxBase].name}</b>에서 <b>${st0name(sp, recIdx)}</b>로 한 단계 올렸습니다. 외기가 평소보다 훨씬 더워 같은 단계로는 열 배출이 모자랄 수 있습니다.</div>` : (anomHot && recIdxBase != null ? `<div style="font-size:11.5px;color:#B71C1C;background:#FFEBEE;border-radius:8px;padding:7px 10px;margin-top:6px;line-height:1.65">🌡️ 이상고온이지만 이미 <b>가장 높은 환기 단계</b>입니다. 환기량을 최대로 유지하고 냉각·급수·밀도를 점검하세요.</div>` : "")}</div>
 
       ${humDrivenUp || humVentIneffective ? `
       <div style="background:#E3F2FD;border-left:6px solid #0288D1;border-radius:8px;padding:11px 13px;margin-bottom:10px">
@@ -18581,13 +18589,15 @@ function renderVentTab(){
         const dfi = hi!=null ? hi - targetT : null;
         const tsi = dfi!=null ? determineVentStage(dfi) : null;
         const hsi = determineHumidityStage(dh);
-        const si = tsi!=null ? Math.max(tsi, hsi) : null;
+        let si = tsi!=null ? Math.max(tsi, hsi) : null;
+        const hotUp = i===0 && si!=null && anomHot && si < sp.stages.length-1;   // 오늘 칸은 위 추천과 같게 이상고온 상향 반영
+        if(hotUp) si += 1;
         const stg = si!=null ? sp.stages[si] : null;
         const humUp = tsi!=null && hsi>tsi;
         return `<div style="flex:1;min-width:58px;text-align:center;background:${stg?stg.color+"14":"#f5f5f5"};border-radius:8px;padding:7px 3px">
           <div style="font-size:9px;color:#888;font-weight:600">${i===0?"오늘":dn[dd.getDay()]+" "+(dd.getMonth()+1)+"/"+dd.getDate()}</div>
           <div style="font-size:14px;font-weight:800;margin:3px 0;color:#333">${hi!=null?hi+"°":"-"}</div>
-          <div style="font-size:9px;font-weight:700;color:${stg?stg.color:"#aaa"}">${stg?stg.icon+" "+stg.name.replace(/\(.*?\)/,""):"-"}${humUp?" 💧":""}</div>
+          <div style="font-size:9px;font-weight:700;color:${stg?stg.color:"#aaa"}">${stg?stg.icon+" "+stg.name.replace(/\(.*?\)/,""):"-"}${humUp?" 💧":""}${hotUp?" 🌡️":""}</div>
         </div>`;
       }).join("")}
     </div>
@@ -19069,6 +19079,16 @@ function anomTodayLine(f0, compact){
   const out = sig.length ? ` · 앞으로 3일: <b>${sig.join(" / ")}</b>` : ` · 앞으로 3일도 뚜렷한 이상기온 신호 없음`;
   if(sig.length && c === "#2E7D32"){ c = "#E65100"; bg = "#FFF3E0"; }
   return box(c, bg, head + "." + tip + out);
+}
+
+// 오늘 일평균기온이 평년보다 얼마나 벗어났는지(z)만 돌려준다 — 환기가이드가 「이상고온이면 한 단계 상향」을 정할 때 쓴다.
+// anomTodayLine의 판정과 같은 계산이며, 평년 자료가 아직 없으면 null(이때는 단계를 올리지 않는다).
+function anomTodayJudge(f0){
+  if(anomState.status !== "done") return null;
+  const days = anomState.data && anomState.data.days; if(!days || !days.length || !f0 || f0.tMax == null || f0.tMin == null) return null;
+  const t0 = days.find(d => d.date === f0.date); if(!t0) return null;
+  const mean = (f0.tMax + f0.tMin) / 2, diff = mean - t0.clim, sd = Math.max(t0.sd || 2, 0.5);
+  return { z: diff / sd, diff, clim: t0.clim, mean };
 }
 
 // 오늘의 축산 관리 포인트 카드에 끼우는 "이상기온 신호" 블록 (앞으로 7일).
