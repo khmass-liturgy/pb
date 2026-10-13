@@ -331,12 +331,49 @@ const TREATMENT_SYSTEM_PROMPT = `당신은 현장 양계 전문 수의사가 운
 해결 3. 투약 지원|수의사 진단·처방 후 항생제를 사용하고 장 건강 보조제를 병행합니다.
 주의: 항생제는 처방·휴약기간을 지키고, 폐사가 급증하면 즉시 수의사와 상의하세요.`;
 
+// 「약품별 사용요령 카드」 관리 화면 — 약품명과 QIA 공식 설명서 원문(효능효과·용법용량·휴약기간·주의사항·저장)을 주면
+// 현장에서 바로 읽을 요점으로 정리한다. 용량·휴약기간 등 숫자는 원문에 있는 것만 옮기고 절대 새로 만들지 않는다.
+const DRUG_SYSTEM_PROMPT = `당신은 현장 양계 전문 수의사가 운영하는 농장동물 컨설팅 서비스의 「약품별 사용요령 카드」 초안을 씁니다. 약품명과, 있으면 농림축산검역본부(QIA) 제품 설명서 원문이 주어집니다. 읽는 사람은 농장 관리자이며 수의사가 검토한 뒤 공개합니다.
+
+출력 형식(이 형식의 줄만 쓰고, 다른 설명·인사말·마크다운은 쓰지 않습니다)
+분류: 항생·항균제 / 구충·항원충제 / 소독제 / 영양제·비타민 / 소염·진통·해열 / 호르몬·기타 주사제 / 백신 / 사료첨가제 / 기타 중 하나
+한줄요약: 이 약이 무엇에 쓰이는지 한 문장(50자 이내)
+사용요령 1|현장에서 알아야 할 사용 요점 한 문장(60자 이내)
+사용요령 2|...
+사용요령 3|...
+(사용요령은 3~5줄. 투여 경로·대상, 사용 시점·기간의 요점, 투여 전 확인할 것, 같이 쓸 때 주의할 것 순서)
+주의: 꼭 지킬 한두 가지를 한 줄로
+금기·병용: 함께 쓰면 안 되는 약이나 쓰면 안 되는 대상(원문에 있을 때만, 없으면 이 줄을 쓰지 않음)
+
+지켜야 할 것
+- 용량·희석 배수·투여 일수·휴약기간 같은 숫자는 주어진 공식 설명서 원문에 있는 것만 그대로 옮깁니다. 원문에 없으면 숫자를 쓰지 말고 "제품 설명서 확인"이라고만 씁니다. 기억에 의존해 숫자를 만들지 않습니다.
+- 공식 설명서 원문이 없으면 일반적인 성분 특성(계열·작용 방식) 수준까지만 쓰고 "제품 설명서 확인"을 붙입니다.
+- 수의사 처방 대상 약품이면 "수의사 처방에 따라 사용"을 사용요령에 넣습니다.
+- 휴약기간을 지켜야 한다는 점은 항생제·항균제·구충제 등 해당될 때 한 줄에 포함합니다.
+- 약품명이 농장동물 약품이 아니거나 모르는 제품이면 "분류: 기타", "한줄요약: 확인 필요"만 씁니다. 모르는 내용을 지어내지 않습니다.
+- 모든 문장은 요점만 짧게, 존댓말이나 명사형으로 씁니다.
+
+예시
+약품명: 예시마이신
+주성분: 예시성분
+공식 설명서(QIA) 원문:
+[용법용량] 닭: 체중 kg당 ○mg을 3~5일간 음수 투여
+[휴약기간] 닭 : 7일
+[주의사항] 산란계 산란기에는 사용하지 마십시오
+분류: 항생·항균제
+한줄요약: 닭 세균성 호흡기·소화기 감염에 쓰는 음수 투여용 항생제
+사용요령 1|수의사 처방에 따라 닭에 음수로 3~5일간 투여합니다(용량은 제품 설명서 기준)
+사용요령 2|투여 전 대상 질병과 감수성을 확인하고 투여 내역을 기록합니다
+사용요령 3|휴약기간(닭 7일)을 지킨 뒤 출하합니다
+주의: 산란기 산란계에는 사용하지 않습니다.`;
+
 // contextLabel: 함께 넘기는 참고 정보의 이름(없으면 안 붙인다). contextMax: 그 길이 한도.
 const AI_DRAFT_KINDS = {
   faq:  { system: FAQ_SYSTEM_PROMPT,  label: "질문",    contextLabel: "",               contextMax: 0 },
   card: { system: CARD_SYSTEM_PROMPT, label: "앞면",    contextLabel: "덱 주제",         contextMax: 200 },
   deck: { system: DECK_SYSTEM_PROMPT, label: "덱 제목", contextLabel: "이 덱의 카드 앞면", contextMax: 1500 },
   treatment: { system: TREATMENT_SYSTEM_PROMPT, label: "상황 제목", contextLabel: "축종·참고", contextMax: 300 },
+  drug: { system: DRUG_SYSTEM_PROMPT, label: "약품명", contextLabel: "참고", contextMax: 6500 },
 };
 
 // Claude 호출 공통부. 안전 분류기가 거절하면 서버가 권장 모델로 자동 재시도하고
@@ -387,7 +424,7 @@ exports.generateAiDraft = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds:
   assertAdmin(request);
   const data = request.data || {};
   const kind = AI_DRAFT_KINDS[data.kind];
-  if (!kind) throw new HttpsError("invalid-argument", "kind는 faq, card, deck, treatment 중 하나여야 합니다.");
+  if (!kind) throw new HttpsError("invalid-argument", "kind는 faq, card, deck, treatment, drug 중 하나여야 합니다.");
   const text = String(data.text || "").trim();
   const context = String(data.context || "").trim().slice(0, kind.contextMax);
   if (!text) throw new HttpsError("invalid-argument", `${kind.label}을 입력하세요.`);

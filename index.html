@@ -751,6 +751,7 @@ const PREMIUM_ITEMS = [
   { key:"ibteam", icon:"🧬", title:"전염성기관지염(IB)차단 인공지능 공동연구팀", desc:"IB 기초 질병학부터 위험요인·국내 실태·진단·백신 방어·논문 연구·시범농장 실증·예방시스템까지 8단계로 순차 연구합니다. 단계마다 기초 이론·전문 심화·육계/산란계 비교·현장 사례·문헌 검토·농장 점검표를 제공합니다.", color:"#C62828", category:"인공지능 공동연구팀" },
   { key:"hpaizero", icon:"🦠", title:"고병원성 조류인플루엔자(HPAI) 예방 인공지능 공동연구팀 — HPAI ZERO FARM", desc:"8개 전문분야 인공지능 연구팀과 총괄 인공지능가 야생조류·지리·기상·차단방역·임상·예측·현장 실증을 함께 연구하는 체계입니다. 마스터 프롬프트, 단계별 연구 프로그램, 농장 위험평가 시뮬레이터(연구용 예시), 일일 방역 점검표를 제공합니다.", color:"#00695C", category:"인공지능 공동연구팀" },
   { key:"drug", icon:"💊", title:"약품조회 및 휴약기간 검색", desc:"동물용의약품을 제품명·업체명·성분명·축종·증상으로 검색하고, 축종별 휴약기간을 QIA 공식 데이터로 바로 확인합니다.", color:"#00838F", category:"약품·투약·소독" },
+  { key:"drugusage", icon:"📇", title:"약품별 사용요령 카드", desc:"약품마다 용법·휴약기간·주의사항을 한 장 카드로 정리했습니다. 공식 설명서(QIA) 기준이며 약품 정보 링크도 함께 볼 수 있습니다.", color:"#00838F", category:"약품·투약·소독" },
   { key:"treatment", icon:"💉", title:"상황별 처방(투약) 패키지", desc:"육계·산란계 농장 상황을 고르면 그에 맞는 투약(처방) 프로그램을 보여드립니다. 상황은 계속 추가됩니다.", color:"#C62828", category:"약품·투약·소독" },
   { key:"seasonal", icon:"🗓️", title:"계절별 투약(관리) 패키지", desc:"봄·여름·가을·겨울 시기별로 챙겨야 할 투약(백신)과 사양관리 주의사항을 안내합니다.", color:"#795548", category:"약품·투약·소독" },
   { key:"finder", icon:"🎯", title:"내 농장에 맞는 약품 찾기", desc:"축종과 문제 증상을 단계별로 선택하면 진단·원인 분석과 추천 처방을 보여드립니다.", color:"#283593", category:"약품·투약·소독" },
@@ -851,7 +852,7 @@ const PREMIUM_MENU_LEGACY_PATH = "premium_menu/items.json";
 // 제공한다(회원관리·자동문자발송관리는 별도로 자동 추가되는 관리자 전용
 // 항목이라 목록에서 뺀다).
 const PREMIUM_MENU_KNOWN_KEYS = [
-  "ibteam","hpaizero","drug","treatment","seasonal","finder","disinfect","newproducts","vaccine",
+  "ibteam","hpaizero","drug","drugusage","treatment","seasonal","finder","disinfect","newproducts","vaccine",
   "ventfinder","lightguide","moltguide","feedstandard","feedgrain","grainprice","priceforecast","tradestats","supplement","selfcheck","diagnosis","specimen","faq","study",
   "research","diseasebrief","emerging","industrynews","drugnews","magazine","kkoko","feature_board","consult","consulting","smssub",
 ];
@@ -860,7 +861,7 @@ let premiumMenuState = { status:"idle", data:null, busy:false, msg:"", adminOpen
 
 // 관리자가 저장한 메뉴가 있어도, 그 뒤에 새로 만든 기본 메뉴(PREMIUM_MENU_NEW_SEED_KEYS)는 빠져 보이지 않게
 // 저장된 메뉴에 없을 때만 기본 위치(앞 메뉴 뒤)에 끼워 보여 준다.
-const PREMIUM_MENU_NEW_SEED_KEYS = ["ibteam", "hpaizero", "drugnews", "diseasebrief", "priceforecast", "tradestats", "supplement"];
+const PREMIUM_MENU_NEW_SEED_KEYS = ["ibteam", "hpaizero", "drugusage", "drugnews", "diseasebrief", "priceforecast", "tradestats", "supplement"];
 // 관리자가 예전에 저장한 메뉴에는 두 항목이 「사양관리」로 들어 있으므로, 분류만 새 묶음으로 강제한다.
 // 분류 이름이 바뀐 경우(관리자가 예전에 저장한 메뉴에 옛 이름이 남아 있어도 새 이름으로 묶는다)
 const PREMIUM_MENU_CATEGORY_RENAME = { "백신관리": "백신·약품관리", "AI공동연구팀": "인공지능 공동연구팀" };
@@ -8274,6 +8275,235 @@ function rmBind(){
         .bindPopup(`<b>${esc(r.sido)} ${esc(r.sgg)}</b><br>야생조류 검출 ${r.w}건<br>최근 확인일 ${r.last ? hkFmt(r.last) : "-"}`);
     }
   });
+}
+
+// ── 💊 약품별 사용요령 카드 (유료서비스 · 약품·투약·소독) ─────────────────────────────────────────────
+// 약품 한 가지마다 카드 한 장. 회원은 읽기만 하고, 관리자는 약품을 추가·수정·삭제한다(premium_content/drug_usage/latest.json).
+// 기본정보는 두 길로 채운다:
+//  ① QIA(농림축산검역본부 동물용의약품통합정보시스템)에서 제품을 찾아 효능효과·용법용량·휴약기간·주의사항·저장방법을 그대로 가져온다 — 공식 설명서 내용.
+//  ② 인공지능(Claude)이 ①의 공식 설명서 글을 현장 요점(분류·한줄요약·사용요령·주의)으로 정리한다 — 초안이며 수의사가 검토해야 한다.
+//     용량·휴약기간 같은 숫자는 인공지능이 만들지 않고 ①의 원문만 쓴다.
+// 약품 정보 링크: 검색 단추(구글·네이버·QIA·제조사)로 찾은 주소를 붙여 넣어 달며, QIA 제품 페이지는 불러올 때 자동으로 달린다.
+const DRUGUSE_DATASET = "drug_usage";
+const DRUGUSE_KINDS = ["항생·항균제", "구충·항원충제", "소독제", "영양제·비타민", "소염·진통·해열", "호르몬·기타 주사제", "백신", "사료첨가제", "기타"];
+const DRUGUSE_KIND_COLOR = { "항생·항균제":"#C62828", "구충·항원충제":"#6A1B9A", "소독제":"#00695C", "영양제·비타민":"#EF6C00", "소염·진통·해열":"#1565C0", "호르몬·기타 주사제":"#5D4037", "백신":"#3949AB", "사료첨가제":"#558B2F", "기타":"#546E7A" };
+const drugUseState = { status:"idle", data:null, q:"", kind:"", openKey:null, adminOpen:false, draft:null, busy:false, msg:"", ok:true, qiaRows:null, qiaBusy:false, aiBusy:false, linkMsg:"" };
+function drugUseItems(){ return drugUseState.data && Array.isArray(drugUseState.data.items) ? drugUseState.data.items : []; }
+async function fetchDrugUse(){
+  drugUseState.status = "loading"; render();
+  try {
+    const j = await fetchPremiumContentJson(DRUGUSE_DATASET);
+    drugUseState.data = j && Array.isArray(j.items) ? j : { items:[] };
+    drugUseState.status = "done";
+  } catch(e){ drugUseState.status = "error"; drugUseState.msg = "약품 카드를 불러오지 못했습니다: " + (e.message || e); drugUseState.ok = false; }
+  if(premiumState.view === "drugusage") render();
+}
+async function publishDrugUse(items, okMsg){
+  if(!isBoardAdmin()) return false;
+  drugUseState.busy = true; drugUseState.msg = ""; render();
+  try {
+    const body = { v:1, updated:new Date().toISOString(), items };
+    await writePremiumContentJson(DRUGUSE_DATASET, body);
+    drugUseState.data = body; drugUseState.msg = okMsg || "저장했습니다"; drugUseState.ok = true; drugUseState.busy = false; render(); return true;
+  } catch(e){ drugUseState.msg = "저장하지 못했습니다: " + (e.message || e); drugUseState.ok = false; drugUseState.busy = false; render(); return false; }
+}
+function drugUseNewDraft(){
+  return { key:"", name:"", kind:"", species:"", ingredient:"", maker:"", approval:"", summary:"", efficacy:"", dosage:"", withdrawal:"", usage:"", cautions:"", storage:"", memo:"", links:[], qia:"", qiaAt:"", aiAt:"", reviewed:false };
+}
+function drugUseSlug(name){ return "d" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
+// QIA 상세 페이지 → 효능효과·용법용량·주의사항·휴약기간·저장방법. 상세 본문은 항상 이 순서로 붙어 있다
+// (효능효과 → 용법용량 → 주의사항(가~사 소항목 중 ‘휴약기간’ 포함) → [권고사항]).
+async function qiaFullDetail(link){
+  const res = await fetch(link);
+  if(!res.ok) throw new Error("QIA 상세 조회 실패 (" + res.status + ")");
+  const html = await res.text();
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const text = ((doc.body && doc.body.textContent) || "").replace(/\s+/g, " ");
+  const cut = (a, b) => { const m = text.match(a); if(!m) return ""; const from = m.index + m[0].length; const rest = text.slice(from); const e = b ? rest.search(b) : -1; return (e >= 0 ? rest.slice(0, e) : rest).trim(); };
+  const efficacy = cut(/효능\s*효과\s*효능\s*효과\s*폴딩\s*버튼/, /용법\s*용량\s*용법\s*용량\s*폴딩\s*버튼/);
+  const dosage = cut(/용법\s*용량\s*용법\s*용량\s*폴딩\s*버튼/, /주의\s*사항\s*주의\s*사항\s*폴딩\s*버튼/);
+  const cautAll = cut(/주의\s*사항\s*주의\s*사항\s*폴딩\s*버튼/, /\[\s*권고\s*사항\s*\]|포장\s*단위/);
+  const cautions = cautAll.replace(/\s*[가-힣]\s*\.\s*휴약\s*기간[\s\S]*$/, "").trim();
+  const sm = cautAll.match(/[가-힣]\s*\.\s*저장\s*상의?\s*주의\s*사항([\s\S]*)$/);
+  const storage = sm ? sm[1].trim() : "";
+  const am = text.match(/품목정보\s+(동물용의약품-[^\s]+)/);
+  return { efficacy:efficacy.slice(0, 2500), dosage:dosage.slice(0, 2500), cautions:cautions.slice(0, 2500), storage:storage.slice(0, 900), withdrawal:wdExtractPeriod(html).slice(0, 600), approval:am ? am[1] : "" };
+}
+// 인공지능 초안 응답(줄 머리: 분류:/한줄요약:/사용요령 n|/주의:/금기·병용:) → 칸
+function drugUseParseAi(text){
+  const out = { kind:"", summary:"", usage:[], cautions:"", combo:"" };
+  String(text || "").split(/\n+/).forEach(l => {
+    l = l.trim(); let m;
+    if((m = l.match(/^분류\s*[:：]\s*(.+)$/))) out.kind = m[1].trim();
+    else if((m = l.match(/^한줄\s*요약\s*[:：]\s*(.+)$/))) out.summary = m[1].trim();
+    else if((m = l.match(/^사용요령\s*\d*\s*[.|:：]\s*(.+)$/))) out.usage.push(m[1].trim());
+    else if((m = l.match(/^주의\s*[:：]\s*(.+)$/))) out.cautions = m[1].trim();
+    else if((m = l.match(/^금기\s*[·.]?\s*병용\s*[:：]\s*(.+)$/))) out.combo = m[1].trim();
+  });
+  return out;
+}
+function drugUseSearchLinks(name){
+  const q = encodeURIComponent(name);
+  return [
+    ["QIA 제품 검색", "https://medi.qia.go.kr/searchMedicine?searchDivision=detail&itemName=" + q],
+    ["구글 — 사용설명서", "https://www.google.com/search?q=" + encodeURIComponent(name + " 동물용의약품 사용설명서")],
+    ["구글 — 제조사 제품정보", "https://www.google.com/search?q=" + encodeURIComponent(name + " 동물약품 제조사 제품정보")],
+    ["네이버 검색", "https://search.naver.com/search.naver?query=" + encodeURIComponent(name + " 동물약품")],
+  ];
+}
+function drugUseSafeUrl(u){ u = String(u || "").trim(); return /^https?:\/\/[^\s]+$/i.test(u) ? u : ""; }
+function drugUseKindBadge(k){ const c = DRUGUSE_KIND_COLOR[k] || "#546E7A"; return k ? `<span style="font-size:10.5px;font-weight:800;color:${c};background:${c}14;border:1px solid ${c}44;border-radius:10px;padding:1px 8px;white-space:nowrap">${esc(k)}</span>` : ""; }
+function drugUseSection(title, body, c, pre){
+  if(!body || !String(body).trim()) return "";
+  return `<div style="margin-top:9px"><div style="font-size:11.5px;font-weight:800;color:${c || "#455A64"};margin-bottom:2px">${title}</div><div style="font-size:12.5px;color:#333;line-height:1.75;${pre === false ? "" : "white-space:pre-line;"}word-break:break-word">${esc(body)}</div></div>`;
+}
+function drugUseCard(it, admin){
+  const open = drugUseState.openKey === it.key;
+  const needsReview = it.aiAt && !it.reviewed;
+  const links = (it.links || []).filter(l => drugUseSafeUrl(l.url));
+  const body = !open ? "" : `<div style="margin-top:6px;border-top:1px dashed #e3e3e3;padding-top:6px">
+      ${needsReview ? `<div style="font-size:11.5px;color:#BF360C;background:#FFF3E0;border-radius:8px;padding:6px 9px;margin-bottom:4px">⚠ ‘사용요령’·‘주의’ 일부는 인공지능이 공식 설명서를 요점으로 정리한 <b>초안</b>이며 수의사 검토 전입니다. 용량·휴약기간은 제품 설명서 원문이 우선입니다.</div>` : ""}
+      ${[["성분", it.ingredient], ["제조·수입사", it.maker], ["허가", it.approval], ["대상 축종", it.species]].filter(a => a[1]).length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin:4px 0">${[["성분", it.ingredient], ["제조·수입사", it.maker], ["허가", it.approval], ["대상 축종", it.species]].filter(a => a[1]).map(a => `<span style="font-size:11.5px;background:#f4f7f6;border-radius:8px;padding:3px 9px;color:#455"><b>${a[0]}</b> ${esc(a[1])}</span>`).join("")}</div>` : ""}
+      ${drugUseSection("🌿 현장 사용요령(요점)", it.usage, "#00695C")}
+      ${drugUseSection("⏳ 휴약기간 (공식 설명서)", it.withdrawal, "#C62828")}
+      ${drugUseSection("💧 용법·용량 (공식 설명서)", it.dosage, "#1565C0")}
+      ${drugUseSection("🎯 효능·효과 (공식 설명서)", it.efficacy, "#455A64")}
+      ${drugUseSection("⚠ 주의사항", it.cautions, "#E65100")}
+      ${drugUseSection("📦 저장·보관", it.storage, "#795548")}
+      ${drugUseSection("📝 메모", it.memo, "#607D8B")}
+      ${links.length ? `<div style="margin-top:10px"><div style="font-size:11.5px;font-weight:800;color:#455A64;margin-bottom:3px">🔗 약품 정보 링크</div><div style="display:flex;flex-direction:column;gap:3px">${links.map(l => `<a href="${esc(drugUseSafeUrl(l.url))}" target="_blank" rel="noopener" style="font-size:12.3px;color:#1565C0;word-break:break-all">${esc(l.title || l.url)} ↗</a>`).join("")}</div></div>` : ""}
+      <div style="font-size:10.5px;color:#999;line-height:1.7;margin-top:10px">출처: ${it.qia ? `<a href="${esc(drugUseSafeUrl(it.qia))}" target="_blank" rel="noopener" style="color:#888">QIA 동물용의약품통합정보시스템</a>${it.qiaAt ? " (" + esc(it.qiaAt.slice(0, 10)) + " 확인)" : ""}` : "관리자 입력"}${it.aiAt ? " · 요점 정리: 인공지능 초안" + (it.reviewed ? "(수의사 검토 완료)" : "(검토 전)") : ""} · 이 카드는 참고용이며 제품 설명서·수의사 지시가 우선합니다. 수의사 처방 대상 약품은 처방에 따르세요.</div>
+      ${admin ? `<div style="display:flex;gap:6px;margin-top:8px"><button type="button" class="dua-edit" data-key="${esc(it.key)}" style="border:1px solid #1565C0;background:#fff;color:#1565C0;border-radius:7px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer">✏️ 수정</button><button type="button" class="dua-del" data-key="${esc(it.key)}" style="border:1px solid #C62828;background:#fff;color:#C62828;border-radius:7px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer">🗑 삭제</button></div>` : ""}
+    </div>`;
+  return `<div style="border:1.5px solid ${open ? "#00838F" : "#e3e3e3"};background:#fff;border-radius:11px;padding:10px 12px;margin:8px 0">
+    <div class="dua-toggle" data-key="${esc(it.key)}" role="button" tabindex="0" style="cursor:pointer"><div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap"><span style="font-size:14px;font-weight:900;color:#1b2a28">💊 ${esc(it.name)}</span>${drugUseKindBadge(it.kind)}${needsReview ? `<span style="font-size:10px;font-weight:800;color:#BF360C;background:#FFF3E0;border-radius:8px;padding:1px 6px">AI 초안</span>` : ""}<span style="margin-left:auto;font-size:11.5px;color:#00838F;font-weight:700">${open ? "접기 ▲" : "펼치기 ▼"}</span></div>
+    ${it.summary ? `<div style="font-size:12.3px;color:#555;line-height:1.65;margin-top:3px">${esc(it.summary)}</div>` : ""}</div>${body}</div>`;
+}
+function drugUseForm(){
+  const d = drugUseState.draft; if(!d) return "";
+  const inp = "width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid #ccc;border-radius:7px;font-size:13px;font-family:inherit;background:#fff";
+  const ta = (id, label, val, rows, hint) => `<div style="margin-top:8px"><label for="${id}" style="font-size:11.5px;font-weight:800;color:#455A64">${label}</label>${hint ? `<span style="font-size:10.5px;color:#999;margin-left:6px">${hint}</span>` : ""}<textarea id="${id}" rows="${rows}" style="${inp};resize:vertical;line-height:1.6">${esc(val)}</textarea></div>`;
+  const links = d.links.map((l, i) => `<div style="display:flex;gap:5px;margin:4px 0;align-items:center"><input class="dua-ltitle" data-i="${i}" value="${esc(l.title || "")}" placeholder="링크 이름" style="${inp};flex:0 0 36%"><input class="dua-lurl" data-i="${i}" value="${esc(l.url || "")}" placeholder="https://..." style="${inp};flex:1 1 auto"><button type="button" class="dua-ldel" data-i="${i}" style="border:1px solid #ddd;background:#fff;color:#C62828;border-radius:7px;padding:5px 9px;cursor:pointer">✕</button></div>`).join("");
+  const sl = d.name.trim() ? drugUseSearchLinks(d.name.trim()) : [];
+  const qiaList = drugUseState.qiaRows ? (drugUseState.qiaRows.length ? `<div style="border:1px solid #cfe3e6;border-radius:8px;margin-top:6px;max-height:210px;overflow:auto">${drugUseState.qiaRows.map((r, i) => `<div style="display:flex;gap:8px;align-items:center;padding:6px 9px;border-bottom:1px solid #eef3f4"><div style="flex:1;min-width:0;font-size:12px;line-height:1.55"><b>${esc(r.제품명)}</b> <span style="color:#777">· ${esc(r.업체명)} · ${esc(r.주성분)}</span><div style="font-size:10.5px;color:#999">${esc(r.품목구분)} · 허가 ${esc(r.허가일)}</div></div><button type="button" class="dua-qia-pick" data-i="${i}" style="border:1px solid #00838F;background:#00838F;color:#fff;border-radius:7px;padding:5px 10px;font-size:11.5px;font-weight:800;cursor:pointer;white-space:nowrap">이 제품으로 채우기</button></div>`).join("")}</div>` : `<div style="font-size:12px;color:#E65100;margin-top:6px">QIA에서 ‘${esc(d.name)}’(으)로 찾은 제품이 없습니다. 이름을 줄이거나 성분명으로 바꿔 보세요.</div>`) : "";
+  return `<div style="border:2px solid #00838F;background:#F3FBFC;border-radius:12px;padding:12px 14px;margin:10px 0">
+    <div style="font-size:14px;font-weight:900;color:#00838F;margin-bottom:6px">${d.key ? "✏️ 약품 카드 수정" : "＋ 새 약품 카드"}</div>
+    <label for="dua-name" style="font-size:11.5px;font-weight:800;color:#455A64">약품명(제품명)</label>
+    <div style="display:flex;gap:6px;flex-wrap:wrap"><input id="dua-name" value="${esc(d.name)}" placeholder="예) 이보멕, 코리마이신, 옥소린…" style="${inp};flex:1 1 200px">
+      <button type="button" id="dua-qia" ${drugUseState.qiaBusy ? "disabled" : ""} style="border:1px solid #00838F;background:#fff;color:#00838F;border-radius:8px;padding:7px 12px;font-size:12.5px;font-weight:800;cursor:pointer">${drugUseState.qiaBusy ? "⏳ 찾는 중…" : "🔎 QIA에서 찾아 채우기"}</button>
+      <button type="button" id="dua-ai" ${drugUseState.aiBusy ? "disabled" : ""} style="border:1px solid #6A1B9A;background:#fff;color:#6A1B9A;border-radius:8px;padding:7px 12px;font-size:12.5px;font-weight:800;cursor:pointer">${drugUseState.aiBusy ? "⏳ 정리하는 중…" : "🤖 AI로 사용요령 정리"}</button></div>
+    <div style="font-size:10.8px;color:#777;line-height:1.7;margin-top:3px">① 먼저 「QIA에서 찾아 채우기」로 공식 설명서(효능효과·용법용량·휴약기간·주의사항·저장)를 가져온 뒤 ② 「AI로 사용요령 정리」를 누르면 그 원문을 현장 요점으로 정리합니다. AI는 용량·휴약기간 숫자를 새로 만들지 않고 원문만 씁니다. 결과는 반드시 검토한 뒤 저장하세요.</div>
+    ${qiaList}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><div style="flex:1 1 150px"><label for="dua-kind" style="font-size:11.5px;font-weight:800;color:#455A64">분류</label><select id="dua-kind" style="${inp}"><option value="">선택</option>${DRUGUSE_KINDS.map(k => `<option ${k === d.kind ? "selected" : ""}>${k}</option>`).join("")}</select></div>
+      <div style="flex:2 1 200px"><label for="dua-species" style="font-size:11.5px;font-weight:800;color:#455A64">대상 축종</label><input id="dua-species" value="${esc(d.species)}" placeholder="예) 닭, 오리" style="${inp}"></div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><div style="flex:1 1 180px"><label for="dua-ingredient" style="font-size:11.5px;font-weight:800;color:#455A64">주성분</label><input id="dua-ingredient" value="${esc(d.ingredient)}" style="${inp}"></div>
+      <div style="flex:1 1 180px"><label for="dua-maker" style="font-size:11.5px;font-weight:800;color:#455A64">제조·수입사</label><input id="dua-maker" value="${esc(d.maker)}" style="${inp}"></div>
+      <div style="flex:1 1 180px"><label for="dua-approval" style="font-size:11.5px;font-weight:800;color:#455A64">허가번호</label><input id="dua-approval" value="${esc(d.approval)}" style="${inp}"></div></div>
+    <div style="margin-top:8px"><label for="dua-summary" style="font-size:11.5px;font-weight:800;color:#455A64">한줄 요약</label><input id="dua-summary" value="${esc(d.summary)}" placeholder="카드 제목 아래에 보이는 한 줄" style="${inp}"></div>
+    ${ta("dua-usage", "🌿 현장 사용요령(요점 — 한 줄에 한 항목)", d.usage, 5, "AI 초안이 들어오는 칸")}
+    ${ta("dua-withdrawal", "⏳ 휴약기간 (공식 설명서 원문)", d.withdrawal, 2)}
+    ${ta("dua-dosage", "💧 용법·용량 (공식 설명서 원문)", d.dosage, 4)}
+    ${ta("dua-efficacy", "🎯 효능·효과 (공식 설명서 원문)", d.efficacy, 4)}
+    ${ta("dua-cautions", "⚠ 주의사항", d.cautions, 4)}
+    ${ta("dua-storage", "📦 저장·보관", d.storage, 2)}
+    ${ta("dua-memo", "📝 메모(선택)", d.memo, 2)}
+    <div style="margin-top:10px"><div style="font-size:11.5px;font-weight:800;color:#455A64;margin-bottom:3px">🔗 약품 정보 링크</div>
+      ${sl.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:5px"><span style="font-size:11px;color:#777;align-self:center">검색해서 찾기(새 창):</span>${sl.map(a => `<a href="${esc(a[1])}" target="_blank" rel="noopener" style="font-size:11.5px;font-weight:700;color:#1565C0;border:1px solid #bcd3ee;background:#fff;border-radius:14px;padding:3px 10px;text-decoration:none">${esc(a[0])} ↗</a>`).join("")}</div>` : `<div style="font-size:11px;color:#999;margin-bottom:4px">약품명을 입력하면 검색 단추가 나타납니다.</div>`}
+      ${links}
+      <button type="button" id="dua-ladd" style="border:1px dashed #00838F;background:#fff;color:#00838F;border-radius:7px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer">＋ 링크 추가</button>
+      <span style="font-size:10.5px;color:#999;margin-left:6px">검색 결과에서 찾은 주소를 복사해 붙여 넣으세요(http·https만 저장).</span></div>
+    <label style="display:flex;gap:6px;align-items:center;margin-top:10px;font-size:12.5px;font-weight:700;color:#2E7D32;cursor:pointer"><input type="checkbox" id="dua-reviewed" ${d.reviewed ? "checked" : ""}> 수의사 검토 완료(AI 초안 표시를 없앱니다)</label>
+    ${drugUseState.linkMsg ? `<div style="font-size:12px;color:${drugUseState.ok ? "#2E7D32" : "#C62828"};margin-top:6px;line-height:1.6">${drugUseState.linkMsg}</div>` : ""}
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button type="button" id="dua-save" ${drugUseState.busy ? "disabled" : ""} style="border:none;background:#00838F;color:#fff;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:800;cursor:pointer">${drugUseState.busy ? "저장 중…" : "💾 저장해 공개"}</button><button type="button" id="dua-cancel" style="border:1px solid #ddd;background:#fff;color:#666;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer">취소</button></div></div>`;
+}
+function renderDrugUsePanel(){
+  const admin = isBoardAdmin(), st = drugUseState;
+  const head = `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:10px"><div><div class="display" style="font-size:16px;margin-bottom:3px">💊 약품별 사용요령 카드</div><div style="font-size:11px;color:#aaa">약품마다 용법·휴약기간·주의사항을 한 장 카드로 정리했습니다 — 공식 설명서(QIA) 기준</div></div><button id="dua-back" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button></div>`;
+  if(st.status === "idle" || st.status === "loading") return head + `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⏳ 약품 카드를 불러오는 중...</div>`;
+  if(st.status === "error") return head + `<div class="card" style="text-align:center;padding:28px 16px;color:#C62828;font-size:13px">⚠️ ${esc(st.msg)}<br><button id="dua-retry" style="margin-top:10px;border:1px solid #ddd;background:#fff;border-radius:8px;padding:6px 14px;cursor:pointer">다시 시도</button></div>`;
+  const all = drugUseItems(), q = st.q.trim().toLowerCase();
+  const list = all.filter(it => (!st.kind || it.kind === st.kind) && (!q || [it.name, it.ingredient, it.maker, it.summary, it.species].join(" ").toLowerCase().indexOf(q) >= 0)).sort((a, b) => a.name.localeCompare(b.name, "ko"));
+  const kinds = DRUGUSE_KINDS.filter(k => all.some(it => it.kind === k));
+  const chip = (k, t) => `<button type="button" class="dua-kind" data-k="${esc(k)}" style="border:1.5px solid ${st.kind === k ? "#00838F" : "#ddd"};background:${st.kind === k ? "#00838F" : "#fff"};color:${st.kind === k ? "#fff" : "#555"};border-radius:16px;padding:4px 11px;font-size:12px;font-weight:700;cursor:pointer">${esc(t)}</button>`;
+  const adminBar = admin ? `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:8px 0"><button type="button" id="dua-add" style="border:none;background:#00838F;color:#fff;border-radius:8px;padding:8px 14px;font-size:12.5px;font-weight:800;cursor:pointer">＋ 약품 추가</button>${st.msg ? `<span style="font-size:12px;color:${st.ok ? "#2E7D32" : "#C62828"};font-weight:700">${esc(st.msg)}</span>` : ""}<span style="font-size:10.5px;color:#999">관리자에게만 보입니다</span></div>` : "";
+  return head + `<div class="card" style="border-top:6px solid #00838F">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input id="dua-q" value="${esc(st.q)}" placeholder="약품명·성분·제조사·축종 검색" style="flex:1 1 200px;padding:8px 11px;border:1px solid #ccc;border-radius:9px;font-size:13px;font-family:inherit"><span style="font-size:11.5px;color:#888">${list.length}/${all.length}개</span></div>
+    ${kinds.length ? `<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px">${chip("", "전체")}${kinds.map(k => chip(k, k)).join("")}</div>` : ""}
+    ${adminBar}${drugUseForm()}
+    ${list.length ? list.map(it => drugUseCard(it, admin)).join("") : `<div style="text-align:center;padding:26px 8px;color:#aaa;font-size:13px">${all.length ? "조건에 맞는 약품이 없습니다." : "아직 등록된 약품 카드가 없습니다." + (admin ? " 「＋ 약품 추가」로 첫 카드를 만들어 보세요." : "")}</div>`}
+    <div style="margin-top:12px;background:#FFF8E1;border-radius:8px;padding:9px 11px;font-size:10.8px;color:#6b5400;line-height:1.75"><b>유의</b> · 카드의 용법·용량·휴약기간은 농림축산검역본부 제품 설명서 기준 참고 자료이며, 실제 사용은 제품 설명서와 담당 수의사의 진단·처방에 따르세요. 동물용의약품은 사용내역을 기록하고 휴약기간을 반드시 지켜야 합니다.</div></div>`;
+}
+function drugUseReadForm(){
+  const d = drugUseState.draft; if(!d) return;
+  const v = id => { const e = document.getElementById(id); return e ? e.value : null; };
+  [["name", "dua-name"], ["kind", "dua-kind"], ["species", "dua-species"], ["ingredient", "dua-ingredient"], ["maker", "dua-maker"], ["approval", "dua-approval"], ["summary", "dua-summary"], ["usage", "dua-usage"], ["withdrawal", "dua-withdrawal"], ["dosage", "dua-dosage"], ["efficacy", "dua-efficacy"], ["cautions", "dua-cautions"], ["storage", "dua-storage"], ["memo", "dua-memo"]].forEach(([k, id]) => { const x = v(id); if(x !== null) d[k] = x; });
+  const rv = document.getElementById("dua-reviewed"); if(rv) d.reviewed = rv.checked;
+  d.links = d.links.map((l, i) => { const t = document.querySelector(`.dua-ltitle[data-i="${i}"]`), u = document.querySelector(`.dua-lurl[data-i="${i}"]`); return { title:t ? t.value : l.title, url:u ? u.value : l.url }; });
+}
+function drugUseBind(){
+  if(!(state.tab === "premium" && premiumState.view === "drugusage")) return;
+  const $ = id => document.getElementById(id), st = drugUseState;
+  const back = $("dua-back"); if(back) back.onclick = () => { st.draft = null; premiumState.view = "menu"; render(); };
+  const retry = $("dua-retry"); if(retry) retry.onclick = () => fetchDrugUse();
+  const q = $("dua-q"); if(q) q.oninput = () => { drugUseReadForm(); st.q = q.value; const pos = q.selectionStart; render(); const n = $("dua-q"); if(n){ n.focus(); try { n.setSelectionRange(pos, pos); } catch(e){} } };
+  document.querySelectorAll(".dua-kind").forEach(b => b.onclick = () => { st.kind = b.dataset.k; render(); });
+  document.querySelectorAll(".dua-toggle").forEach(b => { const tg = () => { st.openKey = st.openKey === b.dataset.key ? null : b.dataset.key; render(); }; b.onclick = tg; b.onkeydown = e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); tg(); } }; });
+  if(!isBoardAdmin()) return;
+  const add = $("dua-add"); if(add) add.onclick = () => { st.draft = drugUseNewDraft(); st.qiaRows = null; st.linkMsg = ""; st.msg = ""; render(); const f = $("dua-name"); if(f) f.focus(); };
+  document.querySelectorAll(".dua-edit").forEach(b => b.onclick = () => { const it = drugUseItems().find(x => x.key === b.dataset.key); if(!it) return; st.draft = Object.assign(drugUseNewDraft(), JSON.parse(JSON.stringify(it))); st.qiaRows = null; st.linkMsg = ""; st.msg = ""; render(); const f = $("dua-name"); if(f) f.scrollIntoView({ behavior:"smooth", block:"center" }); });
+  document.querySelectorAll(".dua-del").forEach(b => b.onclick = async () => { const it = drugUseItems().find(x => x.key === b.dataset.key); if(!it || !confirm("‘" + it.name + "’ 카드를 삭제할까요? 되돌릴 수 없습니다.")) return; await publishDrugUse(drugUseItems().filter(x => x.key !== it.key), "삭제했습니다"); });
+  if(!st.draft) return;
+  const d = st.draft;
+  const cancel = $("dua-cancel"); if(cancel) cancel.onclick = () => { st.draft = null; st.qiaRows = null; st.linkMsg = ""; render(); };
+  const ladd = $("dua-ladd"); if(ladd) ladd.onclick = () => { drugUseReadForm(); d.links.push({ title:"", url:"" }); render(); };
+  document.querySelectorAll(".dua-ldel").forEach(b => b.onclick = () => { drugUseReadForm(); d.links.splice(Number(b.dataset.i), 1); render(); });
+  const qia = $("dua-qia"); if(qia) qia.onclick = async () => {
+    drugUseReadForm(); const name = d.name.trim(); if(!name){ st.linkMsg = "약품명을 먼저 입력하세요."; st.ok = false; render(); return; }
+    st.qiaBusy = true; st.linkMsg = ""; render();
+    try { const r = await fetchQiaSearch(name, 1, "name"); st.qiaRows = r.rows.slice(0, 12); }
+    catch(e){ st.qiaRows = null; st.linkMsg = "QIA 조회 실패: " + (e.message || e) + " — 잠시 뒤 다시 시도하세요."; st.ok = false; }
+    st.qiaBusy = false; render();
+  };
+  document.querySelectorAll(".dua-qia-pick").forEach(b => b.onclick = async () => {
+    drugUseReadForm(); const r = (st.qiaRows || [])[Number(b.dataset.i)]; if(!r) return;
+    st.qiaBusy = true; st.linkMsg = "공식 설명서를 가져오는 중…"; st.ok = true; render();
+    try {
+      const x = await qiaFullDetail(r.링크);
+      d.name = d.name || r.제품명; d.ingredient = r.주성분 || d.ingredient; d.maker = r.업체명 || d.maker; d.approval = x.approval || d.approval;
+      d.efficacy = x.efficacy || d.efficacy; d.dosage = x.dosage || d.dosage; d.withdrawal = x.withdrawal || d.withdrawal; d.cautions = x.cautions || d.cautions; d.storage = x.storage || d.storage;
+      d.qia = r.링크; d.qiaAt = new Date().toISOString();
+      if(!d.links.some(l => l.url === r.링크)) d.links.unshift({ title:"QIA 동물용의약품통합정보시스템 — " + r.제품명, url:r.링크 });
+      st.qiaRows = null; st.linkMsg = "✅ ‘" + r.제품명 + "’의 공식 설명서 내용을 채웠습니다. 이어서 「AI로 사용요령 정리」를 눌러 현장 요점을 만들 수 있습니다.";
+    } catch(e){ st.linkMsg = "공식 설명서를 가져오지 못했습니다: " + (e.message || e); st.ok = false; }
+    st.qiaBusy = false; render();
+  });
+  const ai = $("dua-ai"); if(ai) ai.onclick = async () => {
+    drugUseReadForm(); const name = d.name.trim(); if(!name){ st.linkMsg = "약품명을 먼저 입력하세요."; st.ok = false; render(); return; }
+    const official = [["효능효과", d.efficacy], ["용법용량", d.dosage], ["휴약기간", d.withdrawal], ["주의사항", d.cautions], ["저장", d.storage]].filter(a => a[1] && a[1].trim()).map(a => `[${a[0]}] ${a[1].trim()}`).join("\n").slice(0, 5500);
+    st.aiBusy = true; st.linkMsg = ""; render();
+    const r = await generateAiDraft("drug", name, (d.ingredient ? "주성분: " + d.ingredient + "\n" : "") + (official ? "공식 설명서(QIA) 원문:\n" + official : "공식 설명서 원문 없음"));
+    st.aiBusy = false;
+    if(!r.ok){ st.linkMsg = "AI 정리 실패: " + r.error + (/invalid-argument|kind/.test(r.error) ? " — 서버 함수에 ‘drug’ 항목이 아직 배포되지 않았을 수 있습니다(firebase deploy --only functions)." : ""); st.ok = false; render(); return; }
+    const p = drugUseParseAi(r.text);
+    if(p.kind && DRUGUSE_KINDS.indexOf(p.kind) >= 0) d.kind = p.kind;
+    if(p.summary) d.summary = p.summary;
+    if(p.usage.length) d.usage = p.usage.map((u, i) => "①②③④⑤⑥"[i] + " " + u).join("\n") + (p.combo ? "\n※ 금기·병용: " + p.combo : "");
+    if(p.cautions && !d.cautions.trim()) d.cautions = p.cautions;
+    d.aiAt = new Date().toISOString(); d.reviewed = false;
+    st.linkMsg = "✅ 인공지능이 공식 설명서를 요점으로 정리했습니다(초안). 내용을 확인·수정한 뒤 ‘수의사 검토 완료’를 체크하고 저장하세요."; st.ok = true; render();
+  };
+  const save = $("dua-save"); if(save) save.onclick = async () => {
+    drugUseReadForm();
+    if(!d.name.trim()){ st.linkMsg = "약품명을 입력하세요."; st.ok = false; render(); return; }
+    const links = d.links.map(l => ({ title:String(l.title || "").trim().slice(0, 100), url:drugUseSafeUrl(l.url) })).filter(l => l.url);
+    const bad = d.links.filter(l => String(l.url || "").trim() && !drugUseSafeUrl(l.url)).length;
+    if(bad){ st.linkMsg = "http:// 또는 https://로 시작하는 주소만 링크로 저장할 수 있습니다(" + bad + "개 확인 필요)."; st.ok = false; render(); return; }
+    const item = Object.assign({}, d, { name:d.name.trim(), links, key:d.key || drugUseSlug(d.name), updated:new Date().toISOString() });
+    const items = drugUseItems().slice(), i = items.findIndex(x => x.key === item.key);
+    if(i >= 0) items[i] = item; else items.push(item);
+    const ok = await publishDrugUse(items, i >= 0 ? "수정해 공개했습니다" : "추가해 공개했습니다");
+    if(ok){ st.draft = null; st.qiaRows = null; st.linkMsg = ""; st.openKey = item.key; render(); }
+  };
 }
 
 function renderHpaiTab(){
@@ -25497,6 +25727,11 @@ function renderPremiumTab(){
   if(premiumState.view === "drug"){
     return renderPremiumGateHeader() + logoutBar + renderDrugSearchPanel();
   }
+  // 약품별 사용요령 카드 화면
+  if(premiumState.view === "drugusage"){
+    if(drugUseState.status === "idle") fetchDrugUse();
+    return renderPremiumGateHeader() + logoutBar + renderDrugUsePanel();
+  }
   // 기술탐구(논문) 화면
   if(premiumState.view === "research"){
     if(researchPapersState.status === "idle") fetchResearchPapers();
@@ -25790,6 +26025,7 @@ function renderHeaderSolarTerm(now){
 // go: {tab} 일반 탭으로 / {premium:"메뉴key"} 유료서비스의 그 화면으로(승인·로그인 안내는 그 화면이 처리) / {premium:"vaccine", vaccineView:"guide"} 처럼 보기까지 지정.
 const NEW_FEATURE_DAYS = 21;
 const NEW_FEATURES = [
+  { key:"drugusage",      date:"2026-10-14", label:"약품별 사용요령 카드", where:"유료서비스 · 약품·투약·소독", go:{ premium:"drugusage" } },
   { key:"hpaizero",       date:"2026-10-14", label:"HPAI ZERO FARM 조류인플루엔자 예방 인공지능 공동연구팀", where:"유료서비스 · 인공지능 공동연구팀", go:{ premium:"hpaizero" } },
   { key:"ib-lec2",        date:"2026-10-13", label:"IB 연구팀 제2강 · 제1강 현장 보강", where:"유료서비스 · 인공지능 공동연구팀", go:{ premium:"ibteam" } },
   { key:"ibteam",         date:"2026-10-13", label:"IB 차단 인공지능 공동연구팀 (1단계 제1강)", where:"유료서비스 · 최상단",       go:{ premium:"ibteam" } },
@@ -32327,6 +32563,7 @@ function attachEvents(){
   };
 
   // 질병별 소독제 선택과 소독요령
+  drugUseBind();
   const disinfectBackBtn = document.getElementById("disinfect-back-btn");
   if(disinfectBackBtn) disinfectBackBtn.onclick = ()=>{ premiumState.view = "menu"; render(); };
   document.querySelectorAll(".disinfect-toggle").forEach(b=>b.onclick=()=>{
