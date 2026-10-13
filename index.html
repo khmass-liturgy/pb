@@ -12006,6 +12006,7 @@ I. 참고자료 — 원문 링크, 발표연도, 문헌정보 및 근거 수준.
 농장 현장에서 실천할 수 있는 구체적인 결과물을 만드는 것을 모든 연구의 최우선 원칙으로 삼아라.`;
 
 function hzBox(title, body, c){ const col = c || "#455A64"; return `<div style="border:1px solid ${col}33;border-left:4px solid ${col};background:${col}0d;border-radius:9px;padding:9px 11px;margin:9px 0"><div style="font-size:12.5px;font-weight:800;color:${col};margin-bottom:4px">${title}</div><div style="font-size:12.5px;color:#333;line-height:1.75">${body}</div></div>`; }
+function hzBadge(t, c){ return `<span style="display:inline-block;font-size:10px;font-weight:800;color:${c};background:${c}14;border:1px solid ${c}55;border-radius:5px;padding:0 5px;margin-right:4px;white-space:nowrap">${t}</span>`; }
 function hzUnverified(){ return `<span style="display:inline-block;font-size:10px;font-weight:800;color:#E65100;background:#FFF3E0;border:1px solid #E6510055;border-radius:5px;padding:0 5px;margin-right:4px;white-space:nowrap">공고 원문 미확인</span>`; }
 // ── 팀별 연구과제(단계별·현장 중심) ────────────────────────────────────────────────
 // 6단계 × 8개 팀의 연구과제를 ‘농장에서 무엇을 하고 무엇을 남기나’로 풀어 쓴 설계안이다.
@@ -12248,13 +12249,13 @@ function renderHzCheck(){
 }
 function renderHzRefs(){
   return `
-    ${hzBox("자료 확인 상태", "아래 목록은 제안서에 적힌 <b>기준 자료 후보</b>입니다. 이 화면에서는 각 문서의 원문·발행일·내용을 확인하지 못했습니다. 연구에 쓰기 전에 공식 사이트에서 최신본을 직접 확인하세요.", "#E65100")}
+    ${hzBox("자료 확인 상태 (2026-10-14 재확인)", "제안서의 기준 자료 후보 4건을 공식 사이트에서 직접 확인했습니다. 아래 상태는 <b>문서가 존재하는지·무엇인지</b>를 확인한 결과이며, 각 문서의 <b>본문(첨부파일)을 읽은 것은 아닙니다.</b> 연구에 쓰기 전에 최신본을 직접 열어 확인하세요.", "#E65100")}
     ${ibH("초기 연구에서 우선 검토할 공식 자료")}
     ${ibTable(["자료", "용도", "확인 상태"], [
-      ["농림축산식품부 조류인플루엔자 긴급행동지침(SOP, 2024년 9월)", "공식 방역 및 발생 대응 기준", hzUnverified()],
-      ["WOAH 조류인플루엔자 정보 (<a href=\"https://www.woah.org/en/disease/avian-influenza/\" target=\"_blank\" rel=\"noopener\" style=\"color:#1565C0\">woah.org</a>)", "국제 감시, 발생 신고 및 차단방역 기준", hzUnverified()],
-      ["FAO 조류인플루엔자 예방 권고", "농장·야생동물·환경을 연결한 방역 권고", hzUnverified()],
-      ["WOAH 2026년 농장 감시체계 가이드라인", "농장 규모와 조건에 맞는 감시체계 설계", hzUnverified()],
+      ["농림축산식품부 조류인플루엔자 긴급행동지침(AI SOP) — 제안서는 「2024년 9월」로 표기 (<a href=\"https://www.mafra.go.kr/FMD-AI2/2182/subview.do\" target=\"_blank\" rel=\"noopener\" style=\"color:#1565C0\">mafra.go.kr 게시판</a>)", "공식 방역 및 발생 대응 기준", hzBadge("목록 확인", "#2E7D32") + "농식품부 게시판에 <b>2024.9.30 개정본</b>(2025.1.3 게시)이 있음. 그 뒤 <b>'25.11.18 개정본</b>도 게시되어 있어(게시일 표기가 2026.9.4로 어긋남) 최신본은 11.18 개정본입니다. 이전 개정본은 2022.3.25, 2021.10.1 등. 첨부 본문은 미확인 — 분석 땐 최신 개정본을 직접 내려받아 사용"],
+      ["WOAH 조류인플루엔자 정보 (<a href=\"https://www.woah.org/en/disease/avian-influenza/\" target=\"_blank\" rel=\"noopener\" style=\"color:#1565C0\">woah.org</a>)", "국제 감시, 발생 신고 및 차단방역 기준", hzBadge("확인됨", "#2E7D32") + "WOAH의 조류인플루엔자 안내 페이지가 실제로 있음(개요, 월간 HPAI 상황보고서, 신고·무역 FAQ). 페이지에 갱신일 표기는 없고 최근 상황보고서 86호(2026.9)가 올라와 있음. 기준 문서는 이 페이지가 가리키는 육상동물위생규약 10.4장·진단매뉴얼 3.3.4장 등"],
+      ["FAO 조류인플루엔자 예방 권고", "농장·야생동물·환경을 연결한 방역 권고", hzBadge("일부 확인", "#E65100") + "제안서가 가리키는 <b>특정 문서는 확인하지 못함</b>. 확인된 것: 2025.3 FAO의 H5N1 확산 대응 브리핑(생물안전·감시·신속대응 강화 촉구), WOAH와 공동 10개년 글로벌 전략(2024~2033). 야생조류를 죽이지 말고 가금과의 접촉을 막으라는 FAO 입장 등은 2004~2006년 자료이므로 배경 참고용"],
+      ["WOAH 2026년 농장 감시체계 가이드라인 (<a href=\"https://www.woah.org/en/document/surveillance-of-high-pathogenicity-avian-influenza-for-smallholder-poultry-systems-in-resource-limited-settings/\" target=\"_blank\" rel=\"noopener\" style=\"color:#1565C0\">woah.org 문서</a>)", "농장 규모와 조건에 맞는 감시체계 설계", hzBadge("확인됨 · 용도 주의", "#C62828") + "2026.1.20 발행 WOAH 지침이 있음. 다만 정확한 제목은 「<b>자원이 제한된 환경의 소규모(smallholder) 가금 사육체계에서의 HPAI 감시</b>」로, 우리나라 상업 양계농장 일반의 감시체계 지침이 아닙니다. 참고는 가능하나 그대로 적용하지 말 것"],
     ], { minW: 560 })}
     ${ibH("자료 수집 우선순위")}
     ${ibList(["농림축산식품부의 현행 방역지침과 공고", "농림축산검역본부의 역학조사 및 감시자료", "지자체 및 공식 가축방역기관 자료", "환경부 및 국립야생동물질병관리원 관련 자료", "기상청 기상관측자료", "WOAH·FAO·WHO 국제기구 자료", "PubMed 및 동료심사 학술논문", "기타 검증 가능한 공식 공개자료"])}
