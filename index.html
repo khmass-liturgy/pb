@@ -12129,10 +12129,12 @@ function renderHzRefs(){
     ${ibP("전국 모든 농장을 한꺼번에 분석하기보다 <b>경기도 김포·파주, 충북 음성·진천</b> 등 서로 다른 지리적·축산업적 특성을 가진 지역을 시범 연구대상으로 설정하는 방법을 제안했습니다. 이는 우선 연구지역에 관한 제안이지, 현재 해당 지역이 고위험 지역이라는 판단이 아닙니다.")}
     ${hzBox("가장 중요한 첫 연구과제", "야생조류에서 검출된 바이러스가 어떤 <b>환경적·인위적 경로</b>를 거쳐 농장으로 유입될 수 있는지에 대한 역학적 연관성을 검토하는 것입니다. 이 결과가 이후 위험예측 모델과 농장 방역 프로토콜의 과학적 기반이 됩니다.", HZ_COLOR)}`;
 }
+// 「인공지능에게 시키는 글」은 연구 운영자용이라 관리자에게만 보인다(농장·유료 회원에게는 숨김)
+function hzTabs(){ return HZ_TABS.filter(([k]) => k !== "prompt" || isBoardAdmin()); }
 function renderHpaiZeroPanel(){
-  const t = hzState.tab;
+  const t = hzTabs().some(x => x[0] === hzState.tab) ? hzState.tab : "intro";
   const head = `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:10px"><div><div class="display" style="font-size:16px;margin-bottom:2px">🦠 HPAI ZERO FARM — 조류인플루엔자 예방 인공지능 공동연구팀</div><div style="font-size:11px;color:#888">인공지능 기반 조류인플루엔자 예방·위험예측·농장 차단방역 공동연구 시스템</div></div><button type="button" id="hz-back-btn" style="border:1px solid #ddd;background:#fff;color:#888;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button></div>`;
-  const nav = `<div style="display:flex;gap:5px;flex-wrap:wrap;margin:6px 0 12px" role="tablist">${HZ_TABS.map(([k, l]) => `<button type="button" role="tab" aria-selected="${k === t}" data-hz-tab="${k}" style="border:1px solid ${k === t ? HZ_COLOR : "#ddd"};background:${k === t ? HZ_COLOR : "#fff"};color:${k === t ? "#fff" : "#555"};border-radius:16px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer">${l}</button>`).join("")}</div>`;
+  const nav = `<div style="display:flex;gap:5px;flex-wrap:wrap;margin:6px 0 12px" role="tablist">${hzTabs().map(([k, l]) => `<button type="button" role="tab" aria-selected="${k === t}" data-hz-tab="${k}" style="border:1px solid ${k === t ? HZ_COLOR : "#ddd"};background:${k === t ? HZ_COLOR : "#fff"};color:${k === t ? "#fff" : "#555"};border-radius:16px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer">${l}</button>`).join("")}</div>`;
   const body = t === "prompt" ? renderHzPrompt() : t === "program" ? renderHzProgram() : t === "tasks" ? renderHzTasks() : t === "sim" ? renderHzSim() : t === "check" ? renderHzCheck() : t === "refs" ? renderHzRefs() : renderHzIntro();
   const foot = `<div style="margin-top:14px;background:#FFF8E1;border-radius:8px;padding:9px 11px;font-size:10.5px;color:#6b5400;line-height:1.75"><b>유의</b> · 교육·연구용 설계 자료입니다. 감염의 완전 차단이나 100% 예방을 보장하지 않으며, 개별 농장의 진단·처방·방역 지시를 대신하지 않습니다. AI 의심 증상은 즉시 관할 가축방역기관에 신고하고, 정부의 현행 방역지침과 행정명령을 우선하세요.</div>`;
   return `<div class="card" id="hz-root" style="border-top:6px solid ${HZ_COLOR}">${head}${nav}${body}${foot}</div>`;
