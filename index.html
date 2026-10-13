@@ -12173,7 +12173,7 @@ function hzBind(){
   };
 }
 
-const IB_CURRENT_STAGE = 3;
+const IB_CURRENT_STAGE = 4;
 const IB_COLOR = "#C62828";
 const IB_STAGES = [
   { no:1, title:"IB 기초 질병학", items:["IBV의 정의와 분류","코로나바이러스의 구조와 S 단백질","감염경로 및 전파 양상","기관·기관지·신장·난관에 미치는 영향","육계와 산란계의 임상증상","부검 소견과 생산성 저하 기전","IB 발생과 경제적 피해의 관계"] },
@@ -12246,6 +12246,9 @@ const IB_LECTURES = {
     { no:4, title:"산란율과 난각품질은 어떻게 변하나?", ready:true, minutes:"기본 12~15분 · 심화 별도", html: () => ibLecture34() },
     { no:5, title:"폐사·출하성적·경제손실과 발생/비발생 농장 비교 (3단계 총정리)", ready:true, minutes:"기본 12~15분 · 심화 별도", html: () => ibLecture35() },
   ],
+  4: [
+    { no:1, title:"임상진단과 확진은 무엇이 다른가?", ready:true, minutes:"기본 12~15분 · 심화 별도", html: () => ibLecture41() },
+  ],
 };
 // 1단계 학습 차례 — 연구 과제 7개가 5개 강의 어디서 다뤄지는지
 const IB_STAGE1_MAP = [
@@ -12280,6 +12283,19 @@ const IB_STAGE3_MAP = [
   ["폐사율·출하성적·경제손실", "제5강 + 3단계 총정리"],
   ["발생 농장과 비발생 농장 비교", "제5강 + 3단계 총정리"],
 ];
+
+// 4단계 학습 차례 — 연구 과제 8개를 어느 강의에서 다루는지(계획, 진행하며 조정)
+const IB_STAGE4_MAP = [
+  ["임상진단과 확진의 차이", "제1강"],
+  ["다른 호흡기 질병과의 감별진단", "제1강"],
+  ["RT-PCR 및 유전자 분석", "제2강(예정)"],
+  ["S1 유전자 및 유전자형 분석", "제2강(예정)"],
+  ["검사 시점과 검체 종류의 영향", "제3강(예정)"],
+  ["ELISA 등 혈청학적 검사", "제4강(예정)"],
+  ["백신주와 야외주 감별의 한계", "제5강(예정)"],
+  ["농장 단위 유행 원인 추정", "제5강(예정) + 4단계 총정리"],
+];
+const IB_STAGE_MAPS = { 1: IB_STAGE1_MAP, 2: IB_STAGE2_MAP, 3: IB_STAGE3_MAP, 4: IB_STAGE4_MAP };
 
 function ibLecture1(){
   const S = {};
@@ -16117,6 +16133,224 @@ function ibLecture35(){
   return S;
 }
 
+// ── 4단계 제1강: 임상진단과 확진은 무엇이 다른가? (임상진단과 확진, 감별진단) ──
+function ibLecture41(){
+  const S = {};
+  S[1] = `
+    ${ibP("4단계 「진단과 역학」의 첫 강의입니다. 3단계에서 국내 농장에서 어떤 일이 일어나는지를 봤다면, 4단계는 <b>그것을 어떻게 알아내는가</b>를 다룹니다. 제1강은 농장에서 가장 자주 혼동하는 <b>‘임상진단(증상과 부검으로 의심)’과 ‘확진(검사로 확인)’의 차이</b>, 그리고 <b>다른 호흡기 병과 구분하는 감별진단</b>의 원리를 정리합니다.")}
+    ${ibBox("이 강의가 답하는 농장 질문", ibList([
+      "기침·콧물·산란 저하만으로 IB라고 말해도 되나?",
+      "부검에서 기관염·신장 병변이 보이면 IB가 확정인가?",
+      "PCR 양성이면 곧 IB 발생인가? PCR 음성이면 IB가 아닌가?",
+      "ND·aMPV·ILT·AI·마이코플라즈마·대장균을 한꺼번에 어떻게 검사하나?",
+      "현장에서 빨리 알 수 있는 검사(RAA·LAMP)는 어디까지 믿을 수 있나?",
+      "검사를 의뢰할 때 수의사에게 무엇을 같이 줘야 하나?",
+    ]), IB_COLOR)}
+    ${ibH("학습 목표")}
+    ${ibList([
+      "임상진단 → 부검 → 시료 채취 → 분자 검사 → 유전자형 → 종합 판단의 순서와 각 단계가 알려 주는 것·알려 주지 못하는 것을 설명할 수 있다.",
+      "비슷한 증상을 일으키는 호흡기 병원체 목록을 알고 다중 검사의 필요성을 설명할 수 있다.",
+      "실시간 RT-PCR이 일반 RT-PCR·바이러스 분리보다 민감할 수 있다는 근거와 한계를 말할 수 있다.",
+      "신속 현장 검사(RT-RAA, LAMP)의 가능성과 확인되지 않은 부분을 구분해 말할 수 있다.",
+      "검사 의뢰서에 넣을 정보와 결과를 해석할 때 물어볼 질문을 정리할 수 있다.",
+    ])}
+    ${ibBox("4단계 학습 계획 (제안)", "제1강(이번) 임상진단과 확진·감별진단 / 제2강 RT-PCR·유전자 분석·S1 유전자형 / 제3강 검사 시점과 검체 종류의 영향 / 제4강 ELISA 등 혈청학적 검사 해석 / 제5강 백신주–야외주 감별의 한계와 농장 단위 유행 원인 추정 + 4단계 총정리. 진행하며 바꿀 수 있습니다.", "#455A64")}
+    ${ibBox("학습 분량", "기본 학습(②·④·⑤·⑦·⑧) 약 12~15분 · 전문 심화(③·⑥)는 별도로 읽습니다.", "#455A64")}`;
+
+  S[2] = `
+    ${ibH("1. 진단의 계단 — 각 단계가 알려 주는 것")}
+    ${ibFlow([["① 임상진단", "증상·산란·폐사 패턴으로 의심"], ["② 부검", "기관·기낭·신장·난관 병변, 사진"], ["③ 시료", "기관·신장(·난관) 채취, 보관"], ["④ 분자 검사", "IBV RT-PCR · 다중 PCR"], ["⑤ 유전자형", "S1 서열 · 백신주와 비교"], ["⑥ 종합 판단", "증상+병변+검사+기록"]])}
+    ${ibTable(["단계", "알려 주는 것", "알려 주지 못하는 것"], [
+      ["① 임상진단", "의심 방향, 우선 검사 대상", `${ibTag("fact")}비슷한 증상이 여러 호흡기 병에서 나타남(Bhuiyan 2021)`],
+      ["② 부검", "병변 부위·정도, 호흡기형/신장형(3단계 제3강)", `${ibTag("infer")}원인 병원체를 확정하지 못함 — 대장균·aMPV 등과 겹침`],
+      ["③ 시료 채취", "검사의 품질을 결정", `${ibTag("infer")}부적절한 부위·시점이면 음성이 나올 수 있음(4단계 제3강)`],
+      ["④ 분자 검사", "IBV 유전체 유무, 양(Ct)", `${ibTag("infer")}양성이 곧 발병 원인은 아님(백신 바이러스 포함 가능)`],
+      ["⑤ 유전자형", "계통·하위군·백신주와의 일치도", `${ibTag("infer")}방어 여부는 알려 주지 못함(2단계 제4강)`],
+      ["⑥ 종합 판단", "증상·병변·검사·기록의 일치", `${ibTag("infer")}한 가지 결과로 결론 내리지 않음`],
+    ], { minW: 600 })}
+    ${ibH("2. 비슷한 증상을 일으키는 병원체")}
+    ${ibP(`${ibTag("fact")}가금 호흡기 증후군의 핵심 병원체로는 저병원성 AI, aMPV, IBV, ILT, 마이코플라즈마, 대장균(칠면조는 ORT)이 꼽히고, 아스페르길루스·파스튜렐라·Avibacterium·클라미디아도 관여할 수 있습니다(Croville 등 2018). IB 진단 문헌도 서로 다른 호흡기 질병에서 임상증상이 비슷하게 나타나므로 <b>진단 검사를 개선하고 비-IB 질병과의 감별을 함께 해야 한다</b>고 정리합니다(Bhuiyan 등 2021).`)}
+    ${ibH("3. 검사 방법 한눈에")}
+    ${ibTable(["방법", "장점", "주의"], [
+      ["일반 RT-PCR (S1·N 유전자)", "널리 쓰임, 서열 확인 가능", `${ibTag("fact")}실시간 RT-PCR보다 민감도가 낮을 수 있음(Meir 2010)`],
+      ["실시간 RT-PCR (N 유전자 등)", "민감도·정량(Ct)", `${ibTag("fact")}N 유전자 TaqMan이 S1 RT-PCR보다 민감, 변이주에서는 바이러스 분리보다도 민감(Meir 2010)`],
+      ["다중 PCR (IBV·AIV·NDV·ILTV 등)", "한 번에 여러 병원체", `${ibTag("fact")}4종 다중 검사가 단일 검사와 100% 일치(Laamiri 2018, 70검체)`],
+      ["신속 현장 검사 (RT-RAA·LAMP)", "빠르고 장비 부담이 적음", `${ibTag("fact")}가능성 보고 단계(39검체 등). 국내 현장 검증은 확인하지 못함`],
+      ["바이러스 분리", "살아있는 바이러스 확인", `${ibTag("fact")}잘 적응하지 못하는 변이주에서는 감도가 낮을 수 있음(Meir 2010)`],
+    ], { minW: 600 })}
+    ${ibBox("읽는 법", `이 표의 민감도·일치도는 <b>해당 연구의 검체와 조건에서의 값</b>입니다. 같은 이름의 검사라도 프라이머·장비·검체에 따라 다르므로 ‘이 검사는 몇 % 정확하다’고 일반화하지 말고, 의뢰 기관의 검사 방법과 기준을 확인하세요. ${ibTag("infer")}`, "#E65100")}
+    ${ibField("이 장의 핵심 세 줄", `① <b>임상진단은 의심</b>, <b>검사는 확인</b>, <b>종합 판단은 둘 다</b>이다.<br>② 같은 증상이 <b>여러 호흡기 병</b>에서 나타나므로 다중 검사와 부검을 함께 한다.<br>③ PCR 양성은 ‘바이러스가 있다’이지 ‘이것이 원인이다’가 아니며, 음성도 ‘없다’가 아닐 수 있다.`)}`;
+
+  S[3] = `
+    ${ibBox("🎓 전문 심화학습 — 중급·전문가용", "이번 강의의 새 자료는 서지·초록 확인 수준입니다(전문 미확인). 분석 감도 수치는 해당 연구의 조건에서의 값이며 국내 검사기관의 값이 아닙니다.", "#455A64")}
+    ${ibH("1. 임상진단의 한계와 감별진단")}
+    ${ibList([
+      `${ibTag("fact")}IBV 백신 접종 실패의 위험요인(접종 경로, 접종 간격, 면역억제 등)과 함께 <b>IBV 진단에 영향을 주는 요인</b>, 비-IBV 질병과의 감별진단을 정리한 종설은 임상증상이 여러 호흡기 질환에서 비슷하게 나타나므로 진단 검사를 개선하고 감염 단계를 확인할 수 있는 진단 시설이 필요하다고 결론지었습니다(Bhuiyan 등 2021).`,
+      `${ibTag("fact")}IBV의 진화·진단·방어 전략을 정리한 종설은 IBV가 1930년대부터 알려졌지만 여전히 주요 질병과 경제 손실 원인이며, 다양한 전략이 시도되었으나 <b>객관적으로 적절한 규모에서 평가된 것은 드물어</b> 장단점이 개인의 판단에 달려 있다고 지적했습니다(Legnardi 등 2020).`,
+      `${ibTag("fact")}호흡기 증상 칠면조 기관 면봉을 15종 병원체 패널로 검사한 결과 대장균이 늘 검출되고 aMPV·M. gallisepticum·M. synoviae가 흔했으며 프랑스와 모로코 계군의 동시감염 패턴이 달랐습니다(Croville 등 2018, 3단계 제3강에서 다룸). ${ibTag("infer")}닭이 아닌 칠면조 자료입니다.`,
+    ])}
+    ${ibH("2. 분자 검사의 민감도")}
+    ${ibList([
+      `${ibTag("fact")}보존성이 높은 N 유전자를 표적으로 한 실시간 TaqMan RT-PCR(내부 대조 포함)은 칠면조 코로나바이러스 등 다른 병원체를 검출하지 않았고, <b>배아 적응이 잘 안 되는 변이주 IS/885/00에서 바이러스 분리보다 10배, N·S1 RT-PCR보다 30~40배 민감</b>했습니다. 실험 감염 병아리의 기관 면봉에서 실시간 RT-PCR과 바이러스 분리는 S1 RT-PCR보다 17~75% 민감했고, 임상 검체의 기관·총배설강 면봉에서 실시간 RT-PCR이 S1 RT-PCR보다 50% 더 많이 양성이었습니다(Meir 등 2010).`,
+      `${ibTag("fact")}N 유전자 SYBR green I 실시간 RT-PCR은 겔 전기영동 기반 일반 RT-PCR보다 적어도 10배 민감했고 ND·IBD·AI는 검출하지 않아 IBV 감별에 쓸 수 있다고 보고되었습니다(Fellahi 등 2016, 모로코).`,
+      `${ibTag("fact")}AIV·IBV·NDV·ILTV 4종을 동시에 검출·정량하는 한 단계 다중 실시간 RT-PCR은 70개 임상 검체에서 단일 검사와 100% 일치했고 95% 검출한계 3~19 copies/µl, 교차 반응이 없었습니다(Laamiri 등 2018). ${ibTag("infer")}‘공통 호흡기 바이러스를 한 번에 확인’하는 근거이며, 상용 키트 성능은 별도 확인이 필요합니다.`,
+    ])}
+    ${ibH("3. 신속 현장 검사")}
+    ${ibList([
+      `${ibTag("fact")}실시간 RT-RAA로 IBV를 검출하는 방법은 검출한계 67 EID50/반응이고 다른 가금 질병과 교차 반응이 없었으며 <b>임상 검체 39건에서 RT-PCR 대비 진단 민감도·특이도 100%</b>였습니다(Yehia 등 2025). ${ibTag("infer")}표본이 작아 일반화는 이릅니다.`,
+      `${ibTag("fact")}LAMP를 이용한 가금 호흡기 병원체의 현장(POC) 진단 종설은 PCR이 숙련 인력·고가 장비·실험실을 요구하는 한계를 지적하고 LAMP가 계사 옆에서 비숙련 인력도 쓸 수 있는 도구로 유망하다고 정리했습니다(Enyetornye 등 2025). ${ibTag("infer")}종설이며 국내 도입·검증 여부는 확인하지 못했습니다.`,
+    ])}`;
+
+  S[4] = `
+    ${ibH("육계와 산란계 — 진단 접근의 차이")}
+    ${ibTable(["구분", "육계", "산란계"], [
+      ["임상진단의 초점", "호흡기 증상, 폐사 증가, 증체/FCR 이상", "산란 저하, 난질 이상, 육추기 호흡기 이력"],
+      ["부검 우선순위", "기관, 기낭(복합 세균), 신장", "기관, 신장, 난관(낭종), 난소·난황"],
+      ["시료 우선순위", "기관·신장, 필요 시 폐·기낭 세균 배양", "기관·신장·난관, 육추기 시료 보관 여부 확인"],
+      ["감별해야 할 것", "대장균, aMPV, ND, ILT, MG, 환경(암모니아)", "ND·AI에 의한 산란 저하, 사양·독소, 요석증"],
+      ["결과 해석 시 함께 볼 것", "접종–증상 일령, 항체 균일도", "산란 그래프, 육추기 이력, 접종 프로그램"],
+    ], { minW: 600 })}
+    ${ibP(`${ibTag("infer")}위 표는 3단계 제2~4강의 내용을 진단 관점으로 옮긴 현장 추론입니다. 신고 대상 질병(AI·ND 등)이 의심되면 검사와 별개로 관할 방역기관 신고 절차를 따르세요.`)}
+    ${ibField("검사 의뢰서에 꼭 넣을 것", `농장명·계사·일령·마릿수 · 증상 시작 일령과 경과 · 폐사/산란 변화 · 접종 이력(종류·방법·일령) · 투약 이력 · 부검 소견 요약과 사진 · 채취한 시료 종류·수·보관 방법 · 요청 검사 항목(IBV PCR/유전자형, 감별 항목) · 같은 시기 인접 계사 상황.`)}`;
+
+  S[5] = `
+    ${ibH("1. 사례 — 같은 증상, 세 가지 다른 원인")}
+    ${ibP(`${ibTag("fact")}Sid 등(2015)은 알제리 닭·칠면조 계군에서 MG·MS·AIV·IBV·aMPV가 다중 감염으로 순환하며 모든 바이러스가 MG와 동반 감염되어 있었다고 보고했습니다(3단계 제3강). 즉 <b>호흡기 증상 하나의 이면에 여러 병원체</b>가 있을 수 있어, IBV PCR만 의뢰하면 놓치는 부분이 생깁니다.`)}
+    ${ibH("2. 가상 사례 연습 (실제 농장 아님)")}
+    ${ibTable(["상황", "먼저 확인할 것", "해석 주의"], [
+      ["A. 육계 3주령 기침, 의뢰한 IBV PCR 음성", "채취 시점·부위, 다른 병원체 검사, 부검 소견", `${ibTag("infer")}음성이 ‘IB 아님’을 뜻하지 않을 수 있다(검체·시점). 감별 검사를 추가한다.`],
+      ["B. PCR 양성인데 증상이 거의 없음", "접종 후 경과일, 서열(백신주 일치도), 증상·병변과 일치 여부", `${ibTag("infer")}백신 바이러스가 검출될 수 있다(2단계 제4강·3단계 제2강).`],
+      ["C. 산란 저하, 기관 PCR 양성이지만 난관 병변 없음", "난관·신장 시료, 육추기 이력, 다른 원인(ND·AI·사양)", `${ibTag("infer")}기관 양성만으로 산란 저하 원인을 확정하지 않는다.`],
+    ], { minW: 600 })}
+    ${ibH("3. 흔한 오해 6가지")}
+    ${ibTable(["오해", "근거에 비춘 설명"], [
+      ["부검에서 기관염·신장 병변이 보이면 IB 확정이다", `신장 병변은 요석증·독소 등 다른 원인도 있고 호흡기 병변은 여러 병원체가 겹친다(3단계 제3강) ${ibTag("fact")}`],
+      ["PCR 양성이면 IB 발생이다", `양성은 바이러스 유전체의 존재다. 백신 바이러스 검출·잠복 보유를 포함할 수 있다 ${ibTag("infer")}`],
+      ["PCR 음성이면 IB가 아니다", `검사 감도·검체·시점에 따라 음성이 나올 수 있다. 일반 S1 RT-PCR은 실시간 RT-PCR보다 덜 민감할 수 있다(Meir 2010) ${ibTag("fact")}`],
+      ["IBV 한 가지만 검사하면 충분하다", `호흡기 증후군은 여러 병원체가 겹친다. 다중 검사와 세균 배양이 필요하다(Croville 2018, Laamiri 2018) ${ibTag("fact")}`],
+      ["현장 신속 키트(RAA·LAMP)면 실험실이 필요 없다", `논문 단계의 소규모 검증(39검체)이다. 국내 현장 검증과 키트 성능은 확인하지 못했다 ${ibTag("infer")}`],
+      ["검사 결과가 나오면 증상 기록은 필요 없다", `결과 해석에는 증상 시작 일령·접종 이력·부검 사진이 필요하다 ${ibTag("infer")}`],
+    ], { minW: 560 })}
+    ${ibBox("결과를 받았을 때 수의사에게 묻는 질문", "· 어떤 시료(기관/신장/난관)에서, 어떤 검사 방법으로, 얼마나 양성이었나(Ct)?<br>· 서열이 백신주와 얼마나 일치하나?<br>· IBV 외에 검사한 항목은 무엇이고 결과는?<br>· 우리 농장의 증상·부검과 검사 결과가 일치하나?<br>· 재검사나 추가 검사가 필요한 부분은?", "#455A64")}`;
+
+  S[6] = `
+    ${ibBox("문헌 확인 수준", "아래 6건은 이번 강의에서 새로 카드로 정리한 문헌이고 모두 서지·초록까지 확인했으며 전문은 읽지 않았습니다. Croville 2018(3단계 제3강 카드)과 Sid 2015(2단계 제3강 카드)는 요약만 다시 인용했습니다.", "#E65100")}
+    ${ibH("진단 종설")}
+    ${ibRef({ level:"종설 (Review)", levelColor:"#455A64", ver:"abs",
+      title:"Factor Influences for Diagnosis and Vaccination of Avian Infectious Bronchitis Virus (Gammacoronavirus) in Chickens.",
+      who:"Bhuiyan MSA, Amin Z, Bakar AMSA, Saallah S 등 (2021)", journal:"Veterinary Sciences 8(3):47", id:ibPm("33809420", "10.3390/vetsci8030047"),
+      method:"IBV 백신 접종 실패 요인과 진단에 영향을 주는 요인, 비-IBV 질병과의 감별진단 문헌 종설", sample:"해당 없음(종설)",
+      result:"· 백신 접종 실패 위험요인: 접종 경로, 접종 간격, 면역억제 등<br>· 여러 호흡기 질병에서 비슷한 임상증상 → 진단 검사 개선 필요<br>· 감염 단계를 확인할 진단 시설과 조기 통제 필요",
+      stats:"해당 없음", limit:"종설, 초록만 확인", apply:"임상증상만으로 IB를 확정할 수 없으므로 검사와 감별진단을 함께" })}
+    ${ibRef({ level:"종설 (진화·진단·방어)", levelColor:"#455A64", ver:"abs",
+      title:"Infectious Bronchitis Virus Evolution, Diagnosis and Control.",
+      who:"Legnardi M, Tucciarone CM, Franzo G, Cecchinato M (2020)", journal:"Veterinary Sciences 7(2):79", id:ibPm("32580381", "10.3390/vetsci7020079"),
+      method:"IBV 생물학·진화와 진단·방어 전략의 적용 문헌 종설", sample:"해당 없음(종설)",
+      result:"· IBV는 1930년대부터 알려졌으나 여전히 주요 질병·경제 손실 원인<br>· 여러 전략이 적용되었으나 객관적·적정 규모로 평가된 경우는 드묾<br>· 검출·방어 전략의 장단점이 개인 판단에 좌우됨",
+      stats:"해당 없음", limit:"종설, 초록만 확인", apply:"진단·방어 전략을 객관적으로 평가한 기록이 중요하다는 근거" })}
+    ${ibH("분자 검사")}
+    ${ibRef({ level:"검사법 개발·비교", levelColor:"#37474F", ver:"abs",
+      title:"Development of a real-time TaqMan RT-PCR assay for the detection of infectious bronchitis virus in chickens, and comparison of RT-PCR and virus isolation.",
+      who:"Meir R, Maharat O, Farnushi Y, Simanov L (2010)", journal:"Journal of Virological Methods 163(2):190-194", id:ibPm("19781572", "10.1016/j.jviromet.2009.09.014"),
+      method:"N 유전자 TaqMan 실시간 RT-PCR 개발, M41과 IS/885/00으로 검출한계를 RT-PCR(N·S1)·바이러스 분리와 비교, 실험 감염·임상 검체 적용", sample:"실험 감염 병아리 + 임상 검체",
+      result:"· IBV 특이적, 칠면조 코로나바이러스 등 비검출<br>· M41에서 실시간 RT-PCR·바이러스 분리가 N RT-PCR보다 1배, S1 RT-PCR보다 2배 민감(초록 표기)<br>· IS/885/00에서 실시간 RT-PCR이 바이러스 분리보다 10배, N RT-PCR보다 30배, S1 RT-PCR보다 40배 민감<br>· 임상 검체 기관·총배설강 면봉에서 실시간 RT-PCR이 S1 RT-PCR보다 50% 더 많이 양성",
+      stats:"10배·30배·40배·50% (초록)", limit:"2010년 검사법 비교, 이스라엘 분리주 기반, 초록만 확인", apply:"일반 S1 RT-PCR만으로는 양성을 놓칠 수 있음 — 검사법의 민감도 확인 필요" })}
+    ${ibRef({ level:"검사법 개발 (SYBR green)", levelColor:"#37474F", ver:"abs",
+      title:"Comparison of SYBR green I real-time RT-PCR with conventional agarose gel-based RT-PCR for the diagnosis of infectious bronchitis virus infection in chickens in Morocco.",
+      who:"Fellahi S, El Harrak M, Kuhn JH, Sebbar G 등 (2016)", journal:"BMC Research Notes 9:231", id:ibPm("27106608", "10.1186/s13104-016-2037-z"),
+      method:"N 유전자 SYBR green I 실시간 RT-PCR 개발 후 겔 기반 RT-PCR과 비교", sample:"모로코 임상 검체(수 초록에 없음)",
+      result:"· SYBR green I 실시간 RT-PCR이 겔 기반 방법보다 적어도 10배 민감<br>· IBV 특이도 높음, ND·IBD·AI 비검출",
+      stats:"≥10배 민감도", limit:"모로코 연구, 초록만 확인", apply:"비용이 낮은 실시간 방법도 일반 겔 방법보다 민감할 수 있음" })}
+    ${ibRef({ level:"검사법 개발 (다중 실시간 RT-PCR)", levelColor:"#37474F", ver:"abs",
+      title:"A multiplex real-time RT-PCR for simultaneous detection of four most common avian respiratory viruses.",
+      who:"Laamiri N, Aouini R, Marnissi B, Ghram A 등 (2018)", journal:"Virology 515:29-37", id:ibPm("29223788", "10.1016/j.virol.2017.11.021"),
+      method:"AIV·IBV·NDV·ILTV 4종을 한 반응에서 검출·정량하는 한 단계 다중 rRT-PCR을 단일 검사와 비교, 임상 검체 70건 검증", sample:"임상 검체 70건",
+      result:"· 단일 검사와 100% 일치<br>· 95% 검출한계 3~19 copies/µl, 컷오프 사이클 34.16~36.59<br>· 경쟁적 억제·교차 반응 없음<br>· 동시감염 검출·정량에 적합",
+      stats:"LoD 3~19 copies/µl, 일치율 100%", limit:"한 연구실 검증, 초록만 확인", apply:"공통 호흡기 바이러스를 한 번에 확인하는 방식의 가능성" })}
+    ${ibH("신속 현장 검사")}
+    ${ibRef({ level:"검사법 개발 (RT-RAA)", levelColor:"#37474F", ver:"abs",
+      title:"Rapid Detection Assay for Infectious Bronchitis Virus Using Real-Time Reverse Transcription Recombinase-Aided Amplification.",
+      who:"Yehia N, Abd El Wahed A, Arafa A, Said D 등 (2025)", journal:"Viruses 17(9):1172", id:ibPm("41012600", "10.3390/v17091172"),
+      method:"IBV 실시간 RT-RAA 개발, 105~100 EID50/mL 희석 검출한계, 임상 검체 39건에서 RT-PCR과 비교", sample:"임상 검체 39건",
+      result:"· 검출한계 102 EID50/mL(95% CI 67 EID50/반응)<br>· 다른 가금 병원체와 교차 반응 없음<br>· RT-PCR 대비 진단 민감도·특이도 100%(39건)",
+      stats:"민감도·특이도 100% (n=39)", limit:"소규모 검증, 초록만 확인", apply:"현장 즉시 진단 가능성을 보인 개발 단계 방법" })}
+    ${ibRef({ level:"종설 (LAMP 현장 진단)", levelColor:"#455A64", ver:"abs",
+      title:"Point-of-Care Diagnostic Testing for Emerging and Existing Poultry Viral Respiratory Pathogens Using Loop-Mediated Isothermal Amplification.",
+      who:"Enyetornye B, Yondo A, Velayudhan BT (2025)", journal:"Pathogens 14(7):657", id:ibPm("40732704", "10.3390/pathogens14070657"),
+      method:"가금 호흡기 병원체의 LAMP 현장(POC) 진단 문헌 종설", sample:"해당 없음(종설)",
+      result:"· PCR은 숙련 인력·고가 장비·실험실이 필요<br>· LAMP는 계사 옆에서 비숙련 인력도 사용 가능<br>· 일상 감시·조기 발생 탐지에 가치 강조",
+      stats:"해당 없음", limit:"종설, 초록만 확인", apply:"현장 신속 진단의 가능성과 한계를 이해하는 배경" })}
+    ${ibH("이번 강의에서 읽은 자료의 한계")}
+    ${ibList([
+      "국내 검사기관별 검사 방법·감도·기준은 확인하지 못함",
+      "신속 현장 검사의 국내 현장 검증과 시판 키트 성능은 확인하지 못함",
+      "임상진단과 확진 결과의 일치도(정확도)를 국내 계군에서 조사한 자료는 확인하지 못함",
+    ])}`;
+
+  S[7] = `
+    ${ibH("1. 시료 채취–의뢰 점검")}
+    ${ibChecklist("s4l1a", [
+      "부검 5~10수의 기관·기낭·신장(·난관) 소견을 같은 순서로 사진과 함께 기록한다",
+      "기관·신장(·난관) 시료를 따로 채취하고 라벨·냉장/냉동 보관 방법을 수의사와 정한다",
+      "IBV 검사와 함께 감별 검사(aMPV·ND·ILT·MG·세균 배양)를 요청한다",
+      "의뢰서에 접종 이력·투약·증상 시작 일령·같은 시기 인접 계사 상황을 적는다",
+      "검사 결과서에서 시료 종류, 방법, Ct 값, 서열 일치도를 확인한다",
+      "의심 질병이 신고 대상이면 검사와 별개로 관할 방역기관에 즉시 연락한다",
+    ])}
+    ${ibH("2. 결과 해석 순서 (현장 추론)")}
+    ${ibFlow([["① 일치 확인", "증상·병변·검사 결과가 같은 방향인가"], ["② 시료·시점", "어떤 시료, 접종 후 며칠"], ["③ 서열", "백신주와 일치도"], ["④ 추가 검사", "감별·재검사 필요 여부"]])}
+    ${ibP(`${ibTag("infer")}순서는 문헌에서 비교한 것이 아니라 이번 강의의 한계(임상증상의 비특이성, 검사 감도 차이)를 보완하는 현장 절차입니다.`)}
+    ${ibBox("비용 대비 실효성", `${ibTag("infer")}의뢰서 정리와 부검 사진은 비용이 거의 없으면서 검사 결과 해석의 정확도를 높입니다. 감별 검사 묶음은 비용이 들지만 ‘IB 단독이 아니다’라는 판단으로 약품·백신 결정을 바꿀 수 있습니다. 신속 현장 키트는 국내 검증이 확인되지 않아 보조로만 참고합니다.`, "#455A64")}
+    ${ibField("이번 주 안에 할 3가지", `① <b>검사 의뢰서 양식</b>을 만들어 접종 이력·부검 사진·시료 정보를 한 장에 모은다.<br>② 수의사와 <b>IBV 외 감별 검사 묶음</b>을 정한다.<br>③ 지난 검사 결과서를 모아 <b>시료·방법·서열 일치도</b> 항목을 표로 정리한다.`)}`;
+
+  S[8] = `
+    ${ibH("핵심 결론 5가지 (제1강)")}
+    ${ibList([
+      "임상진단은 의심, 검사는 확인, 종합 판단은 둘을 합친 것이다 — 증상만으로 IB를 확정하지 않는다.",
+      "비슷한 호흡기 증상이 여러 병원체에서 나타나므로 부검과 다중 검사(IBV·AIV·NDV·ILTV·MG·세균 등)를 함께 한다.",
+      "실시간 RT-PCR(N 유전자)은 일반 S1 RT-PCR보다 민감하고 일부 변이주에서는 바이러스 분리보다도 민감하다는 보고가 있다.",
+      "PCR 양성은 바이러스 유전체의 존재일 뿐 원인 확정이 아니며(백신 바이러스 포함 가능), 음성도 검체·시점에 따라 ‘없음’이 아닐 수 있다.",
+      "신속 현장 검사(RT-RAA, LAMP)는 개발 단계의 소규모 검증이며 국내 현장 검증은 확인하지 못했다.",
+    ])}
+    ${ibH("점검 질문")}
+    ${ibQuiz([
+      ["기침과 산란 저하만으로 IB를 확정해도 되나?", "안 된다. 여러 호흡기 병에서 비슷한 증상이 나타난다(Bhuiyan 2021). 부검·검사·기록을 함께 본다."],
+      ["IBV PCR 음성이면 IB가 아닌가?", "아니다. 검사 방법의 감도, 검체 종류, 채취 시점에 따라 음성이 나올 수 있다(Meir 2010)."],
+      ["PCR 양성이면 곧 원인인가?", "아니다. 백신 바이러스 검출 가능성이 있고 증상·병변과의 일치를 확인해야 한다."],
+      ["한 번에 여러 병원체를 검사하는 이유는?", "호흡기 증후군은 IBV·aMPV·ILT·MG·대장균 등이 겹치기 때문이다(Croville 2018). 4종 다중 rRT-PCR이 단일 검사와 일치한 보고가 있다(Laamiri 2018)."],
+      ["검사 의뢰서에 꼭 넣을 정보는?", "일령·마릿수, 증상 시작과 경과, 접종 이력, 투약, 부검 소견과 사진, 시료 종류·보관, 요청 검사 항목."],
+    ])}
+    ${ibH("농장에서 확인할 사항 5가지 (제1강)")}
+    ${ibList([
+      "검사 의뢰서 양식이 있어 접종 이력·부검 사진·시료 정보를 함께 보내는가?",
+      "IBV 외 감별 검사 묶음이 정해져 있는가?",
+      "부검 소견을 사진과 함께 같은 순서로 기록하는가?",
+      "검사 결과서의 시료, 방법, 서열 일치도를 확인하는가?",
+      "신고 대상 질병 의심 시 방역기관 연락 체계를 알고 있는가?",
+    ])}
+    ${ibH("아직 해결되지 않은 문제")}
+    ${ibList([
+      `${ibTag("debate")}국내 계군에서 임상진단과 확진의 일치도`,
+      `${ibTag("hypo")}신속 현장 검사(RAA·LAMP)의 국내 현장 정확도`,
+      `${ibTag("infer")}국내 검사기관별 방법·감도 차이와 결과 해석 표준`,
+      "다중 검사 묶음의 비용 대비 효과를 국내에서 평가한 자료",
+    ])}`;
+
+  S[9] = `
+    ${ibH("다음 연구 제안 — 제2강")}
+    ${ibP("제2강 <b>「RT-PCR과 유전자 분석, S1 유전자형 분석은 무엇을 알려 주나?」</b>에서는 PCR 표적 유전자(N·S1), 서열 분석과 유전자형 분류, 유전자형 특이 검사(Mass·793B·QX 등), 전장 유전체 분석이 알려 주는 것과 알려 주지 못하는 것을 정리합니다.")}
+    ${ibH("추가로 검토할 자료")}
+    ${ibList([
+      "이번 강의 문헌의 전문 확인(특히 Meir 2010의 검출한계 표, Laamiri 2018의 ROC 분석)",
+      "WOAH 육상동물진단매뉴얼의 IB 항목 최신본(1단계 제1강에서 참고한 판의 개정 여부)",
+      "국내 검사기관의 IBV 검사 방법·보고 양식",
+      "임상 의심 계군에서 임상진단과 검사 결과의 일치도를 본 현장 연구",
+    ])}
+    ${ibBox("제1강을 마치기 전 확인할 사항", "· 임상진단·부검·검사·종합 판단의 역할을 구분할 수 있는가?<br>· PCR 양성·음성을 해석할 때의 주의를 말할 수 있는가?<br>· 우리 농장의 검사 의뢰서 양식을 만들었는가?", "#455A64")}
+    ${ibBox("진행 안내", "제2강은 「제2강 진행」 또는 「다음 강의」라고 요청하시면 공개합니다. 「더 깊이」「논문 분석」「현장 중심으로」를 요청하시면 이 강의를 더 보강합니다.", "#455A64")}`;
+  return S;
+}
+
 // ── 손실 추정 계산기(강의 본문의 <div data-ib-widget="loss"> 자리에 ibBind가 채운다) ─────────────
 // 입력은 농장 기록에서 가져오고, 결과는 추정치다. 값은 이 기기에만 저장한다.
 const IB_LOSS_FIELDS = {
@@ -16298,7 +16532,7 @@ function renderIbTeamPanel(){
         ? `<button type="button" data-ib-lec="${l.no}" style="all:unset;box-sizing:border-box;cursor:pointer;display:flex;justify-content:space-between;gap:8px;padding:7px 10px;border-radius:8px;border:1px ${l.ready ? "solid" : "dashed"} ${on ? IB_COLOR : "#e5e5e5"};background:${on ? IB_COLOR + "12" : "#fff"};font-size:12.5px"><span><b style="color:${IB_COLOR}">제${l.no}강</b> ${title}</span><span style="font-size:10.5px;color:${done ? "#2E7D32" : l.ready ? "#888" : "#E65100"};white-space:nowrap">${l.ready ? (done ? "✓ 학습 완료" : esc(l.minutes || "")) : "비공개 · 관리자만"}</span></button>`
         : `<div style="display:flex;justify-content:space-between;gap:8px;padding:7px 10px;border-radius:8px;border:1px dashed #ddd;background:#fafafa;font-size:12.5px;color:#9e9e9e"><span><b>제${l.no}강</b> ${title}</span><span style="font-size:10.5px;white-space:nowrap">🔒 작성 예정</span></div>`;
     }).join("") : `<div style="font-size:12px;color:#999;padding:6px 2px">이 단계의 강의는 연구팀이 준비하고 있습니다.</div>`}</div>
-    ${eff === 1 ? `<details style="margin-top:8px"><summary style="cursor:pointer;font-size:11.5px;color:#666">연구 과제가 어느 강의에서 다뤄지나요?</summary>${ibTable(["1단계 연구 과제", "다루는 강의"], IB_STAGE1_MAP)}</details>` : eff === 2 ? `<details style="margin-top:8px"><summary style="cursor:pointer;font-size:11.5px;color:#666">연구 과제가 어느 강의에서 다뤄지나요?</summary>${ibTable(["2단계 연구 과제", "다루는 강의"], IB_STAGE2_MAP)}</details>` : eff === 3 ? `<details style="margin-top:8px"><summary style="cursor:pointer;font-size:11.5px;color:#666">연구 과제가 어느 강의에서 다뤄지나요?</summary>${ibTable(["3단계 연구 과제", "다루는 강의"], IB_STAGE3_MAP)}</details>` : ""}
+    ${IB_STAGE_MAPS[eff] ? `<details style="margin-top:8px"><summary style="cursor:pointer;font-size:11.5px;color:#666">연구 과제가 어느 강의에서 다뤄지나요?${eff >= 4 ? " (계획)" : ""}</summary>${ibTable([eff + "단계 연구 과제", "다루는 강의"], IB_STAGE_MAPS[eff])}</details>` : ""}
   </div>`;
   const adminBox = admin ? renderIbAdminBox(eff, lectures) : "";
   const foot = `<div style="margin-top:14px;background:#FFF8E1;border-radius:8px;padding:9px 11px;font-size:10.5px;color:#6b5400;line-height:1.75"><b>유의</b> · 교육·연구용 일반 자료이며 개별 농장의 진단·처방을 대신하지 않습니다. 실제 백신 조합, 접종일령·방법과 약품 사용은 국내 허가사항, 농장 위험도, 검사 결과를 토대로 담당 수의사와 결정하세요. 문헌 정보 중 ‘확인 필요’로 표시된 부분은 원문 확인 후 갱신합니다.</div>`;
