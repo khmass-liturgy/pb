@@ -12315,7 +12315,7 @@ function suppBind(){
 // 위험점수·가중치는 연구 시작을 위한 가설적 설계안이며 검증된 감염확률이 아니다 — 화면 곳곳에 같은 문구를 둔다.
 const HZ_COLOR = "#00695C";
 const HZ_STORE = "hpai_zero_v1";
-const hzState = { tab:"intro", sim:[2, 2, 2, 2, 2], checks:{}, copied:"", tasks:{}, tv:"stage", ts:1, tt:1, sido:"" };
+const hzState = { tab:"home", more:false, sim:[2, 2, 2, 2, 2], checks:{}, copied:"", tasks:{}, tv:"stage", ts:1, tt:1, sido:"" };
 (function hzLoad(){
   try {
     const j = JSON.parse(localStorage.getItem(HZ_STORE) || "{}");
@@ -12328,7 +12328,9 @@ const hzState = { tab:"intro", sim:[2, 2, 2, 2, 2], checks:{}, copied:"", tasks:
 function hzSave(){ try { localStorage.setItem(HZ_STORE, JSON.stringify({ sim:hzState.sim, checks:hzState.checks, tasks:hzState.tasks, sido:hzState.sido, farm:hzState.farm })); } catch(e){} }
 function hzToday(){ const k = new Date(Date.now() + 9 * 3600000); return k.toISOString().slice(0, 10); }
 
-const HZ_TABS = [["intro", "🏠 시작하기 (이 연구는?)"], ["prompt", "📋 인공지능에게 시키는 글 (복사)"], ["program", "🪜 연구 6단계 한눈에"], ["tasks", "✅ 우리 농장 할 일 (팀별)"], ["sim", "🎚️ 우리 농장 위험도 체크"], ["report", "📄 농장 보고서(초안)"], ["check", "📝 오늘 방역 점검표"], ["refs", "📚 참고 자료·앞으로 계획"]];
+// 농장에서 자주 쓰는 4개(home·check·sim·report)는 맨 위에, 연구·설계 자료는 「연구 자료 더 보기」 안에 둔다.
+const HZ_TABS = [["home", "🏠 오늘 할 일"], ["check", "📝 오늘 방역 점검표"], ["sim", "🎚️ 우리 농장 위험도"], ["report", "📄 농장 보고서"], ["intro", "🧭 이 교실은? (연구 소개)"], ["tasks", "✅ 농장 할 일(팀별 상세)"], ["program", "🪜 연구 6단계"], ["refs", "📚 참고 자료"], ["prompt", "📋 인공지능에게 시키는 글"]];
+const HZ_MAIN_TABS = ["home", "check", "sim", "report"];
 const HZ_TEAMS = [
   ["총괄 연구책임 인공지능", "연구계획 수립, 결과 통합, 상충되는 의견 조정"],
   ["제1팀 바이러스·역학", "H5·H7 아형, 병원성, 전파 양상, 역학관계 분석"],
@@ -12614,6 +12616,53 @@ function hzCard(icon, title, body, c, tag){
 }
 function hzSection(icon, title, sub){ return `<div style="display:flex;align-items:baseline;gap:7px;margin:16px 0 2px;padding-bottom:4px;border-bottom:2px solid ${HZ_COLOR}22"><span style="font-size:17px">${icon}</span><span style="font-size:14.5px;font-weight:900;color:${HZ_COLOR}">${title}</span>${sub ? `<span style="font-size:11px;color:#888">${sub}</span>` : ""}</div>`; }
 function hzSteps(list){ return `<div style="display:flex;flex-direction:column;gap:7px;margin:8px 0 12px">${list.map((t, i) => `<div style="display:flex;gap:10px;align-items:flex-start;background:#fff;border:1px solid #e3ecea;border-radius:10px;padding:9px 11px"><span style="flex:none;width:24px;height:24px;border-radius:50%;background:${HZ_COLOR};color:#fff;font-size:12.5px;font-weight:900;display:flex;align-items:center;justify-content:center">${i + 1}</span><div style="font-size:12.5px;color:#333;line-height:1.7">${t}</div></div>`).join("")}</div>`; }
+// ── 🏠 오늘 할 일 — 농장에서 가장 먼저 보는 쉬운 화면 ──
+function hzHomeStatus(){
+  const sido = hzState.sido;
+  const opts = `<option value="">시·도를 고르세요</option>` + HZ_SIDOS.map(x => `<option value="${x}" ${x === sido ? "selected" : ""}>${x}</option>`).join("");
+  const picker = `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><select id="hz-sido" style="border:1px solid #ccc;border-radius:9px;padding:8px 10px;font-size:14px;background:#fff">${opts}</select><button type="button" id="hz-gps" ${hzGps.busy ? "disabled" : ""} style="border:1px solid ${HZ_COLOR};background:${HZ_COLOR};color:#fff;border-radius:9px;padding:9px 14px;font-size:13px;font-weight:800;cursor:pointer">${hzGps.busy ? "⏳ 확인 중…" : "📍 현재 위치로 찾기"}</button></div>${hzGps.msg ? `<div style="font-size:11.5px;line-height:1.7;margin-top:6px;color:${hzGps.ok ? "#2E7D32" : "#E65100"}">${hzGps.msg}</div>` : ""}`;
+  let msg = `<div style="font-size:13px;color:#666;margin-top:8px;line-height:1.7">우리 농장이 있는 시·도를 고르면 <b>최근 30일 동안 우리 지역에서 난 AI 발생·검출 소식</b>을 쉬운 말로 알려 드려요.</div>`;
+  if(sido){
+    const r = hzRegion(sido);
+    const M = [
+      ["🟢", "#2E7D32", "#E8F5E9", "기록이 없어요", `${sido}에는 25/26 시즌 이후 발생·검출 기록이 없어요.`, "평소 방역을 그대로 이어 가세요."],
+      ["🟢", "#2E7D32", "#E8F5E9", "조용해요", `최근 30일은 조용해요. 지난 시즌에는 ${sido}에서 발생·검출이 있었어요.`, "평소 방역을 이어 가면서 매일 소식을 확인하세요."],
+      ["🟡", "#F9A825", "#FFF8E1", "야생조류 주의", `최근 30일 안에 ${sido}에서 야생조류 검출이 ${r.w30}건 있었어요.`, "사료·물이 야생조류 분변에 닿지 않는지, 방조망·울타리를 점검하세요."],
+      ["🟠", "#E65100", "#FFF3E0", "발생 있어요", `최근 30일 안에 ${sido}에서 가금농장 발생이 ${r.f30}건 있었어요.`, "불필요한 출입을 줄이고, 차량·사람 소독과 출입 기록을 꼼꼼히 하세요."],
+      ["🔴", "#B71C1C", "#FFEBEE", "발생 많아요", `최근 30일 안에 ${sido}에서 가금농장 발생이 ${r.f30}건(2건 이상) 있었어요.`, "외부 차량·사람 출입을 최대한 막고, 소독·동선 분리를 강화하세요. 정부 공고(이동제한 등)를 먼저 확인하세요."],
+    ][r.level];
+    msg = `<div style="border:2px solid ${M[1]};background:${M[2]};border-radius:12px;padding:12px 14px;margin-top:10px"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:26px">${M[0]}</span><span style="font-size:18px;font-weight:900;color:${M[1]}">${M[3]}</span></div><div style="font-size:13.5px;color:#222;line-height:1.75;margin-top:4px">${M[4]}</div><div style="font-size:13px;color:#333;line-height:1.75;margin-top:2px"><b>→ ${M[5]}</b></div></div>
+      <div style="font-size:10.8px;color:#888;line-height:1.7;margin-top:6px">시·도 전체 기준이에요. 우리 농장과 가까운 시·군에서 난 소식은 <button type="button" data-hz-go="hpai" style="border:none;background:none;color:#1565C0;text-decoration:underline;cursor:pointer;padding:0;font-size:inherit;font-family:inherit">AI관련정보 탭의 발생·검출 지도</button>에서 직접 확인하세요. 법정 방역지역·이동제한 등 정부 공고가 늘 먼저예요.</div>`;
+  }
+  return `<div style="border:1px solid ${HZ_COLOR}33;background:#F3FBFC;border-radius:12px;padding:12px 14px"><div style="font-size:14px;font-weight:900;color:${HZ_COLOR};margin-bottom:6px">① 우리 지역은 지금 어때요?</div>${picker}${msg}</div>`;
+}
+function renderHzHome(){
+  const day = hzToday(), mine = hzState.checks[day] || [];
+  const done = HZ_CHECK_ITEMS.filter((_, i) => mine[i]).length, tot = HZ_CHECK_ITEMS.length, pct = Math.round(done / tot * 100);
+  const todo = HZ_CHECK_ITEMS.map((t, i) => ({ t, i })).filter(x => !mine[x.i]).slice(0, 3);
+  const step = (n, t, d) => `<div style="display:flex;gap:10px;align-items:flex-start;background:#fff;border:1px solid #f0c8c8;border-radius:10px;padding:8px 11px"><span style="flex:none;width:24px;height:24px;border-radius:50%;background:#C62828;color:#fff;font-size:12.5px;font-weight:900;display:flex;align-items:center;justify-content:center">${n}</span><div style="font-size:13px;line-height:1.65;color:#333"><b>${t}</b>${d ? `<div style="font-size:12px;color:#666">${d}</div>` : ""}</div></div>`;
+  return `
+    ${hzHomeStatus()}
+    <div style="border:1px solid #e3e8ee;background:#fff;border-radius:12px;padding:12px 14px;margin-top:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><div style="font-size:14px;font-weight:900;color:${HZ_COLOR}">② 오늘 방역 점검 (${day})</div><span style="font-size:15px;font-weight:900;color:${done === tot ? "#2E7D32" : HZ_COLOR}">${done}/${tot}</span></div>
+      <div style="background:#e8efed;border-radius:6px;height:10px;overflow:hidden;margin:7px 0"><div style="width:${pct}%;background:${done === tot ? "#2E7D32" : HZ_COLOR};height:100%"></div></div>
+      ${done === tot ? `<div style="font-size:13px;color:#2E7D32;font-weight:800">✅ 오늘 점검을 모두 마쳤어요. 수고하셨어요!</div>` : `<div style="font-size:12.5px;color:#555;margin-bottom:4px">아직 안 한 것 (앞에서 3개):</div><ul style="margin:0 0 6px 18px;padding:0;font-size:13px;line-height:1.7;color:#333">${todo.map(x => `<li>${esc(x.t)}</li>`).join("")}</ul>`}
+      <button type="button" data-hz-tab="check" style="border:none;background:${HZ_COLOR};color:#fff;border-radius:9px;padding:9px 16px;font-size:13px;font-weight:800;cursor:pointer">📝 점검표 열어서 체크하기</button>
+    </div>
+    <div style="border:2px solid #C62828;background:#FFF5F5;border-radius:12px;padding:12px 14px;margin-top:10px">
+      <div style="font-size:14px;font-weight:900;color:#C62828;margin-bottom:6px">③ 🚨 이런 일이 보이면 바로 이렇게!</div>
+      <div style="font-size:12.5px;color:#444;line-height:1.7;margin-bottom:6px">닭이 갑자기 많이 죽거나, 사료·물을 안 먹거나, 알이 확 줄거나, 숨소리가 거칠거나 목이 꺾이는 닭이 보이면:</div>
+      <div style="display:flex;flex-direction:column;gap:6px">${step(1, "닭·알·사람·차량 이동을 멈추세요", "")}${step(2, "농장 출입을 막으세요", "외부인·차량은 들이지 마세요")}${step(3, "상태를 기록하세요", "언제부터, 어느 계사, 몇 마리인지 사진·메모")}${step(4, "관할 가축방역기관(지자체 방역 담당)에 즉시 신고하세요", "수의사 상담보다 신고가 먼저예요")}${step(5, "방역기관 지시가 올 때까지 기다리세요", "임의로 닭을 옮기거나 땅에 묻지 마세요")}</div>
+    </div>
+    <div style="border:1px solid #e3e8ee;background:#fff;border-radius:12px;padding:12px 14px;margin-top:10px">
+      <div style="font-size:14px;font-weight:900;color:${HZ_COLOR};margin-bottom:6px">④ 더 알아보기</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px">
+        <button type="button" data-hz-tab="sim" style="text-align:left;border:1px solid #cfe3e6;background:#F3FBFC;border-radius:10px;padding:10px 12px;cursor:pointer"><div style="font-size:13.5px;font-weight:800;color:${HZ_COLOR}">🎚️ 우리 농장 위험도</div><div style="font-size:12px;color:#555;margin-top:2px">5가지 항목을 체크하면 농장의 약한 곳을 알려 드려요</div></button>
+        <button type="button" data-hz-tab="report" style="text-align:left;border:1px solid #cfe3e6;background:#F3FBFC;border-radius:10px;padding:10px 12px;cursor:pointer"><div style="font-size:13.5px;font-weight:800;color:${HZ_COLOR}">📄 농장 보고서</div><div style="font-size:12px;color:#555;margin-top:2px">입력한 내용으로 한 장짜리 보고서를 만들어 인쇄·복사</div></button>
+        <button type="button" data-hz-go="hpai" style="text-align:left;border:1px solid #cfe3e6;background:#F3FBFC;border-radius:10px;padding:10px 12px;cursor:pointer"><div style="font-size:13.5px;font-weight:800;color:${HZ_COLOR}">🗺️ AI 발생·검출 지도</div><div style="font-size:12px;color:#555;margin-top:2px">시·군별 발생 소식과 철새 이동 지도</div></button>
+      </div>
+    </div>`;
+}
 function renderHzIntro(){
   const goals = [["🗺️","지역별 감염 위험지도","철새 이동, 하천, 저수지, 주변 발생 농장, 기상조건 분석"],["🛡️","농장 맞춤형 예방수칙","산란계·육계·종계·오리 및 사육시설별 차등 적용"],["📈","감염 위험도 예측","실시간 감시자료와 과거 발생자료에 따른 위험등급 산출"],["📝","현장 방역 실행보고서","매일 점검, 문제점, 개선 우선순위, 긴급조치 작성"]];
   const principles = [
@@ -13284,8 +13333,10 @@ function renderHzSim(){
       <div style="text-align:right"><div style="font-size:22px;font-weight:900;color:${c[1]}">${c[0]}</div><div style="font-size:10.5px;color:#888">임시 분류 기준 (검증 전)</div></div>
     </div>
     <div style="font-size:11px;color:#777;line-height:1.7">임시 분류 기준: 0~24 낮음 · 25~49 보통 · 50~74 높음 · 75~100 매우 높음. 이 구간은 제안서의 예시(기본값 50점 = 높음)에 맞춘 것으로 근거가 확인되지 않았습니다.</div>
-    ${hzBacktestBox()}
-    ${hzBacktestBox2()}
+    <details style="margin-top:14px;border:1px solid #cfd8dc;border-radius:10px;padding:8px 12px;background:#fafbfb"><summary style="cursor:pointer;font-size:13px;font-weight:800;color:#546E7A">🔬 연구용 — 점수 규칙이 과거 발생과 얼마나 맞았나(자세히 보기, 어려우면 건너뛰어도 돼요)</summary>
+      ${hzBacktestBox()}
+      ${hzBacktestBox2()}
+    </details>
     <button type="button" id="hz-sim-reset" style="margin-top:8px;border:1px solid #ddd;background:#fff;color:#666;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer">초기값으로 재설정</button>`;
 }
 function renderHzCheck(){
@@ -13326,10 +13377,13 @@ function renderHzRefs(){
 // 「인공지능에게 시키는 글」은 연구 운영자용이라 관리자에게만 보인다(농장·유료 회원에게는 숨김)
 function hzTabs(){ return HZ_TABS.filter(([k]) => k !== "prompt" || isBoardAdmin()); }
 function renderHpaiZeroPanel(){
-  const t = hzTabs().some(x => x[0] === hzState.tab) ? hzState.tab : "intro";
-  const head = `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:10px"><div><div class="display" style="font-size:16px;margin-bottom:2px">🦠 AI 막는 농장 지킴이 교실 — HPAI ZERO FARM</div><div style="font-size:11px;color:#888">인공지능 기반 조류인플루엔자 예방·위험예측·농장 차단방역 공동연구 시스템</div></div><button type="button" id="hz-back-btn" style="border:1px solid #ddd;background:#fff;color:#888;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button></div>`;
-  const nav = `<div style="display:flex;gap:5px;flex-wrap:wrap;margin:6px 0 12px" role="tablist">${hzTabs().map(([k, l]) => `<button type="button" role="tab" aria-selected="${k === t}" data-hz-tab="${k}" style="border:1px solid ${k === t ? HZ_COLOR : "#ddd"};background:${k === t ? HZ_COLOR : "#fff"};color:${k === t ? "#fff" : "#555"};border-radius:16px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer">${l}</button>`).join("")}</div>`;
-  const body = t === "prompt" ? renderHzPrompt() : t === "program" ? renderHzProgram() : t === "tasks" ? renderHzTasks() : t === "sim" ? renderHzSim() : t === "report" ? renderHzReport() : t === "check" ? renderHzCheck() : t === "refs" ? renderHzRefs() : renderHzIntro();
+  const t = hzTabs().some(x => x[0] === hzState.tab) ? hzState.tab : "home";
+  const secondary = hzTabs().filter(x => HZ_MAIN_TABS.indexOf(x[0]) < 0), isSecondary = HZ_MAIN_TABS.indexOf(t) < 0;
+  const head = `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:10px"><div><div class="display" style="font-size:16px;margin-bottom:2px">🦠 AI 막는 농장 지킴이 교실 — HPAI ZERO FARM</div><div style="font-size:11.5px;color:#777">닭·오리 농장의 조류인플루엔자(AI) 예방을 매일 쉽게 챙기는 교실 — 오늘 할 일부터 보세요</div></div><button type="button" id="hz-back-btn" style="border:1px solid #ddd;background:#fff;color:#888;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button></div>`;
+  const pill = ([k, l]) => `<button type="button" role="tab" aria-selected="${k === t}" data-hz-tab="${k}" style="border:1px solid ${k === t ? HZ_COLOR : "#ddd"};background:${k === t ? HZ_COLOR : "#fff"};color:${k === t ? "#fff" : "#555"};border-radius:16px;padding:7px 13px;font-size:12.5px;font-weight:700;cursor:pointer">${l}</button>`;
+  const open = hzState.more || isSecondary;
+  const nav = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 8px" role="tablist">${hzTabs().filter(x => HZ_MAIN_TABS.indexOf(x[0]) >= 0).map(pill).join("")}<button type="button" id="hz-more" style="border:1px dashed #90A4AE;background:${isSecondary ? "#ECEFF1" : "#fff"};color:#546E7A;border-radius:16px;padding:7px 13px;font-size:12.5px;font-weight:700;cursor:pointer">📚 연구 자료 ${open ? "접기 ▲" : "더 보기 ▼"}</button></div>${open ? `<div style="display:flex;gap:5px;flex-wrap:wrap;margin:0 0 12px;padding:8px 10px;background:#F5F7F8;border-radius:10px" role="tablist"><span style="font-size:11px;color:#78909C;align-self:center;font-weight:700">연구 자료</span>${secondary.map(pill).join("")}</div>` : `<div style="margin-bottom:12px"></div>`}`;
+  const body = t === "prompt" ? renderHzPrompt() : t === "program" ? renderHzProgram() : t === "tasks" ? renderHzTasks() : t === "sim" ? renderHzSim() : t === "report" ? renderHzReport() : t === "check" ? renderHzCheck() : t === "refs" ? renderHzRefs() : t === "intro" ? renderHzIntro() : renderHzHome();
   const foot = `<div style="margin-top:14px;background:#FFF8E1;border-radius:8px;padding:9px 11px;font-size:10.5px;color:#6b5400;line-height:1.75"><b>유의</b> · 교육·연구용 설계 자료입니다. 감염의 완전 차단이나 100% 예방을 보장하지 않으며, 개별 농장의 진단·처방·방역 지시를 대신하지 않습니다. AI 의심 증상은 즉시 관할 가축방역기관에 신고하고, 정부의 현행 방역지침과 행정명령을 우선하세요.</div>`;
   return `<div class="card" id="hz-root" style="border-top:6px solid ${HZ_COLOR}">${head}${nav}${body}${foot}</div>`;
 }
@@ -13337,6 +13391,7 @@ function hzBind(){
   if(!(state.tab === "premium" && premiumState.view === "hpaizero")) return;
   const $ = id => document.getElementById(id);
   const back = $("hz-back-btn"); if(back) back.onclick = () => { premiumState.view = "menu"; render(); };
+  const hzMore = $("hz-more"); if(hzMore) hzMore.onclick = () => { hzState.more = !hzState.more; render(); };
   document.querySelectorAll("[data-hz-tab]").forEach(b => b.onclick = () => { hzState.tab = b.dataset.hzTab; hzState.copied = ""; render(); const r = $("hz-root"); if(r) r.scrollIntoView({ behavior:"smooth", block:"start" }); });
   document.querySelectorAll("[data-hz-go]").forEach(b => b.onclick = () => switchTab(b.dataset.hzGo));
   document.querySelectorAll(".hz-sim").forEach(r => r.onchange = () => { hzState.sim[Number(r.dataset.i)] = Number(r.value); hzSave(); render(); });
