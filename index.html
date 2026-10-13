@@ -8395,7 +8395,7 @@ function drugUseCard(it, admin){
 function drugUseForm(){
   const d = drugUseState.draft; if(!d) return "";
   const inp = "width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid #ccc;border-radius:7px;font-size:13px;font-family:inherit;background:#fff";
-  const ta = (id, label, val, rows, hint) => `<div style="margin-top:8px"><label for="${id}" style="font-size:11.5px;font-weight:800;color:#455A64">${label}</label>${hint ? `<span style="font-size:10.5px;color:#999;margin-left:6px">${hint}</span>` : ""}<textarea id="${id}" rows="${rows}" style="${inp};resize:vertical;line-height:1.6">${esc(val)}</textarea></div>`;
+  const ta = (id, label, val, rows, hint, ph) => `<div style="margin-top:8px"><label for="${id}" style="font-size:11.5px;font-weight:800;color:#455A64">${label}</label>${hint ? `<span style="font-size:10.5px;color:#999;margin-left:6px">${hint}</span>` : ""}<textarea id="${id}" rows="${rows}" ${ph ? `placeholder="${esc(ph)}"` : ""} style="${inp};resize:vertical;line-height:1.6">${esc(val)}</textarea></div>`;
   const links = d.links.map((l, i) => `<div style="display:flex;gap:5px;margin:4px 0;align-items:center"><input class="dua-ltitle" data-i="${i}" value="${esc(l.title || "")}" placeholder="링크 이름" style="${inp};flex:0 0 36%"><input class="dua-lurl" data-i="${i}" value="${esc(l.url || "")}" placeholder="https://..." style="${inp};flex:1 1 auto"><button type="button" class="dua-ldel" data-i="${i}" style="border:1px solid #ddd;background:#fff;color:#C62828;border-radius:7px;padding:5px 9px;cursor:pointer">✕</button></div>`).join("");
   const sl = d.name.trim() ? drugUseSearchLinks(d.name.trim()) : [];
   const qiaList = drugUseState.qiaRows ? (drugUseState.qiaRows.length ? `<div style="border:1px solid #cfe3e6;border-radius:8px;margin-top:6px;max-height:210px;overflow:auto">${drugUseState.qiaRows.map((r, i) => `<div style="display:flex;gap:8px;align-items:center;padding:6px 9px;border-bottom:1px solid #eef3f4"><div style="flex:1;min-width:0;font-size:12px;line-height:1.55"><b>${esc(r.제품명)}</b> <span style="color:#777">· ${esc(r.업체명)} · ${esc(r.주성분)}</span><div style="font-size:10.5px;color:#999">${esc(r.품목구분)} · 허가 ${esc(r.허가일)}</div></div><button type="button" class="dua-qia-pick" data-i="${i}" style="border:1px solid #00838F;background:#00838F;color:#fff;border-radius:7px;padding:5px 10px;font-size:11.5px;font-weight:800;cursor:pointer;white-space:nowrap">이 제품으로 채우기</button></div>`).join("")}</div>` : `<div style="font-size:12px;color:#E65100;margin-top:6px">QIA에서 ‘${esc(d.name)}’(으)로 찾은 제품이 없습니다. 이름을 줄이거나 성분명으로 바꿔 보세요.</div>`) : "";
@@ -8413,10 +8413,21 @@ function drugUseForm(){
       <div style="flex:1 1 180px"><label for="dua-maker" style="font-size:11.5px;font-weight:800;color:#455A64">제조·수입사</label><input id="dua-maker" value="${esc(d.maker)}" style="${inp}"></div>
       <div style="flex:1 1 180px"><label for="dua-approval" style="font-size:11.5px;font-weight:800;color:#455A64">허가번호</label><input id="dua-approval" value="${esc(d.approval)}" style="${inp}"></div></div>
     <div style="margin-top:8px"><label for="dua-summary" style="font-size:11.5px;font-weight:800;color:#455A64">한줄 요약</label><input id="dua-summary" value="${esc(d.summary)}" placeholder="카드 제목 아래에 보이는 한 줄" style="${inp}"></div>
-    ${ta("dua-usage", "🌿 현장 사용요령(요점 — 한 줄에 한 항목)", d.usage, 5, "AI 초안이 들어오는 칸")}
-    ${ta("dua-withdrawal", "⏳ 휴약기간 (공식 설명서 원문)", d.withdrawal, 2)}
-    ${ta("dua-dosage", "💧 용법·용량 (공식 설명서 원문)", d.dosage, 4)}
-    ${ta("dua-efficacy", "🎯 효능·효과 (공식 설명서 원문)", d.efficacy, 4)}
+    <details style="margin-top:10px;border:1px solid #cfe3e6;background:#fff;border-radius:9px;padding:7px 10px"${d.key || d.qia ? "" : " open"}><summary style="cursor:pointer;font-size:12.3px;font-weight:800;color:#00838F">📋 QIA 공식 목록에 없는 제품을 직접 등록할 때 — 입력 서식 안내</summary>
+      <div style="font-size:11.8px;color:#444;line-height:1.8;margin-top:6px">
+        <ol style="margin:0 0 0 18px;padding:0">
+          <li><b>약품명·분류·주성분·제조사</b>를 먼저 적습니다. 분류가 목록에 없으면 「＋ 직접 입력…」으로 새로 만드세요.</li>
+          <li><b>용법·용량 / 휴약기간 / 효능·효과</b>는 <u>제품 포장·사용설명서(제조사 자료)에 적힌 그대로</u> 옮겨 적습니다. 기억이나 다른 제품 자료로 채우지 마세요. 확인하지 못한 칸은 비워 두거나 「제품 설명서 확인」이라고만 적습니다.</li>
+          <li>용량은 <b>축종 : 용량 · 투여 경로 · 기간</b> 순서로, 휴약기간은 <b>축종 : ○일</b>(식용란은 별도 줄)로 한 줄에 한 항목씩 적으면 읽기 쉽습니다.</li>
+          <li>제품 설명서 사진·PDF의 글은 이 칸에 붙여 넣은 뒤 「🤖 AI로 사용요령 정리」를 누르면 현장 요점으로 정리됩니다(AI는 붙여 넣은 원문의 숫자만 씁니다).</li>
+          <li>제조사 홈페이지·제품 설명서 주소는 아래 「약품 정보 링크」에 달아 근거를 남기세요. 천연제제·사료첨가제처럼 동물용의약품이 아닌 제품은 <b>허가번호 칸을 비우고</b> 메모에 ‘의약품 아님(사료첨가제 등)’처럼 적어 두면 구분됩니다.</li>
+        </ol>
+        <div style="margin-top:6px;font-size:11.2px;color:#777">예시 — 용법·용량: <code style="background:#f4f7f6;padding:1px 5px;border-radius:5px">닭 : 사료 1톤당 ○kg 혼합, 연속 급여 ○일</code> · 휴약기간: <code style="background:#f4f7f6;padding:1px 5px;border-radius:5px">닭 : ○일 / 산란계 산란기 사용 금지</code> (○는 제품 설명서의 값을 넣으세요)</div>
+      </div></details>
+    ${ta("dua-usage", "🌿 현장 사용요령(요점 — 한 줄에 한 항목)", d.usage, 5, "AI 초안이 들어오는 칸", "예) ① 수의사 처방에 따라 닭에 음수 투여\n② 투여 내역을 기록하고 휴약기간을 지킨 뒤 출하")}
+    ${ta("dua-withdrawal", "⏳ 휴약기간 (공식 설명서 원문)", d.withdrawal, 2, "축종 : ○일 형식", "예) 닭 : ○일 (제품 설명서의 값)")}
+    ${ta("dua-dosage", "💧 용법·용량 (공식 설명서 원문)", d.dosage, 4, "축종 : 용량 · 경로 · 기간", "예) 닭 : 체중 kg당 ○mg을 ○일간 음수 투여 (제품 설명서 그대로)")}
+    ${ta("dua-efficacy", "🎯 효능·효과 (공식 설명서 원문)", d.efficacy, 4, "", "예) 닭의 ○○ 감염증 치료 (제품 설명서 그대로)")}
     ${ta("dua-memo", "📝 메모(선택)", d.memo, 2)}
     <div style="margin-top:10px"><div style="font-size:11.5px;font-weight:800;color:#455A64;margin-bottom:3px">🔗 약품 정보 링크</div>
       ${sl.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:5px"><span style="font-size:11px;color:#777;align-self:center">검색해서 찾기(새 창):</span>${sl.map(a => `<a href="${esc(a[1])}" target="_blank" rel="noopener" style="font-size:11.5px;font-weight:700;color:#1565C0;border:1px solid #bcd3ee;background:#fff;border-radius:14px;padding:3px 10px;text-decoration:none">${esc(a[0])} ↗</a>`).join("")}</div>` : `<div style="font-size:11px;color:#999;margin-bottom:4px">약품명을 입력하면 검색 단추가 나타납니다.</div>`}
