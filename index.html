@@ -7966,6 +7966,7 @@ const FLY_SRC = {
   chulwon: ["철원 철새도래지(철원평야) 소개", "https://www.ktriptips.com/kor/tourspot/127483"],
   sihwa: ["시화호 철새 회복 보도(아주경제 2025.9)", "https://www.ajunews.com/view/20250925084934902"],
   euksuk: ["을숙도 철새 감소 보도(한국경제 1997)", "https://www.hankyung.com/amp/1997103001211"],
+  census: ["2015-2016 겨울철 조류 동시센서스 보고서(국립생물자원관)", "https://www.nibr.go.kr/aiibook/catImage/12/2015-2016.pdf"],
   nibr: ["겨울철 조류 동시조사 결과(국립생물자원관, 뉴시스 2024.3)", "https://www.newsis.com/view/NISX20240320_0002667453"],
 };
 // 지역 점(번식지·기착지·월동지)
@@ -7985,12 +7986,69 @@ const FLY_SITES = [
   { id:"haepyeong", n:"구미 해평습지(낙동강 중류)", ll:[36.28, 128.38], kind:"월동지", g:"duck", ev:"보도", note:"흑두루미·재두루미 등이 찾는 곳으로 소개됨. 4대강 사업 전후 개체 수 논쟁이 있었고 이후 다시 늘고 있다고 환경청이 밝혔다는 보도.", src:[] },
   { id:"geumho", n:"영암 금호호", ll:[34.72, 126.55], kind:"월동지", g:"duck", ev:"보도", note:"국립생물자원관 겨울철 조류 동시조사에서 금강호·금호호 등지에서 많이 관찰되었다고 보도됨.", src:["nibr"] },
   { id:"hangang", n:"한강 하구(김포 일대)", ll:[37.68, 126.6], kind:"월동지", g:"duck", ev:"보도(과거)", note:"과거 재두루미 월동지였으나 제방 건설 등으로 도래지가 옮겨졌다는 1995년 보도가 있음. 현재 상황은 확인하지 못함.", src:[] },
+  { id:"yeongam", n:"영암호", ll:[34.75, 126.47], kind:"월동지", g:"duck", ev:"센서스 지점(2015–16, 좌표는 지명 기준 근사)", note:"국립생물자원관 2015-2016 겨울철 조류 동시센서스의 조사 지점(Yeongam Lake). 좌표는 지명 기준 근사 위치이며 조사 구역 전체를 뜻하지 않음.", src:["census"] },
+  { id:"yeoncheon", n:"연천(임진강·한탄강 일대)", ll:[38.05, 127.05], kind:"월동지", g:"duck", ev:"센서스 지점(2015–16, 좌표는 지명 기준 근사)", note:"국립생물자원관 2015-2016 겨울철 조류 동시센서스의 조사 지점(Yeoncheon). 좌표는 지명 기준 근사 위치이며 조사 구역 전체를 뜻하지 않음.", src:["census"] },
+  { id:"hoengseong", n:"횡성호", ll:[37.5, 128.07], kind:"월동지", g:"duck", ev:"센서스 지점(2015–16, 좌표는 지명 기준 근사)", note:"국립생물자원관 2015-2016 겨울철 조류 동시센서스의 조사 지점(Hoengseong Lake). 좌표는 지명 기준 근사 위치이며 조사 구역 전체를 뜻하지 않음.", src:["census"] },
+  { id:"tapjeong", n:"논산 탑정호", ll:[36.12, 127.12], kind:"월동지", g:"duck", ev:"센서스 지점(2015–16, 좌표는 지명 기준 근사)", note:"국립생물자원관 2015-2016 겨울철 조류 동시센서스의 조사 지점(Tapjeong Reservoir). 좌표는 지명 기준 근사 위치이며 조사 구역 전체를 뜻하지 않음.", src:["census"] },
+  { id:"garolim", n:"가로림만", ll:[36.93, 126.45], kind:"월동지", g:"duck", ev:"센서스 지점(2015–16, 좌표는 지명 기준 근사)", note:"국립생물자원관 2015-2016 겨울철 조류 동시센서스의 조사 지점(Garolim Bay). 좌표는 지명 기준 근사 위치이며 조사 구역 전체를 뜻하지 않음.", src:["census"] },
+  { id:"yedang", n:"예당저수지", ll:[36.62, 126.8], kind:"월동지", g:"duck", ev:"센서스 지점(2015–16, 좌표는 지명 기준 근사)", note:"국립생물자원관 2015-2016 겨울철 조류 동시센서스의 조사 지점(Yedang Reservoir). 좌표는 지명 기준 근사 위치이며 조사 구역 전체를 뜻하지 않음.", src:["census"] },
+  { id:"seokmun", n:"당진 석문간척지", ll:[37.0, 126.55], kind:"월동지", g:"duck", ev:"센서스 지점(2015–16, 좌표는 지명 기준 근사)", note:"국립생물자원관 2015-2016 겨울철 조류 동시센서스의 조사 지점(Seokmun Reclaimed Area). 좌표는 지명 기준 근사 위치이며 조사 구역 전체를 뜻하지 않음.", src:["census"] },
+  { id:"gyodong", n:"강화 교동도", ll:[37.78, 126.28], kind:"월동지", g:"duck", ev:"센서스 지점(2015–16, 좌표는 지명 기준 근사)", note:"국립생물자원관 2015-2016 겨울철 조류 동시센서스의 조사 지점(Gyodong Island). 좌표는 지명 기준 근사 위치이며 조사 구역 전체를 뜻하지 않음.", src:["census"] },
+  { id:"ganghwa", n:"강화도 남단·갯벌", ll:[37.65, 126.4], kind:"월동지", g:"duck", ev:"센서스 지점(2015–16, 좌표는 지명 기준 근사)", note:"국립생물자원관 2015-2016 겨울철 조류 동시센서스의 조사 지점(Ganghwa Island). 좌표는 지명 기준 근사 위치이며 조사 구역 전체를 뜻하지 않음.", src:["census"] },
+  { id:"seokmo", n:"강화 석모도", ll:[37.65, 126.28], kind:"월동지", g:"duck", ev:"센서스 지점(2015–16, 좌표는 지명 기준 근사)", note:"국립생물자원관 2015-2016 겨울철 조류 동시센서스의 조사 지점(Seokmo Island). 좌표는 지명 기준 근사 위치이며 조사 구역 전체를 뜻하지 않음.", src:["census"] },
+  { id:"gomso", n:"곰소만", ll:[35.62, 126.62], kind:"월동지", g:"duck", ev:"센서스 지점(2015–16, 좌표는 지명 기준 근사)", note:"국립생물자원관 2015-2016 겨울철 조류 동시센서스의 조사 지점(Gomso Bay). 좌표는 지명 기준 근사 위치이며 조사 구역 전체를 뜻하지 않음.", src:["census"] },
+  { id:"asanbay", n:"아산만", ll:[36.92, 126.8], kind:"월동지", g:"duck", ev:"센서스 지점(2015–16, 좌표는 지명 기준 근사)", note:"국립생물자원관 2015-2016 겨울철 조류 동시센서스의 조사 지점(Asan Bay). 좌표는 지명 기준 근사 위치이며 조사 구역 전체를 뜻하지 않음.", src:["census"] },
+  { id:"namyang", n:"화성 남양호", ll:[37.08, 126.82], kind:"월동지", g:"duck", ev:"센서스 지점(2015–16, 좌표는 지명 기준 근사)", note:"국립생물자원관 2015-2016 겨울철 조류 동시센서스의 조사 지점(Namyang Lake). 좌표는 지명 기준 근사 위치이며 조사 구역 전체를 뜻하지 않음.", src:["census"] },
+  { id:"yeoja", n:"여자만", ll:[34.8, 127.43], kind:"월동지", g:"duck", ev:"센서스 지점(2015–16, 좌표는 지명 기준 근사)", note:"국립생물자원관 2015-2016 겨울철 조류 동시센서스의 조사 지점(Yeoja Bay). 좌표는 지명 기준 근사 위치이며 조사 구역 전체를 뜻하지 않음.", src:["census"] },
+  { id:"gwangyang", n:"광양만·갈사만", ll:[34.92, 127.77], kind:"월동지", g:"duck", ev:"센서스 지점(2015–16, 좌표는 지명 기준 근사)", note:"국립생물자원관 2015-2016 겨울철 조류 동시센서스의 조사 지점(Gwangyang Bay & Galsa Bay). 좌표는 지명 기준 근사 위치이며 조사 구역 전체를 뜻하지 않음.", src:["census"] },
+  { id:"upo", n:"우포늪", ll:[35.55, 128.42], kind:"월동지", g:"duck", ev:"센서스 지점(2015–16, 좌표는 지명 기준 근사)", note:"국립생물자원관 2015-2016 겨울철 조류 동시센서스의 조사 지점(Upo). 좌표는 지명 기준 근사 위치이며 조사 구역 전체를 뜻하지 않음.", src:["census"] },
+  { id:"jungrang", n:"중랑천", ll:[37.62, 127.07], kind:"월동지", g:"duck", ev:"센서스 지점(2015–16, 좌표는 지명 기준 근사)", note:"국립생물자원관 2015-2016 겨울철 조류 동시센서스의 조사 지점(Jungrang Stream). 좌표는 지명 기준 근사 위치이며 조사 구역 전체를 뜻하지 않음.", src:["census"] },
+  { id:"paldang", n:"팔당호", ll:[37.52, 127.3], kind:"월동지", g:"duck", ev:"센서스 지점(2015–16, 좌표는 지명 기준 근사)", note:"국립생물자원관 2015-2016 겨울철 조류 동시센서스의 조사 지점(Paldang Lake). 좌표는 지명 기준 근사 위치이며 조사 구역 전체를 뜻하지 않음.", src:["census"] },
+  { id:"songdo", n:"인천 송도 갯벌", ll:[37.38, 126.62], kind:"월동지", g:"duck", ev:"센서스 지점(2015–16, 좌표는 지명 기준 근사)", note:"국립생물자원관 2015-2016 겨울철 조류 동시센서스의 조사 지점(Song Island). 좌표는 지명 기준 근사 위치이며 조사 구역 전체를 뜻하지 않음.", src:["census"] },
+  { id:"mangyeong", n:"만경강 중류", ll:[35.83, 126.95], kind:"월동지", g:"duck", ev:"센서스 지점(2015–16, 좌표는 지명 기준 근사)", note:"국립생물자원관 2015-2016 겨울철 조류 동시센서스의 조사 지점(Middle Mangyeong River). 좌표는 지명 기준 근사 위치이며 조사 구역 전체를 뜻하지 않음.", src:["census"] },
   { id:"yellow", n:"황해 갯벌(한국 서해안·중국 연안)", ll:[35.8, 126.6], kind:"주요 기착지", g:"shore", note:"북상 이동 때 도요·물떼새가 먹이를 먹으며 체력을 회복하는 핵심 기착지로 알려짐. 갯벌은 한 점이 아니라 넓은 영역임.", src:["eaaf","shore"] },
   { id:"yancheng", n:"중국 황해 연안 갯벌", ll:[33.4, 120.9], kind:"주요 기착지", g:"shore", note:"황해 갯벌 기착지의 중국 쪽 대표 위치(대략).", src:["eaaf"] },
   { id:"borneo", n:"보르네오 바코-분탈 만(말레이시아)", ll:[1.7, 110.4], kind:"기착지", g:"shore", note:"시베리아에서 오는 도요·물떼새가 해마다 들르는 곳으로 보고됨.", src:["shore"] },
   { id:"aus", n:"호주 북부·퀸즐랜드 연안", ll:[-19.0, 147.0], kind:"월동지", g:"shore", note:"EAAF의 남쪽 종착지. 호주 도착 개체 일부는 퀸즐랜드에 머물고 일부는 더 남쪽·뉴질랜드로 이동.", src:["eaaf"] },
   { id:"arctic", n:"시베리아·알래스카 북극권", ll:[68.0, 160.0], kind:"번식지(넓은 범위)", g:"shore", note:"도요·물떼새 번식지는 러시아 타이미르 반도에서 알래스카까지 넓게 분포.", src:["eaaf"] },
 ];
+// 국립생물자원관 2015-2016 겨울철 조류 동시센서스(전국 200곳, 2015.12·2016.1) 보고서에서 PDF 표를 자동으로 읽어 낸 근사값이다.
+// tot = 오리·기러기류 주요 종의 12월·1월 중 큰 값을 종별로 더한 합계(실제 한 달 합계보다 클 수 있음), gach = 가창오리. 10년 전 겨울 자료이며 현재 도래 규모와 다를 수 있다.
+const FLY_CENSUS = {
+  geum:{ en:"Geum River Estuary", tot:18252, gach:0 },
+  cheonsu:{ en:"Ganwol Lake", tot:29424, gach:0 },
+  sapgyo:{ en:"Sapgyo Lake", tot:52742, gach:19332 },
+  donglim:{ en:"Donglim Reservoir", tot:422632, gach:420000 },
+  gocheon:{ en:"Gocheonam Lake", tot:11562, gach:0 },
+  junam:{ en:"Junam Reservoir", tot:6932, gach:0 },
+  cheorwon:{ en:"Cheorwon Basin", tot:42022, gach:2 },
+  suncheon:{ en:"Suncheon Bay", tot:6201, gach:0 },
+  sihwa:{ en:"Shihwa Lake", tot:35123, gach:0 },
+  nakdong:{ en:"Nakdong River Estuary", tot:24736, gach:0 },
+  haepyeong:{ en:"Gumi Haepyeong, Nakdong River", tot:5083, gach:0 },
+  geumho:{ en:"Geumho Lake", tot:22254, gach:0 },
+  hangang:{ en:"Han River Estuary", tot:21242, gach:0 },
+  yeongam:{ en:"Yeongam Lake", tot:408791, gach:400000 },
+  yeoncheon:{ en:"Yeoncheon", tot:8391, gach:0 },
+  hoengseong:{ en:"Hoengseong Lake", tot:33416, gach:0 },
+  tapjeong:{ en:"Tapjeong Reservoir", tot:18661, gach:1 },
+  garolim:{ en:"Garolim Bay", tot:18982, gach:0 },
+  yedang:{ en:"Yedang Reservoir", tot:17061, gach:233 },
+  seokmun:{ en:"Seokmun Reclaimed Area", tot:13628, gach:0 },
+  gyodong:{ en:"Gyodong Island", tot:12273, gach:1 },
+  ganghwa:{ en:"Ganghwa Island", tot:12162, gach:0 },
+  seokmo:{ en:"Seokmo Island", tot:7700, gach:0 },
+  gomso:{ en:"Gomso Bay", tot:8977, gach:0 },
+  asanbay:{ en:"Asan Bay", tot:8279, gach:0 },
+  namyang:{ en:"Namyang Lake", tot:7570, gach:0 },
+  yeoja:{ en:"Yeoja Bay", tot:7668, gach:0 },
+  gwangyang:{ en:"Gwangyang Bay & Galsa Bay", tot:7945, gach:0 },
+  upo:{ en:"Upo", tot:4795, gach:0 },
+  jungrang:{ en:"Jungrang Stream", tot:4761, gach:0 },
+  paldang:{ en:"Paldang Lake", tot:1598, gach:0 },
+  songdo:{ en:"Song Island", tot:4874, gach:0 },
+  mangyeong:{ en:"Middle Mangyeong River", tot:19731, gach:0 }
+};
 // 대표·추정 경로. dir: "autumn"(가을 남하) / "spring"(봄 북상) / "both". conf: 근거 신뢰도(상·중·하)
 const FLY_ROUTES = [
   { id:"r1", g:"duck", n:"가창오리 — 레나강 삼각주 ↔ 한반도", dir:"both", conf:"중", pts:[[73.0,127.0],[62,128],[50,127],[41,127],[36.0,126.72]], note:"가을에는 10월 말쯤 출발해 이듬해 3월까지 월동한다는 보도. 중간 경유지는 이 자료에서 확인하지 못함(직선에 가까운 추정선).", src:["gachang","khan"] },
@@ -8009,6 +8067,11 @@ function flyLoadLeaflet(cb){
   sc.onload = () => { flyState.lf = false; render(); };
   sc.onerror = () => { flyState.lf = false; flyState.lerr = true; render(); };
   document.head.appendChild(sc);
+}
+function flyCensusTxt(id){
+  const c = FLY_CENSUS[id]; if(!c) return "";
+  const f = n => n >= 10000 ? (n / 10000).toFixed(n >= 100000 ? 0 : 1) + "만" : n.toLocaleString();
+  return `2015-16 겨울 센서스(${esc(c.en)}): 오리·기러기류 최대 합계 약 ${f(c.tot)}마리${c.gach >= 1000 ? " · 가창오리 약 " + f(c.gach) + "마리" : ""} <span style="color:#999">(PDF 자동 추출 근사)</span>`;
 }
 function flySrcLinks(keys){ return keys.map(k => `<a href="${FLY_SRC[k][1]}" target="_blank" rel="noopener" style="color:#1565C0">${esc(FLY_SRC[k][0])}</a>`).join(" · "); }
 function renderFlywayCard(){
@@ -8077,7 +8140,7 @@ function flyBind(){
     const c = s.g === "duck" ? "#1565C0" : "#6A1B9A";
     L.circleMarker(s.ll, { radius:s.kind.indexOf("번식") >= 0 ? 7 : 5, color:"#fff", weight:2, fillColor:c, fillOpacity:.95 }).addTo(map)
       .bindTooltip(s.n, { direction:"top" })
-      .bindPopup(`<b>${esc(s.n)}</b> <span style="font-size:11px;color:#666">(${esc(s.kind)})</span><br><span style="font-size:11.5px">${esc(s.note)}</span><br><span style="font-size:10.5px;color:#888">좌표는 대략적 위치</span>`);
+      .bindPopup(`<b>${esc(s.n)}</b> <span style="font-size:11px;color:#666">(${esc(s.kind)})</span><br><span style="font-size:11.5px">${esc(s.note)}</span>${FLY_CENSUS[s.id] ? "<br><span style=\"font-size:11px;color:#00695C\">" + flyCensusTxt(s.id) + "</span>" : ""}<br><span style="font-size:10.5px;color:#888">좌표는 대략적 위치</span>`);
   });
   // 한반도 강조(중심 표시)
   L.rectangle([[33, 124.5], [38.7, 131]], { color:"#C62828", weight:1, dashArray:"3 4", fillOpacity:0.03, interactive:false }).addTo(map);
@@ -8198,7 +8261,7 @@ function rmBind(){
   if(st.site) D.sites.forEach(s => {
     L.circle(s.ll, { radius:10000, color:"#00695C", weight:1, dashArray:"3 4", fillColor:"#00695C", fillOpacity:.07, interactive:false }).addTo(map);
     L.marker(s.ll, { icon:L.divIcon({ className:"", iconSize:[22, 22], iconAnchor:[11, 11], html:`<div style="font-size:17px;line-height:22px;text-align:center;filter:drop-shadow(0 0 2px #fff)">🦆</div>` }) }).addTo(map)
-      .bindPopup(`<b>${esc(s.n)}</b> <span style="font-size:11px;color:#666">(철새 월동지·도래지, ${esc(s.ev || "보도")} 기준)</span><br><span style="font-size:11.5px">${esc(s.note)}</span><br><span style="font-size:10.5px;color:#888">점선 원은 월동지 주변 10km 표시일 뿐 위험권역이 아닙니다.</span>`);
+      .bindPopup(`<b>${esc(s.n)}</b> <span style="font-size:11px;color:#666">(철새 월동지·도래지, ${esc(s.ev || "보도")} 기준)</span><br><span style="font-size:11.5px">${esc(s.note)}</span>${FLY_CENSUS[s.id] ? "<br><span style=\"font-size:11px;color:#00695C\">" + flyCensusTxt(s.id) + "</span>" : ""}<br><span style="font-size:10.5px;color:#888">점선 원은 월동지 주변 10km 표시일 뿐 위험권역이 아닙니다.</span>`);
   });
   D.list.forEach(r => {
     if(st.farm && r.f){
@@ -12414,7 +12477,9 @@ function hzNearMetrics(sido, sgg, asOf){
 }
 // 규칙(임시): 항목 1 — 공식 지역 발생·검출(시·군 반경 기준), 항목 2 — 철새 월동지까지 거리
 function hzNearLevel1(m){ return m.f20 >= 1 ? 4 : (m.f50 >= 1 || m.w20 >= 1) ? 3 : m.w50 >= 1 ? 2 : (m.fAll50 + m.wAll50) > 0 ? 1 : 0; }
-function hzNearLevel2(m){ const d = m.site ? m.site.d : 999; return d <= 10 ? 4 : d <= 30 ? 3 : d <= 60 ? 2 : d <= 100 ? 1 : 0; }
+function hzNearLevelSite(m){ const d = m.site ? m.site.d : 999; return d <= 10 ? 4 : d <= 30 ? 3 : d <= 60 ? 2 : d <= 100 ? 1 : 0; }
+function hzNearLevelRiver(m){ const d = m.river ? m.river.d : 999; return d <= 3 ? 3 : d <= 10 ? 2 : d <= 30 ? 1 : 0; }
+function hzNearLevel2(m){ return Math.max(hzNearLevelSite(m), hzNearLevelRiver(m)); }
 function hzNearBox(){
   const sido = hzState.sido; if(!sido) return "";
   const list = hzSggList(sido);
@@ -12432,8 +12497,8 @@ function hzNearBox(){
       const apply = (id, lv, cur) => cur === lv ? `<span style="color:#2E7D32;font-size:11.5px">— 지금 값과 같습니다</span>` : `<button type="button" id="${id}" data-lv="${lv}" style="margin-left:4px;border:1px solid #00695C;background:#fff;color:#00695C;border-radius:7px;padding:3px 9px;font-size:11.5px;font-weight:800;cursor:pointer">적용</button> <span style="color:#888;font-size:11.5px">(지금 ${cur})</span>`;
       body = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px;margin-top:8px">
         ${cell("같은 시·군 · 최근 30일 농장", m.same + "건", m.same ? "#C62828" : "#2E7D32")}${cell("반경 20km · 농장 / 야생", m.f20 + " / " + m.w20, m.f20 ? "#C62828" : m.w20 ? "#E65100" : "#2E7D32")}${cell("반경 50km · 농장 / 야생", m.f50 + " / " + m.w50, m.f50 ? "#C62828" : m.w50 ? "#E65100" : "#2E7D32")}${cell("가까운 월동지·도래지", m.site ? esc(m.site.n) + " 약 " + Math.round(m.site.d / 5) * 5 + "km" : "-")}${cell("가까운 큰 하천(개략)", m.river ? esc(m.river.n) + " " + (m.river.d < 3 ? "3km 이내" : "약 " + Math.round(m.river.d / 5) * 5 + "km") : "-")}</div>
-        <div style="font-size:12.2px;color:#333;line-height:1.9;margin-top:8px">① 지역 발생·검출 참고 수준 <b style="color:#00695C">${HZ_LEVEL_LABEL[l1]}</b> ${apply("hz-near-apply1", l1, c1)}<br>② 철새 월동지 거리 참고 수준 <b style="color:#00695C">${HZ_LEVEL_LABEL[l2]}</b> ${apply("hz-near-apply2", l2, c2)}</div>
-        <div style="font-size:10.8px;color:#777;line-height:1.7;margin-top:4px">규칙(임시·검증 전) ① 반경 20km 농장 발생=4 · 반경 50km 농장 발생 또는 20km 야생 검출=3 · 50km 야생 검출=2 · 50km 안 과거 이력=1 · 없음=0. ② 월동지 10km 이내=4 · 30km=3 · 60km=2 · 100km=1 · 그 밖=0. 월동지·도래지는 현재 ${hzWinterSites().length}곳(보도 등으로 확인한 곳)뿐이라 <b>다른 도래지·저수지·작은 하천은 반영되지 않으니 직접 판단해 조정</b>하세요. 큰 하천 거리는 참고 정보이며 위 규칙 점수에는 넣지 않았습니다. 시·군 중심점 기준 근사(오차 약 10~20km)이며 농장의 실제 위치가 아닙니다. 기준일 ${hzToday()}.</div>`;
+        <div style="font-size:12.2px;color:#333;line-height:1.9;margin-top:8px">① 지역 발생·검출 참고 수준 <b style="color:#00695C">${HZ_LEVEL_LABEL[l1]}</b> ${apply("hz-near-apply1", l1, c1)}<br>② 철새 월동지·큰 하천 거리 참고 수준 <b style="color:#00695C">${HZ_LEVEL_LABEL[l2]}</b> <span style="font-size:11px;color:#888">(월동지 ${hzNearLevelSite(m)} · 하천 ${hzNearLevelRiver(m)} 중 높은 값)</span> ${apply("hz-near-apply2", l2, c2)}</div>
+        <div style="font-size:10.8px;color:#777;line-height:1.7;margin-top:4px">규칙(임시·검증 전) ① 반경 20km 농장 발생=4 · 반경 50km 농장 발생 또는 20km 야생 검출=3 · 50km 야생 검출=2 · 50km 안 과거 이력=1 · 없음=0. ② 월동지 10km 이내=4 · 30km=3 · 60km=2 · 100km=1 · 그 밖=0, 큰 하천(개략 경로) 3km 이내=3 · 10km=2 · 30km=1 · 그 밖=0 — 둘 중 높은 값(하천 기준은 근거 없이 정한 임시값). 월동지·도래지는 현재 ${hzWinterSites().length}곳(보도·국립생물자원관 2015-16 센서스 지점)이라 <b>빠진 도래지·저수지·작은 하천은 반영되지 않으니 직접 판단해 조정</b>하세요. 하천 선은 개략 경로이며 하천 가까이는 철새 월동지를 뜻하지 않습니다. 시·군 중심점 기준 근사(오차 약 10~20km)이며 농장의 실제 위치가 아닙니다. 기준일 ${hzToday()}.</div>`;
     }
   }
   return `<div style="border:1px solid #00695C44;background:#E0F2F155;border-radius:10px;padding:10px 12px;margin:8px 0">${picker}${body}</div>`;
@@ -12535,8 +12600,8 @@ function hzReportText(R){
   L.push("", "B. 지역 위험도(공식 발생·검출 자료 기준, 참고)");
   if(R.reg){ P(R.sido + " 최근 30일", `가금농장 발생 ${R.reg.f30}건 · 야생조류 검출 ${R.reg.w30}건`); P(R.sido + " 25/26 시즌 이후 누적", `농장 ${R.reg.fAll}건 · 야생 ${R.reg.wAll}건`); P("시·도 단위 참고 수준(임시 규칙)", HZ_LEVEL_LABEL[R.reg.level]); }
   else L.push("시·도 미입력 — 지역 자료 없음");
-  if(R.near){ P(R.sgg + " 반경 20km 최근 30일", `농장 ${R.near.f20}건 · 야생 ${R.near.w20}건`); P("반경 50km 최근 30일", `농장 ${R.near.f50}건 · 야생 ${R.near.w50}건`); P("가장 가까운 큰 하천(개략 경로)", R.near.river ? `${R.near.river.n} ${R.near.river.d < 3 ? "3km 이내" : "약 " + Math.round(R.near.river.d / 5) * 5 + "km"}` : "-"); P("가장 가까운 철새 월동지·도래지(알려진 곳 중, 직선 근사)", R.near.site ? `${R.near.site.n} 약 ${Math.round(R.near.site.d / 5) * 5}km` : "-"); P("시·군 단위 참고 수준", `① 지역 ${HZ_LEVEL_LABEL[hzNearLevel1(R.near)]} · ② 월동지 거리 ${HZ_LEVEL_LABEL[hzNearLevel2(R.near)]}`); }
-  L.push("자료: 이 사이트의 「국내 가금농장 HPAI 발생·검출 현황」(농림축산식품부 자료 기준). 기상·하천·저수지는 아직 반영하지 않음. 시·군 위치는 중심점 근사(오차 약 10~20km).");
+  if(R.near){ P(R.sgg + " 반경 20km 최근 30일", `농장 ${R.near.f20}건 · 야생 ${R.near.w20}건`); P("반경 50km 최근 30일", `농장 ${R.near.f50}건 · 야생 ${R.near.w50}건`); P("가장 가까운 큰 하천(개략 경로)", R.near.river ? `${R.near.river.n} ${R.near.river.d < 3 ? "3km 이내" : "약 " + Math.round(R.near.river.d / 5) * 5 + "km"}` : "-"); P("가장 가까운 철새 월동지·도래지(알려진 곳 중, 직선 근사)", R.near.site ? `${R.near.site.n} 약 ${Math.round(R.near.site.d / 5) * 5}km` : "-"); P("시·군 단위 참고 수준", `① 지역 ${HZ_LEVEL_LABEL[hzNearLevel1(R.near)]} · ② 월동지·하천 거리 ${HZ_LEVEL_LABEL[hzNearLevel2(R.near)]}`); }
+  L.push("자료: 이 사이트의 「국내 가금농장 HPAI 발생·검출 현황」(농림축산식품부 자료 기준). 기상·저수지는 아직 반영하지 않았고 큰 하천은 개략 경로만 반영. 시·군 위치는 중심점 근사(오차 약 10~20km).");
   L.push("", "C. 농장 차단방역 진단");
   if(R.anyCheck){ P("오늘 방역 점검표", `${R.done}/${HZ_CHECK_ITEMS.length} 완료`); if(R.notDone.length){ L.push("미확인 항목:"); R.notDone.forEach(t => L.push(" - " + t)); } }
   else L.push("오늘 방역 점검표 미작성 — 시설·인력·차량·위생 진단 근거 없음(‘미입력’)");
@@ -12587,10 +12652,10 @@ function hzReportHtml(R){
   let Bbody = "";
   if(R.reg){
     Bbody = grid([tile(R.sido + " 최근 30일 · 농장", R.reg.f30 + "건", "", R.reg.f30 ? "#C62828" : "#2E7D32"), tile(R.sido + " 최근 30일 · 야생", R.reg.w30 + "건", "", R.reg.w30 ? "#E65100" : "#2E7D32"), tile("25/26 시즌 이후 누적", `농장 ${R.reg.fAll} · 야생 ${R.reg.wAll}`, "", "#444"), tile("시·도 참고 수준", HZ_LEVEL_LABEL[R.reg.level], "임시 규칙", lvColor(R.reg.level))], 140);
-    if(R.near) Bbody += `<div style="margin-top:8px"><div style="font-size:11.5px;font-weight:800;color:#455;margin-bottom:4px">${esc(R.sgg)} 중심 반경 지표(최근 30일)</div>` + grid([tile("반경 20km", `농장 ${R.near.f20} · 야생 ${R.near.w20}`, "", R.near.f20 ? "#C62828" : R.near.w20 ? "#E65100" : "#2E7D32"), tile("반경 50km", `농장 ${R.near.f50} · 야생 ${R.near.w50}`, "", R.near.f50 ? "#C62828" : R.near.w50 ? "#E65100" : "#2E7D32"), tile("가까운 월동지·도래지", R.near.site ? esc(R.near.site.n) : "-", R.near.site ? "약 " + Math.round(R.near.site.d / 5) * 5 + "km · 직선 근사" : "", "#00695C"), tile("가까운 큰 하천(개략)", R.near.river ? esc(R.near.river.n) : "-", R.near.river ? (R.near.river.d < 3 ? "3km 이내" : "약 " + Math.round(R.near.river.d / 5) * 5 + "km") : "", "#1E88E5"), tile("시·군 참고 수준", `지역 ${hzNearLevel1(R.near)} · 월동지 ${hzNearLevel2(R.near)}`, "임시 규칙(0~4)", "#444")], 140) + `</div>`;
+    if(R.near) Bbody += `<div style="margin-top:8px"><div style="font-size:11.5px;font-weight:800;color:#455;margin-bottom:4px">${esc(R.sgg)} 중심 반경 지표(최근 30일)</div>` + grid([tile("반경 20km", `농장 ${R.near.f20} · 야생 ${R.near.w20}`, "", R.near.f20 ? "#C62828" : R.near.w20 ? "#E65100" : "#2E7D32"), tile("반경 50km", `농장 ${R.near.f50} · 야생 ${R.near.w50}`, "", R.near.f50 ? "#C62828" : R.near.w50 ? "#E65100" : "#2E7D32"), tile("가까운 월동지·도래지", R.near.site ? esc(R.near.site.n) : "-", R.near.site ? "약 " + Math.round(R.near.site.d / 5) * 5 + "km · 직선 근사" : "", "#00695C"), tile("가까운 큰 하천(개략)", R.near.river ? esc(R.near.river.n) : "-", R.near.river ? (R.near.river.d < 3 ? "3km 이내" : "약 " + Math.round(R.near.river.d / 5) * 5 + "km") : "", "#1E88E5"), tile("시·군 참고 수준", `지역 ${hzNearLevel1(R.near)} · 월동지·하천 ${hzNearLevel2(R.near)}`, "임시 규칙(0~4)", "#444")], 140) + `</div>`;
     else Bbody += `<div style="font-size:11.5px;color:#888;margin-top:6px">시·군을 고르면 반경 지표가 추가됩니다.</div>`;
   } else Bbody = `<div style="color:#E65100">시·도가 입력되지 않아 지역 자료를 넣지 못했습니다.</div>`;
-  Bbody += `<div style="font-size:10.8px;color:#888;margin-top:7px;line-height:1.6">자료: 「국내 가금농장 HPAI 발생·검출 현황」(농림축산식품부 자료 기준). 기상·하천·저수지는 반영하지 않았고, 시·군 위치는 중심점 근사(오차 약 10~20km)입니다.</div>`;
+  Bbody += `<div style="font-size:10.8px;color:#888;margin-top:7px;line-height:1.6">자료: 「국내 가금농장 HPAI 발생·검출 현황」(농림축산식품부 자료 기준). 기상·저수지는 반영하지 않았고 큰 하천은 개략 경로만 반영했으며, 시·군 위치는 중심점 근사(오차 약 10~20km)입니다.</div>`;
   const B = card("B", "지역 위험도", Bbody, "공식 발생·검출 자료 기준 · 참고");
   // C
   const Cbody = R.anyCheck
