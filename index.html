@@ -12317,6 +12317,113 @@ function hzRegionBox(){
   }
   return `<div style="border:1px solid #00695C44;background:#E0F2F155;border-radius:10px;padding:10px 12px;margin:8px 0">${picker}${body}</div>`;
 }
+// ── 2단계: 시·군 단위 지표 기반 규칙 점수(검증 전) + 과거 발생 대조(백테스트) ──────────────────────────
+// 점수는 코드가 규칙으로 계산하며 인공지능이 정하지 않는다. 규칙·기준값은 모두 임시 가설이다.
+const hzNearState = { sgg:"" };
+function hzAddDays(d, n){ const t = new Date(d + "T00:00:00Z"); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); }
+function hzSggList(sido){
+  const seen = {};
+  Object.keys(HPAI_KR_MAP.pts || {}).forEach(k => { const [s, g] = k.split("|"); if(s === sido && /[시군구]$/.test(g) && g.length >= 3) seen[g] = 1; });
+  return Object.keys(seen).sort();
+}
+function hzWinterSites(){ return FLY_SITES.filter(s => s.kind === "월동지" && s.g === "duck"); }
+// 한 시·군 중심 기준 지표 (거리는 시·군 중심점 사이의 직선거리 근사)
+function hzNearMetrics(sido, sgg, asOf){
+  const ll = rmLatLng(sido, sgg); if(!ll) return null;
+  const from = hzAddDays(asOf, -30);
+  const within = (arr, since, km) => arr.filter(x => { if(x.conf > asOf) return false; if(since && x.conf <= since) return false; const p = rmLatLng(x.sido, x.sgg); return p && rmKm(ll, p) <= km; }).length;
+  const farms = hkAllFarms(), wild = hkAllWild();
+  const m = { ll, f20:within(farms, from, 20), f50:within(farms, from, 50), w20:within(wild, from, 20), w50:within(wild, from, 50), fAll50:within(farms, null, 50), wAll50:within(wild, null, 50) };
+  m.same = farms.filter(x => x.sido === sido && x.sgg === sgg && x.conf > from && x.conf <= asOf).length;
+  let best = null; hzWinterSites().forEach(s => { const d = rmKm(ll, s.ll); if(!best || d < best.d) best = { n:s.n, d }; });
+  m.site = best;
+  return m;
+}
+// 규칙(임시): 항목 1 — 공식 지역 발생·검출(시·군 반경 기준), 항목 2 — 철새 월동지까지 거리
+function hzNearLevel1(m){ return m.f20 >= 1 ? 4 : (m.f50 >= 1 || m.w20 >= 1) ? 3 : m.w50 >= 1 ? 2 : (m.fAll50 + m.wAll50) > 0 ? 1 : 0; }
+function hzNearLevel2(m){ const d = m.site ? m.site.d : 999; return d <= 10 ? 4 : d <= 30 ? 3 : d <= 60 ? 2 : d <= 100 ? 1 : 0; }
+function hzNearBox(){
+  const sido = hzState.sido; if(!sido) return "";
+  const list = hzSggList(sido);
+  if(hzNearState.sgg && list.indexOf(hzNearState.sgg) < 0) hzNearState.sgg = "";
+  const sel = hzNearState.sgg;
+  const opts = `<option value="">시·군을 고르세요</option>` + list.map(g => `<option value="${g}" ${g === sel ? "selected" : ""}>${g}</option>`).join("");
+  const picker = `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label for="hz-sgg" style="font-size:12.5px;font-weight:800;color:#222">우리 농장 시·군(더 자세히)</label><select id="hz-sgg" style="border:1px solid #ccc;border-radius:8px;padding:6px 8px;font-size:13px;background:#fff">${opts}</select></div>`;
+  let body = `<div style="font-size:12px;color:#666;margin-top:6px;line-height:1.7">시·군을 고르면 <b>반경 20·50km 안의 최근 30일 발생·검출</b>과 <b>가장 가까운 철새 월동지까지의 거리</b>로 첫째·둘째 항목의 참고 수준을 계산해 드립니다.</div>`;
+  if(sel){
+    const m = hzNearMetrics(sido, sel, hzToday());
+    if(!m) body = `<div style="font-size:12px;color:#E65100;margin-top:6px">이 시·군의 위치 자료가 없어 계산하지 못했습니다.</div>`;
+    else {
+      const l1 = hzNearLevel1(m), l2 = hzNearLevel2(m), c1 = hzState.sim[0], c2 = hzState.sim[1];
+      const cell = (t, v, c) => `<div style="background:#fff;border:1px solid #e3e3e3;border-radius:8px;padding:7px 9px"><div style="font-size:10.5px;color:#888">${t}</div><div style="font-size:17px;font-weight:900;color:${c || "#444"}">${v}</div></div>`;
+      const apply = (id, lv, cur) => cur === lv ? `<span style="color:#2E7D32;font-size:11.5px">— 지금 값과 같습니다</span>` : `<button type="button" id="${id}" data-lv="${lv}" style="margin-left:4px;border:1px solid #00695C;background:#fff;color:#00695C;border-radius:7px;padding:3px 9px;font-size:11.5px;font-weight:800;cursor:pointer">적용</button> <span style="color:#888;font-size:11.5px">(지금 ${cur})</span>`;
+      body = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px;margin-top:8px">
+        ${cell("같은 시·군 · 최근 30일 농장", m.same + "건", m.same ? "#C62828" : "#2E7D32")}${cell("반경 20km · 농장 / 야생", m.f20 + " / " + m.w20, m.f20 ? "#C62828" : m.w20 ? "#E65100" : "#2E7D32")}${cell("반경 50km · 농장 / 야생", m.f50 + " / " + m.w50, m.f50 ? "#C62828" : m.w50 ? "#E65100" : "#2E7D32")}${cell("가까운 월동지", m.site ? esc(m.site.n) + " 약 " + Math.round(m.site.d / 5) * 5 + "km" : "-")}</div>
+        <div style="font-size:12.2px;color:#333;line-height:1.9;margin-top:8px">① 지역 발생·검출 참고 수준 <b style="color:#00695C">${HZ_LEVEL_LABEL[l1]}</b> ${apply("hz-near-apply1", l1, c1)}<br>② 철새 월동지 거리 참고 수준 <b style="color:#00695C">${HZ_LEVEL_LABEL[l2]}</b> ${apply("hz-near-apply2", l2, c2)}</div>
+        <div style="font-size:10.8px;color:#777;line-height:1.7;margin-top:4px">규칙(임시·검증 전) ① 반경 20km 농장 발생=4 · 반경 50km 농장 발생 또는 20km 야생 검출=3 · 50km 야생 검출=2 · 50km 안 과거 이력=1 · 없음=0. ② 월동지 10km 이내=4 · 30km=3 · 60km=2 · 100km=1 · 그 밖=0. 월동지는 보도로 확인한 6곳뿐이라 <b>다른 도래지·하천·저수지는 반영되지 않으니 직접 판단해 조정</b>하세요. 시·군 중심점 기준 근사(오차 약 10~20km)이며 농장의 실제 위치가 아닙니다. 기준일 ${hzToday()}.</div>`;
+    }
+  }
+  return `<div style="border:1px solid #00695C44;background:#E0F2F155;border-radius:10px;padding:10px 12px;margin:8px 0">${picker}${body}</div>`;
+}
+// ── 과거 발생과 대조(백테스트) ──
+// 매주 기준일 t마다 ‘t까지의 자료만’으로 규칙을 적용하고, 이후 14일 안에 실제 농장 발생이 있었는지 센다.
+let hzBtCache = null;
+function hzBacktest(){
+  const farms = hkAllFarms(), wild = hkAllWild(), key = farms.length + "/" + wild.length;
+  if(hzBtCache && hzBtCache.key === key) return hzBtCache.res;
+  const all = farms.concat(wild).map(x => x.conf).sort();
+  if(!all.length) return null;
+  const tmin = all[0], tmax = all[all.length - 1];
+  const dates = []; for(let t = hzAddDays(tmin, 30); t <= hzAddDays(tmax, -14); t = hzAddDays(t, 7)) dates.push(t);
+  if(dates.length < 4){ hzBtCache = { key, res:null }; return null; }
+  const fl = farms.map(x => ({ sido:x.sido, conf:x.conf, p:rmLatLng(x.sido, x.sgg) })), wl = wild.map(x => ({ sido:x.sido, conf:x.conf, p:rmLatLng(x.sido, x.sgg) }));
+  // 규칙 A: 시·도 단위 (hzRegion과 같은 규칙)
+  const A = { 2:{ n:0, flag:0, ev:0, hit:0 }, 3:{ n:0, flag:0, ev:0, hit:0 }, 4:{ n:0, flag:0, ev:0, hit:0 } };
+  dates.forEach(t => {
+    const t30 = hzAddDays(t, -30), t14 = hzAddDays(t, 14);
+    HZ_SIDOS.forEach(s => {
+      const f30 = fl.filter(x => x.sido === s && x.conf > t30 && x.conf <= t).length, w30 = wl.filter(x => x.sido === s && x.conf > t30 && x.conf <= t).length;
+      const hist = fl.filter(x => x.sido === s && x.conf <= t).length + wl.filter(x => x.sido === s && x.conf <= t).length;
+      const lv = f30 >= 2 ? 4 : f30 === 1 ? 3 : w30 > 0 ? 2 : hist > 0 ? 1 : 0;
+      const ev = fl.some(x => x.sido === s && x.conf > t && x.conf <= t14);
+      [2, 3, 4].forEach(th => { const a = A[th]; a.n++; if(ev) a.ev++; if(lv >= th){ a.flag++; if(ev) a.hit++; } });
+    });
+  });
+  // 규칙 B: 시·군 중심 반경 (사건 = 이후 14일 안에 반경 20km 안 농장 발생)
+  const units = {}; Object.keys(HPAI_KR_MAP.pts).forEach(k => { const [s, g] = k.split("|"); if(/[시군구]$/.test(g) && g.length >= 3 && s !== "서울") units[k] = rmLatLng(s, g); });
+  const B = { 3:{ n:0, flag:0, ev:0, hit:0 }, 4:{ n:0, flag:0, ev:0, hit:0 } };
+  const ukeys = Object.keys(units);
+  dates.forEach(t => {
+    const t30 = hzAddDays(t, -30), t14 = hzAddDays(t, 14);
+    const recent = fl.filter(x => x.p && x.conf > t30 && x.conf <= t), recentW = wl.filter(x => x.p && x.conf > t30 && x.conf <= t), fut = fl.filter(x => x.p && x.conf > t && x.conf <= t14);
+    ukeys.forEach(k => {
+      const ll = units[k]; if(!ll) return;
+      const c = (arr, km) => arr.some(x => rmKm(ll, x.p) <= km);
+      const lv = c(recent, 20) ? 4 : (c(recent, 50) || c(recentW, 20)) ? 3 : 0;
+      const ev = c(fut, 20);
+      [3, 4].forEach(th => { const b = B[th]; b.n++; if(ev) b.ev++; if(lv >= th){ b.flag++; if(ev) b.hit++; } });
+    });
+  });
+  const res = { from:dates[0], to:dates[dates.length - 1], weeks:dates.length, A, B };
+  hzBtCache = { key, res };
+  return res;
+}
+function hzBacktestBox(){
+  const R = hzBacktest();
+  const head = `<div style="font-size:13px;font-weight:800;color:#222;margin:14px 0 4px">📊 과거 발생과 대조 (규칙이 얼마나 맞았나)</div>`;
+  if(!R) return head + `<div style="font-size:12px;color:#888">대조할 만큼 자료가 쌓이지 않았습니다.</div>`;
+  const pct = x => (x * 100).toFixed(0) + "%";
+  const rowOf = (name, th, o) => {
+    const prec = o.flag ? o.hit / o.flag : null, rec = o.ev ? o.hit / o.ev : null, base = o.n ? o.ev / o.n : 0, lift = prec !== null && base ? prec / base : null;
+    return `<tr><td style="padding:5px 8px;font-weight:700">${name}</td><td style="padding:5px 8px;text-align:center">${th} 이상</td><td style="padding:5px 8px;text-align:center">${o.flag} / ${o.n}</td><td style="padding:5px 8px;text-align:center">${prec === null ? "-" : pct(prec) + " <span style='color:#888'>(" + o.hit + "/" + o.flag + ")</span>"}</td><td style="padding:5px 8px;text-align:center">${rec === null ? "-" : pct(rec) + " <span style='color:#888'>(" + o.hit + "/" + o.ev + ")</span>"}</td><td style="padding:5px 8px;text-align:center">${pct(base)}</td><td style="padding:5px 8px;text-align:center;font-weight:800">${lift === null ? "-" : lift.toFixed(1) + "배"}</td></tr>`;
+  };
+  const rows = [2, 3, 4].map(th => rowOf("시·도 규칙", th, R.A[th])).join("") + [3, 4].map(th => rowOf("시·군 반경 규칙", th, R.B[th])).join("");
+  return head + `
+    <div style="font-size:11.8px;color:#555;line-height:1.7;margin-bottom:6px">매주 기준일(${hkFmt(R.from)} ~ ${hkFmt(R.to)}, ${R.weeks}주)마다 <b>그날까지의 자료만</b>으로 규칙을 적용하고, 이후 <b>14일 안에 실제 가금농장 발생</b>이 있었는지 세었습니다. (시·도 규칙: 같은 시·도 / 시·군 반경 규칙: 반경 20km 안, 서울 제외)</div>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11.8px;min-width:560px"><thead><tr style="background:#f6f7f9"><th style="padding:5px 8px;text-align:left">규칙</th><th style="padding:5px 8px">경보 기준</th><th style="padding:5px 8px">경보 / 전체(지역×주)</th><th style="padding:5px 8px">경보 중 실제 발생(정밀도)</th><th style="padding:5px 8px">발생 중 경보였던 비율(재현율)</th><th style="padding:5px 8px">전체 발생 비율</th><th style="padding:5px 8px">무작위 대비</th></tr></thead><tbody>${rows}</tbody></table></div>
+    ${hzBox("이 표를 읽는 법과 한계", "‘무작위 대비’가 1배에 가까우면 규칙이 아무 지역이나 고른 것과 다르지 않다는 뜻입니다. 이 대조는 <b>규칙을 만든 같은 자료(주로 25/26 시즌)로 평가한 것이라 실제보다 낙관적일 수 있고</b>, 발생이 소수 지역에 몰려 있고 같은 사건이 여러 주·여러 지역에 중복해서 잡히므로 <b>통계적 결론으로 쓸 수 없습니다.</b> 다음 시즌 자료로 규칙을 바꾸지 않은 채 다시 대조하기 전에는 ‘예측 성능’이라고 말하지 않습니다.", "#E65100")}`;
+}
+
 function renderHzSim(){
   const s = hzScore(), c = hzClass(s);
   const rows = HZ_SIM_ITEMS.map((it, i) => `<div style="border:1px solid #e8e8e8;border-radius:10px;padding:9px 11px;margin:7px 0;background:#fff">
@@ -12328,12 +12435,14 @@ function renderHzSim(){
     ${hzBox("⚠️ 연구용 예시입니다", "아래 점수와 가중치는 연구 시작을 위한 <b>가설적 설계안</b>이며, 실제 농장의 감염확률이나 과학적으로 검증된 상대위험도가 아닙니다. 실제 적용 전 발생자료와 대조해 가중치·기준값·예측성능을 검증해야 합니다. <b>법정 방역조치는 점수와 관계없이 적용됩니다.</b>", "#E65100")}
     ${ibP("각 항목의 <b>노출·취약성 수준을 0~4</b>로 조정해 보세요. 종합점수 = Σ (항목 수준 ÷ 4 × 가중치).")}
     ${hzRegionBox()}
+    ${hzNearBox()}
     ${rows}
     <div style="border:2px solid ${c[1]};background:${c[2]};border-radius:12px;padding:12px 14px;margin:10px 0;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
       <div><div style="font-size:11.5px;color:#666;font-weight:700">종합 시범 위험점수</div><div style="font-size:34px;font-weight:900;color:${c[1]};line-height:1.1">${s}<span style="font-size:14px;color:#888;font-weight:600"> / 100점</span></div></div>
       <div style="text-align:right"><div style="font-size:22px;font-weight:900;color:${c[1]}">${c[0]}</div><div style="font-size:10.5px;color:#888">임시 분류 기준 (검증 전)</div></div>
     </div>
     <div style="font-size:11px;color:#777;line-height:1.7">임시 분류 기준: 0~24 낮음 · 25~49 보통 · 50~74 높음 · 75~100 매우 높음. 이 구간은 제안서의 예시(기본값 50점 = 높음)에 맞춘 것으로 근거가 확인되지 않았습니다.</div>
+    ${hzBacktestBox()}
     <button type="button" id="hz-sim-reset" style="margin-top:8px;border:1px solid #ddd;background:#fff;color:#666;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer">초기값으로 재설정</button>`;
 }
 function renderHzCheck(){
@@ -12392,7 +12501,10 @@ function hzBind(){
   document.querySelectorAll("[data-hz-ts]").forEach(b => b.onclick = () => { hzState.ts = Number(b.dataset.hzTs); render(); });
   document.querySelectorAll("[data-hz-tt]").forEach(b => b.onclick = () => { hzState.tt = Number(b.dataset.hzTt); render(); });
   document.querySelectorAll(".hz-task").forEach(c => c.onchange = () => { if(c.checked) hzState.tasks[c.dataset.id] = true; else delete hzState.tasks[c.dataset.id]; hzSave(); render(); });
-  const hzSido = $("hz-sido"); if(hzSido) hzSido.onchange = () => { hzState.sido = hzSido.value; hzSave(); render(); };
+  const hzSido = $("hz-sido"); if(hzSido) hzSido.onchange = () => { hzState.sido = hzSido.value; hzNearState.sgg = ""; hzSave(); render(); };
+  const hzSgg = $("hz-sgg"); if(hzSgg) hzSgg.onchange = () => { hzNearState.sgg = hzSgg.value; render(); };
+  const hzA1 = $("hz-near-apply1"); if(hzA1) hzA1.onclick = () => { hzState.sim[0] = Number(hzA1.dataset.lv); hzSave(); render(); };
+  const hzA2 = $("hz-near-apply2"); if(hzA2) hzA2.onclick = () => { hzState.sim[1] = Number(hzA2.dataset.lv); hzSave(); render(); };
   const hzApply = $("hz-region-apply"); if(hzApply) hzApply.onclick = () => { hzState.sim[0] = Number(hzApply.dataset.lv); hzSave(); render(); };
   const simReset = $("hz-sim-reset"); if(simReset) simReset.onclick = () => { hzState.sim = [2, 2, 2, 2, 2]; hzSave(); render(); };
   document.querySelectorAll(".hz-chk").forEach(c => c.onchange = () => {
