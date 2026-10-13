@@ -749,6 +749,7 @@ let premiumState = {
 // 배열 순서가 곧 화면에 보이는 순서이므로, 같은 category끼리는 붙여서 둔다.
 const PREMIUM_ITEMS = [
   { key:"ibteam", icon:"🧬", title:"전염성기관지염(IB)차단 AI공동연구팀", desc:"IB 기초 질병학부터 위험요인·국내 실태·진단·백신 방어·논문 연구·시범농장 실증·예방시스템까지 8단계로 순차 연구합니다. 단계마다 기초 이론·전문 심화·육계/산란계 비교·현장 사례·문헌 검토·농장 점검표를 제공합니다.", color:"#C62828", category:"AI공동연구팀" },
+  { key:"hpaizero", icon:"🦠", title:"고병원성 조류인플루엔자(HPAI) 예방 AI공동연구팀 — HPAI ZERO FARM", desc:"8개 전문분야 AI 연구팀과 총괄 AI가 야생조류·지리·기상·차단방역·임상·예측·현장 실증을 함께 연구하는 체계입니다. 마스터 프롬프트, 단계별 연구 프로그램, 농장 위험평가 시뮬레이터(연구용 예시), 일일 방역 점검표를 제공합니다.", color:"#00695C", category:"AI공동연구팀" },
   { key:"drug", icon:"💊", title:"약품조회 및 휴약기간 검색", desc:"동물용의약품을 제품명·업체명·성분명·축종·증상으로 검색하고, 축종별 휴약기간을 QIA 공식 데이터로 바로 확인합니다.", color:"#00838F", category:"약품·투약·소독" },
   { key:"treatment", icon:"💉", title:"상황별 처방(투약) 패키지", desc:"육계·산란계 농장 상황을 고르면 그에 맞는 투약(처방) 프로그램을 보여드립니다. 상황은 계속 추가됩니다.", color:"#C62828", category:"약품·투약·소독" },
   { key:"seasonal", icon:"🗓️", title:"계절별 투약(관리) 패키지", desc:"봄·여름·가을·겨울 시기별로 챙겨야 할 투약(백신)과 사양관리 주의사항을 안내합니다.", color:"#795548", category:"약품·투약·소독" },
@@ -850,7 +851,7 @@ const PREMIUM_MENU_LEGACY_PATH = "premium_menu/items.json";
 // 제공한다(회원관리·자동문자발송관리는 별도로 자동 추가되는 관리자 전용
 // 항목이라 목록에서 뺀다).
 const PREMIUM_MENU_KNOWN_KEYS = [
-  "ibteam","drug","treatment","seasonal","finder","disinfect","newproducts","vaccine",
+  "ibteam","hpaizero","drug","treatment","seasonal","finder","disinfect","newproducts","vaccine",
   "ventfinder","lightguide","moltguide","feedstandard","feedgrain","grainprice","priceforecast","tradestats","supplement","selfcheck","diagnosis","specimen","faq","study",
   "research","diseasebrief","emerging","industrynews","drugnews","magazine","kkoko","feature_board","consult","consulting","smssub",
 ];
@@ -859,7 +860,7 @@ let premiumMenuState = { status:"idle", data:null, busy:false, msg:"", adminOpen
 
 // 관리자가 저장한 메뉴가 있어도, 그 뒤에 새로 만든 기본 메뉴(PREMIUM_MENU_NEW_SEED_KEYS)는 빠져 보이지 않게
 // 저장된 메뉴에 없을 때만 기본 위치(앞 메뉴 뒤)에 끼워 보여 준다.
-const PREMIUM_MENU_NEW_SEED_KEYS = ["ibteam", "drugnews", "diseasebrief", "priceforecast", "tradestats", "supplement"];
+const PREMIUM_MENU_NEW_SEED_KEYS = ["ibteam", "hpaizero", "drugnews", "diseasebrief", "priceforecast", "tradestats", "supplement"];
 // 관리자가 예전에 저장한 메뉴에는 두 항목이 「사양관리」로 들어 있으므로, 분류만 새 묶음으로 강제한다.
 // 분류 이름이 바뀐 경우(관리자가 예전에 저장한 메뉴에 옛 이름이 남아 있어도 새 이름으로 묶는다)
 const PREMIUM_MENU_CATEGORY_RENAME = { "백신관리": "백신·약품관리" };
@@ -11701,6 +11702,329 @@ function suppBind(){
 // 관리자는 화면의 「⚙ 관리」·「✏️ 이 항목 수정」으로 본문·강의 목록·공개 단계를 고칠 수 있다(아래 ibContentState, Firebase 편집본이 기본 내용을 덮어씀).
 // 각 강의는 ①~⑨ 순서(목표·기초·심화·육계/산란계·현장·문헌·예방관리·요약·다음 제안)를 지킨다.
 // 문헌은 실제로 존재가 확인된 자료만 싣고, 원문·PMID·DOI를 직접 확인하지 못했으면 반드시 그렇게 표시한다.
+// ── HPAI ZERO FARM — 고병원성 조류인플루엔자(HPAI) 예방 AI 공동연구팀 (유료서비스 · AI공동연구팀) ──────────
+// 사용자가 제안한 통합 프롬프트(연구팀 구성·마스터 프롬프트·위험평가 모델 초안·일일 점검표)를 그대로 담은 정적 자료다.
+// 위험점수·가중치는 연구 시작을 위한 가설적 설계안이며 검증된 감염확률이 아니다 — 화면 곳곳에 같은 문구를 둔다.
+const HZ_COLOR = "#00695C";
+const HZ_STORE = "hpai_zero_v1";
+const hzState = { tab:"intro", sim:[2, 2, 2, 2, 2], checks:{}, copied:"" };
+(function hzLoad(){
+  try {
+    const j = JSON.parse(localStorage.getItem(HZ_STORE) || "{}");
+    if(Array.isArray(j.sim) && j.sim.length === 5) hzState.sim = j.sim.map(v => Math.max(0, Math.min(4, Number(v) || 0)));
+    if(j.checks && typeof j.checks === "object") hzState.checks = j.checks;
+  } catch(e){}
+})();
+function hzSave(){ try { localStorage.setItem(HZ_STORE, JSON.stringify({ sim:hzState.sim, checks:hzState.checks })); } catch(e){} }
+function hzToday(){ const k = new Date(Date.now() + 9 * 3600000); return k.toISOString().slice(0, 10); }
+
+const HZ_TABS = [["intro", "① 프로젝트·연구팀"], ["prompt", "② 마스터 프롬프트"], ["program", "③ 단계별 프로그램"], ["sim", "④ 위험평가 시뮬레이터"], ["check", "⑤ 일일 점검표"], ["refs", "⑥ 기준 자료·구축 방향"]];
+const HZ_TEAMS = [
+  ["총괄 연구책임 AI", "연구계획 수립, 결과 통합, 상충되는 의견 조정"],
+  ["제1팀 바이러스·역학", "H5·H7 아형, 병원성, 전파 양상, 역학관계 분석"],
+  ["제2팀 야생조류 생태", "철새 이동경로, 서식지, 농장과의 접촉 가능성"],
+  ["제3팀 지리·공간 분석", "GIS, 하천·저수지, 지형, 농장 밀집도 분석"],
+  ["제4팀 기상·환경", "온도, 습도, 강수, 풍향, 계절성 및 환경 조건"],
+  ["제5팀 농장 차단방역", "인력·차량·장비·분뇨·출입구 관리"],
+  ["제6팀 수의·임상 진단", "임상증상, 조기 이상징후, 감별진단, 신고"],
+  ["제7팀 데이터·AI 예측", "위험도 모델, 데이터 검증, 예측성능 평가"],
+  ["제8팀 현장 실증·경제성", "실천 가능성, 방역비용, 효과, 교육자료"],
+];
+const HZ_TEAM_TASKS = [
+  ["제1팀 바이러스학·수의역학", ["인플루엔자 A 바이러스의 기본 구조와 특징", "H5 및 H7 아형의 주요 역학적 의미", "고병원성 및 저병원성의 구별", "자연환경에서의 감염과 전파 양상", "국내외 발생 추세 및 역학조사 결과", "임상증상과 조기감시 지표"]],
+  ["제2팀 야생조류·철새 생태학", ["동아시아-대양주 철새 이동경로", "국내 주요 철새도래지와 계절별 분포", "오리류·기러기류 등 주요 조류의 생태학적 특성", "야생조류 감염 검출 자료와 농장 발생의 시공간적 관련성", "철새도래지 주변 농장의 노출 경로", "야생조류 분변·수계·농경지와 가금농장의 연결 가능성"]],
+  ["제3팀 지리정보·공간역학", ["농장 위치 및 고도", "하천·저수지·습지와의 거리, 철새도래지와의 거리", "주변 가금농장 분포와 밀집도, 주변 확진농장과의 거리·발생 시점", "농장 진입도로·농업용수·배수시설·지형 특성", "발생 사례의 공간적 군집 분석, GIS 기반 농장별 위험지도", "직선거리뿐 아니라 실제 차량 이동경로와 농장 간 접촉 네트워크를 구분해 분석"]],
+  ["제4팀 기상·환경역학", ["기온·계절 변화, 상대습도·강수량, 풍향·풍속", "결빙 및 해빙, 집중호우·침수, 주변 농경지의 물 고임", "기상 변화와 야생조류의 지역 이동 가능성", "기상조건과 실제 발생자료 사이의 통계적 관련성", "기상요인에 의한 직접 전파를 입증한 것처럼 설명하지 않고, 모든 관련성을 근거 수준에 따라 평가"]],
+  ["제5팀 농장 차단방역", ["외부 차량·인력의 출입통제, 청결구역·오염구역 구분, 전실과 축사 출입동선", "장화·작업복·손 위생, 출입차량의 세척·소독", "사료차량·계란운반차량·분뇨차량 관리", "야생조류·설치류 침입 차단, 급수시설·사료 보관시설 관리", "축사 구조·환기구·방조망·출입구 관리", "분뇨·폐사체·깔짚의 안전한 취급, 소독시설 점검과 소독 효과 검증"]],
+  ["제6팀 임상·조기경보", ["폐사율의 비정상적 변화, 사료·음수 섭취량 변화", "산란율 및 난질 변화, 호흡기·신경계 이상, 급격한 생산성 저하", "농장별 정상 변동범위 설정", "AI 의심 시 출입·이동통제와 즉시 신고, 관할 가축방역기관의 검사·역학조사 협조", "AI의 추정만으로 질병을 확진하거나 정부의 공식 진단·조치 권한을 대체하지 않음"]],
+  ["제7팀 데이터·인공지능 예측", ["국내외 공개 발생자료 수집, 발생 날짜·좌표·축종·아형 표준화", "농장 및 야생조류 감시자료 통합, 계절성·지역별 위험도 분석", "농장별 상대적 위험점수 산출, 모델 학습 및 외부 검증", "예측 오차와 불확실성 공개, 위험도 상승 원인에 대한 설명 제공"]],
+  ["제8팀 농장 실증·경제성 평가", ["방역조치의 현장 실천 가능성, 축종별·농장 규모별 적용 차이", "시설 개선 비용 및 운영비, 방역수칙 준수율 평가", "관리자 교육자료 제작, 현장 실증 결과를 활용한 프로토콜 개정", "방역투자 대비 기대효과와 불확실성 제시"]],
+];
+const HZ_PROGRAM = [
+  ["1단계 기본 학습 및 문헌연구", "HPAI의 바이러스 특성·감염 경로·임상증상·진단체계·국내 방역법규를 조사한다. 공신력 있는 자료와 동료심사 논문을 우선 사용한다.", "기본교육 교재 · 핵심 용어집 · 역학적 전파경로 도식 · 분야별 주요 논문 요약"],
+  ["2단계 국내외 발생 역학 분석", "가능한 한 최근 10년 이상의 자료를 확보해 계절·지역·축종·농장 규모별로 분석한다.", "월별·연도별 발생 추이 · 축종별 발생 특성 · 철새 검출과 농장 발생의 시간적 관계 · 지역별 군집과 주요 위험요인 · 자료의 한계 및 누락 현황"],
+  ["3단계 야생조류 및 지리적 위험 분석", "농장 주변의 수계·철새 서식지·농경지·축산시설·도로 및 환경 특성을 조사한다. 환경노출, 기계적 전파, 농장 간 확산 가능성을 각각 구분한다.", "GIS 위험지도 · 지역별 계절 위험도 · 농장 외부 유입경로 분석 · 시설 및 운영상 취약점 목록"],
+  ["4단계 농장별 위험평가 모델 개발", "농장의 지리적 위험과 실제 차단방역 수준을 함께 평가한다. 자료가 충분하지 않으면 먼저 전문가 기반의 임시 점수모델을 쓰되, 이를 검증된 감염확률로 표현하지 않는다.", "위험평가 항목 및 가중치 · 항목별 근거와 불확실성 · 위험등급별 대응체계 · 개선에 따른 위험점수 변화"],
+  ["5단계 예방 프로토콜 개발", "일상방역, 계절별 강화방역, 인근 발생 시 긴급방역, 농장 의심증상 발생 시 대응으로 구분한다.", "농장별 표준작업절차(SOP) · 매일·매주·매월 점검표 · 긴급상황 행동지침 · 관리자 교육자료"],
+  ["6단계 현장 적용 및 검증", "시범농장을 선정해 방역점검 준수율, 시설 개선, 조기신고체계 작동 여부 등을 평가한다. 발생하지 않았다는 사실만으로 특정 예방조치의 효과가 입증되었다고 판단하지 않는다.", "시범농장 평가보고서 · 현장 개선사례 · 투자 우선순위 · 개정된 예방 프로토콜"],
+];
+const HZ_INPUTS = ["시·군·읍·면 또는 농장 좌표", "사육 축종 및 마릿수", "사육형태(케이지·평사·동물복지 등)", "축사 수와 시설 구조", "주변 하천·저수지·농경지 환경", "농장 내외 차량 이동 형태", "사료·계란·분뇨·폐사체 처리 동선", "농장 전실 및 소독시설 현황", "사육기록과 일별 폐사율", "최근 방역점검 결과", "기타 특이사항"];
+const HZ_OUTPUT = [
+  ["A. 농장 기본현황", "농장 위치, 축종, 규모, 사육시설, 분석 기준일"],
+  ["B. 지역 위험도", "공식 발생현황, 야생조류 검출, 지리·기상 위험요인, 자료 기준일"],
+  ["C. 농장 차단방역 진단", "방역시설·인력·차량·장비·위생관리의 강점과 취약점"],
+  ["D. 위험점수 및 불확실성", "세부항목별 점수, 가중치, 결측자료, 모델 검증 여부"],
+  ["E. 즉시 개선할 5가지 사항", "위험성과 현장 실천 가능성을 고려한 우선순위"],
+  ["F. 농장 맞춤형 예방 프로토콜", "매일·매주·계절별·긴급상황별 구체적인 행동"],
+  ["G. 현장 점검표", "관리자가 체크하고 기록할 수 있는 표"],
+  ["H. AI 공동연구팀 검토의견", "8개 전문팀의 주요 발견, 이견, 추가 검증 필요사항"],
+  ["I. 참고자료", "원문 링크, 발표연도, 문헌정보 및 근거 수준"],
+];
+// 위험평가 시뮬레이터 — 항목·가중치는 제안서의 초기 설계안 그대로(검증 전)
+const HZ_SIM_ITEMS = [
+  { name:"공식 지역 발생 및 야생조류 검출", w:25, hint:"농장이 속한 지역의 공식 발생·검출 현황(최근 시점, 거리)" },
+  { name:"농장 주변 지리·환경 노출", w:20, hint:"하천·저수지·철새도래지와의 거리, 주변 농장 밀집도, 지형" },
+  { name:"인력·차량·물품 이동", w:20, hint:"외부 차량·인력 출입, 사료·계란·분뇨 차량, 물품 반입" },
+  { name:"시설·차단방역 취약성", w:25, hint:"전실·소독시설·방조망·울타리, 청결/오염 구역 구분 상태" },
+  { name:"계절·기상 요인", w:10, hint:"방역 강화 기간 여부, 결빙·해빙·집중호우 등 기상 조건" },
+];
+const HZ_LEVEL_LABEL = ["0 매우 낮음", "1 낮음", "2 보통", "3 높음", "4 매우 높음"];
+function hzScore(){ return Math.round(HZ_SIM_ITEMS.reduce((a, it, i) => a + hzState.sim[i] / 4 * it.w, 0)); }
+// 임시 분류 기준 — 제안서의 예시(50점=높음)에 맞춘 구간이며 검증되지 않았다
+function hzClass(s){ return s >= 75 ? ["매우 높음", "#B71C1C", "#FFEBEE"] : s >= 50 ? ["높음", "#E65100", "#FFF3E0"] : s >= 25 ? ["보통", "#F9A825", "#FFF8E1"] : ["낮음", "#2E7D32", "#E8F5E9"]; }
+const HZ_CHECK_ITEMS = [
+  "농장 출입구·울타리 및 방조망 파손 여부 확인",
+  "전실의 축사 전용 장화·작업복 및 손 위생 절차 확인",
+  "외부차량 출입 승인·세척·소독기록 확인",
+  "사료·음수시설에 야생조류 분변이나 오염 흔적이 없는지 확인",
+  "축사 주변 설치류·야생동물 침입 흔적 점검",
+  "일별 폐사수와 사료·음수 섭취량 등 이상징후 확인",
+  "정부 공식 발생정보·야생조류 검출정보 확인",
+  "폐사체·분뇨·장비 이동 및 처리 절차 확인",
+];
+const HZ_PROMPT = `HPAI ZERO FARM
+고병원성 조류인플루엔자 예방을 위한 다중 AI 공동연구 시스템
+
+1. 시스템의 역할과 최종 목표
+너는 고병원성 조류인플루엔자(HPAI)의 발생을 예방하기 위해 구성된 다학제 AI 공동연구팀의 총괄 연구책임자다.
+연구팀은 바이러스학, 수의역학, 야생조류 생태학, 지리정보학, 환경과학, 농장 차단방역, 인공지능 예측, 현장 실증 분야의 전문가 역할을 수행한다.
+궁극적인 목적은 다음과 같다.
+1. 조류인플루엔자의 발생과 전파 원리를 과학적으로 규명한다.
+2. 야생조류·환경·지형·농장 관리조건 사이의 역학적 관련성을 분석한다.
+3. 국내외 과거 발생 사례와 최신 감시자료를 분석한다.
+4. 개별 가금농장의 바이러스 유입 위험을 평가한다.
+5. 산란계·육계·종계·오리 등 축종에 적합한 예방 프로토콜을 개발한다.
+6. 농장 관리자가 매일 실천할 수 있는 방역 체크리스트를 제공한다.
+7. 현장 자료를 지속적으로 축적해 위험평가 모델을 개선한다.
+예방 효과를 과학적으로 검증하는 것을 목표로 하며, 감염의 완전 차단이나 100% 예방을 보장하지 않는다.
+
+2. 공동연구 AI 조직 운영
+다음 8개 연구팀을 운영한다.
+제1팀 바이러스학·수의역학: 인플루엔자 A 바이러스의 기본 구조와 특징, H5·H7 아형의 역학적 의미, 고병원성·저병원성의 구별, 자연환경에서의 감염과 전파 양상, 국내외 발생 추세 및 역학조사 결과, 임상증상과 조기감시 지표.
+제2팀 야생조류·철새 생태학: 동아시아-대양주 철새 이동경로, 국내 주요 철새도래지와 계절별 분포, 오리류·기러기류 등 주요 조류의 생태학적 특성, 야생조류 감염 검출 자료와 농장 발생의 시공간적 관련성, 철새도래지 주변 농장의 노출 경로, 야생조류 분변·수계·농경지와 가금농장의 연결 가능성.
+제3팀 지리정보·공간역학: 농장 위치 및 고도, 하천·저수지·습지와의 거리, 철새도래지와의 거리, 주변 가금농장 분포와 밀집도, 주변 확진농장과의 거리 및 발생 시점, 농장 진입도로·농업용수·배수시설·지형 특성, 발생 사례의 공간적 군집 분석, GIS 기반 농장별 위험지도 제작. 단순 직선거리뿐 아니라 실제 차량 이동경로와 농장 간 접촉 네트워크를 구분해 분석한다.
+제4팀 기상·환경역학: 기온과 계절별 변화, 상대습도 및 강수량, 풍향·풍속과 지역 환경, 결빙 및 해빙, 집중호우·침수·주변 농경지의 물 고임, 기상 변화와 야생조류의 지역 이동 가능성, 기상조건과 실제 발생자료 사이의 통계적 관련성. 기상요인에 의한 직접적인 전파를 입증한 것처럼 설명하지 않는다. 모든 관련성을 근거 수준에 따라 평가한다.
+제5팀 농장 차단방역: 외부 차량과 인력의 출입통제, 청결구역·오염구역 구분, 전실과 축사 출입동선, 장화·작업복·손 위생, 농장 출입차량의 세척·소독, 사료차량·계란운반차량·분뇨차량 관리, 야생조류와 설치류의 침입 차단, 급수시설 및 사료 보관시설 관리, 축사 구조·환기구·방조망·출입구 관리, 분뇨·폐사체·깔짚의 안전한 취급, 소독시설 점검과 소독 효과 검증.
+제6팀 임상·조기경보: 폐사율의 비정상적인 변화, 사료·음수 섭취량 변화, 산란율 및 난질 변화, 호흡기·신경계 이상, 급격한 생산성 저하, 농장별 정상 변동범위 설정, AI 의심 시 출입·이동통제와 즉시 신고, 관할 가축방역기관의 검사 및 역학조사 협조. AI의 추정만으로 질병을 확진하거나, 정부의 공식 진단·조치 권한을 대체하지 않는다.
+제7팀 데이터·인공지능 예측: 국내외 공개 발생자료 수집, 발생 날짜·좌표·축종·아형 표준화, 농장 및 야생조류 감시자료 통합, 계절성 및 지역별 위험도 분석, 농장별 상대적 위험점수 산출, 모델 학습 및 외부 검증, 예측 오차와 불확실성 공개, 위험도 상승 원인에 대한 설명 제공.
+제8팀 농장 실증·경제성 평가: 방역조치의 현장 실천 가능성 검토, 축종별·농장 규모별 적용 차이, 시설 개선 비용 및 운영비 분석, 방역수칙 준수율 평가, 관리자 교육자료 제작, 현장 실증 결과를 활용한 프로토콜 개정, 방역투자 대비 기대효과와 불확실성 제시.
+
+3. 단계별 연구 프로그램
+1단계 기본 학습 및 문헌연구 — 결과물: 기본교육 교재, 핵심 용어집, 역학적 전파경로 도식, 분야별 주요 논문 요약.
+2단계 국내외 발생 역학 분석(가능한 한 최근 10년 이상의 자료, 계절·지역·축종·농장 규모별) — 결과물: 월별·연도별 발생 추이, 축종별 발생 특성, 철새 검출과 농장 발생의 시간적 관계, 지역별 군집과 주요 위험요인, 자료의 한계 및 누락 현황.
+3단계 야생조류 및 지리적 위험 분석(환경노출, 기계적 전파, 농장 간 확산 가능성을 각각 구분) — 결과물: GIS 위험지도, 지역별 계절 위험도, 농장 외부 유입경로 분석, 시설 및 운영상 취약점 목록.
+4단계 농장별 위험평가 모델 개발(자료가 충분하지 않으면 전문가 기반 임시 점수모델을 사용하되 검증된 감염확률로 표현하지 않는다) — 결과물: 위험평가 항목 및 가중치, 항목별 근거와 불확실성, 위험등급별 대응체계, 개선에 따른 위험점수 변화.
+5단계 예방 프로토콜 개발(일상방역, 계절별 강화방역, 인근 발생 시 긴급방역, 농장 의심증상 발생 시 대응) — 결과물: 농장별 표준작업절차(SOP), 매일·매주·매월 점검표, 긴급상황 행동지침, 관리자 교육자료.
+6단계 현장 적용 및 검증(시범농장 선정, 방역점검 준수율·시설 개선·조기신고체계 작동 여부 평가; 발생하지 않았다는 사실만으로 특정 예방조치의 효과가 입증되었다고 판단하지 않는다) — 결과물: 시범농장 평가보고서, 현장 개선사례, 투자 우선순위, 개정된 예방 프로토콜.
+
+4. 농장별 입력 데이터
+농장 분석을 신청하면 다음 정보를 수집한다: 시·군·읍·면 또는 농장 좌표, 사육 축종 및 마릿수, 사육형태(케이지·평사·동물복지 등), 축사 수와 시설 구조, 주변 하천·저수지·농경지 환경, 농장 내외 차량 이동 형태, 사료·계란·분뇨·폐사체 처리 동선, 농장 전실 및 소독시설 현황, 사육기록과 일별 폐사율, 최근 방역점검 결과, 기타 특이사항.
+공개 서비스에서는 농장 좌표와 경영정보를 보호하고, 접근권한과 보존기간을 설정한다.
+
+5. 위험평가 및 예방 프로토콜
+각 항목은 자료의 신뢰도에 따라 평가하고, 필요한 경우 사용자에게 보완자료를 요청한다. 종합 결과는 다음 다섯 가지로 제공한다.
+1. 현재 지역 감염 노출 위험
+2. 농장의 구조적 취약성
+3. 농장의 운영상 방역 취약성
+4. 개선이 필요한 상위 5개 항목
+5. 오늘 시행할 구체적인 조치
+단, 법정 통제구역, 행정명령, 긴급신고 사항은 AI 위험점수와 별도로 우선 적용한다.
+
+6. 과학적 검증 원칙
+모든 연구결과에는 다음 내용을 표시한다: 자료의 출처 및 발표일, 조사 대상 및 분석 기간, 사용한 분석방법, 연구의 근거 수준, 통계적 관련성과 인과관계의 구별, 자료의 한계, 현장 적용 가능성, 추가 검증이 필요한 사항.
+출처가 없는 가상의 논문, 수치, 감염확률 또는 방역지침을 만들지 않는다.
+
+7. 자료 수집 우선순위
+1. 농림축산식품부의 현행 방역지침과 공고
+2. 농림축산검역본부의 역학조사 및 감시자료
+3. 지자체 및 공식 가축방역기관 자료
+4. 환경부 및 국립야생동물질병관리원 관련 자료
+5. 기상청 기상관측자료
+6. WOAH, FAO, WHO 국제기구 자료
+7. PubMed 및 동료심사 학술논문
+8. 기타 검증 가능한 공식 공개자료
+실시간 데이터 연결이 없으면 최신정보를 확보했다고 주장하지 않고, 최종 확인 날짜를 명시한다.
+
+8. 최종 출력 형식
+모든 농장 평가 결과는 다음 순서로 출력한다.
+A. 농장 기본현황 — 농장 위치, 축종, 규모, 사육시설, 분석 기준일.
+B. 지역 위험도 — 공식 발생현황, 야생조류 검출, 지리·기상 위험요인, 자료 기준일.
+C. 농장 차단방역 진단 — 방역시설·인력·차량·장비·위생관리의 강점과 취약점.
+D. 위험점수 및 불확실성 — 세부항목별 점수, 가중치, 결측자료, 모델 검증 여부.
+E. 즉시 개선할 5가지 사항 — 위험성과 현장 실천 가능성을 고려한 우선순위.
+F. 농장 맞춤형 예방 프로토콜 — 매일·매주·계절별·긴급상황별 구체적인 행동.
+G. 현장 점검표 — 관리자가 체크하고 기록할 수 있는 표.
+H. AI 공동연구팀 검토의견 — 8개 전문팀의 주요 발견, 이견, 추가 검증 필요사항.
+I. 참고자료 — 원문 링크, 발표연도, 문헌정보 및 근거 수준.
+
+9. 연구 운영 및 안전수칙
+- 정부와 공식 방역기관의 현행 지침을 항상 우선한다.
+- 농장에 AI 의심증상이 있으면 일반 위험평가보다 즉시 신고 및 공식 방역절차를 우선한다.
+- 병원체 배양, 증식, 병원성 증가, 전파능 강화 등의 실험적 절차는 제공하지 않는다.
+- 야생조류의 무분별한 포획, 살처분, 서식지 파괴를 예방책으로 권고하지 않는다.
+- 위험예측 결과를 질병 확진으로 표현하지 않는다.
+- 제도·지침과 분석 결과가 충돌하면 이를 명확히 표시한다.
+- 모든 권고는 농장 현실성과 과학적 근거를 함께 고려한다.
+
+10. 첫 번째 연구 지시
+지금부터 제1단계: 고병원성 조류인플루엔자의 기초 이해 및 감염 예방을 위한 역학적 기초연구를 시작하라.
+먼저 연구의 세부 목차를 작성하고, 8개 연구팀별 연구과제와 협업 관계를 제시하라.
+그다음 바이러스 특성, 국내 발생양상, 야생조류의 역할, 농장 유입경로를 체계적으로 설명하라.
+최종적으로 농장에 실제 적용할 수 있는 방역수칙 10개와 후속 연구과제 5개를 도출하라.
+농장 현장에서 실천할 수 있는 구체적인 결과물을 만드는 것을 모든 연구의 최우선 원칙으로 삼아라.`;
+
+function hzBox(title, body, c){ const col = c || "#455A64"; return `<div style="border:1px solid ${col}33;border-left:4px solid ${col};background:${col}0d;border-radius:9px;padding:9px 11px;margin:9px 0"><div style="font-size:12.5px;font-weight:800;color:${col};margin-bottom:4px">${title}</div><div style="font-size:12.5px;color:#333;line-height:1.75">${body}</div></div>`; }
+function hzUnverified(){ return `<span style="display:inline-block;font-size:10px;font-weight:800;color:#E65100;background:#FFF3E0;border:1px solid #E6510055;border-radius:5px;padding:0 5px;margin-right:4px;white-space:nowrap">공고 원문 미확인</span>`; }
+function renderHzIntro(){
+  return `
+    ${ibP("<b>HPAI ZERO FARM</b> — AI 기반 조류인플루엔자 예방·위험예측·농장 차단방역 공동연구 시스템입니다. 단순히 정보를 모으는 것이 아니라, 여러 분야의 AI 전문가 역할이 공동으로 연구하고, 지역별 감염 위험을 분석하여, 개별 농장에 맞는 예방 프로토콜을 만드는 것이 핵심입니다.")}
+    ${hzBox("최종적으로 농장 관리자가 얻게 될 결과 (구축 목표)", ibList([
+      "<b>지역별 감염 위험지도</b> — 철새 이동, 하천, 저수지, 주변 발생 농장, 기상조건 분석",
+      "<b>농장 맞춤형 예방수칙</b> — 산란계·육계·종계·오리 및 사육시설별 차등 적용",
+      "<b>감염 위험도 예측</b> — 실시간 감시자료와 과거 발생자료에 따른 위험등급 산출",
+      "<b>현장 방역 실행보고서</b> — 매일 점검, 문제점, 개선 우선순위, 긴급조치 작성",
+    ]), HZ_COLOR)}
+    ${hzBox("현재 구현 상태", "이 메뉴는 <b>연구 설계서와 현장 도구(위험평가 시뮬레이터·일일 점검표)</b> 단계입니다. 지역별 위험지도·자동 위험예측·농장별 보고서 자동 생성은 아직 연결되지 않았습니다. 지금 연결되어 있는 공식 자료는 AI관련정보 탭의 「국내 가금농장 HPAI 발생·검출 현황」 지도입니다.<br><button type=\"button\" data-hz-go=\"hpai\" style=\"margin-top:6px;border:1px solid #C62828;background:#fff;color:#C62828;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer\">🗺️ 발생·검출 현황 지도 보러 가기</button>", "#C62828")}
+    ${ibH("1. AI 공동연구팀 구성")}
+    ${ibP("한 명의 AI에게 모든 판단을 맡기지 않고, <b>8개 전문분야의 연구 AI와 1개의 총괄 AI</b>로 구성합니다. 총괄 AI는 팀별 의견을 단순 취합하는 대신 <b>확인된 사실·논문 근거·전문가 가설·검증되지 않은 추정</b>을 분리해 최종 보고서를 작성합니다.")}
+    ${ibTable(["연구팀", "전문 역할"], HZ_TEAMS, { minW: 480 })}
+    ${ibH("2. 연구의 핵심 원칙")}
+    ${ibList([
+      "<b>야생조류의 이동과 농장 내 감염 발생을 동일한 사건으로 취급하지 않는다.</b> 환경노출, 기계적 전파(사람·차량·장비·분뇨), 농장 간 확산 가능성을 각각 구분해 분석한다.",
+      "법정 통제구역·행정명령·긴급신고 사항은 AI 위험점수와 별도로 <b>항상 우선</b> 적용한다. 방역기간은 고정하지 않고 분석 당일의 정부 공고를 우선한다.",
+      "예방 효과를 과학적으로 검증하는 것이 목표이며, 감염의 완전 차단이나 100% 예방을 보장하지 않는다.",
+      "출처가 없는 가상의 논문·수치·감염확률·방역지침을 만들지 않는다. 모든 결과에 출처·발표일·분석 기간·근거 수준·한계를 표시한다.",
+      "AI의 위험예측을 질병 확진으로 표현하지 않으며, 정부·공식 방역기관의 진단·조치 권한을 대체하지 않는다.",
+    ])}
+    ${ibH("3. 팀별 연구과제")}
+    ${HZ_TEAM_TASKS.map(t => `<details style="border:1px solid #e5e5e5;border-radius:8px;padding:7px 10px;margin:6px 0;background:#fff"><summary style="cursor:pointer;font-size:12.5px;font-weight:700;color:#333">${t[0]}</summary>${ibList(t[1])}</details>`).join("")}`;
+}
+function renderHzPrompt(){
+  return `
+    ${ibP("아래 마스터 프롬프트는 ChatGPT·Claude·Gemini 등 AI의 <b>프로젝트 지침</b>에 붙여 넣거나, 웹서비스의 AI 분석 엔진에 적용할 수 있도록 작성된 것입니다. 「복사」를 눌러 그대로 사용하세요.")}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:6px 0">
+      <button type="button" id="hz-copy-prompt" style="border:none;background:${HZ_COLOR};color:#fff;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:800;cursor:pointer">📋 마스터 프롬프트 전체 복사</button>
+      <span id="hz-copy-msg" style="font-size:12px;color:#2E7D32;font-weight:700">${esc(hzState.copied)}</span>
+      <span style="font-size:11px;color:#888">${HZ_PROMPT.length.toLocaleString()}자</span>
+    </div>
+    <textarea id="hz-prompt-text" readonly rows="18" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #dbe7e5;border-radius:10px;font-size:12px;line-height:1.7;font-family:inherit;background:#FAFFFE;color:#222;resize:vertical">${esc(HZ_PROMPT)}</textarea>
+    ${hzBox("사용 방법", ibList([
+      "AI 프로젝트의 <b>시스템 지침(Custom instructions)</b>에 붙여 넣은 뒤, 마지막의 「10. 첫 번째 연구 지시」로 1단계 연구를 시작합니다.",
+      "농장 평가를 받으려면 「4. 농장별 입력 데이터」 항목을 채워 입력합니다(농장 좌표 등 경영정보는 공유 범위에 주의).",
+      "실시간 데이터 연결이 없는 AI는 최신정보를 확보했다고 주장하지 못하도록 이 프롬프트에 규정되어 있습니다 — 답변의 <b>최종 확인 날짜</b>를 반드시 확인하세요.",
+    ]), HZ_COLOR)}`;
+}
+function renderHzProgram(){
+  return `
+    ${ibH("단계별 연구 프로그램 (6단계)")}
+    ${ibTable(["단계", "내용", "결과물"], HZ_PROGRAM, { minW: 640 })}
+    ${ibH("농장별 입력 데이터")}
+    ${ibP("농장 분석을 신청하면 다음 정보를 수집하도록 설계했습니다. 공개 서비스에서는 <b>농장 좌표와 경영정보를 보호</b>하고 접근권한·보존기간을 설정해야 합니다.")}
+    ${ibList(HZ_INPUTS)}
+    ${ibH("종합 결과(5가지)")}
+    ${ibList(["현재 지역 감염 노출 위험", "농장의 구조적 취약성", "농장의 운영상 방역 취약성", "개선이 필요한 상위 5개 항목", "오늘 시행할 구체적인 조치"])}
+    ${ibP("단, 법정 통제구역·행정명령·긴급신고 사항은 AI 위험점수와 별도로 우선 적용합니다.")}
+    ${ibH("최종 출력 형식 (A~I)")}
+    ${ibTable(["항목", "담는 내용"], HZ_OUTPUT, { minW: 480 })}
+    ${ibH("연구 운영 및 안전수칙")}
+    ${ibList([
+      "정부와 공식 방역기관의 현행 지침을 항상 우선한다.",
+      "농장에 AI 의심증상이 있으면 일반 위험평가보다 <b>즉시 신고 및 공식 방역절차</b>를 우선한다.",
+      "병원체 배양·증식·병원성 증가·전파능 강화 등의 실험적 절차는 제공하지 않는다.",
+      "야생조류의 무분별한 포획·살처분·서식지 파괴를 예방책으로 권고하지 않는다.",
+      "위험예측 결과를 질병 확진으로 표현하지 않는다.",
+      "제도·지침과 분석 결과가 충돌하면 이를 명확히 표시한다. 모든 권고는 농장 현실성과 과학적 근거를 함께 고려한다.",
+    ])}`;
+}
+function renderHzSim(){
+  const s = hzScore(), c = hzClass(s);
+  const rows = HZ_SIM_ITEMS.map((it, i) => `<div style="border:1px solid #e8e8e8;border-radius:10px;padding:9px 11px;margin:7px 0;background:#fff">
+      <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b style="font-size:12.8px;color:#222">${it.name}</b><span style="font-size:11.5px;color:#666">${hzState.sim[i]} / 4 · 가중치 ${it.w}%</span></div>
+      <div style="font-size:11px;color:#888;margin:2px 0 4px">${it.hint}</div>
+      <input type="range" class="hz-sim" data-i="${i}" min="0" max="4" step="1" value="${hzState.sim[i]}" style="width:100%;accent-color:${HZ_COLOR}">
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:#999"><span>0 낮음</span><span>2 보통</span><span>4 높음</span></div></div>`).join("");
+  return `
+    ${hzBox("⚠️ 연구용 예시입니다", "아래 점수와 가중치는 연구 시작을 위한 <b>가설적 설계안</b>이며, 실제 농장의 감염확률이나 과학적으로 검증된 상대위험도가 아닙니다. 실제 적용 전 발생자료와 대조해 가중치·기준값·예측성능을 검증해야 합니다. <b>법정 방역조치는 점수와 관계없이 적용됩니다.</b>", "#E65100")}
+    ${ibP("각 항목의 <b>노출·취약성 수준을 0~4</b>로 조정해 보세요. 종합점수 = Σ (항목 수준 ÷ 4 × 가중치).")}
+    ${rows}
+    <div style="border:2px solid ${c[1]};background:${c[2]};border-radius:12px;padding:12px 14px;margin:10px 0;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+      <div><div style="font-size:11.5px;color:#666;font-weight:700">종합 시범 위험점수</div><div style="font-size:34px;font-weight:900;color:${c[1]};line-height:1.1">${s}<span style="font-size:14px;color:#888;font-weight:600"> / 100점</span></div></div>
+      <div style="text-align:right"><div style="font-size:22px;font-weight:900;color:${c[1]}">${c[0]}</div><div style="font-size:10.5px;color:#888">임시 분류 기준 (검증 전)</div></div>
+    </div>
+    <div style="font-size:11px;color:#777;line-height:1.7">임시 분류 기준: 0~24 낮음 · 25~49 보통 · 50~74 높음 · 75~100 매우 높음. 이 구간은 제안서의 예시(기본값 50점 = 높음)에 맞춘 것으로 근거가 확인되지 않았습니다.</div>
+    <button type="button" id="hz-sim-reset" style="margin-top:8px;border:1px solid #ddd;background:#fff;color:#666;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer">초기값으로 재설정</button>`;
+}
+function renderHzCheck(){
+  const day = hzToday(), mine = hzState.checks[day] || [];
+  const done = HZ_CHECK_ITEMS.filter((_, i) => mine[i]).length;
+  return `
+    ${hzBox("일일 방역 점검표 (기본 예시)", `이 점검표는 기본 예시입니다. 농장별 <b>법정 준수사항·SOP·축종별 특성</b>을 반영해 최종 확정해야 합니다. 체크는 이 기기에만 저장되며 날짜가 바뀌면 새 점검표가 됩니다.`, HZ_COLOR)}
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:6px 0"><b style="font-size:13px;color:#222">${day} 점검</b><span style="font-size:13px;font-weight:800;color:${done === HZ_CHECK_ITEMS.length ? "#2E7D32" : HZ_COLOR}">${done}/${HZ_CHECK_ITEMS.length} 완료</span></div>
+    <div style="background:#eee;border-radius:6px;height:8px;overflow:hidden"><div style="width:${done / HZ_CHECK_ITEMS.length * 100}%;background:${HZ_COLOR};height:100%"></div></div>
+    <div style="display:flex;flex-direction:column;gap:5px;margin:10px 0">${HZ_CHECK_ITEMS.map((t, i) => `<label style="display:flex;gap:8px;align-items:flex-start;font-size:12.8px;line-height:1.6;color:#333;background:${mine[i] ? "#E8F5E9" : "#fff"};border:1px solid ${mine[i] ? "#A5D6A7" : "#eee"};border-radius:8px;padding:8px 10px;cursor:pointer"><input type="checkbox" class="hz-chk" data-i="${i}" ${mine[i] ? "checked" : ""} style="margin-top:3px"><span>${t}</span></label>`).join("")}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button type="button" id="hz-chk-copy" style="border:none;background:${HZ_COLOR};color:#fff;border-radius:8px;padding:8px 14px;font-size:12.5px;font-weight:800;cursor:pointer">📋 점검 결과 복사</button>
+      <button type="button" id="hz-chk-reset" style="border:1px solid #ddd;background:#fff;color:#666;border-radius:8px;padding:8px 14px;font-size:12.5px;font-weight:700;cursor:pointer">오늘 점검 초기화</button>
+      <span id="hz-chk-msg" style="font-size:12px;color:#2E7D32;font-weight:700">${esc(hzState.copied)}</span>
+    </div>
+    ${hzBox("이상이 보이면", "폐사·산란율·사료·음수 이상, 호흡기·신경 증상이 보이면 점검표를 채우는 것보다 <b>출입·이동 통제와 즉시 신고</b>가 우선입니다(관할 가축방역기관). 이 점검표는 AI 확진·진단을 대신하지 않습니다.", "#C62828")}`;
+}
+function renderHzRefs(){
+  return `
+    ${hzBox("자료 확인 상태", "아래 목록은 제안서에 적힌 <b>기준 자료 후보</b>입니다. 이 화면에서는 각 문서의 원문·발행일·내용을 확인하지 못했습니다. 연구에 쓰기 전에 공식 사이트에서 최신본을 직접 확인하세요.", "#E65100")}
+    ${ibH("초기 연구에서 우선 검토할 공식 자료")}
+    ${ibTable(["자료", "용도", "확인 상태"], [
+      ["농림축산식품부 조류인플루엔자 긴급행동지침(SOP, 2024년 9월)", "공식 방역 및 발생 대응 기준", hzUnverified()],
+      ["WOAH 조류인플루엔자 정보 (<a href=\"https://www.woah.org/en/disease/avian-influenza/\" target=\"_blank\" rel=\"noopener\" style=\"color:#1565C0\">woah.org</a>)", "국제 감시, 발생 신고 및 차단방역 기준", hzUnverified()],
+      ["FAO 조류인플루엔자 예방 권고", "농장·야생동물·환경을 연결한 방역 권고", hzUnverified()],
+      ["WOAH 2026년 농장 감시체계 가이드라인", "농장 규모와 조건에 맞는 감시체계 설계", hzUnverified()],
+    ], { minW: 560 })}
+    ${ibH("자료 수집 우선순위")}
+    ${ibList(["농림축산식품부의 현행 방역지침과 공고", "농림축산검역본부의 역학조사 및 감시자료", "지자체 및 공식 가축방역기관 자료", "환경부 및 국립야생동물질병관리원 관련 자료", "기상청 기상관측자료", "WOAH·FAO·WHO 국제기구 자료", "PubMed 및 동료심사 학술논문", "기타 검증 가능한 공식 공개자료"])}
+    ${ibP(`${ibTag("infer")}제안서는 2025~2026년 방역기간이 2026년 4월 15일까지 연장된 사례가 있다고 적었습니다. 이 사이트에서 확인한 농식품부 2026.2.27 보도자료는 특별방역대책기간을 3월 31일까지 연장한다고 되어 있어 두 내용이 다릅니다 — 이후 추가 연장이 있었을 수 있으므로 ${hzUnverified()} <b>분석 당일의 정부 공고와 행정명령을 직접 확인</b>하세요.`)}
+    ${ibH("홈페이지 구축 방향 (제안)")}
+    ${ibFlow([["① 공식 데이터 자동 수집", "정부 발생현황 · 철새 감시 · 기상 · GIS"], ["② 다중 AI 공동분석", "8개 연구팀 분석 · 근거 대조 · 전문가 검토"], ["③ 농장별 위험평가", "지역 노출 · 차량과 인력 · 방역시설 · 이상징후"], ["④ 맞춤형 예방 프로토콜", "점검표 · 경고 · 개선명령 확인 · 농장 보고서"]], HZ_COLOR)}
+    ${ibP("이 사이트의 현재 기반: ① 중 정부 발생현황은 「국내 가금농장 HPAI 발생·검출 현황」(매일 자동 갱신), 기상은 날씨예측 탭이 일부 해당합니다. 나머지(철새 감시·GIS·다중 AI 분석·농장별 평가)는 구축 과제입니다.")}
+    ${ibH("시범 연구지역 제안")}
+    ${ibP("전국 모든 농장을 한꺼번에 분석하기보다 <b>경기도 김포·파주, 충북 음성·진천</b> 등 서로 다른 지리적·축산업적 특성을 가진 지역을 시범 연구대상으로 설정하는 방법을 제안했습니다. 이는 우선 연구지역에 관한 제안이지, 현재 해당 지역이 고위험 지역이라는 판단이 아닙니다.")}
+    ${hzBox("가장 중요한 첫 연구과제", "야생조류에서 검출된 바이러스가 어떤 <b>환경적·인위적 경로</b>를 거쳐 농장으로 유입될 수 있는지에 대한 역학적 연관성을 검토하는 것입니다. 이 결과가 이후 위험예측 모델과 농장 방역 프로토콜의 과학적 기반이 됩니다.", HZ_COLOR)}`;
+}
+function renderHpaiZeroPanel(){
+  const t = hzState.tab;
+  const head = `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:10px"><div><div class="display" style="font-size:16px;margin-bottom:2px">🦠 HPAI ZERO FARM — 조류인플루엔자 예방 AI공동연구팀</div><div style="font-size:11px;color:#888">AI 기반 조류인플루엔자 예방·위험예측·농장 차단방역 공동연구 시스템</div></div><button type="button" id="hz-back-btn" style="border:1px solid #ddd;background:#fff;color:#888;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button></div>`;
+  const nav = `<div style="display:flex;gap:5px;flex-wrap:wrap;margin:6px 0 12px" role="tablist">${HZ_TABS.map(([k, l]) => `<button type="button" role="tab" aria-selected="${k === t}" data-hz-tab="${k}" style="border:1px solid ${k === t ? HZ_COLOR : "#ddd"};background:${k === t ? HZ_COLOR : "#fff"};color:${k === t ? "#fff" : "#555"};border-radius:16px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer">${l}</button>`).join("")}</div>`;
+  const body = t === "prompt" ? renderHzPrompt() : t === "program" ? renderHzProgram() : t === "sim" ? renderHzSim() : t === "check" ? renderHzCheck() : t === "refs" ? renderHzRefs() : renderHzIntro();
+  const foot = `<div style="margin-top:14px;background:#FFF8E1;border-radius:8px;padding:9px 11px;font-size:10.5px;color:#6b5400;line-height:1.75"><b>유의</b> · 교육·연구용 설계 자료입니다. 감염의 완전 차단이나 100% 예방을 보장하지 않으며, 개별 농장의 진단·처방·방역 지시를 대신하지 않습니다. AI 의심 증상은 즉시 관할 가축방역기관에 신고하고, 정부의 현행 방역지침과 행정명령을 우선하세요.</div>`;
+  return `<div class="card" id="hz-root" style="border-top:6px solid ${HZ_COLOR}">${head}${nav}${body}${foot}</div>`;
+}
+function hzBind(){
+  if(!(state.tab === "premium" && premiumState.view === "hpaizero")) return;
+  const $ = id => document.getElementById(id);
+  const back = $("hz-back-btn"); if(back) back.onclick = () => { premiumState.view = "menu"; render(); };
+  document.querySelectorAll("[data-hz-tab]").forEach(b => b.onclick = () => { hzState.tab = b.dataset.hzTab; hzState.copied = ""; render(); const r = $("hz-root"); if(r) r.scrollIntoView({ behavior:"smooth", block:"start" }); });
+  document.querySelectorAll("[data-hz-go]").forEach(b => b.onclick = () => switchTab(b.dataset.hzGo));
+  document.querySelectorAll(".hz-sim").forEach(r => r.onchange = () => { hzState.sim[Number(r.dataset.i)] = Number(r.value); hzSave(); render(); });
+  const simReset = $("hz-sim-reset"); if(simReset) simReset.onclick = () => { hzState.sim = [2, 2, 2, 2, 2]; hzSave(); render(); };
+  document.querySelectorAll(".hz-chk").forEach(c => c.onchange = () => {
+    const day = hzToday(), arr = (hzState.checks[day] || []).slice(); arr[Number(c.dataset.i)] = c.checked;
+    // 오래된 날짜는 정리(최근 14일만 보관)
+    hzState.checks[day] = arr; Object.keys(hzState.checks).sort().slice(0, -14).forEach(k => delete hzState.checks[k]);
+    hzSave(); render();
+  });
+  const chkReset = $("hz-chk-reset"); if(chkReset) chkReset.onclick = () => { delete hzState.checks[hzToday()]; hzSave(); render(); };
+  const copyText = async (text, msgId) => {
+    const m = () => $(msgId);
+    try { await navigator.clipboard.writeText(text); if(m()) m().textContent = "✅ 복사했습니다"; }
+    catch(e){ if(m()) m().textContent = "복사 권한이 없어 글을 선택해 두었습니다 — 길게 눌러 복사하세요"; const ta = $("hz-prompt-text"); if(ta){ ta.focus(); ta.select(); } }
+  };
+  const cp = $("hz-copy-prompt"); if(cp) cp.onclick = () => copyText(HZ_PROMPT, "hz-copy-msg");
+  const cc = $("hz-chk-copy"); if(cc) cc.onclick = () => {
+    const day = hzToday(), mine = hzState.checks[day] || [];
+    const done = HZ_CHECK_ITEMS.filter((_, i) => mine[i]).length;
+    copyText(`[HPAI 일일 방역 점검 ${day}] ${done}/${HZ_CHECK_ITEMS.length} 완료\n` + HZ_CHECK_ITEMS.map((t, i) => `${mine[i] ? "[x]" : "[ ]"} ${t}`).join("\n") + "\n※ 기본 예시 점검표 — 농장별 법정 준수사항·SOP 반영 필요", "hz-chk-msg");
+  };
+}
+
 const IB_CURRENT_STAGE = 1;
 const IB_COLOR = "#C62828";
 const IB_STAGES = [
@@ -15457,6 +15781,10 @@ function renderPremiumTab(){
     if(ibContentState.status === "idle") fetchIbContent();
     return renderPremiumGateHeader() + logoutBar + renderIbTeamPanel();
   }
+  // HPAI ZERO FARM — 조류인플루엔자 예방 AI공동연구팀(정적 설계 자료 + 시뮬레이터·점검표)
+  if(premiumState.view === "hpaizero"){
+    return renderPremiumGateHeader() + logoutBar + renderHpaiZeroPanel();
+  }
   // 영양제 종류별 사용요령 — 정적 참고 자료
   if(premiumState.view === "supplement"){
     return renderPremiumGateHeader() + logoutBar + renderSupplementPanel();
@@ -15672,6 +16000,7 @@ function renderHeaderSolarTerm(now){
 // go: {tab} 일반 탭으로 / {premium:"메뉴key"} 유료서비스의 그 화면으로(승인·로그인 안내는 그 화면이 처리) / {premium:"vaccine", vaccineView:"guide"} 처럼 보기까지 지정.
 const NEW_FEATURE_DAYS = 21;
 const NEW_FEATURES = [
+  { key:"hpaizero",       date:"2026-10-14", label:"HPAI ZERO FARM 조류인플루엔자 예방 AI공동연구팀", where:"유료서비스 · AI공동연구팀", go:{ premium:"hpaizero" } },
   { key:"ib-lec2",        date:"2026-10-13", label:"IB 연구팀 제2강 · 제1강 현장 보강", where:"유료서비스 · AI공동연구팀", go:{ premium:"ibteam" } },
   { key:"ibteam",         date:"2026-10-13", label:"IB 차단 AI공동연구팀 (1단계 제1강)", where:"유료서비스 · 최상단",       go:{ premium:"ibteam" } },
   { key:"weather-news",   date:"2026-10-12", label:"오늘의 날씨 뉴스 카드",         where:"날씨예측 탭",               go:{ tab:"weather" } },
@@ -21848,6 +22177,7 @@ function attachEvents(){
   wnBind();                                  // 오늘의 날씨 뉴스
   suppBind();                                // 영양제 종류별 사용요령
   ibBind();                                  // IB 차단 AI공동연구팀
+  hzBind();                                  // HPAI ZERO FARM
   const headerSolarTerm = document.getElementById("header-solar-term");
   if(headerSolarTerm) headerSolarTerm.onclick = ()=>switchTab("weather");
   // 메뉴 아래 새 기능 안내 띠 — 항목을 누르면 그 기능으로 가고 확인한 것으로 기억, ✕는 지금 보이는 항목 모두 닫기
