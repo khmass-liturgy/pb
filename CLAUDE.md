@@ -153,6 +153,7 @@ updated server.js deployed or the workflow fails. The board is updated only now 
 2026-09-01 (`HPAI_KR_NEW_SEASON`) from that JSON on top of the built-in 25/26 season data (`HPAI_KR_FARMS`/`HPAI_KR_WILD`)
 and draws them in purple/teal.
 
+`farm_density/sigun.json` — 가금 시·군별 사육 농가·마릿수(가축위생방역지원본부 「전국 시군별 ○○ 사육규모 현황」, data.go.kr 파일데이터 CSV, 연 1회 갱신, **일반 산란계 표는 이 시리즈에 없음**). `scripts/fetch_farm_density.py`를 수동 실행해 만든다(워크플로 없음 — data.go.kr이 해외 IP를 막는지 확인 안 됨). index.html의 HPAI ZERO FARM 「과거 대조」가 거리 규칙의 효과를 농장 밀도로 보정할 때 읽는다(밀도 = 반경 20km 상업 사육 마릿수, 토종닭·백세미 제외).
 The 유료서비스 「육계·계란 시세예측」(`priceforecast`, index.html `pf*`/`PF*` — engine, data, charts, 8 sub-tabs) runs entirely in the browser
 (no server model). Inputs: `price_history/daily.json` (egg 특란 원/10개 and 육계 생계유통(대) 원/kg daily series + monthly feed tonnage;
 **separate series per source, never mixed** — the 협회 broiler quote is its own `broiler_assoc` series), the existing JSON
