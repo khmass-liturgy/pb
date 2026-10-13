@@ -81,6 +81,21 @@
     flex: 0 0 auto; white-space: nowrap;
   }
   .tab.active { background: rgba(255,255,255,0.15); font-weight: 700; border-bottom: 3px solid #F9C74F; }
+  /* 메인 메뉴: 메뉴마다 색을 달리하고 테두리를 둘러 한눈에 구분한다(--tc 테두리색 · --tb 바탕 · --ta 선택됐을 때 바탕 · --tt 선택됐을 때 글자색). */
+  .tabs { gap: 5px; padding-top: 3px; }
+  .tab { --tc:#ffffff80; --tb:rgba(255,255,255,0.08); --ta:#455A64; --tt:#fff;
+    border: 2px solid var(--tc); border-bottom-width: 3px; background: var(--tb); font-weight: 600; }
+  .tab:hover { filter: brightness(1.15); }
+  .tab.active { border-color: var(--tc); border-bottom-color: #F9C74F; background: var(--ta); color: var(--tt); font-weight: 800; box-shadow: 0 -2px 8px rgba(0,0,0,0.25); }
+  .tab[data-tab="price"]     { --tc:#FFA726; --tb:rgba(255,167,38,0.20);  --ta:#E65100; }
+  .tab[data-tab="weather"]   { --tc:#42A5F5; --tb:rgba(66,165,245,0.20);  --ta:#1565C0; }
+  .tab[data-tab="vent"]      { --tc:#26C6DA; --tb:rgba(38,198,218,0.20);  --ta:#00838F; }
+  .tab[data-tab="consult"]   { --tc:#BA68C8; --tb:rgba(186,104,200,0.22); --ta:#7B1FA2; }
+  .tab[data-tab="disease"]   { --tc:#EF5350; --tb:rgba(239,83,80,0.22);   --ta:#C62828; }
+  .tab[data-tab="hpai"]      { --tc:#66BB6A; --tb:rgba(102,187,106,0.20); --ta:#2E7D32; }
+  .tab[data-tab="briefing"]  { --tc:#BCAAA4; --tb:rgba(188,170,164,0.20); --ta:#5D4037; }
+  .tab[data-tab="kkoko"]     { --tc:#FFD54F; --tb:rgba(255,213,79,0.22);  --ta:#FFC107; --tt:#3E2723; }
+  .tab[data-tab="premium"]   { --tc:#F06292; --tb:rgba(240,98,146,0.22);  --ta:#AD1457; }
   main { max-width: 900px; margin: 0 auto; padding: 20px 16px 40px; }
   .card { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 1px 8px rgba(0,0,0,0.07); }
   .price-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 10px; }
@@ -173,7 +188,7 @@
     .header-top > div:last-child { flex: 0 0 auto; font-size: 11px !important; }
     /* 헤더 좌우 여백까지 탭 줄을 넓힌다 — 화살표가 탭 줄 양 끝에 붙도록 감싸는 쪽(.tabs-wrap)을 넓힌다. */
     .tabs-wrap { width: calc(100% + 20px); margin-left: -10px; }
-    .tabs { width: 100%; padding: 0 6px; gap: 2px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+    .tabs { width: 100%; padding: 3px 6px 0; gap: 4px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
     .tabs::-webkit-scrollbar { display: none; }
     .tab { flex: 0 0 auto; white-space: nowrap; padding: 9.6px 11px; font-size: 11px; }
     main { width: 100%; padding: 12px 8px 28px; }
