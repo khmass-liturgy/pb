@@ -12298,10 +12298,46 @@ function renderHzProgram(){
       "위험예측 결과를 질병 확진으로 표현하지 않는다.",
       "제도·지침과 분석 결과가 충돌하면 이를 명확히 표시한다. 모든 권고는 농장 현실성과 과학적 근거를 함께 고려한다."].map((t, k) => hzCard("🔒", "수칙 " + (k + 1), t, "#C62828")), 250)}`;
 }
+// 현재 위치(GPS)로 시·도·시·군 찾기 — 위·경도는 이 기기에서 가장 가까운 시·군 중심점을 찾는 데만 쓰고 저장·전송하지 않는다
+const hzGps = { busy:false, msg:"", ok:false };
+function hzNearestSgg(lat, lng){
+  let best = null;
+  Object.keys(HPAI_KR_MAP.pts || {}).forEach(k => {
+    const [s, g] = k.split("|");
+    if(!/[시군구]$/.test(g) || g.length < 3 || HZ_SIDOS.indexOf(s) < 0) return;
+    const ll = rmLatLng(s, g); if(!ll) return;
+    const d = rmKm([lat, lng], ll);
+    if(!best || d < best.d) best = { sido:s, sgg:g, d };
+  });
+  return best;
+}
+function hzLocate(){
+  if(hzGps.busy) return;
+  if(!navigator.geolocation){ hzGps.msg = "이 브라우저는 위치 기능을 지원하지 않습니다. 시·도를 직접 고르세요."; hzGps.ok = false; render(); return; }
+  hzGps.busy = true; hzGps.msg = "현재 위치를 확인하는 중입니다… (위치 권한 허용이 필요합니다)"; hzGps.ok = false; render();
+  navigator.geolocation.getCurrentPosition(pos => {
+    hzGps.busy = false;
+    const lat = pos.coords.latitude, lng = pos.coords.longitude;
+    // 우리나라 범위 밖이면 사용하지 않는다
+    if(lat < 33 - 0.5 || lat > 38.9 + 0.3 || lng < 124 - 0.5 || lng > 132 + 0.5){ hzGps.msg = "현재 위치가 우리나라 범위 밖으로 확인되어 적용하지 않았습니다. 시·도를 직접 고르세요."; hzGps.ok = false; render(); return; }
+    const b = hzNearestSgg(lat, lng);
+    if(!b){ hzGps.msg = "가까운 시·군을 찾지 못했습니다. 시·도를 직접 고르세요."; hzGps.ok = false; render(); return; }
+    hzState.sido = b.sido; hzNearState.sgg = b.sgg; hzSave();
+    hzGps.ok = true;
+    hzGps.msg = `현재 위치에서 가장 가까운 시·군 중심: <b>${esc(b.sido)} ${esc(b.sgg)}</b> (중심점까지 약 ${Math.round(b.d)}km, 위치 정확도 약 ${Math.round(pos.coords.accuracy || 0)}m). 시·군 경계가 아니라 중심점 거리로 고른 근사이므로 <b>다르면 아래에서 직접 바꾸세요.</b> 위·경도는 저장하거나 서버로 보내지 않습니다.`;
+    render();
+  }, err => {
+    hzGps.busy = false; hzGps.ok = false;
+    hzGps.msg = err && err.code === 1 ? "위치 권한이 거부되었습니다. 브라우저·휴대폰 설정에서 이 사이트의 위치 권한을 허용하거나 시·도를 직접 고르세요."
+      : err && err.code === 3 ? "위치 확인 시간이 초과되었습니다. 잠시 후 다시 시도하거나 시·도를 직접 고르세요."
+      : "현재 위치를 확인하지 못했습니다. 시·도를 직접 고르세요.";
+    render();
+  }, { enableHighAccuracy:false, timeout:12000, maximumAge:300000 });
+}
 function hzRegionBox(){
   const L = hpaiKrState.live, sel = hzState.sido;
   const opts = `<option value="">시·도를 고르세요</option>` + HZ_SIDOS.map(s => `<option value="${s}" ${s === sel ? "selected" : ""}>${s}</option>`).join("");
-  const picker = `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label for="hz-sido" style="font-size:12.5px;font-weight:800;color:#222">우리 농장 시·도</label><select id="hz-sido" style="border:1px solid #ccc;border-radius:8px;padding:6px 8px;font-size:13px;background:#fff">${opts}</select></div>`;
+  const picker = `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label for="hz-sido" style="font-size:12.5px;font-weight:800;color:#222">우리 농장 시·도</label><select id="hz-sido" style="border:1px solid #ccc;border-radius:8px;padding:6px 8px;font-size:13px;background:#fff">${opts}</select><button type="button" id="hz-gps" ${hzGps.busy ? "disabled" : ""} style="border:1px solid #00695C;background:#00695C;color:#fff;border-radius:8px;padding:7px 12px;font-size:12.5px;font-weight:800;cursor:pointer">${hzGps.busy ? "⏳ 확인 중…" : "📍 현재 위치로 찾기"}</button></div>${hzGps.msg ? `<div style="font-size:11.5px;line-height:1.7;margin-top:6px;color:${hzGps.ok ? "#2E7D32" : "#E65100"}">${hzGps.msg}</div>` : ""}`;
   let body = "";
   if(!sel) body = `<div style="font-size:12px;color:#666;margin-top:6px;line-height:1.7">시·도를 고르면 <b>첫 번째 항목(공식 지역 발생 및 야생조류 검출)</b>에 참고할 실제 발생·검출 건수를 보여 드립니다.</div>`;
   else {
@@ -12655,7 +12691,8 @@ function hzBind(){
   document.querySelectorAll("[data-hz-ts]").forEach(b => b.onclick = () => { hzState.ts = Number(b.dataset.hzTs); render(); });
   document.querySelectorAll("[data-hz-tt]").forEach(b => b.onclick = () => { hzState.tt = Number(b.dataset.hzTt); render(); });
   document.querySelectorAll(".hz-task").forEach(c => c.onchange = () => { if(c.checked) hzState.tasks[c.dataset.id] = true; else delete hzState.tasks[c.dataset.id]; hzSave(); render(); });
-  const hzSido = $("hz-sido"); if(hzSido) hzSido.onchange = () => { hzState.sido = hzSido.value; hzNearState.sgg = ""; hzSave(); render(); };
+  const hzGpsBtn = $("hz-gps"); if(hzGpsBtn) hzGpsBtn.onclick = hzLocate;
+  const hzSido = $("hz-sido"); if(hzSido) hzSido.onchange = () => { hzGps.msg = ""; hzState.sido = hzSido.value; hzNearState.sgg = ""; hzSave(); render(); };
   const hzSgg = $("hz-sgg"); if(hzSgg) hzSgg.onchange = () => { hzNearState.sgg = hzSgg.value; render(); };
   const hzA1 = $("hz-near-apply1"); if(hzA1) hzA1.onclick = () => { hzState.sim[0] = Number(hzA1.dataset.lv); hzSave(); render(); };
   const hzA2 = $("hz-near-apply2"); if(hzA2) hzA2.onclick = () => { hzState.sim[1] = Number(hzA2.dataset.lv); hzSave(); render(); };
