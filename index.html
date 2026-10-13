@@ -12480,6 +12480,46 @@ function hzNearLevel1(m){ return m.f20 >= 1 ? 4 : (m.f50 >= 1 || m.w20 >= 1) ? 3
 function hzNearLevelSite(m){ const d = m.site ? m.site.d : 999; return d <= 10 ? 4 : d <= 30 ? 3 : d <= 60 ? 2 : d <= 100 ? 1 : 0; }
 function hzNearLevelRiver(m){ const d = m.river ? m.river.d : 999; return d <= 3 ? 3 : d <= 10 ? 2 : d <= 30 ? 1 : 0; }
 function hzNearLevel2(m){ return Math.max(hzNearLevelSite(m), hzNearLevelRiver(m)); }
+// ── 기상 지표(Open-Meteo, 시·군 중심점 기준 최근 7일 + 예보 3일) — 셋째 단계 참고 수준(임시 규칙) ──
+const hzWxState = { key:"", status:"idle", d:null };
+function hzWxSummary(j){
+  const dl = j && j.daily; if(!dl || !dl.time) return null;
+  const today = hzToday(), rows = dl.time.map((t, i) => ({ t, min:dl.temperature_2m_min[i], max:dl.temperature_2m_max[i], rain:dl.precipitation_sum[i] || 0 }));
+  const past = rows.filter(r => r.t <= today).slice(-7), fut = rows.filter(r => r.t > today).slice(0, 3);
+  if(!past.length) return null;
+  const num = x => typeof x === "number" && !isNaN(x);
+  const mins = past.map(r => r.min).filter(num), maxs = past.map(r => r.max).filter(num);
+  return {
+    from:past[0].t, to:past[past.length - 1].t,
+    minT:mins.length ? Math.min.apply(null, mins) : null,
+    frost:past.filter(r => num(r.min) && r.min <= 0).length,
+    thaw:past.filter(r => num(r.min) && num(r.max) && r.min < 0 && r.max > 0).length,   // 하루 안에 영하→영상(결빙·해빙 반복)
+    rain7:Math.round(past.reduce((a, r) => a + r.rain, 0) * 10) / 10,
+    futMin:fut.map(r => r.min).filter(num).length ? Math.min.apply(null, fut.map(r => r.min).filter(num)) : null,
+    futRain:Math.round(fut.reduce((a, r) => a + r.rain, 0) * 10) / 10,
+  };
+}
+function hzWxEnsure(ll, key){
+  if(hzWxState.key === key) return;
+  hzWxState.key = key; hzWxState.status = "loading"; hzWxState.d = null;
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${ll[0].toFixed(3)}&longitude=${ll[1].toFixed(3)}&daily=temperature_2m_min,temperature_2m_max,precipitation_sum&past_days=7&forecast_days=4&timezone=Asia%2FSeoul`;
+  fetch(url).then(r => { if(!r.ok) throw new Error(r.status); return r.json(); })
+    .then(j => { if(hzWxState.key !== key) return; hzWxState.d = hzWxSummary(j); hzWxState.status = hzWxState.d ? "done" : "error"; })
+    .catch(() => { if(hzWxState.key === key){ hzWxState.status = "error"; } })
+    .finally(() => { if(hzWxState.key === key) render(); });
+}
+// 규칙(임시): 철새 도래 시즌(10~3월)=2, 최근 7일에 영하→영상 반복(결빙·해빙)이 2일 이상=+1, 7일 강수 합계가 많으면(30mm 이상)=+1. 최대 4. 공식 방역기간은 당일 정부 공고를 따로 확인.
+function hzWxLevel(d){
+  const m = Number(hzToday().slice(5, 7));
+  let lv = (m >= 10 || m <= 3) ? 2 : 0;
+  if(d && d.thaw >= 2) lv += 1;
+  if(d && d.rain7 >= 30) lv += 1;
+  return Math.min(4, lv);
+}
+function hzWxFor(sido, sgg){
+  const ll = rmLatLng(sido, sgg); if(!ll) return null;
+  return hzWxState.key === sido + "|" + sgg + "|" + hzToday() && hzWxState.status === "done" ? hzWxState.d : null;
+}
 function hzNearBox(){
   const sido = hzState.sido; if(!sido) return "";
   const list = hzSggList(sido);
@@ -12490,6 +12530,7 @@ function hzNearBox(){
   let body = `<div style="font-size:12px;color:#666;margin-top:6px;line-height:1.7">시·군을 고르면 <b>반경 20·50km 안의 최근 30일 발생·검출</b>과 <b>가장 가까운 철새 월동지까지의 거리</b>로 첫째·둘째 항목의 참고 수준을 계산해 드립니다.</div>`;
   if(sel){
     const m = hzNearMetrics(sido, sel, hzToday());
+    if(m) hzWxEnsure(m.ll, sido + "|" + sel + "|" + hzToday());
     if(!m) body = `<div style="font-size:12px;color:#E65100;margin-top:6px">이 시·군의 위치 자료가 없어 계산하지 못했습니다.</div>`;
     else {
       const l1 = hzNearLevel1(m), l2 = hzNearLevel2(m), c1 = hzState.sim[0], c2 = hzState.sim[1];
@@ -12497,8 +12538,9 @@ function hzNearBox(){
       const apply = (id, lv, cur) => cur === lv ? `<span style="color:#2E7D32;font-size:11.5px">— 지금 값과 같습니다</span>` : `<button type="button" id="${id}" data-lv="${lv}" style="margin-left:4px;border:1px solid #00695C;background:#fff;color:#00695C;border-radius:7px;padding:3px 9px;font-size:11.5px;font-weight:800;cursor:pointer">적용</button> <span style="color:#888;font-size:11.5px">(지금 ${cur})</span>`;
       body = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px;margin-top:8px">
         ${cell("같은 시·군 · 최근 30일 농장", m.same + "건", m.same ? "#C62828" : "#2E7D32")}${cell("반경 20km · 농장 / 야생", m.f20 + " / " + m.w20, m.f20 ? "#C62828" : m.w20 ? "#E65100" : "#2E7D32")}${cell("반경 50km · 농장 / 야생", m.f50 + " / " + m.w50, m.f50 ? "#C62828" : m.w50 ? "#E65100" : "#2E7D32")}${cell("가까운 월동지·도래지", m.site ? esc(m.site.n) + " 약 " + Math.round(m.site.d / 5) * 5 + "km" : "-")}${cell("가까운 큰 하천(개략)", m.river ? esc(m.river.n) + " " + (m.river.d < 3 ? "3km 이내" : "약 " + Math.round(m.river.d / 5) * 5 + "km") : "-")}</div>
-        <div style="font-size:12.2px;color:#333;line-height:1.9;margin-top:8px">① 지역 발생·검출 참고 수준 <b style="color:#00695C">${HZ_LEVEL_LABEL[l1]}</b> ${apply("hz-near-apply1", l1, c1)}<br>② 철새 월동지·큰 하천 거리 참고 수준 <b style="color:#00695C">${HZ_LEVEL_LABEL[l2]}</b> <span style="font-size:11px;color:#888">(월동지 ${hzNearLevelSite(m)} · 하천 ${hzNearLevelRiver(m)} 중 높은 값)</span> ${apply("hz-near-apply2", l2, c2)}</div>
-        <div style="font-size:10.8px;color:#777;line-height:1.7;margin-top:4px">규칙(임시·검증 전) ① 반경 20km 농장 발생=4 · 반경 50km 농장 발생 또는 20km 야생 검출=3 · 50km 야생 검출=2 · 50km 안 과거 이력=1 · 없음=0. ② 월동지 10km 이내=4 · 30km=3 · 60km=2 · 100km=1 · 그 밖=0, 큰 하천(개략 경로) 3km 이내=3 · 10km=2 · 30km=1 · 그 밖=0 — 둘 중 높은 값(하천 기준은 근거 없이 정한 임시값). 월동지·도래지는 현재 ${hzWinterSites().length}곳(보도·국립생물자원관 2015-16 센서스 지점)이라 <b>빠진 도래지·저수지·작은 하천은 반영되지 않으니 직접 판단해 조정</b>하세요. 하천 선은 개략 경로이며 하천 가까이는 철새 월동지를 뜻하지 않습니다. 시·군 중심점 기준 근사(오차 약 10~20km)이며 농장의 실제 위치가 아닙니다. 기준일 ${hzToday()}.</div>`;
+        <div style="font-size:12.2px;color:#333;line-height:1.9;margin-top:8px">① 지역 발생·검출 참고 수준 <b style="color:#00695C">${HZ_LEVEL_LABEL[l1]}</b> ${apply("hz-near-apply1", l1, c1)}<br>② 철새 월동지·큰 하천 거리 참고 수준 <b style="color:#00695C">${HZ_LEVEL_LABEL[l2]}</b> <span style="font-size:11px;color:#888">(월동지 ${hzNearLevelSite(m)} · 하천 ${hzNearLevelRiver(m)} 중 높은 값)</span> ${apply("hz-near-apply2", l2, c2)}<br>${(() => { const W = hzWxState.status === "done" ? hzWxState.d : null, l3 = hzWxLevel(W), c5 = hzState.sim[4]; return `③ 계절·기상 참고 수준 <b style="color:#00695C">${HZ_LEVEL_LABEL[l3]}</b> ${hzWxState.status === "loading" ? '<span style="color:#888;font-size:11px">(기상 불러오는 중…)</span>' : hzWxState.status === "error" ? '<span style="color:#E65100;font-size:11px">(기상 자료를 받지 못해 계절만 반영)</span>' : ""} ${apply("hz-near-apply5", l3, c5)}`; })()}</div>
+        ${(() => { const W = hzWxState.status === "done" ? hzWxState.d : null; return W ? `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px;margin-top:8px">${cell("최근 7일 최저기온", W.minT === null ? "-" : W.minT.toFixed(1) + "℃", W.minT !== null && W.minT <= 0 ? "#1565C0" : "#444")}${cell("영하 날 / 결빙·해빙 반복일", W.frost + "일 / " + W.thaw + "일", W.thaw >= 2 ? "#E65100" : "#444")}${cell("최근 7일 강수 합계", W.rain7 + "mm", W.rain7 >= 30 ? "#E65100" : "#444")}${cell("앞으로 3일 예보", (W.futMin === null ? "-" : W.futMin.toFixed(0) + "℃ · ") + W.futRain + "mm", "#444")}</div><div style="font-size:10.5px;color:#888;margin-top:3px">기상: Open-Meteo 시·군 중심점 격자 값(${hkFmt(W.from)}~${hkFmt(W.to)}). 실제 농장 기온과 다를 수 있음.</div>` : ""; })()}
+        <div style="font-size:10.8px;color:#777;line-height:1.7;margin-top:4px">규칙(임시·검증 전) ③ 철새 도래 시즌(10~3월) 2 · 최근 7일 결빙·해빙 반복 2일 이상 +1 · 7일 강수 30mm 이상 +1(최대 4). 공식 방역기간은 당일 정부 공고를 확인하세요. ① 반경 20km 농장 발생=4 · 반경 50km 농장 발생 또는 20km 야생 검출=3 · 50km 야생 검출=2 · 50km 안 과거 이력=1 · 없음=0. ② 월동지 10km 이내=4 · 30km=3 · 60km=2 · 100km=1 · 그 밖=0, 큰 하천(개략 경로) 3km 이내=3 · 10km=2 · 30km=1 · 그 밖=0 — 둘 중 높은 값(하천 기준은 근거 없이 정한 임시값). 월동지·도래지는 현재 ${hzWinterSites().length}곳(보도·국립생물자원관 2015-16 센서스 지점)이라 <b>빠진 도래지·저수지·작은 하천은 반영되지 않으니 직접 판단해 조정</b>하세요. 하천 선은 개략 경로이며 하천 가까이는 철새 월동지를 뜻하지 않습니다. 시·군 중심점 기준 근사(오차 약 10~20km)이며 농장의 실제 위치가 아닙니다. 기준일 ${hzToday()}.</div>`;
     }
   }
   return `<div style="border:1px solid #00695C44;background:#E0F2F155;border-radius:10px;padding:10px 12px;margin:8px 0">${picker}${body}</div>`;
@@ -12601,7 +12643,8 @@ function hzReportText(R){
   if(R.reg){ P(R.sido + " 최근 30일", `가금농장 발생 ${R.reg.f30}건 · 야생조류 검출 ${R.reg.w30}건`); P(R.sido + " 25/26 시즌 이후 누적", `농장 ${R.reg.fAll}건 · 야생 ${R.reg.wAll}건`); P("시·도 단위 참고 수준(임시 규칙)", HZ_LEVEL_LABEL[R.reg.level]); }
   else L.push("시·도 미입력 — 지역 자료 없음");
   if(R.near){ P(R.sgg + " 반경 20km 최근 30일", `농장 ${R.near.f20}건 · 야생 ${R.near.w20}건`); P("반경 50km 최근 30일", `농장 ${R.near.f50}건 · 야생 ${R.near.w50}건`); P("가장 가까운 큰 하천(개략 경로)", R.near.river ? `${R.near.river.n} ${R.near.river.d < 3 ? "3km 이내" : "약 " + Math.round(R.near.river.d / 5) * 5 + "km"}` : "-"); P("가장 가까운 철새 월동지·도래지(알려진 곳 중, 직선 근사)", R.near.site ? `${R.near.site.n} 약 ${Math.round(R.near.site.d / 5) * 5}km` : "-"); P("시·군 단위 참고 수준", `① 지역 ${HZ_LEVEL_LABEL[hzNearLevel1(R.near)]} · ② 월동지·하천 거리 ${HZ_LEVEL_LABEL[hzNearLevel2(R.near)]}`); }
-  L.push("자료: 이 사이트의 「국내 가금농장 HPAI 발생·검출 현황」(농림축산식품부 자료 기준). 기상·저수지는 아직 반영하지 않았고 큰 하천은 개략 경로만 반영. 시·군 위치는 중심점 근사(오차 약 10~20km).");
+  if(R.near){ const W = hzWxFor(R.sido, R.sgg); if(W){ P("최근 7일 기상(Open-Meteo, 시·군 중심 격자)", `최저 ${W.minT === null ? "-" : W.minT.toFixed(1) + "℃"} · 영하 ${W.frost}일 · 결빙·해빙 반복 ${W.thaw}일 · 강수 ${W.rain7}mm · 앞으로 3일 강수 ${W.futRain}mm`); P("계절·기상 참고 수준(임시 규칙)", HZ_LEVEL_LABEL[hzWxLevel(W)]); } else L.push("기상: 위험도 체크 화면에서 시·군을 고르면 조회됩니다(미조회)."); }
+  L.push("자료: 이 사이트의 「국내 가금농장 HPAI 발생·검출 현황」(농림축산식품부 자료 기준). 저수지는 아직 반영하지 않았고 큰 하천은 개략 경로만 반영. 시·군 위치는 중심점 근사(오차 약 10~20km).");
   L.push("", "C. 농장 차단방역 진단");
   if(R.anyCheck){ P("오늘 방역 점검표", `${R.done}/${HZ_CHECK_ITEMS.length} 완료`); if(R.notDone.length){ L.push("미확인 항목:"); R.notDone.forEach(t => L.push(" - " + t)); } }
   else L.push("오늘 방역 점검표 미작성 — 시설·인력·차량·위생 진단 근거 없음(‘미입력’)");
@@ -12654,8 +12697,9 @@ function hzReportHtml(R){
     Bbody = grid([tile(R.sido + " 최근 30일 · 농장", R.reg.f30 + "건", "", R.reg.f30 ? "#C62828" : "#2E7D32"), tile(R.sido + " 최근 30일 · 야생", R.reg.w30 + "건", "", R.reg.w30 ? "#E65100" : "#2E7D32"), tile("25/26 시즌 이후 누적", `농장 ${R.reg.fAll} · 야생 ${R.reg.wAll}`, "", "#444"), tile("시·도 참고 수준", HZ_LEVEL_LABEL[R.reg.level], "임시 규칙", lvColor(R.reg.level))], 140);
     if(R.near) Bbody += `<div style="margin-top:8px"><div style="font-size:11.5px;font-weight:800;color:#455;margin-bottom:4px">${esc(R.sgg)} 중심 반경 지표(최근 30일)</div>` + grid([tile("반경 20km", `농장 ${R.near.f20} · 야생 ${R.near.w20}`, "", R.near.f20 ? "#C62828" : R.near.w20 ? "#E65100" : "#2E7D32"), tile("반경 50km", `농장 ${R.near.f50} · 야생 ${R.near.w50}`, "", R.near.f50 ? "#C62828" : R.near.w50 ? "#E65100" : "#2E7D32"), tile("가까운 월동지·도래지", R.near.site ? esc(R.near.site.n) : "-", R.near.site ? "약 " + Math.round(R.near.site.d / 5) * 5 + "km · 직선 근사" : "", "#00695C"), tile("가까운 큰 하천(개략)", R.near.river ? esc(R.near.river.n) : "-", R.near.river ? (R.near.river.d < 3 ? "3km 이내" : "약 " + Math.round(R.near.river.d / 5) * 5 + "km") : "", "#1E88E5"), tile("시·군 참고 수준", `지역 ${hzNearLevel1(R.near)} · 월동지·하천 ${hzNearLevel2(R.near)}`, "임시 규칙(0~4)", "#444")], 140) + `</div>`;
     else Bbody += `<div style="font-size:11.5px;color:#888;margin-top:6px">시·군을 고르면 반경 지표가 추가됩니다.</div>`;
+    if(R.near){ const W = hzWxFor(R.sido, R.sgg); Bbody += `<div style="margin-top:8px"><div style="font-size:11.5px;font-weight:800;color:#455;margin-bottom:4px">${esc(R.sgg)} 최근 7일 기상</div>` + (W ? grid([tile("최저기온", W.minT === null ? "-" : W.minT.toFixed(1) + "℃", "영하 " + W.frost + "일", W.minT !== null && W.minT <= 0 ? "#1565C0" : "#444"), tile("결빙·해빙 반복", W.thaw + "일", "하루 안 영하→영상", W.thaw >= 2 ? "#E65100" : "#444"), tile("강수 합계", W.rain7 + "mm", "앞 3일 " + W.futRain + "mm", W.rain7 >= 30 ? "#E65100" : "#444"), tile("계절·기상 참고 수준", HZ_LEVEL_LABEL[hzWxLevel(W)], "임시 규칙", "#444")], 140) : `<div style="font-size:11.5px;color:#888">기상 미조회 — 「우리 농장 위험도 체크」에서 시·군을 고르면 조회됩니다.</div>`) + `</div>`; }
   } else Bbody = `<div style="color:#E65100">시·도가 입력되지 않아 지역 자료를 넣지 못했습니다.</div>`;
-  Bbody += `<div style="font-size:10.8px;color:#888;margin-top:7px;line-height:1.6">자료: 「국내 가금농장 HPAI 발생·검출 현황」(농림축산식품부 자료 기준). 기상·저수지는 반영하지 않았고 큰 하천은 개략 경로만 반영했으며, 시·군 위치는 중심점 근사(오차 약 10~20km)입니다.</div>`;
+  Bbody += `<div style="font-size:10.8px;color:#888;margin-top:7px;line-height:1.6">자료: 「국내 가금농장 HPAI 발생·검출 현황」(농림축산식품부 자료 기준). 저수지는 반영하지 않았고 큰 하천은 개략 경로만 반영했으며, 시·군 위치는 중심점 근사(오차 약 10~20km)입니다.</div>`;
   const B = card("B", "지역 위험도", Bbody, "공식 발생·검출 자료 기준 · 참고");
   // C
   const Cbody = R.anyCheck
@@ -12797,6 +12841,7 @@ function hzBind(){
   const hzSido = $("hz-sido"); if(hzSido) hzSido.onchange = () => { hzGps.msg = ""; hzState.sido = hzSido.value; hzNearState.sgg = ""; hzSave(); render(); };
   const hzSgg = $("hz-sgg"); if(hzSgg) hzSgg.onchange = () => { hzNearState.sgg = hzSgg.value; render(); };
   const hzA1 = $("hz-near-apply1"); if(hzA1) hzA1.onclick = () => { hzState.sim[0] = Number(hzA1.dataset.lv); hzSave(); render(); };
+  const hzA5 = $("hz-near-apply5"); if(hzA5) hzA5.onclick = () => { hzState.sim[4] = Number(hzA5.dataset.lv); hzSave(); render(); };
   const hzA2 = $("hz-near-apply2"); if(hzA2) hzA2.onclick = () => { hzState.sim[1] = Number(hzA2.dataset.lv); hzSave(); render(); };
   const hzApply = $("hz-region-apply"); if(hzApply) hzApply.onclick = () => { hzState.sim[0] = Number(hzApply.dataset.lv); hzSave(); render(); };
   const simReset = $("hz-sim-reset"); if(simReset) simReset.onclick = () => { hzState.sim = [2, 2, 2, 2, 2]; hzSave(); render(); };
