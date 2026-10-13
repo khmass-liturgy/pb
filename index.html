@@ -11790,7 +11790,7 @@ function ibLecture1(){
   S[2] = `
     ${ibH("1. 한 문장 정의")}
     ${ibBox("전염성기관지염 (Infectious Bronchitis, IB)", "닭 전염성기관지염 바이러스(<b>Infectious Bronchitis Virus, IBV</b>)가 일으키는 닭의 <b>급성·고전염성</b> 바이러스 질병으로, 호흡기를 시작으로 <b>신장</b>과 <b>난관(생식기)</b>까지 손상시켜 폐사·성장 지연·산란 저하·난질 저하를 일으킨다.", IB_COLOR)}
-    ${ibP(`${ibTag("fact")}IBV는 <b>코로나바이러스</b>의 한 종류입니다. 하지만 사람의 코로나19 바이러스(SARS-CoV-2, 베타코로나바이러스 속)와는 <b>다른 속(감마코로나바이러스, Gammacoronavirus)</b>이며, IB는 사람에게 옮는 병이 아닙니다.`)}
+    ${ibP(`${ibTag("fact")}IBV는 <b>코로나바이러스</b>의 한 종류입니다. 하지만 사람의 코로나19 바이러스(SARS-CoV-2, 베타코로나바이러스 속)와는 <b>다른 속(감마코로나바이러스, Gammacoronavirus)</b>이며, IB는 사람에게 옮는 병이 아닙니다(WOAH 진단 매뉴얼: 사람 감염 보고 없음).`)}
     ${ibH("2. 비유로 이해하기 — 기관의 ‘빗자루’가 망가지는 병")}
     ${ibP("닭의 기관(숨관) 안쪽은 <b>섬모(cilia)</b>라는 아주 작은 털이 빽빽하게 덮고 있습니다. 섬모는 빗자루처럼 쉬지 않고 움직이며, 숨과 함께 들어온 먼지·세균을 점액에 묻혀 밖으로 쓸어냅니다.")}
     ${ibFlow([["① 흡입", "공기·먼지 속 IBV가 코·기관으로"], ["② 섬모 손상", "섬모상피세포 감염, 섬모가 멈추고 떨어짐"], ["③ 청소 기능 마비", "먼지·대장균이 쌓임"], ["④ 2차 세균 감염", "기낭염·심낭염(대장균증)"], ["⑤ 손실", "폐사·도태·성장 지연·도계 폐기"]])}
@@ -11804,7 +11804,7 @@ function ibLecture1(){
     ])}
     ${ibH("4. 왜 막기 어려운가 — 세 가지 이유")}
     ${ibTable(["이유", "쉽게 말하면"], [
-      ["전파가 매우 빠르다", `${ibTag("fact")}잠복기가 짧아(문헌상 대개 하루~하루 반 안팎) 계사 하나에 들어오면 며칠 안에 대부분의 닭이 감염될 수 있습니다.`],
+      ["전파가 매우 빠르다", `${ibTag("fact")}잠복기가 짧아(교과서상 대개 하루~하루 반 안팎 — 근거 원문은 6단계에서 확인) 계사 하나에 들어오면 며칠 안에 대부분의 닭이 감염될 수 있습니다.`],
       ["종류(형)가 많다", `${ibTag("fact")}바이러스 겉면 단백질(S 단백질)이 조금만 달라져도 백신이 만든 항체가 잘 맞지 않을 수 있습니다. 전 세계에 많은 유전자형·계통이 있고 계속 새로 보고됩니다.`],
       ["다른 문제와 겹친다", `${ibTag("fact")}암모니아·먼지·추위 같은 환경 스트레스, 마이코플라스마(MG)·대장균 같은 다른 병원체가 겹치면 피해가 훨씬 커집니다.`],
     ])}
@@ -11841,8 +11841,8 @@ function ibLecture1(){
     ${ibList([
       `${ibTag("fact")}외피(envelope)가 있는 양성(+) 단일가닥 RNA 바이러스이며, 유전체는 약 27.6 kb입니다. 앞쪽 약 2/3는 복제효소(1a/1ab)를, 뒤쪽은 구조단백질(S·E·M·N)과 부속단백질(3a·3b·5a·5b)을 암호화합니다.`,
       `${ibTag("fact")}S 단백질은 세포 안에서 <b>S1</b>(바깥쪽, 수용체 결합·중화항체 결합 부위 대부분)과 <b>S2</b>(막 쪽, 막 융합)로 잘립니다. S1에는 아미노산 변이가 몰리는 <b>초가변 영역(hypervariable region)</b>이 있습니다.`,
-      `${ibTag("fact")}그래서 혈청형과 유전자형 분류는 주로 <b>S1 유전자</b>에 기반합니다. 다만 S1의 작은 차이가 방어 효과를 크게 바꾸기도 하고, 큰 차이가 있어도 일부 교차방어가 관찰되기도 해 S1 서열 차이와 방어 정도가 1:1로 대응하지는 않습니다.`,
-      `${ibTag("fact")}변이(점돌연변이)와 함께, 한 닭에 두 균주가 동시에 감염될 때 생기는 <b>재조합(recombination)</b>이 새 변이주 출현의 중요한 경로로 보고되어 있습니다. 생독백신주가 재조합에 참여한 사례 보고도 있습니다.`,
+      `${ibTag("fact")}그래서 혈청형과 유전자형 분류는 주로 <b>S1 유전자</b>에 기반합니다. 다만 WOAH 매뉴얼에 따르면 혈청형이 다른 바이러스는 S1 아미노산이 대개 20~50% 다르지만, 중화시험으로 구별되는 바이러스 사이 차이가 2~3%뿐인 경우도 있습니다. 또 S 유전자 상동성과 교차방어의 관계는 강하지 않아, 방어력은 교차면역(공격접종) 시험으로 확인해야 합니다. 즉 S1 서열 차이와 방어 정도는 1:1로 대응하지 않습니다.`,
+      `${ibTag("fact")}변이(점돌연변이)와 함께, 한 닭에 두 균주가 동시에 감염될 때 생기는 <b>재조합(recombination)</b>이 새 변이주 출현의 중요한 경로로 보고되어 있습니다(Jackwood 2012, Valastro 2016). 생독백신주가 재조합에 참여한 사례는 6단계에서 원저 논문으로 확인합니다.`,
     ])}
     ${ibH("3. 혈청형·유전자형·방어형 — 반드시 구별할 것")}
     ${ibTable(["구분", "기준", "알 수 있는 것", "한계"], [
@@ -11852,13 +11852,14 @@ function ibLecture1(){
     ], { minW: 560 })}
     ${ibBox("연구팀 원칙", `${ibTag("fact")}유전자형 일치만으로 백신의 교차방어력을 확정하지 않습니다. 백신 선택·평가는 방어형 근거(공격접종 시험)와 현장 성적을 함께 봅니다. 항체가 상승이나 PCR 양성만으로 방어 성공·실패를 판정하지 않습니다.`, "#4527A0")}
     ${ibH("4. 국제 분류 체계")}
-    ${ibP(`${ibTag("fact")}Valastro 등(2016)은 전 세계 S1 전체 서열을 모아 계통분석을 하고, <b>유전자형(GI, GII …)과 그 아래 계통(lineage, 예: GI-1, GI-19)</b>으로 나누는 통일 분류를 제안했습니다. 예를 들어 Mass형은 GI-1, QX형은 GI-19 계통으로 불립니다. 이 분류는 이후 새 유전자형·계통이 추가 보고되며 확장되고 있습니다.`)}
-    ${ibP(`${ibTag("infer")}국내 유행주(국내 고유 계통, QX계 등)의 구체적인 계통·시기별 변화는 3단계(국내 발생 실태)와 6단계(논문 심층 연구)에서 원문을 확인하며 정리합니다. 이번 강의에서는 국내 계통 이름을 단정하지 않습니다.`)}
+    ${ibP(`${ibTag("fact")}Valastro 등(2016)은 공개된 S1 전장 서열 1,286개로 계통분석을 해 <b>6개 유전자형(GI~GVI)·32개 계통(lineage)</b>으로 나누는 통일 분류를 제안했습니다. 예를 들어 Mass형은 GI-1, 793B(4/91)형은 GI-13, QX형은 GI-19 계통입니다. 저자들은 새 서열이 쌓이면 이 분류가 갱신될 수 있다고 밝혔고, 이후 추가된 유전자형·계통은 6단계에서 확인합니다.`)}
+    ${ibP(`${ibTag("infer")}국내 유행주의 구체적인 계통·시기별 변화는 3단계(국내 발생 실태)와 6단계(논문 심층 연구)에서 최신 원문으로 정리합니다.`)}
+    ${ibP(`${ibTag("fact")}다만 Valastro 등(2016)의 분석에서 1990년대 이후 한국 바이러스 36주(중국 107주와 함께)가 QX(GI-19)와 GI-22 계통 사이의 <b>재조합</b>에서 유래했고, 한국 신장병원성 ‘New Cluster I’도 이 묶음에 속했습니다. 2013년 무렵까지의 공개 서열 기준이라 현재 유행 상황과는 다를 수 있습니다.`)}
     ${ibH("5. 병원성 기전의 큰 줄기")}
     ${ibFlow([["호흡기 증식", "기관 섬모상피 — 감염 후 수일 내 섬모 정지(ciliostasis)"], ["바이러스혈증", "혈류로 전신 확산(균주에 따라 차이)"], ["표적 장기", "신장 세뇨관·난관·(일부 균주) 선위 등"], ["지속 감염", "맹장편도·신장 — 장기간 분변 배출 보고"], ["2차 감염", "대장균·MG와 복합 시 손상 증폭"]], "#4527A0")}
     ${ibList([
       `${ibTag("fact")}어린 병아리 시기에 난관이 감염되면 난관 발달이 영구적으로 손상되어, 성성숙 후 겉보기 정상이지만 산란하지 못하는 닭(false layer)이 생길 수 있습니다. 낭종성 난관(cystic oviduct)이 대표 소견입니다.`,
-      `${ibTag("fact")}실험 연구에서는 감염 후 수주 이상 분변으로 바이러스가 배출되는 사례가 보고되어 있습니다.`,
+      `${ibTag("fact")}WOAH 매뉴얼에 따르면 백신주·야외주 모두 맹장편도에 남아, 겉보기에 정상인 닭의 분변으로 수주 이상 배출될 수 있습니다.`,
       `${ibTag("debate")}일부 균주(예: 793/B·4/91형)와 선위염(proventriculitis)의 관련성은 보고가 있으나 인과관계와 현장 중요도는 연구마다 해석이 엇갈립니다.`,
       `${ibTag("hypo")}지속 감염 닭이 다음 입추군의 감염원이 되는지는 농장 구조(올인올아웃 여부, 공시기간)에 따라 달라질 것으로 추정되며, 현장 근거는 7단계 실증에서 확인할 과제입니다.`,
     ])}
@@ -11901,55 +11902,67 @@ function ibLecture1(){
       ["비용 대비 실효성은?", `${ibTag("infer")}매일 기록과 기본 차단방역은 비용이 낮고 효과의 기반 / 검사·백신 변경은 농장 위험도에 따라 수의사와 판단`],
     ])}`;
 
-  const ref = (o) => `
+  // 확인 수준: full(원문 전문 확인) · abs(서지·초록 확인, 전문 미확인) · cite(다른 논문의 인용으로 서지만 확인, 원문 미확인)
+  const VER = { full:["원문 확인", "#1B5E20", "#E8F5E9"], abs:["서지·초록 확인 · 전문 미확인", "#E65100", "#FFF3E0"], cite:["2차 인용으로 서지 확인 · 원문 미확인", "#B71C1C", "#FFEBEE"] };
+  const ref = (o) => { const v = VER[o.ver] || VER.cite; return `
     <div style="border:1px solid #e3e3e3;border-radius:10px;padding:10px 12px;margin:10px 0;background:#fff">
-      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px"><span style="font-size:10.5px;font-weight:800;color:#fff;background:${o.levelColor};border-radius:5px;padding:1px 7px">${o.level}</span><span style="font-size:10.5px;font-weight:700;color:#B71C1C;background:#FFEBEE;border-radius:5px;padding:1px 7px">원문 미확인</span></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px"><span style="font-size:10.5px;font-weight:800;color:#fff;background:${o.levelColor};border-radius:5px;padding:1px 7px">${o.level}</span><span style="font-size:10.5px;font-weight:700;color:${v[1]};background:${v[2]};border-radius:5px;padding:1px 7px">${v[0]}</span></div>
       ${ibTable(["항목", "내용"], [
         ["1. 논문 제목", o.title], ["2. 연구자·연도", o.who], ["3. 게재지", o.journal], ["4. DOI / PMID", o.id],
         ["5. 목적·방법", o.method], ["6. 대상·표본 수", o.sample], ["7. 핵심 결과", o.result], ["8. 통계·효과 크기", o.stats],
         ["9. 한계", o.limit], ["10. 국내 농장 적용", o.apply],
       ])}
-    </div>`;
+    </div>`; };
+  const link = (u, t) => `<a href="${u}" target="_blank" rel="noopener" style="color:#1565C0">${t}</a>`;
   S[6] = `
-    ${ibBox("자료 확인 상태 (정직하게 표시)", "이 강의를 작성한 환경에서는 PubMed 접속이 차단되어 <b>논문 원문과 PMID·DOI를 직접 확인하지 못했습니다.</b> 아래 서지 정보는 학계에서 널리 인용되는 자료를 기억에 근거해 적은 것이며, DOI·PMID는 <b>확인 필요</b>로 표시했습니다. 6단계에서 원문을 확인하고 표를 갱신합니다. 존재가 불확실한 자료는 싣지 않았습니다.", "#B71C1C")}
+    ${ibBox("자료 확인 상태 (2026-10-13 재확인)", "PubMed·PubMed Central·Crossref·WOAH에 직접 접속해 아래 5건을 다시 확인했습니다. 카드마다 <b>원문 전문까지 읽었는지 / 서지와 초록만 확인했는지 / 다른 논문의 인용으로만 확인했는지</b>를 표시했습니다. 초록만 확인한 자료의 ‘핵심 결과’는 초록에 적힌 내용만 옮겼습니다.", "#2E7D32")}
     ${ibP("제1강은 ‘질병의 정의와 큰 그림’이므로 실험 논문보다 <b>종설·공식 진단 매뉴얼·분류 연구</b>가 핵심 근거입니다. 근거 수준은 실험실 연구 / 공격접종 시험 / 관찰연구 / 현장 실증 / 종설·매뉴얼로 구분합니다.")}
-    ${ref({ level:"종설 (Review)", levelColor:"#455A64",
-      title:"Coronavirus avian infectious bronchitis virus",
-      who:"Cavanagh D. (2007)", journal:"Veterinary Research 38(2) (권·호 확인 필요)",
-      id:"DOI 10.1051/vetres:2006055 (확인 필요) · PMID 미확인",
-      method:"IBV의 분자생물학, 병원성, 면역, 백신, 변이에 관한 기존 연구 종합", sample:"해당 없음(종설)",
-      result:"IBV 구조·S1 변이와 혈청형의 관계, 조직친화성, 백신 교차방어의 복잡성을 정리한 대표 종설", stats:"해당 없음(종설)",
-      limit:"2007년 이후의 유전자형 분류 개편·최근 유행주는 반영되지 않음", apply:"기초 개념(제1~2강)의 근거로 적합 · 국내 유행주 판단에는 최신 국내 자료가 별도로 필요" })}
-    ${ref({ level:"종설 (Review)", levelColor:"#455A64",
-      title:"Review of infectious bronchitis virus around the world",
-      who:"Jackwood M.W. (2012)", journal:"Avian Diseases 56(4) (권·호 확인 필요)",
-      id:"DOI 10.1637/10227-043012-Review.1 (확인 필요) · PMID 미확인",
-      method:"대륙·국가별 IBV 유형 분포와 백신 사용 현황 문헌 정리", sample:"해당 없음(종설)",
-      result:"지역마다 유행 유형이 다르고 새 변이주가 계속 보고되어, 지역 유행주에 맞는 백신 전략이 필요함을 정리", stats:"해당 없음(종설)",
-      limit:"2012년 기준 — 이후 유행 변화 미반영, 국가별 감시 수준 차이", apply:"국내도 해외와 다른 유행 양상을 보일 수 있다는 근거 · 3단계 국내 실태 조사의 출발점" })}
-    ${ref({ level:"분자계통 분류 연구", levelColor:"#00695C",
+    ${ref({ level:"공식 진단 매뉴얼 (국제기구)", levelColor:"#1565C0", ver:"full",
+      title:"Chapter 3.3.2. Avian infectious bronchitis — WOAH Manual of Diagnostic Tests and Vaccines for Terrestrial Animals",
+      who:"WOAH(세계동물보건기구) — 1989년 처음 채택, 2018년 최종 개정본", journal:"WOAH Terrestrial Manual 2018",
+      id:"DOI·PMID 없음 · " + link("https://www.woah.org/fileadmin/Home/eng/Health_standards/tahm/3.03.02_AIB.pdf", "WOAH 공식 PDF"),
+      method:"IB의 원인체·전파·병형, 진단(바이러스 분리, RT-PCR·유전자형 분석, 혈청검사), 백신 요건을 정리한 국제 표준", sample:"해당 없음(매뉴얼)",
+      result:"· 원인체는 감마코로나바이러스 IBV, <b>사람 감염 보고 없음</b><br>· 전파: 공기, 닭끼리 직접 접촉, 오염된 기구·<b>계란 포장재</b>·비료로 쓴 분뇨·농장 방문 등 기계적 전파<br>· 아주 어린 시기 난관 감염은 <b>영구 손상</b> → 산란 중단, 얇고 기형인 난각, 난각색 소실<br>· 신장형은 어린 닭에서 신염·폐사, 회복된 듯 보인 뒤 만성 신염으로 폐사 가능<br>· 백신주·야외주 모두 <b>맹장편도에 지속</b>되어 겉보기 정상 닭의 분변으로 수주 이상 배출<br>· 혈청형이 다른 바이러스는 S1 아미노산이 대개 20~50% 다르지만, 중화시험으로 구별되는 바이러스 사이 차이가 2~3%뿐인 경우도 있음<br>· 실용적으로 가장 중요한 분류는 <b>교차방어 묶음(방어형)</b>이며, S 유전자 상동성과 교차방어의 관계는 강하지 않아 방어력은 교차면역(공격접종) 시험으로 확인해야 함<br>· 생독백신은 호흡기 국소면역이 더 좋고, 불활화백신은 생독백신으로 먼저 기초 접종(priming)해야 충분한 방어",
+      stats:"해당 없음(매뉴얼) — 백신 효력시험에서 산란 저하 기준 등 시험 기준치는 있음(5단계에서 다룸)",
+      limit:"2018년판 기준 — 이후 개정 여부 확인 필요 · 국제 표준이라 국내 허가·검사 체계와 세부가 다를 수 있음",
+      apply:"· 출입 차량·사람뿐 아니라 <b>난좌·계란 포장재, 분뇨 반출</b>도 전파 경로로 관리<br>· 육성기 IB 감염 이력은 산란기 성적(난관 손상)과 연결해 기록<br>· 검사에서 ‘같은 유전자형’이 나와도 방어를 단정하지 않음(4·5단계 기준 문서)" })}
+    ${ref({ level:"분자계통 분류 연구", levelColor:"#00695C", ver:"full",
       title:"S1 gene-based phylogeny of infectious bronchitis virus: An attempt to harmonize virus classification",
-      who:"Valastro V., Holmes E.C., Britton P., Fusaro A., Jackwood M.W., Cattoli G., Monne I. (2016)", journal:"Infection, Genetics and Evolution (권·쪽 확인 필요)",
-      id:"DOI 10.1016/j.meegid.2016.02.015 (확인 필요) · PMID 미확인",
-      method:"공개된 IBV S1 전체 염기서열을 모아 계통분석으로 유전자형·계통 기준 제안", sample:"공개 S1 서열 다수(정확한 수 원문 확인 필요)",
-      result:"유전자형(GI~) 아래 계통(lineage) 단위의 통일 명명법 제안 — 이후 국제적으로 널리 사용", stats:"계통분석 지지도(부트스트랩 등) — 수치 원문 확인 필요",
-      limit:"유전자 분류이지 방어 분류가 아님 · 이후 새 유전자형 추가로 확장 중", apply:"국내 검사 결과(유전자형 보고)를 읽는 공통 언어 · 단, 백신 교차방어 판단에 그대로 쓰지 말 것" })}
-    ${ref({ level:"공식 진단 매뉴얼 (국제기구)", levelColor:"#1565C0",
-      title:"Avian infectious bronchitis — WOAH Manual of Diagnostic Tests and Vaccines for Terrestrial Animals (Terrestrial Manual)",
-      who:"WOAH(세계동물보건기구) — 장(章) 번호·최신 개정 연도 확인 필요", journal:"WOAH 공식 매뉴얼(웹 공개)",
-      id:"DOI·PMID 해당 없음 · WOAH 누리집에서 최신판 확인 필요",
-      method:"IB 진단(바이러스 분리, RT-PCR, 혈청검사)과 백신 제조·품질 기준 국제 표준", sample:"해당 없음",
-      result:"진단·백신 품질의 국제 기준 제시", stats:"해당 없음",
-      limit:"국제 표준이라 국내 허가·검사 체계와 세부가 다를 수 있음", apply:"4단계(진단)·5단계(백신)의 기준 문서 · 국내 기관(농림축산검역본부 등) 기준과 함께 확인" })}
-    ${ref({ level:"원저 논문 (역사적, 임상 관찰)", levelColor:"#6D4C41",
+      who:"Valastro V., Holmes E.C., Britton P., Fusaro A., Jackwood M.W., Cattoli G., Monne I. (2016)", journal:"Infection, Genetics and Evolution 39:349–364 (2016년 4월)",
+      id:"DOI " + link("https://doi.org/10.1016/j.meegid.2016.02.015", "10.1016/j.meegid.2016.02.015") + " · PMID " + link("https://pubmed.ncbi.nlm.nih.gov/26883378/", "26883378") + " · 전문 " + link("https://pmc.ncbi.nlm.nih.gov/articles/PMC7172980/", "PMC7172980"),
+      method:"공개 데이터베이스의 IBV S1 유전자 전장 염기서열을 모아 품질 점검 후 최대우도(ML) 계통수 작성, 재조합 분석, 계통 간 거리 계산 → 유전자형·계통 명명법 제안",
+      sample:"S1 전장 서열 1,518개 → 재조합·신뢰도 낮은 서열 제외 후 <b>1,286개</b> 분석(대표 기준 서열 199개 별도 구성)",
+      result:"· <b>6개 유전자형(GI~GVI), 32개 계통</b>과 계통 간 재조합체로 분류<br>· 예전 이름과의 대응: Mass형(M41 등) → <b>GI-1</b>, 793B(4/91)형 → <b>GI-13</b>, QX형 → <b>GI-19</b><br>· 서열 간 거리보다 <b>계통 관계 자체</b>로 분류하는 것이 더 적절하다고 제안<br>· <b>국내 관련</b>: 1990년대 이후 중국 107주·한국 36주가 QX(GI-19)와 GI-22 계통 사이의 재조합에서 유래했고, 이미 재조합주로 알려진 한국 신장병원성 ‘New Cluster I’도 이 묶음에 속함",
+      stats:"ML 계통수 1,000회 부트스트랩·사후확률로 가지 지지도 평가 · 분류 연구라 효과 크기 개념은 해당 없음",
+      limit:"유전자 분류이지 방어(교차방어) 분류가 아님 · 공개 데이터베이스에 올라온 서열만 사용(국가·시기별 표본 편중) · 2013년 무렵까지의 서열이라 이후 유행주는 반영 안 됨 · 저자 스스로 새 서열에 따라 갱신될 수 있다고 밝힘",
+      apply:"· 국내 검사 보고서의 유전자형(GI-19 등)을 읽는 공통 언어<br>· 국내 유행주에 <b>재조합 유래 계통</b>이 섞여 있을 수 있다는 근거 → 3단계 국내 실태에서 최신 국내 자료로 확인<br>· 백신 선택에 유전자형만으로 판단하지 말 것" })}
+    ${ref({ level:"종설 (Review)", levelColor:"#455A64", ver:"abs",
+      title:"Coronavirus avian infectious bronchitis virus",
+      who:"Cavanagh D. (2007)", journal:"Veterinary Research 38(2):281–297 (2007년 3–4월)",
+      id:"DOI " + link("https://doi.org/10.1051/vetres:2006055", "10.1051/vetres:2006055") + " · PMID " + link("https://pubmed.ncbi.nlm.nih.gov/17296157/", "17296157"),
+      method:"IBV의 증식 부위, 숙주, 혈청형, 백신, 방어 면역, 신규 백신 연구를 정리한 종설", sample:"해당 없음(종설)",
+      result:"(초록 기준) · 상·하부 호흡기 상피뿐 아니라 소화관, 신장, 난관, 정소에서도 증식하고 호흡기 분비물과 분변에서 검출<br>· 혈청형이 매우 많은 것이 IB가 중요한 주된 이유<br>· 불활화백신은 생독백신 기초 접종이 필요하고, 교차방어가 약해 효과가 줄어듦<br>· S 단백질, 특히 <b>S1 절반만으로도 좋은 방어 면역</b>을 유도할 수 있고, S 단백질 아미노산 <b>몇 개의 차이</b>만으로도 교차방어가 나빠진다는 근거가 늘고 있음<br>· 닭 품종에 따라 감염 정도가 다를 수 있음",
+      stats:"해당 없음(종설)",
+      limit:"전문을 읽지 않고 초록만 확인 · 2007년 이후의 유전자형 분류 개편·최근 유행주는 반영되지 않음",
+      apply:"기초 개념(제1~2강)의 근거 · ‘작은 S1 차이도 방어를 바꿀 수 있다’는 점은 국내 백신 평가(5단계)에서 유의" })}
+    ${ref({ level:"종설 (Review)", levelColor:"#455A64", ver:"abs",
+      title:"Review of infectious bronchitis virus around the world",
+      who:"Jackwood M.W. (2012)", journal:"Avian Diseases 56(4):634–641 (2012년 12월)",
+      id:"DOI " + link("https://doi.org/10.1637/10227-043012-Review.1", "10.1637/10227-043012-Review.1") + " · PMID " + link("https://pubmed.ncbi.nlm.nih.gov/23397833/", "23397833"),
+      method:"세계 상업 양계에서 유행하는 IBV 유형과 그 관계를 정리한 종설 — 발표 논문, GenBank 등록 서열, 저자 미발표 자료, 연구자 개인 교신을 종합", sample:"해당 없음(종설)",
+      result:"(초록 기준) · IBV는 감마코로나바이러스로 상부 호흡기와 생식기를 침범하고 일부 균주는 신염을 일으킴<br>· 서로 다른 혈청형·유전형은 <b>대부분 교차방어하지 않음</b><br>· 돌연변이와 재조합으로 새 유형이 계속 생겨 동정·방제가 매우 어려움<br>· S1 유전자 RT-PCR·염기서열 분석(유전형 분석)이 진단과 유형 동정을 크게 바꿈 — 감시와 유형 동정이 방제에 매우 중요",
+      stats:"해당 없음(종설)",
+      limit:"전문을 읽지 않고 초록만 확인 · 미발표 자료·개인 교신이 포함되어 일부 내용은 검증 불가 · 2012년 기준",
+      apply:"국내 감시(어떤 유형이 도는지)가 백신 전략의 출발점이라는 근거 · 3단계 국내 실태 조사로 연결" })}
+    ${ref({ level:"원저 논문 (역사적, 임상 관찰)", levelColor:"#6D4C41", ver:"cite",
       title:"An apparently new respiratory disease of baby chicks",
-      who:"Schalk A.F., Hawn M.C. (1931)", journal:"Journal of the American Veterinary Medical Association (권·쪽 확인 필요)",
-      id:"DOI·PMID 없음(1931년 문헌) — 원문 미확인",
-      method:"병아리에서 발생한 새로운 호흡기 질병의 임상·병리 관찰 보고", sample:"원문 확인 필요",
-      result:"IB의 최초 보고로 널리 인용됨", stats:"해당 없음(관찰 보고)",
-      limit:"당시 바이러스 분리·분자진단 불가 — 현재 기준의 확진 근거는 아님", apply:"역사적 의의 위주 · 현장 적용은 제한적" })}
+      who:"Schalk A.F., Hawn M.C. (1931)", journal:"Journal of the American Veterinary Medical Association 78:413–422",
+      id:"DOI·PMID 없음(1931년 문헌, PubMed·Crossref 미등재) — 서지는 PMC 공개 논문들의 참고문헌으로 확인",
+      method:"병아리에서 발생한 새로운 호흡기 질병의 관찰 보고", sample:"원문 확인 불가",
+      result:"IB의 최초 보고로 널리 인용됨(내용 세부는 원문 미확인)", stats:"해당 없음(관찰 보고)",
+      limit:"원문을 읽지 못함 · 당시에는 바이러스 분리·분자진단이 불가능했음", apply:"역사적 의의 위주 · 현장 적용은 제한적" })}
     ${ibH("이번 강의에 아직 넣지 않은 자료 (확인 후 추가)")}
-    ${ibList(["국내 IBV 유전자형·유행주 변화 원저 논문(국내외 학술지) — 3·6단계", "국내 공식 방역기관(농림축산검역본부 등)의 IB 질병 정보·검사 지침", "최근 5년 IBV 재조합·신규 계통 보고 — 6단계", "Diseases of Poultry(교과서) IB 장 — 최신판 확인 필요"])}`;
+    ${ibList(["국내 IBV 유전자형·유행주 변화 원저 논문(국내외 학술지) — 3·6단계", "국내 공식 방역기관(농림축산검역본부 등)의 IB 질병 정보·검사 지침", "최근 5년 IBV 재조합·신규 계통 보고, Valastro(2016) 이후 추가된 유전자형·계통 — 6단계", "WOAH 매뉴얼 IB 장의 2018년 이후 개정 여부", "Cavanagh(2007)·Jackwood(2012) 종설 전문 — 지금은 초록만 확인", "Diseases of Poultry(교과서) IB 장 — 잠복기 등 기초 수치의 근거"])}`;
 
   S[7] = `
     ${ibP("제1강은 기초 강의라서, 여기서는 <b>어떤 농장에서도 바로 할 수 있는 기본 원칙</b>만 정리합니다. 구체적인 백신 프로그램과 검사 계획은 4·5단계에서 다룹니다.")}
@@ -12012,7 +12025,7 @@ function ibLecture1(){
     ${ibH("1단계 남은 강의")}
     ${ibTable(["강의", "주제"], [["제2강", "IBV는 어떤 바이러스인가?"], ["제3강", "IBV는 어떻게 전파되는가?"], ["제4강", "바이러스는 닭의 어느 조직을 손상시키는가?"], ["제5강", "육계와 산란계의 피해는 왜 다른가?"]])}
     ${ibH("추가로 검토할 논문·자료")}
-    ${ibList(["국내 IBV 유전자형 분석 원저 논문(국내 고유 계통·QX계 관련) — 원문 확인 후 추가", "WOAH Terrestrial Manual IB 장 최신판", "IBV 재조합·S1 변이와 교차방어에 관한 공격접종 시험 논문", "농림축산검역본부 IB 질병 정보"])}
+    ${ibList(["국내 IBV 유전자형 분석 원저 논문(국내 고유 계통·QX계 관련) — 원문 확인 후 추가", "WOAH Terrestrial Manual IB 장(2018년판 확인 완료)의 이후 개정 여부", "IBV 재조합·S1 변이와 교차방어에 관한 공격접종 시험 논문", "농림축산검역본부 IB 질병 정보"])}
     ${ibBox("다음으로 넘어가기 전 확인할 사항", "· 혈청형·유전자형·방어형의 차이를 설명할 수 있는가?<br>· 육계·산란계에서 IB 손실이 나타나는 지표를 각각 말할 수 있는가?<br>· 농장 기본 점검표에서 지금 안 되고 있는 항목이 무엇인가?", IB_COLOR)}`;
   return S;
 }
