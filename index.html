@@ -84,7 +84,7 @@
   /* 메인 메뉴: 메뉴마다 색을 달리하고 테두리를 둘러 한눈에 구분한다(--tc 테두리색 · --tb 바탕 · --ta 선택됐을 때 바탕 · --tt 선택됐을 때 글자색). */
   .tabs { gap: 5px; padding-top: 3px; }
   .tab { --tc:#ffffff80; --tb:rgba(255,255,255,0.08); --ta:#455A64; --tt:#fff;
-    border: 2px solid var(--tc); border-bottom-width: 3px; background: var(--tb); font-weight: 600; }
+    border: 1px solid var(--tc); border-bottom-width: 2px; background: var(--tb); font-weight: 600; }
   .tab:hover { filter: brightness(1.15); }
   .tab.active { border-color: var(--tc); border-bottom-color: #F9C74F; background: var(--ta); color: var(--tt); font-weight: 800; box-shadow: 0 -2px 8px rgba(0,0,0,0.25); }
   .tab[data-tab="price"]     { --tc:#FFA726; --tb:rgba(255,167,38,0.20);  --ta:#E65100; }
