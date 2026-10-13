@@ -8285,8 +8285,8 @@ function rmBind(){
 //     용량·휴약기간 같은 숫자는 인공지능이 만들지 않고 ①의 원문만 쓴다.
 // 약품 정보 링크: 검색 단추(구글·네이버·QIA·제조사)로 찾은 주소를 붙여 넣어 달며, QIA 제품 페이지는 불러올 때 자동으로 달린다.
 const DRUGUSE_DATASET = "drug_usage";
-const DRUGUSE_KINDS = ["항생·항균제", "구충·항원충제", "소독제", "영양제·비타민", "소염·진통·해열", "호르몬·기타 주사제", "백신", "사료첨가제", "기타"];
-const DRUGUSE_KIND_COLOR = { "항생·항균제":"#C62828", "구충·항원충제":"#6A1B9A", "소독제":"#00695C", "영양제·비타민":"#EF6C00", "소염·진통·해열":"#1565C0", "호르몬·기타 주사제":"#5D4037", "백신":"#3949AB", "사료첨가제":"#558B2F", "기타":"#546E7A" };
+const DRUGUSE_KINDS = ["항생·항균제", "구충·항원충제", "소독제", "영양제·비타민", "소염·진통·해열", "호르몬·기타 주사제", "백신", "사료첨가제", "천연제제", "기타"];
+const DRUGUSE_KIND_COLOR = { "항생·항균제":"#C62828", "구충·항원충제":"#6A1B9A", "소독제":"#00695C", "영양제·비타민":"#EF6C00", "소염·진통·해열":"#1565C0", "호르몬·기타 주사제":"#5D4037", "백신":"#3949AB", "사료첨가제":"#558B2F", "천연제제":"#2E7D32", "기타":"#546E7A" };
 const drugUseState = { status:"idle", data:null, q:"", kind:"", openKey:null, adminOpen:false, draft:null, busy:false, msg:"", ok:true, qiaRows:null, qiaBusy:false, aiBusy:false, linkMsg:"" };
 function drugUseItems(){ return drugUseState.data && Array.isArray(drugUseState.data.items) ? drugUseState.data.items : []; }
 async function fetchDrugUse(){
