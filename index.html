@@ -11719,7 +11719,7 @@ const hzState = { tab:"intro", sim:[2, 2, 2, 2, 2], checks:{}, copied:"", tasks:
 function hzSave(){ try { localStorage.setItem(HZ_STORE, JSON.stringify({ sim:hzState.sim, checks:hzState.checks, tasks:hzState.tasks })); } catch(e){} }
 function hzToday(){ const k = new Date(Date.now() + 9 * 3600000); return k.toISOString().slice(0, 10); }
 
-const HZ_TABS = [["intro", "① 프로젝트·연구팀"], ["prompt", "② 마스터 프롬프트"], ["program", "③ 단계별 프로그램"], ["tasks", "④ 팀별 연구과제"], ["sim", "⑤ 위험평가 시뮬레이터"], ["check", "⑥ 일일 점검표"], ["refs", "⑦ 기준 자료·구축 방향"]];
+const HZ_TABS = [["intro", "🏠 시작하기 (이 연구는?)"], ["prompt", "📋 AI에게 시키는 글 (복사)"], ["program", "🪜 연구 6단계 한눈에"], ["tasks", "✅ 우리 농장 할 일 (팀별)"], ["sim", "🎚️ 우리 농장 위험도 체크"], ["check", "📝 오늘 방역 점검표"], ["refs", "📚 참고 자료·앞으로 계획"]];
 const HZ_TEAMS = [
   ["총괄 연구책임 AI(인공지능)", "연구계획 수립, 결과 통합, 상충되는 의견 조정"],
   ["제1팀 바이러스·역학", "H5·H7 아형, 병원성, 전파 양상, 역학관계 분석"],
