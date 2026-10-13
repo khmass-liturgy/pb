@@ -403,15 +403,17 @@ def main():
         text = "[농장동물 컨설팅 안내]\n" + digest + "\n\n자세히 보기: https://polcon.cc"
         try:
             result = send_sms(relay_url, relay_secret, cfg["phone"], text)
-            print(f"발송 완료: {cfg.get('email','?')} ({cfg['menu']}) -> {result}")
+            # 저장소가 공개라 Actions 로그도 공개된다 — 회원 이메일·번호·알리고 응답 원문은 로그에 남기지 않는다
+            ok_ = isinstance(result, dict) and result.get("ok") is not False
+            print(f"발송 완료: 메뉴 {cfg['menu']} ({'성공' if ok_ else '응답 확인 필요'})")
             cfg["lastSentAt"] = today.isoformat()
             save_json_blob(bucket, blob.name, cfg)
             sent += 1
         except urllib.error.HTTPError as e:
-            print(f"발송 실패: {cfg.get('email','?')} - HTTP {e.code}: {e.read().decode('utf-8','ignore')}")
+            print(f"발송 실패: 메뉴 {cfg['menu']} - HTTP {e.code}")
             failed += 1
         except Exception as e:
-            print(f"발송 실패: {cfg.get('email','?')} - {e}")
+            print(f"발송 실패: 메뉴 {cfg['menu']} - {type(e).__name__}")
             failed += 1
 
     print(f"완료 — 발송 {sent}건, 대기 {skipped}건, 실패 {failed}건")

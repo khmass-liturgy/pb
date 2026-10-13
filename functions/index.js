@@ -871,7 +871,10 @@ exports.sendDirectSms = onCall({ secrets: [SMS_RELAY_URL, SMS_RELAY_SECRET], tim
   let relayRes = null;
   let result = null;
   try {
-    relayRes = await fetch(SMS_RELAY_URL.value(), {
+    // 비밀값에 서버 주소만(https://….nip.io) 넣었거나 끝에 / 가 붙어도 중계 서버의 /send-sms 로 가게 맞춘다
+    // (중계 서버는 경로가 정확히 /send-sms 가 아니면 404 "not found"를 돌려준다)
+    const relayUrl = String(SMS_RELAY_URL.value() || "").trim().replace(/\/+$/, "");
+    relayRes = await fetch(/\/send-sms$/.test(relayUrl) ? relayUrl : relayUrl + "/send-sms", {
       method: "POST",
       headers: { Authorization: `Bearer ${SMS_RELAY_SECRET.value()}`, "Content-Type": "application/json" },
       body: JSON.stringify({ from: SMS_DIRECT_SENDER, content, targets: targets.map((to) => ({ to })) }),
