@@ -12235,6 +12235,7 @@ const IB_LECTURES = {
   2: [
     { no:1, title:"IBV는 농장 안으로 어떻게 들어오는가?", ready:true, minutes:"기본 12~15분 · 심화 별도", html: () => ibLecture21() },
     { no:2, title:"계사 환경은 IB를 어떻게 키우는가?", ready:true, minutes:"기본 12~15분 · 심화 별도", html: () => ibLecture22() },
+    { no:3, title:"다른 병·면역 저하와 겹치면 왜 더 심해지는가?", ready:true, minutes:"기본 12~15분 · 심화 별도", html: () => ibLecture23() },
   ],
 };
 // 1단계 학습 차례 — 연구 과제 7개가 5개 강의 어디서 다뤄지는지
@@ -12255,7 +12256,7 @@ const IB_STAGE2_MAP = [
   ["차량·사람·기구 등 매개 위험", "제1강"],
   ["밀집사육 및 계사 환기", "제2강"],
   ["암모니아·분진·온습도", "제2강"],
-  ["면역억제 및 복합감염", "제3강(예정)"],
+  ["면역억제 및 복합감염", "제3강"],
   ["바이러스 변이와 항원 차이", "제4강(예정)"],
   ["백신 면역 형성에 영향을 주는 요인", "제5강(예정) + 2단계 총정리"],
 ];
@@ -14186,6 +14187,286 @@ function ibLecture22(){
     ])}
     ${ibBox("제2강을 마치기 전 확인할 사항", "· 암모니아·추위·내독소가 IB에 미치는 영향의 크기를 근거 수준과 함께 말할 수 있는가?<br>· 우리 계사의 암모니아·온습도 기록표를 만들었는가?<br>· 환기와 온도 사이의 균형을 어떻게 판단할지 순서를 정했는가?", "#455A64")}
     ${ibBox("진행 안내", "제3강은 「제3강 진행」 또는 「다음 강의」라고 요청하시면 공개합니다. 「더 깊이」「논문 분석」「현장 중심으로」를 요청하시면 이 강의를 더 보강합니다.", "#455A64")}`;
+  return S;
+}
+
+// ── 2단계 제3강: 다른 병·면역 저하와 겹치면 왜 더 심해지는가? (면역억제 및 복합감염) ──
+function ibLecture23(){
+  const S = {};
+  S[1] = `
+    ${ibP("IB는 ‘IBV 하나’로 끝나는 경우가 드뭅니다. 농장에서 실제로 보는 폐사·기낭염·도계 폐기·산란 저하는 대개 <b>면역을 약하게 만드는 요인(감염병·곰팡이독소·스트레스)</b>이나 <b>함께 들어오는 다른 병원체(대장균·마이코플라즈마·ORT·aMPV·NDV 등)</b>와 겹쳐서 커집니다. 이 강의는 두 갈래를 나누어 <b>무엇이 실험으로 확인되었고, 무엇은 현장 추정인지</b>를 구분합니다.")}
+    ${ibBox("이 강의가 답하는 농장 질문", ibList([
+      "IB 백신을 제대로 맞췄는데 항체가 안 오르거나 방어가 약한 이유는?",
+      "IB 때 대장균·마이코플라즈마가 왜 같이 문제가 되나?",
+      "감보로(IBD)·마렉·닭빈혈바이러스는 IB와 어떻게 연결되나?",
+      "사료 곰팡이독소가 IB 백신 효과에 영향을 주나?",
+      "여러 병이 섞여 있을 때 IB 손실을 따로 계산해도 되나?",
+      "원인을 가르려면 어떤 검사와 기록이 필요한가?",
+    ]), IB_COLOR)}
+    ${ibH("학습 목표")}
+    ${ibList([
+      "<b>면역억제</b>(IBV에 약해지는 조건)와 <b>복합감염</b>(IBV와 함께 병을 키우는 병원체)을 구분해 설명할 수 있다.",
+      "IBD(감보로)가 IBV 백신 항체 반응과 방어를 낮춘다는 실험 근거를 말할 수 있다.",
+      "IBV 감염 뒤 대장균이 얹히면 기낭염·기관염 병변이 커지고 오래 간다는 실험 근거를 말할 수 있다.",
+      "곰팡이독소(DON·T-2)가 IBV 백신 항체와 림프기관에 미치는 영향을 말할 수 있다.",
+      "‘여러 병이 섞인 계군’에서 IB 손실을 단독으로 단정하지 않고 분리해 점검하는 순서를 만들 수 있다.",
+    ])}
+    ${ibBox("학습 분량", "기본 학습(②·④·⑤·⑦·⑧) 약 12~15분 · 전문 심화(③·⑥)는 별도로 읽습니다.", "#455A64")}`;
+
+  S[2] = `
+    ${ibH("1. 두 갈래 — 면역억제와 복합감염")}
+    ${ibFlow([["면역억제", "IBD·MDV·CIAV·곰팡이독소·스트레스 → 백신 항체 ↓, 방어 ↓"], ["IBV 감염", "점막·섬모 손상, 면역 반응 변화"], ["복합감염", "대장균·MG·ORT·aMPV·NDV·AI가 겹침"], ["결과", "기낭염·폐사·증체/산란 손실 ↑, 오래 감"]])}
+    ${ibP(`${ibTag("fact")}면역억제 바이러스 가운데 닭에서 가장 흔하게 문제가 되는 세 가지는 마렉병 바이러스(MDV), 닭빈혈바이러스(CIAV), 감보로병 바이러스(IBDV)이며 서로 영향을 주고받습니다(Gimeno & Schat 2018, 종설).`)}
+    ${ibH("2. 한 장으로 보는 정리")}
+    ${ibTable(["구분", "요인", "IB와의 관계에서 확인된 것", "근거"], [
+      ["면역억제", "IBD(감보로)", "어린 시기 IBDV 감염이 IBV 백신 항체 반응을 낮추고 방어·감염 감수성을 악화(실험, 고전+최근)", `${ibTag("fact")}`],
+      ["면역억제", "IBD 백신 종류", "면역복합체 IBD 백신군에서 IB 백신 항체가가 낮았음(SPF 육계)", `${ibTag("fact")}`],
+      ["면역억제", "곰팡이독소(DON·T-2)", "IB 백신 항체 반응 저하, 림프기관 손상 가중(실험)", `${ibTag("fact")}`],
+      ["면역억제", "IBV 자체", "일부 변이주가 F낭에 영향을 주고 NDV 백신 HI 항체를 낮춘 실험", `${ibTag("fact")}`],
+      ["복합감염", "대장균(APEC)", "IBV 뒤 감염 시 병변이 더 심하고 기낭염이 오래 지속(실험)", `${ibTag("fact")}`],
+      ["복합감염", "ORT", "IB 생백신과 동시 접종 시 ORT 병변·성적 악화(실험)", `${ibTag("fact")}`],
+      ["복합감염", "마이코플라즈마(MG)", "MG+IBV 동시 공격 모델에서 증상 증가, 현장 복합 사례에서 흔히 동반", `${ibTag("fact")}`],
+      ["복합감염", "aMPV·NDV·AI", "호흡기 바이러스 복합감염이 폐사 증가와 관련(현장 조사)", `${ibTag("fact")}관찰`],
+    ], { minW: 640 })}
+    ${ibBox("읽는 법", `대부분은 <b>SPF 닭·실험실 모델</b>입니다. 현장에서는 감염 순서·시기·균주·환경이 달라 같은 효과가 같은 크기로 나온다고 말할 수 없습니다. ${ibTag("infer")}그러나 ‘IB 단독’으로 보지 말고 <b>겹치는 요인을 함께 점검</b>해야 한다는 방향은 일치합니다.`, "#E65100")}
+    ${ibField("이 장의 핵심 세 줄", `① <b>면역억제</b>는 IBV 백신 항체가 안 오르는 이유가 될 수 있고, <b>복합감염</b>은 IBV 병변을 키우고 오래 가게 한다.<br>② 어린 시기 IBD 관리와 사료 곰팡이독소 점검은 IB 백신 효과와도 연결된다.<br>③ IB 손실을 계산할 때는 ‘다른 요인과 겹친 몫’이 있음을 같이 적는다.`)}`;
+
+  S[3] = `
+    ${ibBox("🎓 전문 심화학습 — 중급·전문가용", "이번 강의의 새 자료는 모두 서지·초록 확인 수준입니다(전문 미확인). 대부분 SPF 닭 실험이라 현장 계군에 그대로 옮길 수 없습니다.", "#455A64")}
+    ${ibH("1. IBD(감보로)와 IBV — 항체 반응과 방어가 떨어진다")}
+    ${ibList([
+      `${ibTag("fact")}생후 초기에 IBDV에 감염되었거나 IBV 백신 접종 직전·직후에 감염된 닭은 <b>IBV 호흡기 감염에 더 취약하고 바이러스 중화항체가 낮았습니다</b>. IBD 면역이 없는 어미에서 나온 병아리가 더 약했고, 시클로포스파미드로 F낭을 억제해도 비슷한 면역 억제가 나타났습니다. 연구진은 어린 일령 접종 시 야외에서 면역이 불충분한 이유를 설명할 수 있다고 보았습니다(Winterfield 등 1978).`,
+      `${ibTag("fact")}SPF 닭에 5일령 IBDV(유전군 4)를 경구 접종하고 14일 뒤 GI-16 IBV를 기관 접종한 실험에서 <b>동시 감염군은 신장 림프구 침윤이 더 심하고 28일째 F낭에서 IBV 유전자가 더 많이 검출되었으며 28·35·40일째 IBV 항체 반응이 뚜렷이 낮았습니다</b>(Jaton 등 2023).`,
+      `${ibTag("fact")}SPF 육계 시험에서 1일령에 면역복합체 IBD 백신을 접종하고 14일째 IB 생백신을 접종하자, 면역복합체군은 F낭/체중 비가 낮고 <b>IBV 항체가가 낮았으며</b> 비장·기관·하더선의 CD8+ T세포 비율이 높았습니다. 연구진은 ‘한 백신이 같은 프로그램의 다른 백신의 면역에 영향을 줄 수 있다’고 결론지었습니다(Lupini 등 2020).`,
+      `${ibTag("fact")}유럽 10개국 육계 234계군 조사(2013)에서 IBV 10개 유전자형이 검출되었고(793B 최다, QX·Mass·Xindadi형 순), 음수 접종한 IBD 생백신은 부화장에서 면역복합체로 접종한 것보다 백신 바이러스 복제가 늦었습니다. 연구진은 이를 <b>백신 시기·접종 방법의 실수</b>를 시사한다고 해석했습니다(de Wit 등 2018). ${ibTag("infer")}IBD 백신 접종 품질이 IB 백신 반응과 이어질 수 있는 고리입니다.`,
+    ])}
+    ${ibH("2. IBV 자체의 면역억제성")}
+    ${ibList([
+      `${ibTag("fact")}IBV 종설은 이 병을 ‘다계통 질환이며 면역억제를 동반한다’고 정리했습니다(Najimudeen 등 2020).`,
+      `${ibTag("fact")}4/91 백신주와 재조합해서 생긴 GI-19 계통 IBV 두 주(F낭 기원·기관 기원)를 7일령 SPF 병아리에 접종한 실험에서 모두 F낭 위축·지연된 혈청 전환·최대 35일까지 바이러스 검출을 보였고, 이어 불활화 NDV 백신을 접종한 닭의 <b>HI 항체가 14·28일째 1 log2 이상 낮아졌다가 35일째 정상으로 회복</b>했습니다. 조기 F낭 세포자멸사도 확인되었습니다(Wang 등 2026). ${ibTag("infer")}변이주에 따라 달라질 수 있고, 국내 계군에서의 빈도는 확인된 바 없습니다.`,
+    ])}
+    ${ibH("3. 곰팡이독소")}
+    ${ibList([
+      `${ibTag("fact")}DON 10 mg/kg이 든 사료를 육계에 5주 급여하자 사료섭취·체중·증체·사료효율이 떨어지고, <b>IB 백신에 대한 항체 반응이 감소(P=0.003)</b>했으며 총 림프구 수가 줄고 이질구/림프구 비(스트레스 지표)가 올랐습니다. 해독 사료첨가제(Mycofix select)를 넣으면 이러한 변화가 대조군 수준으로 회복되었습니다(Ghareeb 등 2012).`,
+      `${ibTag("fact")}T-2 독소 2 ppm을 6주 급여한 육계에 3주째 IBV를 접종한 실험에서 <b>독소군의 IBV ELISA 항체가는 독소 없이 IBV만 감염시킨 군보다 모든 시점에서 유의하게 낮았고</b>(P<0.01), 림프기관(F낭·비장·흉선·맹장편도·하더선)의 괴사·림프구 고갈은 T-2+IBV군에서 더 심했습니다. 연구진은 T-2가 면역을 억제하고 IBV 병리를 악화시켰다고 결론지었습니다(Yohannes 등 2012). ${ibTag("infer")}정해진 농도의 실험 사료이며 현장 오염 수준·혼합 독소와 직접 비교할 수 없습니다.`,
+    ])}
+    ${ibH("4. 세균 복합감염 — 병변이 커지고 오래 간다")}
+    ${ibList([
+      `${ibTag("fact")}IBV(GVI-1형) 접종 4일 뒤 대장균(O8)을 접종한 닭은 IBV 단독 감염군보다 <b>부검 병변이 더 심했고</b>, 이 모델에서 4/91 백신주의 방어가 H120보다 유의하게 좋게 평가되었습니다(Shen 등 2021). ${ibTag("infer")}‘IBV는 야외에서 2차 세균이 없으면 사망률이 높지 않은 경우가 많다’는 연구진의 설명과도 맞습니다.`,
+      `${ibTag("fact")}육계에 IBV·NDV·aMPV 또는 완충액을 먼저 접종하고 6일 뒤 APEC을 기관 접종한 실험에서 <b>NDV-APEC·IBV-APEC군이 가장 심한 육안 병변과 지속적인 기낭염</b>을 보였고, 바이러스 선행군은 모두 지속성 기관염이 있었습니다. CD4+·CD8+ 림프구는 시간이 지나도 높게 유지되어 면역병리가 병변 지속에 기여할 것으로 해석되었습니다(Weerts 등 2021).`,
+      `${ibTag("fact")}14일령 육계에 ORT를 접종하면서 IBV 4/91 생백신을 동시에 접종한 군은 ORT 단독군보다 호흡기 증상·병변이 더 뚜렷했고 체중·증체·사료요구율에서 차이(P≤0.05)가 있었습니다. 연구진은 <b>생백신 접종이 ORT의 병원성을 높일 수 있다</b>고 보았습니다(Ellakany 등 2019). ${ibTag("infer")}이 결과는 이집트 상황에서 한 균주를 쓴 실험이므로 생백신 접종을 줄이라는 근거로 쓰면 안 됩니다. 백신 접종 시기에 다른 병원체가 겹치지 않는지 점검하라는 정도로 읽습니다.`,
+      `${ibTag("fact")}MG와 QX형 IBV를 함께 공격한 모델에서 MG 백신(ts-11·6/85)은 증상 방어는 비슷했고, <b>두 백신 모두 IBV 공격에 대해 비특이적 방어</b>를 제공했습니다(Bwala 등 2018). ${ibTag("infer")}복합감염 모델이 백신 효능 평가에도 쓰인다는 사례입니다.`,
+    ])}
+    ${ibH("5. 현장 조사")}
+    ${ibList([
+      `${ibTag("fact")}알제리 육계·칠면조 계군 조사에서 MG·MS·AIV·IBV·aMPV가 <b>다중 감염</b>으로 순환했고, 검출된 바이러스는 모두 MG와 동반 감염되어 있었습니다. 연구진은 복합 호흡기 감염이 높은 폐사율의 원인일 수 있다고 보았습니다(Sid 등 2015). ${ibTag("infer")}해당 지역 한정 조사이며 국내 계군 상황을 대표하지 않습니다.`,
+      `${ibTag("fact")}말레이시아의 28~33일령 육계(Cobb 500, 개방형 계사, 약 7,000수)에서 하루 약 100수가 폐사한 IB·대장균 복합 사례에서 기낭염·출혈성 기관염·폐충혈·간과 기낭의 섬유소 침착·출혈성 장염·신장 비대가 확인되었고 신병원성형 IBV 감염으로 진단되었습니다(Nordin 등 2021, 사례 보고).`,
+    ])}`;
+
+  S[4] = `
+    ${ibH("육계와 산란계 — 겹치는 요인이 다르다")}
+    ${ibTable(["구분", "육계", "산란계"], [
+      ["많이 겹치는 병원체", `${ibTag("infer")}대장균(기낭염·도계 폐기), ORT, aMPV, NDV 생백신 반응, 콕시듐`, `${ibTag("infer")}MG/MS, 대장균 난관염, aMPV, 다연령 사육의 반복 노출`],
+      ["면역억제 요인", `${ibTag("infer")}초기 IBD·CIAV 관리, 곰팡이독소 오염 사료, 어미 항체 간섭`, `${ibTag("infer")}마렉·CIAV(육성기), 사료 독소 만성 노출, 육성기 스트레스`],
+      ["손실이 드러나는 곳", "증체·FCR, 기낭염 폐기, 폐사 증가", "산란율·난질, 비산란 계, 난관염"],
+      ["백신 프로그램 문제", "IBD·ND·IB 접종 간격이 짧거나 겹침", "여러 백신을 짧은 간격으로 접종하는 육성기 프로그램"],
+      ["먼저 확인할 것", "초기 폐사·항체·F낭 크기, 사료 독소, 기낭염 부검", "육성기 항체 균일도, 독소, MG 검사, 난관 부검"],
+    ], { minW: 640 })}
+    ${ibP(`${ibTag("infer")}위 표는 문헌에서 숫자로 확인한 것이 아니라 이번 강의의 실험 결과와 1단계 병리를 사육 방식에 맞춰 풀어 쓴 <b>현장 추론</b>입니다. 육성기·산란기의 구체적인 접종 간격은 국내 허가사항과 수의사 지침을 따르세요.`)}
+    ${ibField("우리 농장에서 겹치는 요인 찾기", `육계는 <b>초기 폐사·초기 체중 균일도·F낭 크기</b>, 산란계는 <b>육성기 항체 검사 결과·육성 후기 폐사·백신 접종 일정</b>을 한 장에 모읍니다. 호흡기 증상이 나오기 전에 이미 면역 문제의 흔적이 보일 수 있습니다.`)}`;
+
+  S[5] = `
+    ${ibH("1. 사례 — IB와 대장균이 겹친 육계 계군")}
+    ${ibP(`${ibTag("fact")}Nordin 등(2021)이 보고한 계군은 28~33일령에서 혈변·개구호흡·불균일한 성장·깃털 거침을 보였고 하루 약 100수가 폐사했습니다. 기낭염·출혈성 기관염·폐충혈·섬유소 침착·장염·신장 비대가 확인되었고 대장균이 폐·기관·간·장·신장에서 분리되었으며, 곰팡이는 분리되지 않았습니다. RT-PCR로 IBV가 확인되어 <b>IB와 대장균의 복합감염</b>으로 진단되었습니다.`)}
+    ${ibP(`${ibTag("infer")}이 사례는 한 계군의 보고이며 어떤 요인이 먼저였는지는 알 수 없습니다. 대신 <b>부검에서 호흡기·신장 병변과 세균 병변이 함께 보이면 IB 단독으로 결론짓지 않는다</b>는 점을 보여 줍니다.`)}
+    ${ibH("2. 가상 사례 연습 (실제 농장 아님)")}
+    ${ibTable(["상황", "먼저 확인할 것", "해석 주의"], [
+      ["A. 육계 4주령 폐사 증가, 기낭염과 신장 비대", "기관·폐·기낭 세균 배양, 신장·기관 IBV PCR, 초기 폐사 기록", `${ibTag("infer")}IB와 대장균이 함께 있을 수 있다. 둘 중 하나만 치료·판단하지 않는다.`],
+      ["B. IB 백신을 맞춘 산란 육성계, 항체가 낮고 고르지 않음", "사료 곰팡이독소, 초기 IBD·CIAV 관리, 접종 간격과 방법, 육성기 스트레스", `${ibTag("infer")}백신 문제만으로 단정하지 말고 면역억제 요인을 같이 본다.`],
+      ["C. 산란계 산란 저하 + 눈·콧물, MG 양성", "MG·IBV·aMPV 다중 검사, 난관 부검, 백신 접종 이력", `${ibTag("infer")}MG와 IBV가 함께 있으면 임상이 길고 복잡하다. 한 병원체의 PCR 양성만으로 원인을 확정하지 않는다.`],
+    ], { minW: 600 })}
+    ${ibH("3. 흔한 오해 6가지")}
+    ${ibTable(["오해", "근거에 비춘 설명"], [
+      ["IB 백신만 잘 맞으면 항체는 당연히 오른다", `초기 IBD 감염·면역복합체 IBD 백신·곰팡이독소가 있을 때 IBV 항체가 낮아진 실험이 있다. 백신 접종 품질 + 면역 상태를 같이 본다 ${ibTag("fact")}`],
+      ["IBV 양성이면 그것이 원인이다", `대장균·MG·ORT·aMPV가 함께 있으면 병변이 더 커진다. PCR 양성은 ‘있다’일 뿐이다 ${ibTag("fact")}`],
+      ["항생제를 쓰면 IB도 낫는다", `항생제는 세균 부분에만 작용한다. IBV는 바이러스이므로 같은 방식의 치료가 없다(1단계). 약품 사용은 수의사와 허가사항에 따른다 ${ibTag("infer")}`],
+      ["생백신을 여러 개 한꺼번에 하면 효율적이다", `백신끼리 서로의 면역에 영향을 줄 수 있다는 실험이 있다(Lupini 2020). 간격과 조합은 허가사항·수의사와 정한다 ${ibTag("fact")}`],
+      ["곰팡이독소는 눈에 안 보이니 신경 안 써도 된다", `낮은 수준의 만성 노출도 IBV 백신 항체와 림프기관에 영향을 준 실험이 있다. 독소 검사와 원료 관리 기록이 필요하다 ${ibTag("fact")}`],
+      ["IB는 면역을 억제하지 않는다", `일부 변이주는 F낭에 영향을 주고 다른 백신 항체를 낮춘 실험이 있다. 모든 균주에서 같다는 뜻은 아니다 ${ibTag("fact")}`],
+    ], { minW: 560 })}
+    ${ibBox("겹침을 풀어서 보려면 — 검사·기록 패키지", "· 기관·폐·기낭 세균 배양과 항생제 감수성 시험<br>· IBV PCR(기관·신장·난관) + 유전자형, 가능하면 MG/aMPV 검사<br>· 항체가 균일도(CV) 추이와 접종 일정<br>· 사료 곰팡이독소 검사(원료·배합 사료)<br>· 초기 폐사·초기 체중·F낭 크기 기록<br>· 부검 사진과 병변 위치 기록", "#455A64")}`;
+
+  S[6] = `
+    ${ibBox("문헌 확인 수준", "아래 15건은 모두 서지·초록까지 확인했고 전문은 읽지 않았습니다. 통계량이 초록에 없으면 ‘초록에 수치 없음’으로 적었습니다.", "#E65100")}
+    ${ibH("IBD(감보로)·백신 간섭")}
+    ${ibRef({ level:"고전 실험 (면역억제)", levelColor:"#37474F", ver:"abs",
+      title:"Vaccination against infectious bronchitis and the immunosuppressive effects of infectious bursal disease.",
+      who:"Winterfield RW, Hoerr FJ, Fadly AM (1978)", journal:"Poultry Science 57(2):386-391", id:ibPm("209433", "10.3382/ps.0570386"),
+      method:"초기 IBDV 감염을 IBV 백신 접종 전후에 시키고 IBV 감염 취약성·중화항체를 비교, 어미 IBD 면역 유무와 시클로포스파미드 효과도 평가", sample:"닭(마릿수 초록에 없음)",
+      result:"· 초기 IBDV 감염은 IBV 호흡기 감염 취약성 증가와 중화항체 저하<br>· IBD 면역이 없는 어미의 병아리는 IBV 면역화에 더 반응이 낮음<br>· 시클로포스파미드로 F낭을 억제해도 비슷한 면역 억제",
+      stats:"초록에 수치 없음", limit:"1978년 실험, 초록만 확인", apply:"어린 일령의 IBD 관리와 IB 백신 접종 시기를 함께 고려" })}
+    ${ibRef({ level:"실험 (SPF, IBDV + IBV)", levelColor:"#37474F", ver:"abs",
+      title:"Study of coinfection with local strains of infectious bursal disease virus and infectious bronchitis virus in specific pathogen-free chickens.",
+      who:"Jaton J, Gómez E, Lucero MS, Gravisaco MJ 등 (2023)", journal:"Poultry Science 102(12):103129", id:ibPm("37879167", "10.1016/j.psj.2023.103129"),
+      method:"SPF 5일령에 IBDV(유전군 4) 경구 접종, 14일 후 GI-16 IBV 기관 접종, 조직 손상·바이러스량·림프구·항체 평가", sample:"SPF 닭(마릿수 초록에 없음)",
+      result:"· 동시 감염군에서 신장 림프구 침윤 증가<br>· 28일째 F낭 IBV 유전자 보유 비율 증가<br>· 28·35·40일째 IBV 항체 반응 뚜렷이 감소",
+      stats:"초록에 수치 없음(‘뚜렷이’로 표기)", limit:"SPF 모델, 현지 분리주, 초록만 확인", apply:"IBD가 먼저 있으면 IBV 감염이 더 심하고 항체 반응이 약해질 수 있음" })}
+    ${ibRef({ level:"실험 (SPF 육계, 백신 상호작용)", levelColor:"#37474F", ver:"abs",
+      title:"Alteration of immunological parameters in infectious bronchitis vaccinated-specific pathogen-free broilers after the use of different infectious bursal disease vaccines.",
+      who:"Lupini C, Quaglia G, Mescolini G, Russo E 등 (2020)", journal:"Poultry Science 99(9):4351-4359", id:ibPm("32867979", "10.1016/j.psj.2020.05.054"),
+      method:"SPF 육계 1일령에 HVT-VP2-F 이중재조합 또는 면역복합체 IBD 백신 접종, 14일째 IB 생백신 접종 후 IB ELISA와 하더선·기관·비장 유세포 분석", sample:"SPF 육계(마릿수 초록에 없음)",
+      result:"· 면역복합체군: F낭/체중 비 낮음, IBV 항체가 낮음<br>· CD8+ T세포 비율 높음(비장·기관·하더선)<br>· 한 백신이 다른 백신의 면역에 영향 가능",
+      stats:"초록에 수치 없음", limit:"SPF 모델, 초록만 확인", apply:"IBD 백신 종류와 IB 백신 접종 순서를 함께 고려" })}
+    ${ibRef({ level:"현장 조사 (유럽 육계)", levelColor:"#00695C", ver:"abs",
+      title:"Detection of different genotypes of infectious bronchitis virus and of infectious bursal disease virus in European broilers during an epidemiological study in 2013 and the consequences for the diagnostic approach.",
+      who:"de Wit JJ, Cazaban C, Dijkman R, Ramon G 등 (2018)", journal:"Avian Pathology 47(2):140-151", id:ibPm("28972403", "10.1080/03079457.2017.1387231"),
+      method:"2013년 약 6개월 유럽 10개국 육계 계군에서 진단 시료로 IBV·IBDV 검출과 IBD 백신 복제·항체 분석", sample:"234개 계군",
+      result:"· IBV 10개 유전자형 검출(793B 최다, QX·Mass·Xindadi형 순)<br>· 기관과 신장에서 서로 다른 유전자형이 검출되기도 함<br>· 음수 접종 IBD 백신은 부화장 면역복합체 접종보다 복제가 늦어 접종 시기·방법 실수 시사",
+      stats:"계군 수·유전자형 수", limit:"감시 조사, 초록만 확인", apply:"IBD 백신 접종 품질과 IBV 유전자형 검사를 함께 점검" })}
+    ${ibRef({ level:"종설 (Review)", levelColor:"#455A64", ver:"abs",
+      title:"Virus-Induced Immunosuppression in Chickens.",
+      who:"Gimeno IM, Schat KA (2018)", journal:"Avian Diseases 62(3):272-285", id:ibPm("30339511", "10.1637/11841-041318-Review.1"),
+      method:"MDV·CIAV·IBDV 유도 면역억제와 상호작용 문헌 종설", sample:"해당 없음(종설)",
+      result:"· MDV는 체액·세포 면역 모두 억제, CIAV는 조혈모세포·흉선세포 세포자멸사로 빈혈과 세균 감염 취약성 유발<br>· IBDV는 B세포 파괴로 체액 면역 약화<br>· 세 바이러스 사이의 상호작용이 중요하나 과소평가됨",
+      stats:"해당 없음", limit:"종설, 초록만 확인", apply:"IBD·CIAV·MDV 관리가 IB 등 다른 백신 효과와 연결" })}
+    ${ibH("IBV 자체의 면역억제성")}
+    ${ibRef({ level:"종설 (Review)", levelColor:"#455A64", ver:"abs",
+      title:"Infectious Bronchitis Coronavirus Infection in Chickens: Multiple System Disease with Immune Suppression.",
+      who:"Najimudeen SM, Hassan MSH, Cork SC, Abdul-Careem MF (2020)", journal:"Pathogens 9(10):779", id:ibPm("32987684", "10.3390/pathogens9100779"),
+      method:"IBV 병인·면역 반응·변이 문헌 종설", sample:"해당 없음(종설)",
+      result:"· 호흡기·생식기·신장·소화관·근육·면역억제 등 다계통 병변 유발 유전형 출현<br>· 백신 유도 면역을 벗어나는 새 혈청형 출현<br>· 병인과 면역 반응 이해 필요",
+      stats:"해당 없음", limit:"종설, 초록만 확인", apply:"IBV 자체가 면역에 영향을 줄 수 있다는 일반 근거" })}
+    ${ibRef({ level:"실험 (SPF, 변이주)", levelColor:"#37474F", ver:"abs",
+      title:"Recombinant GI-19 infectious bronchitis virus induction of humoral immunosuppression with reduced HI antibody response following Newcastle disease virus vaccination and bursal cell apoptosis.",
+      who:"Wang C, Zhang W, Hou B 등 (2026)", journal:"Veterinary Research 57:170", id:ibPm("42786487", "10.1186/s13567-026-01839-2"),
+      method:"4/91 백신주와 재조합한 GI-19 계통 IBV 두 분리주(F낭 기원·기관 기원)를 7일령 SPF에 접종, 병리·사이토카인·F낭 세포자멸사·NDV 불활화 백신 HI 항체 평가", sample:"SPF 병아리(마릿수 초록에 없음)",
+      result:"· F낭 위축, 최대 35일까지 바이러스 검출, 14일째까지 혈청 전환 지연<br>· NDV HI 항체 14·28일째 ≥1 log2 감소, 35일째 회복<br>· 28일까지 TNF-α·IL-1β·IL-6·IFN-γ 상승<br>· 1일째부터 F낭 세포자멸사 증가",
+      stats:"HI 항체 ≥1 log2 감소 (초록)", limit:"SPF 모델, 두 분리주, 초록만 확인", apply:"일부 변이주는 다른 백신 항체 반응을 낮출 수 있음" })}
+    ${ibH("곰팡이독소")}
+    ${ibRef({ level:"실험 (육계, DON)", levelColor:"#37474F", ver:"abs",
+      title:"Ameliorative effect of a microbial feed additive on infectious bronchitis virus antibody titer and stress index in broiler chicks fed deoxynivalenol.",
+      who:"Ghareeb K, Awad WA, Böhm J (2012)", journal:"Poultry Science 91(4):800-807", id:ibPm("22399717", "10.3382/ps.2011-01741"),
+      method:"1일령 Ross 308 수컷 4개 처리(대조·DON 10 mg/kg·DON+Mycofix select·Mycofix select) 5주, 성적·혈액·림프기관·IB 백신 항체 평가", sample:"육계 수컷 32마리",
+      result:"· DON 급여로 사료섭취·체중·증체·사료효율 감소<br>· IB 백신 항체 반응 감소(P=0.003), 총 림프구 감소, 이질구/림프구 비 증가<br>· Mycofix select 첨가 시 대조군 수준으로 회복",
+      stats:"IB 항체 감소 P=0.003 (초록)", limit:"표본 32마리, 단일 첨가제 시험, 초록만 확인", apply:"사료 곰팡이독소가 IB 백신 항체 반응을 낮출 수 있음 — 원료 관리 근거" })}
+    ${ibRef({ level:"실험 (육계, T-2 + IBV)", levelColor:"#37474F", ver:"abs",
+      title:"Immunopathological effects of experimental T-2 mycotoxocosis in broiler chicken co-infected with infectious bronchitis virus (IBV).",
+      who:"Yohannes T, Sharma AK, Singh SD, Goswami TK (2012)", journal:"Veterinary Immunology and Immunopathology 146(3-4):245-253", id:ibPm("22483992", "10.1016/j.vetimm.2012.03.001"),
+      method:"T-2 독소 2 ppm 급여 6주 + 3주째 IBV 접종 4개 군, 림프구 자극지수·HI·ELISA·CD4/CD8·림프기관 병리 비교", sample:"1주령 병아리 128마리",
+      result:"· 독소군의 IBV ELISA 항체가가 독소 없는 IBV 감염군보다 모든 시점에서 유의하게 낮음(P<0.01)<br>· ND HI 항체도 독소군에서 낮음(P<0.05)<br>· 림프기관 괴사·림프구 고갈이 T-2+IBV군에서 더 심함<br>· T-2가 IBV 병리·병인을 악화",
+      stats:"P<0.05, P<0.01 (초록)", limit:"고정 농도 실험 사료, 초록만 확인", apply:"독소 노출 시 IB 항체 반응이 낮고 림프기관 손상이 커질 수 있음" })}
+    ${ibH("세균·마이코플라즈마 복합감염")}
+    ${ibRef({ level:"실험 (IBV + 대장균 모델)", levelColor:"#37474F", ver:"abs",
+      title:"Research Note: Effects of Escherichia coli co-infection on the protective efficacy assessment of two common infectious bronchitis vaccines.",
+      who:"Shen YX, Li WW, Xia J, Du JT 등 (2021)", journal:"Poultry Science 100(9):101324", id:ibPm("34358949", "10.1016/j.psj.2021.101324"),
+      method:"IBV(GVI-1형 ZQX) 접종 4일 후 대장균(O8) 접종, 7일 뒤 부검, 이 모델로 H120·4/91 백신 방어 비교", sample:"닭(마릿수 초록에 없음)",
+      result:"· IBV+대장균 군의 병변이 IBV 단독군보다 심함<br>· 4/91이 H120보다 유의하게 우수한 방어<br>· 복합감염 모델이 백신 효능 평가에 쓰일 수 있음",
+      stats:"초록에 수치 없음", limit:"한 균주(GVI-1)·한 대장균주, 초록만 확인", apply:"야외에서는 2차 세균이 병변과 방어 평가에 영향을 줌" })}
+    ${ibRef({ level:"실험 (육계, 이중감염)", levelColor:"#37474F", ver:"abs",
+      title:"The contribution of the immune response to enhanced colibacillosis upon preceding viral respiratory infection in broiler chicken in a dual infection model.",
+      who:"Weerts EAWS, Matthijs MGR, Bonhof J, van Haarlem DA 등 (2021)", journal:"Veterinary Immunology and Immunopathology 238:110276", id:ibPm("34126552", "10.1016/j.vetimm.2021.110276"),
+      method:"육계에 IBV·NDV·aMPV 또는 완충액을 먼저 접종하고 6일 후 APEC 기관 접종, 1·8일 후 육안·조직·면역조직화학·qPCR 평가", sample:"육계(마릿수 초록에 없음)",
+      result:"· NDV-APEC·IBV-APEC군에서 가장 심한 육안 병변과 지속적 기낭염<br>· 바이러스 선행군 모두 지속성 기관염(APEC 단독군은 없음)<br>· CD4+·CD8+ 림프구 오래 유지, IL-6·IFN-γ 일시 상승<br>· 체중 차이는 없음",
+      stats:"초록에 수치 없음", limit:"단일 APEC 균주·실험 모델, 초록만 확인", apply:"IBV 후 대장균 감염은 병변이 오래 가므로 IB 초기 관리가 2차 감염 손실을 줄이는 데 중요" })}
+    ${ibRef({ level:"실험 (육계, ORT + IB 생백신)", levelColor:"#37474F", ver:"abs",
+      title:"Effect of experimental Ornithobacterium rhinotracheale infection along with live infectious bronchitis vaccination in broiler chickens.",
+      who:"Ellakany HF, Elbestawy AR, Abd-Elhamid HS, Gado AR 등 (2019)", journal:"Poultry Science 98(1):105-111", id:ibPm("30690611", "10.3382/ps/pey324"),
+      method:"14일령 Cobb 500 육계 120마리를 4군(ORT+IBV 4/91 동시, ORT만, 백신만, 대조)으로 나눠 증상·병변·병리·성적 비교", sample:"육계 120마리",
+      result:"· ORT+IB 생백신 동시군의 증상·병변(기관염·폐렴)이 ORT 단독군보다 뚜렷<br>· 체중·증체·FCR·ORT 재분리에서 ORT+백신군과 다른 군 사이 차이(P≤0.05)<br>· 생백신이 ORT 병원성을 높일 수 있다고 해석",
+      stats:"P≤0.05 (초록)", limit:"이집트 한 균주 모델, 초록만 확인", apply:"백신 접종 시기에 다른 호흡기 병원체가 겹치지 않는지 점검" })}
+    ${ibRef({ level:"실험 (MG 백신, MG + QX IBV)", levelColor:"#37474F", ver:"abs",
+      title:"Assessment of Mycoplasma gallisepticum vaccine efficacy in a co-infection challenge model with QX-like infectious bronchitis virus.",
+      who:"Bwala DG, Solomon P, Duncan N, Wandrag DBR 등 (2018)", journal:"Avian Pathology 47(3):261-270", id:ibPm("29451010", "10.1080/03079457.2018.1440064"),
+      method:"MG 백신(ts-11·6/85) 접종 닭에 지역 MG 주와 QX형 IBV를 동시 공격해 증상·기관 병변·qPCR 비교", sample:"닭(마릿수 초록에 없음)",
+      result:"· 두 백신 모두 증상 방어 유사(ts-11이 약간 우수)<br>· 6/85군은 28·31일째 기관 병변·점막 두께가 유의하게 낮음(P≤0.05), 33일째 차이 없음<br>· 두 백신 모두 IBV 공격에 대해 비특이적 방어 제공",
+      stats:"P≤0.05 (초록)", limit:"실험 모델, 초록만 확인", apply:"MG와 IBV가 함께 있는 상황을 모의한 모델 — 현장 복합감염 이해에 참고" })}
+    ${ibRef({ level:"현장 조사 (다중 병원체)", levelColor:"#00695C", ver:"abs",
+      title:"Co-infection with Multiple Respiratory Pathogens Contributes to Increased Mortality Rates in Algerian Poultry Flocks.",
+      who:"Sid H, Benachour K, Rautenschlein S (2015)", journal:"Avian Diseases 59(3):440-446", id:ibPm("26478165", "10.1637/11063-031615-Case.1"),
+      method:"알제리 닭·칠면조 계군에서 MG·MS·AIV·IBV·aMPV 검출과 IBV 계통 분석", sample:"알제리 계군(수 초록에 없음)",
+      result:"· 병원체들이 다중 감염으로 순환<br>· 신병원성 IBV가 이웃 나라 분리주와 다른 계통(새 유전자형 가능성)<br>· aMPV B형과 AIV를 처음 검출<br>· 모든 바이러스가 MG와 동반 감염",
+      stats:"해당 없음", limit:"한 나라 조사, 초록만 확인", apply:"호흡기 폐사 증가는 복합감염일 수 있으므로 다중 검사가 필요" })}
+    ${ibRef({ level:"사례 보고 (육계 계군 1곳)", levelColor:"#37474F", ver:"abs",
+      title:"Infectious bronchitis associated with Escherichia coli infection in commercial broiler chickens: a case report.",
+      who:"Nordin N, Sani NIM, Kadir AA, Shaari R 등 (2021)", journal:"Journal of Advanced Veterinary and Animal Research 8(1):101-104", id:ibPm("33860019", "10.5455/javar.2021.h491"),
+      method:"말레이시아 28~33일령 육계 폐사 증가 계군의 부검·조직·세균배양·RT-PCR", sample:"약 7,000수 중 하루 약 100수 폐사 계군",
+      result:"· 기낭염·출혈성 기관염·폐충혈·간/기낭 섬유소 침착·출혈성 장염·신장 비대<br>· 폐·기관·간·장·신장에서 대장균 분리, 곰팡이는 분리되지 않음<br>· RT-PCR로 IBV 확인, IB와 대장균 복합감염 진단",
+      stats:"해당 없음(사례)", limit:"1개 계군, 인과 순서 불명, 초록만 확인", apply:"부검에서 IB 병변과 세균 병변이 함께 보이면 단독으로 결론짓지 않음" })}
+    ${ibH("이번 강의에서 읽은 자료의 한계")}
+    ${ibList([
+      "대부분 SPF 닭·실험 모델이며, 현장에서 감염 시기·균주·환경이 다를 때의 효과 크기는 확인하지 못함",
+      "국내 계군에서 IB와 면역억제·복합감염의 동반 비율을 조사한 자료는 확인하지 못함(검색한 범위 안에서)",
+      "산란계에서 IBD·독소·복합감염과 IB 임상 결과를 연결한 시험은 확인하지 못함",
+    ])}`;
+
+  S[7] = `
+    ${ibH("1. 면역억제·복합감염 점검 — 무엇을 확인하나")}
+    ${ibTable(["영역", "확인할 것", "비용"], [
+      ["기록", "초기 폐사·초기 체중 균일도·접종 일정·IBD 백신 종류와 방법·사료 입고 일자", "거의 없음"],
+      ["사료·원료", "곰팡이독소 검사(원료·배합 사료), 사료 저장 상태(습기·곰팡이)", "중간"],
+      ["백신 프로그램", "백신 사이의 간격, 접종 방법·시기 실수 여부, 한 번에 여러 백신 접종 여부", "낮음~중간"],
+      ["부검·검사", "기관·폐·기낭 세균 배양, IBV PCR·유전자형, MG/aMPV 검사, 항체가 추이", "중간"],
+      ["F낭·흉선", "육성기·출하 후 부검에서 F낭 크기·흉선 확인", "낮음"],
+    ], { minW: 560 })}
+    ${ibChecklist("s2l3a", [
+      "육계·육성기 초기 폐사와 초기 체중 균일도를 기록하고 추이를 본다",
+      "IBD·ND·IB 백신의 종류·접종 일령·방법을 한 장의 표로 정리한다",
+      "백신 사이 간격이 허가사항·수의사 지침과 맞는지 확인한다",
+      "사료 곰팡이독소 검사 결과와 원료 입고·저장 기록을 보관한다",
+      "호흡기 증상이 있으면 세균 검사와 IBV 검사를 함께 의뢰한다",
+      "항체가 균일도(CV)와 접종 기록을 같이 수의사와 공유한다",
+    ])}
+    ${ibH("2. 복합 요인 점검 순서 (현장 추론)")}
+    ${ibFlow([["① 부검 소견", "호흡기·신장 병변 + 세균성 병변(기낭·간 섬유소)이 함께인가?"], ["② 면역 이력", "초기 IBD·독소·스트레스·접종 간격"], ["③ 검사", "세균 배양 + IBV PCR/유전자형 + 항체 추이"], ["④ 손실 분리", "IB 단독/복합 몫을 나누어 기록"]])}
+    ${ibP(`${ibTag("infer")}순서는 문헌에서 비교한 것이 아니라 이번 강의의 실험 결과를 현장 점검 절차로 옮긴 것입니다. 약품 사용(항생제 등)은 허가사항과 수의사 처방에 따르며 이 강의는 처방을 대신하지 않습니다.`)}
+    ${ibBox("비용 대비 실효성", `${ibTag("infer")}기록(초기 폐사·접종 일정)과 부검 관찰은 비용이 거의 들지 않으면서 면역억제 단서를 줍니다. 곰팡이독소 검사와 세균 배양·유전자형 검사는 비용이 들지만 ‘IB 단독이 아니다’라는 판단을 바꿔 약품·백신 결정이 달라질 수 있어 가치가 큽니다.`, "#455A64")}
+    ${ibField("이번 주 안에 할 3가지", `① 최근 3회차 <b>초기 폐사·초기 체중 균일도</b>를 한 표에 모은다.<br>② IBD·ND·IB 백신 <b>접종 일정과 방법</b>을 한 장으로 정리한다.<br>③ 사료 <b>곰팡이독소 검사</b> 최근 결과와 저장 상태를 확인한다.`)}`;
+
+  S[8] = `
+    ${ibH("핵심 결론 5가지 (제3강)")}
+    ${ibList([
+      "IB는 면역을 약하게 하는 요인(IBD·MDV·CIAV·곰팡이독소)과 겹치면 백신 항체가 낮아지고 방어가 약해질 수 있다(실험).",
+      "IBV 뒤 대장균 같은 2차 세균이 얹히면 기낭염·기관염 병변이 커지고 오래 간다(실험).",
+      "IB 생백신과 ORT가 겹친 실험에서 병변·성적이 악화되었다 — 접종 시기에 다른 호흡기 병원체를 점검한다.",
+      "일부 변이주는 F낭에 영향을 주고 다른 백신(NDV) 항체를 낮출 수 있다(SPF 실험).",
+      "여러 병이 섞인 계군에서는 IB 손실을 단독으로 단정하지 않고 검사·기록으로 겹침을 풀어 본다.",
+    ])}
+    ${ibH("점검 질문")}
+    ${ibQuiz([
+      ["IB 백신을 맞췄는데 항체가 낮다면 무엇을 같이 점검하나?", "접종 방법·시기 실수와 함께 초기 IBD 감염, 면역복합체 IBD 백신 등 백신 상호작용, 곰팡이독소, 스트레스를 같이 본다."],
+      ["IBV와 대장균이 함께 있으면 어떤 점이 달라지나?", "실험에서 병변이 더 심하고 기낭염이 오래 갔다. 부검에서 호흡기·신장 병변과 세균 병변이 함께 보이면 IB 단독으로 결론짓지 않는다."],
+      ["곰팡이독소가 IB와 상관이 있나?", "DON·T-2 급여 육계에서 IBV 백신/감염 항체가 낮아지고 림프기관 손상이 커졌다(실험). 원료 검사와 저장 관리가 필요하다."],
+      ["여러 병이 겹쳤을 때 IB 손실을 어떻게 기록하나?", "IB 단독 손실로 계산하지 않고 겹친 요인을 함께 적어 ‘IB 몫’이 포함됨을 표시한다. 계산기 결과를 수의사와 함께 해석한다."],
+      ["IBV 양성이면 IB가 원인인가?", "PCR 양성은 ‘바이러스가 있다’일 뿐이다. 대장균·MG·aMPV 등이 함께 있으면 병변이 달라진다. 유전자형·세균 검사·부검을 함께 본다."],
+    ])}
+    ${ibH("농장에서 확인할 사항 5가지 (제3강)")}
+    ${ibList([
+      "초기 폐사·초기 체중 균일도·F낭 크기를 회차마다 기록하는가?",
+      "IBD·ND·IB 백신의 종류·방법·간격을 한 장으로 정리했는가?",
+      "사료 곰팡이독소 검사 결과와 원료 저장 기록이 있는가?",
+      "호흡기 증상 시 세균 검사와 IBV 검사를 함께 의뢰하는가?",
+      "손실 계산 시 겹친 요인을 함께 적는가?",
+    ])}
+    ${ibH("아직 해결되지 않은 문제")}
+    ${ibList([
+      `${ibTag("debate")}국내 계군에서 IB가 다른 병·면역억제와 동반되는 비율`,
+      `${ibTag("hypo")}IBV 변이주의 면역억제성이 현장 백신 프로그램에 미치는 영향 크기`,
+      `${ibTag("infer")}산란계 육성기의 독소·IBD·접종 간격이 IB 방어에 미치는 영향`,
+      "복합감염 때 IB 손실을 따로 분리해 계산하는 표준 방법",
+    ])}`;
+
+  S[9] = `
+    ${ibH("다음 연구 제안 — 제4강")}
+    ${ibP("제4강 <b>「변이는 왜 방어를 뚫는가?」</b>에서는 IBV의 S1 변이와 재조합이 백신주와 야외주의 항원 차이를 어떻게 만들고, 교차방어가 어디서 약해지는지, 국내에서 유행하는 계통(K-II, GVI-1, GI-19 등)이 현장 판단에 의미하는 바를 정리합니다.")}
+    ${ibH("추가로 검토할 자료")}
+    ${ibList([
+      "이번 강의 문헌의 전문 확인(특히 Jaton 2023·Lupini 2020·Ghareeb 2012·Yohannes 2012의 표본·통계)",
+      "국내 육계·산란계에서 IBD·CIAV·MDV와 IB의 동반 조사 자료",
+      "곰팡이독소 허용 수준과 IB 백신 항체의 관계를 현장 계군에서 본 연구",
+      "IB 생백신과 다른 생백신 사이의 접종 간격에 관한 국내 허가사항·지침",
+    ])}
+    ${ibBox("제3강을 마치기 전 확인할 사항", "· 면역억제와 복합감염의 차이를 설명할 수 있는가?<br>· IBD·곰팡이독소·세균이 IB에 미치는 영향을 근거 수준과 함께 말할 수 있는가?<br>· 우리 농장의 초기 폐사·접종 일정·독소 검사 기록을 한 장에 모았는가?", "#455A64")}
+    ${ibBox("진행 안내", "제4강은 「제4강 진행」 또는 「다음 강의」라고 요청하시면 공개합니다. 「더 깊이」「논문 분석」「현장 중심으로」를 요청하시면 이 강의를 더 보강합니다.", "#455A64")}`;
   return S;
 }
 
