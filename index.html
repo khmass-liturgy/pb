@@ -8295,7 +8295,12 @@ async function fetchDrugUse(){
     const j = await fetchPremiumContentJson(DRUGUSE_DATASET);
     drugUseState.data = j && Array.isArray(j.items) ? j : { items:[] };
     drugUseState.status = "done";
-  } catch(e){ drugUseState.status = "error"; drugUseState.msg = "약품 카드를 불러오지 못했습니다: " + (e.message || e); drugUseState.ok = false; }
+  } catch(e){
+    // 아직 한 번도 발행하지 않은 상태(서버가 not-found를 돌려줌)는 빈 목록으로 보고 관리자가 첫 카드를 만들 수 있게 한다.
+    // 그 밖의 오류는 기존 카드를 덮어쓰지 않도록 저장 기능을 막고 오류를 보여 준다.
+    if(e && (e.code === "functions/not-found" || e.code === "not-found" || /아직 발행된 내용이 없습니다/.test(e.message || ""))){ drugUseState.data = { items:[] }; drugUseState.status = "done"; }
+    else { drugUseState.status = "error"; drugUseState.msg = "약품 카드를 불러오지 못했습니다: " + (e.message || e); drugUseState.ok = false; }
+  }
   if(premiumState.view === "drugusage") render();
 }
 async function publishDrugUse(items, okMsg){
