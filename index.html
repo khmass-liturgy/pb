@@ -11939,10 +11939,10 @@ const hzState = { tab:"intro", sim:[2, 2, 2, 2, 2], checks:{}, copied:"", tasks:
     if(typeof j.sido === "string") hzState.sido = j.sido;
   } catch(e){}
 })();
-function hzSave(){ try { localStorage.setItem(HZ_STORE, JSON.stringify({ sim:hzState.sim, checks:hzState.checks, tasks:hzState.tasks, sido:hzState.sido })); } catch(e){} }
+function hzSave(){ try { localStorage.setItem(HZ_STORE, JSON.stringify({ sim:hzState.sim, checks:hzState.checks, tasks:hzState.tasks, sido:hzState.sido, farm:hzState.farm })); } catch(e){} }
 function hzToday(){ const k = new Date(Date.now() + 9 * 3600000); return k.toISOString().slice(0, 10); }
 
-const HZ_TABS = [["intro", "🏠 시작하기 (이 연구는?)"], ["prompt", "📋 인공지능에게 시키는 글 (복사)"], ["program", "🪜 연구 6단계 한눈에"], ["tasks", "✅ 우리 농장 할 일 (팀별)"], ["sim", "🎚️ 우리 농장 위험도 체크"], ["check", "📝 오늘 방역 점검표"], ["refs", "📚 참고 자료·앞으로 계획"]];
+const HZ_TABS = [["intro", "🏠 시작하기 (이 연구는?)"], ["prompt", "📋 인공지능에게 시키는 글 (복사)"], ["program", "🪜 연구 6단계 한눈에"], ["tasks", "✅ 우리 농장 할 일 (팀별)"], ["sim", "🎚️ 우리 농장 위험도 체크"], ["report", "📄 농장 보고서(초안)"], ["check", "📝 오늘 방역 점검표"], ["refs", "📚 참고 자료·앞으로 계획"]];
 const HZ_TEAMS = [
   ["총괄 연구책임 인공지능", "연구계획 수립, 결과 통합, 상충되는 의견 조정"],
   ["제1팀 바이러스·역학", "H5·H7 아형, 병원성, 전파 양상, 역학관계 분석"],
@@ -12424,6 +12424,99 @@ function hzBacktestBox(){
     ${hzBox("이 표를 읽는 법과 한계", "‘무작위 대비’가 1배에 가까우면 규칙이 아무 지역이나 고른 것과 다르지 않다는 뜻입니다. 이 대조는 <b>규칙을 만든 같은 자료(주로 25/26 시즌)로 평가한 것이라 실제보다 낙관적일 수 있고</b>, 발생이 소수 지역에 몰려 있고 같은 사건이 여러 주·여러 지역에 중복해서 잡히므로 <b>통계적 결론으로 쓸 수 없습니다.</b> 다음 시즌 자료로 규칙을 바꾸지 않은 채 다시 대조하기 전에는 ‘예측 성능’이라고 말하지 않습니다.", "#E65100")}`;
 }
 
+// ── 3단계: 농장 위험평가 보고서(초안) 자동 작성 ──────────────────────────────────────────────
+// 보고서는 코드가 ‘이 화면에 입력된 값과 이 사이트의 공개 자료’를 규칙대로 조립한 초안이다. 인공지능이 쓰지 않으며, 입력하지 않은 값은
+// ‘미입력’으로 남긴다. 농장 정보는 이 기기에만 저장되고(서버 전송 없음), 복사·인쇄할 때만 밖으로 나간다.
+hzState.farm = hzState.farm || { name:"", sp:"", heads:"", type:"" };
+(function hzFarmLoad(){ try { const j = JSON.parse(localStorage.getItem(HZ_STORE) || "{}"); if(j.farm && typeof j.farm === "object") Object.assign(hzState.farm, { name:String(j.farm.name || ""), sp:String(j.farm.sp || ""), heads:String(j.farm.heads || ""), type:String(j.farm.type || "") }); } catch(e){} })();
+const HZ_FARM_SP = ["산란계", "육계", "종계(산란용·육용)", "오리", "기타 가금"];
+const HZ_FARM_TYPE = ["케이지(배터리)", "평사", "무창(밀폐)계사", "개방·반개방 계사", "동물복지·방사"];
+// 항목별 개선 행동 제안(예시) — 숫자 기준 없이 ‘무엇을 확인·정비할지’만 적는다. 구체 기준은 공식 SOP·수의사 상담으로 확정.
+const HZ_ACTIONS = [
+  ["지역 발생·검출 모니터링", "매일 정해진 시간에 공식 발생·검출 정보와 지자체 방역 문자를 확인하고 점검표 7번에 기록한다. 인근 발생이 확인되면 정부 공고의 방역지역·이동제한을 먼저 확인한다."],
+  ["농장 주변 환경 노출 점검", "농장 주변 하천·저수지·논 등 철새가 머물 수 있는 곳을 지도와 현장에서 확인하고(관찰만, 포획·접근 금지), 사료·음수시설이 야생조류 분변에 노출되지 않도록 덮개·밀폐 상태를 점검한다."],
+  ["인력·차량·물품 이동 통제", "외부 차량·인력은 출입 승인과 기록을 남기고, 지정 소독 지점을 거친 뒤 지정 구역까지만 진입하게 한다. 사료·계란·분뇨·폐사체 차량의 동선을 청결/오염 구역으로 나눠 교차를 없앤다."],
+  ["시설·차단방역 정비", "출입구·울타리·방조망 파손을 점검·보수하고, 전실의 전용 장화·작업복·손 위생 절차와 소독시설 작동·약품 관리를 기록으로 확인한다."],
+  ["계절·기상 대응", "철새 도래 시즌과 결빙·해빙·집중호우 때 점검 빈도를 올리는 기준을 미리 정하고(공식 방역기간은 당일 공고 확인), 배수·진입로·소독시설 동결을 점검한다."],
+];
+function hzFarmReport(){
+  const f = hzState.farm, today = hzToday(), s = hzScore(), c = hzClass(s);
+  const sido = hzState.sido, sgg = hzNearState.sgg;
+  const reg = sido ? hzRegion(sido) : null;
+  const near = sido && sgg ? hzNearMetrics(sido, sgg, today) : null;
+  const mine = hzState.checks[today] || [], done = HZ_CHECK_ITEMS.filter((_, i) => mine[i]).length, anyCheck = mine.length > 0;
+  const missing = [];
+  if(!f.sp) missing.push("축종"); if(!f.heads) missing.push("사육 마릿수"); if(!f.type) missing.push("사육형태"); if(!sido) missing.push("시·도"); if(sido && !sgg) missing.push("시·군");
+  // E — 우선 개선: 항목별 (수준/4 × 가중치)가 큰 순, 지역·환경(항목 1·2)은 개선이 아니라 감시 강화로 표기
+  const ranked = HZ_SIM_ITEMS.map((it, i) => ({ i, it, v:hzState.sim[i] / 4 * it.w })).sort((a, b) => b.v - a.v).slice(0, 5);
+  // 미완료 점검표 항목
+  const notDone = HZ_CHECK_ITEMS.filter((_, i) => anyCheck && !mine[i]);
+  return { f, today, s, c, sido, sgg, reg, near, done, anyCheck, missing, ranked, notDone };
+}
+function hzReportText(R){
+  const L = [];
+  const f = R.f, P = (a, b) => L.push(a + (b ? ": " + b : ""));
+  L.push(`[HPAI 농장 위험평가 보고서 초안] 분석 기준일 ${R.today}`, "※ 규칙 기반 초안 — 인공지능이 쓴 글이 아니며 검증된 감염확률이 아닙니다. 법정 통제구역·행정명령·긴급신고가 항상 우선합니다.", "");
+  L.push("A. 농장 기본현황");
+  P("농장명(선택)", f.name || "미입력"); P("축종", f.sp || "미입력"); P("사육 마릿수", f.heads || "미입력"); P("사육형태", f.type || "미입력"); P("위치(시·도 / 시·군)", (R.sido || "미입력") + " / " + (R.sgg || "미입력"));
+  L.push("", "B. 지역 위험도(공식 발생·검출 자료 기준, 참고)");
+  if(R.reg){ P(R.sido + " 최근 30일", `가금농장 발생 ${R.reg.f30}건 · 야생조류 검출 ${R.reg.w30}건`); P(R.sido + " 25/26 시즌 이후 누적", `농장 ${R.reg.fAll}건 · 야생 ${R.reg.wAll}건`); P("시·도 단위 참고 수준(임시 규칙)", HZ_LEVEL_LABEL[R.reg.level]); }
+  else L.push("시·도 미입력 — 지역 자료 없음");
+  if(R.near){ P(R.sgg + " 반경 20km 최근 30일", `농장 ${R.near.f20}건 · 야생 ${R.near.w20}건`); P("반경 50km 최근 30일", `농장 ${R.near.f50}건 · 야생 ${R.near.w50}건`); P("가장 가까운 철새 월동지(보도 기준 6곳 중, 직선 근사)", R.near.site ? `${R.near.site.n} 약 ${Math.round(R.near.site.d / 5) * 5}km` : "-"); P("시·군 단위 참고 수준", `① 지역 ${HZ_LEVEL_LABEL[hzNearLevel1(R.near)]} · ② 월동지 거리 ${HZ_LEVEL_LABEL[hzNearLevel2(R.near)]}`); }
+  L.push("자료: 이 사이트의 「국내 가금농장 HPAI 발생·검출 현황」(농림축산식품부 자료 기준). 기상·하천·저수지는 아직 반영하지 않음. 시·군 위치는 중심점 근사(오차 약 10~20km).");
+  L.push("", "C. 농장 차단방역 진단");
+  if(R.anyCheck){ P("오늘 방역 점검표", `${R.done}/${HZ_CHECK_ITEMS.length} 완료`); if(R.notDone.length){ L.push("미확인 항목:"); R.notDone.forEach(t => L.push(" - " + t)); } }
+  else L.push("오늘 방역 점검표 미작성 — 시설·인력·차량·위생 진단 근거 없음(‘미입력’)");
+  L.push("", "D. 위험점수 및 불확실성");
+  HZ_SIM_ITEMS.forEach((it, i) => L.push(` - ${it.name}: ${hzState.sim[i]}/4 (가중치 ${it.w}%)`));
+  P("종합 시범 위험점수", `${R.s}/100 · ${R.c[0]}(임시 분류)`);
+  L.push("불확실성: 점수·가중치는 연구용 가설이며 검증된 감염확률이 아님. 항목 3~5는 사용자 입력값이며 근거 자료를 별도로 남길 것. 과거 대조(백테스트)는 같은 자료로 한 낙관적 비교이고 통계적 결론이 아님.");
+  if(R.missing.length) P("미입력 항목", R.missing.join(", "));
+  L.push("", "E. 즉시 개선할 5가지(점수 기여가 큰 항목 순, 실천 가능성은 농장이 판단)");
+  R.ranked.forEach((r, k) => L.push(`${k + 1}. ${HZ_ACTIONS[r.i][0]} (현재 ${hzState.sim[r.i]}/4) — ${HZ_ACTIONS[r.i][1]}`));
+  L.push("", "F. 농장 맞춤형 예방 프로토콜(예시 틀 — 공식 SOP와 수의사 상담으로 확정)");
+  L.push("매일: 공식 발생정보 확인, 출입·차량 기록, 폐사·사료·음수·산란 이상 확인, 점검표 작성", "매주: 방조망·울타리·전실·소독시설 점검, 소독약 관리, 출입 기록 검토", "계절별: 철새 도래 시즌 전 시설 점검·교육, 결빙·해빙·호우 때 점검 강화(공식 방역기간은 당일 공고 확인)", "긴급(의심 증상·인근 발생): 이동 중지 → 출입 통제 → 기록 → 관할 가축방역기관 신고 → 지시 대기");
+  L.push("", "G. 현장 점검표");
+  HZ_CHECK_ITEMS.forEach((t, i) => L.push(`${R.anyCheck && hzState.checks[R.today] && hzState.checks[R.today][i] ? "[x]" : "[ ]"} ${t}`));
+  L.push("", "H. 인공지능 공동연구팀 검토의견", "이 초안은 규칙으로 조립되어 팀별 검토의견이 없습니다. 검토를 받으려면 「인공지능에게 시키는 글」과 이 보고서를 함께 인공지능에 입력하고, 응답의 근거·기준일·한계 표시를 확인하세요.");
+  L.push("", "I. 참고자료", "- 농림축산식품부 AI 긴급행동지침(SOP) 게시판: https://www.mafra.go.kr/FMD-AI2/2182/subview.do (최신 개정본 직접 확인)", "- WOAH 조류인플루엔자: https://www.woah.org/en/disease/avian-influenza/", "- 이 사이트 국내 가금농장 HPAI 발생·검출 현황(농식품부 자료 기준)", "- 철새 월동지: 국립생물자원관 위치추적·월동지 관련 보도(근거 수준: 보도, 원자료 미확인)");
+  L.push("", "※ 위험예측·점수는 질병 확진이 아니며, 정부·공식 방역기관의 진단·조치를 대체하지 않습니다.");
+  return L.join("\n");
+}
+function renderHzReport(){
+  const R = hzFarmReport(), f = R.f;
+  const sel = (id, list, val, ph) => `<select id="${id}" style="border:1px solid #ccc;border-radius:8px;padding:6px 8px;font-size:13px;background:#fff;min-width:130px"><option value="">${ph}</option>${list.map(x => `<option ${x === val ? "selected" : ""}>${x}</option>`).join("")}</select>`;
+  const inp = `border:1px solid #ccc;border-radius:8px;padding:6px 8px;font-size:13px;background:#fff`;
+  const text = hzReportText(R);
+  const sec = (t, body) => `<div style="border:1px solid #e3e8ee;border-radius:10px;padding:9px 12px;margin:8px 0;background:#fff"><div style="font-size:13px;font-weight:800;color:${HZ_COLOR};margin-bottom:4px">${t}</div><div style="font-size:12.3px;color:#333;line-height:1.75">${body}</div></div>`;
+  const kv = (a, b) => `<div><span style="color:#888">${a}</span> · <b>${esc(b)}</b></div>`;
+  return `
+    ${hzBox("자동 작성 보고서(초안)", "이 화면의 입력값과 이 사이트의 공개 자료를 <b>규칙대로 조립한 초안</b>입니다. 인공지능이 쓴 글이 아니고, 입력하지 않은 값은 ‘미입력’으로 남깁니다. 농장 정보는 <b>이 기기에만 저장</b>되며 서버로 전송되지 않습니다(복사·인쇄할 때만 밖으로 나갑니다).", HZ_COLOR)}
+    <div style="border:1px solid ${HZ_COLOR}44;background:#E0F2F155;border-radius:10px;padding:10px 12px;margin:8px 0">
+      <div style="font-size:12.5px;font-weight:800;color:#222;margin-bottom:6px">① 농장 기본정보 입력</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <input id="hz-farm-name" value="${esc(f.name)}" placeholder="농장명(선택)" style="${inp};width:150px">
+        ${sel("hz-farm-sp", HZ_FARM_SP, f.sp, "축종")}
+        <input id="hz-farm-heads" value="${esc(f.heads)}" placeholder="사육 마릿수" inputmode="numeric" style="${inp};width:110px">
+        ${sel("hz-farm-type", HZ_FARM_TYPE, f.type, "사육형태")}
+      </div>
+      <div style="font-size:11px;color:#777;line-height:1.7;margin-top:6px">위치(시·도·시군)와 5개 항목 점수는 「🎚️ 우리 농장 위험도 체크」에서 입력한 값을 씁니다. 오늘 점검표는 「📝 오늘 방역 점검표」 값을 씁니다.${R.missing.length ? ` <b style="color:#E65100">미입력: ${R.missing.join(", ")}</b>` : ""}</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0">
+      <button type="button" id="hz-rep-copy" style="border:none;background:${HZ_COLOR};color:#fff;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:800;cursor:pointer">📋 보고서 전체 복사</button>
+      <button type="button" id="hz-rep-print" style="border:1px solid ${HZ_COLOR};background:#fff;color:${HZ_COLOR};border-radius:8px;padding:9px 16px;font-size:13px;font-weight:800;cursor:pointer">🖨 인쇄</button>
+      <button type="button" id="hz-rep-clear" style="border:1px solid #ddd;background:#fff;color:#666;border-radius:8px;padding:9px 14px;font-size:12.5px;font-weight:700;cursor:pointer">입력 지우기</button>
+      <span id="hz-rep-msg" style="font-size:12px;color:#2E7D32;font-weight:700">${esc(hzState.copied)}</span>
+    </div>
+    ${sec("A. 농장 기본현황", kv("농장명", f.name || "미입력") + kv("축종", f.sp || "미입력") + kv("사육 마릿수", f.heads || "미입력") + kv("사육형태", f.type || "미입력") + kv("위치", (R.sido || "미입력") + " " + (R.sgg || "")) + kv("분석 기준일", R.today))}
+    ${sec("B. 지역 위험도 (참고)", R.reg ? kv(R.sido + " 최근 30일", `농장 ${R.reg.f30}건 · 야생 ${R.reg.w30}건`) + kv("시·도 참고 수준", HZ_LEVEL_LABEL[R.reg.level]) + (R.near ? kv(R.sgg + " 반경 20km / 50km (농장)", R.near.f20 + " / " + R.near.f50) + kv("가까운 월동지", R.near.site ? R.near.site.n + " 약 " + Math.round(R.near.site.d / 5) * 5 + "km" : "-") : `<div style="color:#888">시·군을 고르면 반경 지표가 추가됩니다.</div>`) : `<div style="color:#E65100">시·도가 입력되지 않아 지역 자료를 넣지 못했습니다.</div>`)}
+    ${sec("C. 농장 차단방역 진단", R.anyCheck ? `<b>${R.done}/${HZ_CHECK_ITEMS.length}</b> 항목 확인됨` + (R.notDone.length ? `<ul style="margin:4px 0 0 16px;padding:0">${R.notDone.map(t => `<li>${t}</li>`).join("")}</ul>` : "") : `<div style="color:#E65100">오늘 점검표가 아직 없습니다 — 시설·인력·차량 진단 근거 없음</div>`)}
+    ${sec("D. 위험점수 및 불확실성", `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-size:26px;font-weight:900;color:${R.c[1]}">${R.s}<span style="font-size:12px;color:#888"> / 100</span></span><span style="font-size:15px;font-weight:800;color:${R.c[1]}">${R.c[0]} (임시)</span></div><div style="color:#666;font-size:11.5px">점수·가중치는 연구용 가설이며 검증된 감염확률이 아닙니다.</div>`)}
+    ${sec("E. 즉시 개선할 5가지", `<ol style="margin:0 0 0 18px;padding:0">${R.ranked.map(r => `<li style="margin:3px 0"><b>${HZ_ACTIONS[r.i][0]}</b> <span style="color:#888">(현재 ${hzState.sim[r.i]}/4)</span><br>${HZ_ACTIONS[r.i][1]}</li>`).join("")}</ol>`)}
+    ${sec("F~I. 예방 프로토콜·점검표·검토의견·참고자료", `<div>프로토콜 틀, 점검표 8항목, 인공지능 검토 방법, 참고자료는 <b>복사한 보고서 본문</b>에 들어 있습니다.</div>`)}
+    ${hzBox("보고서에 쓰인 규칙과 한계", "① 점수·참고 수준은 임시 규칙으로 계산했고 과거 자료로 낙관적으로 대조만 해 본 상태입니다. ② 지역 자료는 공개된 발생·검출 현황뿐이며 기상·하천·저수지는 아직 없습니다. ③ ‘즉시 개선 5가지’는 점수 기여가 큰 순서이며 농장 사정과 비용은 반영하지 않습니다. ④ 법정 통제구역·행정명령·긴급신고는 이 보고서와 무관하게 우선합니다.", "#E65100")}`;
+}
+
 function renderHzSim(){
   const s = hzScore(), c = hzClass(s);
   const rows = HZ_SIM_ITEMS.map((it, i) => `<div style="border:1px solid #e8e8e8;border-radius:10px;padding:9px 11px;margin:7px 0;background:#fff">
@@ -12486,7 +12579,7 @@ function renderHpaiZeroPanel(){
   const t = hzTabs().some(x => x[0] === hzState.tab) ? hzState.tab : "intro";
   const head = `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:10px"><div><div class="display" style="font-size:16px;margin-bottom:2px">🦠 HPAI ZERO FARM — 조류인플루엔자 예방 인공지능 공동연구팀</div><div style="font-size:11px;color:#888">인공지능 기반 조류인플루엔자 예방·위험예측·농장 차단방역 공동연구 시스템</div></div><button type="button" id="hz-back-btn" style="border:1px solid #ddd;background:#fff;color:#888;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button></div>`;
   const nav = `<div style="display:flex;gap:5px;flex-wrap:wrap;margin:6px 0 12px" role="tablist">${hzTabs().map(([k, l]) => `<button type="button" role="tab" aria-selected="${k === t}" data-hz-tab="${k}" style="border:1px solid ${k === t ? HZ_COLOR : "#ddd"};background:${k === t ? HZ_COLOR : "#fff"};color:${k === t ? "#fff" : "#555"};border-radius:16px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer">${l}</button>`).join("")}</div>`;
-  const body = t === "prompt" ? renderHzPrompt() : t === "program" ? renderHzProgram() : t === "tasks" ? renderHzTasks() : t === "sim" ? renderHzSim() : t === "check" ? renderHzCheck() : t === "refs" ? renderHzRefs() : renderHzIntro();
+  const body = t === "prompt" ? renderHzPrompt() : t === "program" ? renderHzProgram() : t === "tasks" ? renderHzTasks() : t === "sim" ? renderHzSim() : t === "report" ? renderHzReport() : t === "check" ? renderHzCheck() : t === "refs" ? renderHzRefs() : renderHzIntro();
   const foot = `<div style="margin-top:14px;background:#FFF8E1;border-radius:8px;padding:9px 11px;font-size:10.5px;color:#6b5400;line-height:1.75"><b>유의</b> · 교육·연구용 설계 자료입니다. 감염의 완전 차단이나 100% 예방을 보장하지 않으며, 개별 농장의 진단·처방·방역 지시를 대신하지 않습니다. AI 의심 증상은 즉시 관할 가축방역기관에 신고하고, 정부의 현행 방역지침과 행정명령을 우선하세요.</div>`;
   return `<div class="card" id="hz-root" style="border-top:6px solid ${HZ_COLOR}">${head}${nav}${body}${foot}</div>`;
 }
@@ -12520,6 +12613,14 @@ function hzBind(){
     catch(e){ if(m()) m().textContent = "복사 권한이 없어 글을 선택해 두었습니다 — 길게 눌러 복사하세요"; const ta = $("hz-prompt-text"); if(ta){ ta.focus(); ta.select(); } }
   };
   const cp = $("hz-copy-prompt"); if(cp) cp.onclick = () => copyText(HZ_PROMPT, "hz-copy-msg");
+  const farmIn = (id, key) => { const e = $(id); if(e) e.onchange = () => { hzState.farm[key] = e.value.trim(); hzSave(); render(); }; };
+  farmIn("hz-farm-name", "name"); farmIn("hz-farm-sp", "sp"); farmIn("hz-farm-heads", "heads"); farmIn("hz-farm-type", "type");
+  const repCopy = $("hz-rep-copy"); if(repCopy) repCopy.onclick = () => copyText(hzReportText(hzFarmReport()), "hz-rep-msg");
+  const repPrint = $("hz-rep-print"); if(repPrint) repPrint.onclick = () => {
+    const w = window.open("", "_blank"); if(!w){ hzState.copied = "팝업이 막혀 인쇄 창을 열지 못했습니다 — 복사해서 붙여 넣으세요"; render(); return; }
+    w.document.write("<!doctype html><meta charset=utf-8><title>HPAI 농장 위험평가 보고서(초안)</title><pre style=\"font:13px/1.7 'Malgun Gothic',sans-serif;white-space:pre-wrap;margin:18px\">" + esc(hzReportText(hzFarmReport())) + "</pre>"); w.document.close(); w.focus(); w.print();
+  };
+  const repClear = $("hz-rep-clear"); if(repClear) repClear.onclick = () => { if(!confirm("농장 기본정보 입력을 지울까요?")) return; hzState.farm = { name:"", sp:"", heads:"", type:"" }; hzSave(); render(); };
   const cc = $("hz-chk-copy"); if(cc) cc.onclick = () => {
     const day = hzToday(), mine = hzState.checks[day] || [];
     const done = HZ_CHECK_ITEMS.filter((_, i) => mine[i]).length;
