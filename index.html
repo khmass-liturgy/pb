@@ -11995,66 +11995,85 @@ function renderHzTasks(){
     <div style="font-size:10.5px;color:#888;line-height:1.7;margin-top:8px">완료 표시는 이 기기에만 저장됩니다. 단계마다 ‘협업’에 적힌 팀이 같은 자료(기록지·지도·점수표)를 공유하도록 하세요.</div>`;
 }
 
+// ── 카드형 레이아웃 도우미(시작하기·프롬프트·6단계 화면) ──
+function hzGrid(items, minW){ return `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(${minW || 220}px,1fr));gap:9px;margin:8px 0 14px">${items.join("")}</div>`; }
+function hzCard(icon, title, body, c, tag){
+  const col = c || HZ_COLOR;
+  return `<div style="border:1px solid ${col}2e;border-top:4px solid ${col};background:#fff;border-radius:11px;padding:10px 12px;box-shadow:0 1px 3px rgba(0,0,0,.05)">
+    <div style="display:flex;align-items:center;gap:7px;margin-bottom:${body ? 5 : 0}px">${icon ? `<span style="font-size:19px;line-height:1">${icon}</span>` : ""}<span style="font-size:13px;font-weight:800;color:#222;line-height:1.35">${title}</span>${tag ? `<span style="margin-left:auto;font-size:10.5px;font-weight:800;color:${col};background:${col}14;border-radius:10px;padding:1px 8px;white-space:nowrap">${tag}</span>` : ""}</div>
+    ${body ? `<div style="font-size:12.2px;color:#444;line-height:1.7">${body}</div>` : ""}</div>`;
+}
+function hzSection(icon, title, sub){ return `<div style="display:flex;align-items:baseline;gap:7px;margin:16px 0 2px;padding-bottom:4px;border-bottom:2px solid ${HZ_COLOR}22"><span style="font-size:17px">${icon}</span><span style="font-size:14.5px;font-weight:900;color:${HZ_COLOR}">${title}</span>${sub ? `<span style="font-size:11px;color:#888">${sub}</span>` : ""}</div>`; }
+function hzSteps(list){ return `<div style="display:flex;flex-direction:column;gap:7px;margin:8px 0 12px">${list.map((t, i) => `<div style="display:flex;gap:10px;align-items:flex-start;background:#fff;border:1px solid #e3ecea;border-radius:10px;padding:9px 11px"><span style="flex:none;width:24px;height:24px;border-radius:50%;background:${HZ_COLOR};color:#fff;font-size:12.5px;font-weight:900;display:flex;align-items:center;justify-content:center">${i + 1}</span><div style="font-size:12.5px;color:#333;line-height:1.7">${t}</div></div>`).join("")}</div>`; }
 function renderHzIntro(){
+  const goals = [["🗺️","지역별 감염 위험지도","철새 이동, 하천, 저수지, 주변 발생 농장, 기상조건 분석"],["🛡️","농장 맞춤형 예방수칙","산란계·육계·종계·오리 및 사육시설별 차등 적용"],["📈","감염 위험도 예측","실시간 감시자료와 과거 발생자료에 따른 위험등급 산출"],["📝","현장 방역 실행보고서","매일 점검, 문제점, 개선 우선순위, 긴급조치 작성"]];
+  const principles = [
+    ["🦆","야생조류 이동 ≠ 농장 발생","환경노출, 기계적 전파(사람·차량·장비·분뇨), 농장 간 확산 가능성을 각각 구분해 분석한다."],
+    ["⚖️","법정 조치가 항상 우선","통제구역·행정명령·긴급신고는 인공지능 위험점수와 별도로 우선 적용. 방역기간은 분석 당일의 정부 공고를 따른다."],
+    ["🚫","100% 예방은 보장하지 않음","예방 효과를 과학적으로 검증하는 것이 목표이며 감염의 완전 차단을 보장하지 않는다."],
+    ["🔎","출처 없는 수치는 만들지 않음","모든 결과에 출처·발표일·분석 기간·근거 수준·한계를 표시한다."],
+    ["🩺","위험예측 ≠ 확진","정부·공식 방역기관의 진단·조치 권한을 대체하지 않는다."]];
   return `
-    ${ibP("<b>HPAI ZERO FARM</b> — 인공지능 기반 조류인플루엔자 예방·위험예측·농장 차단방역 공동연구 시스템입니다. 단순히 정보를 모으는 것이 아니라, 여러 분야의 인공지능 전문가 역할이 공동으로 연구하고, 지역별 감염 위험을 분석하여, 개별 농장에 맞는 예방 프로토콜을 만드는 것이 핵심입니다.")}
-    ${hzBox("최종적으로 농장 관리자가 얻게 될 결과 (구축 목표)", ibList([
-      "<b>지역별 감염 위험지도</b> — 철새 이동, 하천, 저수지, 주변 발생 농장, 기상조건 분석",
-      "<b>농장 맞춤형 예방수칙</b> — 산란계·육계·종계·오리 및 사육시설별 차등 적용",
-      "<b>감염 위험도 예측</b> — 실시간 감시자료와 과거 발생자료에 따른 위험등급 산출",
-      "<b>현장 방역 실행보고서</b> — 매일 점검, 문제점, 개선 우선순위, 긴급조치 작성",
-    ]), HZ_COLOR)}
+    <div style="background:linear-gradient(135deg,${HZ_COLOR}14,#fff);border:1px solid ${HZ_COLOR}33;border-radius:12px;padding:12px 14px;margin-bottom:6px">
+      <div style="font-size:15px;font-weight:900;color:${HZ_COLOR};margin-bottom:4px">HPAI ZERO FARM</div>
+      <div style="font-size:12.8px;color:#333;line-height:1.75">인공지능 기반 조류인플루엔자 예방·위험예측·농장 차단방역 공동연구 시스템입니다. 여러 분야의 인공지능 전문가 역할이 공동으로 연구하고, 지역별 감염 위험을 분석해, <b>개별 농장에 맞는 예방 프로토콜</b>을 만드는 것이 핵심입니다.</div>
+    </div>
+    ${hzSection("🎯","구축 목표","농장 관리자가 얻게 될 결과 4가지")}
+    ${hzGrid(goals.map(g => hzCard(g[0], g[1], g[2])), 230)}
     ${hzBox("현재 구현 상태", "이 메뉴는 <b>연구 설계서와 현장 도구(위험평가 시뮬레이터·일일 점검표)</b> 단계입니다. 지역별 위험지도·자동 위험예측·농장별 보고서 자동 생성은 아직 연결되지 않았습니다. 지금 연결되어 있는 공식 자료는 AI관련정보 탭의 「국내 가금농장 HPAI 발생·검출 현황」 지도입니다.<br><button type=\"button\" data-hz-go=\"hpai\" style=\"margin-top:6px;border:1px solid #C62828;background:#fff;color:#C62828;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer\">🗺️ 발생·검출 현황 지도 보러 가기</button>", "#C62828")}
-    ${ibH("1. 인공지능 공동연구팀 구성")}
-    ${ibP("한 명의 인공지능에게 모든 판단을 맡기지 않고, <b>8개 전문분야의 연구 인공지능와 1개의 총괄 인공지능</b>로 구성합니다. 총괄 인공지능는 팀별 의견을 단순 취합하는 대신 <b>확인된 사실·논문 근거·전문가 가설·검증되지 않은 추정</b>을 분리해 최종 보고서를 작성합니다.")}
-    ${ibTable(["연구팀", "전문 역할"], HZ_TEAMS, { minW: 480 })}
-    ${ibH("2. 연구의 핵심 원칙")}
-    ${ibList([
-      "<b>야생조류의 이동과 농장 내 감염 발생을 동일한 사건으로 취급하지 않는다.</b> 환경노출, 기계적 전파(사람·차량·장비·분뇨), 농장 간 확산 가능성을 각각 구분해 분석한다.",
-      "법정 통제구역·행정명령·긴급신고 사항은 인공지능 위험점수와 별도로 <b>항상 우선</b> 적용한다. 방역기간은 고정하지 않고 분석 당일의 정부 공고를 우선한다.",
-      "예방 효과를 과학적으로 검증하는 것이 목표이며, 감염의 완전 차단이나 100% 예방을 보장하지 않는다.",
-      "출처가 없는 가상의 논문·수치·감염확률·방역지침을 만들지 않는다. 모든 결과에 출처·발표일·분석 기간·근거 수준·한계를 표시한다.",
-      "인공지능의 위험예측을 질병 확진으로 표현하지 않으며, 정부·공식 방역기관의 진단·조치 권한을 대체하지 않는다.",
-    ])}
-    ${ibH("3. 팀별 연구과제")}
-    ${HZ_TEAM_TASKS.map(t => `<details style="border:1px solid #e5e5e5;border-radius:8px;padding:7px 10px;margin:6px 0;background:#fff"><summary style="cursor:pointer;font-size:12.5px;font-weight:700;color:#333">${t[0]}</summary>${ibList(t[1])}</details>`).join("")}`;
+    ${hzSection("👥","인공지능 공동연구팀 구성","8개 전문분야 + 총괄 1")}
+    <div style="font-size:12px;color:#555;line-height:1.7;margin-bottom:4px">한 명의 인공지능에게 모든 판단을 맡기지 않습니다. 총괄 인공지능은 의견을 단순 취합하지 않고 <b>확인된 사실·논문 근거·전문가 가설·검증되지 않은 추정</b>을 분리해 최종 보고서를 작성합니다.</div>
+    ${hzGrid(HZ_TEAMS.map((t, k) => hzCard(k === 0 ? "🧭" : (HZ_TEAM_ICON[k] || "•"), t[0], t[1], k === 0 ? "#37474F" : HZ_COLOR)), 230)}
+    ${hzSection("📌","연구의 핵심 원칙","5가지")}
+    ${hzGrid(principles.map(g => hzCard(g[0], g[1], g[2], "#C62828")), 250)}
+    ${hzSection("🧩","팀별 연구과제","눌러서 펼치기")}
+    ${HZ_TEAM_TASKS.map(t => `<details style="border:1px solid #e5e5e5;border-radius:10px;padding:8px 11px;margin:6px 0;background:#fff"><summary style="cursor:pointer;font-size:12.8px;font-weight:800;color:#333">${t[0]}</summary>${ibList(t[1])}</details>`).join("")}`;
 }
 function renderHzPrompt(){
   return `
-    ${ibP("아래 마스터 프롬프트는 ChatGPT·Claude·Gemini 등 인공지능의 <b>프로젝트 지침</b>에 붙여 넣거나, 웹서비스의 인공지능 분석 엔진에 적용할 수 있도록 작성된 것입니다. 「복사」를 눌러 그대로 사용하세요.")}
-    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:6px 0">
-      <button type="button" id="hz-copy-prompt" style="border:none;background:${HZ_COLOR};color:#fff;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:800;cursor:pointer">📋 마스터 프롬프트 전체 복사</button>
-      <span id="hz-copy-msg" style="font-size:12px;color:#2E7D32;font-weight:700">${esc(hzState.copied)}</span>
-      <span style="font-size:11px;color:#888">${HZ_PROMPT.length.toLocaleString()}자</span>
+    <div style="background:linear-gradient(135deg,${HZ_COLOR}14,#fff);border:1px solid ${HZ_COLOR}33;border-radius:12px;padding:12px 14px">
+      <div style="font-size:14px;font-weight:900;color:${HZ_COLOR};margin-bottom:3px">📋 마스터 프롬프트</div>
+      <div style="font-size:12.3px;color:#444;line-height:1.7;margin-bottom:9px">ChatGPT·Claude·Gemini 등 인공지능의 <b>프로젝트 지침</b>에 붙여 넣거나, 웹서비스의 분석 엔진에 적용할 수 있도록 작성된 글입니다.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <button type="button" id="hz-copy-prompt" style="border:none;background:${HZ_COLOR};color:#fff;border-radius:9px;padding:10px 18px;font-size:13.5px;font-weight:800;cursor:pointer">📋 전체 복사</button>
+        <span id="hz-copy-msg" style="font-size:12px;color:#2E7D32;font-weight:700">${esc(hzState.copied)}</span>
+        <span style="font-size:11px;color:#888">${HZ_PROMPT.length.toLocaleString()}자</span>
+      </div>
     </div>
-    <textarea id="hz-prompt-text" readonly rows="18" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #dbe7e5;border-radius:10px;font-size:12px;line-height:1.7;font-family:inherit;background:#FAFFFE;color:#222;resize:vertical">${esc(HZ_PROMPT)}</textarea>
-    ${hzBox("사용 방법", ibList([
-      "인공지능 프로젝트의 <b>시스템 지침(Custom instructions)</b>에 붙여 넣은 뒤, 마지막의 「10. 첫 번째 연구 지시」로 1단계 연구를 시작합니다.",
-      "농장 평가를 받으려면 「4. 농장별 입력 데이터」 항목을 채워 입력합니다(농장 좌표 등 경영정보는 공유 범위에 주의).",
-      "실시간 데이터 연결이 없는 인공지능은 최신정보를 확보했다고 주장하지 못하도록 이 프롬프트에 규정되어 있습니다 — 답변의 <b>최종 확인 날짜</b>를 반드시 확인하세요.",
-    ]), HZ_COLOR)}`;
+    ${hzSection("🪄","사용 방법","3단계")}
+    ${hzSteps([
+      "위 「전체 복사」를 눌러 프롬프트를 복사한 뒤, 인공지능 프로젝트의 <b>시스템 지침(Custom instructions)</b>에 붙여 넣습니다.",
+      "마지막의 「10. 첫 번째 연구 지시」로 <b>1단계 연구</b>를 시작합니다. 농장 평가를 받으려면 「4. 농장별 입력 데이터」를 채워 입력합니다(농장 좌표 등 경영정보는 공유 범위에 주의).",
+      "실시간 데이터 연결이 없는 인공지능은 최신정보를 확보했다고 주장하지 못하도록 규정되어 있습니다 — 답변의 <b>최종 확인 날짜</b>를 반드시 확인하세요."])}
+    ${hzSection("📄","프롬프트 원문","눌러서 펼치기")}
+    <details style="border:1px solid #dbe7e5;border-radius:10px;padding:8px 11px;background:#FAFFFE"><summary style="cursor:pointer;font-size:12.8px;font-weight:800;color:${HZ_COLOR}">원문 보기 (${HZ_PROMPT.length.toLocaleString()}자)</summary>
+      <textarea id="hz-prompt-text" readonly rows="18" style="width:100%;box-sizing:border-box;margin-top:8px;padding:10px 12px;border:1px solid #dbe7e5;border-radius:10px;font-size:12px;line-height:1.7;font-family:inherit;background:#fff;color:#222;resize:vertical">${esc(HZ_PROMPT)}</textarea></details>`;
 }
 function renderHzProgram(){
+  const icons = ["📚","📊","🗺️","🧮","🛡️","✅"];
   return `
-    ${ibH("단계별 연구 프로그램 (6단계)")}
-    ${ibTable(["단계", "내용", "결과물"], HZ_PROGRAM, { minW: 640 })}
-    ${ibH("농장별 입력 데이터")}
-    ${ibP("농장 분석을 신청하면 다음 정보를 수집하도록 설계했습니다. 공개 서비스에서는 <b>농장 좌표와 경영정보를 보호</b>하고 접근권한·보존기간을 설정해야 합니다.")}
-    ${ibList(HZ_INPUTS)}
-    ${ibH("종합 결과(5가지)")}
-    ${ibList(["현재 지역 감염 노출 위험", "농장의 구조적 취약성", "농장의 운영상 방역 취약성", "개선이 필요한 상위 5개 항목", "오늘 시행할 구체적인 조치"])}
-    ${ibP("단, 법정 통제구역·행정명령·긴급신고 사항은 인공지능 위험점수와 별도로 우선 적용합니다.")}
-    ${ibH("최종 출력 형식 (A~I)")}
-    ${ibTable(["항목", "담는 내용"], HZ_OUTPUT, { minW: 480 })}
-    ${ibH("연구 운영 및 안전수칙")}
-    ${ibList([
+    ${hzSection("🪜","단계별 연구 프로그램","6단계")}
+    <div style="display:flex;flex-direction:column;gap:9px;margin:8px 0 14px">${HZ_PROGRAM.map((r, k) => `<div style="display:flex;gap:10px;background:#fff;border:1px solid ${HZ_COLOR}2e;border-left:5px solid ${HZ_COLOR};border-radius:11px;padding:10px 12px">
+      <div style="flex:none;width:30px;height:30px;border-radius:50%;background:${HZ_COLOR};color:#fff;font-size:14px;font-weight:900;display:flex;align-items:center;justify-content:center">${k + 1}</div>
+      <div style="min-width:0"><div style="font-size:13px;font-weight:800;color:#222;margin-bottom:3px">${icons[k] || ""} ${r[0]}</div>
+        <div style="font-size:12.2px;color:#444;line-height:1.7">${r[1]}</div>
+        <div style="font-size:11.8px;color:#00695C;background:${HZ_COLOR}10;border-radius:7px;padding:4px 8px;margin-top:5px;line-height:1.6"><b>결과물</b> · ${r[2]}</div></div></div>`).join("")}</div>
+    ${hzSection("🧾","농장별 입력 데이터","11가지")}
+    <div style="font-size:12px;color:#555;line-height:1.7">농장 분석을 신청하면 다음 정보를 수집하도록 설계했습니다. 공개 서비스에서는 <b>농장 좌표와 경영정보를 보호</b>하고 접근권한·보존기간을 설정해야 합니다.</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 14px">${HZ_INPUTS.map(x => `<span style="background:#fff;border:1px solid ${HZ_COLOR}33;color:#333;border-radius:16px;padding:4px 11px;font-size:12px">${x}</span>`).join("")}</div>
+    ${hzSection("🏁","종합 결과","5가지")}
+    ${hzGrid(["현재 지역 감염 노출 위험","농장의 구조적 취약성","농장의 운영상 방역 취약성","개선이 필요한 상위 5개 항목","오늘 시행할 구체적인 조치"].map((t, k) => hzCard(["🌍","🏗️","🧹","🔧","⚡"][k], t, "", HZ_COLOR)), 190)}
+    ${hzBox("우선 적용", "법정 통제구역·행정명령·긴급신고 사항은 인공지능 위험점수와 별도로 우선 적용합니다.", "#C62828")}
+    ${hzSection("📑","최종 출력 형식","A~I")}
+    ${hzGrid(HZ_OUTPUT.map(r => hzCard("", r[0], r[1])), 230)}
+    ${hzSection("⚠️","연구 운영 및 안전수칙","6가지")}
+    ${hzGrid([
       "정부와 공식 방역기관의 현행 지침을 항상 우선한다.",
-      "농장에 AI 의심증상이 있으면 일반 위험평가보다 <b>즉시 신고 및 공식 방역절차</b>를 우선한다.",
+      "AI 의심증상이 있으면 일반 위험평가보다 <b>즉시 신고 및 공식 방역절차</b>를 우선한다.",
       "병원체 배양·증식·병원성 증가·전파능 강화 등의 실험적 절차는 제공하지 않는다.",
       "야생조류의 무분별한 포획·살처분·서식지 파괴를 예방책으로 권고하지 않는다.",
       "위험예측 결과를 질병 확진으로 표현하지 않는다.",
-      "제도·지침과 분석 결과가 충돌하면 이를 명확히 표시한다. 모든 권고는 농장 현실성과 과학적 근거를 함께 고려한다.",
-    ])}`;
+      "제도·지침과 분석 결과가 충돌하면 이를 명확히 표시한다. 모든 권고는 농장 현실성과 과학적 근거를 함께 고려한다."].map((t, k) => hzCard("🔒", "수칙 " + (k + 1), t, "#C62828")), 250)}`;
 }
 function hzRegionBox(){
   const L = hpaiKrState.live, sel = hzState.sido;
