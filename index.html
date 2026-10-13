@@ -7963,6 +7963,10 @@ const FLY_SRC = {
   gachang: ["가창오리 위치추적(국립생물자원관) 보도", "https://kbmaeil.com/article/202403130387374"],
   winter: ["겨울철새 도래 현황 보도(뉴시스 2024.3)", "https://www.newsis.com/view/NISX20240320_0002667453"],
   khan: ["가창오리 월동·번식 보도(주간경향)", "https://weekly.khan.co.kr/article/200912171116061"],
+  chulwon: ["철원 철새도래지(철원평야) 소개", "https://www.ktriptips.com/kor/tourspot/127483"],
+  sihwa: ["시화호 철새 회복 보도(아주경제 2025.9)", "https://www.ajunews.com/view/20250925084934902"],
+  euksuk: ["을숙도 철새 감소 보도(한국경제 1997)", "https://www.hankyung.com/amp/1997103001211"],
+  nibr: ["겨울철 조류 동시조사 결과(국립생물자원관, 뉴시스 2024.3)", "https://www.newsis.com/view/NISX20240320_0002667453"],
 };
 // 지역 점(번식지·기착지·월동지)
 const FLY_SITES = [
@@ -7974,6 +7978,13 @@ const FLY_SITES = [
   { id:"donglim", n:"고창 동림저수지", ll:[35.45, 126.65], kind:"월동지", g:"duck", note:"최근 일부 월동군이 옮겨 온 것으로 보는 시각이 있음.", src:["gachang"] },
   { id:"gocheon", n:"해남 고천암호", ll:[34.6, 126.55], kind:"월동지", g:"duck", note:"주요 월동지로 보도됨.", src:["khan"] },
   { id:"junam", n:"창원 주남저수지", ll:[35.3, 128.68], kind:"월동지", g:"duck", note:"국내 최대 철새도래지로 소개됨.", src:["khan"] },
+  { id:"cheorwon", n:"철원평야", ll:[38.2, 127.25], kind:"월동지", g:"duck", ev:"보도", note:"두루미·재두루미·기러기류가 겨울을 나는 곳으로 소개됨(1973년 천연기념물 지정 보도). 겨울에도 물이 얼지 않는 곳이 있어 먹이·물을 구하기 쉽다고 함.", src:["chulwon"] },
+  { id:"suncheon", n:"순천만", ll:[34.88, 127.5], kind:"월동지", g:"duck", ev:"보도", note:"순천연안습지가 국제적인 두루미 서식지로 공인되었다고 보도됨. 2000년대 중반 보도에는 해마다 6만~7만 마리 철새가 찾는다는 내용이 있음(현재 수치와 다를 수 있음).", src:[] },
+  { id:"sihwa", n:"시화호", ll:[37.3, 126.7], kind:"월동지", g:"duck", ev:"보도", note:"1999년 해수 유통 이후 회복되어 큰고니 등 80종 가까운 철새가 찾는 것으로 소개됨.", src:["sihwa"] },
+  { id:"nakdong", n:"낙동강 하구(을숙도)", ll:[35.1, 128.93], kind:"월동지", g:"duck", ev:"보도", note:"대표적 철새 서식지였으나 하구언 건설 뒤 개체 수가 줄었다는 보도가 있음(현재 상황은 확인하지 못함).", src:["euksuk"] },
+  { id:"haepyeong", n:"구미 해평습지(낙동강 중류)", ll:[36.28, 128.38], kind:"월동지", g:"duck", ev:"보도", note:"흑두루미·재두루미 등이 찾는 곳으로 소개됨. 4대강 사업 전후 개체 수 논쟁이 있었고 이후 다시 늘고 있다고 환경청이 밝혔다는 보도.", src:[] },
+  { id:"geumho", n:"영암 금호호", ll:[34.72, 126.55], kind:"월동지", g:"duck", ev:"보도", note:"국립생물자원관 겨울철 조류 동시조사에서 금강호·금호호 등지에서 많이 관찰되었다고 보도됨.", src:["nibr"] },
+  { id:"hangang", n:"한강 하구(김포 일대)", ll:[37.68, 126.6], kind:"월동지", g:"duck", ev:"보도(과거)", note:"과거 재두루미 월동지였으나 제방 건설 등으로 도래지가 옮겨졌다는 1995년 보도가 있음. 현재 상황은 확인하지 못함.", src:[] },
   { id:"yellow", n:"황해 갯벌(한국 서해안·중국 연안)", ll:[35.8, 126.6], kind:"주요 기착지", g:"shore", note:"북상 이동 때 도요·물떼새가 먹이를 먹으며 체력을 회복하는 핵심 기착지로 알려짐. 갯벌은 한 점이 아니라 넓은 영역임.", src:["eaaf","shore"] },
   { id:"yancheng", n:"중국 황해 연안 갯벌", ll:[33.4, 120.9], kind:"주요 기착지", g:"shore", note:"황해 갯벌 기착지의 중국 쪽 대표 위치(대략).", src:["eaaf"] },
   { id:"borneo", n:"보르네오 바코-분탈 만(말레이시아)", ll:[1.7, 110.4], kind:"기착지", g:"shore", note:"시베리아에서 오는 도요·물떼새가 해마다 들르는 곳으로 보고됨.", src:["shore"] },
@@ -8086,8 +8097,33 @@ function rmKm(a, b){
   const x = Math.sin(dLa / 2) ** 2 + Math.cos(a[0] * d) * Math.cos(b[0] * d) * Math.sin(dLo / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(x));
 }
+// 큰 하천의 개략 경로(위도·경도 꼭짓점, 오차 수km~10km). 하천 ‘위치 참고용’이며 철새 월동지를 뜻하지 않는다.
+const FLY_RIVERS = [
+  { n:"한강", pts:[[37.52,127.28],[37.53,127.05],[37.53,126.93],[37.60,126.80],[37.70,126.62],[37.74,126.52]] },
+  { n:"남한강", pts:[[36.98,127.92],[37.12,127.80],[37.30,127.63],[37.43,127.50],[37.52,127.28]] },
+  { n:"임진강", pts:[[38.20,127.10],[38.10,127.07],[37.95,126.93],[37.88,126.78],[37.76,126.67]] },
+  { n:"금강", pts:[[36.40,127.50],[36.46,127.12],[36.28,126.91],[36.14,127.00],[36.00,126.72]] },
+  { n:"만경강", pts:[[35.83,127.20],[35.80,126.88],[35.85,126.65]] },
+  { n:"영산강", pts:[[35.32,126.98],[35.15,126.85],[34.99,126.71],[34.80,126.43]] },
+  { n:"섬진강", pts:[[35.55,127.28],[35.20,127.46],[35.07,127.75],[34.92,127.75]] },
+  { n:"낙동강", pts:[[36.60,128.30],[36.30,128.35],[36.00,128.40],[35.80,128.46],[35.55,128.40],[35.42,128.80],[35.30,128.98],[35.10,128.93]] },
+];
+function rmRiverKm(ll){
+  const la0 = ll[0], kx = Math.cos(la0 * Math.PI / 180) * 111.32, ky = 110.57;
+  let best = null;
+  FLY_RIVERS.forEach(r => {
+    for(let i = 0; i < r.pts.length - 1; i++){
+      const ax = (r.pts[i][1] - ll[1]) * kx, ay = (r.pts[i][0] - la0) * ky, bx = (r.pts[i + 1][1] - ll[1]) * kx, by = (r.pts[i + 1][0] - la0) * ky;
+      const dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy;
+      let t = L2 ? -(ax * dx + ay * dy) / L2 : 0; t = Math.max(0, Math.min(1, t));
+      const d = Math.hypot(ax + t * dx, ay + t * dy);
+      if(!best || d < best.d) best = { n:r.n, d };
+    }
+  });
+  return best;
+}
 const RM_PERIODS = [["30", "최근 30일"], ["90", "최근 90일"], ["ns", "26/27 시즌(26.9~)"], ["all", "25/26 시즌 이후 전체"]];
-const rmState = { open:false, period:"30", farm:true, wild:true, site:true, lerr:false };
+const rmState = { open:false, period:"30", farm:true, wild:true, site:true, river:true, lerr:false };
 function rmInPeriod(d){
   const per = rmState.period;
   if(per === "all") return true;
@@ -8110,7 +8146,7 @@ function rmData(){
   const list = Object.values(rows).map(r => {
     let best = null;
     sites.forEach(s => { const d = rmKm(r.ll, s.ll); if(!best || d < best.d) best = { n:s.n, d }; });
-    return Object.assign(r, { near:best });
+    return Object.assign(r, { near:best, river:rmRiverKm(r.ll) });
   }).sort((a, b) => (b.f * 2 + b.w) - (a.f * 2 + a.w) || (b.last > a.last ? 1 : -1));
   return { list, sites, miss };
 }
@@ -8126,19 +8162,19 @@ function renderRiskMapCard(){
   const chip = (k, t) => `<button type="button" class="rm-period" data-k="${k}" style="border:1.5px solid ${st.period === k ? "#1a2744" : "#ddd"};background:${st.period === k ? "#1a2744" : "#fff"};color:${st.period === k ? "#fff" : "#555"};border-radius:16px;padding:5px 11px;font-size:12px;font-weight:700;cursor:pointer">${t}</button>`;
   const lay = (k, t, c) => `<label style="display:inline-flex;gap:5px;align-items:center;font-size:12px;font-weight:700;color:${c};cursor:pointer"><input type="checkbox" class="rm-layer" data-k="${k}" ${st[k] ? "checked" : ""}> ${t}</label>`;
   const nF = D.list.reduce((a, r) => a + r.f, 0), nW = D.list.reduce((a, r) => a + r.w, 0);
-  const rows = D.list.slice(0, 15).map(r => `<tr><td style="padding:5px 8px;font-weight:700;white-space:nowrap">${esc(r.sido)} ${esc(r.sgg)}</td><td style="padding:5px 8px;text-align:center;color:${r.f ? "#C62828" : "#bbb"};font-weight:800">${r.f}</td><td style="padding:5px 8px;text-align:center;color:${r.w ? "#1565C0" : "#bbb"};font-weight:800">${r.w}</td><td style="padding:5px 8px;white-space:nowrap">${r.last ? hkFmt(r.last) : "-"}</td><td style="padding:5px 8px;color:#555">${r.near ? esc(r.near.n) + " 약 " + Math.round(r.near.d / 5) * 5 + "km" : "-"}</td></tr>`).join("");
+  const rows = D.list.slice(0, 15).map(r => `<tr><td style="padding:5px 8px;font-weight:700;white-space:nowrap">${esc(r.sido)} ${esc(r.sgg)}</td><td style="padding:5px 8px;text-align:center;color:${r.f ? "#C62828" : "#bbb"};font-weight:800">${r.f}</td><td style="padding:5px 8px;text-align:center;color:${r.w ? "#1565C0" : "#bbb"};font-weight:800">${r.w}</td><td style="padding:5px 8px;white-space:nowrap">${r.last ? hkFmt(r.last) : "-"}</td><td style="padding:5px 8px;color:#555">${r.near ? esc(r.near.n) + " 약 " + Math.round(r.near.d / 5) * 5 + "km" : "-"}</td><td style="padding:5px 8px;color:#555;white-space:nowrap">${r.river ? esc(r.river.n) + " 약 " + (r.river.d < 3 ? "3km 이내" : Math.round(r.river.d / 5) * 5 + "km") : "-"}</td></tr>`).join("");
   const body = `
     ${L.status === "done" ? "" : `<div style="font-size:11.5px;color:#E65100;margin-top:8px">※ 최신 발생현황을 아직 받지 못했습니다(${L.status === "error" ? "불러오기 실패" : "불러오는 중"}). 내장된 25/26 시즌 자료까지만 표시합니다.</div>`}
     <div style="background:#FFF8E1;border-radius:9px;padding:8px 11px;font-size:11.8px;color:#6b5400;line-height:1.7;margin:10px 0">⚠ 이 지도는 <b>위험 점수나 예측이 아니라</b> 공식 발생·검출 자료와 철새 월동지를 같은 지도에 겹쳐 보여 주는 <b>참고 자료</b>입니다. 월동지와 가깝다는 것이 감염을 뜻하지 않으며, 야생조류 이동과 농장 발생은 다른 사건입니다. 법정 통제구역·방역지역은 정부 공고를 확인하세요.</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">${RM_PERIODS.map(p => chip(p[0], p[1])).join("")}</div>
-    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:6px">${lay("farm", "● 가금농장 발생", "#C62828")}${lay("wild", "◆ 야생조류 검출", "#1565C0")}${lay("site", "🦆 철새 월동지(보도 기준)", "#00695C")}</div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:6px">${lay("farm", "● 가금농장 발생", "#C62828")}${lay("wild", "◆ 야생조류 검출", "#1565C0")}${lay("site", "🦆 철새 월동지·도래지", "#00695C")}${lay("river", "〰 큰 하천(개략)", "#1E88E5")}</div>
     ${st.lerr ? `<div style="background:#FFF3E0;border-radius:10px;padding:14px;font-size:12.5px;color:#BF360C">지도 라이브러리를 불러오지 못했습니다. 네트워크를 확인한 뒤 다시 열어 주세요.</div>` : `<div id="rm-map" style="height:460px;border-radius:12px;border:1px solid #dbe4ee;background:#eaf1f7">${window.L ? "" : `<div style="text-align:center;padding:60px 0;color:#888;font-size:13px">⏳ 지도를 불러오는 중...</div>`}</div>`}
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 6px"><div style="flex:1 1 90px;background:#fff;border:1px solid #f0f0f0;border-radius:10px;padding:8px 6px;text-align:center"><div style="font-size:19px;font-weight:900;color:#C62828">${nF}건</div><div style="font-size:10.5px;color:#888">가금농장 발생(표시 기간)</div></div><div style="flex:1 1 90px;background:#fff;border:1px solid #f0f0f0;border-radius:10px;padding:8px 6px;text-align:center"><div style="font-size:19px;font-weight:900;color:#1565C0">${nW}건</div><div style="font-size:10.5px;color:#888">야생조류 검출(표시 기간)</div></div><div style="flex:1 1 90px;background:#fff;border:1px solid #f0f0f0;border-radius:10px;padding:8px 6px;text-align:center"><div style="font-size:19px;font-weight:900;color:#444">${D.list.length}곳</div><div style="font-size:10.5px;color:#888">해당 시·군</div></div></div>
     <div style="font-size:12.5px;font-weight:800;color:#333;margin:8px 0 4px">시·군별 지표 (발생·검출이 많은 순 상위 15곳)</div>
-    ${D.list.length ? `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;min-width:460px"><thead><tr style="background:#f6f7f9;text-align:left"><th style="padding:5px 8px">시·군</th><th style="padding:5px 8px;text-align:center">농장</th><th style="padding:5px 8px;text-align:center">야생</th><th style="padding:5px 8px">최근 확인일</th><th style="padding:5px 8px">가장 가까운 월동지(직선·근사)</th></tr></thead><tbody>${rows}</tbody></table></div>` : `<div style="font-size:12px;color:#888;padding:6px 0">선택한 기간에 표시할 발생·검출이 없습니다.</div>`}
+    ${D.list.length ? `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;min-width:560px"><thead><tr style="background:#f6f7f9;text-align:left"><th style="padding:5px 8px">시·군</th><th style="padding:5px 8px;text-align:center">농장</th><th style="padding:5px 8px;text-align:center">야생</th><th style="padding:5px 8px">최근 확인일</th><th style="padding:5px 8px">가장 가까운 월동지(직선·근사)</th><th style="padding:5px 8px">가까운 큰 하천</th></tr></thead><tbody>${rows}</tbody></table></div>` : `<div style="font-size:12px;color:#888;padding:6px 0">선택한 기간에 표시할 발생·검출이 없습니다.</div>`}
     ${D.miss.f + D.miss.w ? `<div style="font-size:10.8px;color:#999;margin-top:4px">※ 위치를 지도에 올리지 못한 건: 농장 ${D.miss.f}건, 야생 ${D.miss.w}건(시·군 이름이 지도 자료와 맞지 않음).</div>` : ""}
     <details style="margin-top:10px;border:1px solid #e5e5e5;border-radius:9px;padding:7px 10px;background:#fafafa"><summary style="cursor:pointer;font-size:12.3px;font-weight:800;color:#444">🔬 이 지도의 한계와 다음 단계</summary>
-      <div style="font-size:12px;color:#444;line-height:1.75;margin-top:5px"><ul style="margin:0 0 0 16px;padding:0"><li>시·군 위치는 중심점의 근사(오차 약 10~20km)이고, 농장의 실제 위치가 아닙니다.</li><li>월동지 지점은 보도에서 확인한 지명의 대략적 위치이며, 철새 개체수·시기 자료는 아직 연결하지 않았습니다.</li><li>기상·하천·저수지·도로 등 다른 지표는 아직 겹치지 않았습니다(다음 단계에서 같은 방식으로 추가).</li><li>점수화·예측은 하지 않습니다. 과거 발생과 비교해 검증하기 전에는 위험등급을 계산하지 않는 것이 원칙입니다.</li></ul></div></details>
+      <div style="font-size:12px;color:#444;line-height:1.75;margin-top:5px"><ul style="margin:0 0 0 16px;padding:0"><li>시·군 위치는 중심점의 근사(오차 약 10~20km)이고, 농장의 실제 위치가 아닙니다.</li><li>월동지·도래지 ${D.sites.length}곳은 보도 등에서 확인한 지명의 대략적 위치이고, 큰 하천은 개략 경로입니다. 아직 빠진 도래지가 많을 수 있으며, 철새 개체수·시기 자료는 연결하지 않았습니다.</li><li>기상·하천·저수지·도로 등 다른 지표는 아직 겹치지 않았습니다(다음 단계에서 같은 방식으로 추가).</li><li>점수화·예측은 하지 않습니다. 과거 발생과 비교해 검증하기 전에는 위험등급을 계산하지 않는 것이 원칙입니다.</li></ul></div></details>
     <div style="font-size:10.8px;color:#888;line-height:1.7;margin-top:8px">자료: 이 사이트의 「국내 가금농장 HPAI 발생·검출 현황」(농림축산식품부 자료 기준)과 「철새 이동경로 지도」의 월동지 지점. 지도 타일 © OpenStreetMap 기여자.</div>`;
   return wrap(body);
 }
@@ -8158,10 +8194,11 @@ function rmBind(){
   const map = L.map(el, { scrollWheelZoom:false }).setView([36.2, 127.9], 7);
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom:12, attribution:"© OpenStreetMap" }).addTo(map);
   map.fitBounds([[33.0, 124.6], [38.7, 130.2]]);
+  if(st.river) FLY_RIVERS.forEach(r => L.polyline(r.pts, { color:"#1E88E5", weight:3, opacity:.55, interactive:true }).addTo(map).bindTooltip(r.n + "(개략 경로)", { sticky:true }));
   if(st.site) D.sites.forEach(s => {
     L.circle(s.ll, { radius:10000, color:"#00695C", weight:1, dashArray:"3 4", fillColor:"#00695C", fillOpacity:.07, interactive:false }).addTo(map);
     L.marker(s.ll, { icon:L.divIcon({ className:"", iconSize:[22, 22], iconAnchor:[11, 11], html:`<div style="font-size:17px;line-height:22px;text-align:center;filter:drop-shadow(0 0 2px #fff)">🦆</div>` }) }).addTo(map)
-      .bindPopup(`<b>${esc(s.n)}</b> <span style="font-size:11px;color:#666">(철새 월동지, 보도 기준)</span><br><span style="font-size:11.5px">${esc(s.note)}</span><br><span style="font-size:10.5px;color:#888">점선 원은 월동지 주변 10km 표시일 뿐 위험권역이 아닙니다.</span>`);
+      .bindPopup(`<b>${esc(s.n)}</b> <span style="font-size:11px;color:#666">(철새 월동지·도래지, ${esc(s.ev || "보도")} 기준)</span><br><span style="font-size:11.5px">${esc(s.note)}</span><br><span style="font-size:10.5px;color:#888">점선 원은 월동지 주변 10km 표시일 뿐 위험권역이 아닙니다.</span>`);
   });
   D.list.forEach(r => {
     if(st.farm && r.f){
@@ -12372,7 +12409,7 @@ function hzNearMetrics(sido, sgg, asOf){
   const m = { ll, f20:within(farms, from, 20), f50:within(farms, from, 50), w20:within(wild, from, 20), w50:within(wild, from, 50), fAll50:within(farms, null, 50), wAll50:within(wild, null, 50) };
   m.same = farms.filter(x => x.sido === sido && x.sgg === sgg && x.conf > from && x.conf <= asOf).length;
   let best = null; hzWinterSites().forEach(s => { const d = rmKm(ll, s.ll); if(!best || d < best.d) best = { n:s.n, d }; });
-  m.site = best;
+  m.site = best; m.river = rmRiverKm(ll);
   return m;
 }
 // 규칙(임시): 항목 1 — 공식 지역 발생·검출(시·군 반경 기준), 항목 2 — 철새 월동지까지 거리
@@ -12394,9 +12431,9 @@ function hzNearBox(){
       const cell = (t, v, c) => `<div style="background:#fff;border:1px solid #e3e3e3;border-radius:8px;padding:7px 9px"><div style="font-size:10.5px;color:#888">${t}</div><div style="font-size:17px;font-weight:900;color:${c || "#444"}">${v}</div></div>`;
       const apply = (id, lv, cur) => cur === lv ? `<span style="color:#2E7D32;font-size:11.5px">— 지금 값과 같습니다</span>` : `<button type="button" id="${id}" data-lv="${lv}" style="margin-left:4px;border:1px solid #00695C;background:#fff;color:#00695C;border-radius:7px;padding:3px 9px;font-size:11.5px;font-weight:800;cursor:pointer">적용</button> <span style="color:#888;font-size:11.5px">(지금 ${cur})</span>`;
       body = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px;margin-top:8px">
-        ${cell("같은 시·군 · 최근 30일 농장", m.same + "건", m.same ? "#C62828" : "#2E7D32")}${cell("반경 20km · 농장 / 야생", m.f20 + " / " + m.w20, m.f20 ? "#C62828" : m.w20 ? "#E65100" : "#2E7D32")}${cell("반경 50km · 농장 / 야생", m.f50 + " / " + m.w50, m.f50 ? "#C62828" : m.w50 ? "#E65100" : "#2E7D32")}${cell("가까운 월동지", m.site ? esc(m.site.n) + " 약 " + Math.round(m.site.d / 5) * 5 + "km" : "-")}</div>
+        ${cell("같은 시·군 · 최근 30일 농장", m.same + "건", m.same ? "#C62828" : "#2E7D32")}${cell("반경 20km · 농장 / 야생", m.f20 + " / " + m.w20, m.f20 ? "#C62828" : m.w20 ? "#E65100" : "#2E7D32")}${cell("반경 50km · 농장 / 야생", m.f50 + " / " + m.w50, m.f50 ? "#C62828" : m.w50 ? "#E65100" : "#2E7D32")}${cell("가까운 월동지·도래지", m.site ? esc(m.site.n) + " 약 " + Math.round(m.site.d / 5) * 5 + "km" : "-")}${cell("가까운 큰 하천(개략)", m.river ? esc(m.river.n) + " " + (m.river.d < 3 ? "3km 이내" : "약 " + Math.round(m.river.d / 5) * 5 + "km") : "-")}</div>
         <div style="font-size:12.2px;color:#333;line-height:1.9;margin-top:8px">① 지역 발생·검출 참고 수준 <b style="color:#00695C">${HZ_LEVEL_LABEL[l1]}</b> ${apply("hz-near-apply1", l1, c1)}<br>② 철새 월동지 거리 참고 수준 <b style="color:#00695C">${HZ_LEVEL_LABEL[l2]}</b> ${apply("hz-near-apply2", l2, c2)}</div>
-        <div style="font-size:10.8px;color:#777;line-height:1.7;margin-top:4px">규칙(임시·검증 전) ① 반경 20km 농장 발생=4 · 반경 50km 농장 발생 또는 20km 야생 검출=3 · 50km 야생 검출=2 · 50km 안 과거 이력=1 · 없음=0. ② 월동지 10km 이내=4 · 30km=3 · 60km=2 · 100km=1 · 그 밖=0. 월동지는 보도로 확인한 6곳뿐이라 <b>다른 도래지·하천·저수지는 반영되지 않으니 직접 판단해 조정</b>하세요. 시·군 중심점 기준 근사(오차 약 10~20km)이며 농장의 실제 위치가 아닙니다. 기준일 ${hzToday()}.</div>`;
+        <div style="font-size:10.8px;color:#777;line-height:1.7;margin-top:4px">규칙(임시·검증 전) ① 반경 20km 농장 발생=4 · 반경 50km 농장 발생 또는 20km 야생 검출=3 · 50km 야생 검출=2 · 50km 안 과거 이력=1 · 없음=0. ② 월동지 10km 이내=4 · 30km=3 · 60km=2 · 100km=1 · 그 밖=0. 월동지·도래지는 현재 ${hzWinterSites().length}곳(보도 등으로 확인한 곳)뿐이라 <b>다른 도래지·저수지·작은 하천은 반영되지 않으니 직접 판단해 조정</b>하세요. 큰 하천 거리는 참고 정보이며 위 규칙 점수에는 넣지 않았습니다. 시·군 중심점 기준 근사(오차 약 10~20km)이며 농장의 실제 위치가 아닙니다. 기준일 ${hzToday()}.</div>`;
     }
   }
   return `<div style="border:1px solid #00695C44;background:#E0F2F155;border-radius:10px;padding:10px 12px;margin:8px 0">${picker}${body}</div>`;
@@ -12498,7 +12535,7 @@ function hzReportText(R){
   L.push("", "B. 지역 위험도(공식 발생·검출 자료 기준, 참고)");
   if(R.reg){ P(R.sido + " 최근 30일", `가금농장 발생 ${R.reg.f30}건 · 야생조류 검출 ${R.reg.w30}건`); P(R.sido + " 25/26 시즌 이후 누적", `농장 ${R.reg.fAll}건 · 야생 ${R.reg.wAll}건`); P("시·도 단위 참고 수준(임시 규칙)", HZ_LEVEL_LABEL[R.reg.level]); }
   else L.push("시·도 미입력 — 지역 자료 없음");
-  if(R.near){ P(R.sgg + " 반경 20km 최근 30일", `농장 ${R.near.f20}건 · 야생 ${R.near.w20}건`); P("반경 50km 최근 30일", `농장 ${R.near.f50}건 · 야생 ${R.near.w50}건`); P("가장 가까운 철새 월동지(보도 기준 6곳 중, 직선 근사)", R.near.site ? `${R.near.site.n} 약 ${Math.round(R.near.site.d / 5) * 5}km` : "-"); P("시·군 단위 참고 수준", `① 지역 ${HZ_LEVEL_LABEL[hzNearLevel1(R.near)]} · ② 월동지 거리 ${HZ_LEVEL_LABEL[hzNearLevel2(R.near)]}`); }
+  if(R.near){ P(R.sgg + " 반경 20km 최근 30일", `농장 ${R.near.f20}건 · 야생 ${R.near.w20}건`); P("반경 50km 최근 30일", `농장 ${R.near.f50}건 · 야생 ${R.near.w50}건`); P("가장 가까운 큰 하천(개략 경로)", R.near.river ? `${R.near.river.n} ${R.near.river.d < 3 ? "3km 이내" : "약 " + Math.round(R.near.river.d / 5) * 5 + "km"}` : "-"); P("가장 가까운 철새 월동지·도래지(알려진 곳 중, 직선 근사)", R.near.site ? `${R.near.site.n} 약 ${Math.round(R.near.site.d / 5) * 5}km` : "-"); P("시·군 단위 참고 수준", `① 지역 ${HZ_LEVEL_LABEL[hzNearLevel1(R.near)]} · ② 월동지 거리 ${HZ_LEVEL_LABEL[hzNearLevel2(R.near)]}`); }
   L.push("자료: 이 사이트의 「국내 가금농장 HPAI 발생·검출 현황」(농림축산식품부 자료 기준). 기상·하천·저수지는 아직 반영하지 않음. 시·군 위치는 중심점 근사(오차 약 10~20km).");
   L.push("", "C. 농장 차단방역 진단");
   if(R.anyCheck){ P("오늘 방역 점검표", `${R.done}/${HZ_CHECK_ITEMS.length} 완료`); if(R.notDone.length){ L.push("미확인 항목:"); R.notDone.forEach(t => L.push(" - " + t)); } }
@@ -12550,7 +12587,7 @@ function hzReportHtml(R){
   let Bbody = "";
   if(R.reg){
     Bbody = grid([tile(R.sido + " 최근 30일 · 농장", R.reg.f30 + "건", "", R.reg.f30 ? "#C62828" : "#2E7D32"), tile(R.sido + " 최근 30일 · 야생", R.reg.w30 + "건", "", R.reg.w30 ? "#E65100" : "#2E7D32"), tile("25/26 시즌 이후 누적", `농장 ${R.reg.fAll} · 야생 ${R.reg.wAll}`, "", "#444"), tile("시·도 참고 수준", HZ_LEVEL_LABEL[R.reg.level], "임시 규칙", lvColor(R.reg.level))], 140);
-    if(R.near) Bbody += `<div style="margin-top:8px"><div style="font-size:11.5px;font-weight:800;color:#455;margin-bottom:4px">${esc(R.sgg)} 중심 반경 지표(최근 30일)</div>` + grid([tile("반경 20km", `농장 ${R.near.f20} · 야생 ${R.near.w20}`, "", R.near.f20 ? "#C62828" : R.near.w20 ? "#E65100" : "#2E7D32"), tile("반경 50km", `농장 ${R.near.f50} · 야생 ${R.near.w50}`, "", R.near.f50 ? "#C62828" : R.near.w50 ? "#E65100" : "#2E7D32"), tile("가까운 월동지(보도 기준)", R.near.site ? esc(R.near.site.n) : "-", R.near.site ? "약 " + Math.round(R.near.site.d / 5) * 5 + "km · 직선 근사" : "", "#00695C"), tile("시·군 참고 수준", `지역 ${hzNearLevel1(R.near)} · 월동지 ${hzNearLevel2(R.near)}`, "임시 규칙(0~4)", "#444")], 140) + `</div>`;
+    if(R.near) Bbody += `<div style="margin-top:8px"><div style="font-size:11.5px;font-weight:800;color:#455;margin-bottom:4px">${esc(R.sgg)} 중심 반경 지표(최근 30일)</div>` + grid([tile("반경 20km", `농장 ${R.near.f20} · 야생 ${R.near.w20}`, "", R.near.f20 ? "#C62828" : R.near.w20 ? "#E65100" : "#2E7D32"), tile("반경 50km", `농장 ${R.near.f50} · 야생 ${R.near.w50}`, "", R.near.f50 ? "#C62828" : R.near.w50 ? "#E65100" : "#2E7D32"), tile("가까운 월동지·도래지", R.near.site ? esc(R.near.site.n) : "-", R.near.site ? "약 " + Math.round(R.near.site.d / 5) * 5 + "km · 직선 근사" : "", "#00695C"), tile("가까운 큰 하천(개략)", R.near.river ? esc(R.near.river.n) : "-", R.near.river ? (R.near.river.d < 3 ? "3km 이내" : "약 " + Math.round(R.near.river.d / 5) * 5 + "km") : "", "#1E88E5"), tile("시·군 참고 수준", `지역 ${hzNearLevel1(R.near)} · 월동지 ${hzNearLevel2(R.near)}`, "임시 규칙(0~4)", "#444")], 140) + `</div>`;
     else Bbody += `<div style="font-size:11.5px;color:#888;margin-top:6px">시·군을 고르면 반경 지표가 추가됩니다.</div>`;
   } else Bbody = `<div style="color:#E65100">시·도가 입력되지 않아 지역 자료를 넣지 못했습니다.</div>`;
   Bbody += `<div style="font-size:10.8px;color:#888;margin-top:7px;line-height:1.6">자료: 「국내 가금농장 HPAI 발생·검출 현황」(농림축산식품부 자료 기준). 기상·하천·저수지는 반영하지 않았고, 시·군 위치는 중심점 근사(오차 약 10~20km)입니다.</div>`;
