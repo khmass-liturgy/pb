@@ -8072,8 +8072,112 @@ function flyBind(){
   L.rectangle([[33, 124.5], [38.7, 131]], { color:"#C62828", weight:1, dashArray:"3 4", fillOpacity:0.03, interactive:false }).addTo(map);
 }
 
+// ── 🧭 지역 위험 참고 지도 — 1단계: 공식 발생·검출 자료 + 철새 월동지를 한 지도에 겹쳐 보기 ──────────
+// 위험 ‘점수’나 예측이 아니라, 이미 이 사이트에 있는 자료를 같은 지도에 나란히 보여 주는 단계다.
+// 시·군 위치는 발생 현황 지도(HPAI_KR_MAP.pts)의 시·군 중심점을 위·경도로 환산한 근사값(오차 약 10~20km)이며,
+// 거리는 시·군 중심에서 월동지 대표 지점까지의 직선거리(근사)다. 거리가 가깝다는 것이 감염 위험을 뜻하지는 않는다.
+function rmLatLng(sido, sgg){
+  const p = (HPAI_KR_MAP.pts || {})[sido + "|" + sgg];
+  if(!p) return null;
+  return [38.61458 + 0.00018041 * p[0] - 0.0098006 * p[1], 125.02155 + 0.0121159 * p[0] + 0.00016941 * p[1]];
+}
+function rmKm(a, b){
+  const R = 6371, d = Math.PI / 180, dLa = (b[0] - a[0]) * d, dLo = (b[1] - a[1]) * d;
+  const x = Math.sin(dLa / 2) ** 2 + Math.cos(a[0] * d) * Math.cos(b[0] * d) * Math.sin(dLo / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(x));
+}
+const RM_PERIODS = [["30", "최근 30일"], ["90", "최근 90일"], ["ns", "26/27 시즌(26.9~)"], ["all", "25/26 시즌 이후 전체"]];
+const rmState = { open:false, period:"30", farm:true, wild:true, site:true, lerr:false };
+function rmInPeriod(d){
+  const per = rmState.period;
+  if(per === "all") return true;
+  if(per === "ns") return d >= HPAI_KR_NEW_SEASON;
+  const days = per === "90" ? 90 : 30, t = new Date(); t.setDate(t.getDate() - days);
+  return d >= t.toISOString().slice(0, 10);
+}
+function rmData(){
+  const sites = FLY_SITES.filter(s => s.kind === "월동지" && s.g === "duck");
+  const rows = {}, miss = { f:0, w:0 };
+  const add = (x, kind) => {
+    const ll = rmLatLng(x.sido, x.sgg);
+    if(!ll){ miss[kind]++; return; }
+    const k = x.sido + "|" + x.sgg, r = rows[k] = rows[k] || { sido:x.sido, sgg:x.sgg, ll, f:0, w:0, last:"" };
+    if(kind === "f") r.f += 1; else r.w += 1;
+    if(x.conf > r.last) r.last = x.conf;
+  };
+  hkAllFarms().filter(f => rmInPeriod(f.conf)).forEach(f => add(f, "f"));
+  hkAllWild().filter(w => rmInPeriod(w.conf)).forEach(w => add(w, "w"));
+  const list = Object.values(rows).map(r => {
+    let best = null;
+    sites.forEach(s => { const d = rmKm(r.ll, s.ll); if(!best || d < best.d) best = { n:s.n, d }; });
+    return Object.assign(r, { near:best });
+  }).sort((a, b) => (b.f * 2 + b.w) - (a.f * 2 + a.w) || (b.last > a.last ? 1 : -1));
+  return { list, sites, miss };
+}
+function renderRiskMapCard(){
+  const st = rmState, color = "#C62828";
+  const head = `<div id="rm-toggle" role="button" tabindex="0" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;gap:10px">
+    <div><div class="display" style="font-size:15px">🧭 지역 위험 참고 지도 ${hpaiTagline("발생·검출 + 철새 월동지 겹쳐 보기")}</div>
+    <div style="font-size:11px;color:#888;margin-top:2px">1단계 · 이미 공개된 발생·검출 현황과 철새 월동지를 한 지도에 표시 (점수·예측 아님)</div></div>
+    <div style="font-size:12px;color:${color};font-weight:700;white-space:nowrap">${st.open ? "접기 ▲" : "열기 ▼"}</div></div>`;
+  const wrap = body => `<div class="card" style="margin-bottom:14px;border-top:6px solid ${color}">${head}${body}</div>`;
+  if(!st.open) return wrap("");
+  const D = rmData(), L = hpaiKrState.live;
+  const chip = (k, t) => `<button type="button" class="rm-period" data-k="${k}" style="border:1.5px solid ${st.period === k ? "#1a2744" : "#ddd"};background:${st.period === k ? "#1a2744" : "#fff"};color:${st.period === k ? "#fff" : "#555"};border-radius:16px;padding:5px 11px;font-size:12px;font-weight:700;cursor:pointer">${t}</button>`;
+  const lay = (k, t, c) => `<label style="display:inline-flex;gap:5px;align-items:center;font-size:12px;font-weight:700;color:${c};cursor:pointer"><input type="checkbox" class="rm-layer" data-k="${k}" ${st[k] ? "checked" : ""}> ${t}</label>`;
+  const nF = D.list.reduce((a, r) => a + r.f, 0), nW = D.list.reduce((a, r) => a + r.w, 0);
+  const rows = D.list.slice(0, 15).map(r => `<tr><td style="padding:5px 8px;font-weight:700;white-space:nowrap">${esc(r.sido)} ${esc(r.sgg)}</td><td style="padding:5px 8px;text-align:center;color:${r.f ? "#C62828" : "#bbb"};font-weight:800">${r.f}</td><td style="padding:5px 8px;text-align:center;color:${r.w ? "#1565C0" : "#bbb"};font-weight:800">${r.w}</td><td style="padding:5px 8px;white-space:nowrap">${r.last ? hkFmt(r.last) : "-"}</td><td style="padding:5px 8px;color:#555">${r.near ? esc(r.near.n) + " 약 " + Math.round(r.near.d / 5) * 5 + "km" : "-"}</td></tr>`).join("");
+  const body = `
+    ${L.status === "done" ? "" : `<div style="font-size:11.5px;color:#E65100;margin-top:8px">※ 최신 발생현황을 아직 받지 못했습니다(${L.status === "error" ? "불러오기 실패" : "불러오는 중"}). 내장된 25/26 시즌 자료까지만 표시합니다.</div>`}
+    <div style="background:#FFF8E1;border-radius:9px;padding:8px 11px;font-size:11.8px;color:#6b5400;line-height:1.7;margin:10px 0">⚠ 이 지도는 <b>위험 점수나 예측이 아니라</b> 공식 발생·검출 자료와 철새 월동지를 같은 지도에 겹쳐 보여 주는 <b>참고 자료</b>입니다. 월동지와 가깝다는 것이 감염을 뜻하지 않으며, 야생조류 이동과 농장 발생은 다른 사건입니다. 법정 통제구역·방역지역은 정부 공고를 확인하세요.</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">${RM_PERIODS.map(p => chip(p[0], p[1])).join("")}</div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:6px">${lay("farm", "● 가금농장 발생", "#C62828")}${lay("wild", "◆ 야생조류 검출", "#1565C0")}${lay("site", "🦆 철새 월동지(보도 기준)", "#00695C")}</div>
+    ${st.lerr ? `<div style="background:#FFF3E0;border-radius:10px;padding:14px;font-size:12.5px;color:#BF360C">지도 라이브러리를 불러오지 못했습니다. 네트워크를 확인한 뒤 다시 열어 주세요.</div>` : `<div id="rm-map" style="height:460px;border-radius:12px;border:1px solid #dbe4ee;background:#eaf1f7">${window.L ? "" : `<div style="text-align:center;padding:60px 0;color:#888;font-size:13px">⏳ 지도를 불러오는 중...</div>`}</div>`}
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 6px"><div style="flex:1 1 90px;background:#fff;border:1px solid #f0f0f0;border-radius:10px;padding:8px 6px;text-align:center"><div style="font-size:19px;font-weight:900;color:#C62828">${nF}건</div><div style="font-size:10.5px;color:#888">가금농장 발생(표시 기간)</div></div><div style="flex:1 1 90px;background:#fff;border:1px solid #f0f0f0;border-radius:10px;padding:8px 6px;text-align:center"><div style="font-size:19px;font-weight:900;color:#1565C0">${nW}건</div><div style="font-size:10.5px;color:#888">야생조류 검출(표시 기간)</div></div><div style="flex:1 1 90px;background:#fff;border:1px solid #f0f0f0;border-radius:10px;padding:8px 6px;text-align:center"><div style="font-size:19px;font-weight:900;color:#444">${D.list.length}곳</div><div style="font-size:10.5px;color:#888">해당 시·군</div></div></div>
+    <div style="font-size:12.5px;font-weight:800;color:#333;margin:8px 0 4px">시·군별 지표 (발생·검출이 많은 순 상위 15곳)</div>
+    ${D.list.length ? `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;min-width:460px"><thead><tr style="background:#f6f7f9;text-align:left"><th style="padding:5px 8px">시·군</th><th style="padding:5px 8px;text-align:center">농장</th><th style="padding:5px 8px;text-align:center">야생</th><th style="padding:5px 8px">최근 확인일</th><th style="padding:5px 8px">가장 가까운 월동지(직선·근사)</th></tr></thead><tbody>${rows}</tbody></table></div>` : `<div style="font-size:12px;color:#888;padding:6px 0">선택한 기간에 표시할 발생·검출이 없습니다.</div>`}
+    ${D.miss.f + D.miss.w ? `<div style="font-size:10.8px;color:#999;margin-top:4px">※ 위치를 지도에 올리지 못한 건: 농장 ${D.miss.f}건, 야생 ${D.miss.w}건(시·군 이름이 지도 자료와 맞지 않음).</div>` : ""}
+    <details style="margin-top:10px;border:1px solid #e5e5e5;border-radius:9px;padding:7px 10px;background:#fafafa"><summary style="cursor:pointer;font-size:12.3px;font-weight:800;color:#444">🔬 이 지도의 한계와 다음 단계</summary>
+      <div style="font-size:12px;color:#444;line-height:1.75;margin-top:5px"><ul style="margin:0 0 0 16px;padding:0"><li>시·군 위치는 중심점의 근사(오차 약 10~20km)이고, 농장의 실제 위치가 아닙니다.</li><li>월동지 지점은 보도에서 확인한 지명의 대략적 위치이며, 철새 개체수·시기 자료는 아직 연결하지 않았습니다.</li><li>기상·하천·저수지·도로 등 다른 지표는 아직 겹치지 않았습니다(다음 단계에서 같은 방식으로 추가).</li><li>점수화·예측은 하지 않습니다. 과거 발생과 비교해 검증하기 전에는 위험등급을 계산하지 않는 것이 원칙입니다.</li></ul></div></details>
+    <div style="font-size:10.8px;color:#888;line-height:1.7;margin-top:8px">자료: 이 사이트의 「국내 가금농장 HPAI 발생·검출 현황」(농림축산식품부 자료 기준)과 「철새 이동경로 지도」의 월동지 지점. 지도 타일 © OpenStreetMap 기여자.</div>`;
+  return wrap(body);
+}
+function rmBind(){
+  const t = document.getElementById("rm-toggle");
+  if(t){ const tg = () => { rmState.open = !rmState.open; render(); }; t.onclick = tg; t.onkeydown = e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); tg(); } }; }
+  document.querySelectorAll(".rm-period").forEach(b => b.onclick = () => { rmState.period = b.dataset.k; render(); });
+  document.querySelectorAll(".rm-layer").forEach(b => b.onchange = () => { rmState[b.dataset.k] = b.checked; render(); });
+  const el = document.getElementById("rm-map");
+  if(!el || !rmState.open) return;
+  if(!window.L){
+    if(flyState.lf) return;
+    flyLoadLeaflet(() => render());
+    return;
+  }
+  const L = window.L, st = rmState, D = rmData();
+  const map = L.map(el, { scrollWheelZoom:false }).setView([36.2, 127.9], 7);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom:12, attribution:"© OpenStreetMap" }).addTo(map);
+  map.fitBounds([[33.0, 124.6], [38.7, 130.2]]);
+  if(st.site) D.sites.forEach(s => {
+    L.circle(s.ll, { radius:10000, color:"#00695C", weight:1, dashArray:"3 4", fillColor:"#00695C", fillOpacity:.07, interactive:false }).addTo(map);
+    L.marker(s.ll, { icon:L.divIcon({ className:"", iconSize:[22, 22], iconAnchor:[11, 11], html:`<div style="font-size:17px;line-height:22px;text-align:center;filter:drop-shadow(0 0 2px #fff)">🦆</div>` }) }).addTo(map)
+      .bindPopup(`<b>${esc(s.n)}</b> <span style="font-size:11px;color:#666">(철새 월동지, 보도 기준)</span><br><span style="font-size:11.5px">${esc(s.note)}</span><br><span style="font-size:10.5px;color:#888">점선 원은 월동지 주변 10km 표시일 뿐 위험권역이 아닙니다.</span>`);
+  });
+  D.list.forEach(r => {
+    if(st.farm && r.f){
+      L.circleMarker(r.ll, { radius:6 + 3 * Math.sqrt(r.f), color:"#fff", weight:2, fillColor:"#C62828", fillOpacity:.88 }).addTo(map)
+        .bindPopup(`<b>${esc(r.sido)} ${esc(r.sgg)}</b><br>가금농장 발생 ${r.f}건${r.w ? " · 야생조류 검출 " + r.w + "건" : ""}<br>최근 확인일 ${r.last ? hkFmt(r.last) : "-"}${r.near ? "<br><span style='font-size:11px'>가장 가까운 월동지: " + esc(r.near.n) + " 약 " + Math.round(r.near.d / 5) * 5 + "km(시·군 중심 기준 근사)</span>" : ""}`);
+    }
+    if(st.wild && r.w){
+      const x = r.ll, off = st.farm && r.f ? 0.07 : 0;
+      L.marker([x[0] + off, x[1] + off], { icon:L.divIcon({ className:"", iconSize:[18, 18], iconAnchor:[9, 9], html:`<div style="width:13px;height:13px;margin:2px;background:#1565C0;border:2px solid #fff;transform:rotate(45deg);box-shadow:0 0 2px rgba(0,0,0,.4)"></div>` }) }).addTo(map)
+        .bindPopup(`<b>${esc(r.sido)} ${esc(r.sgg)}</b><br>야생조류 검출 ${r.w}건<br>최근 확인일 ${r.last ? hkFmt(r.last) : "-"}`);
+    }
+  });
+}
+
 function renderHpaiTab(){
-  const newsCard = renderHpaiNewsCard() + renderHpaiKrCard() + renderFlywayCard() + renderHpaiSymptomCard() + renderHpaiPreventCard();
+  const newsCard = renderHpaiNewsCard() + renderHpaiKrCard() + renderRiskMapCard() + renderFlywayCard() + renderHpaiSymptomCard() + renderHpaiPreventCard();
   const d = hpaiState;
   const shell = inner => `<div class="card" style="margin-bottom:16px">${inner}</div>`;
   if(d.status === "loading" || d.status === "idle")
@@ -30961,6 +31065,7 @@ function attachDiseaseEvents(){
 
   // AI관련정보: 증상 카드 / 예방·조기신고
   flyBind();
+  rmBind();
   const hsT = document.getElementById("hs-toggle");
   if(hsT){
     const tg = () => { hpaiSymState.open = !hpaiSymState.open; render(); };
