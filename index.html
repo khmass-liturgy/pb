@@ -7954,8 +7954,126 @@ function renderHpaiKrCard(){
   return wrap(body);
 }
 
+// ── 🦆 한반도 중심 철새 이동경로 지도 (AI관련정보 탭) ──────────────────────────────────────
+// 실제 개체의 추적 경로가 아니라 문헌·보도에서 확인한 번식지·월동지·기착지를 잇는 ‘대표·추정 경로’다.
+// 선은 비행경로를 증명하지 않으며, 근거가 약한 구간은 신뢰도를 낮게 표시했다. 좌표는 지명의 대략적 위치(WGS84).
+const FLY_SRC = {
+  eaaf: ["EAAF 개요(퀸즐랜드 습지정보)", "https://wetlandinfo.detsi.qld.gov.au/wetlands/ecology/components/biota/fauna/fauna-taxon/birds/eaa-flyway.html"],
+  shore: ["Lisovski et al. 2016, 도요·물떼새 이동", "https://epic2-clone.awi.de/52140/1/Lisovski_et_al-2016-WaderStudy.pdf"],
+  gachang: ["가창오리 위치추적(국립생물자원관) 보도", "https://kbmaeil.com/article/202403130387374"],
+  winter: ["겨울철새 도래 현황 보도(뉴시스 2024.3)", "https://www.newsis.com/view/NISX20240320_0002667453"],
+  khan: ["가창오리 월동·번식 보도(주간경향)", "https://weekly.khan.co.kr/article/200912171116061"],
+};
+// 지역 점(번식지·기착지·월동지)
+const FLY_SITES = [
+  { id:"lena", n:"레나강 삼각주(러시아)", ll:[73.0, 127.0], kind:"번식지", g:"duck", note:"국립생물자원관 위치추적 연구에서 가창오리 번식지로 보도됨(보도 기준, 원자료 미확인).", src:["gachang"] },
+  { id:"baikal", n:"바이칼호·아무르·오호츠크 연안", ll:[55.0, 125.0], kind:"번식지(넓은 범위)", g:"duck", note:"일부 보도는 가창오리가 바이칼호, 레나강, 아무르, 오호츠크 해안 일대에서 여름을 난다고 설명함. 번식지를 좁힌 연구와 범위가 다름.", src:["khan"] },
+  { id:"geum", n:"금강 하구", ll:[36.0, 126.72], kind:"월동지", g:"duck", note:"가창오리 등 겨울철새 주요 월동지로 보도됨.", src:["khan","gachang"] },
+  { id:"cheonsu", n:"천수만·부남호", ll:[36.5, 126.4], kind:"월동지", g:"duck", note:"주요 월동지로 보도됨.", src:["khan"] },
+  { id:"sapgyo", n:"삽교호", ll:[36.9, 126.85], kind:"월동지", g:"duck", note:"주요 월동지로 보도됨.", src:["khan"] },
+  { id:"donglim", n:"고창 동림저수지", ll:[35.45, 126.65], kind:"월동지", g:"duck", note:"최근 일부 월동군이 옮겨 온 것으로 보는 시각이 있음.", src:["gachang"] },
+  { id:"gocheon", n:"해남 고천암호", ll:[34.6, 126.55], kind:"월동지", g:"duck", note:"주요 월동지로 보도됨.", src:["khan"] },
+  { id:"junam", n:"창원 주남저수지", ll:[35.3, 128.68], kind:"월동지", g:"duck", note:"국내 최대 철새도래지로 소개됨.", src:["khan"] },
+  { id:"yellow", n:"황해 갯벌(한국 서해안·중국 연안)", ll:[35.8, 126.6], kind:"주요 기착지", g:"shore", note:"북상 이동 때 도요·물떼새가 먹이를 먹으며 체력을 회복하는 핵심 기착지로 알려짐. 갯벌은 한 점이 아니라 넓은 영역임.", src:["eaaf","shore"] },
+  { id:"yancheng", n:"중국 황해 연안 갯벌", ll:[33.4, 120.9], kind:"주요 기착지", g:"shore", note:"황해 갯벌 기착지의 중국 쪽 대표 위치(대략).", src:["eaaf"] },
+  { id:"borneo", n:"보르네오 바코-분탈 만(말레이시아)", ll:[1.7, 110.4], kind:"기착지", g:"shore", note:"시베리아에서 오는 도요·물떼새가 해마다 들르는 곳으로 보고됨.", src:["shore"] },
+  { id:"aus", n:"호주 북부·퀸즐랜드 연안", ll:[-19.0, 147.0], kind:"월동지", g:"shore", note:"EAAF의 남쪽 종착지. 호주 도착 개체 일부는 퀸즐랜드에 머물고 일부는 더 남쪽·뉴질랜드로 이동.", src:["eaaf"] },
+  { id:"arctic", n:"시베리아·알래스카 북극권", ll:[68.0, 160.0], kind:"번식지(넓은 범위)", g:"shore", note:"도요·물떼새 번식지는 러시아 타이미르 반도에서 알래스카까지 넓게 분포.", src:["eaaf"] },
+];
+// 대표·추정 경로. dir: "autumn"(가을 남하) / "spring"(봄 북상) / "both". conf: 근거 신뢰도(상·중·하)
+const FLY_ROUTES = [
+  { id:"r1", g:"duck", n:"가창오리 — 레나강 삼각주 ↔ 한반도", dir:"both", conf:"중", pts:[[73.0,127.0],[62,128],[50,127],[41,127],[36.0,126.72]], note:"가을에는 10월 말쯤 출발해 이듬해 3월까지 월동한다는 보도. 중간 경유지는 이 자료에서 확인하지 못함(직선에 가까운 추정선).", src:["gachang","khan"] },
+  { id:"r2", g:"duck", n:"러시아 극동(아무르·오호츠크) ↔ 한반도", dir:"both", conf:"하", pts:[[57.0,140.0],[48,136],[40,131],[36.5,127.5]], note:"러시아·중국·몽골·알래스카에서 번식하던 겨울철새가 10월 중순부터 남하한다는 보도를 바탕으로 한 넓은 방향 표시.", src:["winter","khan"] },
+  { id:"r3", g:"duck", n:"몽골·중국 동북 ↔ 한반도", dir:"both", conf:"하", pts:[[48.0,105.0],[44,116],[40,122],[36.8,126.3]], note:"몽골·중국 번식 개체의 도래를 설명한 보도를 바탕으로 한 넓은 방향 표시(구체 경유지 미확인).", src:["winter"] },
+  { id:"r4", g:"shore", n:"호주 ↔ 동남아 ↔ 황해 ↔ 시베리아(도요·물떼새)", dir:"both", conf:"중", pts:[[68.0,160.0],[62,152],[48,136],[35.8,126.6],[33.4,120.9],[18,117],[1.7,110.4],[-8,128],[-19.0,147.0]], note:"봄 북상 때 호주에서 6,000km 넘게 날아 황해 갯벌에서 쉬며 체력을 채운다고 보고됨. 큰 몸집의 종은 아시아 기착지에서 호주까지 곧바로 가거나 짧게만 머문다는 연구도 있음. 종마다 경로가 다름(예: 큰뒷부리도요 아종별 차이).", src:["eaaf","shore"] },
+];
+const flyState = { open:false, group:"all", season:"all", view:"east", lf:false, lerr:false };
+const FLY_VIEWS = { korea:[[31.5,122.5],[40.5,133.0]], east:[[16,100],[62,150]], all:[[-24,98],[74,168]] };
+function flyLoadLeaflet(cb){
+  if(window.L){ cb(); return; }
+  if(flyState.lf){ return; }
+  flyState.lf = true;
+  const css = document.createElement("link"); css.rel = "stylesheet"; css.href = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"; document.head.appendChild(css);
+  const sc = document.createElement("script"); sc.src = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js";
+  sc.onload = () => { flyState.lf = false; render(); };
+  sc.onerror = () => { flyState.lf = false; flyState.lerr = true; render(); };
+  document.head.appendChild(sc);
+}
+function flySrcLinks(keys){ return keys.map(k => `<a href="${FLY_SRC[k][1]}" target="_blank" rel="noopener" style="color:#1565C0">${esc(FLY_SRC[k][0])}</a>`).join(" · "); }
+function renderFlywayCard(){
+  const st = flyState, color = "#1565C0";
+  const head = `<div id="fly-toggle" role="button" tabindex="0" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;gap:10px">
+    <div><div class="display" style="font-size:15px">🦆 한반도 철새 이동경로 지도 ${hpaiTagline("철새는 어디서 와서 어디서 머무나")}</div>
+    <div style="font-size:11px;color:#888;margin-top:2px">동아시아–대양주 철새이동경로(EAAF) · 번식지·기착지·월동지를 잇는 대표·추정 경로</div></div>
+    <div style="font-size:12px;color:${color};font-weight:700;white-space:nowrap">${st.open ? "접기 ▲" : "열기 ▼"}</div></div>`;
+  const wrap = body => `<div class="card" style="margin-bottom:14px;border-top:6px solid ${color}">${head}${body}</div>`;
+  if(!st.open) return wrap("");
+  const chip = (kind, k, t) => { const on = st[kind] === k; return `<button type="button" class="fly-chip" data-kind="${kind}" data-k="${k}" style="border:1.5px solid ${on ? color : "#ddd"};background:${on ? color : "#fff"};color:${on ? "#fff" : "#555"};border-radius:16px;padding:5px 11px;font-size:12px;font-weight:700;cursor:pointer">${t}</button>`; };
+  const mapBox = st.lerr ? `<div style="background:#FFF3E0;border-radius:10px;padding:14px;font-size:12.5px;color:#BF360C">지도 라이브러리를 불러오지 못했습니다. 네트워크를 확인한 뒤 다시 열어 주세요.</div>`
+    : `<div id="fly-map" style="height:480px;border-radius:12px;border:1px solid #dbe4ee;background:#eaf1f7">${window.L ? "" : `<div style="text-align:center;padding:60px 0;color:#888;font-size:13px">⏳ 지도를 불러오는 중...</div>`}</div>`;
+  const legend = `<div style="display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:#555;margin:7px 0">
+    <span><b style="color:#E65100">━ ━</b> 가을 남하(추정)</span><span><b style="color:#2E7D32">━ ━</b> 봄 북상(추정)</span>
+    <span><b style="color:#1565C0">●</b> 오리·기러기류 지점</span><span><b style="color:#6A1B9A">●</b> 도요·물떼새류 지점</span><span>선 굵기 = 근거 신뢰도(굵을수록 높음)</span></div>`;
+  const routes = FLY_ROUTES.filter(r => st.group === "all" || r.g === st.group);
+  const rcards = routes.map(r => `<div style="border:1px solid #e3e8ee;border-left:4px solid ${r.g === "duck" ? "#1565C0" : "#6A1B9A"};border-radius:9px;padding:8px 11px;background:#fff">
+      <div style="font-size:12.8px;font-weight:800;color:#222">${esc(r.n)} <span style="font-size:10.5px;font-weight:800;color:#E65100;background:#FFF3E0;border-radius:8px;padding:1px 7px">추정·종합 경로 · 근거 신뢰도 ${r.conf}</span></div>
+      <div style="font-size:12px;color:#444;line-height:1.7;margin-top:3px">${esc(r.note)}</div>
+      <div style="font-size:11px;color:#777;margin-top:3px">출처: ${flySrcLinks(r.src)}</div></div>`).join("");
+  const body = `
+    <div style="background:#FFF8E1;border-radius:9px;padding:8px 11px;font-size:11.8px;color:#6b5400;line-height:1.7;margin:10px 0">⚠ 이 지도는 <b>실제 개체의 추적 경로가 아닙니다.</b> 문헌·보도에서 확인한 번식지·월동지·기착지를 연결해 방향을 보여 주는 <b>대표·추정 경로</b>이며, 선이 실제 비행경로를 증명하지 않습니다. 종마다 경로와 시기가 다릅니다.</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:4px"><span style="font-size:11.5px;color:#888;font-weight:700">종류</span>${chip("group", "all", "전체")}${chip("group", "duck", "🦆 오리·기러기류(겨울철새)")}${chip("group", "shore", "🐦 도요·물떼새류")}</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px"><span style="font-size:11.5px;color:#888;font-weight:700">계절</span>${chip("season", "all", "전체")}${chip("season", "autumn", "🍂 가을(남하)")}${chip("season", "spring", "🌱 봄(북상)")}</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px"><span style="font-size:11.5px;color:#888;font-weight:700">보기</span>${chip("view", "korea", "🇰🇷 한반도 확대")}${chip("view", "east", "동아시아")}${chip("view", "all", "전체 경로")}</div>
+    ${mapBox}${legend}
+    <div style="font-size:12.5px;font-weight:800;color:#333;margin:10px 0 5px">경로별 근거와 한계</div>
+    <div style="display:flex;flex-direction:column;gap:7px">${rcards}</div>
+    <details style="margin-top:10px;border:1px solid #e5e5e5;border-radius:9px;padding:7px 10px;background:#fafafa"><summary style="cursor:pointer;font-size:12.3px;font-weight:800;color:#444">🧭 이 지도를 더 정확하게 만들려면 (자료 확장 계획)</summary>
+      <div style="font-size:12px;color:#444;line-height:1.75;margin-top:5px">현재는 문헌·보도 수준의 대표 경로입니다. 다음 자료를 모으면 개체 추적 경로와 시기별 분포를 추가할 수 있습니다.
+        <ul style="margin:4px 0 0 16px;padding:0"><li><b>Movebank</b> — 연구자가 공개한 GPS·위성 추적 자료(개체 ID·시간순 위치)</li><li><b>eBird·GBIF</b> — 날짜·좌표가 있는 관측 자료(도래 시기·분포)</li><li><b>국립생물자원관·국립생태원</b> — 겨울철 조류 동시센서스, 가락지·추적 연구</li><li><b>EAAFP</b> — 주요 서식지·네트워크 사이트, <b>람사르 습지 정보</b> — 습지 경계</li><li>논문·연구보고서 — 종별 번식지·월동지·기착지·이동 시기</li></ul>
+        <div style="margin-top:5px">정리 원칙: 종·위치기록·서식지·경로·출처를 ID로 연결한 표로 관리하고, 좌표는 WGS84, 시간은 시간대 포함. 개체 ID는 실제 식별된 자료에만 사용. 개체 추적선은 시간순으로 잇되 기록이 크게 끊긴 구간은 점선, 종합 경로는 ‘추정’으로 표시.</div></div></details>
+    <div style="font-size:10.8px;color:#888;line-height:1.7;margin-top:8px">※ 지점 좌표는 지명의 대략적 위치입니다. 지도 타일 © OpenStreetMap 기여자. AI 발생 위험과의 관련성은 이 지도로 판단하지 말고 「국내 가금농장 HPAI 발생·검출 현황」과 정부 공고를 확인하세요.</div>`;
+  return wrap(body);
+}
+function flyBind(){
+  const t = document.getElementById("fly-toggle");
+  if(t){ const tg = () => { flyState.open = !flyState.open; render(); }; t.onclick = tg; t.onkeydown = e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); tg(); } }; }
+  document.querySelectorAll(".fly-chip").forEach(b => b.onclick = () => { flyState[b.dataset.kind] = b.dataset.k; render(); });
+  const el = document.getElementById("fly-map");
+  if(!el || !flyState.open) return;
+  if(!window.L){ flyLoadLeaflet(() => render()); return; }
+  const L = window.L, st = flyState;
+  const map = L.map(el, { scrollWheelZoom:false, worldCopyJump:false }).setView([38, 125], 3);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom:8, attribution:"© OpenStreetMap" }).addTo(map);
+  map.fitBounds(FLY_VIEWS[st.view] || FLY_VIEWS.east);
+  const col = { autumn:"#E65100", spring:"#2E7D32", both:"#546E7A" };
+  const weight = { "상":5, "중":4, "하":2.5 };
+  const arrow = (a, b, c) => {
+    const ang = Math.atan2((b[1] - a[1]) * Math.cos(a[0] * Math.PI / 180), b[0] - a[0]) * 180 / Math.PI;
+    return L.marker(b, { interactive:false, icon:L.divIcon({ className:"", iconSize:[16, 16], iconAnchor:[8, 8], html:`<div style="transform:rotate(${ang}deg);color:${c};font-size:16px;line-height:16px;text-shadow:0 0 2px #fff">▲</div>` }) });
+  };
+  FLY_ROUTES.filter(r => st.group === "all" || r.g === st.group).forEach(r => {
+    const seasons = r.dir === "both" ? (st.season === "all" ? ["autumn", "spring"] : [st.season]) : (st.season === "all" || st.season === r.dir ? [r.dir] : []);
+    seasons.forEach((s, idx) => {
+      const pts = s === "autumn" ? r.pts.slice() : r.pts.slice().reverse();     // 번식지→월동지가 가을, 반대가 봄 (pts는 북→남)
+      // 두 방향을 겹쳐 그리지 않도록 계절 전체 보기에서는 살짝 옆으로 비킨다
+      const off = st.season === "all" && r.dir === "both" ? (s === "autumn" ? 0.7 : -0.7) : 0;
+      const pp = pts.map(p => [p[0], p[1] + off]);
+      L.polyline(pp, { color:col[s], weight:weight[r.conf] || 3, opacity:.75, dashArray:"9 7" }).addTo(map).bindPopup(`<b>${esc(r.n)}</b><br><span style="color:#E65100">추정·종합 경로 · 신뢰도 ${r.conf}</span><br>${s === "autumn" ? "가을(남하)" : "봄(북상)"} 방향 표시<br><span style="font-size:11px">${esc(r.note)}</span>`);
+      arrow(pp[pp.length - 2], pp[pp.length - 1], col[s]).addTo(map);
+    });
+  });
+  FLY_SITES.filter(s => st.group === "all" || s.g === st.group).forEach(s => {
+    const c = s.g === "duck" ? "#1565C0" : "#6A1B9A";
+    L.circleMarker(s.ll, { radius:s.kind.indexOf("번식") >= 0 ? 7 : 5, color:"#fff", weight:2, fillColor:c, fillOpacity:.95 }).addTo(map)
+      .bindTooltip(s.n, { direction:"top" })
+      .bindPopup(`<b>${esc(s.n)}</b> <span style="font-size:11px;color:#666">(${esc(s.kind)})</span><br><span style="font-size:11.5px">${esc(s.note)}</span><br><span style="font-size:10.5px;color:#888">좌표는 대략적 위치</span>`);
+  });
+  // 한반도 강조(중심 표시)
+  L.rectangle([[33, 124.5], [38.7, 131]], { color:"#C62828", weight:1, dashArray:"3 4", fillOpacity:0.03, interactive:false }).addTo(map);
+}
+
 function renderHpaiTab(){
-  const newsCard = renderHpaiNewsCard() + renderHpaiKrCard() + renderHpaiSymptomCard() + renderHpaiPreventCard();
+  const newsCard = renderHpaiNewsCard() + renderHpaiKrCard() + renderFlywayCard() + renderHpaiSymptomCard() + renderHpaiPreventCard();
   const d = hpaiState;
   const shell = inner => `<div class="card" style="margin-bottom:16px">${inner}</div>`;
   if(d.status === "loading" || d.status === "idle")
@@ -30841,6 +30959,7 @@ function attachDiseaseEvents(){
   document.querySelectorAll(".hg-save").forEach(b => b.onclick = () => hgPublish(hpaiGuideState.edit));
 
   // AI관련정보: 증상 카드 / 예방·조기신고
+  flyBind();
   const hsT = document.getElementById("hs-toggle");
   if(hsT){
     const tg = () => { hpaiSymState.open = !hpaiSymState.open; render(); };
