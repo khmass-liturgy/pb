@@ -12681,6 +12681,94 @@ function hzBt2Table(rows){
   }).join("");
   return `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11.8px;min-width:640px"><thead><tr style="background:#f6f7f9"><th style="padding:5px 8px;text-align:left">규칙</th><th style="padding:5px 8px">경보 기준</th><th style="padding:5px 8px">경보 / 전체</th><th style="padding:5px 8px">경보 중 실제 발생</th><th style="padding:5px 8px">재현율</th><th style="padding:5px 8px">전체 발생 비율</th><th style="padding:5px 8px">무작위 대비</th><th style="padding:5px 8px;text-align:left">해석</th></tr></thead><tbody>${body}</tbody></table></div>`;
 }
+// ── 농장 밀도 보정: 거리 규칙의 효과와 ‘농가가 많은 곳’의 효과를 분리해 보기 ─────────────────────────
+// 밀도 자료: 가축위생방역지원본부 시·군별 사육규모(2026.1, farm_density/sigun.json). 일반 산란계는 이 시리즈에 없어 빠져 있다.
+// 밀도 = 반경 20km 안 시·군들의 ‘상업 사육 마릿수’(육계·육용종계·산란중추·산란종계·오리류)의 합. 토종닭·백세미는 소규모 마당닭이 대부분이라 뺐다.
+const HZ_DENS_TYPES = ["broiler", "broiler_breeder", "layer_pullet", "layer_breeder", "duck_breeder", "duck_meat", "duck_layer", "duck_general"];
+const hzDens = { status:"idle", rows:null, msg:"", res:null, key:"" };
+function hzDensEnsure(){
+  if(hzDens.status !== "idle") return;
+  hzDens.status = "loading";
+  const urls = ["farm_density/sigun.json", "https://raw.githubusercontent.com/khmass-liturgy/pb/main/farm_density/sigun.json"];
+  const tryOne = i => fetch(urls[i], { cache:"no-cache" }).then(r => { if(!r.ok) throw new Error(r.status); return r.json(); }).catch(e => { if(i + 1 < urls.length) return tryOne(i + 1); throw e; });
+  tryOne(0).then(j => { hzDens.rows = j; hzDens.status = "done"; }).catch(() => { hzDens.status = "error"; hzDens.msg = "농장 밀도 자료(farm_density/sigun.json)를 불러오지 못했습니다."; }).finally(() => render());
+}
+function hzDensityPoints(){
+  const out = []; let miss = 0;
+  (hzDens.rows.rows || []).forEach(r => {
+    const heads = HZ_DENS_TYPES.reduce((a, k) => a + ((r.hby && r.hby[k]) || 0), 0);
+    if(!heads) return;
+    let ll = rmLatLng(r.sido, r.sgg);
+    if(!ll){ // 광역시(시도=시군)는 구 중심의 평균으로 대신한다
+      let n = 0, a = 0, b = 0; Object.keys(HPAI_KR_MAP.pts).forEach(k => { const [s, g] = k.split("|"); if(s === r.sido && (r.sgg === r.sido || r.sgg === s)){ const p = rmLatLng(s, g); if(p){ n++; a += p[0]; b += p[1]; } } });
+      ll = n ? [a / n, b / n] : null;
+    }
+    if(ll) out.push({ ll, heads }); else miss++;
+  });
+  return { pts:out, miss };
+}
+function hzDensBacktest(){
+  const D = hzBtDates(), farms = hkAllFarms();
+  const key = farms.length + "/" + (hzDens.rows ? hzDens.rows.rows.length : 0) + "/" + FLY_SITES.length;
+  if(hzDens.res && hzDens.key === key) return hzDens.res;
+  if(!D || !hzDens.rows) return null;
+  const P = hzDensityPoints();
+  const fl = farms.map(x => ({ conf:x.conf, p:rmLatLng(x.sido, x.sgg) })).filter(x => x.p);
+  const units = [];
+  Object.keys(HPAI_KR_MAP.pts).forEach(k => {
+    const [s, g] = k.split("|"); if(!/[시군구]$/.test(g) || g.length < 3 || s === "서울") return;
+    const ll = rmLatLng(s, g); if(!ll) return;
+    let site = null; hzWinterSites().forEach(w => { const d = rmKm(ll, w.ll); if(!site || d < site.d) site = { d }; });
+    const river = rmRiverKm(ll);
+    const dens = P.pts.reduce((a, q) => a + (rmKm(ll, q.ll) <= 20 ? q.heads : 0), 0);
+    units.push({ ll, dens, l2:hzNearLevel2({ site, river }), l2s:hzNearLevelSite({ site }), l2r:hzNearLevelRiver({ river }) });
+  });
+  const sorted = units.map(u => u.dens).sort((a, b) => a - b), q1 = sorted[Math.floor(sorted.length / 3)], q2 = sorted[Math.floor(sorted.length * 2 / 3)];
+  const tier = d => d <= q1 ? 0 : d <= q2 ? 1 : 2;
+  const rules = { l2:u => u.l2 >= 3, site:u => u.l2s >= 3, river:u => u.l2r >= 1 };
+  const st = {};   // 층(밀도 3분위 × 최근 발생 유무) → 규칙별 [노출 n, 노출 발생, 비노출 n, 비노출 발생]
+  const dTier = [0, 0, 0].map(() => ({ n:0, ev:0 }));
+  let noFarmN = 0, noFarmEv = 0;
+  D.dates.forEach(t => {
+    const t30 = hzAddDays(t, -30), t14 = hzAddDays(t, 14);
+    const recent = fl.filter(x => x.conf > t30 && x.conf <= t), fut = fl.filter(x => x.conf > t && x.conf <= t14);
+    units.forEach(u => {
+      const ev = fut.some(x => rmKm(u.ll, x.p) <= 20) ? 1 : 0, near = recent.some(x => rmKm(u.ll, x.p) <= 50) ? 1 : 0, tr = tier(u.dens), sk = tr + "-" + near;
+      const S = st[sk] = st[sk] || { tier:tr, near, r:{ l2:[0, 0, 0, 0], site:[0, 0, 0, 0], river:[0, 0, 0, 0] } };
+      Object.keys(rules).forEach(rk => { const a = S.r[rk], ex = rules[rk](u); if(ex){ a[0]++; a[1] += ev; } else { a[2]++; a[3] += ev; } });
+      dTier[tr].n++; dTier[tr].ev += ev;
+      if(u.dens === 0){ noFarmN++; noFarmEv += ev; }
+    });
+  });
+  const mh = rk => { let num = 0, den = 0, c1 = 0, n1 = 0, c0 = 0, n0 = 0;
+    Object.values(st).forEach(S => { const [N1, a1, N0, a0] = S.r[rk], N = N1 + N0; if(N) { num += a1 * N0 / N; den += a0 * N1 / N; } n1 += N1; c1 += a1; n0 += N0; c0 += a0; });
+    return { crude:(n1 && n0 && c0) ? (c1 / n1) / (c0 / n0) : null, adj:den ? num / den : null, n1, c1, n0, c0 };
+  };
+  const res = { dTier, q1, q2, noFarmN, noFarmEv, miss:P.miss, matched:P.pts.length, units:units.length, weeks:D.dates.length, rr:{ l2:mh("l2"), site:mh("site"), river:mh("river") } };
+  hzDens.res = res; hzDens.key = key;
+  return res;
+}
+function hzDensityBox(){
+  const head = `<div style="font-size:12.5px;font-weight:800;color:#333;margin:12px 0 4px">🐔 농장 밀도로 보정해 보기 — 거리 효과가 ‘농장이 많은 곳’ 효과였나?</div>`;
+  hzDensEnsure();
+  if(hzDens.status === "loading" || hzDens.status === "idle") return head + `<div style="font-size:12px;color:#888">⏳ 시·군별 가금 사육 자료를 불러오는 중…</div>`;
+  if(hzDens.status === "error") return head + `<div style="font-size:12px;color:#E65100">${esc(hzDens.msg)}</div>`;
+  const R = hzDensBacktest();
+  if(!R) return head + `<div style="font-size:12px;color:#888">대조할 자료가 부족합니다.</div>`;
+  const f2 = x => x === null ? "-" : x.toFixed(2) + "배", pc = (a, b) => b ? (a / b * 100).toFixed(1) + "%" : "-";
+  const tn = ["적은 곳(하위 1/3)", "중간(1/3~2/3)", "많은 곳(상위 1/3)"];
+  const dRows = R.dTier.map((o, i) => `<tr><td style="padding:5px 8px;font-weight:700">${tn[i]}</td><td style="padding:5px 8px;text-align:center">${o.n}칸</td><td style="padding:5px 8px;text-align:center"><b>${pc(o.ev, o.n)}</b> <span style="color:#888">(${o.ev})</span></td></tr>`).join("");
+  const rr = (name, o) => `<tr><td style="padding:5px 8px;font-weight:700">${name}</td><td style="padding:5px 8px;text-align:center">${f2(o.crude)}</td><td style="padding:5px 8px;text-align:center;font-weight:800">${f2(o.adj)}</td><td style="padding:5px 8px;font-size:11px;color:#555">${o.adj === null ? "표본 없음" : o.adj < 0.8 ? "경보 칸의 발생이 오히려 더 낮음(규칙이 가정한 방향과 반대) — 근거 없음" : o.adj < 1.2 ? "보정 후에도 무작위와 구분되지 않음" : o.adj < 2 ? "약한 신호(과대해석 금지)" : "보정 후에도 차이가 있음 — 그래도 인과로 읽지 않음"}</td></tr>`;
+  const x = R.rr;
+  const lowRate = R.dTier[0].n ? R.dTier[0].ev / R.dTier[0].n : 0, dens1 = lowRate > 0 && R.dTier[2].n ? (R.dTier[2].ev / R.dTier[2].n) / lowRate : null;
+  return head + `
+    <div style="font-size:11.8px;color:#555;line-height:1.7;margin-bottom:6px">시·군별 가금 사육 자료(${esc(hzDens.rows.updated || "")}, ${R.matched}개 시·군 위치 연결, 일반 산란계 제외)로 각 시·군의 <b>반경 20km 사육 마릿수</b>를 구하고, 밀도 3분위 × 최근 발생 유무(반경 50km·30일)로 나눈 6개 층 안에서 규칙 ‘경보’와 ‘비경보’의 발생 비율을 비교했습니다(Mantel–Haenszel 합산).</div>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11.8px;min-width:420px"><thead><tr style="background:#f6f7f9"><th style="padding:5px 8px;text-align:left">반경 20km 가금 사육 밀도</th><th style="padding:5px 8px">시·군×주 칸</th><th style="padding:5px 8px">이후 14일 안 반경 20km 농장 발생 비율</th></tr></thead><tbody>${dRows}</tbody></table></div>
+    <div style="font-size:11.5px;color:#555;margin:4px 0 8px">${dens1 !== null ? `밀도 상위 1/3은 하위 1/3보다 발생 비율이 <b>${dens1.toFixed(1)}배</b>입니다. ` : (R.dTier[0].ev === 0 ? `<b>밀도 하위 1/3에서는 발생이 한 건도 없었고</b> 상위 1/3에서 대부분(${R.dTier[2].ev}/${R.dTier[0].ev + R.dTier[1].ev + R.dTier[2].ev}건)이 일어났습니다 — 이 시즌 발생은 가금 사육이 많은 지역에 몰려 있었습니다. ` : "")}사육 자료가 전혀 없는 칸 ${R.noFarmN}개 중 발생 ${R.noFarmEv}개.</div>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11.8px;min-width:520px"><thead><tr style="background:#f6f7f9"><th style="padding:5px 8px;text-align:left">규칙(경보 기준)</th><th style="padding:5px 8px">보정 전 위험비</th><th style="padding:5px 8px">밀도·최근발생 보정 후</th><th style="padding:5px 8px;text-align:left">해석</th></tr></thead><tbody>${rr("월동지·하천 거리(3 이상)", x.l2)}${rr("월동지 거리(30km 이내)", x.site)}${rr("큰 하천 거리(30km 이내)", x.river)}</tbody></table></div>
+    ${hzBox("읽는 법과 한계", "‘위험비’는 경보 칸의 발생 비율 ÷ 비경보 칸의 발생 비율입니다(1이면 차이 없음). <b>보정 후 값이 1에 가까워지면 거리 효과로 보였던 것이 농장 밀도·최근 발생 때문이었다는 뜻</b>입니다. 다만 ① 일반 산란계가 빠져 밀도가 불완전하고(산란계 밀집지의 발생이 설명되지 않음) ② 밀도는 시·군 중심점 기준 근사이며 ③ 같은 발생이 여러 칸에 중복되고 한 시즌 자료라 통계적 유의성은 주장할 수 없습니다. 보정 후에도 1.2배를 넘지 않으면 이 거리 규칙을 점수에 큰 비중으로 쓸 근거가 없습니다.", "#E65100")}`;
+}
+
 // 과거 대조 요약(무작위 대비 배수) — 화면·보고서의 불확실성 문구에 쓴다
 function hzLift(o){ const prec = o.flag ? o.hit / o.flag : null, base = o.n ? o.ev / o.n : 0; return prec !== null && base ? prec / base : null; }
 function hzBtSummary(){
@@ -12693,7 +12781,8 @@ function hzBtSummary(){
 }
 function hzBtSummaryLine(){
   const S = hzBtSummary(); if(!S) return "";
-  return `과거 대조(25/26 시즌 한정, 낙관적·비독립): 첫째 규칙 무작위 대비 ${S.first}, 둘째 규칙 ${S.second}` + (S.third ? `, 셋째 규칙 ${S.third}` : ", 셋째 규칙은 미실행") + " — 1.2배 미만은 무작위와 구분되지 않음.";
+  return `과거 대조(25/26 시즌 한정, 낙관적·비독립): 첫째 규칙 무작위 대비 ${S.first}, 둘째 규칙 ${S.second}` + (S.third ? `, 셋째 규칙 ${S.third}` : ", 셋째 규칙은 미실행") + " — 1.2배 미만은 무작위와 구분되지 않음."
+    + (() => { const R = hzDens.res; return R && R.rr.l2.adj !== null ? ` 농장 밀도·최근 발생 보정 후 둘째(거리) 규칙 위험비 ${R.rr.l2.adj.toFixed(2)}배.` : ""; })();
 }
 function hzBacktestBox2(){
   const head = `<div style="font-size:13px;font-weight:800;color:#222;margin:16px 0 4px">📊 둘째·셋째 규칙 과거 대조</div>`;
@@ -12713,6 +12802,7 @@ function hzBacktestBox2(){
     ${hzBt2Table([["월동지·하천 거리 규칙", "수준 3 이상", r.l2_3], ["월동지 거리만", "수준 3 이상(30km 이내)", r.site3], ["큰 하천 거리만", "30km 이내", r.river1]])}
     <div style="font-size:11.8px;color:#555;line-height:1.7;margin:6px 0 3px"><b>최근 발생이 없는 곳에서만 따로 보기</b> — 첫째 규칙(최근 30일 반경 50km 안 발생)이 경보를 내지 않을 상황에서, 둘째 규칙이 추가 정보를 주는지 봅니다. 칸 = 시·군×주, 값 = 이후 14일 안 반경 20km 농장 발생 비율(괄호는 발생 칸 수).</div>
     <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11.8px;min-width:420px"><thead><tr style="background:#f6f7f9"><th style="padding:5px 8px;text-align:left">상황</th><th style="padding:5px 8px">둘째 규칙 수준 3 이상</th><th style="padding:5px 8px">수준 2 이하</th></tr></thead><tbody>${strRow("최근 반경 50km 발생 있음", st.near)}${strRow("최근 반경 50km 발생 없음", st.far)}</tbody></table></div>
+    ${hzDensityBox()}
     ${wx}
     ${hzBox("읽는 법과 한계(중요)", "① <b>같은 한 시즌(주로 25/26)의 자료</b>이며 규칙은 이 자료를 보기 전에 정했지만, 기준값(10·30·60km, 3km, 30mm 등)은 근거 없이 정한 임시값이라 사후에 맞춘 것이 아님을 입증할 수는 없습니다. ② 발생은 <b>가금농장이 있는 곳에서만</b> 일어납니다. 월동지·하천 근처에 농장이 많았다면 ‘거리 효과’가 실제로는 ‘농장 밀도 효과’일 수 있어 이 표만으로 거리 규칙의 효과를 말할 수 없습니다(농장 밀도 자료가 필요). ③ 같은 발생 사건이 여러 주·여러 지역 칸에 중복해서 잡히고 발생이 일부 지역에 몰려 있어 통계적 유의성을 주장할 수 없습니다. ④ ‘무작위 대비 1.2배 미만’이면 규칙이 아무 지역이나 고른 것과 구분되지 않는다는 뜻이며, 그 경우 해당 항목의 규칙·기준값을 점수에 쓰는 것은 근거가 없습니다.", "#E65100")}`;
 }
