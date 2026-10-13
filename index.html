@@ -12538,7 +12538,7 @@ function hzNearBox(){
       const apply = (id, lv, cur) => cur === lv ? `<span style="color:#2E7D32;font-size:11.5px">— 지금 값과 같습니다</span>` : `<button type="button" id="${id}" data-lv="${lv}" style="margin-left:4px;border:1px solid #00695C;background:#fff;color:#00695C;border-radius:7px;padding:3px 9px;font-size:11.5px;font-weight:800;cursor:pointer">적용</button> <span style="color:#888;font-size:11.5px">(지금 ${cur})</span>`;
       body = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px;margin-top:8px">
         ${cell("같은 시·군 · 최근 30일 농장", m.same + "건", m.same ? "#C62828" : "#2E7D32")}${cell("반경 20km · 농장 / 야생", m.f20 + " / " + m.w20, m.f20 ? "#C62828" : m.w20 ? "#E65100" : "#2E7D32")}${cell("반경 50km · 농장 / 야생", m.f50 + " / " + m.w50, m.f50 ? "#C62828" : m.w50 ? "#E65100" : "#2E7D32")}${cell("가까운 월동지·도래지", m.site ? esc(m.site.n) + " 약 " + Math.round(m.site.d / 5) * 5 + "km" : "-")}${cell("가까운 큰 하천(개략)", m.river ? esc(m.river.n) + " " + (m.river.d < 3 ? "3km 이내" : "약 " + Math.round(m.river.d / 5) * 5 + "km") : "-")}</div>
-        <div style="font-size:12.2px;color:#333;line-height:1.9;margin-top:8px">① 지역 발생·검출 참고 수준 <b style="color:#00695C">${HZ_LEVEL_LABEL[l1]}</b> ${apply("hz-near-apply1", l1, c1)}<br>② 철새 월동지·큰 하천 거리 참고 수준 <b style="color:#00695C">${HZ_LEVEL_LABEL[l2]}</b> <span style="font-size:11px;color:#888">(월동지 ${hzNearLevelSite(m)} · 하천 ${hzNearLevelRiver(m)} 중 높은 값)</span> ${apply("hz-near-apply2", l2, c2)}<br>${(() => { const W = hzWxState.status === "done" ? hzWxState.d : null, l3 = hzWxLevel(W), c5 = hzState.sim[4]; return `③ 계절·기상 참고 수준 <b style="color:#00695C">${HZ_LEVEL_LABEL[l3]}</b> ${hzWxState.status === "loading" ? '<span style="color:#888;font-size:11px">(기상 불러오는 중…)</span>' : hzWxState.status === "error" ? '<span style="color:#E65100;font-size:11px">(기상 자료를 받지 못해 계절만 반영)</span>' : ""} ${apply("hz-near-apply5", l3, c5)}`; })()}</div>
+        <div style="font-size:12.2px;color:#333;line-height:1.9;margin-top:8px">① 지역 발생·검출 참고 수준 <b style="color:#00695C">${HZ_LEVEL_LABEL[l1]}</b> ${apply("hz-near-apply1", l1, c1)}<br>② 철새 월동지·큰 하천 거리 참고 수준 <b style="color:#00695C">${HZ_LEVEL_LABEL[l2]}</b> <span style="font-size:11px;color:#888">(월동지 ${hzNearLevelSite(m)} · 하천 ${hzNearLevelRiver(m)} 중 높은 값)</span> ${(() => { const S = hzBtSummary(); return S && S.secondLift !== null && S.secondLift < 1.2 ? `<span style="font-size:10.5px;font-weight:800;color:#C62828;background:#FFEBEE;border-radius:6px;padding:0 6px">과거 대조: 무작위와 구분 안 됨(${S.second})</span>` : ""; })()} ${apply("hz-near-apply2", l2, c2)}<br>${(() => { const W = hzWxState.status === "done" ? hzWxState.d : null, l3 = hzWxLevel(W), c5 = hzState.sim[4]; return `③ 계절·기상 참고 수준 <b style="color:#00695C">${HZ_LEVEL_LABEL[l3]}</b> ${(() => { const S = hzBtSummary(); return S && S.thirdLift !== null && S.thirdLift < 1.2 ? `<span style="font-size:10.5px;font-weight:800;color:#C62828;background:#FFEBEE;border-radius:6px;padding:0 6px">과거 대조: 무작위와 구분 안 됨(${S.third})</span>` : ""; })()} ${hzWxState.status === "loading" ? '<span style="color:#888;font-size:11px">(기상 불러오는 중…)</span>' : hzWxState.status === "error" ? '<span style="color:#E65100;font-size:11px">(기상 자료를 받지 못해 계절만 반영)</span>' : ""} ${apply("hz-near-apply5", l3, c5)}`; })()}</div>
         ${(() => { const W = hzWxState.status === "done" ? hzWxState.d : null; return W ? `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px;margin-top:8px">${cell("최근 7일 최저기온", W.minT === null ? "-" : W.minT.toFixed(1) + "℃", W.minT !== null && W.minT <= 0 ? "#1565C0" : "#444")}${cell("영하 날 / 결빙·해빙 반복일", W.frost + "일 / " + W.thaw + "일", W.thaw >= 2 ? "#E65100" : "#444")}${cell("최근 7일 강수 합계", W.rain7 + "mm", W.rain7 >= 30 ? "#E65100" : "#444")}${cell("앞으로 3일 예보", (W.futMin === null ? "-" : W.futMin.toFixed(0) + "℃ · ") + W.futRain + "mm", "#444")}</div><div style="font-size:10.5px;color:#888;margin-top:3px">기상: Open-Meteo 시·군 중심점 격자 값(${hkFmt(W.from)}~${hkFmt(W.to)}). 실제 농장 기온과 다를 수 있음.</div>` : ""; })()}
         <div style="font-size:10.8px;color:#777;line-height:1.7;margin-top:4px">규칙(임시·검증 전) ③ 철새 도래 시즌(10~3월) 2 · 최근 7일 결빙·해빙 반복 2일 이상 +1 · 7일 강수 30mm 이상 +1(최대 4). 공식 방역기간은 당일 정부 공고를 확인하세요. ① 반경 20km 농장 발생=4 · 반경 50km 농장 발생 또는 20km 야생 검출=3 · 50km 야생 검출=2 · 50km 안 과거 이력=1 · 없음=0. ② 월동지 10km 이내=4 · 30km=3 · 60km=2 · 100km=1 · 그 밖=0, 큰 하천(개략 경로) 3km 이내=3 · 10km=2 · 30km=1 · 그 밖=0 — 둘 중 높은 값(하천 기준은 근거 없이 정한 임시값). 월동지·도래지는 현재 ${hzWinterSites().length}곳(보도·국립생물자원관 2015-16 센서스 지점)이라 <b>빠진 도래지·저수지·작은 하천은 반영되지 않으니 직접 판단해 조정</b>하세요. 하천 선은 개략 경로이며 하천 가까이는 철새 월동지를 뜻하지 않습니다. 시·군 중심점 기준 근사(오차 약 10~20km)이며 농장의 실제 위치가 아닙니다. 기준일 ${hzToday()}.</div>`;
     }
@@ -12588,6 +12588,135 @@ function hzBacktest(){
   hzBtCache = { key, res };
   return res;
 }
+// ── 둘째(월동지·하천 거리)·셋째(계절·기상) 규칙 과거 대조 ─────────────────────────────────────────
+// 같은 방식: 매주 기준일 t마다 ‘t까지 알 수 있는 값’으로 규칙을 적용하고 이후 14일 안의 실제 가금농장 발생과 비교한다.
+// 둘째 규칙은 위치로 정해지는 값(시간에 따라 변하지 않음), 셋째 규칙은 기준일 직전 7일의 기상(Open-Meteo 과거 자료)으로 계산한다.
+let hzBt2Cache = null;
+const hzBt2 = { status:"idle", res:null, msg:"" };
+function hzBtDates(){
+  const farms = hkAllFarms(), wild = hkAllWild();
+  const all = farms.concat(wild).map(x => x.conf).sort();
+  if(!all.length) return null;
+  const tmin = all[0], tmax = all[all.length - 1], dates = [];
+  for(let t = hzAddDays(tmin, 30); t <= hzAddDays(tmax, -14); t = hzAddDays(t, 7)) dates.push(t);
+  return dates.length >= 4 ? { dates, tmin, tmax } : null;
+}
+function hzVerdict(prec, base, flag){
+  if(prec === null || !base) return "표본 없음";
+  const lift = prec / base;
+  if(flag < 30) return "경보 표본이 너무 적어 판단 불가";
+  return lift < 1.2 ? "무작위와 구분되지 않음(근거 약함)" : lift < 2 ? "약한 신호(과대해석 금지)" : "뚜렷한 차이(그러나 아래 한계 때문에 인과·예측으로 읽지 않음)";
+}
+// 둘째 규칙: 시·군 단위 정적 규칙 — 사건은 이후 14일 안에 반경 20km 안 농장 발생
+function hzBacktest2(){
+  const farms = hkAllFarms(), key = farms.length + "/" + hkAllWild().length + "/" + FLY_SITES.length;
+  if(hzBt2Cache && hzBt2Cache.key === key) return hzBt2Cache.res;
+  const D = hzBtDates(); if(!D){ hzBt2Cache = { key, res:null }; return null; }
+  const fl = farms.map(x => ({ conf:x.conf, p:rmLatLng(x.sido, x.sgg) })).filter(x => x.p);
+  const units = [];
+  Object.keys(HPAI_KR_MAP.pts).forEach(k => {
+    const [s, g] = k.split("|"); if(!/[시군구]$/.test(g) || g.length < 3 || s === "서울") return;
+    const ll = rmLatLng(s, g); if(!ll) return;
+    const site = (() => { let b = null; hzWinterSites().forEach(w => { const d = rmKm(ll, w.ll); if(!b || d < b.d) b = { d }; }); return b; })();
+    units.push({ ll, l2:hzNearLevel2({ site, river:rmRiverKm(ll) }), l2s:hzNearLevelSite({ site }), l2r:hzNearLevelRiver({ river:rmRiverKm(ll) }) });
+  });
+  const mk = () => ({ n:0, flag:0, ev:0, hit:0 });
+  const R = { l2_3:mk(), l2_4:mk(), site3:mk(), river1:mk(), strat:{ near:{ hi:mk(), lo:mk() }, far:{ hi:mk(), lo:mk() } } };
+  D.dates.forEach(t => {
+    const t30 = hzAddDays(t, -30), t14 = hzAddDays(t, 14);
+    const recent = fl.filter(x => x.conf > t30 && x.conf <= t), fut = fl.filter(x => x.conf > t && x.conf <= t14);
+    units.forEach(u => {
+      const ev = fut.some(x => rmKm(u.ll, x.p) <= 20);
+      const nearOutbreak = recent.some(x => rmKm(u.ll, x.p) <= 50);      // 최근 30일 반경 50km 안 발생(첫째 규칙이 이미 경보를 낼 상황)
+      const add = (o, flag) => { o.n++; if(ev) o.ev++; if(flag){ o.flag++; if(ev) o.hit++; } };
+      add(R.l2_3, u.l2 >= 3); add(R.l2_4, u.l2 >= 4); add(R.site3, u.l2s >= 3); add(R.river1, u.l2r >= 1);
+      const grp = R.strat[nearOutbreak ? "near" : "far"]; (u.l2 >= 3 ? grp.hi : grp.lo).n++; if(ev) (u.l2 >= 3 ? grp.hi : grp.lo).ev++;
+    });
+  });
+  const res = { from:D.dates[0], to:D.dates[D.dates.length - 1], weeks:D.dates.length, units:units.length, R };
+  hzBt2Cache = { key, res };
+  return res;
+}
+// 셋째 규칙: 17개 시·도 중심점의 과거 기상(Open-Meteo archive)을 받아 같은 방식으로 대조 — 버튼을 눌러 실행
+function hzSidoCenter(s){
+  let n = 0, a = 0, b = 0;
+  Object.keys(HPAI_KR_MAP.pts).forEach(k => { const [ss, g] = k.split("|"); if(ss !== s || !/[시군구]$/.test(g) || g.length < 3) return; const ll = rmLatLng(ss, g); if(ll){ n++; a += ll[0]; b += ll[1]; } });
+  return n ? [a / n, b / n] : null;
+}
+function hzRunWxBacktest(){
+  if(hzBt2.status === "loading") return;
+  const D = hzBtDates(); if(!D){ hzBt2.status = "error"; hzBt2.msg = "대조할 만큼 자료가 쌓이지 않았습니다."; render(); return; }
+  hzBt2.status = "loading"; hzBt2.msg = "17개 시·도의 과거 기상을 불러오는 중입니다…"; render();
+  const start = hzAddDays(D.dates[0], -8), endMax = hzAddDays(hzToday(), -3), end = hzAddDays(D.dates[D.dates.length - 1], 0) < endMax ? hzAddDays(D.dates[D.dates.length - 1], 0) : endMax;
+  const farms = hkAllFarms().map(x => ({ sido:x.sido, conf:x.conf }));
+  const tasks = HZ_SIDOS.filter(s => hzSidoCenter(s)).map(s => {
+    const c = hzSidoCenter(s);
+    const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${c[0].toFixed(3)}&longitude=${c[1].toFixed(3)}&start_date=${start}&end_date=${end}&daily=temperature_2m_min,temperature_2m_max,precipitation_sum&timezone=Asia%2FSeoul`;
+    return fetch(url).then(r => { if(!r.ok) throw new Error(s + " " + r.status); return r.json(); }).then(j => ({ s, d:j.daily }));
+  });
+  Promise.all(tasks).then(list => {
+    const mk = () => ({ n:0, flag:0, ev:0, hit:0 });
+    const R = { all3:mk(), thaw:mk(), rain:mk() };
+    list.forEach(({ s, d }) => {
+      if(!d || !d.time) return;
+      D.dates.forEach(t => {
+        const i1 = d.time.indexOf(t); if(i1 < 6) return;
+        let thaw = 0, rain = 0;
+        for(let i = i1 - 6; i <= i1; i++){ const mn = d.temperature_2m_min[i], mx = d.temperature_2m_max[i]; if(typeof mn === "number" && typeof mx === "number" && mn < 0 && mx > 0) thaw++; rain += d.precipitation_sum[i] || 0; }
+        const m = Number(t.slice(5, 7)), base = (m >= 10 || m <= 3) ? 2 : 0, lv = Math.min(4, base + (thaw >= 2 ? 1 : 0) + (rain >= 30 ? 1 : 0));
+        const t14 = hzAddDays(t, 14), ev = farms.some(x => x.sido === s && x.conf > t && x.conf <= t14);
+        const add = (o, flag) => { o.n++; if(ev) o.ev++; if(flag){ o.flag++; if(ev) o.hit++; } };
+        add(R.all3, lv >= 3); add(R.thaw, thaw >= 2); add(R.rain, rain >= 30);
+      });
+    });
+    hzBt2.res = { R, from:D.dates[0], to:D.dates[D.dates.length - 1], weeks:D.dates.length, sidos:list.length };
+    hzBt2.status = "done"; hzBt2.msg = ""; render();
+  }).catch(e => { hzBt2.status = "error"; hzBt2.msg = "과거 기상을 받지 못했습니다(" + (e && e.message ? e.message : "네트워크") + "). 잠시 후 다시 시도하세요."; render(); });
+}
+function hzBt2Table(rows){
+  const pct = x => (x * 100).toFixed(0) + "%";
+  const body = rows.map(([name, th, o]) => {
+    const prec = o.flag ? o.hit / o.flag : null, rec = o.ev ? o.hit / o.ev : null, base = o.n ? o.ev / o.n : 0, lift = prec !== null && base ? prec / base : null;
+    return `<tr><td style="padding:5px 8px;font-weight:700">${name}</td><td style="padding:5px 8px;text-align:center">${th}</td><td style="padding:5px 8px;text-align:center">${o.flag} / ${o.n}</td><td style="padding:5px 8px;text-align:center">${prec === null ? "-" : pct(prec) + " <span style='color:#888'>(" + o.hit + "/" + o.flag + ")</span>"}</td><td style="padding:5px 8px;text-align:center">${rec === null ? "-" : pct(rec)}</td><td style="padding:5px 8px;text-align:center">${pct(base)}</td><td style="padding:5px 8px;text-align:center;font-weight:800">${lift === null ? "-" : lift.toFixed(1) + "배"}</td><td style="padding:5px 8px;font-size:11px;color:#555">${hzVerdict(prec, base, o.flag)}</td></tr>`;
+  }).join("");
+  return `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11.8px;min-width:640px"><thead><tr style="background:#f6f7f9"><th style="padding:5px 8px;text-align:left">규칙</th><th style="padding:5px 8px">경보 기준</th><th style="padding:5px 8px">경보 / 전체</th><th style="padding:5px 8px">경보 중 실제 발생</th><th style="padding:5px 8px">재현율</th><th style="padding:5px 8px">전체 발생 비율</th><th style="padding:5px 8px">무작위 대비</th><th style="padding:5px 8px;text-align:left">해석</th></tr></thead><tbody>${body}</tbody></table></div>`;
+}
+// 과거 대조 요약(무작위 대비 배수) — 화면·보고서의 불확실성 문구에 쓴다
+function hzLift(o){ const prec = o.flag ? o.hit / o.flag : null, base = o.n ? o.ev / o.n : 0; return prec !== null && base ? prec / base : null; }
+function hzBtSummary(){
+  try {
+    const A = hzBacktest(), B2 = hzBacktest2(); if(!A || !B2) return null;
+    const x = o => { const l = hzLift(o); return l === null ? "-" : l.toFixed(2) + "배"; };
+    const w = hzBt2.status === "done" && hzBt2.res ? hzBt2.res.R : null;
+    return { first:x(A.A[3]), second:x(B2.R.l2_3), third:w ? x(w.all3) : null, secondLift:hzLift(B2.R.l2_3), thirdLift:w ? hzLift(w.all3) : null };
+  } catch(e){ return null; }
+}
+function hzBtSummaryLine(){
+  const S = hzBtSummary(); if(!S) return "";
+  return `과거 대조(25/26 시즌 한정, 낙관적·비독립): 첫째 규칙 무작위 대비 ${S.first}, 둘째 규칙 ${S.second}` + (S.third ? `, 셋째 규칙 ${S.third}` : ", 셋째 규칙은 미실행") + " — 1.2배 미만은 무작위와 구분되지 않음.";
+}
+function hzBacktestBox2(){
+  const head = `<div style="font-size:13px;font-weight:800;color:#222;margin:16px 0 4px">📊 둘째·셋째 규칙 과거 대조</div>`;
+  const R2 = hzBacktest2();
+  if(!R2) return head + `<div style="font-size:12px;color:#888">대조할 만큼 자료가 쌓이지 않았습니다.</div>`;
+  const r = R2.R, st = r.strat, rate = o => o.n ? o.ev / o.n : null, pc = x => x === null ? "-" : (x * 100).toFixed(1) + "%";
+  const strRow = (name, g) => `<tr><td style="padding:5px 8px;font-weight:700">${name}</td><td style="padding:5px 8px;text-align:center">${g.hi.n}칸 · ${pc(rate(g.hi))} <span style="color:#888">(${g.hi.ev})</span></td><td style="padding:5px 8px;text-align:center">${g.lo.n}칸 · ${pc(rate(g.lo))} <span style="color:#888">(${g.lo.ev})</span></td></tr>`;
+  let wx = "";
+  if(hzBt2.status === "done" && hzBt2.res){
+    const w = hzBt2.res.R;
+    wx = `<div style="font-size:12px;font-weight:800;color:#333;margin:10px 0 4px">셋째 규칙(계절·기상) — ${hzBt2.res.sidos}개 시·도 × ${hzBt2.res.weeks}주(${hkFmt(hzBt2.res.from)} ~ ${hkFmt(hzBt2.res.to)}), 사건: 이후 14일 안에 같은 시·도 농장 발생</div>` + hzBt2Table([["계절·기상 규칙", "수준 3 이상", w.all3], ["결빙·해빙 반복만", "7일 중 2일 이상", w.thaw], ["강수만", "7일 합계 30mm 이상", w.rain]]) + `<div style="font-size:11px;color:#777;margin-top:3px">기준일 모두가 10~3월이라 ‘도래 시즌’ 가산(+2)은 늘 같아 규칙 차이는 결빙·해빙과 강수에서만 생깁니다. 시·도 중심 한 점의 기상이라 넓은 시·도에서는 오차가 큽니다.</div>`;
+  } else {
+    wx = `<div style="margin:10px 0"><button type="button" id="hz-bt-wx" ${hzBt2.status === "loading" ? "disabled" : ""} style="border:1px solid ${HZ_COLOR};background:#fff;color:${HZ_COLOR};border-radius:8px;padding:8px 14px;font-size:12.5px;font-weight:800;cursor:pointer">${hzBt2.status === "loading" ? "⏳ 기상 불러오는 중…" : "🌦️ 셋째 규칙(기상) 대조 실행"}</button> <span style="font-size:11.5px;color:${hzBt2.status === "error" ? "#E65100" : "#777"}">${esc(hzBt2.msg || "17개 시·도의 과거 기상을 조회해 계산합니다(네트워크 필요).")}</span></div>`;
+  }
+  return head + `
+    <div style="font-size:12px;font-weight:800;color:#333;margin:6px 0 4px">둘째 규칙(월동지·하천 거리) — ${R2.units}개 시·군 × ${R2.weeks}주(${hkFmt(R2.from)} ~ ${hkFmt(R2.to)}), 사건: 이후 14일 안에 반경 20km 안 농장 발생</div>
+    ${hzBt2Table([["월동지·하천 거리 규칙", "수준 3 이상", r.l2_3], ["월동지 거리만", "수준 3 이상(30km 이내)", r.site3], ["큰 하천 거리만", "30km 이내", r.river1]])}
+    <div style="font-size:11.8px;color:#555;line-height:1.7;margin:6px 0 3px"><b>최근 발생이 없는 곳에서만 따로 보기</b> — 첫째 규칙(최근 30일 반경 50km 안 발생)이 경보를 내지 않을 상황에서, 둘째 규칙이 추가 정보를 주는지 봅니다. 칸 = 시·군×주, 값 = 이후 14일 안 반경 20km 농장 발생 비율(괄호는 발생 칸 수).</div>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11.8px;min-width:420px"><thead><tr style="background:#f6f7f9"><th style="padding:5px 8px;text-align:left">상황</th><th style="padding:5px 8px">둘째 규칙 수준 3 이상</th><th style="padding:5px 8px">수준 2 이하</th></tr></thead><tbody>${strRow("최근 반경 50km 발생 있음", st.near)}${strRow("최근 반경 50km 발생 없음", st.far)}</tbody></table></div>
+    ${wx}
+    ${hzBox("읽는 법과 한계(중요)", "① <b>같은 한 시즌(주로 25/26)의 자료</b>이며 규칙은 이 자료를 보기 전에 정했지만, 기준값(10·30·60km, 3km, 30mm 등)은 근거 없이 정한 임시값이라 사후에 맞춘 것이 아님을 입증할 수는 없습니다. ② 발생은 <b>가금농장이 있는 곳에서만</b> 일어납니다. 월동지·하천 근처에 농장이 많았다면 ‘거리 효과’가 실제로는 ‘농장 밀도 효과’일 수 있어 이 표만으로 거리 규칙의 효과를 말할 수 없습니다(농장 밀도 자료가 필요). ③ 같은 발생 사건이 여러 주·여러 지역 칸에 중복해서 잡히고 발생이 일부 지역에 몰려 있어 통계적 유의성을 주장할 수 없습니다. ④ ‘무작위 대비 1.2배 미만’이면 규칙이 아무 지역이나 고른 것과 구분되지 않는다는 뜻이며, 그 경우 해당 항목의 규칙·기준값을 점수에 쓰는 것은 근거가 없습니다.", "#E65100")}`;
+}
+
 function hzBacktestBox(){
   const R = hzBacktest();
   const head = `<div style="font-size:13px;font-weight:800;color:#222;margin:14px 0 4px">📊 과거 발생과 대조 (규칙이 얼마나 맞았나)</div>`;
@@ -12651,7 +12780,8 @@ function hzReportText(R){
   L.push("", "D. 위험점수 및 불확실성");
   HZ_SIM_ITEMS.forEach((it, i) => L.push(` - ${it.name}: ${hzState.sim[i]}/4 (가중치 ${it.w}%)`));
   P("종합 시범 위험점수", `${R.s}/100 · ${R.c[0]}(임시 분류)`);
-  L.push("불확실성: 점수·가중치는 연구용 가설이며 검증된 감염확률이 아님. 항목 3~5는 사용자 입력값이며 근거 자료를 별도로 남길 것. 과거 대조(백테스트)는 같은 자료로 한 낙관적 비교이고 통계적 결론이 아님.");
+  L.push("불확실성: 점수·가중치는 연구용 가설이며 검증된 감염확률이 아님. 항목 3~4는 사용자 입력값이며 근거 자료를 별도로 남길 것. 과거 대조(백테스트)는 같은 자료로 한 낙관적 비교이고 통계적 결론이 아님.");
+  { const q = hzBtSummaryLine(); if(q) L.push(q); }
   if(R.missing.length) P("미입력 항목", R.missing.join(", "));
   L.push("", "E. 즉시 개선할 5가지(점수 기여가 큰 항목 순, 실천 가능성은 농장이 판단)");
   R.ranked.forEach((r, k) => L.push(`${k + 1}. ${HZ_ACTIONS[r.i][0]} (현재 ${hzState.sim[r.i]}/4) — ${HZ_ACTIONS[r.i][1]}`));
@@ -12708,7 +12838,7 @@ function hzReportHtml(R){
   const Csec = card("C", "농장 차단방역 진단", Cbody, "오늘 점검표 기준");
   // D
   const Dbody = `<div style="display:flex;flex-direction:column;gap:7px">${HZ_SIM_ITEMS.map((it, i) => { const v = hzState.sim[i]; return `<div><div style="display:flex;justify-content:space-between;gap:8px;font-size:12px"><span>${esc(it.name)}</span><span style="color:#666;white-space:nowrap"><b style="color:${lvColor(v)}">${v}/4</b> · 가중치 ${it.w}%</span></div><div style="background:#e8efed;border-radius:5px;height:9px;overflow:hidden;margin-top:2px"><div style="width:${v / 4 * 100}%;background:${lvColor(v)};height:100%"></div></div></div>`; }).join("")}</div>
-    <div style="margin-top:9px;font-size:11.5px;color:#7a5b00;background:#FFF8E1;border-radius:8px;padding:7px 10px;line-height:1.7"><b>불확실성</b> · 점수와 가중치는 연구용 가설이며 검증된 감염확률이 아닙니다. 항목 3~5는 입력값이므로 근거 자료를 따로 남기세요. 과거 대조는 같은 자료로 한 낙관적 비교로 통계적 결론이 아닙니다.</div>`;
+    <div style="margin-top:9px;font-size:11.5px;color:#7a5b00;background:#FFF8E1;border-radius:8px;padding:7px 10px;line-height:1.7"><b>불확실성</b> · 점수와 가중치는 연구용 가설이며 검증된 감염확률이 아닙니다. 항목 3~5는 입력값이므로 근거 자료를 따로 남기세요. 과거 대조는 같은 자료로 한 낙관적 비교로 통계적 결론이 아닙니다.${(() => { const q = hzBtSummaryLine(); return q ? "<br>" + esc(q) : ""; })()}</div>`;
   const D = card("D", "위험점수 및 불확실성", Dbody, `종합 ${R.s}점 · ${R.c[0]}(임시)`);
   // E
   const Ebody = `<div style="display:flex;flex-direction:column;gap:8px">${R.ranked.map((r, k) => { const v = hzState.sim[r.i]; return `<div style="display:flex;gap:10px;border:1px solid #e6ecea;border-left:5px solid ${lvColor(v)};border-radius:9px;padding:8px 11px;background:#fcfdfd"><div style="flex:none;width:24px;height:24px;border-radius:50%;background:${lvColor(v)};color:#fff;font-weight:900;font-size:12.5px;display:flex;align-items:center;justify-content:center">${k + 1}</div><div><div style="font-size:12.8px;font-weight:800;color:#1b2a28">${HZ_ACTIONS[r.i][0]} <span style="font-size:10.5px;font-weight:700;color:${lvColor(v)}">현재 ${v}/4</span></div><div style="font-size:12px;color:#444;line-height:1.7;margin-top:2px">${HZ_ACTIONS[r.i][1]}</div></div></div>`; }).join("")}</div><div style="font-size:10.8px;color:#888;margin-top:6px">점수 기여가 큰 순서입니다. 농장 사정·비용·실천 가능성은 반영하지 않았으니 농장이 직접 우선순위를 조정하세요.</div>`;
@@ -12779,6 +12909,7 @@ function renderHzSim(){
     </div>
     <div style="font-size:11px;color:#777;line-height:1.7">임시 분류 기준: 0~24 낮음 · 25~49 보통 · 50~74 높음 · 75~100 매우 높음. 이 구간은 제안서의 예시(기본값 50점 = 높음)에 맞춘 것으로 근거가 확인되지 않았습니다.</div>
     ${hzBacktestBox()}
+    ${hzBacktestBox2()}
     <button type="button" id="hz-sim-reset" style="margin-top:8px;border:1px solid #ddd;background:#fff;color:#666;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer">초기값으로 재설정</button>`;
 }
 function renderHzCheck(){
@@ -12837,6 +12968,7 @@ function hzBind(){
   document.querySelectorAll("[data-hz-ts]").forEach(b => b.onclick = () => { hzState.ts = Number(b.dataset.hzTs); render(); });
   document.querySelectorAll("[data-hz-tt]").forEach(b => b.onclick = () => { hzState.tt = Number(b.dataset.hzTt); render(); });
   document.querySelectorAll(".hz-task").forEach(c => c.onchange = () => { if(c.checked) hzState.tasks[c.dataset.id] = true; else delete hzState.tasks[c.dataset.id]; hzSave(); render(); });
+  const hzBtWx = $("hz-bt-wx"); if(hzBtWx) hzBtWx.onclick = hzRunWxBacktest;
   const hzGpsBtn = $("hz-gps"); if(hzGpsBtn) hzGpsBtn.onclick = hzLocate;
   const hzSido = $("hz-sido"); if(hzSido) hzSido.onchange = () => { hzGps.msg = ""; hzState.sido = hzSido.value; hzNearState.sgg = ""; hzSave(); render(); };
   const hzSgg = $("hz-sgg"); if(hzSgg) hzSgg.onchange = () => { hzNearState.sgg = hzSgg.value; render(); };
