@@ -8770,6 +8770,76 @@ function coliTable(head, rows, minW){
 function coliBox(title, body, c){ c = c || COLI_COLOR; return `<div style="border-left:4px solid ${c};background:${c}0f;border-radius:9px;padding:9px 12px;margin:10px 0"><div style="font-size:12.8px;font-weight:900;color:${c};margin-bottom:3px">${title}</div><div style="font-size:12.6px;color:#333;line-height:1.75">${body}</div></div>`; }
 function coliLinks(list){ return list && list.length ? `<div style="font-size:11.5px;color:#777;margin-top:6px">📎 근거: ${list.map(l => `<a href="${esc(l[1])}" target="_blank" rel="noopener" style="color:#1565C0">${esc(l[0])}</a>`).join(" · ")}</div>` : ""; }
 function coliPhaseOf(no){ return COLI_PHASES.find(p => no >= p.from && no <= p.to); }
+// ── 더 깊이·현장 중심 보강: 차시별 추가 그림 + 현장 점검 + 흔한 오해 ──
+function coliSvgFloor(){
+  const pt = (x, y, n, c) => `<circle cx="${x}" cy="${y}" r="13" fill="${c}" stroke="#fff" stroke-width="2"/><text x="${x}" y="${y + 5}" text-anchor="middle" font-size="13" font-weight="900" fill="#fff">${n}</text>`;
+  const leg = [["1", "#E53935", "출입구·전실(사람·장비)"], ["2", "#1E88E5", "급수라인·니플(물 오염)"], ["3", "#FB8C00", "젖은 깔짚·분변이 쌓이는 곳"], ["4", "#8E24AA", "환기구·먼지가 모이는 곳"], ["5", "#43A047", "폐사체·분변 반출 동선"]];
+  return `<svg viewBox="0 0 640 250" width="100%" style="max-width:640px" role="img" aria-label="계사 평면도에서 균이 들어오고 쌓이는 약한 곳 다섯 곳을 번호로 표시한 그림">
+    <rect x="14" y="30" width="400" height="170" rx="10" fill="#FFF8E1" stroke="#FBC02D" stroke-width="3"/>
+    <rect x="14" y="205" width="120" height="30" rx="8" fill="#ECEFF1" stroke="#90A4AE"/><text x="74" y="225" text-anchor="middle" font-size="11.5" fill="#546E7A">전실·소독</text>
+    <line x1="100" y1="75" x2="400" y2="75" stroke="#1E88E5" stroke-width="3" stroke-dasharray="8 5"/><line x1="100" y1="125" x2="400" y2="125" stroke="#1E88E5" stroke-width="3" stroke-dasharray="8 5"/><line x1="100" y1="170" x2="400" y2="170" stroke="#1E88E5" stroke-width="3" stroke-dasharray="8 5"/>
+    <ellipse cx="300" cy="100" rx="38" ry="18" fill="#FB8C0044" stroke="#FB8C00" stroke-width="2"/><rect x="408" y="60" width="10" height="26" fill="#8E24AA"/><rect x="408" y="140" width="10" height="26" fill="#8E24AA"/>
+    ${pt(74, 192, 1, "#E53935")}${pt(250, 75, 2, "#1E88E5")}${pt(300, 100, 3, "#FB8C00")}${pt(428, 73, 4, "#8E24AA")}${pt(428, 153, 5, "#43A047")}
+    <text x="214" y="52" text-anchor="middle" font-size="11.5" fill="#777">▲ 계사 평면도(예시) · 파란 점선 = 급수라인</text>
+    <g transform="translate(450 38)">${leg.map((l, i) => `<circle cx="10" cy="${i * 34 + 8}" r="10" fill="${l[1]}"/><text x="10" y="${i * 34 + 12}" text-anchor="middle" font-size="11" font-weight="900" fill="#fff">${l[0]}</text><text x="26" y="${i * 34 + 12}" font-size="12" fill="#333">${l[2]}</text>`).join("")}</g>
+    <text x="320" y="244" text-anchor="middle" font-size="11.5" fill="#00695C" font-weight="800">우리 농장 평면도에 이 다섯 곳을 직접 표시해 보세요</text></svg>`;
+}
+function coliSvgRecord(){
+  const rows = [["날짜 / 동", "10/15  3동"], ["일령(주령)", "21일"], ["폐사(두 · %)", "12두 · 0.1%"], ["음수량 · 사료량", "어제보다 ↓?"], ["활력(움직임)", "웅크린 닭 ↑?"], ["산란율 · 상품란(산란계)", "—"], ["특이사항·사진", "깔짚 젖음 / 사진 2장"]];
+  return `<svg viewBox="0 0 560 270" width="100%" style="max-width:560px" role="img" aria-label="하루 한 장 기록 카드 예시: 날짜와 동, 일령, 폐사, 음수·사료, 활력, 산란율, 특이사항">
+    <rect x="30" y="10" width="500" height="224" rx="14" fill="#fff" stroke="#00897B" stroke-width="3"/><rect x="30" y="10" width="500" height="34" rx="14" fill="#00897B"/><text x="280" y="33" text-anchor="middle" font-size="15" font-weight="900" fill="#fff">📋 하루 한 장 기록 카드 (예시)</text>
+    ${rows.map((r, i) => `<line x1="30" y1="${44 + (i + 1) * 27}" x2="530" y2="${44 + (i + 1) * 27}" stroke="#E0F2F1"/><text x="46" y="${44 + i * 27 + 19}" font-size="13" font-weight="800" fill="#00695C">${r[0]}</text><text x="300" y="${44 + i * 27 + 19}" font-size="13" fill="#444">${r[1]}</text>`).join("")}
+    <text x="280" y="258" text-anchor="middle" font-size="11.5" fill="#777">같은 시각·같은 방법으로, 동별로 한 장씩 — 퇴근 전 사진으로 남겨 수의사와 공유</text></svg>`;
+}
+function coliSvgAgeCal(){
+  const b = [[["입추~7일", "배꼽·난황낭·활력·보온", "#EF6C00"], ["8~21일", "호흡기 소리·깔짚·급수", "#EF6C00"], ["22일~출하", "호흡기·피부·체중 균일도", "#EF6C00"]], [["육성기", "도입 상태·호흡기·분변", "#1565C0"], ["산란 개시", "스트레스·생식기·산란율", "#1565C0"], ["산란 중·후기", "폐사·난관·복막·상품란", "#1565C0"]]];
+  return `<svg viewBox="0 0 640 230" width="100%" style="max-width:640px" role="img" aria-label="일령·주령별로 먼저 확인할 항목을 정리한 점검 달력">${b.map((row, ri) => `<text x="10" y="${28 + ri * 108}" font-size="14" font-weight="900" fill="${row[0][2]}">${ri ? "🥚 산란계" : "🐥 육계"}</text>` + row.map((c, i) => `<g transform="translate(${10 + i * 208} ${36 + ri * 108})"><rect width="198" height="76" rx="12" fill="${c[2]}18" stroke="${c[2]}" stroke-width="2.5"/><text x="99" y="28" text-anchor="middle" font-size="14" font-weight="900" fill="#222">${c[0]}</text><text x="99" y="52" text-anchor="middle" font-size="11.5" fill="#444">먼저 볼 곳: ${c[1]}</text></g>`).join("")).join("")}
+    <text x="320" y="224" text-anchor="middle" font-size="11.5" fill="#777">※ 점검 우선순위를 정하는 지도입니다(진단 기준이 아니에요). 수의사와 우리 농장에 맞게 고치세요.</text></svg>`;
+}
+function coliSvgNecropsy(){
+  const st = [["1", "겉모습", "깃털·눈·배꼽·다리", "#546E7A"], ["2", "피부 아래", "고름·덩어리 확인", "#6D4C41"], ["3", "복강 열기", "복막·난관·간", "#1E88E5"], ["4", "가슴 쪽", "기낭·심장 주변", "#E53935"], ["5", "기록·사진", "번호표와 함께", "#00897B"]];
+  return `<svg viewBox="0 0 660 150" width="100%" style="max-width:660px" role="img" aria-label="부검을 볼 때 순서: 겉모습, 피부 아래, 복강, 가슴, 기록과 사진">${st.map((x, i) => `<g transform="translate(${6 + i * 131} 12)"><rect width="122" height="104" rx="14" fill="${x[3]}1c" stroke="${x[3]}" stroke-width="2.5"/><circle cx="61" cy="24" r="14" fill="${x[3]}"/><text x="61" y="29" text-anchor="middle" font-size="14" font-weight="900" fill="#fff">${x[0]}</text><text x="61" y="62" text-anchor="middle" font-size="14" font-weight="900" fill="#222">${x[1]}</text><text x="61" y="84" text-anchor="middle" font-size="11" fill="#555">${x[2]}</text></g>${i < 4 ? `<text x="${6 + i * 131 + 127}" y="66" text-anchor="middle" font-size="15" fill="#78909C">›</text>` : ""}`).join("")}
+    <text x="330" y="142" text-anchor="middle" font-size="11.5" fill="#777">부검은 수의사 지도에 따라, 장갑·마스크를 쓰고 정해진 장소에서 하세요</text></svg>`;
+}
+function coliSvgSample(){
+  const it = [["💬", "투약 전 채취 가능?", "수의사와 먼저 상의"], ["🐔", "대표 개체 고르기", "증상 있는 닭·막 죽은 닭"], ["🧫", "병변 부위 보존", "부위 확인 가능하게"], ["🧊", "시원하게 빨리", "검사기관 안내에 따라"], ["📝", "메모 함께", "동·일령·투약·시각"]];
+  return `<svg viewBox="0 0 660 170" width="100%" style="max-width:660px" role="img" aria-label="검체를 의뢰할 때 확인할 다섯 가지">${it.map((x, i) => `<g transform="translate(${6 + i * 131} 10)"><rect width="122" height="120" rx="14" fill="#1565C018" stroke="#1565C0" stroke-width="2.5"/><text x="61" y="40" text-anchor="middle" font-size="28">${x[0]}</text><text x="61" y="72" text-anchor="middle" font-size="12" font-weight="900" fill="#222">${x[1]}</text><text x="61" y="100" text-anchor="middle" font-size="10.5" fill="#555">${x[2]}</text></g>`).join("")}
+    <text x="330" y="156" text-anchor="middle" font-size="11.5" fill="#777">구체적인 채취 방법·보관은 담당 수의사·검사기관 안내를 따르세요</text></svg>`;
+}
+function coliSvgWater(){
+  const n = [["🛢️", "투약기·탱크", "눈금·작동", "#00897B"], ["🔧", "급수라인", "새는 곳·막힘", "#1E88E5"], ["💧", "니플 끝", "물이 실제로 나오나", "#EF6C00"], ["🐔", "닭", "먹는 양 기록", "#C62828"]];
+  return `<svg viewBox="0 0 660 160" width="100%" style="max-width:660px" role="img" aria-label="투약기에서 급수라인, 니플, 닭까지 약이 실제로 전달되는지 확인할 네 곳">${n.map((a, i) => `<g transform="translate(${8 + i * 164} 10)"><rect width="140" height="100" rx="14" fill="${a[3]}1c" stroke="${a[3]}" stroke-width="2.5"/><text x="70" y="38" text-anchor="middle" font-size="26">${a[0]}</text><text x="70" y="64" text-anchor="middle" font-size="13" font-weight="900" fill="#222">${a[1]}</text><text x="70" y="84" text-anchor="middle" font-size="11" fill="#555">${a[2]}</text></g>${i < 3 ? `<text x="${8 + i * 164 + 152}" y="66" text-anchor="middle" font-size="22" fill="#90A4AE">›</text>` : ""}`).join("")}
+    <text x="330" y="140" text-anchor="middle" font-size="12" font-weight="800" fill="#C62828">“물에 약을 넣었다”와 “닭이 먹었다”는 다릅니다 — 네 곳을 차례로 확인!</text></svg>`;
+}
+function coliSvgClean(){
+  const st = [["🧹", "제거", "분변·깔짚·먼지"], ["🚿", "세척", "급수라인·환기구까지"], ["☀️", "건조", "충분히 말리기"], ["🧴", "소독", "제품 사용법대로"], ["🌬️", "다시 건조", "잔류·냄새 확인"], ["📸", "점검·기록", "사진·서명"]];
+  return `<svg viewBox="0 0 660 150" width="100%" style="max-width:660px" role="img" aria-label="계군 사이 청소 순서: 제거, 세척, 건조, 소독, 다시 건조, 점검과 기록">${st.map((x, i) => `<g transform="translate(${6 + i * 108} 10)"><rect width="100" height="108" rx="14" fill="#2E7D3218" stroke="#2E7D32" stroke-width="2.5"/><circle cx="50" cy="20" r="12" fill="#2E7D32"/><text x="50" y="25" text-anchor="middle" font-size="13" font-weight="900" fill="#fff">${i + 1}</text><text x="50" y="58" text-anchor="middle" font-size="24">${x[0]}</text><text x="50" y="80" text-anchor="middle" font-size="13" font-weight="900" fill="#222">${x[1]}</text><text x="50" y="97" text-anchor="middle" font-size="10.5" fill="#555">${x[2]}</text></g>${i < 5 ? `<text x="${6 + i * 108 + 104}" y="66" text-anchor="middle" font-size="15" fill="#78909C">›</text>` : ""}`).join("")}
+    <text x="330" y="142" text-anchor="middle" font-size="11.5" fill="#777">순서를 건너뛰지 말고, 끝난 단계마다 기록해 두세요</text></svg>`;
+}
+const COLI_DEEP = {
+  1: { field:["아침·저녁 한 번씩 ‘이상한 닭’을 눈으로 훑는 시간(5분)을 정한다 — 웅크림, 눈 감음, 무리에서 떨어짐", "죽은 닭이 나오면 동·위치·일령을 같은 수첩에 적는다", "‘대장균이 나왔다’는 말을 들으면 먼저 “어디서 채취했나? 부검 병변은?”을 되묻는다"], myth:[["분변에서 대장균이 나왔으니 대장균증이다", "분변에는 원래 대장균이 있어요. 증상·병변·병변 부위 검사를 함께 봅니다."], ["균만 없애면 해결된다", "들어온 길과 닭이 약해진 이유를 함께 줄여야 재발이 줄어요."]] },
+  2: { fig2:"floor", field:["계사 약도를 A4에 그리고 급수라인·환기구·출입구·분변/폐사체 동선을 표시한다", "빨간 펜으로 ‘젖은 깔짚, 먼지가 쌓이는 곳, 물이 고이는 곳’을 표시한다", "발생 동과 정상 동을 비교해 어느 곳에서 먼저 시작됐는지 적는다"], myth:[["입추 직후 병아리 문제는 농장 탓이 아니다", "부화·운송 단계도 조사하되 농장 관리 항목도 함께 점검합니다. 배꼽 이상만으로 대장균을 확정하지 않아요."], ["소독만 잘하면 균은 없다", "씻고 말린 뒤에도 잔존 오염이 남는 동이 있을 수 있어 동별로 확인합니다."]] },
+  3: { fig2:"record", field:["같은 시각에 같은 방법으로(예: 오전 9시, 동별) 기록한다", "폐사는 두수와 함께 사육수 대비 비율, 위치를 적는다", "기록은 퇴근 전 한 장 사진으로 남겨 수의사와 공유한다"], myth:[["폐사가 늘 때부터 기록하면 된다", "평소 기록이 있어야 ‘언제부터 달라졌는지’를 알 수 있어요."], ["전체 평균만 보면 된다", "동·구역별로 보면 한 곳에서 먼저 시작한 것이 보여요."]] },
+  4: { fig2:"agecal", field:["일령·주령별 ‘먼저 볼 곳’ 점검표를 만들어 계사 입구에 붙인다", "새 계군이 들어오면 첫 주에 배꼽·활력·음수 접근을 따로 기록한다", "환경이 바뀐 날(환기·온도·이동)을 달력에 표시해 두고 그 뒤 1~2주를 눈여겨본다"], myth:[["대장균증은 한 가지 모습으로 온다", "일령·주령에 따라 먼저 나타나는 곳이 달라요."], ["산란율이 안 떨어지면 안전하다", "산란계에서도 산란율이 크게 안 떨어진 채 급성 폐사가 생길 수 있어요."]] },
+  5: { fig2:"necropsy", field:["부검은 수의사 지도에 따라 장갑·마스크를 쓰고 정해진 장소에서 한다", "사진은 같은 순서로 찍고 번호표(또는 자)를 함께 담는다", "‘눈에 보이는 것’과 ‘그래서 짐작하는 것’을 두 칸으로 나누어 적는다"], myth:[["이 병변이면 대장균증이 확실하다", "병변 하나만으로 원인균을 확정하지 않아요. 병변 부위 세균검사와 함께 봅니다."], ["복강에 노른자가 있으면 모두 세균성이다", "그렇지 않아요. 다른 원인과 구분해야 합니다."]] },
+  6: { fig2:"sample", field:["투약 전에 채취할 수 있는지 먼저 수의사와 상의한다(긴급 치료를 늦추지 않는다)", "대표적인 개체를 고르고 병변 부위를 알아볼 수 있게 보존한다", "채취 시각·동·일령·투약 이력 메모를 함께 보낸다"], myth:[["검사는 많이 할수록 좋다", "다음 결정을 바꾸는 검사가 가치 있어요. 무엇을 알고 싶은지 먼저 정하세요."], ["결과서에 ‘대장균’이 있으면 끝", "감수성·병변 부위·농장 기록과 함께 읽어야 합니다."]] },
+  7: { fig2:"water", field:["투약기 눈금, 급수라인 끝, 니플에서 실제로 물이 나오는지 확인한다", "투약 전후의 물 소비량을 기록한다", "수의사 지시(용량·기간)와 휴약기간을 한 장에 적어 눈에 띄는 곳에 둔다"], myth:[["처방대로 넣었으니 다 먹었다", "투약기·급수·섭취량을 확인해야 실제 전달 여부를 알 수 있어요."], ["이전에 쓰던 약을 그대로 쓰면 된다", "감수성과 허가사항, 수의사 판단이 먼저예요."]] },
+  8: { field:["약을 바꾸기 전에 ‘진단·섭취·내성·동반 질병·감염원·병변’ 여섯 가지를 순서대로 점검한다", "악화되면 바로 수의사에게 알리고 추가 검사를 상의한다", "점검 결과를 날짜와 함께 한 장에 적어 둔다"], myth:[["효과가 없으면 약을 계속 바꾼다", "임의로 바꾸기 전에 여섯 가지를 먼저 점검하세요."], ["내성이 원인의 전부다", "섭취 부족, 오진, 동반 질병, 지속 노출도 흔한 이유예요."]] },
+  9: { fig2:"clean", field:["개선안마다 ‘담당자·기한·확인 방법’을 적는다", "다음 입식 전에 청소 순서(제거→세척→건조→소독→건조→점검)를 사진으로 기록한다", "끝난 개선은 다음 계군의 성적과 비교해 효과를 확인한다"], myth:[["개선 목록은 길수록 좋다", "3가지를 끝까지 해내는 편이 효과적이에요."], ["소독약을 더 세게 쓰면 된다", "제품 사용법을 지키고, 먼저 씻고 말리는 순서가 중요해요."]] },
+  10: { field:["접종 기록(날짜·방법·로트·담당자)을 한곳에 모은다", "접종 후 폐사·병변·성적을 같은 양식으로 기록해 ‘효과’를 확인한다", "종계·부화장 접종 정보를 구할 수 있으면 함께 보관한다"], myth:[["백신을 맞혔으니 안 걸린다", "균주가 다양해서 접종과 예방은 별개의 질문이에요."], ["자가백신은 농장에서 직접 만드는 것이다", "그런 뜻이 아니에요. 제도·허가는 별도로 확인합니다."]] },
+  11: { field:["제품 설명을 들을 때 다섯 질문(어디서·누구에게·무엇이·얼마나 확실·우리 농장에서)을 메모한다", "‘시험관 결과’와 ‘농장 시험’을 구분해 달라고 요청한다", "도입 전에 수의사와 상의하고 국내 허가·공급 여부를 확인한다"], myth:[["논문에서 좋다고 했으니 바로 쓴다", "어느 단계에서 확인했는지에 따라 무게가 달라요."], ["균 수가 줄었으니 치료 효과다", "전신 대장균증 치료 효과와 같은 말이 아니에요."]] },
+  12: { field:["대응계획서를 사무실과 계사 입구에 게시한다", "수의사·검사기관 연락처와 검체 의뢰 방법을 한 장에 적는다", "6개월마다 계획서를 다시 읽고 고칠 곳을 표시한다"], myth:[["계획서는 서류일 뿐이다", "발생 때 ‘누가 무엇을 한다’가 적혀 있으면 첫 대응이 빨라져요."], ["모든 농장에 같은 경보 기준이 있다", "우리 농장의 평소 수준과 일령·주령 변화를 바탕으로 정합니다."]] },
+};
+function coliFig2For(k){
+  return k === "floor" ? coliFig(coliSvgFloor(), "우리 농장 평면도로 다시 그려 보세요 — 약한 곳이 보입니다.")
+    : k === "record" ? coliFig(coliSvgRecord(), "양식은 단순할수록 매일 쓰게 됩니다.")
+    : k === "agecal" ? coliFig(coliSvgAgeCal(), "일령·주령별 점검 달력 — 계사 입구에 붙여 두세요.")
+    : k === "necropsy" ? coliFig(coliSvgNecropsy(), "정해진 순서로 보면 놓치는 것이 줄어요.")
+    : k === "sample" ? coliFig(coliSvgSample(), "검체 의뢰 전 확인할 다섯 가지.")
+    : k === "water" ? coliFig(coliSvgWater(), "약이 닭 입까지 가는 길을 따라 확인합니다.")
+    : k === "clean" ? coliFig(coliSvgClean(), "계군 사이 청소는 순서가 핵심이에요.") : "";
+}
+
 function renderColiHome(){
   const done = COLI_LESSONS.filter(l => coliState.done[l.no]).length, pct = Math.round(done / 12 * 100);
   const goals = ["대장균이 있는 것과 대장균증이 생긴 것을 구분한다", "육계·산란계에서 먼저 볼 증상과 기록을 고른다", "수의사에게 필요한 정보를 전하고 검사 결과를 이해한다", "치료와 환경 개선을 함께 하고 효과를 확인한다", "새 백신·대체제 연구가 우리 농장에 맞는지 판단한다"];
@@ -8800,7 +8870,10 @@ function renderColiLesson(no){
     <div style="font-size:13px;font-weight:900;color:${ph.color};margin:12px 0 2px">① 쉬운 설명 (15분)</div>
     <div style="font-size:13px;line-height:1.8;color:#333">${l.easy}</div>
     ${l.fig ? `<div style="font-size:13px;font-weight:900;color:${ph.color};margin:10px 0 0">② 그림과 기록 읽기 (15분)</div>${coliFigFor(l.fig)}` : ""}
+    ${COLI_DEEP[no] && COLI_DEEP[no].fig2 ? coliFig2For(COLI_DEEP[no].fig2) : ""}
     ${l.table ? coliTable(["현장 표현", "실제로 배우는 내용", "농장에서 연결할 질문"], l.table, 520) : ""}
+    ${COLI_DEEP[no] ? `<div style="font-size:13px;font-weight:900;color:#2E7D32;margin:12px 0 4px">🌾 현장에서는 이렇게 (오늘 바로 해볼 것)</div><div style="display:flex;flex-direction:column;gap:6px">${COLI_DEEP[no].field.map(f => `<div style="display:flex;gap:9px;align-items:flex-start;background:#F1F8F4;border:1px solid #C8E6C9;border-radius:10px;padding:8px 11px"><span style="font-size:17px;line-height:1.2">☐</span><span style="font-size:13px;line-height:1.7;color:#2b3a2b">${f}</span></div>`).join("")}</div>
+    <div style="font-size:13px;font-weight:900;color:#C62828;margin:12px 0 4px">🙅 이런 오해, 많이 해요</div><div style="display:flex;flex-direction:column;gap:6px">${COLI_DEEP[no].myth.map(m => `<div style="border:1px solid #F5C6C6;border-radius:10px;overflow:hidden"><div style="background:#FFEBEE;padding:6px 11px;font-size:12.8px;font-weight:800;color:#B71C1C">❌ ${m[0]}</div><div style="padding:6px 11px;font-size:12.8px;line-height:1.7;color:#333">⭕ ${m[1]}</div></div>`).join("")}</div>` : ""}
     <div style="font-size:13px;font-weight:900;color:${ph.color};margin:10px 0 4px">③ 육계와 산란계는 이렇게 달라요 (사례 토론 20분)</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px"><div style="border:2px solid #EF6C00;background:#FFF3E0;border-radius:11px;padding:9px 12px"><div style="font-size:13px;font-weight:900;color:#E65100">🐥 육계</div><div style="font-size:12.6px;line-height:1.7;color:#333;margin-top:2px">${l.broiler}</div></div><div style="border:2px solid #1565C0;background:#E3F2FD;border-radius:11px;padding:9px 12px"><div style="font-size:13px;font-weight:900;color:#1565C0">🥚 산란계</div><div style="font-size:12.6px;line-height:1.7;color:#333;margin-top:2px">${l.layer}</div></div></div>
     ${l.note ? coliBox("📌 꼭 기억하기", l.note, "#E65100") : ""}
