@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-13 13:49 KST",
+  "updated": "2026-10-14 11:57 KST",
   "stale": {},
   "egg": {
     "label": "계란 산지가격",
@@ -378,15 +378,15 @@
   "pig": {
     "label": "농가수취 평균",
     "unit": "원/kg",
-    "latest": 6632,
+    "latest": 6649,
     "rows": [
+      {
+        "date": "2026-10-13",
+        "value": 6649
+      },
       {
         "date": "2026-10-12",
         "value": 6632
-      },
-      {
-        "date": "2026-10-09",
-        "value": 6224
       }
     ]
   },
@@ -407,16 +407,22 @@
       "farm_receipt_600kg": {
         "label": "농가수취가격(600kg)",
         "unit": "천원/마리",
-        "value": 6025,
-        "date": "2026-10-12"
+        "value": 8549,
+        "date": "2026-10-13"
       }
     },
     "rows": [
       {
-        "date": "2026-10-13",
+        "date": "2026-10-14",
         "female_calf": null,
         "male_calf": null,
         "farm_receipt_600kg": null
+      },
+      {
+        "date": "2026-10-13",
+        "female_calf": null,
+        "male_calf": null,
+        "farm_receipt_600kg": 8549
       },
       {
         "date": "2026-10-12",
