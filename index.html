@@ -258,6 +258,8 @@
 .kkoko-char.talking { animation: kkoko-talk-bob 0.5s ease-in-out infinite; }
 .kkoko-char.bounce { animation: kkoko-bounce 0.6s ease-in-out 2; }
 .kkoko-mic-btn.listening { animation: kkoko-ring-pulse 1.2s ease-out infinite; }
+.kkoko-3d-slot { position:relative; }
+.kkoko-3d-slot model-viewer { width:100%; height:100%; background:transparent; --poster-color:transparent; outline:none; }
 </style>
 </head>
 <body>
@@ -5999,6 +6001,73 @@ function kkokoVoiceSupported(){
 // reacting이면(터치 직후) 통통 튀며(kkoko-bounce) 반응한다. size는 가로
 // 픽셀(세로는 원본 비율 168:210에 맞춰 1.25배) — 화면 레이아웃에 맞게
 // 작게(옆자리) 또는 크게 쓸 수 있도록 인자로 받는다.
+// ─── 최꼬박사 3D ────────────────────────────────────────────────────────────
+// 유료회원(최꼬박사)은 이미지 대신 3D 모델(assets/kkoko/kkoko_doctor.glb)을 드래그로 돌려볼 수 있다.
+// 이 화면은 render()가 innerHTML을 통째로 다시 쓰므로, <model-viewer>를 그때그때 새로 만들면
+// 대화가 한 줄 늘 때마다 모델을 다시 불러와 깜빡인다. 그래서 요소를 한 번만 만들어 두고
+// 다시 그릴 때마다 자리(#kkoko-3d-slot)로 옮겨 붙인다(kkokoMount3d).
+// 라이브러리·모델이 안 불러와지거나 WebGL이 없으면 기존 이미지로 그대로 보여준다.
+const KKOKO_MODEL_VIEWER_SRC = "https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js";
+let kkokoViewerEl = null, kkokoViewerFailed = false, kkokoViewerLoading = null, kkokoPointerStart = null;
+
+function kkokoWebglOk(){
+  try{ const c = document.createElement("canvas"); return !!(c.getContext("webgl2") || c.getContext("webgl")); }
+  catch(e){ return false; }
+}
+function kkokoUse3d(){
+  return isPremiumApproved() && !kkokoViewerFailed && kkokoWebglOk();
+}
+function kkokoLoadViewerLib(){
+  if(window.customElements && customElements.get("model-viewer")) return Promise.resolve();
+  if(kkokoViewerLoading) return kkokoViewerLoading;
+  kkokoViewerLoading = new Promise((resolve, reject)=>{
+    const sc = document.createElement("script");
+    sc.type = "module"; sc.src = KKOKO_MODEL_VIEWER_SRC;
+    sc.onload = ()=> customElements.whenDefined("model-viewer").then(resolve, reject);
+    sc.onerror = ()=> reject(new Error("model-viewer 로드 실패"));
+    document.head.appendChild(sc);
+  });
+  return kkokoViewerLoading;
+}
+function kkokoPlace3d(){
+  const slot = document.getElementById("kkoko-3d-slot");
+  if(slot && kkokoViewerEl){ slot.innerHTML = ""; slot.appendChild(kkokoViewerEl); }
+}
+function kkokoMount3d(){
+  const slot = document.getElementById("kkoko-3d-slot");
+  if(!slot || kkokoViewerFailed) return;
+  if(kkokoViewerEl){ kkokoPlace3d(); return; }
+  kkokoLoadViewerLib().then(()=>{
+    if(!kkokoViewerEl){
+      const el = document.createElement("model-viewer");
+      el.setAttribute("src", kkokoImgUrl("kkoko_doctor.glb"));
+      el.setAttribute("poster", kkokoImgUrl("kkoko_doctor.png"));
+      el.setAttribute("alt", "최꼬박사 3D 모델");
+      el.setAttribute("camera-controls", "");
+      el.setAttribute("disable-zoom", "");
+      el.setAttribute("disable-pan", "");
+      el.setAttribute("interaction-prompt", "none");
+      el.setAttribute("touch-action", "pan-y");
+      el.setAttribute("environment-image", "neutral");
+      el.setAttribute("shadow-intensity", "0.8");
+      el.setAttribute("exposure", "1.1");
+      el.setAttribute("camera-orbit", "0deg 80deg auto");
+      el.setAttribute("field-of-view", "28deg");
+      el.setAttribute("reveal", "auto");
+      if(!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches)){
+        el.setAttribute("auto-rotate", "");
+        el.setAttribute("auto-rotate-delay", "4000");
+        el.setAttribute("rotation-per-second", "14deg");
+      }
+      el.addEventListener("error", ()=>{ kkokoViewerFailed = true; kkokoViewerEl = null; render(); });
+      kkokoViewerEl = el;
+    }
+    kkokoPlace3d();
+  }).catch(()=>{ kkokoViewerFailed = true; });
+}
+// 드래그로 모델을 돌린 뒤 손을 뗄 때 나는 click이 "만지기"로 오인되지 않게 거른다.
+document.addEventListener("pointerdown", e=>{ kkokoPointerStart = { x:e.clientX, y:e.clientY }; }, true);
+
 function kkokoCharacterBlock(talking, size){
   const w = size || 168, h = Math.round(w * 1.25);
   const cs = kkokoCharState;
@@ -6006,18 +6075,23 @@ function kkokoCharacterBlock(talking, size){
   // 유료회원(최꼬박사)은 학사모를 쓰고 지시봉을 든 선생님 모습, 무료(최꼬꼬)는 평소 모습.
   const imgFile = isPremiumApproved() ? "kkoko_doctor.png" : "kkoko_idle.png";
   const animClass = cs.reacting ? "bounce" : (talking ? "talking" : "");
+  const use3d = kkokoUse3d();
   // 반응 말풍선이 뜰 자리를 이미지 위에 따로 비워 둔다(margin-top) — 그
   // 자리에 말풍선을 넣으면 이미지를 가리지 않는다.
   return `
   <div style="position:relative;display:inline-block">
     ${cs.reacting && cs.reactionText ? `<div style="position:absolute;top:0;left:50%;transform:translateX(-50%);white-space:normal;max-width:240px;width:max-content;background:#fff;border:1px solid #F9D871;border-radius:14px;padding:7px 14px;font-size:12.5px;font-weight:700;color:#7A5C00;box-shadow:0 2px 8px rgba(0,0,0,.15);text-align:center;z-index:3">${esc(cs.reactionText)}</div>` : ""}
     <button type="button" id="kkoko-char-btn" aria-label="${esc(name)} 만지기" title="눌러서 ${esc(name)}를 만져보세요" style="border:none;background:none;padding:0;cursor:pointer;display:block;width:${w}px;height:${h}px;margin-top:56px">
-      <img src="${esc(kkokoImgUrl(imgFile))}" alt="${esc(name)}" class="kkoko-char${animClass?" "+animClass:""}" style="width:${w}px;height:${h}px;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,.18))" />
+      ${use3d
+        ? `<div id="kkoko-3d-slot" class="kkoko-3d-slot kkoko-char${animClass?" "+animClass:""}" style="width:${w}px;height:${h}px"><img src="${esc(kkokoImgUrl(imgFile))}" alt="${esc(name)}" style="width:${w}px;height:${h}px;object-fit:contain" /></div>`
+        : `<img src="${esc(kkokoImgUrl(imgFile))}" alt="${esc(name)}" class="kkoko-char${animClass?" "+animClass:""}" style="width:${w}px;height:${h}px;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,.18))" />`}
     </button>
   </div>`;
 }
 
-function kkokoTouchCharacter(){
+function kkokoTouchCharacter(e){
+  // 마우스·터치 click(detail>0)이 드래그 끝에서 났다면 모델을 돌린 것이지 만진 게 아니다.
+  if(e && e.detail > 0 && kkokoPointerStart && Math.hypot(e.clientX - kkokoPointerStart.x, e.clientY - kkokoPointerStart.y) > 8) return;
   if(kkokoReactTimer) clearTimeout(kkokoReactTimer);
   kkokoCharState.reacting = true;
   const reactions = kkokoReactions();
@@ -35538,7 +35612,8 @@ function attachEvents(){
 
   // 🐔 최꼬꼬랑 대화
   const kkokoCharBtn = document.getElementById("kkoko-char-btn");
-  if(kkokoCharBtn) kkokoCharBtn.onclick = ()=> kkokoTouchCharacter();
+  if(kkokoCharBtn) kkokoCharBtn.onclick = (e)=> kkokoTouchCharacter(e);
+  kkokoMount3d();
   const kkokoInput = document.getElementById("kkoko-input");
   if(kkokoInput){
     kkokoInput.oninput = (e)=>{ kkokoChatState.input = e.target.value; };
