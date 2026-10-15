@@ -770,7 +770,7 @@ const PREMIUM_ITEMS = [
   { key:"drug", icon:"💊", title:"약품조회 및 휴약기간 검색", desc:"동물용의약품을 제품명·업체명·성분명·축종·증상으로 검색하고, 축종별 휴약기간을 QIA 공식 데이터로 바로 확인합니다.", color:"#00838F", category:"약품·투약·소독" },
   { key:"drugusage", icon:"📇", title:"약품별 사용요령 카드", desc:"약품마다 용법·휴약기간·효능을 한 장 카드로 정리했습니다. 공식 설명서(QIA) 기준이며 약품 정보 링크도 함께 볼 수 있습니다.", color:"#00838F", category:"약품·투약·소독" },
   { key:"treatment", icon:"💉", title:"상황별 처방(투약) 패키지", desc:"육계·산란계 농장 상황을 고르면 그에 맞는 투약(처방) 프로그램을 보여드립니다. 상황은 계속 추가됩니다.", color:"#C62828", category:"약품·투약·소독" },
-  { key:"seasonal", icon:"🗓️", title:"계절별 투약(관리) 패키지", desc:"봄·여름·가을·겨울 시기별로 챙겨야 할 투약(백신)과 사양관리 주의사항을 안내합니다.", color:"#795548", category:"약품·투약·소독" },
+  { key:"seasonal", icon:"🗓️", title:"계절별 사양관리,질병,투약(관리) 패키지", desc:"봄·여름·가을·겨울 시기별로 챙겨야 할 투약(백신)과 사양관리 주의사항을 안내합니다.", color:"#795548", category:"약품·투약·소독" },
   { key:"finder", icon:"🎯", title:"내 농장에 맞는 약품 찾기", desc:"축종과 문제 증상을 단계별로 선택하면 진단·원인 분석과 추천 처방을 보여드립니다.", color:"#283593", category:"약품·투약·소독" },
   { key:"disinfect", icon:"🧴", title:"질병별 소독제 선택과 소독요령", desc:"질병을 고르면 그에 맞는 소독제 선택 기준과 소독요령을 단계별로 안내합니다.", color:"#00695C", category:"약품·투약·소독" },
   { key:"newproducts", icon:"🆕", title:"신제품 소식", desc:"항생제·영양제·백신·기타로 나눠 새로 나온 제품 정보를 카드 학습 형태로 보여드립니다.", color:"#C2185B", category:"약품·투약·소독" },
@@ -896,7 +896,7 @@ const PREMIUM_MENU_NEW_SEED_KEYS = ["ibteam", "hpaizero", "coliclass", "drugusag
 // 분류 이름이 바뀐 경우(관리자가 예전에 저장한 메뉴에 옛 이름이 남아 있어도 새 이름으로 묶는다)
 const PREMIUM_MENU_CATEGORY_RENAME = { "백신관리": "백신·약품관리", "AI공동연구팀": "최꼬 아카데미", "인공지능 공동연구팀": "최꼬 아카데미" };
 // 관리자가 예전에 저장한 메뉴에 옛 제목이 남아 있어도 새 아카데미 제목으로 보이게 한다.
-const PREMIUM_MENU_FORCE_TITLE = { ibteam:"IB 닭기침 잡는 교실 — 전염성기관지염(IB) 차단 8단계 코스", hpaizero:"AI 막는 농장 지킴이 교실 — HPAI ZERO FARM" };
+const PREMIUM_MENU_FORCE_TITLE = { seasonal:"계절별 사양관리,질병,투약(관리) 패키지", ibteam:"IB 닭기침 잡는 교실 — 전염성기관지염(IB) 차단 8단계 코스", hpaizero:"AI 막는 농장 지킴이 교실 — HPAI ZERO FARM" };
 const PREMIUM_MENU_FORCE_CATEGORY = { grainprice:"시세 예측·분석", priceforecast:"시세 예측·분석" };
 function currentPremiumMenuItems(){
   const items = premiumMenuState.data && premiumMenuState.data.items;
@@ -3239,7 +3239,7 @@ const SMS_SUBSCRIBABLE_MENUS = [
   { group:"🦠 질병·방역", key:"hpai_news", label:"🚨 AI 방역 소식" },
   { group:"🦠 질병·방역", key:"monthly_pick", label:"📌 이달의 질병" },
   { group:"🦠 질병·방역", key:"research", label:"📚 최신 기술탐구" },
-  { group:"🩺 사양·정보", key:"seasonal", label:"🗓️ 계절별 투약(관리) 패키지" },
+  { group:"🩺 사양·정보", key:"seasonal", label:"🗓️ 계절별 사양관리,질병,투약(관리) 패키지" },
   { group:"🩺 사양·정보", key:"treatment", label:"💉 상황별 처방(투약) 패키지" },
   { group:"🩺 사양·정보", key:"briefing", label:"📋 뉴스정보" },
 ];
@@ -10785,6 +10785,117 @@ function renderAutumnBroiler(){
     <div style="background:#FFF8E1;border-radius:11px;padding:10px 13px;margin-top:10px;font-size:13px;line-height:1.8;color:#6b5400"><b>🌟 핵심 한 줄</b> — 가을철 육계 사양관리의 핵심은 <b>온도 유지와 최소환기의 균형, 깔짚 수분관리, 정확한 질병 진단, 그리고 적절한 투약</b>입니다. 이 네 가지를 철저히 하면 호흡기·장 질병으로 인한 생산성 손실을 줄이는 데 도움이 됩니다.</div>
     <div style="font-size:10.8px;color:#888;line-height:1.75;margin-top:8px">📎 근거 자료: <a href="https://www.msdvetmanual.com" target="_blank" rel="noopener" style="color:#1565C0">MSD Veterinary Manual</a> · <a href="https://extension.uga.edu" target="_blank" rel="noopener" style="color:#1565C0">UGA Cooperative Extension</a> · <a href="https://www.law.go.kr" target="_blank" rel="noopener" style="color:#1565C0">국가법령정보센터</a> · <a href="https://www.yna.co.kr" target="_blank" rel="noopener" style="color:#1565C0">연합뉴스</a><br>※ 참고용 현장관리 자료이며 진단·처방을 대신하지 않습니다. 암모니아·습도 등 수치는 목표 범위의 예시이고, 계통·계사 조건에 따라 수의사·육종회사 지침을 따르세요.</div>`;
 }
+// ── 🍂 가을철 산란계 주요 질병 예방 및 사양관리 요령 (계절별 투약(관리) 패키지 · 가을 · 산란계) ─────────────────────────
+// 정적 안내 자료(관리자 편집 대상 아님). 소유자가 정리한 자료를 농장에서 읽기 쉬운 표현으로 옮겼다. 용량·농도·기간은 쓰지 않는다.
+const AUTUMN_LY_COLOR = "#1565C0";
+const AUTUMN_LY_DISEASES = [
+  { n:"1", t:"전염성 기관지염 (IB)", ic:"🫁", c:"#1565C0", tag:"산란율·난각 ↓", intro:"산란계에서 가장 조심할 호흡기 질병 중 하나예요. 산란율이 떨어지고 알 껍데기가 나빠집니다.",
+    sym:["기침, 재채기, 숨소리 잡음", "산란율 갑자기 뚝 떨어짐", "기형란, 연란, 주름란, 색이 옅은 알", "흰자(난백)가 묽어짐", "신장형은 물을 많이 마시고 묽은 물똥"],
+    prev:["낮밤 계사 온도 차이 줄이기", "찬 공기가 닭에 바로 닿지 않게 입기구 조절", "암모니아·먼지가 쌓이지 않게 최소환기 유지", "백신 접종 이력과 항체 수준 확인", "농장 주변 유행 IB 바이러스형을 고려해 백신 프로그램 검토"],
+    tx:["바이러스성이라 직접 치료약이 없음", "물 먹는 양이 줄면 급수 상태 확인, 필요하면 전해질 공급", "대장균 등 2차 세균감염이 확인되면 수의사 처방으로 산란계용 허가 항균제 사용", "신장형 의심 시 수분 공급을 유지하고 사료 조성을 수의사와 검토"],
+    key:"산란율이 갑자기 떨어지면서 기형란·연란이 늘면 IB를 먼저 의심하되, AI·ND·EDS, 영양 문제와 꼭 구별하세요." },
+  { n:"2", t:"마이코플라즈마 감염증 (MG·MS)", ic:"😮‍💨", c:"#6A1B9A", tag:"환기 나쁠 때 악화", intro:"환기가 나쁘고 찬 스트레스가 겹치면 숨어 있던 감염이 심해질 수 있어요.",
+    sym:["계속되는 기침·재채기", "콧물, 눈물, 결막염", "숨소리 잡음, 활력 저하", "산란율 감소", "MS는 관절 부종, 다리 절음, 알 끝(꼭대기) 이상이 나타날 수 있음"],
+    prev:["들여온 중추의 MG·MS 검사 이력 확인", "나이가 다른 계군 사이 작업자·장비 이동 제한", "적정 환기로 호흡기 점막 보호", "정기적인 PCR·항체검사로 감염 상태 파악", "감염 이력 농장은 백신 프로그램 점검"],
+    tx:["확진 후 치료가 필요한지 평가", "타이로신·티아물린 계열 등 효과 있는 항균제를 검토할 수 있으나, 산란 중인 닭에 쓸 수 있는 국내 허가제품인지 먼저 확인", "투약량은 제품 농도와 음수 섭취량을 기준으로 수의사가 결정", "투약 후에도 균을 지닌 닭이 남을 수 있어 재발 방지 관리 필요"],
+    key:"환절기마다 같은 계사에서 호흡기 증상이 되풀이되면 MG·MS 검사를 해 보세요." },
+  { n:"3", t:"전염성 코라이자 (IC, 전염성 비염)", ic:"🤧", c:"#00897B", tag:"얼굴 붓고 콧물", intro:"얼굴이 붓고 콧물이 나면서 산란율이 떨어지는 대표적인 세균성 질병이에요.",
+    sym:["눈 주변·얼굴이 부음", "콧물, 결막염, 눈물", "숨소리 잡음", "사료·물 먹는 양 감소", "산란율 급감"],
+    prev:["계사마다 작업도구 따로 쓰기", "나이 다른 닭을 함께 키우면 계군 사이 전파 차단", "새 중추 입식 전 농장 감염 이력 확인", "백신 접종 이력과 농장 내 유행 혈청형 확인", "급수라인·계사 위생관리 강화"],
+    tx:["PCR 또는 세균검사로 원인 확인", "항균제 감수성검사를 바탕으로 치료제 선택", "산란 중 쓸 수 있는 허가 항균제로 수의사 처방에 따라 일찍 치료", "좋아져도 균을 지닌 닭 때문에 재발할 수 있어 관리"],
+    key:"얼굴이 붓고 콧물 흘리는 닭이 여러 마리 보이면 빨리 진단해서 계사 안 확산을 막으세요." },
+  { n:"4", t:"전염성 후두기관염 (ILT)", ic:"😮", c:"#C62828", tag:"입 벌리고 숨쉼", intro:"호흡기 증상이 심하고 생산성이 급격히 떨어질 수 있어요.",
+    sym:["심한 호흡곤란, 입 벌리고 숨쉼", "목을 길게 뻗고 숨쉼", "심하면 피 섞인 가래(점액)", "산란율 감소", "중증이면 폐사 증가"],
+    prev:["계사 사이 작업자·장비 이동 통제", "백신 접종 농장은 접종 상태 확인", "발생 이력 농장은 재발 위험 관리", "찬바람·암모니아가 호흡기를 자극하지 않게 하기"],
+    tx:["ILT 바이러스를 없애는 일반적인 항생제 치료법은 없음", "숨쉬기 힘들어하는 닭은 스트레스를 줄이고 환경 개선", "세균성 2차 감염이 확인될 때만 적절한 항균제 사용", "PCR로 확진하고 농장 백신 프로그램 검토"],
+    key:"피 섞인 가래나 심한 호흡곤란이 보이면 즉시 수의사에게 연락하고 AI·ND 등과 구별하세요." },
+  { n:"5", t:"대장균증 (Colibacillosis)", ic:"🧫", c:"#EF6C00", tag:"난관염·복막염 폐사", intro:"호흡기 질병과 같이 오기 쉽고, 폐사와 생산성 저하의 원인이 돼요.",
+    sym:["사료 먹는 양 감소", "활력 저하, 폐사 증가", "복막염·난관염", "배가 부풀고 산란율 감소", "부검 시 심낭염, 간주위염, 기낭염"],
+    prev:["IB·MG 같은 앞선 호흡기 질병 예방", "계사 안 먼지·암모니아 관리", "급수라인 정기 세척·소독", "죽은 닭 빨리 치우기", "난관염 이력이 있는 늙은 계군은 집중 관찰"],
+    tx:["부검과 세균배양검사", "가능하면 항생제 감수성검사로 듣는 약 확인", "산란 중 쓸 수 있는 허가 항균제만 선택", "습관적으로 약만 반복하지 말고 환경 개선·감염원 관리를 함께"],
+    key:"난관염·복막염 폐사가 되풀이되면 약만 바꾸지 말고 앞선 감염과 계사 환경을 함께 점검하세요." },
+  { n:"6", t:"산란저하증후군 (EDS '76)", ic:"🥚", c:"#F9A825", tag:"연란·무각란 갑자기", intro:"알 껍데기 품질이 나빠지고 상품란이 줄어드는 바이러스성 질병이에요.",
+    sym:["연란, 무각란, 얇은 껍데기 알 증가", "껍데기 색이 옅어짐", "상품란 생산량 감소", "호흡기 증상이 거의 없을 수 있음", "산란율은 정상인데 불량란만 늘기도 함"],
+    prev:["육성기 백신 접종 이력 확인", "야생조류 접촉 차단", "연란·무각란 비율을 매일 기록", "IB·ND 감염, 영양 때문에 생기는 껍데기 불량과 구별"],
+    tx:["원인 바이러스를 없애는 치료제는 없음", "칼슘·인·비타민 D₃, 사료 섭취량 점검", "영양 부족이 함께 있을 때만 알맞게 보충", "백신은 예방용 — 이미 걸린 닭 치료용으로 쓰지 않음"],
+    key:"닭은 건강해 보이는데 연란·무각란이 갑자기 늘면 EDS 검사를 고려하세요." },
+  { n:"7", t:"고병원성 조류인플루엔자 (HPAI)", ic:"🚨", c:"#B71C1C", tag:"법정 가축전염병 · 신고", hpai:true, intro:"가을부터 겨울까지 산란계 농장이 가장 경계해야 할 법정 가축전염병이에요. 보도에 따르면 2026년 10월 1일~2027년 2월 28일 특별방역대책기간이 운영 중이며 대형 산란계 농장·밀집 사육단지를 집중 관리하고 있어요(연합뉴스 보도 기준 — 실제 조치는 정부 공고 확인).",
+    sym:["원인 모를 급격한 폐사 증가", "산란율 급감", "사료·물 섭취 감소", "벼슬·육수 부어오름·색 변함", "호흡곤란, 침울, 신경증상"],
+    prev:["야생조류와 사육 닭의 접촉 차단", "외부 차량 출입 최소화", "알·사료·분뇨 차량 동선 분리", "계사 전용 장화·작업복 사용", "방조망·출입문·환기구 등 침입 경로 점검", "출입자·차량 소독 기록 관리", "매일 계사별 폐사율·산란율·사료·음수 섭취량 비교"],
+    tx:["의심 증상이 있으면 즉시 관할 가축방역기관에 신고", "계란·닭·분뇨·장비 반출 중지", "농장 출입 통제", "임의로 약을 먹이며 지켜보지 말 것", "방역당국의 검사와 이동통제 지시 따르기"], txTitle:"의심 시 조치", txIc:"🚨", txc:"#B71C1C",
+    key:"급격한 폐사나 산란율 저하가 보이면 AI 가능성을 먼저 배제해야 합니다." },
+  { n:"8", t:"뉴캣슬병 (ND)", ic:"🌀", c:"#455A64", tag:"신경증상 + 산란율 ↓", intro:"산란율 저하와 호흡기·신경증상을 일으키는 중요한 바이러스성 질병이에요.",
+    sym:["기침, 호흡곤란", "녹색 설사", "산란율 저하, 껍데기 불량", "목 비틀림, 마비 같은 신경증상", "심하면 폐사가 급격히 증가"],
+    prev:["기존 백신 프로그램과 항체 수준 점검", "음수백신은 모든 닭이 고르게 마시게 관리", "계사별 작업자·장비 이동 제한", "백신 보관온도·유효기간 확인"],
+    tx:["바이러스를 치료하는 항생제는 없음", "강독형 ND가 의심되면 즉시 신고·검사", "추가 백신은 농장 면역상태와 방역당국 지침에 따라 결정"],
+    key:"산란율 저하와 신경증상이 함께 보이면 AI와 ND를 우선 구별하세요." },
+  { n:"9", t:"살모넬라 감염증", ic:"🍳", c:"#2E7D32", tag:"계란 식품안전", intro:"닭 건강뿐 아니라 계란의 식품안전과 직접 관련된 질병이에요.",
+    sym:["성계는 특별한 증상이 없을 수 있음", "일부는 설사, 산란율 감소", "사료 먹는 양 감소", "심하면 쇠약, 폐사 증가"],
+    prev:["쥐·야생조류·곤충 등 옮기는 것 차단", "사료빈·급수시설 위생관리", "집란·보관시설 청결 유지", "계분 관리와 작업자 위생관리", "살모넬라 검사와 농장 백신 프로그램 점검"],
+    tx:["항생제를 일상적인 살모넬라 제거용으로 쓰는 것은 권장되지 않음", "항생제만으로 균 보유 상태를 없애기 어려움", "균 분리·혈청형 확인으로 관리계획 세우기", "확인된 병원체와 방역규정에 따라 수의사·방역당국과 조치"],
+    key:"살모넬라는 약보다 농장 위생, 쥐 방제, 계란 오염 방지가 먼저입니다." },
+  { n:"10", t:"닭진드기 · 외부기생충", ic:"🕷️", c:"#6D4C41", tag:"밤에 활동 · 빈혈", intro:"계절과 사육환경에 따라 계속 문제가 될 수 있고, 산란율 저하와 빈혈을 일으켜요.",
+    sym:["닭이 불안해하고 깃털을 쪼는 행동 증가", "산란율·사료효율 감소", "빈혈, 벼슬 색이 옅어짐", "심하면 폐사 증가"],
+    prev:["케이지 틈새, 집란벨트 주변, 계사 구조물 확인", "밤에 진드기가 움직이는지 확인", "계사 사이 장비를 옮길 때 진드기 전파 차단", "빈 계사 기간에 철저한 청소와 틈새 방제", "주기적인 트랩 조사로 정도 확인"],
+    tx:["산란계에 쓸 수 있게 허가된 진드기 방제약만 선택", "음수용·환경처리용 등 제품별 사용방법 지키기", "환경처리 제품을 닭 몸에 직접 뿌리지 않기", "계란 잔류기준과 휴약기간 확인"], txTitle:"방제요령",
+    key:"진드기는 한 번 퍼지면 없애기 어려우니 일찍 발견하고 꾸준히 방제하세요." },
+];
+const AUTUMN_LY_HUSB = [
+  { n:"①", t:"온도 및 환기관리", ic:"🌬️", c:"#1E88E5", it:["성계는 대체로 18~24℃를 참고 범위로 하되 품종·주령·계사 조건에 따라 조절", "새벽에 계사 온도가 급하게 내려가지 않게", "환기팬 가동시간과 입기구 열림 정도 점검", "보온한다고 계사를 너무 닫아 두지 않기", "암모니아는 가능하면 10ppm 이하를 목표로 관리", "먼지·결로가 생기는지 확인"] },
+  { n:"②", t:"산란율 및 난각 품질관리", ic:"🥚", c:"#F9A825", it:["매일 산란율과 난중 기록", "연란·무각란·깨진 알 비율 확인", "산란 주령에 맞는 칼슘·인·비타민 D₃ 공급", "조개껍질처럼 굵은 칼슘원이 필요한지 검토", "여름에 영양을 높인 사료를 썼다면 가을 섭취량 변화에 맞춰 영양 수준 다시 검토"] },
+  { n:"③", t:"음수관리", ic:"💧", c:"#00897B", it:["깨끗한 물을 끊김 없이 공급", "급수라인 새는 곳·막힌 곳 점검", "물 먹는 양이 갑자기 늘거나 줄었는지 매일 확인", "급수라인 위생과 수질 정기 점검", "음수백신·음수 투약 때 소독제가 남아 있는지 확인"] },
+  { n:"④", t:"점등관리", ic:"💡", c:"#F57C00", it:["사육 단계에 맞는 점등 프로그램 유지", "산란 중인 계군의 점등시간을 갑자기 줄이지 않기", "일반적인 산란계 점등시간은 약 14~16시간 범위에서 관리", "조명 밝기·점등시간을 계사별로 고르게", "정전에 대비해 복구설비 점검"] },
+  { n:"⑤", t:"영양 및 스트레스관리", ic:"🥗", c:"#8E24AA", it:["여름 이후 체중과 사료 섭취량이 회복됐는지 확인", "난중이 너무 커지면 사료 조성 점검", "늙은 계군은 난각 품질과 체중 관리 강화", "비타민·전해질은 부족하거나 스트레스일 때 필요에 따라 보충"] },
+];
+const AUTUMN_LY_SUM = [["IB", "환경개선, 전해질 등 보조관리", "세균성 2차 감염이 없으면 항생제 불필요", "#1565C0"], ["MG·MS", "감염 확인 후 효과 있는 항균제 검토", "산란 중 사용 허가 여부 확인", "#6A1B9A"], ["코라이자", "감수성검사 후 항균제 치료", "치료 후 재발·균 보유 상태 관리", "#00897B"], ["ILT", "환경개선 및 2차 감염 관리", "바이러스 자체에는 항생제 효과 없음", "#C62828"], ["대장균증", "세균검사 후 알맞은 항균제", "항생제 내성, 난관염 원인 확인", "#EF6C00"], ["EDS", "영양·환경관리, 예방접종 점검", "직접적인 치료약 없음", "#F9A825"], ["AI·ND 의심", "즉시 신고 및 진단", "임의 투약 금지", "#B71C1C"], ["살모넬라", "위생관리 및 감염원 차단", "일상적인 항생제 제거요법 비권장", "#2E7D32"], ["닭진드기", "허가된 진드기 방제제 사용", "계란 잔류·휴약기간 확인", "#6D4C41"]];
+const AUTUMN_LY_RULES = ["산란계, 특히 산란 중인 계군에 사용이 허가된 제품인지 확인합니다.", "진단 결과와 감수성검사에 따라 수의사가 약제를 선택합니다.", "음수 투약 시 실제 음수량과 제품 농도를 확인하여 투약량을 계산합니다.", "산란 중 사용이 금지된 성분은 임의로 사용하지 않습니다.", "제품에 계란 휴약기간이 있으면 그 기간에 생산된 알은 출하하지 않습니다.", "투약일, 약품명, 용량, 투약 계사, 휴약기간을 기록합니다.", "계란 휴약기간이 분명하지 않은 약은 임의로 쓰지 말고 수의사와 확인합니다."];
+const AUTUMN_LY_SYM = [["🤧", "기침, 재채기 증가", "IB, MG·MS, 환기 불량"], ["🤕", "얼굴 부종, 콧물", "코라이자, MG, 기타 호흡기 감염"], ["📉", "갑작스러운 산란율 감소", "AI·ND 우선 배제, IB, 코라이자, 급수 이상"], ["🥚", "연란·무각란 증가", "EDS, IB, 칼슘·비타민 D₃ 부족"], ["🔝", "난각 꼭대기 이상", "MS 감염, 난각형성 이상"], ["🚨", "급격한 폐사 증가", "AI·ND 등 법정전염병 우선 감별"], ["🔁", "복막염과 난관염 반복", "대장균증 등 세균성 감염"], ["🕷️", "계군 불안, 빈혈, 산란 저하", "닭진드기 등 외부기생충"]];
+const AUTUMN_LY_DAILY = [["📊", "계사별 산란율과 난중 확인"], ["🥚", "연란·무각란·깨진 알 비율 확인"], ["🐔", "폐사 수 및 호흡기 증상 점검"], ["💧", "사료·음수 섭취량 비교"], ["🌡️", "계사 최저·최고온도와 환기 상태 확인"], ["🌬️", "암모니아·결로·먼지 확인"], ["🚪", "농장 출입 차량·작업자 소독 확인"], ["🏠", "계란 집란시설과 보관시설 점검"]];
+function autumnSvgLayerSign(){
+  const st = [["🥚", "산란율·난각 변화", "#F9A825", "가장 먼저"], ["💧", "음수·사료 섭취 변화", "#1E88E5", "그다음"], ["🤧", "호흡기 증상", "#6A1B9A", "그다음"], ["⚰️", "폐사 증가", "#C62828", "마지막"]];
+  return `<svg viewBox="0 0 660 160" width="100%" style="max-width:900px" role="img" aria-label="산란계는 폐사가 늘기 전에 산란율과 난각 품질이 먼저 변하는 경우가 많다는 그림">${st.map((x, i) => `<g transform="translate(${6 + i * 164} 12)"><rect width="140" height="100" rx="14" fill="${x[2]}1c" stroke="${x[2]}" stroke-width="2.5"/><text x="70" y="22" text-anchor="middle" font-size="11" font-weight="800" fill="${x[2]}">${x[3]}</text><text x="70" y="54" text-anchor="middle" font-size="28">${x[0]}</text><text x="70" y="84" text-anchor="middle" font-size="12" font-weight="900" fill="#222">${x[1]}</text></g>${i < 3 ? `<text x="${6 + i * 164 + 152}" y="66" text-anchor="middle" font-size="22" fill="#90A4AE">›</text>` : ""}`).join("")}
+    <text x="330" y="146" text-anchor="middle" font-size="12" font-weight="800" fill="#1565C0">그래서 계사별 산란율·불량란 비율을 매일 비교하는 것이 가장 실용적인 조기 발견법!</text></svg>`;
+}
+function autumnSvgEggRule(){
+  const st = [["🔎", "허가 확인", "산란 중 사용 가능한 제품?"], ["🩺", "수의사 선택", "진단·감수성검사 기준"], ["💧", "투약량 계산", "실제 음수량·농도"], ["📝", "기록", "투약일·약품·계사"], ["🥚", "휴약기간", "그 기간 알은 출하 금지"]];
+  return `<svg viewBox="0 0 660 160" width="100%" style="max-width:900px" role="img" aria-label="산란계 투약 시 확인 순서: 허가 확인, 수의사 선택, 투약량 계산, 기록, 계란 휴약기간">${st.map((x, i) => `<g transform="translate(${6 + i * 131} 10)"><rect width="122" height="108" rx="14" fill="#C628281a" stroke="#C62828" stroke-width="2.5"/><circle cx="61" cy="20" r="12" fill="#C62828"/><text x="61" y="25" text-anchor="middle" font-size="12.5" font-weight="900" fill="#fff">${i + 1}</text><text x="61" y="56" text-anchor="middle" font-size="24">${x[0]}</text><text x="61" y="80" text-anchor="middle" font-size="13" font-weight="900" fill="#222">${x[1]}</text><text x="61" y="97" text-anchor="middle" font-size="10" fill="#555">${x[2]}</text></g>`).join("")}
+    <text x="330" y="146" text-anchor="middle" font-size="12" font-weight="800" fill="#C62828">약을 끊었다는 이유만으로 계란 출하가 가능한 것은 아니에요</text></svg>`;
+}
+function renderAutumnLayer(){
+  const C = AUTUMN_LY_COLOR;
+  const col = (t, items, c, ic) => `<div style="border:1px solid ${c}33;border-top:4px solid ${c};border-radius:10px;padding:8px 11px;background:#fff"><div style="font-size:12.5px;font-weight:900;color:${c};margin-bottom:3px">${ic} ${t}</div><ul style="margin:0 0 0 16px;padding:0;font-size:12.5px;line-height:1.75;color:#333">${items.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>`;
+  return `
+    <div style="background:linear-gradient(135deg,${C},#0D47A1);color:#fff;border-radius:14px;padding:13px 16px;margin-bottom:10px">
+      <div style="font-size:11px;opacity:.9">산란계 사육농장 현장관리 자료</div>
+      <div style="font-size:18px;font-weight:900;margin:3px 0">🍂🥚 가을철 산란계 주요 질병 예방 및 사양관리 요령</div>
+      <div style="font-size:12.5px;opacity:.96;line-height:1.7">가을 산란계 관리의 핵심 네 가지: <b>① 호흡기 질병 예방 ② 산란율 유지 ③ 껍데기(난각) 품질관리 ④ 고병원성 AI 차단방역</b>. 일교차가 커지고 환기량이 줄면 호흡기 질병이 생기기 쉽고, 여름 고온 스트레스에서 회복하는 동안 사료 섭취와 알 크기(난중)가 늘어 <b>껍데기 불량·깨진 알</b>이 늘 수도 있어요.</div>
+    </div>
+    ${coliFig(autumnSvgLayerSign(), "산란계는 폐사가 늘기 전에 산란율과 껍데기가 먼저 변하는 경우가 많아요.")}
+    <div style="font-size:15px;font-weight:900;color:${C};margin:6px 0 4px">🦠 가을철 산란계 주요 질병 10가지</div>
+    <div style="display:flex;flex-direction:column;gap:9px">${AUTUMN_LY_DISEASES.map((d, i) => `<details ${i === 0 || d.hpai ? "open" : ""} style="border:2px solid ${d.c};border-radius:13px;background:${d.hpai ? "#FFF5F5" : "#fff"};padding:9px 13px"><summary style="cursor:pointer;list-style:none"><span style="display:inline-block;min-width:24px;height:24px;border-radius:12px;background:${d.c};color:#fff;text-align:center;line-height:24px;font-size:12.5px;font-weight:900;margin-right:6px;padding:0 4px">${d.n}</span><span style="font-size:15px;font-weight:900;color:#1b2a28">${d.ic} ${d.t}</span> <span style="font-size:10.5px;font-weight:800;color:${d.c};background:${d.c}14;border-radius:10px;padding:1px 8px;margin-left:4px">${d.tag}</span><span style="float:right;font-size:11.5px;color:${d.c};font-weight:700">눌러서 보기 ▼</span></summary>
+      <div style="font-size:12.6px;line-height:1.75;color:#444;margin-top:6px">${esc(d.intro)}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px;margin-top:8px">${col("주요 증상", d.sym, "#C62828", "👀")}${col("예방 및 사양관리", d.prev, "#2E7D32", "🛡️")}${col(d.txTitle || "투약 및 치료요령", d.tx, d.txc || "#1565C0", d.txIc || "💊")}</div>
+      <div style="margin-top:8px;background:${d.c}12;border-left:4px solid ${d.c};border-radius:8px;padding:7px 11px;font-size:12.8px;line-height:1.7;color:#222"><b>📌 농장 관리 핵심</b> — ${esc(d.key)}</div></details>`).join("")}</div>
+    <div style="font-size:15px;font-weight:900;color:${C};margin:18px 0 6px">🏠 가을철 산란계 사양관리 핵심 요령</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:9px">${AUTUMN_LY_HUSB.map(h => `<div style="border:2px solid ${h.c};background:${h.c}0d;border-radius:13px;padding:10px 13px"><div style="font-size:14.5px;font-weight:900;color:${h.c}">${h.ic} ${h.n} ${h.t}</div><ul style="margin:5px 0 0 17px;padding:0;font-size:12.8px;line-height:1.8;color:#2b2b2b">${h.it.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>`).join("")}</div>
+    <div style="font-size:11px;color:#888;margin-top:4px">※ 온도·점등시간 등은 참고 범위이며 품종·주령·계사 조건에 따라 육종회사·수의사 지침으로 조절하세요.</div>
+    <div style="font-size:15px;font-weight:900;color:${C};margin:18px 0 6px">💊 질병별 투약 및 대응 한눈에</div>
+    <div style="display:flex;flex-direction:column;gap:6px">${AUTUMN_LY_SUM.map(r => `<div style="display:flex;gap:9px;align-items:stretch;border:1px solid ${r[3]}55;border-radius:11px;overflow:hidden;background:#fff"><div style="flex:0 0 78px;background:${r[3]};color:#fff;font-size:13px;font-weight:900;display:flex;align-items:center;justify-content:center;text-align:center;padding:6px 4px">${r[0]}</div><div style="flex:1;padding:7px 4px"><div style="font-size:10.5px;color:#888">치료·투약 방향</div><div style="font-size:12.8px;font-weight:800;color:#222">${r[1]}</div></div><div style="flex:1;padding:7px 8px 7px 4px"><div style="font-size:10.5px;color:#888">주의사항</div><div style="font-size:12.8px;font-weight:800;color:${r[3]}">${r[2]}</div></div></div>`).join("")}</div>
+    <div style="font-size:15px;font-weight:900;color:#C62828;margin:18px 0 4px">⚖️ 산란계에서 항생제 투약 시 반드시 지킬 사항</div>
+    <div style="border:2px solid #C62828;background:#FFF5F5;border-radius:13px;padding:10px 13px"><div style="font-size:13px;line-height:1.75;color:#333;margin-bottom:6px">산란계는 육계와 달리 <b>매일 계란을 생산</b>하므로 약의 <b>계란 잔류 문제를 가장 먼저</b> 생각해야 해요.</div>
+      <ol style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:5px">${AUTUMN_LY_RULES.map((r, i) => `<li style="display:flex;gap:9px;align-items:flex-start;background:#fff;border-radius:9px;padding:7px 10px"><span style="flex:none;width:22px;height:22px;border-radius:50%;background:#C62828;color:#fff;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center">${i + 1}</span><span style="font-size:12.8px;line-height:1.65;color:#333">${r}</span></li>`).join("")}</ol>
+      <div style="margin-top:7px;font-size:13px;font-weight:900;color:#B71C1C">🥚 단순히 약을 끊었다는 이유만으로 계란 출하가 가능한 것은 아닙니다.</div></div>
+    ${coliFig(autumnSvgEggRule(), "투약할 때마다 이 다섯 가지를 순서대로 확인하세요.")}
+    <div style="font-size:15px;font-weight:900;color:${C};margin:18px 0 6px">🔎 농장에서 증상별로 확인할 사항</div>
+    <div style="display:flex;flex-direction:column;gap:6px">${AUTUMN_LY_SYM.map(r => `<div style="display:flex;gap:10px;align-items:center;border:1px solid ${r[0] === "🚨" ? "#C62828" : "#e3e3e3"};background:${r[0] === "🚨" ? "#FFEBEE" : "#fff"};border-radius:11px;padding:8px 11px"><span style="font-size:24px">${r[0]}</span><div style="flex:1;min-width:0"><div style="font-size:11px;color:#888">발견되는 이상</div><div style="font-size:13.5px;font-weight:900;color:#222">${r[1]}</div></div><span style="color:#90A4AE;font-size:18px">→</span><div style="flex:1.2;min-width:0"><div style="font-size:11px;color:#888">우선 확인할 병·원인</div><div style="font-size:13px;font-weight:800;color:${r[0] === "🚨" ? "#C62828" : "#00695C"}">${r[2]}</div></div></div>`).join("")}</div>
+    <div style="font-size:15px;font-weight:900;color:${C};margin:18px 0 6px">✅ 산란계 농장 매일 점검사항 (8가지)</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:7px">${AUTUMN_LY_DAILY.map((x, i) => `<div style="display:flex;gap:9px;align-items:center;border:2px solid ${C};background:#E3F2FD;border-radius:12px;padding:8px 11px"><span style="font-size:24px">${x[0]}</span><div><span style="font-size:10.5px;font-weight:900;color:#fff;background:${C};border-radius:8px;padding:0 7px">${i + 1}</span><div style="font-size:12.8px;line-height:1.55;color:#222;margin-top:2px">${x[1]}</div></div></div>`).join("")}</div>
+    <div style="font-size:15px;font-weight:900;color:${C};margin:18px 0 6px">⭐ 가을철 산란계 농장의 중점 관리사항 4가지</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px">${[["🫁", "첫째, 호흡기 관리", "IB·MG·MS·코라이자 등 주요 호흡기 질병을 예방하고 최소환기를 유지합니다.", "#1565C0"], ["🥚", "둘째, 산란율 관리", "산란율·난중·난각 품질을 매일 기록해 이상 징후를 일찍 발견합니다.", "#F9A825"], ["🛡️", "셋째, 방역관리", "야생조류와 외부 차량의 접근을 차단하고 고병원성 AI 발생에 대비합니다.", "#B71C1C"], ["💊", "넷째, 투약관리", "정확한 진단에 따라 약제를 고르고 계란 잔류·휴약기간을 철저히 지킵니다.", "#6A1B9A"]].map(x => `<div style="border:2px solid ${x[3]};background:${x[3]}12;border-radius:13px;padding:10px 13px"><div style="font-size:24px">${x[0]}</div><div style="font-size:14px;font-weight:900;color:${x[3]}">${x[1]}</div><div style="font-size:12.6px;line-height:1.7;color:#333;margin-top:2px">${x[2]}</div></div>`).join("")}</div>
+    <div style="background:#FFF8E1;border-radius:11px;padding:10px 13px;margin-top:10px;font-size:13px;line-height:1.8;color:#6b5400"><b>🌟 핵심 한 줄</b> — 산란계는 <b>폐사가 늘기 전에 산란율과 난각 품질이 먼저 변하는 경우</b>가 많습니다. 일교차 관리와 환기를 철저히 하면서 <b>계사별 산란율과 불량란 비율을 매일 비교</b>하는 것이 가을철 질병을 조기에 발견하는 가장 실용적인 방법입니다.</div>
+    <div style="font-size:10.8px;color:#888;line-height:1.75;margin-top:8px">📎 근거 자료: <a href="https://www.rda.go.kr" target="_blank" rel="noopener" style="color:#1565C0">농촌진흥청</a> · <a href="https://www.msdvetmanual.com" target="_blank" rel="noopener" style="color:#1565C0">MSD Veterinary Manual</a> · <a href="https://www.merckvetmanual.com" target="_blank" rel="noopener" style="color:#1565C0">Merck Veterinary Manual</a> · <a href="https://www.nias.go.kr" target="_blank" rel="noopener" style="color:#1565C0">국립축산과학원</a> · <a href="https://www.foodsafetykorea.go.kr" target="_blank" rel="noopener" style="color:#1565C0">식품안전나라</a> · <a href="https://www.yna.co.kr" target="_blank" rel="noopener" style="color:#1565C0">연합뉴스</a><br>※ 참고용 현장관리 자료이며 진단·처방을 대신하지 않습니다. 약의 종류·용량·기간·계란 휴약기간은 담당 수의사와 제품 허가사항을 따르세요.</div>`;
+}
+
 function renderAutumnLayerPlaceholder(){
   return `<div style="border:2px dashed #1565C0;background:#E3F2FD;border-radius:14px;padding:22px 16px;text-align:center"><div style="font-size:34px">🥚</div><div style="font-size:16px;font-weight:900;color:#1565C0;margin-top:4px">가을철 산란계 요령은 준비 중이에요</div><div style="font-size:12.8px;line-height:1.75;color:#444;margin-top:4px">산란계는 육계와 관리 포인트가 달라서(산란율·난질·장기 사육) 따로 정리해 추가할 예정입니다.<br>아래에 관리자가 올린 공통 항목이 있으면 함께 보입니다.</div></div>`;
 }
@@ -10793,7 +10904,7 @@ function renderSeasonalPanel(){
   const head = `
   <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
     <div>
-      <div class="display" style="font-size:16px;margin-bottom:3px">🗓️ 계절별 투약(관리) 패키지</div>
+      <div class="display" style="font-size:16px;margin-bottom:3px">🗓️ 계절별 사양관리,질병,투약(관리) 패키지</div>
       <div style="font-size:11px;color:#aaa">계절을 고르면 그 시기에 챙겨야 할 투약(백신)과 사양관리 주의사항을 보여드립니다</div>
     </div>
     <button id="seasonal-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button>
@@ -10859,7 +10970,7 @@ function renderSeasonalPanel(){
   </div>`;
 
   const animalTabs = !isFall ? "" : `<div style="display:flex;gap:8px;margin:-4px 0 14px">${[["broiler", "🐥 육계", "#EF6C00"], ["layer", "🥚 산란계", "#1565C0"]].map(a => `<button type="button" class="seasonal-animal-btn" data-animal="${a[0]}" style="flex:1;border:2px solid ${a[2]};background:${seasonalTabState.animal === a[0] ? a[2] : "#fff"};color:${seasonalTabState.animal === a[0] ? "#fff" : a[2]};border-radius:11px;padding:9px;font-size:14px;font-weight:900;cursor:pointer">${a[1]}</button>`).join("")}</div>`;
-  const fallGuide = !isFall ? "" : (seasonalTabState.animal === "broiler" ? renderAutumnBroiler() : renderAutumnLayerPlaceholder());
+  const fallGuide = !isFall ? "" : (seasonalTabState.animal === "broiler" ? renderAutumnBroiler() : renderAutumnLayer());
   return head + `
   <div style="display:flex;gap:8px;margin-bottom:14px">${seasonBtns}</div>
   ${animalTabs}${fallGuide}${isFall && cards ? `<div style="font-size:13px;font-weight:900;color:#795548;margin:18px 0 4px">📌 관리자가 올린 가을 공통 항목</div>` : ""}
