@@ -10206,7 +10206,7 @@ function renderResearchPanel(){
 
 // ── 상황별 처방(투약) 패키지 화면 ────────────────────────────────────────────
 let treatmentTabState = { species: "broiler", openKey: null, adminOpen: false, formKey: undefined };
-let seasonalTabState = { season: "spring", openKey: null, adminOpen: false, formKey: undefined };
+let seasonalTabState = { season: "spring", animal: "broiler", openKey: null, adminOpen: false, formKey: undefined };
 let disinfectTabState = { openKey: null, adminOpen: false, formKey: undefined, generalOpenKey: null };
 let moltGuideState = { openKey: null };
 let moltSmsState = { mode:"short", phone:"" };   // short=단계별 첫 문장 요약, full=전체 문구
@@ -10712,6 +10712,83 @@ function renderTreatmentPanel(){
   </div>`;
 }
 
+// ── 🍂 가을철 육계 주요 질병 예방 및 사양관리 요령 (계절별 투약(관리) 패키지 · 가을 · 육계) ─────────────────────────
+// 정적 안내 자료(관리자 편집 대상 아님). 2026년 10월 기준 육계 사육농장 현장관리 자료 — 소유자가 정리한 내용을 읽기 쉽게 옮겼다.
+// 약제 계열·성분 이름은 소유자 자료에 있는 그대로이며, 용량·농도·기간은 쓰지 않는다(제품 허가사항·수의사 처방이 기준).
+const AUTUMN_BR_COLOR = "#E65100";
+const AUTUMN_BR_DISEASES = [
+  { k:"ib", n:"1", t:"전염성 기관지염 (IB)", ic:"🫁", c:"#1565C0", tag:"바이러스성 호흡기",
+    sym:["기침, 재채기, 호흡 시 잡음", "음수량과 사료 섭취량 감소", "증체 불량 및 사료요구율 악화", "일부 신장형 감염에서는 음수량 증가, 수양성 분변, 폐사 증가"],
+    prev:["일교차에 따른 계사 내부 온도 변동 최소화", "찬 공기가 닭에게 직접 떨어지지 않도록 입기구 조절", "최소환기를 유지하여 암모니아와 먼지 배출", "지역 유행 바이러스형에 맞는 IB 백신 프로그램 점검"],
+    tx:["바이러스 자체를 치료하는 항생제는 없음", "전해질 공급과 적절한 온도 유지 등 보조관리 실시", "대장균 등 세균성 2차 감염이 확인된 경우 수의사 판단에 따라 항생제 사용", "신장형 의심 시 음수량, 사료 조성, 탈수 여부 점검"] },
+  { k:"ec", n:"2", t:"대장균증 (Colibacillosis)", ic:"🧫", c:"#C62828", tag:"세균성 · 2차 감염",
+    sym:["호흡기 증상 악화 및 폐사 증가", "사료 섭취량 감소, 활력 저하", "기낭염, 심낭염, 간주위염 발생", "도계장 기낭염 판정 및 폐기율 증가"],
+    prev:["IB 등 선행 호흡기 질병 관리", "암모니아, 분진 및 과습 방지", "급수라인 세척과 위생적인 음수 공급", "폐사계 신속 제거 및 계사 내 오염 최소화"],
+    tx:["부검과 세균검사로 원인 확인", "가능하면 항생제 감수성검사 실시", "내성균이 많으므로 관행적인 항생제 반복 투약 지양", "치료 필요성이 인정되면 국내 육계용 허가약을 수의사 처방에 따라 사용"] },
+  { k:"mg", n:"3", t:"마이코플라즈마 감염증 (MG·MS)", ic:"😮‍💨", c:"#6A1B9A", tag:"종계 유래 · 만성 호흡기",
+    sym:["지속적인 기침과 호흡기 잡음", "성장 지연과 사료요구율 악화", "대장균 등과 복합감염 시 증상 심화", "MS 감염 시 관절 이상이나 다리 절음이 나타나기도 함"],
+    prev:["마이코플라즈마 관리가 잘 된 종계장 유래 병아리 입식", "종계 및 부화장 위생관리 이력 확인", "외부 차량과 작업자 출입 제한", "호흡기 질병 발생 시 PCR 등으로 원인 구분"],
+    tx:["확진 및 치료 필요성에 따라 마이코플라즈마에 유효한 허가 항균제 선택", "타이로신·티아물린 계열 등은 제품별 허가사항 확인", "티아물린 사용 시 사료에 포함된 모넨신·살리노마이신 등과의 상호작용 주의", "투약으로 병원체가 완전히 제거된다고 보장할 수 없으므로 종계 관리와 차단방역 병행"] },
+  { k:"co", n:"4", t:"콕시듐증 (Coccidiosis)", ic:"🩸", c:"#EF6C00", tag:"젖은 깔짚 · 장 질병",
+    sym:["갈색 또는 혈액이 섞인 분변", "사료 섭취 감소 및 성장 정체", "장 점막 손상과 사료요구율 악화", "심한 경우 탈수와 폐사 증가"],
+    prev:["급수기 주변 젖은 깔짚 제거", "계사 습도와 환기량 적정 유지", "사료 내 항콕시듐제 사용 여부 확인", "콕시듐 백신 사용 농장은 백신 프로그램과 약제의 충돌 여부 점검", "필요 시 분변검사와 장 병변 점수 확인"],
+    tx:["확진 시 육계용 허가 항콕시듐제 사용", "암프로리움 등 허가된 약제는 제품별 용법에 따라 음수 투약 가능", "탈수 시 전해질과 수분 공급", "반복 발생 농장은 항콕시듐제 내성과 백신 운용 프로그램 재검토"] },
+  { k:"ne", n:"5", t:"괴사성 장염 (Necrotic Enteritis)", ic:"⚠️", c:"#2E7D32", tag:"콕시듐과 함께 관리",
+    sym:["갑작스러운 사료 섭취량 감소", "활력 저하 및 폐사 증가", "갈색 장 내용물과 장 점막 괴사", "증상이 뚜렷하지 않아도 증체 불량 발생"],
+    prev:["콕시듐증 예방을 최우선으로 관리", "급격한 사료 변경 방지", "젖은 깔짚과 급수기 누수 관리", "사료 원료의 품질 및 장 건강 관리", "농장별 발생 주령과 부검 결과 기록"],
+    tx:["부검 및 필요한 검사로 괴사성 장염 확인", "임상적으로 치료가 필요하면 감수성과 허가사항에 맞춰 음수용 항균제 선택", "콕시듐 동반감염 시 함께 진단하여 관리", "생균제 등 장 건강 보조제는 예방관리에 활용하되 치료제를 대체하지 않음"] },
+];
+const AUTUMN_BR_HUSB = [
+  { n:"①", t:"계사 온도관리", ic:"🌡️", c:"#E53935", it:["일교차가 큰 날에는 야간 최저온도 확인", "입추 전 계사와 바닥 충분히 예열", "육계 주령과 활동 상태에 맞춰 온도 조절", "출입구와 입기구 주변의 찬바람 유입 점검"] },
+  { n:"②", t:"환기 및 암모니아 관리", ic:"🌬️", c:"#1E88E5", it:["기온이 떨어져도 최소환기는 반드시 유지", "계사 상대습도는 대체로 50~70% 범위에서 관리", "암모니아는 가능한 한 10ppm 이하를 목표로 관리하고, 20ppm에 접근하면 즉시 환기·깔짚 상태 점검", "계사 내부 결로와 먼지 증가 여부 확인"] },
+  { n:"③", t:"깔짚 및 장 건강관리", ic:"🪵", c:"#8D6E63", it:["급수기 주변 젖은 깔짚 신속 제거", "음수압과 니플 높이 조정하여 누수 방지", "콕시듐 병변과 분변 상태 주기적 확인", "사료 변경 시 급격한 전환 방지"] },
+  { n:"④", t:"음수 및 투약관리", ic:"💧", c:"#00897B", it:["매일 음수량과 사료 섭취량 기록", "음수량 급감 시 질병 및 급수시설 이상 동시 점검", "약제 사용 시 실제 음수량을 기준으로 수의사가 투약량 산정", "약제 혼합 가능 여부, 물의 품질, 급수라인 잔류물 확인", "출하 전 약제별 휴약기간 반드시 준수"] },
+];
+const AUTUMN_BR_SYM = [["🤧", "기침, 재채기 증가", "IB·MG, 암모니아, 환기 불량"], ["🫁", "기낭염, 폐사 증가", "대장균증 및 선행 호흡기 감염"], ["🩸", "혈변, 갈색 설사", "콕시듐증 및 장 병변"], ["🚨", "갑작스러운 폐사 증가", "AI·ND 등 법정전염병 우선 배제"], ["📉", "성장 지연, 사료요구율 악화", "콕시듐증, 장염, 환경 및 사료 품질"], ["🦵", "다리 절음, 관절 부종", "MS 및 세균성 관절염 감별"], ["💦", "음수량 급증, 습한 깔짚", "급수기 누수, 사료 염분, 장염, 신장 이상"]];
+const AUTUMN_BR_DAILY = [["🌡️", "온도", "야간 냉기 유입과 계사 내 온도 편차 확인"], ["🌬️", "환기", "암모니아, 먼지, 결로 발생 여부 확인"], ["🪵", "깔짚", "음수기 주변 수분 및 분변 상태 확인"], ["🐔", "건강", "기침, 폐사율, 사료·음수 섭취량 변화 확인"], ["🚪", "방역", "출입자·차량 통제 및 계사 출입 전 소독 확인"]];
+function autumnFig(svg, cap){ return coliFig(svg, cap); }
+function autumnSvgChain(){
+  const st = [["💧", "급수기 누수·젖은 깔짚", "#1E88E5"], ["🩸", "콕시듐증", "#EF6C00"], ["⚠️", "괴사성 장염", "#2E7D32"], ["📉", "증체 불량·폐사", "#C62828"]];
+  return `<svg viewBox="0 0 660 150" width="100%" style="max-width:900px" role="img" aria-label="젖은 깔짚에서 콕시듐증, 괴사성 장염, 증체 불량으로 이어지는 연쇄">${st.map((x, i) => `<g transform="translate(${6 + i * 164} 12)"><rect width="140" height="94" rx="14" fill="${x[2]}1c" stroke="${x[2]}" stroke-width="2.5"/><text x="70" y="38" text-anchor="middle" font-size="28">${x[0]}</text><text x="70" y="70" text-anchor="middle" font-size="12.5" font-weight="900" fill="#222">${x[1]}</text></g>${i < 3 ? `<text x="${6 + i * 164 + 152}" y="62" text-anchor="middle" font-size="22" fill="#90A4AE">›</text>` : ""}`).join("")}
+    <text x="330" y="136" text-anchor="middle" font-size="12" font-weight="800" fill="#E65100">가을 장 질병은 ‘젖은 깔짚’에서 시작해요 — 첫 고리부터 끊으세요</text></svg>`;
+}
+function autumnSvgResp(){
+  const st = [["🌡️", "일교차·찬바람", "#E53935"], ["🫁", "IB·MG 등 호흡기 감염", "#1565C0"], ["🧫", "대장균 2차 감염", "#C62828"], ["🏭", "기낭염·폐사·도계장 폐기", "#6A1B9A"]];
+  return `<svg viewBox="0 0 660 150" width="100%" style="max-width:900px" role="img" aria-label="일교차와 찬바람에서 호흡기 감염, 대장균 2차 감염, 기낭염과 폐기로 이어지는 연쇄">${st.map((x, i) => `<g transform="translate(${6 + i * 164} 12)"><rect width="140" height="94" rx="14" fill="${x[2]}1c" stroke="${x[2]}" stroke-width="2.5"/><text x="70" y="38" text-anchor="middle" font-size="28">${x[0]}</text><text x="70" y="70" text-anchor="middle" font-size="12" font-weight="900" fill="#222">${x[1]}</text></g>${i < 3 ? `<text x="${6 + i * 164 + 152}" y="62" text-anchor="middle" font-size="22" fill="#90A4AE">›</text>` : ""}`).join("")}
+    <text x="330" y="136" text-anchor="middle" font-size="12" font-weight="800" fill="#1565C0">가을 호흡기는 ‘앞 고리(바이러스)’를 막아야 ‘뒤 고리(세균)’가 약해져요</text></svg>`;
+}
+function renderAutumnBroiler(){
+  const C = AUTUMN_BR_COLOR;
+  const col = (t, items, c, ic) => `<div style="border:1px solid ${c}33;border-top:4px solid ${c};border-radius:10px;padding:8px 11px;background:#fff"><div style="font-size:12.5px;font-weight:900;color:${c};margin-bottom:3px">${ic} ${t}</div><ul style="margin:0 0 0 16px;padding:0;font-size:12.5px;line-height:1.75;color:#333">${items.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>`;
+  return `
+    <div style="background:linear-gradient(135deg,${C},#BF360C);color:#fff;border-radius:14px;padding:13px 16px;margin-bottom:10px">
+      <div style="font-size:11px;opacity:.9">2026년 10월 기준 · 육계 사육농장 현장관리 자료</div>
+      <div style="font-size:18px;font-weight:900;margin:3px 0">🍂 가을철 육계 주요 질병 예방 및 사양관리 요령</div>
+      <div style="font-size:12.5px;opacity:.96;line-height:1.7">낮밤 기온 차이가 커지고 환기량이 줄어드는 가을에는 <b>호흡기 질병과 2차 세균감염</b>이 늘 수 있고, <b>깔짚에 물기가 많아지면 콕시듐증과 괴사성 장염</b>이 생기기 쉬워요. 그래서 <b>환경관리</b>가 가장 중요합니다.</div>
+    </div>
+    <div style="border:2px solid #C62828;background:#FFF5F5;border-radius:12px;padding:10px 13px;margin-bottom:12px"><div style="font-size:13.5px;font-weight:900;color:#C62828">🛡️ 올해는 외부 차단방역도 더 강하게!</div><div style="font-size:12.8px;line-height:1.75;color:#333;margin-top:2px">보도에 따르면 <b>2026년 10월 1일부터 2027년 2월 28일까지 고병원성 조류인플루엔자 특별방역대책기간</b>이 운영되고 있어요. 출입자·차량 통제와 소독을 평소보다 꼼꼼히 하세요. <span style="font-size:11.5px;color:#777">(연합뉴스 보도 기준 — 실제 기간·조치는 분석 당일 정부 공고를 확인하세요)</span></div></div>
+    <div style="font-size:15px;font-weight:900;color:${C};margin:4px 0 2px">🦠 가을철 주요 질병 5가지</div>
+    ${autumnFig(autumnSvgResp(), "호흡기 질병은 앞 고리를 막는 것이 먼저입니다.")}${autumnFig(autumnSvgChain(), "장 질병은 젖은 깔짚에서 시작합니다.")}
+    <div style="display:flex;flex-direction:column;gap:9px">${AUTUMN_BR_DISEASES.map((d, i) => `<details ${i === 0 ? "open" : ""} style="border:2px solid ${d.c};border-radius:13px;background:#fff;padding:9px 13px"><summary style="cursor:pointer;list-style:none"><span style="display:inline-block;width:24px;height:24px;border-radius:50%;background:${d.c};color:#fff;text-align:center;line-height:24px;font-size:13px;font-weight:900;margin-right:6px">${d.n}</span><span style="font-size:15px;font-weight:900;color:#1b2a28">${d.ic} ${d.t}</span> <span style="font-size:10.5px;font-weight:800;color:${d.c};background:${d.c}14;border-radius:10px;padding:1px 8px;margin-left:4px">${d.tag}</span><span style="float:right;font-size:11.5px;color:${d.c};font-weight:700">눌러서 보기 ▼</span></summary>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px;margin-top:9px">${col("주요 증상", d.sym, "#C62828", "👀")}${col("예방 및 사양관리", d.prev, "#2E7D32", "🛡️")}${col("투약 및 치료관리", d.tx, "#1565C0", "💊")}</div>
+      <div style="font-size:10.8px;color:#999;margin-top:6px">치료가 필요한 약 선택·용량·기간은 담당 수의사 처방과 제품 허가사항을 따르세요.</div></details>`).join("")}</div>
+    <div style="font-size:15px;font-weight:900;color:${C};margin:18px 0 6px">🏠 가을철 육계 사양관리 핵심 요령</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:9px">${AUTUMN_BR_HUSB.map(h => `<div style="border:2px solid ${h.c};background:${h.c}0d;border-radius:13px;padding:10px 13px"><div style="font-size:14.5px;font-weight:900;color:${h.c}">${h.ic} ${h.n} ${h.t}</div><ul style="margin:5px 0 0 17px;padding:0;font-size:12.8px;line-height:1.8;color:#2b2b2b">${h.it.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>`).join("")}</div>
+    <div style="font-size:15px;font-weight:900;color:${C};margin:18px 0 6px">🔎 증상별 농장 초기 대응요령</div>
+    <div style="display:flex;flex-direction:column;gap:6px">${AUTUMN_BR_SYM.map(r => `<div style="display:flex;gap:10px;align-items:center;border:1px solid ${r[0] === "🚨" ? "#C62828" : "#e3e3e3"};background:${r[0] === "🚨" ? "#FFEBEE" : "#fff"};border-radius:11px;padding:8px 11px"><span style="font-size:24px">${r[0]}</span><div style="flex:1;min-width:0"><div style="font-size:11px;color:#888">농장에서 보이는 증상</div><div style="font-size:13.5px;font-weight:900;color:#222">${r[1]}</div></div><span style="color:#90A4AE;font-size:18px">→</span><div style="flex:1.2;min-width:0"><div style="font-size:11px;color:#888">우선 확인</div><div style="font-size:13px;font-weight:800;color:${r[0] === "🚨" ? "#C62828" : "#00695C"}">${r[2]}</div></div></div>`).join("")}</div>
+    <div style="font-size:15px;font-weight:900;color:${C};margin:18px 0 6px">💊 가을철 투약관리 기본 원칙</div>
+    <div style="border:2px solid #1565C0;background:#E3F2FD;border-radius:13px;padding:11px 14px"><div style="font-size:13.5px;font-weight:900;color:#0D47A1;line-height:1.7">항생제는 예방 목적으로 일괄 투약하기보다, <u>원인균이 확인되고 치료가 필요한 경우</u>에 선택하는 것이 원칙입니다.</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px;margin-top:8px">${[["🦠", "바이러스성 질병", "백신 및 환경관리 중심. 항생제는 세균성 2차 감염이 있을 때만 검토합니다."], ["🧫", "세균성 질병", "부검·세균검사·감수성검사를 기반으로 항균제를 선택합니다."], ["🩸", "콕시듐증", "사료 내 예방약 또는 음수 치료제를 사용하되, 백신 사용 여부와 약제 내성을 확인합니다."], ["💧", "탈수·섭취 저하", "전해질 공급 등 보조요법을 실시하되 원인 질병의 치료를 병행합니다."]].map(x => `<div style="background:#fff;border-radius:10px;padding:8px 11px"><div style="font-size:13px;font-weight:900;color:#1565C0">${x[0]} ${x[1]}</div><div style="font-size:12.5px;line-height:1.7;color:#333;margin-top:2px">${x[2]}</div></div>`).join("")}</div></div>
+    <div style="border-left:4px solid #C62828;background:#FFF5F5;border-radius:9px;padding:9px 12px;margin-top:8px;font-size:12.8px;line-height:1.75;color:#333"><b>⏳ 휴약기간은 반드시!</b> 투약농도·기간·출하 가능일은 약제 성분·제품 농도·육계 일령에 따라 달라집니다. <b>국내 허가사항과 수의사 처방</b>을 기준으로 정하고 휴약기간을 꼭 지키세요.</div>
+    <div style="font-size:15px;font-weight:900;color:${C};margin:18px 0 6px">✅ 농장에서 매일 확인할 5가지</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px">${AUTUMN_BR_DAILY.map((x, i) => `<div style="border:2px solid ${C};background:#FFF3E0;border-radius:13px;padding:10px 12px;text-align:center"><div style="font-size:26px">${x[0]}</div><div style="font-size:11px;font-weight:900;color:#fff;background:${C};border-radius:9px;display:inline-block;padding:0 9px">${i + 1}</div><div style="font-size:15px;font-weight:900;color:#BF360C;margin-top:2px">${x[1]}</div><div style="font-size:12.3px;line-height:1.65;color:#444;margin-top:3px">${x[2]}</div></div>`).join("")}</div>
+    <div style="background:#FFF8E1;border-radius:11px;padding:10px 13px;margin-top:10px;font-size:13px;line-height:1.8;color:#6b5400"><b>🌟 핵심 한 줄</b> — 가을철 육계 사양관리의 핵심은 <b>온도 유지와 최소환기의 균형, 깔짚 수분관리, 정확한 질병 진단, 그리고 적절한 투약</b>입니다. 이 네 가지를 철저히 하면 호흡기·장 질병으로 인한 생산성 손실을 줄이는 데 도움이 됩니다.</div>
+    <div style="font-size:10.8px;color:#888;line-height:1.75;margin-top:8px">📎 근거 자료: <a href="https://www.msdvetmanual.com" target="_blank" rel="noopener" style="color:#1565C0">MSD Veterinary Manual</a> · <a href="https://extension.uga.edu" target="_blank" rel="noopener" style="color:#1565C0">UGA Cooperative Extension</a> · <a href="https://www.law.go.kr" target="_blank" rel="noopener" style="color:#1565C0">국가법령정보센터</a> · <a href="https://www.yna.co.kr" target="_blank" rel="noopener" style="color:#1565C0">연합뉴스</a><br>※ 참고용 현장관리 자료이며 진단·처방을 대신하지 않습니다. 암모니아·습도 등 수치는 목표 범위의 예시이고, 계통·계사 조건에 따라 수의사·육종회사 지침을 따르세요.</div>`;
+}
+function renderAutumnLayerPlaceholder(){
+  return `<div style="border:2px dashed #1565C0;background:#E3F2FD;border-radius:14px;padding:22px 16px;text-align:center"><div style="font-size:34px">🥚</div><div style="font-size:16px;font-weight:900;color:#1565C0;margin-top:4px">가을철 산란계 요령은 준비 중이에요</div><div style="font-size:12.8px;line-height:1.75;color:#444;margin-top:4px">산란계는 육계와 관리 포인트가 달라서(산란율·난질·장기 사육) 따로 정리해 추가할 예정입니다.<br>아래에 관리자가 올린 공통 항목이 있으면 함께 보입니다.</div></div>`;
+}
+
 function renderSeasonalPanel(){
   const head = `
   <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
@@ -10735,7 +10812,8 @@ function renderSeasonalPanel(){
     <button class="seasonal-season-btn" data-season="${s.key}"
       style="flex:1;border:2px solid ${seasonalTabState.season===s.key?SEASON_THEMES[s.key].color:"#eee"};background:${seasonalTabState.season===s.key?SEASON_THEMES[s.key].color:"#fff"};color:${seasonalTabState.season===s.key?"#fff":"#333"};border-radius:10px;padding:10px 4px;font-size:12.5px;font-weight:700;cursor:pointer">${s.label}<br><span style="font-size:10px;font-weight:500;opacity:0.85">${s.period}</span></button>`).join("");
 
-  const list = seasonalPackagesFor(seasonalTabState.season);
+  const isFall = seasonalTabState.season === "fall";
+  const list = seasonalPackagesFor(seasonalTabState.season).filter(p => !isFall || !p.animal || p.animal === seasonalTabState.animal);
   const cards = list.length ? list.map((p, ci) => {
     const open = seasonalTabState.openKey === p.key;
     const base = SEASON_THEMES[seasonalTabState.season] || SEASON_THEMES.spring;
@@ -10780,8 +10858,11 @@ function renderSeasonalPanel(){
     </div>` : ""}
   </div>`;
 
+  const animalTabs = !isFall ? "" : `<div style="display:flex;gap:8px;margin:-4px 0 14px">${[["broiler", "🐥 육계", "#EF6C00"], ["layer", "🥚 산란계", "#1565C0"]].map(a => `<button type="button" class="seasonal-animal-btn" data-animal="${a[0]}" style="flex:1;border:2px solid ${a[2]};background:${seasonalTabState.animal === a[0] ? a[2] : "#fff"};color:${seasonalTabState.animal === a[0] ? "#fff" : a[2]};border-radius:11px;padding:9px;font-size:14px;font-weight:900;cursor:pointer">${a[1]}</button>`).join("")}</div>`;
+  const fallGuide = !isFall ? "" : (seasonalTabState.animal === "broiler" ? renderAutumnBroiler() : renderAutumnLayerPlaceholder());
   return head + `
   <div style="display:flex;gap:8px;margin-bottom:14px">${seasonBtns}</div>
+  ${animalTabs}${fallGuide}${isFall && cards ? `<div style="font-size:13px;font-weight:900;color:#795548;margin:18px 0 4px">📌 관리자가 올린 가을 공통 항목</div>` : ""}
   ${cards}
   ${adminBox}
   <div style="font-size:9px;color:#aaa;line-height:1.6;margin-top:6px">
@@ -33039,6 +33120,7 @@ function attachEvents(){
     seasonalTabState.openKey = null;
     render();
   });
+  document.querySelectorAll(".seasonal-animal-btn").forEach(b=>b.onclick=()=>{ seasonalTabState.animal = b.dataset.animal; seasonalTabState.openKey = null; render(); });
   document.querySelectorAll(".seasonal-toggle").forEach(b=>b.onclick=()=>{
     const key = b.dataset.key;
     seasonalTabState.openKey = seasonalTabState.openKey === key ? null : key;
@@ -33088,7 +33170,7 @@ function attachEvents(){
       const idx = packages.findIndex(p=>p.key===editKey);
       if(idx>=0) packages[idx] = Object.assign({}, packages[idx], { title, medication, husbandry, color });
     } else {
-      packages.push({ key:newSeasonalKey(), season:seasonalTabState.season, title, medication, husbandry, color });
+      packages.push(Object.assign({ key:newSeasonalKey(), season:seasonalTabState.season, title, medication, husbandry, color }, seasonalTabState.season === "fall" ? { animal:seasonalTabState.animal } : {}));
     }
     seasonalPkgState.busy = true; seasonalPkgState.msg = "발행 중..."; render();
     const r = await publishSeasonalPackages(packages, "🗓️ 계절별 패키지 " + (editKey?"수정":"추가") + ": " + title);
