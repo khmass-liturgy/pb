@@ -10900,6 +10900,163 @@ function renderAutumnLayerPlaceholder(){
   return `<div style="border:2px dashed #1565C0;background:#E3F2FD;border-radius:14px;padding:22px 16px;text-align:center"><div style="font-size:34px">🥚</div><div style="font-size:16px;font-weight:900;color:#1565C0;margin-top:4px">가을철 산란계 요령은 준비 중이에요</div><div style="font-size:12.8px;line-height:1.75;color:#444;margin-top:4px">산란계는 육계와 관리 포인트가 달라서(산란율·난질·장기 사육) 따로 정리해 추가할 예정입니다.<br>아래에 관리자가 올린 공통 항목이 있으면 함께 보입니다.</div></div>`;
 }
 
+// ── 봄·여름·겨울 · 육계/산란계 사양관리·질병·투약 요령 (계절별 사양관리,질병,투약(관리) 패키지) ─────────────────────
+// ⚠ 초안: 일반적인 현장 관리 원칙을 쉬운 말로 정리한 자료이며 수의사 검토 전입니다(화면에도 표시). 약 이름·용량·농도·기간은 쓰지 않았고,
+// 구체적인 기준(온도·습도·점등시간·약 사용)은 품종·주령·계사 조건에 따라 육종회사 지침과 담당 수의사를 따릅니다.
+const SEASON_GUIDES = {
+  winter: {
+    broiler: { color:"#1565C0", kicker:"겨울철 육계 사육농장 현장관리", title:"❄️ 겨울철 육계 질병 예방 및 사양관리 요령",
+      intro:"겨울에는 보온을 위해 환기를 줄이기 쉬워요. 그러면 <b>암모니아·습기·먼지</b>가 쌓여 호흡기 질병, 깔짚 습기로 인한 장 질병, 그리고 <b>복수증</b> 같은 문제가 늘 수 있어요. <b>따뜻하게, 그러나 숨은 쉬게</b> — 보온과 최소환기의 균형이 핵심입니다.",
+      alert:["🛡️ 겨울은 고병원성 AI 특별방역 기간이에요", "출입자·차량 통제, 전용 장화·작업복, 소독 기록을 매일 확인하세요. 의심 증상이 보이면 임의로 약을 먹이지 말고 즉시 관할 가축방역기관에 신고하세요(실제 기간·조치는 정부 공고 확인)."],
+      issues:[
+        { n:"1", t:"호흡기 질병 (IB·MG·대장균 2차 감염)", ic:"🫁", c:"#1565C0", tag:"환기 부족 시", sym:["기침, 재채기, 숨소리 잡음", "사료·물 먹는 양 감소", "증체 불량, 폐사 증가"], prev:["보온해도 최소환기는 유지", "찬바람이 닭에게 바로 닿지 않게 입기구 조절", "암모니아·먼지·결로 매일 확인", "백신 접종 이력과 프로그램 점검"], tx:["바이러스성은 직접 치료약이 없어 환경·보조관리가 중심", "세균 2차 감염이 확인될 때 수의사 판단으로 항균제 사용", "약 선택·용량·휴약기간은 처방과 허가사항 기준"], key:"겨울 호흡기는 ‘환기 줄인 날’ 이후 1~2주를 눈여겨보세요." },
+        { n:"2", t:"콕시듐증·괴사성 장염", ic:"🩸", c:"#EF6C00", tag:"젖은 깔짚", sym:["갈색·혈액 섞인 분변", "사료 섭취 감소, 증체 정체", "갑작스러운 폐사"], prev:["급수기 주변 젖은 깔짚 바로 제거", "누수·니플 높이·음수압 점검", "급격한 사료 변경 피하기", "발생 주령과 부검 결과 기록"], tx:["확진 후 육계용 허가 약제를 수의사 처방에 따라 사용", "탈수 시 전해질·수분 공급", "반복 발생 농장은 예방 프로그램 재검토"], key:"겨울 장 질병은 보온한다고 닫은 계사의 ‘젖은 깔짚’에서 시작돼요." },
+        { n:"3", t:"복수증 (배에 물이 차는 병)", ic:"🎈", c:"#6A1B9A", tag:"저온·산소 부족", sym:["배가 부풀고 걸음이 둔함", "청색증(벼슬이 보랏빛)", "갑작스러운 폐사(빨리 크는 닭)"], prev:["추위·환기 부족으로 산소가 모자라지 않게 최소환기 유지", "초기 급격한 성장 관리(사료·점등은 육종회사 지침)", "난방기 연소가스·먼지 관리"], tx:["특별한 치료제는 없고 예방·환경관리가 중심", "폐사 개체 부검으로 원인 확인(수의사)"], key:"추운 계사에서 닭이 숨쉬기 힘들어하는지 새벽에 확인하세요." },
+        { n:"4", t:"가스·일산화탄소 중독", ic:"☠️", c:"#C62828", tag:"난방기 관리", sym:["무기력, 기립 곤란, 갑작스러운 폐사", "사람도 두통·어지러움"], prev:["난방기 정비와 환기 확보", "연소 배기가 계사로 새지 않게 점검", "작업자가 두통·어지러움을 느끼면 즉시 환기"], tx:["즉시 환기를 늘리고 원인(난방기·배기) 제거", "집단 폐사는 수의사에게 연락"], key:"새벽에 폐사가 갑자기 늘면 난방기와 환기부터 확인하세요." },
+        { n:"5", t:"고병원성 AI·뉴캣슬병 (법정 가축전염병)", ic:"🚨", c:"#B71C1C", tag:"의심 시 신고", hpai:true, sym:["원인 모를 급격한 폐사 증가", "사료·물 섭취 급감", "호흡곤란, 침울, 신경증상"], prev:["야생조류 접촉 차단, 방조망 점검", "외부 차량·사람 출입 최소화와 소독 기록", "전용 장화·작업복"], tx:["의심되면 즉시 관할 가축방역기관 신고", "닭·알·분뇨·장비 반출 중지, 출입 통제", "임의 투약 금지, 방역당국 지시 따르기"], txTitle:"의심 시 조치", txIc:"🚨", txc:"#B71C1C", key:"급격한 폐사는 법정전염병을 먼저 배제하세요." },
+      ],
+      husb:[
+        { n:"①", t:"보온과 최소환기", ic:"🌬️", c:"#1E88E5", it:["보온을 이유로 환기를 완전히 끊지 않기", "찬 공기가 닭에게 직접 떨어지지 않게 입기구 조절", "새벽 최저온도와 계사 내 온도 편차 확인", "입추 전 계사·바닥 충분히 예열"] },
+        { n:"②", t:"깔짚·습도·암모니아", ic:"🪵", c:"#8D6E63", it:["급수기 주변·결로 부위 젖은 깔짚 신속 제거", "누수 점검(니플, 배관)", "암모니아 냄새·눈 따가움이 느껴지면 즉시 환기·깔짚 점검", "깔짚이 뭉치면 부분 교체·교반"] },
+        { n:"③", t:"급수·투약 관리", ic:"💧", c:"#00897B", it:["급수라인 동결·막힘 점검(새벽)", "매일 음수량·사료 섭취량 기록", "음수량 급감은 질병과 급수시설 이상을 동시에 점검", "투약은 수의사 처방, 출하 전 휴약기간 준수"] },
+        { n:"④", t:"난방기·안전", ic:"🔥", c:"#E53935", it:["난방기·배기구 점검과 정비", "정전·난방 고장에 대비한 비상 계획", "작업자 두통·어지러움 시 즉시 환기"] },
+      ],
+      sym:[["🤧", "기침, 재채기 증가", "호흡기 감염, 환기 부족, 암모니아"], ["🩸", "혈변, 갈색 설사", "콕시듐증, 장염, 젖은 깔짚"], ["🎈", "배가 부푼 닭, 새벽 폐사", "복수증, 산소 부족, 난방기 가스"], ["🚨", "갑작스러운 폐사 증가", "AI·ND 등 법정전염병 우선 배제(신고)"], ["💧", "음수량 급감·급증", "급수 동결·누수, 질병"]],
+      daily:[["🌡️", "새벽 최저온도와 온도 편차"], ["🌬️", "환기·암모니아·결로"], ["🪵", "급수기 주변 깔짚 상태"], ["🐔", "기침·폐사·음수·사료 변화"], ["🚪", "출입자·차량 소독과 방조망"]],
+      rule:"약 사용·용량·기간은 제품 허가사항과 수의사 처방이 기준이고, 출하 전 휴약기간을 꼭 지켜야 해요.",
+      close:"겨울철 육계 관리의 핵심은 <b>보온과 최소환기의 균형, 깔짚 수분관리, 난방기 안전, 그리고 AI 차단방역</b>입니다." },
+    layer: { color:"#1565C0", kicker:"겨울철 산란계 사육농장 현장관리", title:"❄️🥚 겨울철 산란계 질병 예방 및 사양관리 요령",
+      intro:"겨울 산란계 관리는 <b>추위와 짧아진 일조</b>가 변수예요. 추우면 닭이 더 먹고 알이 커지거나 난각이 나빠질 수 있고, 환기를 줄이면 호흡기 질병이 늘어요. 또 겨울은 <b>AI 특별방역</b> 기간입니다.",
+      alert:["🛡️ 겨울은 고병원성 AI 특별방역 기간이에요", "산란율이 갑자기 떨어지거나 폐사가 늘면 AI 가능성부터 배제하고 즉시 관할 가축방역기관에 신고하세요. 임의로 약을 먹이며 지켜보지 마세요(실제 기간·조치는 정부 공고 확인)."],
+      issues:[
+        { n:"1", t:"호흡기 질병 (IB·코라이자·MG)", ic:"🫁", c:"#1565C0", tag:"산란율 ↓", sym:["기침, 재채기, 콧물, 얼굴 부종", "산란율 감소, 기형란·연란", "사료·물 섭취 감소"], prev:["보온해도 최소환기 유지", "낮밤 온도 차이 줄이기", "백신 접종 이력·항체 확인", "계사별 작업도구 분리"], tx:["바이러스성은 직접 치료약이 없음", "세균성은 검사로 원인 확인 후 수의사 처방", "산란 중 사용 가능한 허가 제품인지 확인, 계란 휴약기간 준수"], key:"산란율이 먼저 떨어지는지 매일 계사별로 비교하세요." },
+        { n:"2", t:"난각 불량·난중 증가", ic:"🥚", c:"#F9A825", tag:"추위·영양", sym:["연란, 무각란, 깨진 알 증가", "알이 커지고 껍데기가 얇아짐"], prev:["섭취량 변화에 맞춰 사료 영양 수준 점검", "칼슘·인·비타민 D₃ 공급 확인", "IB·EDS 감염과 영양성 불량 구별"], tx:["영양 부족이 함께 있을 때만 알맞게 보충", "바이러스성 원인은 치료약이 없어 예방 중심"], key:"껍데기 불량이 늘면 호흡기·영양·바이러스를 함께 따져 보세요." },
+        { n:"3", t:"저일조·점등 관리 문제", ic:"💡", c:"#F57C00", tag:"산란율 유지", sym:["산란율이 서서히 떨어짐", "계사별 산란 차이"], prev:["사육 단계에 맞는 점등 프로그램 유지", "산란 중 점등시간을 갑자기 줄이지 않기", "정전·조명 고장 점검(비상 계획)"], tx:["치료 대상이 아니라 관리 문제 — 점등 기록 점검"], key:"해가 짧아져도 계사 점등은 일정하게 유지하세요." },
+        { n:"4", t:"급수 동결·수질", ic:"🧊", c:"#00897B", tag:"새벽 점검", sym:["물 먹는 양 급감", "산란율·사료 섭취 동반 감소"], prev:["새벽 급수라인 동결·막힘 점검", "수질·급수라인 위생 정기 점검", "음수 투약·음수 백신 때 소독제 잔류 확인"], tx:["급수 문제를 먼저 해결", "원인이 불분명하면 수의사와 확인"], key:"산란율이 떨어지면 ‘물이 잘 나오는지’부터 확인하세요." },
+        { n:"5", t:"고병원성 AI·뉴캣슬병 (법정 가축전염병)", ic:"🚨", c:"#B71C1C", tag:"의심 시 신고", hpai:true, sym:["원인 모를 급격한 폐사", "산란율 급감", "벼슬·육수 부종, 호흡곤란, 신경증상"], prev:["야생조류 접촉 차단, 방조망 점검", "알·사료·분뇨 차량 동선 분리", "전용 장화·작업복, 출입·소독 기록"], tx:["의심되면 즉시 관할 가축방역기관 신고", "계란·닭·분뇨·장비 반출 중지, 출입 통제", "임의 투약 금지, 방역당국 지시 따르기"], txTitle:"의심 시 조치", txIc:"🚨", txc:"#B71C1C", key:"급격한 폐사·산란율 저하는 AI를 먼저 배제하세요." },
+      ],
+      husb:[
+        { n:"①", t:"온도·환기·암모니아", ic:"🌬️", c:"#1E88E5", it:["보온 때문에 계사를 과도하게 밀폐하지 않기", "새벽 온도 급강하 방지", "암모니아·먼지·결로 확인", "환기팬 가동·입기구 열림 점검"] },
+        { n:"②", t:"산란율·난각 기록", ic:"📊", c:"#F9A825", it:["매일 계사별 산란율·난중 기록", "연란·무각란·깨진 알 비율 확인", "산란 주령에 맞는 영양(칼슘·인·비타민 D₃) 점검"] },
+        { n:"③", t:"점등·급수", ic:"💡", c:"#F57C00", it:["점등 프로그램 일정하게 유지", "급수라인 동결·누수 점검", "물 먹는 양 급증·급감 매일 확인"] },
+        { n:"④", t:"계란·투약 안전", ic:"⚖️", c:"#C62828", it:["산란 중 사용 가능한 허가 제품만, 수의사 처방", "투약일·약품·계사·휴약기간 기록", "약을 끊었다는 이유만으로 출하하지 않기(계란 휴약기간 확인)"] },
+      ],
+      sym:[["🤧", "기침, 얼굴 부종, 콧물", "IB, 코라이자, MG, 환기 부족"], ["🥚", "연란·무각란·깨진 알 증가", "영양, IB, EDS, 사료 섭취 변화"], ["📉", "산란율 갑자기 감소", "AI·ND 우선 배제, 급수 이상, 점등 문제"], ["🚨", "급격한 폐사 증가", "법정전염병 우선 감별(신고)"], ["🧊", "물 먹는 양 급감", "급수 동결·막힘"]],
+      daily:[["📊", "계사별 산란율·난중"], ["🥚", "연란·무각란·깨진 알 비율"], ["🐔", "폐사·호흡기 증상·음수·사료"], ["🌡️", "새벽 온도·환기·암모니아·결로"], ["🚪", "출입자·차량 소독, 방조망, 집란시설"]],
+      rule:"산란 중 약 사용은 허가 여부와 계란 휴약기간이 가장 중요해요. 제품 허가사항과 수의사 처방을 따르세요.",
+      close:"겨울철 산란계 관리의 핵심은 <b>환기 유지, 산란율·난각 기록, 점등 일정, 그리고 AI 차단방역</b>입니다." },
+  },
+  spring: {
+    broiler: { color:"#2E7D32", kicker:"봄철 육계 사육농장 현장관리", title:"🌸 봄철 육계 질병 예방 및 사양관리 요령",
+      intro:"봄은 <b>일교차</b>가 크고 기온이 오르며 깔짚이 눅눅해지기 쉬운 때예요. 호흡기 질병이 계속되고, <b>콕시듐증·괴사성 장염</b>이 늘기 시작하며, <b>파리·쥐</b> 같은 해충이 깨어납니다. 여름을 대비해 설비도 미리 점검할 때예요.",
+      issues:[
+        { n:"1", t:"호흡기 질병 (IB·MG·대장균 2차 감염)", ic:"🫁", c:"#1565C0", tag:"일교차", sym:["기침, 재채기, 숨소리 잡음", "사료·음수 감소", "증체 불량"], prev:["낮밤 온도 차이 줄이기", "최소환기 유지, 찬바람 직접 닿지 않게", "백신 프로그램과 접종 방법·균일도 점검"], tx:["바이러스성은 환경·보조관리 중심", "세균 2차 감염이 확인되면 수의사 판단으로 항균제", "약 선택·휴약기간은 처방·허가사항 기준"], key:"봄 호흡기는 일교차가 큰 날 이후를 눈여겨보세요." },
+        { n:"2", t:"콕시듐증·괴사성 장염", ic:"🩸", c:"#EF6C00", tag:"습도↑", sym:["갈색·혈변", "사료 섭취 감소, 증체 정체", "폐사 증가"], prev:["급수기 주변 젖은 깔짚 제거", "습도·환기 적정 유지", "예방약·백신 프로그램 확인", "필요 시 분변검사"], tx:["확진 후 육계용 허가 약제를 수의사 처방에 따라", "탈수 시 전해질·수분 공급", "반복 발생 농장은 프로그램 재검토"], key:"깔짚이 눅눅해지기 시작하는 봄에 장 질병 예방을 시작하세요." },
+        { n:"3", t:"대장균증", ic:"🧫", c:"#C62828", tag:"2차 감염", sym:["호흡기 증상 악화, 폐사 증가", "기낭염·심낭염·간주위염(부검)"], prev:["앞선 호흡기 질병 관리", "먼지·암모니아 관리", "급수라인 세척·위생", "폐사계 신속 제거"], tx:["부검·세균검사로 원인 확인, 가능하면 감수성검사", "습관적 반복 투약 지양, 환경 개선 병행"], key:"약만 바꾸지 말고 앞선 감염과 환경을 함께 점검하세요." },
+        { n:"4", t:"파리·쥐 등 해충과 위생", ic:"🪰", c:"#6D4C41", tag:"질병 매개", sym:["계사 주변 파리 증가", "쥐 흔적, 사료 오염"], prev:["분변·폐사체 신속 처리", "사료빈·급수시설 위생", "쥐 방제 계획과 기록", "계사 주변 물웅덩이·잡초 정리"], tx:["방제약은 사용 허가·방법을 지키고 닭·사료 오염 방지"], key:"해충은 병을 옮기는 길이에요 — 봄에 미리 막으세요." },
+        { n:"5", t:"고병원성 AI·ND 잔여 위험", ic:"🚨", c:"#B71C1C", tag:"의심 시 신고", hpai:true, sym:["원인 모를 급격한 폐사", "사료·물 섭취 급감", "호흡곤란, 신경증상"], prev:["야생조류 접촉 차단(철새 북상 시기까지 방조망 유지)", "출입·소독 기록 관리"], tx:["의심되면 즉시 관할 가축방역기관 신고", "반출 중지·출입 통제·임의 투약 금지"], txTitle:"의심 시 조치", txIc:"🚨", txc:"#B71C1C", key:"봄에도 급격한 폐사는 법정전염병을 먼저 배제하세요." },
+      ],
+      husb:[
+        { n:"①", t:"일교차·환기", ic:"🌡️", c:"#E53935", it:["낮밤 온도 편차 관리", "환기량을 기온에 맞춰 점차 늘리기", "입기구 주변 찬바람 점검"] },
+        { n:"②", t:"깔짚·습도", ic:"🪵", c:"#8D6E63", it:["급수기 주변 젖은 깔짚 신속 제거", "누수·니플 높이 점검", "깔짚 상태·분변 모양 주기적 확인"] },
+        { n:"③", t:"해충·위생", ic:"🪰", c:"#6D4C41", it:["파리·쥐 방제 계획 세우기", "사료·급수 위생, 폐사체 신속 처리", "계군 사이 청소·소독·건조 철저"] },
+        { n:"④", t:"여름 대비 점검", ic:"🔧", c:"#1E88E5", it:["환기팬·쿨링시스템·정전 대비 장비 점검", "급수라인 세척, 수질 확인", "음수·사료 기록 습관 유지"] },
+      ],
+      sym:[["🤧", "기침, 재채기", "IB·MG, 일교차, 환기"], ["🩸", "혈변, 갈색 설사", "콕시듐증, 장염, 젖은 깔짚"], ["🫁", "기낭염, 폐사 증가", "대장균증, 선행 호흡기 감염"], ["🪰", "파리·쥐 증가", "분변 처리·사료 위생·방제"], ["🚨", "갑작스러운 폐사 증가", "AI·ND 등 법정전염병 우선 배제(신고)"]],
+      daily:[["🌡️", "야간·새벽 온도 편차"], ["🌬️", "환기·암모니아·결로"], ["🪵", "급수기 주변 깔짚"], ["🐔", "기침·폐사·음수·사료"], ["🚪", "출입자·차량 소독, 해충 흔적"]],
+      rule:"약 사용·용량·기간은 제품 허가사항과 수의사 처방이 기준이에요. 출하 전 휴약기간을 꼭 지키세요.",
+      close:"봄철 육계 관리의 핵심은 <b>일교차·환기 관리, 깔짚 수분, 해충 방제, 그리고 여름 대비 설비 점검</b>입니다." },
+    layer: { color:"#2E7D32", kicker:"봄철 산란계 사육농장 현장관리", title:"🌸🥚 봄철 산란계 질병 예방 및 사양관리 요령",
+      intro:"봄에는 일조가 길어지고 기온이 올라 <b>산란이 활발해지는 때</b>예요. 대신 <b>일교차로 인한 호흡기 질병</b>, 해충(진드기·파리) 증가, 살모넬라 같은 위생 문제를 챙겨야 합니다.",
+      issues:[
+        { n:"1", t:"호흡기 질병 (IB·코라이자·MG·ILT)", ic:"🫁", c:"#1565C0", tag:"일교차", sym:["기침, 재채기, 콧물, 얼굴 부종", "산란율 감소, 기형란·연란", "심하면 입 벌리고 숨쉼(ILT)"], prev:["낮밤 온도 차이 줄이기", "최소환기 유지", "백신 이력·항체 확인", "계사별 작업도구·장비 이동 제한"], tx:["바이러스성은 치료약이 없어 환경·보조관리", "세균성은 검사 후 수의사 처방, 산란 중 허가 제품만", "계란 휴약기간 준수"], key:"봄 일교차 큰 날 이후 산란율 변화를 계사별로 비교하세요." },
+        { n:"2", t:"난각·난중 변화", ic:"🥚", c:"#F9A825", tag:"산란 활발", sym:["연란·무각란·깨진 알 증가", "알 크기 변화"], prev:["주령에 맞는 칼슘·인·비타민 D₃", "섭취량 변화에 맞춘 영양 점검", "IB·EDS 감염과 영양성 불량 구별"], tx:["영양 부족이 함께 있을 때만 알맞게 보충", "바이러스성 원인은 예방 중심"], key:"껍데기 불량은 영양과 감염을 함께 따져 보세요." },
+        { n:"3", t:"닭진드기·외부기생충", ic:"🕷️", c:"#6D4C41", tag:"기온↑", sym:["닭이 불안해하고 깃털을 쪼음", "산란율·사료효율 감소", "빈혈, 벼슬 색 옅어짐"], prev:["케이지 틈새·집란벨트 주변 확인", "밤에 진드기 활동 확인", "계사 간 장비 이동 시 전파 차단", "빈 계사 기간 철저한 청소·틈새 방제"], tx:["산란계용으로 허가된 방제약만, 제품별 사용방법 준수", "닭 몸에 환경처리 제품 직접 뿌리지 않기", "계란 잔류·휴약기간 확인"], key:"진드기는 따뜻해질 때 늘어요 — 봄에 미리 점검하세요." },
+        { n:"4", t:"살모넬라·계란 위생", ic:"🍳", c:"#2E7D32", tag:"식품안전", sym:["성계는 증상 없을 수 있음", "일부 설사·산란율 감소"], prev:["쥐·야생조류·곤충 차단", "사료빈·급수시설 위생", "집란·보관시설 청결", "살모넬라 검사와 백신 프로그램 점검"], tx:["항생제로 균 제거는 어려움 — 위생·감염원 차단이 우선", "확인되면 수의사·방역당국과 관리계획"], key:"약보다 위생·쥐 방제·계란 오염 방지가 먼저예요." },
+        { n:"5", t:"고병원성 AI·뉴캣슬병 (법정 가축전염병)", ic:"🚨", c:"#B71C1C", tag:"의심 시 신고", hpai:true, sym:["급격한 폐사", "산란율 급감", "호흡곤란·신경증상"], prev:["야생조류 접촉 차단", "차량 동선 분리, 출입·소독 기록"], tx:["의심되면 즉시 관할 가축방역기관 신고", "반출 중지·출입 통제·임의 투약 금지"], txTitle:"의심 시 조치", txIc:"🚨", txc:"#B71C1C", key:"급격한 폐사·산란율 저하는 법정전염병을 먼저 배제하세요." },
+      ],
+      husb:[
+        { n:"①", t:"온도·환기", ic:"🌬️", c:"#1E88E5", it:["일교차 큰 날 새벽 온도 확인", "환기량을 기온에 맞춰 단계적으로 늘리기", "암모니아·먼지·결로 확인"] },
+        { n:"②", t:"산란율·난각 기록", ic:"📊", c:"#F9A825", it:["매일 계사별 산란율·난중", "연란·무각란·깨진 알 비율", "영양(칼슘·인·비타민 D₃) 점검"] },
+        { n:"③", t:"점등·급수", ic:"💡", c:"#F57C00", it:["점등 프로그램 일정하게 유지", "급수라인 누수·막힘·위생 점검", "물 먹는 양 변화 매일 확인"] },
+        { n:"④", t:"해충·위생·여름 대비", ic:"🪰", c:"#6D4C41", it:["진드기·파리·쥐 방제 계획", "집란·보관시설 청결", "환기팬·쿨링·정전 대비 장비 점검"] },
+      ],
+      sym:[["🤧", "기침, 얼굴 부종, 콧물", "IB, 코라이자, MG, ILT"], ["🥚", "연란·무각란 증가", "영양, IB, EDS"], ["🕷️", "불안, 깃털 쪼기, 빈혈", "닭진드기 등 외부기생충"], ["📉", "산란율 갑자기 감소", "AI·ND 우선 배제, 호흡기 질병, 급수 이상"], ["🚨", "급격한 폐사 증가", "법정전염병 우선 감별(신고)"]],
+      daily:[["📊", "계사별 산란율·난중"], ["🥚", "연란·무각란·깨진 알"], ["🐔", "폐사·호흡기 증상·음수·사료"], ["🌡️", "온도 편차·환기·암모니아"], ["🚪", "출입 소독, 해충 흔적, 집란시설"]],
+      rule:"산란 중 약 사용은 허가 여부와 계란 휴약기간이 가장 중요해요. 제품 허가사항과 수의사 처방을 따르세요.",
+      close:"봄철 산란계 관리의 핵심은 <b>일교차·환기, 산란율·난각 기록, 해충 방제, 계란 위생</b>입니다." },
+  },
+  summer: {
+    broiler: { color:"#EF6C00", kicker:"여름철 육계 사육농장 현장관리", title:"☀️ 여름철 육계 질병 예방 및 사양관리 요령",
+      intro:"여름은 <b>열 스트레스</b>가 가장 큰 적이에요. 더우면 닭이 사료를 덜 먹고 물을 많이 마시며 헐떡이고, 심하면 <b>열사병으로 집단 폐사</b>할 수 있어요. 습한 장마철엔 <b>깔짚·사료 곰팡이</b>와 <b>콕시듐증</b>도 조심해야 합니다.",
+      alert:["🔌 정전·환기 고장에 대비하세요", "여름 집단 폐사의 큰 원인은 환기 설비 고장입니다. 비상 발전기, 환기팬·쿨링 작동, 경보 장치를 미리 점검하세요."],
+      issues:[
+        { n:"1", t:"열 스트레스·열사병", ic:"🥵", c:"#E53935", tag:"가장 위험", sym:["입 벌리고 헐떡임, 날개를 펴고 늘어짐", "사료 섭취 감소, 물 섭취 증가", "갑작스러운 집단 폐사(한낮·고밀도 구간)"], prev:["환기·쿨링 설비 사전 점검, 정전 대비", "닭이 몰리지 않게 사육밀도·구역 점검", "시원한 시간대에 사료·작업(급이·포획)", "깨끗하고 시원한 물을 충분히 공급"], tx:["환기 증가·시원한 물 공급 등 환경 조치가 먼저", "전해질·비타민 보조는 수의사와 상의", "폐사가 많으면 원인을 부검으로 확인"], key:"더운 날은 ‘닭이 입을 벌리는지’를 수시로 보세요." },
+        { n:"2", t:"음수 관리·수질", ic:"💧", c:"#00897B", tag:"섭취 ↑", sym:["물 먹는 양 급증 후 급감", "묽은 변, 깔짚 습함"], prev:["급수라인 막힘·누수·수온 점검", "급수라인 세척, 수질 확인", "물탱크 위생, 음수 투약 시 잔류물 확인"], tx:["음수 문제를 먼저 해결", "투약은 실제 음수량 기준으로 수의사가 산정"], key:"더울수록 음수량이 약 효과와 건강을 좌우해요." },
+        { n:"3", t:"콕시듐증·괴사성 장염", ic:"🩸", c:"#EF6C00", tag:"장마철", sym:["갈색·혈변", "사료 섭취 감소", "폐사 증가"], prev:["젖은 깔짚·누수 관리", "환기 확보로 깔짚 건조 유지", "예방약·백신 프로그램 점검"], tx:["확진 시 육계용 허가 약제를 처방에 따라", "탈수 시 전해질·수분"], key:"장마철 깔짚 습기는 장 질병의 시작이에요." },
+        { n:"4", t:"곰팡이독소·사료 변질", ic:"🍞", c:"#8D6E63", tag:"고온다습", sym:["사료 섭취 감소, 증체 불량", "설사, 면역 저하로 질병 증가"], prev:["사료 보관 환경(건조·시원)과 회전 관리", "사료빈 내부 결로·곰팡이 점검", "냄새·덩어리 이상 시 사용 중단하고 확인"], tx:["원인 사료는 교체하고 수의사·사료회사와 상의", "독소 분석이 필요한지 확인"], key:"사료가 이상하면 닭 탓하기 전에 사료부터 확인하세요." },
+        { n:"5", t:"호흡기·대장균 2차 감염 / 파리·쥐", ic:"🪰", c:"#6A1B9A", tag:"환기·위생", sym:["기침·폐사 증가", "파리·쥐 증가"], prev:["환기량 확보로 암모니아·먼지 줄이기", "분변·폐사체 신속 처리", "파리·쥐 방제 계획"], tx:["세균 2차 감염이 확인되면 수의사 판단으로 항균제", "방제약은 허가·사용 방법 준수"], key:"여름에도 폐사체와 분변 처리가 질병을 줄여요." },
+      ],
+      husb:[
+        { n:"①", t:"환기·쿨링 설비", ic:"🌬️", c:"#1E88E5", it:["환기팬·쿨링패드·터널 환기 작동 점검", "정전 대비 비상 발전기·경보", "입기구·팬 청소(먼지·거미줄)"] },
+        { n:"②", t:"사육밀도·작업 시간", ic:"👷", c:"#E53935", it:["더운 시간대(한낮) 포획·급이 같은 작업 피하기", "닭이 한쪽에 몰리는지 확인", "출하·운송 시 열 스트레스 주의"] },
+        { n:"③", t:"음수·사료", ic:"💧", c:"#00897B", it:["깨끗하고 시원한 물을 충분히", "음수량·사료 섭취량 매일 기록", "사료 보관 위생과 신선도 확인"] },
+        { n:"④", t:"깔짚·위생", ic:"🪵", c:"#8D6E63", it:["장마철 누수·젖은 깔짚 즉시 처리", "파리·쥐 방제", "폐사체·분변 신속 처리"] },
+      ],
+      sym:[["🥵", "입 벌리고 헐떡임", "열 스트레스, 환기·쿨링 이상"], ["💥", "한낮 집단 폐사", "열사병, 정전·환기 고장(원인 확인)"], ["🩸", "혈변, 갈색 설사", "콕시듐증, 장염, 젖은 깔짚"], ["📉", "사료 섭취 감소, 증체 불량", "열 스트레스, 사료 변질·곰팡이독소"], ["🚨", "갑작스러운 폐사 증가", "법정전염병·급성 질병도 배제(수의사 확인)"]],
+      daily:[["🌡️", "계사 온도·헐떡임 확인"], ["🌬️", "환기·쿨링 설비 작동"], ["💧", "음수량·수온·급수라인"], ["🐔", "폐사·사료 섭취·활력"], ["🚪", "출입 소독, 해충·사료 상태"]],
+      rule:"여름에는 투약량이 실제 음수량에 따라 크게 달라져요. 약 사용·용량·기간은 수의사 처방과 허가사항 기준이고 휴약기간은 꼭 지키세요.",
+      close:"여름철 육계 관리의 핵심은 <b>열 스트레스 대비(환기·쿨링·정전), 음수 관리, 깔짚·사료 위생</b>입니다." },
+    layer: { color:"#EF6C00", kicker:"여름철 산란계 사육농장 현장관리", title:"☀️🥚 여름철 산란계 질병 예방 및 사양관리 요령",
+      intro:"여름 산란계는 <b>더위 때문에 사료를 덜 먹어</b> 산란율이 떨어지고, <b>알이 작아지며 껍데기가 얇아져</b> 깨진 알이 늘어요. 무더위·장마엔 곰팡이독소, 파리·진드기, 계란 식품안전(살모넬라)도 챙겨야 합니다.",
+      alert:["🔌 정전·환기 고장에 대비하세요", "더운 날 환기 고장은 집단 폐사로 이어질 수 있어요. 비상 발전기와 환기·쿨링 작동을 미리 점검하세요."],
+      issues:[
+        { n:"1", t:"열 스트레스", ic:"🥵", c:"#E53935", tag:"산란율·난각 ↓", sym:["입 벌리고 헐떡임", "사료 섭취 감소, 물 섭취 증가", "산란율 감소, 알이 작고 껍데기가 얇음"], prev:["환기·쿨링 설비 점검, 정전 대비", "시원한 물 충분히 공급", "더운 시간대 작업·이동 피하기", "서늘한 시간대에 사료 급여 비중 높이는 방법은 수의사·영양 담당과 상의"], tx:["환기·물·온도 환경 조치가 먼저", "전해질·비타민 보조는 필요할 때 수의사와 상의"], key:"산란율과 알 크기가 같이 줄면 열 스트레스를 먼저 의심하세요." },
+        { n:"2", t:"난각 불량·깨진 알", ic:"🥚", c:"#F9A825", tag:"영양·더위", sym:["연란·무각란·박각란, 깨진 알 증가", "껍데기 색 옅어짐"], prev:["섭취량 감소에 맞춘 칼슘·인·비타민 D₃ 공급 점검", "조개껍질 등 굵은 칼슘원 필요성 검토", "IB·EDS 같은 감염과 영양성 불량 구별"], tx:["영양 부족이 함께 있을 때만 알맞게 보충", "바이러스성 원인은 예방 중심"], key:"껍데기 불량은 더위·영양·감염을 함께 보세요." },
+        { n:"3", t:"곰팡이독소·사료 변질", ic:"🍞", c:"#8D6E63", tag:"고온다습", sym:["사료 섭취·산란율 감소", "설사, 면역 저하"], prev:["사료 보관(건조·시원)과 회전", "사료빈 결로·곰팡이 점검", "냄새·덩어리 이상 시 사용 중단"], tx:["원인 사료 교체, 수의사·사료회사와 상의"], key:"사료 상태가 의심되면 먼저 확인하세요." },
+        { n:"4", t:"닭진드기·파리·쥐", ic:"🕷️", c:"#6D4C41", tag:"여름 급증", sym:["깃털 쪼기, 불안, 빈혈", "산란율 저하", "파리·쥐 증가"], prev:["케이지 틈새·집란벨트 점검", "야간 진드기 활동 확인", "분변 신속 처리, 쥐 방제", "빈 계사 기간 철저한 청소"], tx:["산란계용 허가 방제약만, 제품별 사용방법 준수", "계란 잔류·휴약기간 확인"], key:"여름은 진드기·파리가 폭발하는 때예요." },
+        { n:"5", t:"살모넬라·계란 위생", ic:"🍳", c:"#2E7D32", tag:"식품안전", sym:["성계는 증상 없을 수 있음", "일부 설사·산란율 감소"], prev:["쥐·야생조류·곤충 차단", "사료빈·급수시설 위생", "집란·보관시설 청결, 냉장 보관", "살모넬라 검사·백신 프로그램 점검"], tx:["항생제로 균 제거는 어려움 — 위생이 우선", "확인되면 수의사·방역당국과 관리계획"], key:"더울수록 계란 보관 온도와 오염 방지가 중요해요." },
+      ],
+      husb:[
+        { n:"①", t:"환기·쿨링", ic:"🌬️", c:"#1E88E5", it:["환기팬·쿨링패드·터널 환기 점검", "정전 대비 비상 설비와 경보", "계사 온도·헐떡임 수시 확인"] },
+        { n:"②", t:"음수", ic:"💧", c:"#00897B", it:["깨끗하고 시원한 물을 충분히", "급수라인 막힘·누수·수온 점검", "음수량 변화 매일 확인"] },
+        { n:"③", t:"영양·난각", ic:"🥚", c:"#F9A825", it:["섭취량이 줄어드는 시기에 영양 수준 점검", "칼슘·인·비타민 D₃ 공급", "매일 산란율·난중·깨진 알 비율 기록"] },
+        { n:"④", t:"해충·계란 위생", ic:"🪰", c:"#6D4C41", it:["진드기·파리·쥐 방제 계획", "집란·보관시설 청결과 보관 온도", "작업자 위생관리"] },
+      ],
+      sym:[["🥵", "입 벌리고 헐떡임", "열 스트레스, 환기·쿨링 이상"], ["🥚", "알이 작아지고 깨진 알 증가", "더위, 영양(칼슘 등), 섭취량 감소"], ["🕷️", "깃털 쪼기, 빈혈", "닭진드기 등 외부기생충"], ["📉", "산란율 갑자기 감소", "열 스트레스, 사료 변질, 급수 이상, 법정전염병 배제"], ["💥", "급격한 폐사 증가", "열사병·환기 고장, 법정전염병 감별(수의사)"]],
+      daily:[["📊", "계사별 산란율·난중"], ["🥚", "연란·깨진 알 비율"], ["🌡️", "온도·헐떡임·환기 설비"], ["💧", "음수량·수온·사료 섭취"], ["🚪", "출입 소독, 해충, 집란·보관시설"]],
+      rule:"산란 중 약 사용은 허가 여부와 계란 휴약기간이 가장 중요해요. 제품 허가사항과 수의사 처방을 따르세요.",
+      close:"여름철 산란계 관리의 핵심은 <b>열 스트레스 대비, 난각·영양 관리, 해충 방제, 계란 위생</b>입니다." },
+  },
+};
+function renderSeasonGuide(season, animal){
+  const g = (SEASON_GUIDES[season] || {})[animal]; if(!g) return "";
+  const C = g.color;
+  const col = (t, items, c, ic) => `<div style="border:1px solid ${c}33;border-top:4px solid ${c};border-radius:10px;padding:8px 11px;background:#fff"><div style="font-size:12.5px;font-weight:900;color:${c};margin-bottom:3px">${ic} ${t}</div><ul style="margin:0 0 0 16px;padding:0;font-size:12.5px;line-height:1.75;color:#333">${items.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>`;
+  const dark = { "#1565C0":"#0D47A1", "#2E7D32":"#1B5E20", "#EF6C00":"#BF360C" }[C] || "#333";
+  return `
+    <div style="background:linear-gradient(135deg,${C},${dark});color:#fff;border-radius:14px;padding:13px 16px;margin-bottom:10px">
+      <div style="font-size:11px;opacity:.9">${g.kicker}</div>
+      <div style="font-size:18px;font-weight:900;margin:3px 0">${g.title}</div>
+      <div style="font-size:12.5px;opacity:.97;line-height:1.7">${g.intro}</div>
+    </div>
+    <div style="border:2px dashed #F9A825;background:#FFFDE7;border-radius:11px;padding:8px 12px;margin-bottom:10px;font-size:12px;line-height:1.7;color:#6b5400">📝 <b>초안 안내</b> — 이 내용은 일반적인 현장 관리 원칙을 쉬운 말로 정리한 <b>초안(수의사 검토 전)</b>입니다. 온도·습도·점등시간·약 사용 같은 구체적인 기준은 <b>육종회사 지침과 담당 수의사</b>를 따르세요.</div>
+    ${g.alert ? `<div style="border:2px solid #C62828;background:#FFF5F5;border-radius:12px;padding:10px 13px;margin-bottom:12px"><div style="font-size:13.5px;font-weight:900;color:#C62828">${g.alert[0]}</div><div style="font-size:12.8px;line-height:1.75;color:#333;margin-top:2px">${g.alert[1]}</div></div>` : ""}
+    <div style="font-size:15px;font-weight:900;color:${C};margin:6px 0 4px">🦠 주요 질병·문제 ${g.issues.length}가지</div>
+    <div style="display:flex;flex-direction:column;gap:9px">${g.issues.map((d, i) => `<details ${i === 0 || d.hpai ? "open" : ""} style="border:2px solid ${d.c};border-radius:13px;background:${d.hpai ? "#FFF5F5" : "#fff"};padding:9px 13px"><summary style="cursor:pointer;list-style:none"><span style="display:inline-block;min-width:24px;height:24px;border-radius:12px;background:${d.c};color:#fff;text-align:center;line-height:24px;font-size:12.5px;font-weight:900;margin-right:6px;padding:0 4px">${d.n}</span><span style="font-size:15px;font-weight:900;color:#1b2a28">${d.ic} ${d.t}</span> <span style="font-size:10.5px;font-weight:800;color:${d.c};background:${d.c}14;border-radius:10px;padding:1px 8px;margin-left:4px">${d.tag}</span><span style="float:right;font-size:11.5px;color:${d.c};font-weight:700">눌러서 보기 ▼</span></summary>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px;margin-top:8px">${col("주요 증상", d.sym, "#C62828", "👀")}${col("예방 및 사양관리", d.prev, "#2E7D32", "🛡️")}${col(d.txTitle || "투약 및 치료요령", d.tx, d.txc || "#1565C0", d.txIc || "💊")}</div>
+      <div style="margin-top:8px;background:${d.c}12;border-left:4px solid ${d.c};border-radius:8px;padding:7px 11px;font-size:12.8px;line-height:1.7;color:#222"><b>📌 농장 관리 핵심</b> — ${esc(d.key)}</div></details>`).join("")}</div>
+    <div style="font-size:15px;font-weight:900;color:${C};margin:18px 0 6px">🏠 사양관리 핵심 요령</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:9px">${g.husb.map(h => `<div style="border:2px solid ${h.c};background:${h.c}0d;border-radius:13px;padding:10px 13px"><div style="font-size:14.5px;font-weight:900;color:${h.c}">${h.ic} ${h.n} ${h.t}</div><ul style="margin:5px 0 0 17px;padding:0;font-size:12.8px;line-height:1.8;color:#2b2b2b">${h.it.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>`).join("")}</div>
+    <div style="font-size:15px;font-weight:900;color:${C};margin:18px 0 6px">🔎 증상별 초기 대응요령</div>
+    <div style="display:flex;flex-direction:column;gap:6px">${g.sym.map(r => `<div style="display:flex;gap:10px;align-items:center;border:1px solid ${r[0] === "🚨" ? "#C62828" : "#e3e3e3"};background:${r[0] === "🚨" ? "#FFEBEE" : "#fff"};border-radius:11px;padding:8px 11px"><span style="font-size:24px">${r[0]}</span><div style="flex:1;min-width:0"><div style="font-size:11px;color:#888">발견되는 이상</div><div style="font-size:13.5px;font-weight:900;color:#222">${r[1]}</div></div><span style="color:#90A4AE;font-size:18px">→</span><div style="flex:1.2;min-width:0"><div style="font-size:11px;color:#888">우선 확인할 병·원인</div><div style="font-size:13px;font-weight:800;color:${r[0] === "🚨" ? "#C62828" : "#00695C"}">${r[2]}</div></div></div>`).join("")}</div>
+    <div style="border-left:4px solid #C62828;background:#FFF5F5;border-radius:9px;padding:9px 12px;margin-top:10px;font-size:12.8px;line-height:1.75;color:#333"><b>⏳ 투약·휴약기간</b> — ${g.rule}</div>
+    <div style="font-size:15px;font-weight:900;color:${C};margin:18px 0 6px">✅ 농장에서 매일 확인할 5가지</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px">${g.daily.map((x, i) => `<div style="border:2px solid ${C};background:${C}12;border-radius:13px;padding:10px 12px;text-align:center"><div style="font-size:26px">${x[0]}</div><span style="font-size:11px;font-weight:900;color:#fff;background:${C};border-radius:9px;padding:0 9px">${i + 1}</span><div style="font-size:12.8px;line-height:1.65;color:#222;margin-top:4px">${x[1]}</div></div>`).join("")}</div>
+    <div style="background:#FFF8E1;border-radius:11px;padding:10px 13px;margin-top:10px;font-size:13px;line-height:1.8;color:#6b5400"><b>🌟 핵심 한 줄</b> — ${g.close}</div>
+    <div style="font-size:10.8px;color:#888;line-height:1.75;margin-top:8px">※ 참고용 현장관리 자료(초안)이며 진단·처방을 대신하지 않습니다. 약의 종류·용량·기간·계란 휴약기간은 담당 수의사와 제품 허가사항을 따르세요. 법정전염병 의심 시 관할 가축방역기관에 즉시 신고하세요.</div>`;
+}
+
 function renderSeasonalPanel(){
   const head = `
   <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
@@ -10924,7 +11081,7 @@ function renderSeasonalPanel(){
       style="flex:1;border:2px solid ${seasonalTabState.season===s.key?SEASON_THEMES[s.key].color:"#eee"};background:${seasonalTabState.season===s.key?SEASON_THEMES[s.key].color:"#fff"};color:${seasonalTabState.season===s.key?"#fff":"#333"};border-radius:10px;padding:10px 4px;font-size:12.5px;font-weight:700;cursor:pointer">${s.label}<br><span style="font-size:10px;font-weight:500;opacity:0.85">${s.period}</span></button>`).join("");
 
   const isFall = seasonalTabState.season === "fall";
-  const list = seasonalPackagesFor(seasonalTabState.season).filter(p => !isFall || !p.animal || p.animal === seasonalTabState.animal);
+  const list = seasonalPackagesFor(seasonalTabState.season).filter(p => !p.animal || p.animal === seasonalTabState.animal);
   const cards = list.length ? list.map((p, ci) => {
     const open = seasonalTabState.openKey === p.key;
     const base = SEASON_THEMES[seasonalTabState.season] || SEASON_THEMES.spring;
@@ -10969,11 +11126,11 @@ function renderSeasonalPanel(){
     </div>` : ""}
   </div>`;
 
-  const animalTabs = !isFall ? "" : `<div style="display:flex;gap:8px;margin:-4px 0 14px">${[["broiler", "🐥 육계", "#EF6C00"], ["layer", "🥚 산란계", "#1565C0"]].map(a => `<button type="button" class="seasonal-animal-btn" data-animal="${a[0]}" style="flex:1;border:2px solid ${a[2]};background:${seasonalTabState.animal === a[0] ? a[2] : "#fff"};color:${seasonalTabState.animal === a[0] ? "#fff" : a[2]};border-radius:11px;padding:9px;font-size:14px;font-weight:900;cursor:pointer">${a[1]}</button>`).join("")}</div>`;
-  const fallGuide = !isFall ? "" : (seasonalTabState.animal === "broiler" ? renderAutumnBroiler() : renderAutumnLayer());
+  const animalTabs = `<div style="display:flex;gap:8px;margin:-4px 0 14px">${[["broiler", "🐥 육계", "#EF6C00"], ["layer", "🥚 산란계", "#1565C0"]].map(a => `<button type="button" class="seasonal-animal-btn" data-animal="${a[0]}" style="flex:1;border:2px solid ${a[2]};background:${seasonalTabState.animal === a[0] ? a[2] : "#fff"};color:${seasonalTabState.animal === a[0] ? "#fff" : a[2]};border-radius:11px;padding:9px;font-size:14px;font-weight:900;cursor:pointer">${a[1]}</button>`).join("")}</div>`;
+  const fallGuide = isFall ? (seasonalTabState.animal === "broiler" ? renderAutumnBroiler() : renderAutumnLayer()) : renderSeasonGuide(seasonalTabState.season, seasonalTabState.animal);
   return head + `
   <div style="display:flex;gap:8px;margin-bottom:14px">${seasonBtns}</div>
-  ${animalTabs}${fallGuide}${isFall && cards ? `<div style="font-size:13px;font-weight:900;color:#795548;margin:18px 0 4px">📌 관리자가 올린 가을 공통 항목</div>` : ""}
+  ${animalTabs}${fallGuide}${list.length ? `<div style="font-size:13px;font-weight:900;color:#795548;margin:18px 0 4px">📌 관리자가 올린 ${seasonLabel(seasonalTabState.season)} 항목</div>` : ""}
   ${cards}
   ${adminBox}
   <div style="font-size:9px;color:#aaa;line-height:1.6;margin-top:6px">
@@ -33281,7 +33438,7 @@ function attachEvents(){
       const idx = packages.findIndex(p=>p.key===editKey);
       if(idx>=0) packages[idx] = Object.assign({}, packages[idx], { title, medication, husbandry, color });
     } else {
-      packages.push(Object.assign({ key:newSeasonalKey(), season:seasonalTabState.season, title, medication, husbandry, color }, seasonalTabState.season === "fall" ? { animal:seasonalTabState.animal } : {}));
+      packages.push(Object.assign({ key:newSeasonalKey(), season:seasonalTabState.season, title, medication, husbandry, color }, { animal:seasonalTabState.animal }));
     }
     seasonalPkgState.busy = true; seasonalPkgState.msg = "발행 중..."; render();
     const r = await publishSeasonalPackages(packages, "🗓️ 계절별 패키지 " + (editKey?"수정":"추가") + ": " + title);
