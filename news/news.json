@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-14 10:35 KST",
+  "updated": "2026-10-15 10:12 KST",
   "channels": {
     "livestock": {
       "label": "축산·농업",
@@ -13,23 +13,16 @@
     },
     "disease": {
       "label": "가축질병",
-      "items": [
-        {
-          "title": "나주시, 가축전염병 특별방역 돌입…24시간 대응체계 가동 - 뉴스줌",
-          "link": "https://news.google.com/rss/articles/CBMiREFVX3lxTE8zVUU5Y1lsNEI0OU05NUVlZlFjWTRBTVdjWndZQlJITXpPLWd4emtpMUM2UUd0bUQ5cVFxWjhYMjBFcHpD?oc=5",
-          "date": "10/07 11:08",
-          "source": "뉴스줌"
-        }
-      ],
-      "count": 1
+      "items": [],
+      "count": 0
     },
     "feed": {
       "label": "사료·약품",
       "items": [
         {
-          "title": "[전광판] '26년 42주차 평균 도매가격 6,064원(전주 대비 1.7%, 전년 대비 3.1%) - 돼지와사람",
-          "link": "https://news.google.com/rss/articles/CBMiZEFVX3lxTE1jRWM3SElnMVVDNXJUdmZIdVFxanJ1WExGaWx5OTZQUzk1cWJFRlpMNmdkSXBnVS1aZV9PZVZacXRkdElzM1RHWnNTS2JCQ21scE84YTRvWWplOWE1T3NGSnpxRW8?oc=5",
-          "date": "10/07 16:00",
+          "title": "사료비 부담 뒤에 담합 있었나…8년 6개월 의혹 사실이면 '충격' - 돼지와사람",
+          "link": "https://news.google.com/rss/articles/CBMiYkFVX3lxTFBLYk10UmN1VUdEYjg3U3oycXo1ZVZHNDR3dXpQV1F1dTRhZUpZaHNBQ0tDT2JKUHZRVklhVFUyaWJycTFvLVlqX3J1dkwtTEk4Q0h1M2hDekE4VmVmakd4Xzdn?oc=5",
+          "date": "10/14 21:11",
           "source": "돼지와사람"
         }
       ],
@@ -51,13 +44,19 @@
       "label": "국제",
       "items": [
         {
+          "title": "[곽재원 컬럼]서구는 지금 중국을 어떻게 읽고 있는가 - 저스트 이코노믹스",
+          "link": "https://news.google.com/rss/articles/CBMiX0FVX3lxTE91T0pYQkVKRUhzcnBwV3FvblRaQWhVc1htdEEzUlBiandiYU52WmQwelMwRUZmM0JWcXpLUFMwMkRzbXgxemUycHJjazIwQ1luQUlVV2oyOEtTRUxxb2Rn?oc=5",
+          "date": "10/14 05:27",
+          "source": "저스트 이코노믹스"
+        },
+        {
           "title": "세계 경유 공급난 확산…미국은 러시아산 수입 완화, 중국은 수출 통제 : 경제 - 재경일보",
           "link": "https://news.google.com/rss/articles/CBMiS0FVX3lxTE1RMmRPbEJyZkkzNHZPLU83VnEwQmtYZGRNdF8zaTV0c3pfRUlWNnR2WE5xd0JQYnpjd3Fhc1pZTWJLQnE2V01aaU9NUQ?oc=5",
           "date": "10/13 05:16",
           "source": "재경일보"
         }
       ],
-      "count": 1
+      "count": 2
     }
   }
 }
