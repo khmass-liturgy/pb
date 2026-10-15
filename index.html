@@ -11029,8 +11029,132 @@ const SEASON_GUIDES = {
       close:"여름철 산란계 관리의 핵심은 <b>열 스트레스 대비, 난각·영양 관리, 해충 방제, 계란 위생</b>입니다." },
   },
 };
+// ── 계절별 가이드 편집(관리자) — premium_content/seasonal_guides/latest.json 에 {guides:{"계절-축종":가이드}} 로 저장 ──
+// 저장된 가이드가 있으면 기본 내용 대신 그것을 보여 준다. 가을 육계·산란계는 저장하면 아래 편집 항목만 보이고(표·그림 제외), 「기본으로 되돌리기」로 원래 화면을 복원한다.
+const seasonGuideState = { status:"idle", data:{ guides:{} }, editKey:null, draft:null, busy:false, msg:"", ok:true };
+const SG_PALETTE = ["#1565C0", "#EF6C00", "#6A1B9A", "#00897B", "#C62828", "#2E7D32", "#455A64", "#F9A825"];
+async function fetchSeasonGuides(){
+  if(seasonGuideState.status === "loading") return;
+  seasonGuideState.status = "loading";
+  try { const j = await fetchPremiumContentJson("seasonal_guides"); seasonGuideState.data = j && j.guides ? j : { guides:{} }; }
+  catch(e){ seasonGuideState.data = { guides:{} }; if(!(e && (e.code === "functions/not-found" || /아직 발행된 내용이 없습니다/.test(e.message || "")))) seasonGuideState.msg = "저장된 가이드를 불러오지 못했습니다: " + (e.message || e); }
+  seasonGuideState.status = "done";
+  if(premiumState.view === "seasonal") render();
+}
+function sgKey(season, animal){ return season + "-" + animal; }
+function sgOverride(season, animal){ const g = seasonGuideState.data && seasonGuideState.data.guides && seasonGuideState.data.guides[sgKey(season, animal)]; return g && Array.isArray(g.issues) ? g : null; }
+// 가을 육계·산란계 기본 내용을 같은 모양으로 바꾼 편집 시작본
+function sgAutumnSeed(animal){
+  if(animal === "broiler") return { color:AUTUMN_BR_COLOR, kicker:"2026년 10월 기준 · 육계 사육농장 현장관리 자료", title:"🍂 가을철 육계 주요 질병 예방 및 사양관리 요령", intro:"낮밤 기온 차이가 커지고 환기량이 줄어드는 가을에는 <b>호흡기 질병과 2차 세균감염</b>이 늘 수 있고, <b>깔짚에 물기가 많아지면 콕시듐증과 괴사성 장염</b>이 생기기 쉬워요. 그래서 <b>환경관리</b>가 가장 중요합니다.",
+    alert:["🛡️ 올해는 외부 차단방역도 더 강하게!", "보도에 따르면 2026년 10월 1일부터 2027년 2월 28일까지 고병원성 조류인플루엔자 특별방역대책기간이 운영되고 있어요. 출입자·차량 통제와 소독을 평소보다 꼼꼼히 하세요. (연합뉴스 보도 기준 — 실제 기간·조치는 정부 공고를 확인하세요)"],
+    issues:AUTUMN_BR_DISEASES.map(d => ({ n:d.n, t:d.t, ic:d.ic, c:d.c, tag:d.tag, sym:d.sym, prev:d.prev, tx:d.tx, key:"" })), husb:AUTUMN_BR_HUSB.map(h => ({ n:h.n, t:h.t, ic:h.ic, c:h.c, it:h.it })), sym:AUTUMN_BR_SYM, daily:AUTUMN_BR_DAILY.map(x => [x[0], x[1] + " — " + x[2]]),
+    rule:"투약농도·기간·출하 가능일은 약제 성분·제품 농도·육계 일령에 따라 달라집니다. 국내 허가사항과 수의사 처방을 기준으로 정하고 휴약기간을 꼭 지키세요.", close:"가을철 육계 사양관리의 핵심은 <b>온도 유지와 최소환기의 균형, 깔짚 수분관리, 정확한 질병 진단, 그리고 적절한 투약</b>입니다.", draft:false };
+  return { color:AUTUMN_LY_COLOR, kicker:"산란계 사육농장 현장관리 자료", title:"🍂🥚 가을철 산란계 주요 질병 예방 및 사양관리 요령", intro:"가을 산란계 관리의 핵심 네 가지: <b>① 호흡기 질병 예방 ② 산란율 유지 ③ 껍데기(난각) 품질관리 ④ 고병원성 AI 차단방역</b>. 일교차가 커지고 환기량이 줄면 호흡기 질병이 생기기 쉬워요.", alert:null,
+    issues:AUTUMN_LY_DISEASES.map(d => ({ n:d.n, t:d.t, ic:d.ic, c:d.c, tag:d.tag, sym:d.sym, prev:d.prev, tx:d.tx, key:d.key, hpai:!!d.hpai, txTitle:d.txTitle || "", txIc:d.txIc || "", txc:d.txc || "" })), husb:AUTUMN_LY_HUSB.map(h => ({ n:h.n, t:h.t, ic:h.ic, c:h.c, it:h.it })), sym:AUTUMN_LY_SYM, daily:AUTUMN_LY_DAILY.map(x => [x[0], x[1]]),
+    rule:"산란 중 약 사용은 허가 여부와 계란 휴약기간이 가장 중요해요. 제품 허가사항과 수의사 처방을 따르세요.", close:"산란계는 <b>폐사가 늘기 전에 산란율과 난각 품질이 먼저 변하는 경우</b>가 많습니다. 계사별 산란율과 불량란 비율을 매일 비교하세요.", draft:false };
+}
+function sgBase(season, animal){ return season === "fall" ? sgAutumnSeed(animal) : ((SEASON_GUIDES[season] || {})[animal] || null); }
+function sgEffective(season, animal){ return sgOverride(season, animal) || sgBase(season, animal); }
+// 허용 태그(b·u·br)만 남기고 나머지는 글자로 보이게 한다
+function sgSafeHtml(t){ return esc(t || "").replace(/&lt;(\/?)(b|u)&gt;/g, "<$1$2>").replace(/&lt;br\s*\/?&gt;/g, "<br>"); }
+// 가이드 → 편집용 글
+function sgIssuesToText(list){
+  return list.map(d => `## ${d.t} | ${d.ic || ""} | ${d.tag || ""} | ${d.c || ""}\n증상\n${d.sym.map(x => "- " + x).join("\n")}\n예방\n${d.prev.map(x => "- " + x).join("\n")}\n${d.hpai ? "의심 시 조치" : (d.txTitle || "치료")}\n${d.tx.map(x => "- " + x).join("\n")}${d.key ? "\n핵심: " + d.key : ""}`).join("\n\n");
+}
+function sgHusbToText(list){ return list.map(h => `## ${h.t} | ${h.ic || ""} | ${h.c || ""}\n${h.it.map(x => "- " + x).join("\n")}`).join("\n\n"); }
+function sgRowsToText(rows){ return rows.map(r => r.join(" | ")).join("\n"); }
+// 편집용 글 → 가이드 칸
+function sgParseIssues(text){
+  const out = [];
+  String(text || "").split(/\n\s*(?=##)/).forEach(block => {
+    const lines = block.split("\n").map(l => l.trim()).filter(Boolean); if(!lines.length || !lines[0].startsWith("##")) return;
+    const h = lines[0].replace(/^##\s*/, "").split("|").map(x => x.trim());
+    const d = { t:h[0] || "", ic:h[1] || "•", tag:h[2] || "", c:/^#[0-9a-fA-F]{6}$/.test(h[3] || "") ? h[3] : SG_PALETTE[out.length % SG_PALETTE.length], sym:[], prev:[], tx:[], key:"" };
+    let cur = null;
+    lines.slice(1).forEach(l => {
+      if(/^핵심\s*[:：]/.test(l)){ d.key = l.replace(/^핵심\s*[:：]\s*/, ""); cur = null; }
+      else if(l.startsWith("-")){ const v = l.replace(/^-\s*/, ""); if(cur) d[cur].push(v); }
+      else if(/^증상/.test(l)) cur = "sym";
+      else if(/^예방/.test(l)) cur = "prev";
+      else { cur = "tx"; if(/^의심\s*시\s*조치/.test(l)){ d.hpai = true; d.txTitle = "의심 시 조치"; d.txIc = "🚨"; d.txc = "#B71C1C"; d.c = "#B71C1C"; } else if(!/^(치료|투약)/.test(l)) d.txTitle = l; }
+    });
+    if(d.t) out.push(Object.assign(d, { n:String(out.length + 1) }));
+  });
+  return out;
+}
+function sgParseHusb(text){
+  const out = [];
+  String(text || "").split(/\n\s*(?=##)/).forEach(block => {
+    const lines = block.split("\n").map(l => l.trim()).filter(Boolean); if(!lines.length || !lines[0].startsWith("##")) return;
+    const h = lines[0].replace(/^##\s*/, "").split("|").map(x => x.trim());
+    const it = lines.slice(1).filter(l => l.startsWith("-")).map(l => l.replace(/^-\s*/, "")).filter(Boolean);
+    if(h[0]) out.push({ t:h[0], ic:h[1] || "•", c:/^#[0-9a-fA-F]{6}$/.test(h[2] || "") ? h[2] : SG_PALETTE[out.length % SG_PALETTE.length], n:"①②③④⑤⑥⑦⑧"[out.length] || String(out.length + 1), it });
+  });
+  return out;
+}
+function sgParseRows(text, cols){ return String(text || "").split("\n").map(l => l.split("|").map(x => x.trim())).filter(r => r.length >= cols && r[0] !== "" && r.slice(1, cols).every(x => x !== "")).map(r => r.slice(0, cols)); }
+function sgOpenEdit(season, animal){
+  const g = sgEffective(season, animal); if(!g) return;
+  seasonGuideState.editKey = sgKey(season, animal); seasonGuideState.msg = ""; seasonGuideState.ok = true;
+  seasonGuideState.draft = { color:g.color, kicker:g.kicker || "", title:g.title || "", intro:g.intro || "", alertT:g.alert ? g.alert[0] : "", alertB:g.alert ? g.alert[1] : "", rule:g.rule || "", close:g.close || "", draft:g.draft !== false,
+    issues:sgIssuesToText(g.issues), husb:sgHusbToText(g.husb), sym:sgRowsToText(g.sym), daily:sgRowsToText(g.daily) };
+}
+function sgReadForm(){
+  const d = seasonGuideState.draft; if(!d) return; const v = id => { const e = document.getElementById(id); return e ? e.value : null; };
+  [["kicker", "sg-kicker"], ["title", "sg-title"], ["intro", "sg-intro"], ["alertT", "sg-alert-t"], ["alertB", "sg-alert-b"], ["rule", "sg-rule"], ["close", "sg-close"], ["issues", "sg-issues"], ["husb", "sg-husb"], ["sym", "sg-sym"], ["daily", "sg-daily"]].forEach(([k, id]) => { const x = v(id); if(x !== null) d[k] = x; });
+  const dr = document.getElementById("sg-draft"); if(dr) d.draft = dr.checked;
+}
+function sgDraftToGuide(){
+  const d = seasonGuideState.draft;
+  const issues = sgParseIssues(d.issues), husb = sgParseHusb(d.husb);
+  if(!d.title.trim()) return { err:"제목을 입력하세요." };
+  if(!issues.length) return { err:"주요 질병·문제를 한 가지 이상 입력하세요(‘## 이름 | 아이콘 | 태그’로 시작)." };
+  const bad = issues.find(x => !x.sym.length || !x.prev.length || !x.tx.length);
+  if(bad) return { err:"‘" + bad.t + "’ 항목에 증상·예방·치료 줄(- 로 시작)이 하나씩 이상 있어야 합니다." };
+  return { g:{ color:d.color, kicker:d.kicker.trim(), title:d.title.trim(), intro:d.intro.trim(), alert:d.alertT.trim() ? [d.alertT.trim(), d.alertB.trim()] : null, issues, husb, sym:sgParseRows(d.sym, 3), daily:sgParseRows(d.daily, 2), rule:d.rule.trim(), close:d.close.trim(), draft:d.draft } };
+}
+async function sgPublish(guides, okMsg){
+  seasonGuideState.busy = true; seasonGuideState.msg = ""; render();
+  try { const body = { v:1, updated:new Date().toISOString(), guides }; await writePremiumContentJson("seasonal_guides", body); seasonGuideState.data = body; seasonGuideState.msg = okMsg; seasonGuideState.ok = true; seasonGuideState.busy = false; render(); return true; }
+  catch(e){ seasonGuideState.msg = "저장하지 못했습니다: " + (e.message || e); seasonGuideState.ok = false; seasonGuideState.busy = false; render(); return false; }
+}
+function sgEditorHtml(season, animal){
+  if(!isBoardAdmin()) return "";
+  const key = sgKey(season, animal), has = !!sgOverride(season, animal), editing = seasonGuideState.editKey === key && seasonGuideState.draft, st = seasonGuideState;
+  const bar = `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:14px 0 6px;padding:9px 12px;background:#FCFBF6;border:1px solid #EFE8D0;border-radius:11px"><span style="font-size:11.5px;font-weight:800;color:#7A5C00">⚙ 관리자</span><button type="button" id="sg-open" style="border:1px solid #B8860B;background:#B8860B;color:#fff;border-radius:8px;padding:7px 13px;font-size:12.5px;font-weight:800;cursor:pointer">✏️ 이 가이드 편집</button>${has ? `<button type="button" id="sg-reset" style="border:1px solid #C62828;background:#fff;color:#C62828;border-radius:8px;padding:7px 13px;font-size:12.5px;font-weight:800;cursor:pointer">↩ 기본으로 되돌리기</button><span style="font-size:11px;color:#2E7D32;font-weight:700">저장된 편집본 표시 중</span>` : `<span style="font-size:11px;color:#888">기본 내용 표시 중</span>`}${st.msg && !editing ? `<span style="font-size:12px;font-weight:700;color:${st.ok ? "#2E7D32" : "#C62828"}">${esc(st.msg)}</span>` : ""}</div>`;
+  if(!editing) return bar;
+  const d = st.draft, inp = "width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid #ccc;border-radius:7px;font-size:13px;font-family:inherit;background:#fff", lb = "font-size:11.5px;font-weight:800;color:#455A64;margin-top:9px;display:block";
+  const ta = (id, label, val, rows, hint) => `<label for="${id}" style="${lb}">${label}${hint ? `<span style="font-weight:600;color:#999;margin-left:6px">${hint}</span>` : ""}</label><textarea id="${id}" rows="${rows}" style="${inp};line-height:1.6;resize:vertical;font-family:monospace">${esc(val)}</textarea>`;
+  const tx = (id, label, val) => `<label for="${id}" style="${lb}">${label}</label><input id="${id}" value="${esc(val)}" style="${inp}">`;
+  return bar + `<div style="border:2px solid #B8860B;background:#FFFEF7;border-radius:12px;padding:12px 14px;margin:6px 0">
+    <div style="font-size:14px;font-weight:900;color:#7A5C00">✏️ ${seasonLabel(season)} · ${animal === "broiler" ? "육계" : "산란계"} 가이드 편집</div>
+    ${season === "fall" && !has ? `<div style="font-size:11.5px;color:#BF360C;background:#FFF3E0;border-radius:8px;padding:6px 10px;margin-top:6px">가을 가이드를 저장하면 아래 항목만 보이고 한눈에 표·그림은 빠집니다. 「기본으로 되돌리기」로 원래 화면을 복원할 수 있어요.</div>` : ""}
+    <div style="font-size:11.5px;color:#777;line-height:1.7;margin-top:6px">글 안에서 <code>&lt;b&gt;굵게&lt;/b&gt;</code>, <code>&lt;u&gt;밑줄&lt;/u&gt;</code>, <code>&lt;br&gt;</code>만 쓸 수 있어요. 항목 형식은 각 칸 아래 예시를 따라 주세요.</div>
+    ${tx("sg-kicker", "작은 제목(배너 위 한 줄)", d.kicker)}${tx("sg-title", "큰 제목", d.title)}${ta("sg-intro", "소개 문장", d.intro, 3)}
+    ${tx("sg-alert-t", "경고 상자 제목(비우면 경고 상자 없음)", d.alertT)}${ta("sg-alert-b", "경고 상자 내용", d.alertB, 2)}
+    ${ta("sg-issues", "🦠 주요 질병·문제", d.issues, 16, "블록마다 ‘## 이름 | 아이콘 | 태그 | #색(선택)’ → 증상/예방/치료 제목 줄 + ‘- ’ 줄들 → ‘핵심: …’. HPAI처럼 신고가 필요한 건 세 번째 제목을 ‘의심 시 조치’로")}
+    ${ta("sg-husb", "🏠 사양관리 핵심", d.husb, 10, "‘## 제목 | 아이콘 | #색(선택)’ 아래 ‘- ’ 줄들")}
+    ${ta("sg-sym", "🔎 증상별 대응 (한 줄에 하나)", d.sym, 6, "아이콘 | 발견되는 이상 | 우선 확인할 병·원인")}
+    ${ta("sg-daily", "✅ 매일 확인할 것 (한 줄에 하나)", d.daily, 6, "아이콘 | 내용")}
+    ${ta("sg-rule", "⏳ 투약·휴약기간 안내 문구", d.rule, 2)}${ta("sg-close", "🌟 핵심 한 줄", d.close, 2)}
+    <label style="display:flex;gap:7px;align-items:center;margin-top:10px;font-size:12.5px;font-weight:700;color:#BF360C;cursor:pointer"><input type="checkbox" id="sg-draft" ${d.draft ? "checked" : ""}> 화면에 「초안(수의사 검토 전)」 안내 표시 — 검토가 끝나면 체크를 끄세요</label>
+    ${st.msg ? `<div style="font-size:12px;font-weight:700;margin-top:6px;color:${st.ok ? "#2E7D32" : "#C62828"};line-height:1.6">${esc(st.msg)}</div>` : ""}
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button type="button" id="sg-save" ${st.busy ? "disabled" : ""} style="border:none;background:#B8860B;color:#fff;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:800;cursor:pointer">${st.busy ? "저장 중…" : "💾 저장해 공개"}</button><button type="button" id="sg-cancel" style="border:1px solid #ddd;background:#fff;color:#666;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer">취소</button></div></div>`;
+}
+function sgBind(season, animal){
+  const $ = id => document.getElementById(id), st = seasonGuideState;
+  const open = $("sg-open"); if(open) open.onclick = () => { sgOpenEdit(season, animal); render(); const e = $("sg-title"); if(e) e.scrollIntoView({ behavior:"smooth", block:"center" }); };
+  const cancel = $("sg-cancel"); if(cancel) cancel.onclick = () => { st.editKey = null; st.draft = null; st.msg = ""; render(); };
+  const reset = $("sg-reset"); if(reset) reset.onclick = async () => { if(!confirm("저장된 편집본을 지우고 기본 내용으로 되돌릴까요?")) return; const g = Object.assign({}, st.data.guides); delete g[sgKey(season, animal)]; st.editKey = null; st.draft = null; await sgPublish(g, "기본 내용으로 되돌렸습니다"); };
+  const save = $("sg-save"); if(save) save.onclick = async () => {
+    sgReadForm(); const r = sgDraftToGuide(); if(r.err){ st.msg = r.err; st.ok = false; render(); return; }
+    const g = Object.assign({}, st.data.guides); g[sgKey(season, animal)] = r.g;
+    const ok = await sgPublish(g, "저장해 공개했습니다"); if(ok){ st.editKey = null; st.draft = null; render(); }
+  };
+}
+
 function renderSeasonGuide(season, animal){
-  const g = (SEASON_GUIDES[season] || {})[animal]; if(!g) return "";
+  const g = sgEffective(season, animal); if(!g) return "";
   const C = g.color;
   const col = (t, items, c, ic) => `<div style="border:1px solid ${c}33;border-top:4px solid ${c};border-radius:10px;padding:8px 11px;background:#fff"><div style="font-size:12.5px;font-weight:900;color:${c};margin-bottom:3px">${ic} ${t}</div><ul style="margin:0 0 0 16px;padding:0;font-size:12.5px;line-height:1.75;color:#333">${items.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>`;
   const dark = { "#1565C0":"#0D47A1", "#2E7D32":"#1B5E20", "#EF6C00":"#BF360C" }[C] || "#333";
@@ -11038,10 +11162,10 @@ function renderSeasonGuide(season, animal){
     <div style="background:linear-gradient(135deg,${C},${dark});color:#fff;border-radius:14px;padding:13px 16px;margin-bottom:10px">
       <div style="font-size:11px;opacity:.9">${g.kicker}</div>
       <div style="font-size:18px;font-weight:900;margin:3px 0">${g.title}</div>
-      <div style="font-size:12.5px;opacity:.97;line-height:1.7">${g.intro}</div>
+      <div style="font-size:12.5px;opacity:.97;line-height:1.7">${sgSafeHtml(g.intro)}</div>
     </div>
-    <div style="border:2px dashed #F9A825;background:#FFFDE7;border-radius:11px;padding:8px 12px;margin-bottom:10px;font-size:12px;line-height:1.7;color:#6b5400">📝 <b>초안 안내</b> — 이 내용은 일반적인 현장 관리 원칙을 쉬운 말로 정리한 <b>초안(수의사 검토 전)</b>입니다. 온도·습도·점등시간·약 사용 같은 구체적인 기준은 <b>육종회사 지침과 담당 수의사</b>를 따르세요.</div>
-    ${g.alert ? `<div style="border:2px solid #C62828;background:#FFF5F5;border-radius:12px;padding:10px 13px;margin-bottom:12px"><div style="font-size:13.5px;font-weight:900;color:#C62828">${g.alert[0]}</div><div style="font-size:12.8px;line-height:1.75;color:#333;margin-top:2px">${g.alert[1]}</div></div>` : ""}
+    ${g.draft === false ? "" : `<div style="border:2px dashed #F9A825;background:#FFFDE7;border-radius:11px;padding:8px 12px;margin-bottom:10px;font-size:12px;line-height:1.7;color:#6b5400">📝 <b>초안 안내</b> — 이 내용은 일반적인 현장 관리 원칙을 쉬운 말로 정리한 <b>초안(수의사 검토 전)</b>입니다. 온도·습도·점등시간·약 사용 같은 구체적인 기준은 <b>육종회사 지침과 담당 수의사</b>를 따르세요.</div>`}
+    ${g.alert && g.alert[0] ? `<div style="border:2px solid #C62828;background:#FFF5F5;border-radius:12px;padding:10px 13px;margin-bottom:12px"><div style="font-size:13.5px;font-weight:900;color:#C62828">${g.alert[0]}</div><div style="font-size:12.8px;line-height:1.75;color:#333;margin-top:2px">${sgSafeHtml(g.alert[1])}</div></div>` : ""}
     <div style="font-size:15px;font-weight:900;color:${C};margin:6px 0 4px">🦠 주요 질병·문제 ${g.issues.length}가지</div>
     <div style="display:flex;flex-direction:column;gap:9px">${g.issues.map((d, i) => `<details ${i === 0 || d.hpai ? "open" : ""} style="border:2px solid ${d.c};border-radius:13px;background:${d.hpai ? "#FFF5F5" : "#fff"};padding:9px 13px"><summary style="cursor:pointer;list-style:none"><span style="display:inline-block;min-width:24px;height:24px;border-radius:12px;background:${d.c};color:#fff;text-align:center;line-height:24px;font-size:12.5px;font-weight:900;margin-right:6px;padding:0 4px">${d.n}</span><span style="font-size:15px;font-weight:900;color:#1b2a28">${d.ic} ${d.t}</span> <span style="font-size:10.5px;font-weight:800;color:${d.c};background:${d.c}14;border-radius:10px;padding:1px 8px;margin-left:4px">${d.tag}</span><span style="float:right;font-size:11.5px;color:${d.c};font-weight:700">눌러서 보기 ▼</span></summary>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px;margin-top:8px">${col("주요 증상", d.sym, "#C62828", "👀")}${col("예방 및 사양관리", d.prev, "#2E7D32", "🛡️")}${col(d.txTitle || "투약 및 치료요령", d.tx, d.txc || "#1565C0", d.txIc || "💊")}</div>
@@ -11050,11 +11174,11 @@ function renderSeasonGuide(season, animal){
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:9px">${g.husb.map(h => `<div style="border:2px solid ${h.c};background:${h.c}0d;border-radius:13px;padding:10px 13px"><div style="font-size:14.5px;font-weight:900;color:${h.c}">${h.ic} ${h.n} ${h.t}</div><ul style="margin:5px 0 0 17px;padding:0;font-size:12.8px;line-height:1.8;color:#2b2b2b">${h.it.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>`).join("")}</div>
     <div style="font-size:15px;font-weight:900;color:${C};margin:18px 0 6px">🔎 증상별 초기 대응요령</div>
     <div style="display:flex;flex-direction:column;gap:6px">${g.sym.map(r => `<div style="display:flex;gap:10px;align-items:center;border:1px solid ${r[0] === "🚨" ? "#C62828" : "#e3e3e3"};background:${r[0] === "🚨" ? "#FFEBEE" : "#fff"};border-radius:11px;padding:8px 11px"><span style="font-size:24px">${r[0]}</span><div style="flex:1;min-width:0"><div style="font-size:11px;color:#888">발견되는 이상</div><div style="font-size:13.5px;font-weight:900;color:#222">${r[1]}</div></div><span style="color:#90A4AE;font-size:18px">→</span><div style="flex:1.2;min-width:0"><div style="font-size:11px;color:#888">우선 확인할 병·원인</div><div style="font-size:13px;font-weight:800;color:${r[0] === "🚨" ? "#C62828" : "#00695C"}">${r[2]}</div></div></div>`).join("")}</div>
-    <div style="border-left:4px solid #C62828;background:#FFF5F5;border-radius:9px;padding:9px 12px;margin-top:10px;font-size:12.8px;line-height:1.75;color:#333"><b>⏳ 투약·휴약기간</b> — ${g.rule}</div>
+    <div style="border-left:4px solid #C62828;background:#FFF5F5;border-radius:9px;padding:9px 12px;margin-top:10px;font-size:12.8px;line-height:1.75;color:#333"><b>⏳ 투약·휴약기간</b> — ${sgSafeHtml(g.rule)}</div>
     <div style="font-size:15px;font-weight:900;color:${C};margin:18px 0 6px">✅ 농장에서 매일 확인할 5가지</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px">${g.daily.map((x, i) => `<div style="border:2px solid ${C};background:${C}12;border-radius:13px;padding:10px 12px;text-align:center"><div style="font-size:26px">${x[0]}</div><span style="font-size:11px;font-weight:900;color:#fff;background:${C};border-radius:9px;padding:0 9px">${i + 1}</span><div style="font-size:12.8px;line-height:1.65;color:#222;margin-top:4px">${x[1]}</div></div>`).join("")}</div>
-    <div style="background:#FFF8E1;border-radius:11px;padding:10px 13px;margin-top:10px;font-size:13px;line-height:1.8;color:#6b5400"><b>🌟 핵심 한 줄</b> — ${g.close}</div>
-    <div style="font-size:10.8px;color:#888;line-height:1.75;margin-top:8px">※ 참고용 현장관리 자료(초안)이며 진단·처방을 대신하지 않습니다. 약의 종류·용량·기간·계란 휴약기간은 담당 수의사와 제품 허가사항을 따르세요. 법정전염병 의심 시 관할 가축방역기관에 즉시 신고하세요.</div>`;
+    <div style="background:#FFF8E1;border-radius:11px;padding:10px 13px;margin-top:10px;font-size:13px;line-height:1.8;color:#6b5400"><b>🌟 핵심 한 줄</b> — ${sgSafeHtml(g.close)}</div>
+    <div style="font-size:10.8px;color:#888;line-height:1.75;margin-top:8px">※ 참고용 현장관리 자료이며 진단·처방을 대신하지 않습니다. 약의 종류·용량·기간·계란 휴약기간은 담당 수의사와 제품 허가사항을 따르세요. 법정전염병 의심 시 관할 가축방역기관에 즉시 신고하세요.</div>`;
 }
 
 function renderSeasonalPanel(){
@@ -11127,7 +11251,8 @@ function renderSeasonalPanel(){
   </div>`;
 
   const animalTabs = `<div style="display:flex;gap:8px;margin:-4px 0 14px">${[["broiler", "🐥 육계", "#EF6C00"], ["layer", "🥚 산란계", "#1565C0"]].map(a => `<button type="button" class="seasonal-animal-btn" data-animal="${a[0]}" style="flex:1;border:2px solid ${a[2]};background:${seasonalTabState.animal === a[0] ? a[2] : "#fff"};color:${seasonalTabState.animal === a[0] ? "#fff" : a[2]};border-radius:11px;padding:9px;font-size:14px;font-weight:900;cursor:pointer">${a[1]}</button>`).join("")}</div>`;
-  const fallGuide = isFall ? (seasonalTabState.animal === "broiler" ? renderAutumnBroiler() : renderAutumnLayer()) : renderSeasonGuide(seasonalTabState.season, seasonalTabState.animal);
+  if(seasonGuideState.status === "idle") fetchSeasonGuides();
+  const fallGuide = (isFall && !sgOverride("fall", seasonalTabState.animal) ? (seasonalTabState.animal === "broiler" ? renderAutumnBroiler() : renderAutumnLayer()) : renderSeasonGuide(seasonalTabState.season, seasonalTabState.animal)) + sgEditorHtml(seasonalTabState.season, seasonalTabState.animal);
   return head + `
   <div style="display:flex;gap:8px;margin-bottom:14px">${seasonBtns}</div>
   ${animalTabs}${fallGuide}${list.length ? `<div style="font-size:13px;font-weight:900;color:#795548;margin:18px 0 4px">📌 관리자가 올린 ${seasonLabel(seasonalTabState.season)} 항목</div>` : ""}
@@ -33388,6 +33513,7 @@ function attachEvents(){
     seasonalTabState.openKey = null;
     render();
   });
+  sgBind(seasonalTabState.season, seasonalTabState.animal);
   document.querySelectorAll(".seasonal-animal-btn").forEach(b=>b.onclick=()=>{ seasonalTabState.animal = b.dataset.animal; seasonalTabState.openKey = null; render(); });
   document.querySelectorAll(".seasonal-toggle").forEach(b=>b.onclick=()=>{
     const key = b.dataset.key;
