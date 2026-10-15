@@ -11269,6 +11269,141 @@ function renderSeasonalPanel(){
 // 패키지보다 화면이 한 단계 더 단순하다(탭 버튼 없이 바로 카드 목록).
 // GENERAL_DISINFECT_GUIDE 카드 4종을 질병별 목록과 같은 토글 카드 UI로 그린다
 // (편집/삭제 버튼 없음 — 정적 참고자료라 관리자 편집 대상이 아니다).
+// ── 소독요령 쉬운 보기 · 희석요령 카드 ─────────────────────────────────────────
+const DIL_STATE = { x: 200, l: 10 };
+function dilFmt(n){
+  if(!isFinite(n)) return "-";
+  if(n >= 1000) return (Math.round(n * 10) / 10).toLocaleString("ko-KR");
+  return String(Math.round(n * 10) / 10);
+}
+function dilCalc(x, l){
+  if(!(x > 1) || !(l > 0)) return null;
+  const totalMl = l * 1000;
+  const stock = totalMl / x;
+  return { stock, water: totalMl - stock };
+}
+function dilResultHtml(){
+  const r = dilCalc(DIL_STATE.x, DIL_STATE.l);
+  if(!r) return `<div style="font-size:12px;color:#C62828">희석배수는 2 이상, 만들 양은 0보다 크게 입력하세요.</div>`;
+  const st = r.stock >= 1000 ? `${dilFmt(r.stock/1000)} L` : `${dilFmt(r.stock)} mL`;
+  const wa = r.water >= 1000 ? `${dilFmt(r.water/1000)} L` : `${dilFmt(r.water)} mL`;
+  return `
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <div style="flex:1;min-width:130px;background:#fff;border:2px solid #1565C0;border-radius:10px;padding:10px;text-align:center">
+        <div style="font-size:11px;color:#1565C0;font-weight:700">① 물 먼저</div>
+        <div style="font-size:22px;font-weight:800;color:#1565C0">💧 ${wa}</div>
+      </div>
+      <div style="flex:1;min-width:130px;background:#fff;border:2px solid #C62828;border-radius:10px;padding:10px;text-align:center">
+        <div style="font-size:11px;color:#C62828;font-weight:700">② 소독제 원액</div>
+        <div style="font-size:22px;font-weight:800;color:#C62828">🧴 ${st}</div>
+      </div>
+    </div>
+    <div style="font-size:11.5px;color:#555;margin-top:7px;line-height:1.6">
+      ${DIL_STATE.x}배 희석 = 원액 1 : 물 ${DIL_STATE.x - 1} → 합쳐서 <b>${DIL_STATE.l} L</b>가 됩니다.
+      (물 ${wa}을 먼저 담고 원액 ${st}을 넣어 섞기)
+    </div>`;
+}
+function renderDilutionCard(){
+  const quick = [100, 200, 300, 500, 1000];
+  const qAmt = [1, 10, 20, 100];
+  const step = (n, icon, t, d, c) => `
+      <div style="display:flex;gap:9px;align-items:flex-start;margin-bottom:8px">
+        <div style="width:28px;height:28px;border-radius:50%;background:${c};color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0">${n}</div>
+        <div style="font-size:12.5px;line-height:1.6;color:#444"><b style="color:${c}">${icon} ${t}</b><br>${d}</div>
+      </div>`;
+  const rows = [100, 200, 300, 500, 1000].map(x => `
+        <tr><td style="padding:5px 8px;border-top:1px solid #E3F2FD;text-align:center;font-weight:700">${x}배</td>
+        <td style="padding:5px 8px;border-top:1px solid #E3F2FD;text-align:center">${dilFmt(1000 / x)} mL</td>
+        <td style="padding:5px 8px;border-top:1px solid #E3F2FD;text-align:center">${dilFmt(10000 / x)} mL</td>
+        <td style="padding:5px 8px;border-top:1px solid #E3F2FD;text-align:center">${dilFmt(100000 / x / 1000)} L</td></tr>`).join("");
+  return `
+  <div class="card" style="border:1px solid #1565C033;border-left:6px solid #1565C0;background:linear-gradient(135deg,#E8F1FB,#fff 60%);margin-bottom:12px;padding:14px 16px">
+    <div style="font-size:14px;font-weight:800;color:#1565C0;margin-bottom:2px">💧 소독제 희석 쉽게 하기 (희석배수 카드)</div>
+    <div style="font-size:11.5px;color:#555;line-height:1.6;margin-bottom:10px">
+      ‘200배 희석’은 <b>원액 1 : 물 199</b>을 섞어 전체가 200이 되게 한다는 뜻이에요.
+      물 1 L(1,000 mL)를 만들 때 원액은 1,000 ÷ 200 = <b>5 mL</b>입니다.
+    </div>
+
+    <div style="background:#fff;border:1px solid #BBDEFB;border-radius:10px;padding:10px 12px;margin-bottom:10px">
+      <div style="font-size:12px;font-weight:800;color:#1565C0;margin-bottom:7px">🧮 얼마나 넣어야 할까? (계산기)</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px">
+        <label style="font-size:12px;color:#555">희석배수
+          <input id="dil-x" type="number" min="2" step="1" inputmode="numeric" value="${DIL_STATE.x}" style="width:80px;padding:6px 8px;border:1px solid #bbb;border-radius:7px;font-size:14px;font-weight:700;margin-left:4px"> 배</label>
+        <label style="font-size:12px;color:#555">만들 양
+          <input id="dil-l" type="number" min="0.1" step="any" inputmode="decimal" value="${DIL_STATE.l}" style="width:80px;padding:6px 8px;border:1px solid #bbb;border-radius:7px;font-size:14px;font-weight:700;margin-left:4px"> L</label>
+      </div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:4px">
+        ${quick.map(x => `<button class="dil-qx" data-v="${x}" style="font-size:11px;border:1px solid #90CAF9;border-radius:14px;background:#fff;color:#1565C0;padding:3px 10px">${x}배</button>`).join("")}
+      </div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:9px">
+        ${qAmt.map(v => `<button class="dil-ql" data-v="${v}" style="font-size:11px;border:1px solid #CE93D8;border-radius:14px;background:#fff;color:#7B1FA2;padding:3px 10px">${v >= 1000 ? v/1000 + "톤" : v + " L"}</button>`).join("")}
+      </div>
+      <div id="dil-result">${dilResultHtml()}</div>
+    </div>
+
+    <div style="font-size:12px;font-weight:800;color:#1565C0;margin:4px 0 7px">👣 이 순서로 섞으세요</div>
+    ${step(1, "📖", "라벨 확인", "제품 라벨의 <b>희석배수·접촉시간</b>을 먼저 확인해요. 질병별 안내와 라벨이 다르면 <b>라벨(또는 방역당국 지침)이 우선</b>입니다.", "#455A64")}
+    ${step(2, "💧", "물을 먼저 담기", "깨끗한 통·분무기에 <b>필요한 물의 대부분</b>을 먼저 넣어요(원액이 튀는 것을 줄여 줍니다).", "#1565C0")}
+    ${step(3, "🧴", "원액을 계량해서 넣기", "눈대중 말고 <b>계량컵·주사기</b>로 정확히 재서 넣어요. 진하게 쓴다고 효과가 더 좋아지지 않고, 연하면 효과가 떨어집니다.", "#C62828")}
+    ${step(4, "🥄", "골고루 섞기", "막대나 분무기를 흔들어 <b>충분히 섞고</b>, 다 섞인 뒤 사용해요.", "#2E7D32")}
+    ${step(5, "⏱️", "당일 쓰고, 접촉시간 지키기", "희석액은 <b>그날 만들어 그날 사용</b>하고 남기지 않아요. 뿌린 뒤 라벨의 접촉시간만큼 <b>마르지 않게 두었다가</b> 건조·환기합니다.", "#EF6C00")}
+
+    <div style="font-size:12px;font-weight:800;color:#1565C0;margin:10px 0 5px">📋 자주 쓰는 배수별 원액 양 (참고표)</div>
+    <div style="overflow-x:auto">
+      <table style="border-collapse:collapse;width:100%;min-width:300px;font-size:12px;background:#fff;border-radius:8px">
+        <tr style="background:#E3F2FD;color:#1565C0"><th style="padding:6px 8px">희석배수</th><th style="padding:6px 8px">1 L</th><th style="padding:6px 8px">10 L</th><th style="padding:6px 8px">100 L</th></tr>
+        ${rows}
+      </table>
+    </div>
+    <div style="font-size:10.5px;color:#888;margin-top:3px">※ 칸 값은 필요한 <b>원액</b> 양입니다. 나머지는 물(전체 양 − 원액)이에요.</div>
+
+    <div style="font-size:11px;color:#8D6E00;background:#FFF8E1;border-radius:8px;padding:8px 10px;margin-top:9px;line-height:1.7">
+      ⚠️ <b>안전 수칙</b><br>
+      • 장갑·마스크·보안경을 착용하고 환기가 되는 곳에서 섞으세요.<br>
+      • <b>다른 소독제를 섞지 마세요.</b> 특히 염소계(차아염소산 등)는 산성 제품과 섞으면 유해가스가 나올 수 있어요.<br>
+      • 찬물에서는 효과가 떨어질 수 있고, 유기물(분변·먼지)이 남아 있으면 소독 효과가 크게 줄어요. 먼저 깨끗이 씻어내세요.<br>
+      • 원액·희석액은 사료·물·닭이 닿지 않는 곳에 두고 용기에 이름을 적어 두세요.
+    </div>
+  </div>`;
+}
+function dilBind(){
+  const x = document.getElementById("dil-x"), l = document.getElementById("dil-l");
+  const out = document.getElementById("dil-result");
+  if(!x || !l || !out) return;
+  const upd = ()=>{
+    DIL_STATE.x = parseFloat(x.value);
+    DIL_STATE.l = parseFloat(l.value);
+    out.innerHTML = dilResultHtml();
+  };
+  x.oninput = upd; l.oninput = upd;
+  document.querySelectorAll(".dil-qx").forEach(b=>b.onclick=()=>{ x.value = b.dataset.v; upd(); });
+  document.querySelectorAll(".dil-ql").forEach(b=>b.onclick=()=>{ l.value = b.dataset.v; upd(); });
+}
+// 소독요령을 번호 원 + 세로선의 흐름도로 보여준다(데이터 모양은 그대로 '제목|설명').
+function disinfectFlowHtml(steps, color){
+  return `<div style="position:relative">` + (steps||[]).map((s, i, a) => `
+      <div style="display:flex;gap:10px;align-items:stretch">
+        <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0">
+          <div style="width:30px;height:30px;border-radius:50%;background:${color};color:#fff;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center">${i+1}</div>
+          ${i < a.length - 1 ? `<div style="flex:1;width:3px;background:${color}55;margin:2px 0"></div>` : ""}
+        </div>
+        <div style="flex:1;min-width:0;padding-bottom:${i < a.length - 1 ? 12 : 2}px">
+          <div style="font-size:13px;font-weight:800;color:${color}">${esc(s.step)}</div>
+          <div style="font-size:12.5px;color:#444;line-height:1.65;margin-top:2px">${esc(s.detail)}</div>
+        </div>
+      </div>`).join("") + `</div>`;
+}
+const DISINFECT_EASY_STRIP = `
+  <div style="display:flex;gap:4px;align-items:stretch;margin-bottom:10px;text-align:center">
+    <div style="flex:1;background:#E3F2FD;border-radius:8px;padding:6px 3px"><div style="font-size:18px">🧹</div><div style="font-size:11px;font-weight:800;color:#1565C0">① 치우고 씻기</div><div style="font-size:10px;color:#666">분변·먼지 제거</div></div>
+    <div style="align-self:center;color:#999">▶</div>
+    <div style="flex:1;background:#FCE4EC;border-radius:8px;padding:6px 3px"><div style="font-size:18px">🧴</div><div style="font-size:11px;font-weight:800;color:#C62828">② 소독제 뿌리기</div><div style="font-size:10px;color:#666">라벨 배수대로</div></div>
+    <div style="align-self:center;color:#999">▶</div>
+    <div style="flex:1;background:#FFF3E0;border-radius:8px;padding:6px 3px"><div style="font-size:18px">⏱️</div><div style="font-size:11px;font-weight:800;color:#EF6C00">③ 기다리기</div><div style="font-size:10px;color:#666">접촉시간 지키기</div></div>
+    <div style="align-self:center;color:#999">▶</div>
+    <div style="flex:1;background:#E8F5E9;border-radius:8px;padding:6px 3px"><div style="font-size:18px">🌬️</div><div style="font-size:11px;font-weight:800;color:#2E7D32">④ 말리기</div><div style="font-size:10px;color:#666">건조·환기</div></div>
+  </div>`;
+
 function renderGeneralDisinfectCards(){
   return GENERAL_DISINFECT_GUIDE.map((g, ci) => {
     const open = disinfectTabState.generalOpenKey === g.key;
@@ -11314,7 +11449,8 @@ function renderDisinfectPanel(){
       chips: pkgChip("질병별 소독", "#fff", pc.color),
       title: p.disease, toggleClass: "disinfect-toggle", key: p.key, open,
       openLabel: "내용 보기 ▼", admin, editClass: "disinfect-edit-btn", delClass: "disinfect-del-btn",
-      body: pkgSectionTitle("🧪 소독제 선택 기준", pc.color, true)
+      body: DISINFECT_EASY_STRIP
+        + pkgSectionTitle("🧪 어떤 소독제를 고를까? (선택 기준)", pc.color, true)
         + (p.disinfectants.length ? pkgStepsHtml(p.disinfectants, pc.color) : pkgEmptyHtml("등록된 내용이 없습니다."))
         + pkgSectionTitle("💊 추천 소독제 제품", pc.color)
         + ((p.products&&p.products.length) ? p.products.map(pr => `
@@ -11322,8 +11458,9 @@ function renderDisinfectPanel(){
           <div style="font-size:12.5px;font-weight:700;color:#333">${esc(pr.name)}${pr.company?` <span style="font-size:11px;color:#888;font-weight:400">${esc(pr.company)}</span>`:""}</div>
           ${pr.usage?`<div style="font-size:12px;color:#444;line-height:1.6;margin-top:2px">${esc(pr.usage)}</div>`:""}
         </div>`).join("") : pkgEmptyHtml("등록된 제품이 없습니다."))
-        + pkgSectionTitle("🧼 소독요령", pc.color)
-        + (p.procedure.length ? pkgStepsHtml(p.procedure, pc.color) : pkgEmptyHtml("등록된 내용이 없습니다."))
+        + pkgSectionTitle("🧼 이렇게 소독하세요 (순서대로)", pc.color)
+        + (p.procedure.length ? disinfectFlowHtml(p.procedure, pc.color) : pkgEmptyHtml("등록된 내용이 없습니다."))
+        + `<div style="font-size:11px;color:#2E7D32;background:#E8F5E9;border-radius:8px;padding:7px 10px;margin-top:10px;line-height:1.6">💧 소독제를 얼마나 타는지 헷갈리면 위쪽 ‘희석배수 카드’의 계산기를 쓰세요.</div>`
         + pkgCautionHtml(p.caution),
     });
   }).join("") : `<div class="card" style="text-align:center;padding:28px 16px;color:#aaa">아직 등록된 질병이 없습니다.${admin?"":" 곧 추가됩니다."}</div>`;
@@ -11360,7 +11497,9 @@ function renderDisinfectPanel(){
   </div>`;
 
   return head + `
-  <div style="font-size:12px;font-weight:800;color:#B8860B;margin:4px 0 8px">📘 일반적인 소독요령(기본 개념)</div>
+  <div style="font-size:12px;font-weight:800;color:#1565C0;margin:4px 0 8px">💧 소독제 희석요령</div>
+  ${renderDilutionCard()}
+  <div style="font-size:12px;font-weight:800;color:#B8860B;margin:14px 0 8px">📘 일반적인 소독요령(기본 개념)</div>
   ${renderGeneralDisinfectCards()}
   <div style="font-size:12px;font-weight:800;color:#00695C;margin:18px 0 8px">🦠 질병별 소독제 선택과 소독요령</div>
   ${cards}
@@ -33577,6 +33716,7 @@ function attachEvents(){
   // 질병별 소독제 선택과 소독요령
   drugUseBind();
   coliBind();
+  dilBind();
   const disinfectBackBtn = document.getElementById("disinfect-back-btn");
   if(disinfectBackBtn) disinfectBackBtn.onclick = ()=>{ premiumState.view = "menu"; render(); };
   document.querySelectorAll(".disinfect-toggle").forEach(b=>b.onclick=()=>{
