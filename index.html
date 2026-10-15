@@ -6065,6 +6065,20 @@ function kkokoMount3d(){
     kkokoPlace3d();
   }).catch(()=>{ kkokoViewerFailed = true; });
 }
+// 누를 때마다 지금과 다른 방향(좌우 60°~300° 사이, 위아래 약간)으로 부드럽게 돌려 보여준다.
+let kkokoSpinTheta = 0;
+function kkokoSpin3d(){
+  const el = kkokoViewerEl;
+  if(!el || !el.getCameraOrbit) return;
+  try{
+    kkokoSpinTheta = (kkokoSpinTheta + 60 + Math.random() * 240) % 360;
+    const phi = 65 + Math.random() * 30;
+    el.removeAttribute("auto-rotate");
+    el.cameraOrbit = kkokoSpinTheta.toFixed(0) + "deg " + phi.toFixed(0) + "deg auto";
+    clearTimeout(kkokoSpin3d._t);
+    kkokoSpin3d._t = setTimeout(()=>{ if(kkokoViewerEl && !(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches)) kkokoViewerEl.setAttribute("auto-rotate", ""); }, 6000);
+  }catch(e){}
+}
 // 드래그로 모델을 돌린 뒤 손을 뗄 때 나는 click이 "만지기"로 오인되지 않게 거른다.
 document.addEventListener("pointerdown", e=>{ kkokoPointerStart = { x:e.clientX, y:e.clientY }; }, true);
 
@@ -6092,6 +6106,7 @@ function kkokoCharacterBlock(talking, size){
 function kkokoTouchCharacter(e){
   // 마우스·터치 click(detail>0)이 드래그 끝에서 났다면 모델을 돌린 것이지 만진 게 아니다.
   if(e && e.detail > 0 && kkokoPointerStart && Math.hypot(e.clientX - kkokoPointerStart.x, e.clientY - kkokoPointerStart.y) > 8) return;
+  kkokoSpin3d();
   if(kkokoReactTimer) clearTimeout(kkokoReactTimer);
   kkokoCharState.reacting = true;
   const reactions = kkokoReactions();
