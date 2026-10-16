@@ -766,8 +766,8 @@ let premiumState = {
 // category는 메뉴 화면에서 큰 묶음 제목으로 쓰인다(renderPremiumMenuItems) —
 // 배열 순서가 곧 화면에 보이는 순서이므로, 같은 category끼리는 붙여서 둔다.
 const PREMIUM_ITEMS = [
-  { key:"ibteam", icon:"🧬", title:"IB 닭기침 잡는 교실 — 전염성기관지염(IB) 차단 8단계 코스", desc:"IB 기초 질병학부터 위험요인·국내 실태·진단·백신 방어·논문 연구·시범농장 실증·예방시스템까지 8단계로 순차 연구합니다. 단계마다 기초 이론·전문 심화·육계/산란계 비교·현장 사례·문헌 검토·농장 점검표를 제공합니다.", color:"#C62828", category:"최꼬 아카데미" },
-  { key:"coliclass", icon:"🧫", title:"닭 대장균증 잡는 교실 — 발견부터 재발 방지까지 12차시", desc:"육계·산란계를 나누어 대장균증을 쉽게 배웁니다. 기초 이해 → 현장 판단 → 치료·재발 방지 → 최신 연구 읽기, 그림과 사례, 우리 농장 대응계획서까지.", color:"#00897B", category:"최꼬 아카데미" },
+  { key:"ibteam", icon:"🧬", title:"IB 닭기침 잡는 교실 — 전염성기관지염(IB) 차단 8단계 코스", desc:"IB가 어떤 병인지부터 들어오는 길·우리나라 발생·확인 방법·백신·우리 농장 적용·예방 시스템까지 단계별로 배웁니다. 육계/산란계 비교, 현장 사례, 농장 점검표를 함께 드려요.", color:"#C62828", category:"최꼬 아카데미" },
+  { key:"coliclass", icon:"🧫", title:"닭 대장균증 잡는 교실 — 발견부터 재발 방지까지 12차시", desc:"육계·산란계를 나누어 대장균증을 쉽게 배웁니다. 기초 → 현장 판단 → 치료·재발 방지 → 백신·새 제품 따져보기, 그림과 사례, 우리 농장 대응계획서까지.", color:"#00897B", category:"최꼬 아카데미" },
   { key:"hpaizero", icon:"🦠", title:"AI 막는 농장 지킴이 교실 — HPAI ZERO FARM", desc:"8개 전문분야 인공지능 연구팀과 총괄 인공지능가 야생조류·지리·기상·차단방역·임상·예측·현장 실증을 함께 연구하는 체계입니다. 마스터 프롬프트, 단계별 연구 프로그램, 농장 위험평가 시뮬레이터(연구용 예시), 일일 방역 점검표를 제공합니다.", color:"#00695C", category:"최꼬 아카데미" },
   { key:"drug", icon:"💊", title:"약품조회 및 휴약기간 검색", desc:"동물용의약품을 제품명·업체명·성분명·축종·증상으로 검색하고, 축종별 휴약기간을 QIA 공식 데이터로 바로 확인합니다.", color:"#00838F", category:"약품·투약·소독" },
   { key:"drugusage", icon:"📇", title:"약품별 사용요령 카드", desc:"약품마다 용법·휴약기간·효능을 한 장 카드로 정리했습니다. 공식 설명서(QIA) 기준이며 약품 정보 링크도 함께 볼 수 있습니다.", color:"#00838F", category:"약품·투약·소독" },
@@ -8697,7 +8697,7 @@ const COLI_PHASES = [
   { k:"p1", t:"기초 이해", sub:"1~3차시", from:1, to:3, color:"#2E7D32", icon:"🌱", d:"대장균이 무엇이고 어떻게 병이 되는지, 먼저 알아채는 법" },
   { k:"p2", t:"현장 판단", sub:"4~6차시", from:4, to:6, color:"#1565C0", icon:"🔎", d:"육계·산란계별 양상, 부검 사진, 수의사 진단과 검사 결과 읽기" },
   { k:"p3", t:"치료·재발 방지", sub:"7~9차시", from:7, to:9, color:"#EF6C00", icon:"🛠️", d:"치료는 어떻게 정하고, 안 들으면 무엇을 보고, 다음엔 무엇을 바꿀까" },
-  { k:"p4", t:"최신 연구 읽기", sub:"10~12차시", from:10, to:12, color:"#6A1B9A", icon:"🔬", d:"백신·파지 연구를 어디까지 믿을지, 우리 농장 대응계획" },
+  { k:"p4", t:"백신·새 제품·우리 농장 계획", sub:"10~12차시", from:10, to:12, color:"#6A1B9A", icon:"🛡️", d:"백신은 어디까지 믿을지, 새 제품은 무엇을 물어볼지, 우리 농장 대응계획" },
 ];
 const coliState = { tab:"home", lesson:0, done:{}, plan:{ type:"broiler", f:{} }, msg:"" };
 (function coliLoad(){ try { const j = JSON.parse(localStorage.getItem("coli_v1") || "{}"); if(j.done && typeof j.done === "object") coliState.done = j.done; if(j.plan && typeof j.plan === "object") coliState.plan = Object.assign(coliState.plan, j.plan); } catch(e){} })();
@@ -8796,59 +8796,58 @@ function coliSvgEvidence(){
 
 // ── 12차시 ──
 const COLI_LESSONS = [
-  { no:1, t:"대장균과 대장균증", q:"원래 있던 균이 언제 병을 만드는가?", fig:"three",
-    easy:`<p>“대장균은 닭의 장과 농장 환경에서 흔히 발견됩니다. 그중 병을 잘 일으키는 균이 있거나, 닭의 방어력이 약해져 균이 몸속으로 들어가면 문제가 됩니다. 그래서 <b>균만 볼 것이 아니라, 들어온 길과 닭이 약해진 이유를 함께</b> 봐야 합니다.”</p>
-      <p>병을 잘 일으키는 대장균을 <b>APEC(조류병원성 대장균)</b>이라고 부릅니다. 대장균증은 설사만 일으키는 병이 아닙니다. <b>기낭·심장 주변·간 표면·생식기관</b> 등에 염증을 일으키거나 혈액을 타고 <b>몸 전체로 퍼질 수</b> 있습니다. 병원성이 강한 균이 처음부터 원인이 되기도 하고, 다른 감염이나 환경 스트레스 뒤에 <b>이차적으로</b> 문제가 되기도 합니다.</p>`,
-    table:[["“균이 많이 쌓였나?”", "분변·먼지·물·기구 등의 오염과 노출", "어느 동, 어느 구역에서 먼저 시작했나?"], ["“어디로 들어왔나?”", "호흡기, 배꼽, 상처, 생식기 등 침입 경로", "호흡기 증상, 배꼽 이상, 피부 손상이 있었나?"], ["“닭이 버틸 힘이 떨어졌나?”", "동반 감염, 환경 스트레스, 면역 상태", "발생 전 환기·온도·음수·사료·이동에 변화가 있었나?"]],
+  { no:1, t:"대장균과 대장균증", q:"원래 있던 균이 언제 병을 만드나?", fig:"three",
+    easy:`<p>대장균은 닭 장과 농장 어디에나 있는 균이에요. 문제는 <b>병을 잘 일으키는 균</b>이 있거나 <b>닭이 약해져서</b> 균이 몸속으로 들어갈 때입니다. 그래서 균만 보지 말고 <b>들어온 길과 닭이 약해진 이유</b>를 같이 봅니다.</p>
+      <p>대장균증은 설사병만이 아니에요. 기낭·심장 주변·간·생식기에 염증을 일으키고 <b>몸 전체로 퍼질 수</b> 있습니다. 처음부터 원인이 되기도 하고, 다른 병이나 스트레스 뒤에 <b>덧붙어</b> 생기기도 합니다.</p>`,
     broiler:"초기 폐사, 성장 손실, 출하 손실이 서로 어떻게 이어지는지 봅니다.", layer:"폐사, 산란 손실, 장기간 반복 발생이 어떻게 이어지는지 봅니다.",
-    practice:"‘대장균 검출’과 ‘대장균증 진단’의 차이를 내 말로 설명할 수 있다.",
-    note:"분변에서 대장균이 검출됐다는 사실만으로 폐사 원인을 확정할 수는 없습니다. 증상·부검 병변·병변 부위의 세균검사를 함께 해석하는 훈련을 합니다.", src:[["MSD 수의학 매뉴얼 — 가금 대장균증","https://www.msdvetmanual.com/poultry/colibacillosis/colibacillosis-in-poultry"]] },
-  { no:2, t:"발생 원인과 감염 경로", q:"균은 어디서 와서 어디로 들어가는가?", fig:"routes",
-    easy:`<p>균이 <b>어디서 왔는지(오염원)</b>, <b>어디로 들어가는지(침입 경로)</b>, 그리고 <b>무엇이 병을 키웠는지(유발 요인)</b>를 나누어 생각합니다. 한 가지 원인만 찾으면 재발을 막기 어렵습니다.</p>`,
+    practice:"‘대장균이 나왔다’와 ‘대장균증이다’의 차이를 내 말로 설명해 본다.",
+    note:"분변에서 대장균이 나왔다고 폐사 원인이 대장균이라고 단정할 수는 없어요. 증상과 부검 소견을 함께 보세요." },
+  { no:2, t:"발생 원인과 감염 경로", q:"균은 어디서 와서 어디로 들어가나?", fig:"routes",
+    easy:`<p>균이 <b>어디서 왔고</b>, <b>어디로 들어가며</b>, <b>무엇이 병을 키웠는지</b>를 나눠서 생각해요. 한 가지만 찾으면 또 재발합니다.</p>`,
     broiler:"종계·부화장·입추·배꼽·먼지·피부 상처", layer:"육성계 도입·호흡기·생식기·분변 오염·동별 잔존 오염",
-    practice:"우리 농장의 감염 경로 지도를 그리고, 가장 열려 있는 길 3곳에 표시한다." },
-  { no:3, t:"조기 발견과 기록", q:"폐사가 늘기 전에 무엇이 달라지는가?", fig:"curve",
-    easy:`<p>닭은 아프기 시작하면 <b>먹고 마시는 양, 움직임, 무리 짓는 모습</b>이 먼저 달라집니다. 폐사가 눈에 띄게 늘었을 때는 이미 늦은 경우가 많아서, <b>매일 같은 방식으로 기록</b>해 두어야 ‘언제부터 달라졌는지’를 찾을 수 있습니다.</p>`,
+    practice:"우리 농장 약도에 균이 들어오는 길을 그리고, 가장 열린 곳 3곳에 표시한다." },
+  { no:3, t:"조기 발견과 기록", q:"폐사가 늘기 전에 무엇이 달라지나?", fig:"curve",
+    easy:`<p>닭은 아프기 시작하면 <b>먹는 양·움직임·모여 있는 모습</b>부터 달라져요. 폐사가 늘 때는 이미 늦으니, <b>매일 같은 방식으로 기록</b>해 두면 언제부터 달랐는지 알 수 있습니다.</p>`,
     broiler:"음수·사료 섭취, 활력, 일별 폐사, 체중 균일도", layer:"음수·사료 섭취, 일별 폐사, 산란율, 상품란 수",
-    practice:"예시 기록에서 이상이 시작된 시점과 구역을 찾아낸다." },
-  { no:4, t:"시기별 발생 양상", q:"같은 대장균증인데 왜 모습이 다른가?", fig:"timeline",
-    easy:`<p>같은 병이라도 <b>일령·주령에 따라 먼저 나타나는 모습</b>이 다릅니다. 그래서 ‘지금 이 닭의 나이에는 어디를 먼저 볼까’를 정해 두면 판단이 빨라집니다.</p>`,
+    practice:"예시 기록에서 이상이 시작된 날과 구역을 찾아본다." },
+  { no:4, t:"시기별 발생 양상", q:"같은 대장균증인데 왜 모습이 다를까?", fig:"timeline",
+    easy:`<p>같은 병도 <b>닭 나이에 따라</b> 먼저 보이는 모습이 달라요. ‘지금 이 나이엔 어디부터 볼까’를 정해 두면 판단이 빨라집니다.</p>`,
     broiler:"입추 초기 배꼽·난황낭 문제, 이후 호흡기·전신 감염, 피부염", layer:"육성기 감염, 산란기 난관염·복막염, 급성 패혈증",
-    practice:"일령·주령별로 먼저 확인할 항목을 정해 적는다." },
-  { no:5, t:"부검 사진과 감별진단", q:"이 병변이 보이면 무엇을 의심하는가?", fig:"body",
-    easy:`<p>병변은 <b>정상 장기와 나란히 놓고 비교</b>하면 훨씬 잘 보입니다. 사진에서 <b>눈에 보이는 사실(관찰)</b>과 <b>그래서 의심되는 원인(추정)</b>을 나누어 적는 연습을 합니다.</p>`,
+    practice:"일령·주령별로 먼저 확인할 것을 정해 적는다." },
+  { no:5, t:"부검 사진 보기", q:"이 병변이 보이면 무엇을 의심할까?", fig:"body",
+    easy:`<p>병변은 <b>정상 장기와 나란히 놓고 비교</b>하면 잘 보여요. 사진에서 <b>눈에 보이는 것</b>과 <b>그래서 짐작되는 것</b>을 나눠 적어 보세요.</p>`,
     broiler:"기낭염·심낭염·간주위염·봉와직염", layer:"난관염·난황성 복막염·다발성 장막염",
-    practice:"사진의 ‘관찰한 사실’과 ‘추정 원인’을 칸을 나누어 구분해 적는다.",
-    note:"실제 육계 조사에서는 난황낭 감염부터 기낭염·심낭염·간주위염까지 다양한 병변이 확인됐습니다. 사진은 진단의 단서일 뿐, 특정 병변 하나만으로 원인균을 확정하지 않는다는 점을 반복합니다.", src:[["육계 발생·병변 조사 연구, 2021","https://pmc.ncbi.nlm.nih.gov/articles/PMC8456121/"]] },
-  { no:6, t:"수의사 진단과 검사 결과 해석", q:"진단은 누가 어떻게 하고, 실험실 진단은 언제 필요한가?", fig:"detect",
-    easy:`<p><b>진단은 담당 전문 수의사를 통해 받는 것이 첫 순서</b>입니다. 수의사가 증상·부검 병변·농장 기록을 보고 판단하고, <b>그것만으로 진단이 어렵거나 확인이 필요할 때</b> 수의사가 <b>실험실 진단(배양·감수성 검사 등)의 도움</b>을 받습니다. 농장은 실험실에 직접 보내기보다 <b>수의사가 판단할 수 있도록 정보와 기록을 정리해 전달</b>하는 역할을 합니다.</p>
-      <p>실험실 결과는 <b>‘다음에 무엇을 할지’를 바꿀 때</b> 가치가 큽니다. 결과지는 수의사와 함께 읽으세요 — 누구에게, 어디서, 언제 채취했는지(대표 개체·병변 부위·투약 전 여부)와 함께 해석해야 합니다. 배양·감수성 결과는 <b>치료 선택</b>과 <b>재발 조사</b>에 쓰입니다.</p>`,
+    practice:"사진에서 ‘본 것’과 ‘짐작되는 것’을 칸을 나눠 적는다.",
+    note:"사진 한 장, 병변 하나로 원인균을 단정하지 않아요. 진단은 수의사와 함께 하세요." },
+  { no:6, t:"수의사 진단과 검사 결과", q:"진단은 누구와 하고, 실험실 검사는 언제 필요할까?", fig:"detect",
+    easy:`<p><b>진단은 담당 수의사에게 먼저</b> 받으세요. 수의사가 증상·부검 소견·기록을 보고 판단하고, 어려우면 <b>수의사가 실험실 검사의 도움</b>을 받습니다. 농장은 <b>동·일령·증상·투약 이력을 정리해 전달</b>하는 역할을 해요.</p>
+      <p>검사 결과지는 수의사와 <b>함께 읽고</b>, ‘그래서 다음에 뭘 바꿀지’를 정하는 데 쓰세요.</p>`,
     broiler:"초기 폐사와 후기 폐사를 구분하고 부화장·농장 자료를 연결합니다.", layer:"반복 발생한 동·주령·생식기 병변을 연결합니다.",
-    practice:"담당 수의사에게 전할 정보(동·일령·증상·기록·투약 이력)를 한 장에 정리하고, 수의사가 실험실 진단을 권했을 때 결과지를 함께 읽어 ‘다음 행동’ 한 가지를 정한다." },
-  { no:7, t:"치료 결정", q:"어떤 근거로 치료를 선택하는가?", fig:"treat",
-    easy:`<p>약 이름보다 먼저 <b>‘치료가 제대로 이루어지는 조건’</b>을 봅니다. <b>담당 수의사의 진단(필요하면 실험실 결과)</b>로 맞는 약을 고르고, 닭에게 필요한 양이 <b>실제로 전달되는지</b> 확인하고, <b>계속 감염되는 원인</b>을 함께 줄입니다. 약 선택은 수의사와 <b>해당 제품의 국내 허가사항</b>을 확인해서 정합니다.</p>`,
+    practice:"수의사에게 전할 정보(동·일령·증상·기록·투약 이력)를 한 장에 정리해 본다." },
+  { no:7, t:"치료 결정", q:"치료는 무엇을 보고 정할까?", fig:"treat",
+    easy:`<p>약 이름보다 먼저 <b>치료가 제대로 되는 조건</b>을 봐요. 수의사 진단으로 약을 정하고, <b>닭이 실제로 먹는지</b> 확인하고, <b>계속 감염되는 원인</b>도 함께 줄입니다. 약은 수의사와 <b>제품 허가사항</b>을 확인해 정하세요.</p>`,
     broiler:"실제 음수량, 투약 전달, 출하 일정과 휴약기간", layer:"산란 중 사용 가능 여부, 계란 출하 제한, 장기 병변",
-    practice:"모의 사례에서 ‘치료 전에 확인할 것’ 목록을 만든다." },
-  { no:8, t:"치료 반응과 실패 분석", q:"약을 썼는데 왜 계속 죽는가?", fig:"recheck",
-    easy:`<p>약을 바꾸기 전에 <b>순서대로 다시 점검</b>합니다: ① 진단이 맞았나(오진·다른 병) ② 닭이 약을 먹었나(섭취·투약기) ③ 균에 듣나(내성·감수성) ④ 다른 병이 겹쳤나 ⑤ 감염원이 아직 있나(지속 노출) ⑥ 이미 심한 병변이 있나.</p>`,
+    practice:"치료 전에 확인할 것 목록을 만들어 본다." },
+  { no:8, t:"치료 반응과 실패 점검", q:"약을 썼는데 왜 계속 죽을까?", fig:"recheck",
+    easy:`<p>약을 바꾸기 전에 <b>순서대로 다시 점검</b>해요: ① 진단이 맞았나 ② 닭이 약을 먹었나 ③ 균에 듣나 ④ 다른 병이 겹쳤나 ⑤ 균이 아직 농장에 있나 ⑥ 이미 병변이 심한가.</p>`,
     broiler:"섭취 부족, 투약기 문제, 내성, 동반 질병, 지속 노출", layer:"같은 요인에 더해 만성 난관·복막 병변과 반복 감염",
-    practice:"‘임의로 약을 바꾸기 전에 다시 점검할 순서’를 직접 적어 본다." },
-  { no:9, t:"예방과 재발 방지", q:"다음 계군에서는 무엇을 바꿀 것인가?", fig:"plan3",
-    easy:`<p>개선은 <b>‘누가 · 언제까지 · 어떻게 확인하나’</b>가 있어야 실제로 합니다. 거창한 목록보다 <b>3가지</b>를 정해 끝까지 해 보세요.</p>`,
+    practice:"임의로 약을 바꾸기 전에 다시 점검할 순서를 적어 본다." },
+  { no:9, t:"예방과 재발 방지", q:"다음 계군에서는 무엇을 바꿀까?", fig:"plan3",
+    easy:`<p>개선은 <b>누가 · 언제까지 · 어떻게 확인하나</b>가 있어야 실제로 해요. 거창한 목록보다 <b>3가지</b>를 정해 끝까지 해 보세요.</p>`,
     broiler:"입추 준비, 환기·깔짚·급수, 계군 사이 세척·소독·건조", layer:"육성·산란 전환 관리, 구역별 위생, 급수·분변·해충 관리",
     practice:"담당자·기한·확인 방법이 있는 개선안 3개를 만든다." },
-  { no:10, t:"백신 전략", q:"백신을 맞았는데 왜 발생할 수 있는가?", fig:"vaccine",
-    easy:`<p>대장균은 <b>종류(균주)가 매우 다양</b>해서, 백신을 맞았다고 모든 대장균을 막는다는 뜻은 아닙니다. ‘접종했다’와 ‘실제로 예방됐다’는 다른 이야기이므로, <b>접종 조건과 결과 기록</b>을 함께 봅니다.</p>`,
+  { no:10, t:"백신, 어디까지 믿을까", q:"백신을 맞았는데 왜 병이 날 수 있나?", fig:"vaccine",
+    easy:`<p>대장균은 <b>종류가 아주 많아서</b> 백신을 맞아도 모두 막지는 못해요. ‘맞혔다’와 ‘실제로 막았다’는 다르니, <b>접종 기록과 그 뒤 결과</b>를 함께 보세요.</p>`,
     broiler:"짧은 사육기간, 종계·부화장과의 연계", layer:"육성기 예방 계획, 장기 사육 중 방어 평가",
-    practice:"‘접종 여부’와 ‘실제 예방 효과’를 구분해 설명한다." },
-  { no:11, t:"최근 연구 읽기", q:"논문에서 효과가 있다는 말은 어디까지인가?", fig:"evidence",
-    easy:`<p>논문의 ‘효과’는 <b>어느 단계에서 확인했느냐</b>에 따라 무게가 다릅니다. 시험관 결과를 농장 치료 효과로 바로 읽지 않습니다. 아래 ‘연구 읽기’ 탭의 다섯 질문으로 따져 봅니다.</p>`,
-    broiler:"다가 백신, 유전체 역학, 생산단계별 내성균", layer:"파지, 생식기 감염, 장기간 감염 관리",
-    practice:"시험관·감염실험·농장시험의 차이를 설명한다.", go:"research" },
-  { no:12, t:"우리 농장 대응 계획", q:"다음 발생 때 누구에게 무엇을 전달하고 무엇을 바꿀 것인가?", fig:"planflow",
-    easy:`<p>마지막 시간의 결과물은 <b>‘우리 농장 대장균증 대응계획서 1장’</b>입니다. ‘대응계획서’ 탭에서 직접 적고 인쇄·복사할 수 있어요.</p>`,
+    practice:"‘접종했다’와 ‘효과를 봤다’를 구분해 말해 본다." },
+  { no:11, t:"새 제품·새 방법, 믿어도 될까?", q:"광고나 새 소식을 들으면 무엇을 물어볼까?", fig:"evidence",
+    easy:`<p>‘효과가 좋다’는 말은 <b>어디서, 어떤 닭에게 해 봤는지</b>에 따라 무게가 달라요. 시험관에서 좋았다고 우리 농장에서도 같지는 않습니다. ‘새 제품 따져보기’ 탭의 다섯 질문을 해 보세요.</p>`,
+    broiler:"어떤 제품이든 육계에서 해 본 결과인지 확인", layer:"어떤 제품이든 산란계에서 해 본 결과인지 확인",
+    practice:"새 제품 설명을 들을 때 물어볼 다섯 질문을 말해 본다.", go:"research" },
+  { no:12, t:"우리 농장 대응 계획", q:"다음 발생 때 누구에게 무엇을 알리고 무엇을 바꿀까?", fig:"planflow",
+    easy:`<p>마지막 시간의 결과물은 <b>‘우리 농장 대장균증 대응계획서 1장’</b>이에요. ‘대응계획서’ 탭에서 직접 적고 인쇄·복사할 수 있어요.</p>`,
     broiler:"초기 폐사부터 출하 성적까지 연결합니다.", layer:"폐사부터 상품란 생산·반복 발생까지 연결합니다.",
-    practice:"농장별 1장 대응계획서를 발표한다(무엇을 관찰했고, 무엇을 의심하며, 무엇을 확인한 뒤 행동할지).", go:"plan" },
+    practice:"우리 농장 대응계획서 1장을 써 본다(무엇을 보고, 누구에게 알리고, 무엇을 바꿀지).", go:"plan" },
 ];
 function coliSvgRecheck(){
   const it = [["1", "진단이 맞았나?", "오진·다른 병", "🩺", "#546E7A"], ["2", "약을 먹었나?", "섭취·투약기", "💧", "#00897B"], ["3", "균에 듣나?", "내성·감수성", "🧫", "#1565C0"], ["4", "다른 병이 겹쳤나?", "동반 질병", "🦠", "#6A1B9A"], ["5", "감염원이 남았나?", "지속 노출", "🏠", "#EF6C00"], ["6", "병변이 심한가?", "만성 난관·복막", "🥚", "#C62828"]];
@@ -8893,12 +8892,12 @@ function coliFigFor(k){
 }
 
 // ── 대장균증 교실: 화면 ──
-const COLI_TABS = [["home", "📚 12차시 교육과정"], ["compare", "🐔 육계·산란계 비교"], ["cases", "🧪 사례 풀이"], ["treat", "💊 치료 6단계"], ["research", "🔬 연구 읽기"], ["plan", "📝 대응계획서"]];
+const COLI_TABS = [["home", "📚 12차시 교육과정"], ["compare", "🐔 육계·산란계 비교"], ["cases", "🧪 사례 풀이"], ["treat", "💊 치료 6단계"], ["research", "🧐 새 제품 따져보기"], ["plan", "📝 대응계획서"]];
 function coliTable(head, rows, minW){
   return `<div style="overflow-x:auto;margin:8px 0"><table style="width:100%;border-collapse:collapse;font-size:12.3px;min-width:${minW || 480}px"><thead><tr style="background:#E0F2F1">${head.map(h => `<th style="padding:7px 9px;text-align:left;border-bottom:2px solid #80CBC4;color:#00695C">${h}</th>`).join("")}</tr></thead><tbody>${rows.map((r, i) => `<tr style="background:${i % 2 ? "#fafafa" : "#fff"}">${r.map((c, k) => `<td style="padding:7px 9px;border-bottom:1px solid #eee;vertical-align:top;line-height:1.65${k === 0 ? ";font-weight:800" : ""}">${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
 }
 function coliBox(title, body, c){ c = c || COLI_COLOR; return `<div style="border-left:4px solid ${c};background:${c}0f;border-radius:9px;padding:9px 12px;margin:10px 0"><div style="font-size:12.8px;font-weight:900;color:${c};margin-bottom:3px">${title}</div><div style="font-size:12.6px;color:#333;line-height:1.75">${body}</div></div>`; }
-function coliLinks(list){ return list && list.length ? `<div style="font-size:11.5px;color:#777;margin-top:6px">📎 근거: ${list.map(l => `<a href="${esc(l[1])}" target="_blank" rel="noopener" style="color:#1565C0">${esc(l[0])}</a>`).join(" · ")}</div>` : ""; }
+function coliLinks(list){ return false && list && list.length ? `<div style="font-size:11.5px;color:#777;margin-top:6px">📎 근거: ${list.map(l => `<a href="${esc(l[1])}" target="_blank" rel="noopener" style="color:#1565C0">${esc(l[0])}</a>`).join(" · ")}</div>` : ""; }
 function coliPhaseOf(no){ return COLI_PHASES.find(p => no >= p.from && no <= p.to); }
 // ── 더 깊이·현장 중심 보강: 차시별 추가 그림 + 현장 점검 + 흔한 오해 ──
 function coliSvgFloor(){
@@ -8947,49 +8946,46 @@ function coliSvgClean(){
     <text x="330" y="142" text-anchor="middle" font-size="11.5" fill="#777">순서를 건너뛰지 말고, 끝난 단계마다 기록해 두세요</text></svg>`;
 }
 const COLI_DEEP = {
-  1: { field:["아침·저녁 한 번씩 ‘이상한 닭’을 눈으로 훑는 시간(5분)을 정한다 — 웅크림, 눈 감음, 무리에서 떨어짐", "죽은 닭이 나오면 동·위치·일령을 같은 수첩에 적는다", "‘대장균이 나왔다’는 말을 들으면 먼저 “어디서 채취했나? 부검 병변은?”을 되묻는다"], myth:[["분변에서 대장균이 나왔으니 대장균증이다", "분변에는 원래 대장균이 있어요. 증상·병변·병변 부위 검사를 함께 봅니다."], ["균만 없애면 해결된다", "들어온 길과 닭이 약해진 이유를 함께 줄여야 재발이 줄어요."]] },
-  2: { fig2:"floor", field:["계사 약도를 A4에 그리고 급수라인·환기구·출입구·분변/폐사체 동선을 표시한다", "빨간 펜으로 ‘젖은 깔짚, 먼지가 쌓이는 곳, 물이 고이는 곳’을 표시한다", "발생 동과 정상 동을 비교해 어느 곳에서 먼저 시작됐는지 적는다"], myth:[["입추 직후 병아리 문제는 농장 탓이 아니다", "부화·운송 단계도 조사하되 농장 관리 항목도 함께 점검합니다. 배꼽 이상만으로 대장균을 확정하지 않아요."], ["소독만 잘하면 균은 없다", "씻고 말린 뒤에도 잔존 오염이 남는 동이 있을 수 있어 동별로 확인합니다."]] },
-  3: { fig2:"record", field:["같은 시각에 같은 방법으로(예: 오전 9시, 동별) 기록한다", "폐사는 두수와 함께 사육수 대비 비율, 위치를 적는다", "기록은 퇴근 전 한 장 사진으로 남겨 수의사와 공유한다"], myth:[["폐사가 늘 때부터 기록하면 된다", "평소 기록이 있어야 ‘언제부터 달라졌는지’를 알 수 있어요."], ["전체 평균만 보면 된다", "동·구역별로 보면 한 곳에서 먼저 시작한 것이 보여요."]] },
-  4: { fig2:"agecal", field:["일령·주령별 ‘먼저 볼 곳’ 점검표를 만들어 계사 입구에 붙인다", "새 계군이 들어오면 첫 주에 배꼽·활력·음수 접근을 따로 기록한다", "환경이 바뀐 날(환기·온도·이동)을 달력에 표시해 두고 그 뒤 1~2주를 눈여겨본다"], myth:[["대장균증은 한 가지 모습으로 온다", "일령·주령에 따라 먼저 나타나는 곳이 달라요."], ["산란율이 안 떨어지면 안전하다", "산란계에서도 산란율이 크게 안 떨어진 채 급성 폐사가 생길 수 있어요."]] },
-  5: { fig2:"necropsy", field:["부검은 수의사 지도에 따라 장갑·마스크를 쓰고 정해진 장소에서 한다", "사진은 같은 순서로 찍고 번호표(또는 자)를 함께 담는다", "‘눈에 보이는 것’과 ‘그래서 짐작하는 것’을 두 칸으로 나누어 적는다"], myth:[["이 병변이면 대장균증이 확실하다", "병변 하나만으로 원인균을 확정하지 않아요. 병변 부위 세균검사와 함께 봅니다."], ["복강에 노른자가 있으면 모두 세균성이다", "그렇지 않아요. 다른 원인과 구분해야 합니다."]] },
-  6: { fig2:"sample", field:["담당 전문 수의사에게 먼저 연락해 진단을 받는다(긴급 치료를 늦추지 않는다)", "증상 있는 닭과 폐사 개체의 상태를 수의사가 볼 수 있게 정리하고, 보존·채취는 수의사 지시에 따른다", "동·일령·투약 이력·시각 메모를 수의사에게 전달한다. 실험실 진단이 필요한지는 수의사가 판단한다"], myth:[["실험실에 보내면 원인이 바로 확정된다", "실험실 결과도 수의사의 임상·부검 판단과 함께 해석해야 해요."], ["검사는 많이 할수록 좋다", "다음 결정을 바꾸는 검사가 가치 있어요. 필요 여부는 담당 수의사와 정하세요."], ["결과서에 ‘대장균’이 있으면 끝", "감수성·병변 부위·농장 기록과 함께 읽어야 합니다."]] },
-  7: { fig2:"water", field:["투약기 눈금, 급수라인 끝, 니플에서 실제로 물이 나오는지 확인한다", "투약 전후의 물 소비량을 기록한다", "수의사 지시(용량·기간)와 휴약기간을 한 장에 적어 눈에 띄는 곳에 둔다"], myth:[["처방대로 넣었으니 다 먹었다", "투약기·급수·섭취량을 확인해야 실제 전달 여부를 알 수 있어요."], ["이전에 쓰던 약을 그대로 쓰면 된다", "감수성과 허가사항, 수의사 판단이 먼저예요."]] },
-  8: { field:["약을 바꾸기 전에 ‘진단·섭취·내성·동반 질병·감염원·병변’ 여섯 가지를 순서대로 점검한다", "악화되면 바로 수의사에게 알리고 추가 검사를 상의한다", "점검 결과를 날짜와 함께 한 장에 적어 둔다"], myth:[["효과가 없으면 약을 계속 바꾼다", "임의로 바꾸기 전에 여섯 가지를 먼저 점검하세요."], ["내성이 원인의 전부다", "섭취 부족, 오진, 동반 질병, 지속 노출도 흔한 이유예요."]] },
-  9: { fig2:"clean", field:["개선안마다 ‘담당자·기한·확인 방법’을 적는다", "다음 입식 전에 청소 순서(제거→세척→건조→소독→건조→점검)를 사진으로 기록한다", "끝난 개선은 다음 계군의 성적과 비교해 효과를 확인한다"], myth:[["개선 목록은 길수록 좋다", "3가지를 끝까지 해내는 편이 효과적이에요."], ["소독약을 더 세게 쓰면 된다", "제품 사용법을 지키고, 먼저 씻고 말리는 순서가 중요해요."]] },
-  10: { field:["접종 기록(날짜·방법·로트·담당자)을 한곳에 모은다", "접종 후 폐사·병변·성적을 같은 양식으로 기록해 ‘효과’를 확인한다", "종계·부화장 접종 정보를 구할 수 있으면 함께 보관한다"], myth:[["백신을 맞혔으니 안 걸린다", "균주가 다양해서 접종과 예방은 별개의 질문이에요."], ["자가백신은 농장에서 직접 만드는 것이다", "그런 뜻이 아니에요. 제도·허가는 별도로 확인합니다."]] },
-  11: { field:["제품 설명을 들을 때 다섯 질문(어디서·누구에게·무엇이·얼마나 확실·우리 농장에서)을 메모한다", "‘시험관 결과’와 ‘농장 시험’을 구분해 달라고 요청한다", "도입 전에 수의사와 상의하고 국내 허가·공급 여부를 확인한다"], myth:[["논문에서 좋다고 했으니 바로 쓴다", "어느 단계에서 확인했는지에 따라 무게가 달라요."], ["균 수가 줄었으니 치료 효과다", "전신 대장균증 치료 효과와 같은 말이 아니에요."]] },
-  12: { field:["대응계획서를 사무실과 계사 입구에 게시한다", "담당 전문 수의사 연락처(야간·휴일 포함)를 한 장에 적는다. 실험실 진단은 수의사가 판단해 연결한다", "6개월마다 계획서를 다시 읽고 고칠 곳을 표시한다"], myth:[["계획서는 서류일 뿐이다", "발생 때 ‘누가 무엇을 한다’가 적혀 있으면 첫 대응이 빨라져요."], ["모든 농장에 같은 경보 기준이 있다", "우리 농장의 평소 수준과 일령·주령 변화를 바탕으로 정합니다."]] },
+  1: { field:["아침·저녁 5분, 웅크리거나 무리에서 떨어진 닭을 눈으로 훑는다", "죽은 닭은 동·위치·일령을 같은 수첩에 적는다"], myth:[["분변에서 대장균이 나왔으니 대장균증이다", "분변엔 원래 대장균이 있어요. 증상·병변과 함께 봅니다."], ["균만 없애면 해결된다", "들어온 길과 닭이 약해진 이유도 함께 줄여야 재발이 줄어요."]] },
+  2: { fig2:"floor", field:["계사 약도에 급수라인·환기구·출입구·폐사체 동선을 그린다", "젖은 깔짚, 먼지 쌓이는 곳, 물 고이는 곳에 빨간 펜으로 표시한다"], myth:[["소독만 잘하면 균은 없다", "씻고 말린 뒤에도 남는 동이 있어요. 동별로 확인하세요."]] },
+  3: { fig2:"record", field:["같은 시각, 같은 방법으로 동별 기록한다", "폐사는 마릿수·비율·위치를 적고, 퇴근 전 사진 한 장으로 수의사와 공유한다"], myth:[["폐사가 늘 때부터 기록하면 된다", "평소 기록이 있어야 언제부터 달라졌는지 알 수 있어요."]] },
+  4: { fig2:"agecal", field:["일령·주령별 ‘먼저 볼 곳’ 점검표를 계사 입구에 붙인다", "새 계군은 첫 주에 배꼽·활력·음수 접근을 따로 기록한다"], myth:[["산란율이 안 떨어지면 안전하다", "산란율이 그대로여도 급성 폐사가 생길 수 있어요."]] },
+  5: { fig2:"necropsy", field:["부검은 수의사 지도에 따라 장갑·마스크를 쓰고 정해진 장소에서 한다", "사진은 같은 순서로, 번호표나 자와 함께 찍는다"], myth:[["이 병변이면 대장균증이 확실하다", "병변 하나로 원인균을 단정하지 않아요."]] },
+  6: { fig2:"sample", field:["담당 수의사에게 먼저 연락한다(긴급 치료를 늦추지 않는다)", "동·일령·투약 이력·시각 메모를 전달한다. 실험실 검사 여부는 수의사가 판단한다"], myth:[["실험실에 보내면 원인이 바로 확정된다", "결과도 수의사의 진단과 함께 해석해야 해요."]] },
+  7: { fig2:"water", field:["투약기 눈금, 급수라인 끝, 니플에서 실제로 물이 나오는지 확인한다", "수의사 지시(용량·기간)와 휴약기간을 한 장에 적어 눈에 띄게 둔다"], myth:[["처방대로 넣었으니 다 먹었다", "투약기·급수·섭취량을 확인해야 실제로 먹었는지 알아요."]] },
+  8: { field:["약을 바꾸기 전에 ‘진단·섭취·내성·다른 병·감염원·병변’ 여섯 가지를 순서대로 점검한다", "점검 결과를 날짜와 함께 적고, 악화되면 바로 수의사에게 알린다"], myth:[["효과가 없으면 약을 계속 바꾼다", "바꾸기 전에 여섯 가지부터 점검하세요."]] },
+  9: { fig2:"clean", field:["개선안마다 ‘담당자·기한·확인 방법’을 적는다", "입식 전 청소 순서(제거→세척→건조→소독→건조→점검)를 사진으로 남긴다"], myth:[["소독약을 더 세게 쓰면 된다", "제품 사용법을 지키고, 먼저 씻고 말리는 순서가 중요해요."]] },
+  10: { field:["접종 기록(날짜·방법·로트·담당자)을 한곳에 모은다", "접종 뒤 폐사·병변·성적을 같은 양식으로 기록해 효과를 확인한다"], myth:[["백신을 맞혔으니 안 걸린다", "균 종류가 많아 접종과 예방은 별개예요."]] },
+  11: { field:["제품 설명을 들을 때 다섯 질문을 메모한다", "도입 전에 수의사와 상의하고 국내 허가·공급 여부를 확인한다"], myth:[["광고에서 좋다고 했으니 바로 쓴다", "어디서 해 본 결과인지에 따라 믿을 정도가 달라요."]] },
+  12: { field:["대응계획서를 사무실과 계사 입구에 붙인다", "담당 수의사 연락처(야간·휴일 포함)를 적어 두고, 6개월마다 다시 읽는다"], myth:[["계획서는 서류일 뿐이다", "‘누가 무엇을 한다’가 적혀 있으면 첫 대응이 빨라져요."]] }
 };
 function coliFig2For(k){
-  return k === "floor" ? coliFig(coliSvgFloor(), "우리 농장 평면도로 다시 그려 보세요 — 약한 곳이 보입니다.")
-    : k === "record" ? coliFig(coliSvgRecord(), "양식은 단순할수록 매일 쓰게 됩니다.")
-    : k === "agecal" ? coliFig(coliSvgAgeCal(), "일령·주령별 점검 달력 — 계사 입구에 붙여 두세요.")
-    : k === "necropsy" ? coliFig(coliSvgNecropsy(), "정해진 순서로 보면 놓치는 것이 줄어요.")
-    : k === "sample" ? coliFig(coliSvgSample(), "수의사 진단을 받기 전에 준비할 다섯 가지.")
-    : k === "water" ? coliFig(coliSvgWater(), "약이 닭 입까지 가는 길을 따라 확인합니다.")
-    : k === "clean" ? coliFig(coliSvgClean(), "계군 사이 청소는 순서가 핵심이에요.") : "";
+  return k === "floor" ? coliFig(coliSvgFloor(), "")
+    : k === "record" ? coliFig(coliSvgRecord(), "")
+    : k === "agecal" ? coliFig(coliSvgAgeCal(), "")
+    : k === "necropsy" ? coliFig(coliSvgNecropsy(), "")
+    : k === "sample" ? coliFig(coliSvgSample(), "")
+    : k === "water" ? coliFig(coliSvgWater(), "")
+    : k === "clean" ? coliFig(coliSvgClean(), "") : "";
 }
 
 function renderColiHome(){
   const done = COLI_LESSONS.filter(l => coliState.done[l.no]).length, pct = Math.round(done / 12 * 100);
-  const goals = ["대장균이 있는 것과 대장균증이 생긴 것을 구분한다", "육계·산란계에서 먼저 볼 증상과 기록을 고른다", "수의사에게 필요한 정보를 전하고 검사 결과를 이해한다", "치료와 환경 개선을 함께 하고 효과를 확인한다", "새 백신·대체제 연구가 우리 농장에 맞는지 판단한다"];
-  const flow = [["15분", "쉬운 설명", "#2E7D32", "📖"], ["15분", "사진·기록 읽기", "#1565C0", "🖼️"], ["20분", "사례 토론", "#EF6C00", "💬"], ["10분", "농장 적용 정리", "#6A1B9A", "✍️"]];
+  const goals = ["대장균이 있는 것과 대장균증이 생긴 것을 구분한다", "육계·산란계에서 먼저 볼 증상과 기록을 고른다", "수의사에게 필요한 정보를 전하고 검사 결과를 이해한다", "치료와 환경 개선을 함께 하고 효과를 확인한다", "새 제품·새 방법이 우리 농장에 맞는지 따져 본다"];
   return `
     <div style="background:linear-gradient(135deg,${COLI_COLOR},#004D40);color:#fff;border-radius:14px;padding:14px 16px">
       <div style="font-size:11px;opacity:.85;letter-spacing:.05em">최꼬 아카데미 · 12차시 (회당 60분)</div>
       <div style="font-size:19px;font-weight:900;margin:3px 0 4px;line-height:1.35">“대장균을 안다”에서 “우리 농장의 문제를 설명하고 대응한다”까지</div>
-      <div style="font-size:12.5px;opacity:.95;line-height:1.7">육계·산란계를 나누어, 발견부터 치료·재발 방지·최신 연구 읽기까지 한 걸음씩 배웁니다.</div>
+      <div style="font-size:12.5px;opacity:.95;line-height:1.7">육계·산란계를 나누어, 발견부터 치료·재발 방지·새 제품 따져보기까지 한 걸음씩 배웁니다.</div>
       <div style="display:flex;align-items:center;gap:10px;margin-top:10px"><div style="flex:1;background:rgba(255,255,255,.25);border-radius:6px;height:9px;overflow:hidden"><div style="width:${pct}%;background:#FFD54F;height:100%"></div></div><b style="font-size:13px">${done}/12 차시 완료</b></div>
     </div>
     ${coliFig(coliSvgThree(), "첫 시간의 핵심 그림 — 균 + 통로 + 방어 약화")}
-    <div style="font-size:14px;font-weight:900;color:${COLI_COLOR};margin:12px 0 4px">🎯 수료하면 이런 걸 할 수 있어요</div>
+    <div style="font-size:14px;font-weight:900;color:${COLI_COLOR};margin:12px 0 4px">🎯 이 교실에서 챙겨 갈 것</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:7px">${goals.map((g, i) => `<div style="display:flex;gap:9px;align-items:flex-start;background:#fff;border:1px solid #dde7e5;border-radius:10px;padding:8px 11px"><span style="flex:none;width:22px;height:22px;border-radius:50%;background:${COLI_COLOR};color:#fff;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center">${i + 1}</span><span style="font-size:12.5px;line-height:1.65;color:#333">${g}</span></div>`).join("")}</div>
-    <div style="font-size:14px;font-weight:900;color:${COLI_COLOR};margin:14px 0 4px">⏱️ 한 차시는 이렇게 진행해요</div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap">${flow.map(f => `<div style="flex:1 1 120px;border:2px solid ${f[2]};background:${f[2]}12;border-radius:11px;padding:8px 10px;text-align:center"><div style="font-size:22px">${f[3]}</div><div style="font-size:15px;font-weight:900;color:${f[2]}">${f[0]}</div><div style="font-size:12px;color:#444">${f[1]}</div></div>`).join("")}</div>
-    <div style="font-size:11.5px;color:#777;margin:4px 0 0">기본 설명을 먼저 하고, 전문용어는 그다음에 붙입니다. 농장주·관리자가 함께 배우고, 10~12차시는 수의사·기술담당자와 토론해 보세요.</div>
+    <div style="font-size:11.5px;color:#777;margin:4px 0 0">쉬운 설명을 먼저, 어려운 말은 나중에. 농장주·관리자가 함께 보고, 궁금한 건 담당 수의사와 이야기해 보세요.</div>
     ${COLI_PHASES.map(ph => `<div style="margin-top:16px"><div style="display:flex;align-items:center;gap:8px;border-bottom:3px solid ${ph.color};padding-bottom:4px"><span style="font-size:22px">${ph.icon}</span><span style="font-size:16px;font-weight:900;color:${ph.color}">${ph.t}</span><span style="font-size:11.5px;color:#888">${ph.sub}</span></div><div style="font-size:12px;color:#666;margin:4px 0 6px">${ph.d}</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px">${COLI_LESSONS.filter(l => l.no >= ph.from && l.no <= ph.to).map(l => `<button type="button" class="coli-open" data-no="${l.no}" style="text-align:left;border:2px solid ${coliState.done[l.no] ? "#2E7D32" : ph.color + "66"};background:${coliState.done[l.no] ? "#F1F8F4" : "#fff"};border-radius:12px;padding:10px 12px;cursor:pointer;font-family:inherit"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11.5px;font-weight:900;color:#fff;background:${ph.color};border-radius:9px;padding:1px 9px">${l.no}차시</span>${coliState.done[l.no] ? `<span style="font-size:12px;color:#2E7D32;font-weight:900">✅ 완료</span>` : ""}</div><div style="font-size:14px;font-weight:900;color:#1b2a28;margin-top:6px;line-height:1.4">${l.t}</div><div style="font-size:12px;color:#666;margin-top:3px;line-height:1.55">${l.q}</div></button>`).join("")}</div></div>`).join("")}
-    ${coliBox("⚠️ 이 교실에서 약 이름·용량은 다루지 않아요", "치료는 담당 전문 수의사의 진단(필요하면 실험실 진단)으로 정하고, 제품 설명서의 허가사항·휴약기간을 반드시 확인합니다. 갑작스러운 집단 폐사는 대장균증으로 단정하지 말고 즉시 수의사와 감별하세요(가축전염병 의심 시 관할 가축방역기관 신고가 먼저).", "#C62828")}`;
+    ${coliBox("⚠️ 이 교실에서 약 이름·용량은 다루지 않아요", "치료는 담당 수의사의 진단으로 정하고, 제품 설명서의 허가사항·휴약기간을 꼭 확인하세요. 갑자기 많이 죽으면 대장균증이라고 단정하지 말고 바로 수의사에게 알리세요(가축전염병이 의심되면 방역기관 신고가 먼저).", "#C62828")}`;
 }
 function renderColiLesson(no){
   const l = COLI_LESSONS.find(x => x.no === no); if(!l) return renderColiHome();
@@ -8997,30 +8993,30 @@ function renderColiLesson(no){
   return `
     <button type="button" id="coli-home" style="border:none;background:none;color:#888;font-size:12.5px;cursor:pointer;padding:0 0 6px;font-family:inherit">← 12차시 목록</button>
     <div style="background:${ph.color};color:#fff;border-radius:13px;padding:12px 15px"><div style="font-size:11.5px;opacity:.9">${ph.icon} ${ph.t} · ${no}차시 / 12</div><div style="font-size:20px;font-weight:900;margin:2px 0">${l.t}</div><div style="font-size:13px;background:rgba(255,255,255,.18);border-radius:9px;padding:6px 10px;margin-top:6px">❓ 핵심 질문 · ${l.q}</div></div>
-    <div style="font-size:13px;font-weight:900;color:${ph.color};margin:12px 0 2px">① 쉬운 설명 (15분)</div>
+    <div style="font-size:13px;font-weight:900;color:${ph.color};margin:12px 0 2px">① 쉬운 설명</div>
     <div style="font-size:13px;line-height:1.8;color:#333">${l.easy}</div>
-    ${l.fig ? `<div style="font-size:13px;font-weight:900;color:${ph.color};margin:10px 0 0">② 그림과 기록 읽기 (15분)</div>${coliFigFor(l.fig)}` : ""}
+    ${l.fig ? `<div style="font-size:13px;font-weight:900;color:${ph.color};margin:10px 0 0">② 그림으로 보기</div>${coliFigFor(l.fig)}` : ""}
     ${COLI_DEEP[no] && COLI_DEEP[no].fig2 ? coliFig2For(COLI_DEEP[no].fig2) : ""}
     ${l.table ? coliTable(["현장 표현", "실제로 배우는 내용", "농장에서 연결할 질문"], l.table, 520) : ""}
     ${COLI_DEEP[no] ? `<div style="font-size:13px;font-weight:900;color:#2E7D32;margin:12px 0 4px">🌾 현장에서는 이렇게 (오늘 바로 해볼 것)</div><div style="display:flex;flex-direction:column;gap:6px">${COLI_DEEP[no].field.map(f => `<div style="display:flex;gap:9px;align-items:flex-start;background:#F1F8F4;border:1px solid #C8E6C9;border-radius:10px;padding:8px 11px"><span style="font-size:17px;line-height:1.2">☐</span><span style="font-size:13px;line-height:1.7;color:#2b3a2b">${f}</span></div>`).join("")}</div>
     <div style="font-size:13px;font-weight:900;color:#C62828;margin:12px 0 4px">🙅 이런 오해, 많이 해요</div><div style="display:flex;flex-direction:column;gap:6px">${COLI_DEEP[no].myth.map(m => `<div style="border:1px solid #F5C6C6;border-radius:10px;overflow:hidden"><div style="background:#FFEBEE;padding:6px 11px;font-size:12.8px;font-weight:800;color:#B71C1C">❌ ${m[0]}</div><div style="padding:6px 11px;font-size:12.8px;line-height:1.7;color:#333">⭕ ${m[1]}</div></div>`).join("")}</div>` : ""}
-    <div style="font-size:13px;font-weight:900;color:${ph.color};margin:10px 0 4px">③ 육계와 산란계는 이렇게 달라요 (사례 토론 20분)</div>
+    <div style="font-size:13px;font-weight:900;color:${ph.color};margin:10px 0 4px">③ 육계와 산란계는 이렇게 달라요</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px"><div style="border:2px solid #EF6C00;background:#FFF3E0;border-radius:11px;padding:9px 12px"><div style="font-size:13px;font-weight:900;color:#E65100">🐥 육계</div><div style="font-size:12.6px;line-height:1.7;color:#333;margin-top:2px">${l.broiler}</div></div><div style="border:2px solid #1565C0;background:#E3F2FD;border-radius:11px;padding:9px 12px"><div style="font-size:13px;font-weight:900;color:#1565C0">🥚 산란계</div><div style="font-size:12.6px;line-height:1.7;color:#333;margin-top:2px">${l.layer}</div></div></div>
     ${l.note ? coliBox("📌 꼭 기억하기", l.note, "#E65100") : ""}
-    <div style="font-size:13px;font-weight:900;color:${ph.color};margin:12px 0 4px">④ 우리 농장 적용 (10분)</div>
-    <div style="border:2px dashed ${ph.color};border-radius:11px;padding:10px 13px;background:${ph.color}0d;font-size:13px;line-height:1.7"><b>✍️ 수료 기준</b> — ${l.practice}</div>
-    ${l.go ? `<button type="button" class="coli-tab" data-t="${l.go}" style="margin-top:8px;border:1px solid ${COLI_COLOR};background:#fff;color:${COLI_COLOR};border-radius:9px;padding:8px 14px;font-size:12.5px;font-weight:800;cursor:pointer">${l.go === "plan" ? "📝 대응계획서 쓰러 가기" : "🔬 연구 읽기 탭으로"}</button>` : ""}
+    <div style="font-size:13px;font-weight:900;color:${ph.color};margin:12px 0 4px">④ 우리 농장에서는</div>
+    <div style="border:2px dashed ${ph.color};border-radius:11px;padding:10px 13px;background:${ph.color}0d;font-size:13px;line-height:1.7"><b>✍️ 오늘 해 볼 것</b> — ${l.practice}</div>
+    ${l.go ? `<button type="button" class="coli-tab" data-t="${l.go}" style="margin-top:8px;border:1px solid ${COLI_COLOR};background:#fff;color:${COLI_COLOR};border-radius:9px;padding:8px 14px;font-size:12.5px;font-weight:800;cursor:pointer">${l.go === "plan" ? "📝 대응계획서 쓰러 가기" : "🧐 새 제품 따져보기 탭으로"}</button>` : ""}
     ${coliLinks(l.src)}
     <label style="display:flex;gap:8px;align-items:center;margin-top:14px;font-size:14px;font-weight:900;color:${done ? "#2E7D32" : "#444"};cursor:pointer"><input type="checkbox" id="coli-done" data-no="${no}" ${done ? "checked" : ""} style="width:20px;height:20px"> 이 차시를 마쳤어요</label>
     <div style="display:flex;justify-content:space-between;gap:8px;margin-top:12px">${prev ? `<button type="button" class="coli-open" data-no="${prev.no}" style="border:1px solid #ccc;background:#fff;color:#555;border-radius:9px;padding:9px 14px;font-size:12.5px;font-weight:700;cursor:pointer">← ${prev.no}차시 ${prev.t}</button>` : "<span></span>"}${next ? `<button type="button" class="coli-open" data-no="${next.no}" style="border:none;background:${ph.color};color:#fff;border-radius:9px;padding:9px 14px;font-size:12.5px;font-weight:800;cursor:pointer">${next.no}차시 ${next.t} →</button>` : `<span style="font-size:12.5px;color:#2E7D32;font-weight:800">🎓 마지막 차시예요</span>`}</div>`;
 }
 function renderColiCompare(){
-  const rows = [["교육에서 강조할 표현", "<b>“잘 크고, 건강하게 출하하는가?”</b>", "<b>“오래 건강하게, 상품란을 생산하는가?”</b>"], ["먼저 살펴볼 발생 양상", "초기 병아리 폐사, 호흡기 증상 뒤 폐사, 성장 지연", "뚜렷한 전조 없는 폐사, 난관·복막 문제, 같은 동에서의 반복"], ["주요 확인 부위", "배꼽·난황낭, 기낭, 심장 주변, 간 표면, 피부 아래", "난관·복강, 기낭, 심장 주변, 간 표면"], ["생산 손실 지표", "폐사·도태, 증체, 사료요구율, 도체 폐기", "폐사·도태, 산란율, 입식수 대비 누적 산란수, 상품란 수"], ["치료 시 추가 확인", "출하 예정일과 해당 제품의 휴약기간", "<b>산란 중 사용 허용 여부</b>와 계란 출하 제한"], ["재발 조사 범위", "종계·부화장·운송·입추·사육·출하 자료", "육성계 공급원·도입·산란 전환·동별 장기 기록"]];
+  const rows = [["먼저 살펴볼 발생 양상", "초기 병아리 폐사, 호흡기 증상 뒤 폐사, 성장 지연", "뚜렷한 전조 없는 폐사, 난관·복막 문제, 같은 동에서의 반복"], ["주요 확인 부위", "배꼽·난황낭, 기낭, 심장 주변, 간 표면, 피부 아래", "난관·복강, 기낭, 심장 주변, 간 표면"], ["생산 손실 지표", "폐사·도태, 증체, 사료요구율, 도체 폐기", "폐사·도태, 산란율, 입식수 대비 누적 산란수, 상품란 수"], ["치료 시 추가 확인", "출하 예정일과 해당 제품의 휴약기간", "<b>산란 중 사용 허용 여부</b>와 계란 출하 제한"], ["재발 조사 범위", "종계·부화장·운송·입추·사육·출하 자료", "육성계 공급원·도입·산란 전환·동별 장기 기록"]];
   return `<div style="font-size:15px;font-weight:900;color:${COLI_COLOR};margin-bottom:4px">🐔 육계와 산란계는 관찰의 중심이 달라요</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:8px"><div style="border:2px solid #EF6C00;background:#FFF3E0;border-radius:12px;padding:10px 13px;text-align:center"><div style="font-size:30px">🐥</div><div style="font-size:15px;font-weight:900;color:#E65100">육계</div><div style="font-size:12.5px;color:#444">짧은 기간에 잘 키워 출하</div></div><div style="border:2px solid #1565C0;background:#E3F2FD;border-radius:12px;padding:10px 13px;text-align:center"><div style="font-size:30px">🥚</div><div style="font-size:15px;font-weight:900;color:#1565C0">산란계</div><div style="font-size:12.5px;color:#444">오래 건강하게 알 생산</div></div></div>
     ${coliFig(coliSvgTimeline(), "시기별로 먼저 볼 곳이 달라요.")}
     ${coliTable(["비교 항목", "🐥 육계", "🥚 산란계"], rows, 560)}
-    ${coliBox("함께 기억하기", "육계와 산란계 모두 호흡기 감염과 패혈증이 생길 수 있습니다. 위 구분은 <b>관찰의 우선순위</b>입니다. 산란율이 크게 떨어지지 않아도 산란계에서 대장균증 관련 급성 폐사가 발생할 수 있습니다." + coliLinks([["산란계 발생 조사","https://pubmed.ncbi.nlm.nih.gov/15276977/"]]), "#E65100")}`;
+    ${coliBox("함께 기억하기", "둘 다 호흡기 감염과 패혈증이 생길 수 있어요. 위 구분은 <b>먼저 볼 순서</b>입니다.", "#E65100")}`;
 }
 function renderColiCases(){
   const cs = [
@@ -9033,11 +9029,7 @@ function renderColiCases(){
   return `<div style="font-size:15px;font-weight:900;color:${COLI_COLOR}">🧪 사례는 ‘관찰 → 가설 → 확인 → 대응’ 순서로 풀어요</div>
     <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;margin:8px 0">${steps.map((s, i) => `<span style="background:#E0F2F1;border:1px solid #80CBC4;border-radius:14px;padding:5px 12px;font-size:13px;font-weight:800;color:#00695C">${s[0]} ${s[1]}</span>${i < 3 ? `<span style="color:#90A4AE;font-weight:900">›</span>` : ""}`).join("")}</div>
     ${coliBox("가상 사례입니다", "아래 네 가지는 수업을 위해 만든 <b>가상 사례</b>이며 실제 특정 농장의 진료기록이 아닙니다.", "#78909C")}
-    <div style="display:flex;flex-direction:column;gap:8px">${cs.map(c => `<details style="border:2px solid ${c[5]};border-radius:12px;padding:9px 13px;background:#fff"><summary style="cursor:pointer;font-size:14px;font-weight:900;color:${c[5]}">${c[0]} ${c[1]}</summary><div style="margin-top:7px;font-size:12.8px;line-height:1.75;color:#333"><div><b>👀 상황</b> · ${c[2]}</div><div style="margin-top:3px"><b>🔍 찾아야 할 것</b> · ${c[3]}</div><div style="margin-top:3px;background:#E0F2F1;border-radius:8px;padding:6px 10px"><b>💡 핵심 학습</b> · ${c[4]}</div></div></details>`).join("")}</div>
-    <div style="font-size:14px;font-weight:900;color:${COLI_COLOR};margin:16px 0 4px">📖 실제 연구 사례 두 가지</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px">
-      <div style="border:1px solid #cfe3e6;border-radius:12px;padding:10px 13px;background:#F3FBFC"><div style="font-size:13px;font-weight:900;color:#EF6C00">🐥 육계 현장 · 핀란드(2024)</div><div style="font-size:12.5px;line-height:1.75;color:#333;margin-top:3px">육계 6,969개 계군을 분석한 <b>후향적 관찰연구</b>. 종계가 상용 백신과 자가백신을 함께 접종한 집단의 자손은 미접종 종계 자손보다 첫 주·전체 폐사율이 낮았습니다(모형 추정 평균 전체 폐사율 3.14%와 4.33%).<div style="margin-top:4px"><b>토론:</b> “종계 단계도 육계 성적과 연결된다”<br><b>주의:</b> 관찰연구이므로 차이 전부를 백신 효과로 단정하지 않습니다.</div>${coliLinks([["원문","https://doi.org/10.1016/j.prevetmed.2024.106258"]])}</div></div>
-      <div style="border:1px solid #cfe3e6;border-radius:12px;padding:10px 13px;background:#F3FBFC"><div style="font-size:13px;font-weight:900;color:#1565C0">🥚 산란계 현장 · 벨기에 연구진(2004)</div><div style="font-size:12.5px;line-height:1.75;color:#333;margin-top:3px">발생 계군 20개와 대조 계군 20개를 비교. 발생 계군에서 전조가 뚜렷하지 않은 급성 폐사, 복막염·다발성 장막염, 같은 계사에서의 반복 발생이 관찰됐습니다.<div style="margin-top:4px"><b>토론:</b> “산란율과 겉모습만으로 안심할 수 있는가?”<br><b>주의:</b> 오래된 현장 사례이므로 현재 국내 발생률을 설명하는 자료로 쓰지 않습니다.</div>${coliLinks([["원문","https://pubmed.ncbi.nlm.nih.gov/15276977/"]])}</div></div></div>`;
+    <div style="display:flex;flex-direction:column;gap:8px">${cs.map(c => `<details style="border:2px solid ${c[5]};border-radius:12px;padding:9px 13px;background:#fff"><summary style="cursor:pointer;font-size:14px;font-weight:900;color:${c[5]}">${c[0]} ${c[1]}</summary><div style="margin-top:7px;font-size:12.8px;line-height:1.75;color:#333"><div><b>👀 상황</b> · ${c[2]}</div><div style="margin-top:3px"><b>🔍 찾아야 할 것</b> · ${c[3]}</div><div style="margin-top:3px;background:#E0F2F1;border-radius:8px;padding:6px 10px"><b>💡 핵심 포인트</b> · ${c[4]}</div></div></details>`).join("")}</div>`;
 }
 function renderColiTreat(){
   const rows = [["1. 상황 파악", "발생 일시, 동·구역, 일령·주령, 폐사, 음수·사료 변화, 최근 투약을 정리한다", "갑작스러운 집단 폐사는 대장균증으로 단정하지 않고 즉시 수의사와 감별한다"], ["2. 수의사 진단", "담당 전문 수의사에게 연락해 진단을 받는다. 진단이 어려우면 수의사가 실험실 진단(배양·감수성 등)의 도움을 받는다", "채취·보존은 수의사 지시에 따르고, 긴급 치료를 불필요하게 늦추지 않는다"], ["3. 치료 선택", "수의사 진단(필요 시 배양·감수성 결과), 감염 부위, 계군 상태, 허가사항을 함께 검토한다", "긴급 초기 치료는 수의사가 판단하고 검사 결과에 따라 다시 평가한다"], ["4. 전달 확인", "실제 음수량, 급수 접근, 투약기 작동, 조제·공급 상태를 점검한다", "<b>물에 약을 넣었다</b>는 사실과 <b>닭이 적정량을 먹었다</b>는 사실은 다르다"], ["5. 반응 평가", "폐사·활력·섭취량을 매일 비교하고, 악화되면 바로 재평가한다", "내성뿐 아니라 오진, 혼합감염, 투약 부족, 심한 기존 병변도 검토한다"], ["6. 종료·출하 관리", "투약 종료일, 휴약기간, 출하 가능일, 계란 처리 내용을 기록한다", "산란 중 사용 금지 제품은 임의로 계란을 며칠 버리는 방식으로 쓰지 않는다"]];
@@ -9045,20 +9037,15 @@ function renderColiTreat(){
     <div style="font-size:13px;background:#E0F2F1;border-radius:10px;padding:9px 13px;line-height:1.7;color:#00695C;font-weight:700">“수의사 진단(필요하면 실험실 결과)으로 맞는 약을 고르고, 닭에게 필요한 양이 실제로 전달되는지 확인하고, 계속 감염되는 원인을 함께 줄입니다.”</div>
     ${coliFig(coliSvgTreat(), "여섯 단계를 순서대로 — 건너뛴 단계가 실패 원인이 되곤 해요.")}
     ${coliTable(["순서", "농장에서 할 일", "꼭 기억할 점"], rows, 600)}
-    ${coliBox("약 선택은 수의사와", "항균제 선택은 <b>감수성검사</b>를 근거로 하고 환경·관리 개선도 함께 필요합니다. 교육용 공통 처방표를 만들지 않고, <b>담당 수의사와 해당 제품의 국내 허가사항을 확인</b>하는 실습으로 운영합니다. 휴약기간은 제품·대상 동물·투여경로·투여량에 따라 달라지며, 육계는 도축 관련 조건, 산란계는 계란 관련 조건을 각각 확인합니다." + coliLinks([["치료 원칙(MSD 수의학 매뉴얼)","https://www.msdvetmanual.com/poultry/colibacillosis/colibacillosis-in-poultry"], ["농림축산식품부 안전사용 안내","https://www.mafra.go.kr/bbs/PLS/830/571195/download.do"]]), "#C62828")}
+    ${coliBox("약 선택은 수의사와", "약은 <b>담당 수의사와 제품 허가사항</b>을 확인해 정하고, 환경·관리 개선도 함께 합니다. 휴약기간은 제품마다 달라서 육계는 도축, 산란계는 계란 조건을 각각 확인하세요.", "#C62828")}
     <div style="font-size:12px;color:#777;margin-top:6px">💡 이 사이트의 「약품별 사용요령 카드」·「약품조회 및 휴약기간 검색」에서 제품별 휴약기간(공식 설명서)을 확인할 수 있어요.</div>`;
 }
 function renderColiResearch(){
-  const rows = [["🧬 여러 균형을 겨냥한 백신", "2026년 10월호 연구의 O1·O2 이가 생백신 후보는 O1·O2·O78 감염실험에서 병변 점수와 대장균증 양성률을 낮췄다. 폐사 감소는 통계적으로 유의하지 않았다.", "여러 종류의 대장균에 방어 범위를 넓히려는 연구", "<b>실험 단계.</b> 병변 개선과 폐사 감소를 구분하고, 국내 허가·상용화와도 구분한다.", "https://doi.org/10.1016/j.vetmic.2026.111144"], ["💉 농장 분리 균주를 반영한 백신 전략", "2024년 핀란드 연구는 상용·자가백신 병용 종계의 자손에서 낮은 폐사율과의 연관성을 보고했다.", "우리 생산체계에서 문제를 만드는 균을 먼저 알아야 한다", "<b>현장 관찰 근거.</b> 국내 도입 가능 여부는 별도 확인하며, 자가백신은 농장에서 직접 만드는 백신이라는 뜻이 아니다.", "https://doi.org/10.1016/j.prevetmed.2024.106258"], ["🦠 박테리오파지", "2026년 산란계 연구에서 음수로 공급한 파지 혼합물의 보호 가능성이 관찰됐다. 25~27주령 실험닭, 군당 10수.", "특정 세균을 공격하는 바이러스를 이용하는 방법", "<b>소규모 감염실험.</b> 정맥으로 균을 접종한 조건이라 자연 발생 농장의 치료 효과로 바로 환산할 수 없다.", "https://pubmed.ncbi.nlm.nih.gov/41847369/"], ["🧫 파지의 균주별 효과 차이", "2025년 연구의 파지 혼합물은 시험관에서 전체 분리균 142개 중 80개에 성장 억제 효과를 보였다.", "대장균이라고 모두 같은 파지가 듣는 것은 아니다", "<b>시험관 근거.</b> 표적 균주 적합성과 실제 닭에서의 효과를 따로 확인해야 한다.", "https://doi.org/10.1016/j.psj.2025.105038"], ["🔗 생산단계 전체의 내성균 관리", "2026년 국내 연구는 3개 육계 계열화 생산체계에서 생산단계별 ESBL 생성 대장균의 분포와 특성을 조사했다.", "내성균 문제는 계사 안만이 아니라 앞뒤 생산단계까지 봐야 한다", "<b>국내 현장 조사 근거.</b> ESBL 생성균 검출이 모두 임상 대장균증을 뜻하지 않으며, 국내 전체 농장 비율로 일반화하지 않는다.", "https://pmc.ncbi.nlm.nih.gov/articles/PMC12809695/"], ["🧬 유전체 기반 발생 추적", "2026년 육계 연구는 발생 계군의 병원성·상재 대장균을 유전체 수준에서 비교했다.", "겉으로 같은 대장균도 유전적 지문을 비교하면 다른 균일 수 있다", "<b>정밀 역학 도구.</b> 유전적으로 비슷하다는 사실만으로 전파 방향까지 확정하지 않고 입추·이동 기록과 함께 판단한다.", "https://pmc.ncbi.nlm.nih.gov/articles/PMC13401734/"]];
-  const qs = [["📍", "어디서 확인했나?", "시험관, 실험닭, 실제 상업농장 중 어느 단계인가?"], ["🐔", "누구에게 확인했나?", "육계인가 산란계인가? 일령·주령이 우리 농장과 비슷한가?"], ["📊", "무엇이 좋아졌나?", "균 수, 병변, 폐사, 생산성 중 어떤 결과인가?"], ["⚖️", "얼마나 확실한가?", "대조군·표본 수·통계적 불확실성은 어떤가?"], ["🏭", "우리 농장에서 쓸 수 있나?", "국내 허가, 공급, 비용, 적용 조건이 맞는가?"]];
-  return `<div style="font-size:15px;font-weight:900;color:${COLI_COLOR}">🔬 최근 연구는 ‘무엇을 보여줬고, 무엇은 아직 모르는가’로 읽어요</div>
-    ${coliFig(coliSvgEvidence(), "연구가 어느 칸에서 나온 말인지 먼저 확인하세요.")}
-    <div style="font-size:14px;font-weight:900;color:#6A1B9A;margin:8px 0 4px">✅ 논문·제품 자료를 읽을 때 다섯 질문</div>
+  const qs = [["📍", "어디서 해 봤나요?", "시험관인지, 실험닭인지, 실제 농장인지 물어보세요."], ["🐔", "어떤 닭에게요?", "육계인지 산란계인지, 일령이 우리 농장과 비슷한지 확인하세요."], ["📊", "무엇이 좋아졌나요?", "균 수·병변·폐사·성적 중 어떤 것인지 물어보세요."], ["⚖️", "얼마나 확실한가요?", "여러 농장에서 비교해 봤는지, 우연은 아닌지 물어보세요."], ["🏠", "우리 농장에도 되나요?", "국내 허가·공급과 비용을 수의사와 상의하세요."]];
+  return `<div style="font-size:15px;font-weight:900;color:${COLI_COLOR}">🧐 새 제품·새 방법은 이렇게 물어보세요</div>
+    ${coliFig(coliSvgEvidence(), "‘어디서 해 봤는지’에 따라 믿을 수 있는 정도가 달라요.")}
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:7px">${qs.map((q, i) => `<div style="border:2px solid #CE93D8;background:#F3E5F5;border-radius:11px;padding:9px 11px"><div style="font-size:20px">${q[0]}</div><div style="font-size:13px;font-weight:900;color:#6A1B9A">${i + 1}. ${q[1]}</div><div style="font-size:12px;color:#444;line-height:1.6;margin-top:2px">${q[2]}</div></div>`).join("")}</div>
-    <div style="font-size:14px;font-weight:900;color:#6A1B9A;margin:16px 0 4px">📚 최근 확인된 근거 (교육자료 기준 2026-10-15)</div>
-    <div style="display:flex;flex-direction:column;gap:8px">${rows.map(r => `<details style="border:1px solid #CE93D8;border-radius:12px;padding:9px 13px;background:#fff"><summary style="cursor:pointer;font-size:13.5px;font-weight:900;color:#6A1B9A">${r[0]}</summary><div style="margin-top:6px;font-size:12.6px;line-height:1.75;color:#333"><div><b>확인된 근거</b> · ${r[1]}</div><div style="margin-top:3px;background:#F3E5F5;border-radius:8px;padding:5px 10px"><b>농장에 쉽게 말하면</b> · ${r[2]}</div><div style="margin-top:3px"><b>적용 수준과 한계</b> · ${r[3]}</div><div style="margin-top:4px"><a href="${esc(r[4])}" target="_blank" rel="noopener" style="color:#1565C0;font-size:12px">원문 보기 ↗</a></div></div></details>`).join("")}</div>
-    ${coliBox("유산균·유기산·식물성 첨가제도 같은 방식으로", "장내 균 수나 성장 지표가 좋아졌다는 결과를 <b>전신 대장균증 치료 효과와 같은 말로 읽지 않는 것</b>이 핵심입니다.", "#6A1B9A")}
-    <div style="font-size:11px;color:#999;line-height:1.7;margin-top:6px">※ 위 연구 정보는 교육과정 자료에 정리된 내용을 옮긴 것이며, 이 사이트가 원문을 새로 검증한 것은 아닙니다. 수치와 결론은 원문으로 확인하세요.</div>`;
+    ${coliBox("유산균·유기산·식물성 제품도 같아요", "장 속 균이나 성장이 좋아졌다는 말을 <b>대장균증이 낫는다는 말로 받아들이지 마세요.</b> 도입 전에 담당 수의사와 먼저 상의하세요.", "#6A1B9A")}`;
 }
 const COLI_PLAN_ROWS = [
   ["daily", "매일 확인할 기록", "동·일령별 폐사, 음수·사료, 활력", "동·주령별 폐사, 음수·사료, 산란율·상품란 수"],
@@ -14597,20 +14584,24 @@ function hzBind(){
 const IB_CURRENT_STAGE = 8;
 const IB_COLOR = "#C62828";
 const IB_STAGES = [
-  { no:1, title:"IB 기초 질병학", items:["IBV의 정의와 분류","코로나바이러스의 구조와 S 단백질","감염경로 및 전파 양상","기관·기관지·신장·난관에 미치는 영향","육계와 산란계의 임상증상","부검 소견과 생산성 저하 기전","IB 발생과 경제적 피해의 관계"] },
-  { no:2, title:"발생 원인과 위험요인", items:["외부 바이러스 유입경로","농장 간 전파","차량·사람·기구 등 매개 위험","밀집사육 및 계사 환기","암모니아·분진·온습도","면역억제 및 복합감염","바이러스 변이와 항원 차이","백신 면역 형성에 영향을 주는 요인"] },
-  { no:3, title:"국내 농장 발생 실태", items:["국내 IB 발생과 유행주 변화","육계·산란계 발생 양상의 차이","백신 접종 이력과 발병 시점","호흡기 증상 및 신장 병변","산란율·난각품질 변화","폐사율·출하성적·경제손실","발생 농장과 비발생 농장 비교"] },
-  { no:4, title:"진단과 역학", items:["임상진단과 확진의 차이","RT-PCR 및 유전자 분석","ELISA 등 혈청학적 검사","검사 시점과 검체 종류의 영향","백신주와 야외주 감별의 한계","S1 유전자 및 유전자형 분석","다른 호흡기 질병과의 감별진단","농장 단위 유행 원인 추정"] },
-  { no:5, title:"IB 백신 방어체계", items:["생독백신과 불활화백신의 특징","점안·분무·음수 접종의 장단점","국소점막 면역과 전신면역","모체이행항체와 초기 면역 형성","백신 접종 균일도","접종 후 항체반응 해석","국내 유행주와 교차방어 연구","백신 접종 후 발병하는 원인","현장에 적합한 백신 프로그램 평가"],
+  { no:1, title:"IB, 어떤 병인가요?", items:["IBV의 정의와 분류","코로나바이러스의 구조와 S 단백질","감염경로 및 전파 양상","기관·기관지·신장·난관에 미치는 영향","육계와 산란계의 임상증상","부검 소견과 생산성 저하 기전","IB 발생과 경제적 피해의 관계"] },
+  { no:2, title:"IB는 어떻게 들어오고 퍼지나요?", items:["외부 바이러스 유입경로","농장 간 전파","차량·사람·기구 등 매개 위험","밀집사육 및 계사 환기","암모니아·분진·온습도","면역억제 및 복합감염","바이러스 변이와 항원 차이","백신 면역 형성에 영향을 주는 요인"] },
+  { no:3, title:"우리나라 농장에서는 어떻게 나타나나요?", items:["국내 IB 발생과 유행주 변화","육계·산란계 발생 양상의 차이","백신 접종 이력과 발병 시점","호흡기 증상 및 신장 병변","산란율·난각품질 변화","폐사율·출하성적·경제손실","발생 농장과 비발생 농장 비교"] },
+  { no:4, title:"어떻게 확인하나요? (진단)", items:["임상진단과 확진의 차이","RT-PCR 및 유전자 분석","ELISA 등 혈청학적 검사","검사 시점과 검체 종류의 영향","백신주와 야외주 감별의 한계","S1 유전자 및 유전자형 분석","다른 호흡기 질병과의 감별진단","농장 단위 유행 원인 추정"] },
+  { no:5, title:"백신으로 어떻게 막나요?", items:["생독백신과 불활화백신의 특징","점안·분무·음수 접종의 장단점","국소점막 면역과 전신면역","모체이행항체와 초기 면역 형성","백신 접종 균일도","접종 후 항체반응 해석","국내 유행주와 교차방어 연구","백신 접종 후 발병하는 원인","현장에 적합한 백신 프로그램 평가"],
     note:"실제 백신 조합, 접종일령 및 접종방법은 국내 허가사항, 농장 위험도, 검사 결과를 토대로 담당 수의사와 검토합니다." },
   { no:6, title:"국내외 학술논문 심층 연구", items:["최근 5년 주요 연구","역사적으로 중요한 원저 논문","국내 유행주 유전적 변화","백신과 야외주 사이의 항원적 차이","백신 교차방어 및 면역 지속성","농장 환경과 질병 발생의 상관관계","실험 결과와 실제 농장 결과의 차이","아직 해결되지 않은 연구 과제"] },
-  { no:7, title:"시범농장 실증", items:["참여농장 선정 기준","과거 발생 이력 및 기초자료 수집","위험요인 점검 및 우선순위","방역·백신·환경관리 개선","개선 전후 또는 비교농장 분석","IB 확진 발생률 비교","생산성·경제적 손실 평가","혼란변수와 연구의 한계 검토"] },
-  { no:8, title:"예방시스템 완성", items:["농장 유형별 IB 위험관리 매뉴얼","출입·소독·동선관리 기준","환경관리 및 사육관리 표준화","백신 접종 품질관리 기준","검사·감시 및 조기경보체계","이상 징후 발생 시 초기 대응","월별·분기별 평가","새로운 변이주 발생 시 대응전략","지속적인 개선 및 교육체계"] },
+  { no:7, title:"우리 농장에 적용해 보기", items:["참여농장 선정 기준","과거 발생 이력 및 기초자료 수집","위험요인 점검 및 우선순위","방역·백신·환경관리 개선","개선 전후 또는 비교농장 분석","IB 확진 발생률 비교","생산성·경제적 손실 평가","혼란변수와 연구의 한계 검토"] },
+  { no:8, title:"우리 농장 IB 예방 시스템 만들기", items:["농장 유형별 IB 위험관리 매뉴얼","출입·소독·동선관리 기준","환경관리 및 사육관리 표준화","백신 접종 품질관리 기준","검사·감시 및 조기경보체계","이상 징후 발생 시 초기 대응","월별·분기별 평가","새로운 변이주 발생 시 대응전략","지속적인 개선 및 교육체계"] },
 ];
 const IB_SECTIONS = [
-  [1, "연구 목표"], [2, "기초 이론"], [3, "전문 심화"], [4, "육계·산란계 비교"], [5, "현장 사례·문제"],
-  [6, "논문·국제기구 자료"], [7, "예방·관리 방안"], [8, "요약·점검 질문"], [9, "다음 연구 제안"],
+  [1, "오늘 알아둘 것"], [2, "기초부터 쉽게"], [3, "더 깊이 알아보기"], [4, "육계·산란계 비교"], [5, "현장 사례·문제"],
+  [6, "논문·국제기구 자료"], [7, "예방·관리 요령"], [8, "오늘의 정리·확인"], [9, "다음 시간 예고"],
 ];
+// 농장 현장 중심 개편: 논문·국제기구 자료(⑥)와 논문 읽기 단계(6단계)는 화면에서 뺀다(데이터는 그대로 두고 보이지만 않게 함).
+const IB_HIDE_SECS = [6];
+const IB_HIDE_STAGES = [6];
+const IB_VIS = IB_SECTIONS.filter(([n]) => !IB_HIDE_SECS.includes(n));
 const IB_CIRCLED = ["", "①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨"];
 // 근거 구분 배지 — 확인된 사실 / 연구자 가설 / 논쟁 중 / 현장 적용을 위한 추론
 const IB_TAGS = {
@@ -14689,13 +14680,13 @@ const IB_LECTURES = {
     { no:5, title:"농장 환경과 질병 발생의 상관관계, 아직 해결되지 않은 연구 과제, 6단계 총정리", ready:true, minutes:"기본 12~15분 · 심화 별도", html: () => ibLecture65() },
   ],
   7: [
-    { no:1, title:"시범농장 실증 설계와 참여농장 선정 기준", ready:true, minutes:"기본 12~15분 · 심화 별도", html: () => ibLecture71() },
+    { no:1, title:"시범으로 적용할 농장은 어떻게 고르나?", ready:true, minutes:"기본 12~15분 · 심화 별도", html: () => ibLecture71() },
     { no:2, title:"과거 발생 이력과 기초자료(기준선)는 어떻게 모으나?", ready:true, minutes:"기본 12~15분 · 심화 별도", html: () => ibLecture72() },
     { no:3, title:"위험요인 점검과 개선 우선순위는 어떻게 정하나?", ready:true, minutes:"기본 12~15분 · 심화 별도", html: () => ibLecture73() },
     { no:4, title:"방역·백신·환경관리 개선은 어떻게 실행하고 확인하나?", ready:true, minutes:"기본 12~15분 · 심화 별도", html: () => ibLecture74() },
-    { no:5, title:"개선 전후·비교농장 분석과 IB 확진 발생률은 어떻게 비교하나?", ready:true, minutes:"기본 12~15분 · 심화 별도", html: () => ibLecture75() },
+    { no:5, title:"개선 전후, 무엇을 어떻게 비교하나?", ready:true, minutes:"기본 12~15분 · 심화 별도", html: () => ibLecture75() },
     { no:6, title:"생산성과 경제적 손실은 어떻게 평가하나?", ready:true, minutes:"기본 12~15분 · 심화 별도", html: () => ibLecture76() },
-    { no:7, title:"혼란변수와 연구의 한계는 어떻게 검토하나? (7단계 총정리)", ready:true, minutes:"기본 12~15분 · 심화 별도", html: () => ibLecture77() },
+    { no:7, title:"결과를 볼 때 조심할 점은? (7단계 총정리)", ready:true, minutes:"기본 12~15분 · 심화 별도", html: () => ibLecture77() },
   ],
   8: [
     { no:1, title:"농장 유형별 IB 위험관리 매뉴얼의 뼈대는 어떻게 짜나?", ready:true, minutes:"기본 12~15분 · 심화 별도", html: () => ibLecture81() },
@@ -24706,53 +24697,89 @@ function renderIbAdminBox(stageNo, lectures){
 function ibPickLecture(lectures, admin){
   return lectures.find(l => l.no === ibState.lecture && (l.ready || admin)) || lectures.find(l => l.ready) || (admin ? lectures[0] : null) || null;
 }
+// ── 현장 중심 보기: 연구 색이 짙은 소제목 블록을 걷어내고 말투를 농장식으로 바꾼다(편집본이 아닌 기본 내용에만 적용) ──
+const IB_DROP_HEAD = /^(아직 해결되지 않은 문제|추가로 검토할 (논문·)?자료)/;
+const IB_HEAD_RENAME = [
+  [/^학습 목표$/, "오늘 알아둘 것"],
+  [/^이 강의를 마치면 할 수 있어야 하는 것$/, "이 강의에서 챙겨 갈 것"],
+  [/^점검 질문/, "스스로 확인해 보기"],
+  [/^현장 점검 질문/, "현장에서 확인해 보기"],
+  [/^다음 연구 제안/, "다음 시간 예고"],
+];
+const IB_TEXT_FIX = [
+  ["심화(③·⑥)", "심화(③)"], ["전문 심화", "더 깊이 알아보기"], ["학습 분량", "읽는 시간"], ["기본 학습", "기본으로 읽을 곳"],
+  ["학습 목표", "오늘 알아둘 것"], ["연구 목표", "오늘 알아둘 것"], ["다음 연구 제안", "다음 시간 예고"],
+  ["이 강좌에서 서지를 확인한 논문만 다루며 IB 연구사 전체가 아닙니다.", ""], ["학습", "공부"],
+];
+function ibIsHead(el){ return el.tagName === "DIV" && /font-size:13\.5px/.test(el.getAttribute("style") || "") && /font-weight:800/.test(el.getAttribute("style") || ""); }
+function ibSlim(html){
+  if(!html) return html;
+  const doc = new DOMParser().parseFromString(`<div id="ib-s">${html}</div>`, "text/html"), root = doc.getElementById("ib-s");
+  let drop = false;
+  [...root.children].forEach(el => {
+    if(ibIsHead(el)){
+      const t = el.textContent.replace(/\s+/g, " ").replace(/^[0-9]+\.\s*/, "").trim();
+      drop = IB_DROP_HEAD.test(t);
+    }
+    if(drop) el.remove();
+  });
+  [...root.children].filter(ibIsHead).forEach(el => {
+    const t = el.textContent.replace(/\s+/g, " ").trim();
+    const r = IB_HEAD_RENAME.find(([re]) => re.test(t));
+    if(r) el.textContent = r[1];
+  });
+  const w = doc.createTreeWalker(root, 4);
+  let n; while((n = w.nextNode())){ let v = n.nodeValue; IB_TEXT_FIX.forEach(([a, b]) => { if(v.includes(a)) v = v.split(a).join(b); }); if(v !== n.nodeValue) n.nodeValue = v; }
+  return root.innerHTML;
+}
 function renderIbTeamPanel(){
   const st = ibContentState, admin = isBoardAdmin();
-  const head = `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:10px"><div><div class="display" style="font-size:16px;margin-bottom:2px">🧬 IB 닭기침 잡는 교실 — 전염성기관지염(IB) 차단 8단계 코스</div><div style="font-size:11px;color:#999">Infectious Bronchitis 단계별 공동연구 — 기초 질병학부터 예방시스템 완성까지</div></div><button id="ib-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button></div>`;
+  const head = `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:10px"><div><div class="display" style="font-size:16px;margin-bottom:2px">🧬 IB 닭기침 잡는 교실 — 전염성기관지염(IB) 차단 8단계 코스</div><div style="font-size:11px;color:#999">IB가 뭔지부터 우리 농장 예방 시스템까지 — 농장에서 바로 쓰는 단계별 공부</div></div><button id="ib-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button></div>`;
   if(st.status === "idle" || st.status === "loading") return `<div class="card" id="ib-root" style="border-top:6px solid ${IB_COLOR}">${head}<div style="text-align:center;padding:28px 0;color:#aaa">⏳ 불러오는 중...</div></div>`;
   const eff = ibEffStage(), vs = ibViewStage();
   // 8단계 로드맵 — 공개 단계까지만 열림
-  const road = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;margin-bottom:12px">${IB_STAGES.map(s => {
+  const road = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;margin-bottom:12px">${IB_STAGES.filter(s => !IB_HIDE_STAGES.includes(s.no)).map(s => {
     const open = s.no <= eff, cur = s.no === vs;
     return `<details style="border:1.5px solid ${cur ? IB_COLOR : "#e3e3e3"};background:${cur ? IB_COLOR + "0d" : open ? "#fff" : "#fafafa"};border-radius:9px;padding:6px 9px">
       <summary ${open ? `data-ib-stage="${s.no}"` : ""} style="cursor:pointer;font-size:12px;font-weight:800;color:${open ? (cur ? IB_COLOR : "#333") : "#9e9e9e"};list-style:none">${open ? (cur ? "▶" : "✓") : "🔒"} ${s.no}단계 · ${s.title}</summary>
       <div style="font-size:11px;color:#666;line-height:1.65;margin-top:5px">${s.items.map(x => "· " + x).join("<br>")}${s.note ? `<div style="margin-top:5px;color:#B71C1C">※ ${s.note}</div>` : ""}${open ? "" : `<div style="margin-top:5px;color:#999">앞 단계를 마친 뒤 연구팀이 공개합니다.</div>`}</div></details>`;
-  }).join("")}</div>`;
+  }).join("")}</div>
+  <div style="font-size:10.5px;color:#999;margin:-6px 0 10px">※ 논문 읽기 단계(6단계)는 현장 중심 개편으로 빼서 번호가 6단계를 건너뜁니다.</div>`;
   const stage = IB_STAGES[vs - 1];
   const lectures = ibLectureList(vs);
   const visible = l => l.ready || admin;               // 비공개 강의는 관리자에게만(미리 작성용)
   const lec = ibPickLecture(lectures, admin);
   const read = ibReadMap();
   const toc = `<div style="background:#fff;border:1px solid #eee;border-radius:10px;padding:10px 12px;margin-bottom:12px">
-    <div style="font-size:13px;font-weight:800;color:${IB_COLOR};margin-bottom:6px">📚 ${stage.no}단계 학습 차례 — ${stage.title}</div>
+    <div style="font-size:13px;font-weight:800;color:${IB_COLOR};margin-bottom:6px">📚 ${stage.no}단계 오늘의 차례 — ${stage.title}</div>
     <div style="display:flex;flex-direction:column;gap:4px">${lectures.length ? lectures.map(l => {
       const on = lec && l.no === lec.no;
-      const done = l.ready && IB_SECTIONS.every(([n]) => read[`${stage.no}-${l.no}-${n}`]);
+      const done = l.ready && IB_VIS.every(([n]) => read[`${stage.no}-${l.no}-${n}`]);
       const title = esc(l.title || "(제목 없음)");
       return visible(l)
         ? `<button type="button" data-ib-lec="${l.no}" style="all:unset;box-sizing:border-box;cursor:pointer;display:flex;justify-content:space-between;gap:8px;padding:7px 10px;border-radius:8px;border:1px ${l.ready ? "solid" : "dashed"} ${on ? IB_COLOR : "#e5e5e5"};background:${on ? IB_COLOR + "12" : "#fff"};font-size:12.5px"><span><b style="color:${IB_COLOR}">제${l.no}강</b> ${title}</span><span style="font-size:10.5px;color:${done ? "#2E7D32" : l.ready ? "#888" : "#E65100"};white-space:nowrap">${l.ready ? (done ? "✓ 학습 완료" : esc(l.minutes || "")) : "비공개 · 관리자만"}</span></button>`
         : `<div style="display:flex;justify-content:space-between;gap:8px;padding:7px 10px;border-radius:8px;border:1px dashed #ddd;background:#fafafa;font-size:12.5px;color:#9e9e9e"><span><b>제${l.no}강</b> ${title}</span><span style="font-size:10.5px;white-space:nowrap">🔒 작성 예정</span></div>`;
-    }).join("") : `<div style="font-size:12px;color:#999;padding:6px 2px">이 단계의 강의는 연구팀이 준비하고 있습니다.</div>`}</div>
-    ${IB_STAGE_MAPS[vs] ? `<details style="margin-top:8px"><summary style="cursor:pointer;font-size:11.5px;color:#666">연구 과제가 어느 강의에서 다뤄지나요?</summary>${ibTable([vs + "단계 연구 과제", "다루는 강의"], IB_STAGE_MAPS[vs])}</details>` : ""}
+    }).join("") : `<div style="font-size:12px;color:#999;padding:6px 2px">이 단계의 강의는 곧 준비됩니다.</div>`}</div>
   </div>`;
   const adminBox = admin ? renderIbAdminBox(vs, lectures) : "";
-  const foot = `<div style="margin-top:14px;background:#FFF8E1;border-radius:8px;padding:9px 11px;font-size:10.5px;color:#6b5400;line-height:1.75"><b>유의</b> · 교육·연구용 일반 자료이며 개별 농장의 진단·처방을 대신하지 않습니다. 실제 백신 조합, 접종일령·방법과 약품 사용은 국내 허가사항, 농장 위험도, 검사 결과를 토대로 담당 수의사와 결정하세요. 문헌 정보 중 ‘확인 필요’로 표시된 부분은 원문 확인 후 갱신합니다.</div>`;
+  const foot = `<div style="margin-top:14px;background:#FFF8E1;border-radius:8px;padding:9px 11px;font-size:10.5px;color:#6b5400;line-height:1.75"><b>유의</b> · 교육용 일반 자료이며 개별 농장의 진단·처방을 대신하지 않습니다. 실제 백신 조합, 접종일령·방법과 약품 사용은 국내 허가사항, 농장 위험도, 검사 결과를 토대로 담당 수의사와 결정하세요.</div>`;
   if(!lec) return `<div class="card" id="ib-root" style="border-top:6px solid ${IB_COLOR}">${head}${adminBox}${road}${toc}${foot}</div>`;
   const seed = ibSeedSections(vs, lec), edits = ibData().sections;
-  const sec = IB_SECTIONS.some(([n]) => n === ibState.sec) ? ibState.sec : 1;
+  const sec = IB_VIS.some(([n]) => n === ibState.sec) ? ibState.sec : 1;
+  const vi = IB_VIS.findIndex(([n]) => n === sec), prevSec = vi > 0 ? IB_VIS[vi - 1] : null, nextSec = vi < IB_VIS.length - 1 ? IB_VIS[vi + 1] : null;
   const key = `${vs}-${lec.no}-${sec}`, ed = edits[key], seedHtml = seed[sec] || "";
-  const html = ed && ed.html ? ed.html : seedHtml;
+  const html = ed && ed.html ? ed.html : ibSlim(seedHtml);
   if(lec.ready) ibMarkRead(key);
   const read2 = ibReadMap();
-  const nav = `<div style="display:flex;gap:5px;flex-wrap:wrap;margin:6px 0 10px" role="tablist">${IB_SECTIONS.map(([n, t]) => {
+  const nav = `<div style="display:flex;gap:5px;flex-wrap:wrap;margin:6px 0 10px" role="tablist">${IB_VIS.map(([n, t]) => {
     const on = n === sec, seen = read2[`${vs}-${lec.no}-${n}`], mark = admin && edits[`${vs}-${lec.no}-${n}`] ? " ✎" : "";
     return `<button type="button" role="tab" aria-selected="${on}" data-ib-sec="${n}" style="border:1px solid ${on ? IB_COLOR : seen ? IB_COLOR + "55" : "#ddd"};background:${on ? IB_COLOR : "#fff"};color:${on ? "#fff" : seen ? IB_COLOR : "#555"};border-radius:16px;padding:5px 10px;font-size:11.5px;font-weight:${on ? 800 : 600};cursor:pointer">${IB_CIRCLED[n]} ${t}${mark}</button>`;
   }).join("")}</div>`;
   const secTitle = IB_SECTIONS.find(([n]) => n === sec)[1];
   const editing = admin && st.editing === key;
   const pager = editing ? "" : `<div style="display:flex;justify-content:space-between;gap:8px;margin-top:14px">
-    ${sec > 1 ? `<button type="button" data-ib-sec="${sec - 1}" style="border:1px solid #ddd;background:#fff;color:#555;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer">← ${IB_CIRCLED[sec - 1]} 이전</button>` : "<span></span>"}
-    ${sec < 9 ? `<button type="button" data-ib-sec="${sec + 1}" style="border:none;background:${IB_COLOR};color:#fff;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer">${IB_CIRCLED[sec + 1]} ${IB_SECTIONS[sec][1]} →</button>` : `<span style="font-size:11.5px;color:#2E7D32;font-weight:700;align-self:center">제${lec.no}강 끝 — 다음 강의는 연구팀이 순차 공개합니다</span>`}
+    ${prevSec ? `<button type="button" data-ib-sec="${prevSec[0]}" style="border:1px solid #ddd;background:#fff;color:#555;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer">← ${IB_CIRCLED[prevSec[0]]} 이전</button>` : "<span></span>"}
+    ${nextSec ? `<button type="button" data-ib-sec="${nextSec[0]}" style="border:none;background:${IB_COLOR};color:#fff;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer">${IB_CIRCLED[nextSec[0]]} ${nextSec[1]} →</button>` : `<span style="font-size:11.5px;color:#2E7D32;font-weight:700;align-self:center">제${lec.no}강 끝 — 다음 강의는 순서대로 공개합니다</span>`}
   </div>`;
   const legend = `<div style="font-size:10.5px;color:#777;margin:2px 0 8px">근거 표시: ${Object.keys(IB_TAGS).map(ibTag).join(" ")}</div>`;
   // 관리자 도구줄 — 보기 상태: 수정 단추(+기본 내용 갱신 알림), 편집 상태: 서식 도구 + 저장/취소
