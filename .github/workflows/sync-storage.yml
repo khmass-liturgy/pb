@@ -1,0 +1,36 @@
+name: 데이터 Firebase Storage 동기화
+
+# 저장소를 비공개로 바꿔도 화면이 데이터를 읽을 수 있도록, 수집 JSON을 Firebase Storage
+# (public_content/{dataset}/latest.json)에도 올린다. 수집 워크플로는 각자 마지막 단계에서 자기 결과만
+# 올리고, 이 워크플로는 ① 처음 한 번 전체를 채울 때(수동 실행) ② 사람이 직접 고치는 JSON
+# (import_status/latest.json 등)이 main에 push됐을 때 쓴다. 내용이 같은 파일은 올리지 않는다.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "import_status/latest.json"
+      - "farm_density/sigun.json"
+
+jobs:
+  sync-storage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Python 설정
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Firebase Storage 업로드
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          pip install -q firebase-admin
+          python scripts/upload_to_storage.py \
+            poultry_price broiler_price_today prices egg_report layer_stats feed_production \
+            jungchu_price hpai_risk hpai_kr poultry_disease research_papers market news notices \
+            grain_quality grain_price import_status industry_news animal_drug_news \
+            poultry_disease_brief price_history weather_news farm_density

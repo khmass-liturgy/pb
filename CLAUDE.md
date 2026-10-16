@@ -188,6 +188,27 @@ Assumption constants live in `PF` (seasonal indices are 경험값, not consumpti
 `fetch_egg_report.py` and `fetch_egg_price.py` currently have no workflow wired up — check before
 assuming their output is refreshed automatically.
 
+### Data is also mirrored to Firebase Storage (so the repo can go private)
+
+The dashboard no longer depends on `raw.githubusercontent.com` being readable. Every fetch workflow ends with a
+`Firebase Storage 업로드` step (`continue-on-error`, skipped without `FIREBASE_SERVICE_ACCOUNT_JSON`) that runs
+`scripts/upload_to_storage.py <output dir>`: each `*.json` is copied to `public_content/{dataset}/latest.json`
+(Admin SDK, MD5-compared so unchanged files aren't rewritten). **Dataset name rule** (same in Python
+`dataset_of` and index.html `dataDatasetOf`): repo path minus `.json`, non-`[A-Za-z0-9_]` → `_`
+(`market/quotes.json` → `market_quotes`, `news/briefing.json` → `news_briefing`). The repo files stay the source of
+truth for the scripts' "keep previous value" logic and history; Storage is a read copy.
+Browser side: `fetchWithTimeout()` intercepts any `DATA_RAW_PREFIX…` URL under a dir in `DATA_DIRS_RE`, reads it via the
+`getPublicContent` Cloud Function (60 s memo, `fetchDataset`), wraps it in a `Response`, and falls back to the raw GitHub
+URL if Firebase fails — so existing `*_JSON_URL` constants/consumers didn't change. **A new data dir/file needs three
+things**: its workflow's upload step, the dir added to `DATA_DIRS_RE`, and (if hand-edited) a path in
+`.github/workflows/sync-storage.yml` — that workflow (manual run = upload everything, also on push of
+`import_status/latest.json`, `farm_density/sigun.json`) is how the Storage copy is first populated.
+Static files (images, `assets/`, `jungchu_price/latest.jpg`, `farm_density/sigun.json` first try) are referenced by
+**relative path** so GitHub Pages serves them; Pages stays public even when the repo is private (needs a paid plan).
+`send_sms_subscriptions.py` reads the checked-out files (`_open_repo`) instead of raw URLs for the same reason.
+Not yet moved: the legacy-path fallbacks for `hpai_news`/`monthly_pick`/`premium_menu`/`hpai_guide` (only used before
+a first Firebase publish).
+
 ### Conventions shared across all fetch scripts
 
 - **Partial failure never wipes good data.** If a script pulls N sub-values (e.g. egg/chicken/pig/cow)

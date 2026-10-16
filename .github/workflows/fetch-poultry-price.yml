@@ -63,3 +63,12 @@ jobs:
           git diff --staged --quiet && exit 0
           git commit -m "📊 축산산지시세 갱신"
           git push
+
+      - name: Firebase Storage 업로드 (저장소 비공개 대비)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          pip install -q firebase-admin
+          python scripts/upload_to_storage.py poultry_price/latest.json

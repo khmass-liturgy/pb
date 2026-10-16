@@ -52,3 +52,12 @@ jobs:
             sleep 5
           done
           exit 1
+
+      - name: Firebase Storage 업로드 (저장소 비공개 대비)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          pip install -q firebase-admin
+          python scripts/upload_to_storage.py research_papers/

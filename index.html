@@ -699,7 +699,7 @@ const FEED_PRODUCTION_JSON_URL = "https://raw.githubusercontent.com/khmass-litur
 // 산란계 중추가격 — (사)대한산란계협회(kegg.or.kr) 게시판 이미지를 scripts/fetch_jungchu_price.py가 그대로 미러링한 파일.
 // 표가 이미지 한 장으로만 올라오는 자료라 숫자로 파싱하지 않고 이미지 자체를 보여준다(자세한 이유는 스크립트 상단 설명 참고).
 const JUNGCHU_PRICE_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/jungchu_price/latest.json";
-const JUNGCHU_PRICE_IMAGE_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/jungchu_price/latest.jpg";
+const JUNGCHU_PRICE_IMAGE_URL = "jungchu_price/latest.jpg";   // Pages와 같은 곳에서 서빙(상대 경로)
 // 고병원성 AI 발생예측통계 — WOAH WAHIS 공식 신고를 scripts/fetch_hpai_risk.py가 모아둔 파일
 const HPAI_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/hpai_risk/latest.json";
 // 양계질병 자료 — The Poultry Site 원문을 scripts/fetch_poultry_diseases.py가 한글 번역까지 마쳐둔 파일
@@ -3400,7 +3400,7 @@ function buildSmsDigestText(menuKey){
 // 공개 JSON을 직접 읽어 신청한 메뉴 그대로 만든다(seasonal·treatment는 위 함수 그대로).
 async function buildSmsDigestTextAsync(menuKey){
   const RAW = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/";
-  const getJson = async (p) => { try { const r = await fetch(RAW + p + "?t=" + Date.now()); return r.ok ? await r.json() : null; } catch(e){ return null; } };
+  const getJson = async (p) => { try { const r = await fetchWithTimeout(RAW + p + "?t=" + Date.now(), 10000); return r.ok ? await r.json() : null; } catch(e){ return null; } };
   const short = (s, n=60) => { s = String(s||"").split(/\s+/).filter(Boolean).join(" "); return s.length<=n ? s : s.slice(0,n-1)+"…"; };
   const arrow = (c, p) => {
     if(typeof c!=="number" || typeof p!=="number" || !p) return "";
@@ -5523,11 +5523,46 @@ function deltaBadge(cur,prev){
 // ── 업비트 실시간 시세 자동 갱신 ────────────────────────────────────────────
 let coinFetchStatus = "idle"; // idle | loading | done | error
 
+// ── 수집 데이터(JSON) 읽기: Firebase Storage 우선, 실패하면 GitHub raw ─────────────────
+// 수집 워크플로가 결과를 저장소에 커밋하면서 Firebase Storage(public_content/{dataset}/latest.json)에도
+// 올린다(scripts/upload_to_storage.py). 저장소를 비공개로 바꿔도 화면이 동작하도록 raw.githubusercontent.com
+// 주소로 들어온 수집 데이터 요청은 Cloud Function(getPublicContent)으로 대신 읽는다. 데이터셋 이름은
+// 저장소 기준 경로에서 .json을 떼고 영문·숫자 이외를 _로 바꾼 것(market/quotes.json → market_quotes).
+// Storage에 아직 없거나 함수가 실패하면 예전처럼 raw를 시도한다(저장소가 공개인 동안의 안전망).
+const DATA_RAW_PREFIX = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/";
+const DATA_DIRS_RE = /^(poultry_price|broiler_price_today|prices|egg_report|layer_stats|feed_production|jungchu_price|hpai_risk|hpai_kr|poultry_disease|research_papers|market|news|notices|grain_quality|grain_price|import_status|industry_news|animal_drug_news|poultry_disease_brief|price_history|weather_news|farm_density)\//;
+function dataDatasetOf(url){
+  if(typeof url !== "string" || url.indexOf(DATA_RAW_PREFIX) !== 0) return null;
+  const rel = url.slice(DATA_RAW_PREFIX.length).split("?")[0];
+  if(!/\.json$/.test(rel) || !DATA_DIRS_RE.test(rel)) return null;
+  return rel.replace(/\.json$/, "").replace(/[^A-Za-z0-9_]/g, "_");
+}
+const _dataMemo = {};   // 같은 데이터를 한 화면에서 여러 번 부르는 경우 함수 호출을 1분간 합친다
+function fetchDataset(ds){
+  const m = _dataMemo[ds];
+  if(m && Date.now() - m.t < 60000) return m.p;
+  const p = firebase.app().functions().httpsCallable("getPublicContent")({ dataset:ds }).then(res => {
+    const j = res.data && res.data.data;
+    if(j == null) throw new Error("빈 응답");
+    return j;
+  });
+  _dataMemo[ds] = { t:Date.now(), p };
+  p.catch(() => { delete _dataMemo[ds]; });
+  return p;
+}
+
 // 타임아웃 포함 fetch
 function fetchWithTimeout(url, ms){
+  const rawFetch = () => fetch(url, { headers:{ "Accept":"application/json" } });
+  const ds = firebaseReady ? dataDatasetOf(url) : null;
+  const run = ds
+    ? fetchDataset(ds)
+        .then(j => new Response(JSON.stringify(j), { status:200, headers:{ "Content-Type":"application/json" } }))
+        .catch(e => { console.warn(ds + ": Firebase 데이터 읽기 실패 — GitHub raw로 대체:", e.message || e); return rawFetch(); })
+    : rawFetch();
   return Promise.race([
-    fetch(url, { headers:{ "Accept":"application/json" } }),
-    new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")), ms)),
+    run,
+    new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")), ds ? Math.max(ms, 15000) : ms)),
   ]);
 }
 
@@ -5990,7 +6025,8 @@ function kkokoReactions(){
 // const로 조립하면 TDZ 오류가 난다 — 실제로 쓰이는 렌더 시점(PICK_REPO가
 // 이미 초기화된 뒤)에 함수로 늦게 계산한다.
 function kkokoImgUrl(filename){
-  return "https://raw.githubusercontent.com/" + PICK_REPO + "/" + PICK_BRANCH + "/assets/kkoko/" + filename;
+  // 사이트(GitHub Pages)와 같은 곳에서 서빙되는 상대 경로 — 저장소를 비공개로 바꿔도 Pages는 공개로 서빙한다.
+  return "assets/kkoko/" + filename;
 }
 
 function kkokoVoiceSupported(){

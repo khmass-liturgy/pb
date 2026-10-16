@@ -83,11 +83,22 @@ def current_season():
 
 # ── 추가 메뉴 문자 내용(저장소의 공개 JSON을 읽어 만든다) ───────────────────────────
 RAW = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/"
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def _open_repo(url):
+    """저장소의 JSON을 연다. Actions가 체크아웃해 둔 파일이 있으면 그걸 쓰고(저장소가 비공개여도 동작),
+    없을 때만 GitHub raw 주소를 읽는다."""
+    if url.startswith(RAW):
+        local = os.path.join(_REPO_ROOT, url[len(RAW):].split("?")[0])
+        if os.path.isfile(local):
+            return open(local, "rb")
+    return urllib.request.urlopen(url, timeout=10)
 
 
 def fetch_repo_json(path):
     try:
-        with urllib.request.urlopen(RAW + path, timeout=10) as r:
+        with _open_repo(RAW + path) as r:
             return json.loads(r.read().decode("utf-8"))
     except Exception:
         return None
@@ -273,7 +284,7 @@ def build_digest(bucket, menu):
 
     if menu == "research":
         try:
-            with urllib.request.urlopen(RESEARCH_PAPERS_URL, timeout=10) as r:
+            with _open_repo(RESEARCH_PAPERS_URL) as r:
                 data = json.loads(r.read().decode("utf-8"))
         except Exception:
             data = {}
@@ -305,7 +316,7 @@ def build_digest(bucket, menu):
     if menu == "poultry_price":
         lines = ["[📊 양계 산지시세]"]
         try:
-            with urllib.request.urlopen(POULTRY_PRICE_URL, timeout=10) as r:
+            with _open_repo(POULTRY_PRICE_URL) as r:
                 pp = json.loads(r.read().decode("utf-8"))
             egg = pp.get("egg") or {}
             if isinstance(egg.get("latest"), int):
@@ -313,7 +324,7 @@ def build_digest(bucket, menu):
         except Exception:
             pass
         try:
-            with urllib.request.urlopen(BROILER_PRICE_TODAY_URL, timeout=10) as r:
+            with _open_repo(BROILER_PRICE_TODAY_URL) as r:
                 bt = json.loads(r.read().decode("utf-8"))
             rows = bt.get("rows") or []
             if rows:
@@ -331,7 +342,7 @@ def build_digest(bucket, menu):
 
     if menu == "briefing":
         try:
-            with urllib.request.urlopen(BRIEFING_NEWS_URL, timeout=10) as r:
+            with _open_repo(BRIEFING_NEWS_URL) as r:
                 nb = json.loads(r.read().decode("utf-8"))
         except Exception:
             nb = {}
