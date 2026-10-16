@@ -1,0 +1,63 @@
+name: 사이트 배포 (GitHub Pages)
+
+# Pages를 "저장소 전체 공개(브랜치 배포)" 대신 "필요한 파일만 골라 배포(GitHub Actions 배포)"로 쓴다.
+# 브랜치 배포는 저장소를 비공개로 바꿔도 scripts/·functions/·CLAUDE.md·storage.rules 등 모든 파일을
+# polcon.cc 아래에 그대로 내보내기 때문이다. 아래 허용 목록에 없는 파일은 사이트에 올라가지 않는다.
+# (수집 데이터 JSON은 이제 Firebase Storage에서 읽으므로 올리지 않는다 — CLAUDE.md 참고)
+#
+# 새 정적 파일(이미지·상대 경로 fetch 대상)을 index.html에서 쓰게 되면 ① 아래 "배포할 파일만 모으기"와
+# ② on.push.paths 두 곳에 추가한다. 봇이 커밋한 파일은 push 트리거를 일으키지 않으니 자동 갱신 파일은 여기 넣지 않는다.
+#
+# 설정(한 번만): 저장소 Settings → Pages → Build and deployment → Source 를 "GitHub Actions"로 바꾼다.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "index.html"
+      - "sw.js"
+      - "CNAME"
+      - "assets/**"
+      - "self_check/chicken_anatomy.jpg"
+      - "farm_density/sigun.json"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: 배포할 파일만 모으기
+        run: |
+          mkdir -p _site/self_check _site/farm_density
+          cp index.html sw.js CNAME _site/
+          cp -r assets _site/assets
+          cp self_check/chicken_anatomy.jpg _site/self_check/
+          cp farm_density/sigun.json _site/farm_density/
+          touch _site/.nojekyll
+          echo "배포 파일:"; find _site -type f | sort
+
+      - name: Pages 설정
+        uses: actions/configure-pages@v5
+
+      - name: 산출물 업로드
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: 배포
+        id: deployment
+        uses: actions/deploy-pages@v4

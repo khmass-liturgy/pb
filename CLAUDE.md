@@ -203,8 +203,15 @@ URL if Firebase fails — so existing `*_JSON_URL` constants/consumers didn't ch
 things**: its workflow's upload step, the dir added to `DATA_DIRS_RE`, and (if hand-edited) a path in
 `.github/workflows/sync-storage.yml` — that workflow (manual run = upload everything, also on push of
 `import_status/latest.json`, `farm_density/sigun.json`) is how the Storage copy is first populated.
-Static files (images, `assets/`, `jungchu_price/latest.jpg`, `farm_density/sigun.json` first try) are referenced by
+Static files (images, `assets/`, `self_check/chicken_anatomy.jpg`, `farm_density/sigun.json`) are referenced by
 **relative path** so GitHub Pages serves them; Pages stays public even when the repo is private (needs a paid plan).
+**Pages deploys only an allowlist, not the repo**: `.github/workflows/deploy-pages.yml` (Pages Source must be set to
+"GitHub Actions" in repo Settings → Pages) copies `index.html`, `sw.js`, `CNAME`, `assets/`, `self_check/chicken_anatomy.jpg`,
+`farm_density/sigun.json` into `_site/`. With the old branch deploy, `scripts/`, `functions/`, `CLAUDE.md`, `storage.rules`
+and old premium JSON copies (`farm_finder/`, `seasonal_packages/`, `treatment_packages/`, `self_check/latest.json`) were all
+downloadable at polcon.cc/… even from a private repo. A new static file used by index.html must be added to that
+workflow's copy step **and** its `paths:` filter (bot commits don't trigger push workflows). Those old premium JSON files
+are now only the admin-only migration source (`migrateOldPremiumJson`, reads raw GitHub → returns null when private).
 `send_sms_subscriptions.py` reads the checked-out files (`_open_repo`) instead of raw URLs for the same reason.
 Not yet moved: the legacy-path fallbacks for `hpai_news`/`monthly_pick`/`premium_menu`/`hpai_guide` (only used before
 a first Firebase publish).
