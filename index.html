@@ -31602,6 +31602,120 @@ function renderWelfarePanel(){
   </div>`;
 }
 
+// ── 🛡️ 농장 HACCP 인증관리기준 요약 (육계/산란계 컨설팅 탭, 동물복지 자가진단 아래) ──────────
+// 근거: ① 한국식품안전관리인증원 「축산농장 HACCP 실시상황평가표 개정(2020.1.1 시행)」 반영 표준기준서 안내
+//        (대한양계협회 공지 2020-04-07: 선행요건 목차 = 농장 관리·위생 관리·사양 관리·반입 및 출하 관리·알 관리(닭·오리),
+//         산란계·육계 기준서 별도) ② 월간양계 「농장 HACCP의 올바른 접근」(2010.11, 항목별 해설 — 2020년 개정 전 자료)
+//        ③ 생활법령정보(신청 절차) ④ 축산신문(유효기간 3년, 계란 표기 — 식약처 안내).
+// 인증원의 표준기준서 원문(.hwp)은 직접 열람하지 못해, 위 자료로 정리한 요약이다 — 세부 수치·배점은 싣지 않는다.
+const HACCP_AREAS = [
+  { k:"farm", icon:"🚪", t:"농장 관리", sub:"차단방역 · 시설", color:"#1565C0", common:[
+      "농장 입구에 안내문과 방역 경고문을 붙였다",
+      "출입자·출입차량·반입물품을 소독하고 소독실시기록부에 적는다",
+      "방문자용 작업복·장화(일회용 가능)를 갖춰 두었다",
+      "농장 경계(울타리)를 표시하고 계사 출입을 통제한다",
+      "겨울에도 소독이 되도록 동파 방지(열선 등)를 해 두었다",
+      "계사별 사육밀도, 음수·사료 공급 설비, 분변 제거 설비를 점검한다",
+      "온도·습도·환기를 관리하고, 분뇨처리장에서 새어 나가지 않게 한다"], broiler:[], layer:[] },
+  { k:"hyg", icon:"🧼", t:"위생 관리", sub:"도구 · 폐사축 · 분뇨", color:"#2E7D32", common:[
+      "도구·신발을 깨끗이 하고 계사 입구 발판소독조를 운영한다",
+      "폐사축을 처리하고 그 기록을 남긴다",
+      "분뇨를 주기적으로 치우고 구서·구충을 한다",
+      "관리인 위생·방역 교육을 정기적으로 한다"], broiler:[], layer:[
+      "살모넬라(SE) 검사를 정기적으로 한다"] },
+  { k:"feed", icon:"🌾", t:"사양 관리", sub:"사료 · 약품 · 물 · 질병", color:"#EF6C00", common:[
+      "사료는 HACCP 인증 사료공장의 배합사료를 쓰고 입고를 기록한다",
+      "사료 보관소·저장빈·급이기·운반도구를 깨끗이 관리한다",
+      "자가제조 사료를 쓴다면 제조·설비 관리기준을 정해 둔다(안전성 검사·가열 기준 포함)",
+      "항생제 등 약품은 잔류 방지 방안을 세우고 입·출고를 기록한다. 쓰고 남은 약품·빈 용기도 관리한다",
+      "동물용의약품 안전사용기준의 ‘사용자 준수사항’을 지킨다",
+      "음수는 연 1회 이상 검사한다(지하수는 생활용수 수질 기준)",
+      "백신 접종과 임상관찰을 농장 프로그램대로 하고 기록한다",
+      "정기적으로 수의사 관리를 받고 내·외부 기생충을 구제한다"], broiler:[], layer:[] },
+  { k:"ship", icon:"🚚", t:"반입·출하 관리", sub:"입추(도입) · 출하", color:"#6A1B9A", common:[
+      "계군 구입처, 질병검진, 예방접종 기록을 보관한다",
+      "도입 계군은 임상관찰을 기록한다",
+      "가축·축산물 이력관리를 하고, 출하기준에 부적합할 때의 관리 방법을 정해 둔다"],
+    broiler:["출하일지에 출하처·운반자·<b>휴약기간·항생제 무첨가 사료 급여일</b>을 적는다"],
+    layer:["폐계 등 출하 때도 출하일지에 출하처·운반자·휴약기간을 적는다"] },
+  { k:"egg", icon:"🥚", t:"알 관리", sub:"산란계만 해당", color:"#D4A012", common:[], broiler:[], layer:[
+      "집란실의 방충·방서, 환기, 청결을 관리한다",
+      "집란기와 라인을 주기적으로 청소·소독한다",
+      "선입선출을 하고 농장 표시를 한다",
+      "집란·선별 뒤 온도 변화를 줄이고, 온도 관리가 되는 보관시설을 쓴다",
+      "오염란·파란을 처리하고 난좌를 위생적으로 관리한다",
+      "출하처·운반자·운반차량 상태·항생제 잔류 여부를 기록한다",
+      "알 잔류검사와 살모넬라 검사를 정기적으로 한다"] },
+];
+const HACCP_RECORDS = {
+  common: [["차단방역", "출입자·차량·반입물품 소독 기록, 소독실시기록부"], ["농장 위생", "폐사축 처리 현황, 교육 기록"], ["사료·약품·물", "사료 입고, 동물용의약품 입·출고, 음수 검사 결과"], ["질병 관리", "계군 구입처, 질병검진, 예방접종, 임상관찰"], ["HACCP 운영", "모니터링, 개선조치, 검증 기록"]],
+  broiler: [["출하", "출하일지(출하처·운반자·휴약기간·항생제 무첨가 사료 급여일)"]],
+  layer: [["출하", "출하일지(출하처·운반자·휴약기간)"], ["알", "출하처·운반자·운반차량 상태·잔류 여부, 알 잔류·살모넬라 검사 결과"], ["농장 위생", "살모넬라 검사 결과"]],
+};
+const HACCP_STEPS = ["HACCP팀 구성(실제 역할이 있는 사람만, 부재 시 대행자 지정)", "가축·알 설명서 작성", "출하물의 용도 정리", "사양관리절차도(실제 흐름대로) 작성", "농장 평면도에 사람·차량·가축 동선 표시", "위해분석 — 농장에서 생길 수 있는 위해를 빠짐없이 적기", "중요관리점(CCP) 정하기", "한계기준 정하기(법령 기준 또는 과학적 근거)", "모니터링 — 누가·언제·무엇을·어떻게", "한계를 벗어났을 때의 개선조치를 미리 정하기", "검증 — 제대로 돌아가는지 확인", "기록 남기기"];
+let haccpState = (function(){
+  const base = { open:false, sp:"layer", checks:{} };
+  try { const j = JSON.parse(localStorage.getItem("haccp_v1") || "null"); if(j) return Object.assign(base, j, { open:false }); } catch(e){}
+  return base;
+})();
+function haccpSave(){ try { localStorage.setItem("haccp_v1", JSON.stringify(haccpState)); } catch(e){} }
+function haccpItems(sp){
+  const out = [];
+  HACCP_AREAS.forEach(a => { const list = a.common.concat(a[sp] || []); list.forEach((t, i) => out.push({ area:a, text:t, key:sp + ":" + a.k + ":" + i })); });
+  return out;
+}
+function renderHaccpPanel(){
+  const st = haccpState, sp = st.sp, C = "#00796B";
+  const head = `<div id="haccp-toggle" role="button" tabindex="0" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;gap:10px">
+    <div><div class="display" style="font-size:15px">🛡️ 농장 HACCP 인증관리기준 요약</div><div style="font-size:11px;color:#888;margin-top:2px">육계·산란계로 나누어, 농장에서 지킬 것을 한눈에 정리했습니다</div></div>
+    <div style="font-size:12px;color:${C};font-weight:700;white-space:nowrap">${st.open ? "접기 ▲" : "열기 ▼"}</div></div>`;
+  if(!st.open) return `<div class="card" style="margin-bottom:16px;border-top:6px solid ${C}">${head}</div>`;
+  const items = haccpItems(sp), done = items.filter(x => st.checks[x.key]).length;
+  const spBtn = (k, label, col) => `<button type="button" class="haccp-sp" data-sp="${k}" style="flex:1;border:2px solid ${sp === k ? col : "#eee"};background:${sp === k ? col : "#fff"};color:${sp === k ? "#fff" : "#444"};border-radius:10px;padding:10px 6px;font-size:13.5px;font-weight:800;cursor:pointer">${label}</button>`;
+  const info = (icon, t, d) => `<div style="flex:1 1 150px;background:#F1F8F6;border:1px solid #B2DFDB;border-radius:10px;padding:8px 10px"><div style="font-size:11px;font-weight:800;color:${C}">${icon} ${t}</div><div style="font-size:12px;color:#333;line-height:1.55;margin-top:2px">${d}</div></div>`;
+  const areas = HACCP_AREAS.map(a => {
+    const list = a.common.concat(a[sp] || []);
+    if(!list.length) return `<div style="border:1px dashed #ddd;border-radius:11px;padding:9px 12px;margin-bottom:9px;background:#fafafa"><div style="font-size:13.5px;font-weight:800;color:#999">${a.icon} ${a.t} <span style="font-size:11px;font-weight:500">— 육계는 해당 없어요(산란계 항목)</span></div></div>`;
+    const spec = a.common.length;
+    return `<div style="border:1.5px solid ${a.color}55;border-left:6px solid ${a.color};border-radius:11px;padding:9px 12px;margin-bottom:9px;background:#fff">
+      <div style="font-size:14px;font-weight:800;color:${a.color}">${a.icon} ${a.t} <span style="font-size:11px;font-weight:500;color:#888">${a.sub}</span></div>
+      ${list.map((t, i) => { const key = sp + ":" + a.k + ":" + i; const mine = i >= spec;
+        return `<label style="display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-top:1px solid #f1f1f1;cursor:pointer"><input type="checkbox" class="haccp-chk" data-k="${key}" ${st.checks[key] ? "checked" : ""} style="margin-top:3px;width:17px;height:17px;flex-shrink:0"><span style="font-size:12.8px;line-height:1.6;color:#333">${mine ? `<span style="font-size:10px;font-weight:800;color:#fff;background:${sp === "broiler" ? "#E65100" : "#1565C0"};border-radius:4px;padding:0 5px;margin-right:4px">${sp === "broiler" ? "육계" : "산란계"}</span>` : ""}${t}</span></label>`; }).join("")}
+    </div>`; }).join("");
+  const recs = HACCP_RECORDS.common.concat(HACCP_RECORDS[sp]);
+  return `<div class="card" style="margin-bottom:16px;border-top:6px solid ${C}">
+    ${head}
+    <div style="display:flex;gap:8px;margin:14px 0 10px">${spBtn("broiler", "🐔 육계 농장", "#E65100")}${spBtn("layer", "🥚 산란계 농장", "#1565C0")}</div>
+
+    <div style="font-size:12.5px;font-weight:800;color:#333;margin-bottom:5px">① 인증 제도 한눈에</div>
+    <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px">
+      ${info("🏛️", "인증 기관", "한국식품안전관리인증원")}
+      ${info("🤝", "신청", "의무가 아닌 <b>자율</b>. 인증신청서에 농장(축종)별 운용계획서를 붙여 제출")}
+      ${info("📅", "유효기간", "3년마다 재인증")}
+      ${info("📘", "기준서", "7개 축종(산란계·육계 포함)별 표준기준서, 2020.1.1 평가표 개정 반영")}
+    </div>
+
+    <div style="font-size:12.5px;font-weight:800;color:#333;margin-bottom:2px">② 선행요건 — 농장에서 지킬 것 <span style="font-weight:500;color:#999">(지키는 것에 체크 · ${done}/${items.length})</span></div>
+    <div style="background:#eee;border-radius:6px;height:7px;margin:5px 0 9px"><div style="background:${C};width:${items.length ? done / items.length * 100 : 0}%;height:7px;border-radius:6px"></div></div>
+    ${areas}
+
+    <div style="font-size:12.5px;font-weight:800;color:#333;margin:12px 0 5px">③ 꼭 남겨야 할 기록 <span style="font-weight:500;color:#999">(${sp === "broiler" ? "육계" : "산란계"})</span></div>
+    <div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;min-width:300px;font-size:12.3px">${recs.map((r, i) => `<tr style="background:${i % 2 ? "#fafafa" : "#fff"}"><td style="padding:6px 9px;border:1px solid #e6e6e6;font-weight:700;color:${C};white-space:nowrap;vertical-align:top">${r[0]}</td><td style="padding:6px 9px;border:1px solid #e6e6e6;color:#333;line-height:1.55">${r[1]}</td></tr>`).join("")}</table></div>
+
+    <div style="font-size:12.5px;font-weight:800;color:#333;margin:14px 0 5px">④ HACCP 계획 만드는 순서 (12절차)</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:6px">${HACCP_STEPS.map((t, i) => `<div style="display:flex;gap:8px;align-items:flex-start;background:#F1F8F6;border-radius:9px;padding:6px 9px"><span style="flex:none;width:20px;height:20px;border-radius:50%;background:${C};color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center">${i + 1}</span><span style="font-size:12.3px;line-height:1.5;color:#333">${t}</span></div>`).join("")}</div>
+
+    ${sp === "layer" ? `<div style="font-size:11.8px;color:#6b5400;background:#FFF8E1;border-radius:9px;padding:8px 11px;margin-top:12px;line-height:1.65">🥚 <b>계란 포장에 HACCP 마크를 쓰려면</b> 농장 인증만으로는 안 되고 식용란수집판매업(소규모 포함) HACCP 인증이 따로 필요해요. 농장만 인증받았다면 <b>“HACCP인증을 받은 산란계 농장에서 생산한 계란”</b> 문구만 쓸 수 있어요(식약처 안내).</div>` : ""}
+
+    <div style="font-size:10.3px;color:#aaa;line-height:1.75;margin-top:12px;border-top:1px dashed #eee;padding-top:8px">
+      ※ <b>정리 근거와 한계</b>: 인증원의 표준기준서 원문(.hwp)은 직접 열어 보지 못했습니다. 항목은 ① 인증원 개정 안내(2020, 대한양계협회 공지)의 선행요건 구성 ② 월간양계 「농장 HACCP의 올바른 접근」(2010, 개정 전 해설) ③ 생활법령정보 ④ 축산신문 기사를 종합한 요약이며, 세부 수치·배점은 싣지 않았습니다.
+      2020년 개정(자가제조사료 검사·가열 기준, 약품 사용자 준수사항, 이력관리 추가)은 반영했지만, <b>실제 심사 기준은 인증원 자료실의 산란계·육계 기준서와 실시상황평가표로 꼭 확인하세요.</b>
+      <a href="https://www.haccp.or.kr" target="_blank" rel="noopener" style="color:${C}">한국식품안전관리인증원 ↗</a> ·
+      <a href="https://www.poultry.or.kr/bbs/board.php?bo_table=notice&wr_id=66048" target="_blank" rel="noopener" style="color:${C}">기준서 개정 안내(대한양계협회) ↗</a>
+    </div>
+  </div>`;
+}
+
 function renderConsultTab(){
   const sp = CONSULT_BREEDS[consultState.species];
   if(consultState.breed && !sp.breeds[consultState.breed]) consultState.breed = Object.keys(sp.breeds)[0];
@@ -31759,6 +31873,7 @@ function renderConsultTab(){
   ${renderProductionIndexPanel()}
   ${renderMgmtPointsPanel()}
   ${renderWelfarePanel()}
+  ${renderHaccpPanel()}
 
   <div style="font-size:10px;color:#aaa;line-height:1.7">
     ※ 출처: ${breed.source}. 사양매뉴얼 표는 국가·환경에 따라 실제 성적과 차이가 날 수 있는 "목표치"이며,
@@ -35927,6 +36042,16 @@ function attachEvents(){
   document.querySelectorAll(".wf-chk").forEach(el=>el.onchange=()=>{
     welfareState.checks[welfareState.species][el.dataset.k]=el.checked; saveWelfareState(); wfRefresh();
   });
+
+  // 농장 HACCP 인증관리기준 요약
+  const hcT=document.getElementById("haccp-toggle");
+  if(hcT){
+    const tg=()=>{ haccpState.open=!haccpState.open; render(); };
+    hcT.onclick=tg;
+    hcT.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); tg(); } };
+  }
+  document.querySelectorAll(".haccp-sp").forEach(b=>b.onclick=()=>{ haccpState.sp=b.dataset.sp; haccpSave(); render(); });
+  document.querySelectorAll(".haccp-chk").forEach(el=>el.onchange=()=>{ haccpState.checks[el.dataset.k]=el.checked; haccpSave(); render(); });
 
   // 육계/산란계 컨설팅: 축종/품종/일령 선택
   document.querySelectorAll(".consult-species-btn").forEach(b=>b.onclick=()=>{
