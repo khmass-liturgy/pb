@@ -24556,7 +24556,7 @@ function ibLossBind(){
   });
 }
 
-const ibState = { lecture: 1, sec: 1, stage: 0 };
+const ibState = { lecture: 1, sec: 1, stage: 0, mode: "easy" };
 function ibReadMap(){ try { return JSON.parse(localStorage.getItem("ib_read_v1") || "{}") || {}; } catch(_) { return {}; } }
 function ibMarkRead(k){ try { const m = ibReadMap(); if(!m[k]){ m[k] = 1; localStorage.setItem("ib_read_v1", JSON.stringify(m)); } } catch(_) {} }
 
@@ -24710,9 +24710,89 @@ function ibSlim(html){
   let n; while((n = w.nextNode())){ let v = n.nodeValue; IB_TEXT_FIX.forEach(([a, b]) => { if(v.includes(a)) v = v.split(a).join(b); }); if(v !== n.nodeValue) n.nodeValue = v; }
   return root.innerHTML;
 }
+// ── 쉬운 요약판: 처음 보시는 분·연세 드신 농장주용. 큰 글씨·짧은 문장·그림 문자 중심. 8단계 강의는 「자세히 배우기」로 이어진다.
+function renderIbEasy(){
+  const C = IB_COLOR;
+  const card = (icon, title, color, body) => `
+    <div style="border:2px solid ${color}55;border-left:8px solid ${color};background:#fff;border-radius:14px;padding:14px 15px;margin-bottom:13px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="font-size:30px;line-height:1">${icon}</span><span style="font-size:18px;font-weight:900;color:${color};line-height:1.3">${title}</span></div>
+      <div style="font-size:16px;line-height:1.85;color:#222">${body}</div>
+    </div>`;
+  const li = arr => `<div style="display:flex;flex-direction:column;gap:7px">${arr.map(t => `<div style="display:flex;gap:9px;align-items:flex-start"><span style="color:#888;font-weight:900">●</span><span>${t}</span></div>`).join("")}</div>`;
+  const two = (a, b) => `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px">
+      <div style="background:#FFF3E0;border:2px solid #EF6C00;border-radius:12px;padding:10px 12px"><div style="font-size:17px;font-weight:900;color:#E65100;margin-bottom:5px">🐥 육계</div>${li(a)}</div>
+      <div style="background:#E3F2FD;border:2px solid #1565C0;border-radius:12px;padding:10px 12px"><div style="font-size:17px;font-weight:900;color:#1565C0;margin-bottom:5px">🥚 산란계</div>${li(b)}</div></div>`;
+  const step = (n, t, d, col) => `<div style="display:flex;gap:11px;align-items:flex-start;background:${col}12;border-radius:12px;padding:10px 12px;margin-bottom:8px">
+      <span style="flex:none;width:34px;height:34px;border-radius:50%;background:${col};color:#fff;font-size:17px;font-weight:900;display:flex;align-items:center;justify-content:center">${n}</span>
+      <div><div style="font-size:16.5px;font-weight:900;color:${col}">${t}</div><div style="font-size:15.5px;line-height:1.7;color:#333;margin-top:2px">${d}</div></div></div>`;
+  return `<div class="card" id="ib-root" style="border-top:6px solid ${C}">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+      <div><div class="display" style="font-size:19px;margin-bottom:3px">🧬 IB 닭기침 잡는 교실</div><div style="font-size:14px;color:#777">전염성기관지염 — 쉬운 요약</div></div>
+      <button id="ib-back-btn" style="border:1px solid #ddd;border-radius:9px;background:#fff;color:#777;padding:9px 15px;font-size:14px;font-weight:700;cursor:pointer">← 메뉴로</button>
+    </div>
+    <div style="background:linear-gradient(135deg,${C}18,#fff);border:1px solid ${C}44;border-radius:14px;padding:14px 16px;margin-bottom:14px">
+      <div style="font-size:18px;font-weight:900;color:${C};line-height:1.5">3분이면 다 읽어요 👍</div>
+      <div style="font-size:15.5px;line-height:1.75;color:#333;margin-top:4px">IB가 뭔지, 어떻게 알아채는지, 어떻게 막는지 <b>꼭 필요한 것만</b> 모았어요.</div>
+    </div>
+
+    ${card("🦠", "① IB가 뭐예요?", C, li([
+      "닭이 걸리는 <b>호흡기 전염병</b>이에요. 코로나바이러스의 한 종류지만 사람 코로나와는 달라요.",
+      "숨소리가 거칠어지고, 알이 줄고, 물을 많이 먹는 닭도 있어요.",
+      "병아리 때 걸리면 나중에 <b>알을 못 낳는 닭</b>이 될 수 있어요.",
+    ]) + `<div style="margin-top:10px;background:#FFF8E1;border-radius:10px;padding:9px 12px;font-size:15px;line-height:1.7">💊 <b>항생제는 IB 바이러스에는 안 들어요.</b> 뒤따라오는 대장균 같은 세균을 잡는 데만 써요.</div>`)}
+
+    ${card("👀", "② 이럴 때 의심하세요", "#EF6C00", two(
+      ["불 끄고 밤에 들으면 <b>“가르랑” 소리</b>", "사료·물이 갑자기 줄어요", "3주령 전후에 폐사가 늘어요"],
+      ["알 낳는 비율이 <b>며칠 새 뚝</b> 떨어져요", "찌그러진 알, 색 옅은 알, <b>물 같은 흰자</b>가 늘어요", "숨소리는 거의 안 들릴 수도 있어요"]
+    ) + `<div style="margin-top:9px;font-size:15px;color:#555">물을 많이 먹고 묽은 흰 똥을 싸면 신장이 상한 IB일 수 있어요.</div>`)}
+
+    <div style="border:3px solid #C62828;background:#FFF5F5;border-radius:14px;padding:14px 15px;margin-bottom:13px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="font-size:30px">🚨</span><span style="font-size:18px;font-weight:900;color:#C62828">③ 갑자기 많이 죽으면 — 신고가 먼저!</span></div>
+      <div style="font-size:16px;line-height:1.8;color:#222">처음엔 IB와 비슷해 보이는 <b>무서운 병(고병원성 AI, 뉴캣슬병)</b>이 있어요. 폐사가 갑자기 크게 늘면 IB라고 단정하지 마세요.</div>
+      <div style="margin-top:8px">${step(1, "사람·차량·닭·알 이동을 멈추세요", "농장 문을 닫고 외부인을 들이지 마세요", "#C62828")}${step(2, "바로 신고하세요", "가축전염병 신고 <b>1588-9060</b> 또는 시·군 방역기관", "#C62828")}</div>
+    </div>
+
+    ${card("🚪", "④ 어떻게 들어오고 퍼져요?", "#455A64", li([
+      "<b>공기</b>를 타고, 닭끼리 <b>직접 닿아서</b> 퍼져요.",
+      "<b>사람·차량·장비·계란판·분뇨</b>에 묻어서도 들어와요.",
+      "겉보기 멀쩡한 닭도 몇 주 동안 <b>분변으로 바이러스를 내보내요.</b>",
+    ]))}
+
+    ${card("🛡️", "⑤ 이렇게 막으세요 (5가지)", "#2E7D32", `
+      ${step(1, "🚪 출입 막기", "출입 기록을 쓰고, 계사마다 장화·작업복을 따로 써요. 기구를 같이 쓰지 마세요. 계란판·분뇨 차량도 조심하세요.", "#2E7D32")}
+      ${step(2, "🌬️ 환기는 끄지 마세요", "추워도 최소환기는 켜 두세요. 암모니아 냄새와 먼지가 닭의 숨길을 상하게 해요.", "#2E7D32")}
+      ${step(3, "💉 백신은 빠짐없이", "분무·점안을 고르게 하고 보관 온도를 지키세요. 어떤 백신을 쓸지는 수의사와 상의하세요.", "#2E7D32")}
+      ${step(4, "📝 매일 같은 시간에 기록", "폐사, 사료, 물(산란계는 산란율·알 상태)을 적어 두면 이상을 빨리 알아요.", "#2E7D32")}
+      ${step(5, "🧼 쉬는 기간 지키기", "닭을 내보낸 뒤 씻고, 소독하고, 말리고, 충분히 비워 두세요.", "#2E7D32")}`)}
+
+    ${card("⏱️", "⑥ 이상하면 이렇게 (3일 계획)", "#5D4037", `
+      ${step("바로", "그 계사 출입을 막고 기록·사진", "언제부터, 몇 마리, 어떤 모습인지 적어 두세요", "#5D4037")}
+      ${step("하루 안", "담당 수의사에게 연락", "부검과 검사가 필요한지는 수의사가 정해요", "#5D4037")}
+      ${step("이틀", "환기·깔짚·암모니아 관리", "세균 감염 약은 수의사 지시대로 쓰세요", "#5D4037")}
+      ${step("사흘 뒤", "다음 방역·백신 계획 고치기", "결과를 보고 무엇을 바꿀지 수의사와 정해요", "#5D4037")}`)}
+
+    ${card("✅", "⑦ 오늘 확인해 보세요 (눌러서 체크)", "#1565C0", ibChecklist("easy1", [
+      "출입 기록부를 쓰고 있다",
+      "계사별 장화·작업복을 따로 쓴다",
+      "추워도 최소환기를 켜 두었다",
+      "오늘 폐사·사료·물(산란율)을 적었다",
+      "밤에 불 끄고 숨소리를 들어 보았다",
+      "이상하면 연락할 수의사 번호가 있다",
+    ]))}
+
+    <div style="background:#FFF8E1;border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:15px;line-height:1.75;color:#6b5400">
+      <b>꼭 기억하세요</b><br>· 증상만 보고 IB라고 단정하지 마세요. 진단은 수의사와 함께 해요.<br>· 약은 수의사 처방과 휴약기간을 지키세요.<br>· 백신을 바꾸는 일도 수의사와 먼저 상의하세요.
+    </div>
+
+    <style>#ib-root label{font-size:15.5px !important;padding:9px 11px !important}#ib-root input[type=checkbox]{width:20px;height:20px}</style>
+    <button type="button" data-ib-mode="detail" style="width:100%;border:none;background:${C};color:#fff;border-radius:13px;padding:16px;font-size:17px;font-weight:900;cursor:pointer">📚 더 자세히 배우기 (8단계 강의) →</button>
+  </div>`;
+}
 function renderIbTeamPanel(){
+  if(ibState.mode !== "detail") return renderIbEasy();
   const st = ibContentState, admin = isBoardAdmin();
-  const head = `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:10px"><div><div class="display" style="font-size:16px;margin-bottom:2px">🧬 IB 닭기침 잡는 교실 — 전염성기관지염(IB) 차단 8단계 코스</div><div style="font-size:11px;color:#999">IB가 뭔지부터 우리 농장 예방 시스템까지 — 농장에서 바로 쓰는 단계별 공부</div></div><button id="ib-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button></div>`;
+  const head = `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:10px"><div><div class="display" style="font-size:16px;margin-bottom:2px">🧬 IB 닭기침 잡는 교실 — 전염성기관지염(IB) 차단 8단계 코스</div><div style="font-size:11px;color:#999">IB가 뭔지부터 우리 농장 예방 시스템까지 — 농장에서 바로 쓰는 단계별 공부</div></div><button id="ib-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button></div>
+    <button type="button" data-ib-mode="easy" style="border:1.5px solid ${IB_COLOR};background:#fff;color:${IB_COLOR};border-radius:10px;padding:9px 14px;font-size:13px;font-weight:800;cursor:pointer;margin-bottom:10px">← 쉬운 요약으로</button>`;
   if(st.status === "idle" || st.status === "loading") return `<div class="card" id="ib-root" style="border-top:6px solid ${IB_COLOR}">${head}<div style="text-align:center;padding:28px 0;color:#aaa">⏳ 불러오는 중...</div></div>`;
   const eff = ibEffStage(), vs = ibViewStage();
   // 8단계 로드맵 — 공개 단계까지만 열림
@@ -24796,6 +24876,7 @@ function ibBind(){
   const back = $("ib-back-btn"); if(back) back.onclick = () => { if(st.editing && !confirm("저장하지 않은 수정 내용이 있습니다. 나갈까요?")) return; st.editing = null; st.draft = null; premiumState.view = "menu"; render(); };
   const root = $("ib-root");
   const toTop = () => { if(root) root.scrollIntoView({ behavior: "smooth", block: "start" }); };
+  document.querySelectorAll("[data-ib-mode]").forEach(b => b.onclick = () => { ibState.mode = b.dataset.ibMode; render(); const r = $("ib-root"); if(r) r.scrollIntoView({ block: "start" }); });
   document.querySelectorAll("[data-ib-stage]").forEach(b => b.onclick = e => { e.preventDefault(); if(st.editing && !confirm("저장하지 않은 수정 내용이 있습니다. 다른 단계로 갈까요?")) return; st.editing = null; st.draft = null; ibState.stage = +b.dataset.ibStage; ibState.lecture = 1; ibState.sec = 1; render(); toTop(); });
   document.querySelectorAll("[data-ib-lec]").forEach(b => b.onclick = () => { if(st.editing && !confirm("저장하지 않은 수정 내용이 있습니다. 다른 강의로 갈까요?")) return; st.editing = null; st.draft = null; ibState.lecture = +b.dataset.ibLec; ibState.sec = 1; render(); toTop(); });
   document.querySelectorAll("[data-ib-sec]").forEach(b => b.onclick = () => {
