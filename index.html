@@ -8699,7 +8699,7 @@ const COLI_PHASES = [
   { k:"p3", t:"치료·재발 방지", sub:"7~9차시", from:7, to:9, color:"#EF6C00", icon:"🛠️", d:"치료는 어떻게 정하고, 안 들으면 무엇을 보고, 다음엔 무엇을 바꿀까" },
   { k:"p4", t:"백신·새 제품·우리 농장 계획", sub:"10~12차시", from:10, to:12, color:"#6A1B9A", icon:"🛡️", d:"백신은 어디까지 믿을지, 새 제품은 무엇을 물어볼지, 우리 농장 대응계획" },
 ];
-const coliState = { tab:"home", lesson:0, done:{}, plan:{ type:"broiler", f:{} }, msg:"" };
+const coliState = { tab:"easy", lesson:0, done:{}, plan:{ type:"broiler", f:{} }, msg:"" };
 (function coliLoad(){ try { const j = JSON.parse(localStorage.getItem("coli_v1") || "{}"); if(j.done && typeof j.done === "object") coliState.done = j.done; if(j.plan && typeof j.plan === "object") coliState.plan = Object.assign(coliState.plan, j.plan); } catch(e){} })();
 function coliSave(){ try { localStorage.setItem("coli_v1", JSON.stringify({ done:coliState.done, plan:coliState.plan })); } catch(e){} }
 
@@ -8892,7 +8892,7 @@ function coliFigFor(k){
 }
 
 // ── 대장균증 교실: 화면 ──
-const COLI_TABS = [["home", "📚 12차시 교육과정"], ["compare", "🐔 육계·산란계 비교"], ["cases", "🧪 사례 풀이"], ["treat", "💊 치료 6단계"], ["research", "🧐 새 제품 따져보기"], ["plan", "📝 대응계획서"]];
+const COLI_TABS = [["easy", "🌱 쉬운 요약"], ["home", "📚 12차시 교육과정"], ["compare", "🐔 육계·산란계 비교"], ["cases", "🧪 사례 풀이"], ["treat", "💊 치료 6단계"], ["research", "🧐 새 제품 따져보기"], ["plan", "📝 대응계획서"]];
 function coliTable(head, rows, minW){
   return `<div style="overflow-x:auto;margin:8px 0"><table style="width:100%;border-collapse:collapse;font-size:12.3px;min-width:${minW || 480}px"><thead><tr style="background:#E0F2F1">${head.map(h => `<th style="padding:7px 9px;text-align:left;border-bottom:2px solid #80CBC4;color:#00695C">${h}</th>`).join("")}</tr></thead><tbody>${rows.map((r, i) => `<tr style="background:${i % 2 ? "#fafafa" : "#fff"}">${r.map((c, k) => `<td style="padding:7px 9px;border-bottom:1px solid #eee;vertical-align:top;line-height:1.65${k === 0 ? ";font-weight:800" : ""}">${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
 }
@@ -9070,11 +9070,75 @@ function renderColiPlan(){
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button type="button" id="coli-pcopy" style="border:none;background:${COLI_COLOR};color:#fff;border-radius:9px;padding:10px 18px;font-size:13.5px;font-weight:900;cursor:pointer">📋 계획서 복사</button><button type="button" id="coli-pprint" style="border:1px solid ${COLI_COLOR};background:#fff;color:${COLI_COLOR};border-radius:9px;padding:10px 18px;font-size:13.5px;font-weight:900;cursor:pointer">🖨 인쇄</button><button type="button" id="coli-pclear" style="border:1px solid #ddd;background:#fff;color:#777;border-radius:9px;padding:10px 14px;font-size:12.5px;font-weight:700;cursor:pointer">지우기</button><span id="coli-pmsg" style="font-size:12px;color:#2E7D32;font-weight:700">${esc(coliState.msg)}</span></div>
     <div style="font-size:12px;color:#555;line-height:1.75;margin-top:10px;background:#f6faf9;border-radius:10px;padding:9px 12px"><b>평가는 이렇게</b> — 용어 암기가 아니라 <b>행동</b>으로 봅니다. 사례를 보고 “무엇을 관찰했고, 무엇을 의심하며, 무엇을 확인한 뒤 행동할지” 설명하고, <b>담당자·완료일·확인 방법</b>이 있는 개선계획을 제출하면 과정을 마친 것으로 봅니다.</div>`;
 }
+// ── 쉬운 요약 공통 조각: 큰 글씨 카드·점 목록·번호 단계 (IB·대장균증·AI 교실의 「쉬운 요약」이 같이 쓴다) ──
+function easyCard(icon, title, color, body){
+  return `<div style="border:2px solid ${color}55;border-left:8px solid ${color};background:#fff;border-radius:14px;padding:14px 15px;margin-bottom:13px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="font-size:30px;line-height:1">${icon}</span><span style="font-size:18px;font-weight:900;color:${color};line-height:1.3">${title}</span></div>
+    <div style="font-size:16px;line-height:1.85;color:#222">${body}</div></div>`;
+}
+function easyList(arr){ return `<div style="display:flex;flex-direction:column;gap:7px">${arr.map(t => `<div style="display:flex;gap:9px;align-items:flex-start"><span style="color:#888;font-weight:900">●</span><span>${t}</span></div>`).join("")}</div>`; }
+function easyStep(n, t, d, col){
+  return `<div style="display:flex;gap:11px;align-items:flex-start;background:${col}12;border-radius:12px;padding:10px 12px;margin-bottom:8px">
+    <span style="flex:none;min-width:34px;height:34px;border-radius:17px;background:${col};color:#fff;font-size:15px;font-weight:900;display:flex;align-items:center;justify-content:center;padding:0 4px">${n}</span>
+    <div><div style="font-size:16.5px;font-weight:900;color:${col}">${t}</div>${d ? `<div style="font-size:15.5px;line-height:1.7;color:#333;margin-top:2px">${d}</div>` : ""}</div></div>`;
+}
+function easyTwo(titleA, colA, bgA, a, titleB, colB, bgB, b){
+  return `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px">
+    <div style="background:${bgA};border:2px solid ${colA};border-radius:12px;padding:10px 12px"><div style="font-size:17px;font-weight:900;color:${colA};margin-bottom:5px">${titleA}</div>${easyList(a)}</div>
+    <div style="background:${bgB};border:2px solid ${colB};border-radius:12px;padding:10px 12px"><div style="font-size:17px;font-weight:900;color:${colB};margin-bottom:5px">${titleB}</div>${easyList(b)}</div></div>`;
+}
+function easyHero(color, big, small){
+  return `<div style="background:linear-gradient(135deg,${color}18,#fff);border:1px solid ${color}44;border-radius:14px;padding:14px 16px;margin-bottom:14px"><div style="font-size:18px;font-weight:900;color:${color};line-height:1.5">${big}</div><div style="font-size:15.5px;line-height:1.75;color:#333;margin-top:4px">${small}</div></div>`;
+}
+function easyBtn(attrs, color, label){
+  return `<button type="button" ${attrs} style="width:100%;border:none;background:${color};color:#fff;border-radius:13px;padding:16px;font-size:17px;font-weight:900;cursor:pointer;margin-top:4px">${label}</button>`;
+}
+
+// ── 🌱 대장균증 쉬운 요약 ──
+function renderColiEasy(){
+  const C = COLI_COLOR;
+  return easyHero(C, "3분이면 다 읽어요 👍", "대장균증이 뭔지, 어떻게 알아채는지, 어떻게 막는지 <b>꼭 필요한 것만</b> 모았어요.")
+    + easyCard("🧫", "① 대장균증이 뭐예요?", C, easyList([
+        "대장균은 원래 닭 장과 농장 어디에나 있는 균이에요.",
+        "<b>병을 잘 일으키는 균</b>이 있거나 <b>닭이 약해졌을 때</b> 몸속으로 들어가면 병이 돼요.",
+        "설사만 하는 병이 아니에요. 기낭·심장 주변·간·생식기에 염증이 생기고 <b>온몸으로 퍼질 수</b> 있어요.",
+      ]) + `<div style="margin-top:10px;background:#FFF8E1;border-radius:10px;padding:9px 12px;font-size:15px;line-height:1.7">⚠️ 분변에서 대장균이 나왔다고 <b>곧바로 대장균증은 아니에요.</b> 증상과 부검 소견을 함께 봐야 해요.</div>`)
+    + easyCard("👀", "② 이럴 때 의심하세요", "#EF6C00", easyTwo("🐥 육계", "#E65100", "#FFF3E0",
+        ["입추 초기 <b>병아리 폐사</b>, 배꼽 이상", "호흡기 증상 뒤에 폐사가 늘어요", "잘 크지 않아요"],
+        "🥚 산란계", "#1565C0", "#E3F2FD",
+        ["뚜렷한 전조 없이 <b>갑자기 죽는 닭</b>", "난관·복막 문제가 보여요", "같은 동에서 <b>자꾸 반복</b>돼요"]))
+    + easyCard("🚪", "③ 이 세 가지가 겹치면 병이 돼요", "#455A64",
+        easyStep("균", "균이 많이 쌓였다", "분변·먼지·물·기구가 오염됐어요", "#455A64")
+        + easyStep("길", "들어갈 길이 열렸다", "호흡기, 배꼽, 상처, 생식기", "#455A64")
+        + easyStep("힘", "닭의 힘이 떨어졌다", "다른 병이나 환기·온도·물 스트레스", "#455A64"))
+    + easyCard("📝", "④ 일찍 알아채는 법", "#2E7D32", easyList([
+        "아프면 <b>먹고 마시는 양, 움직임, 모여 있는 모습</b>부터 달라져요.",
+        "폐사가 눈에 띌 때는 이미 늦은 경우가 많아요.",
+        "<b>매일 같은 시각, 같은 방법으로 동별 기록</b>을 하면 언제부터 달랐는지 알 수 있어요.",
+      ]))
+    + `<div style="border:3px solid #C62828;background:#FFF5F5;border-radius:14px;padding:14px 15px;margin-bottom:13px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="font-size:30px">🩺</span><span style="font-size:18px;font-weight:900;color:#C62828">⑤ 이상하면 — 수의사에게 먼저!</span></div>
+        ${easyStep(1, "담당 수의사에게 연락", "진단은 수의사가 해요. 급한 치료를 늦추지 마세요", "#C62828")}
+        ${easyStep(2, "동·일령·증상·투약 이력 정리", "수의사가 판단하기 쉽게 한 장에 적어 두세요", "#C62828")}
+        ${easyStep(3, "부검·검사는 수의사가 정해요", "필요하면 수의사가 실험실 검사의 도움을 받아요", "#C62828")}
+        <div style="font-size:15px;line-height:1.7;color:#555;margin-top:4px">갑자기 많이 죽으면 대장균증이라고 단정하지 말고 바로 수의사에게 알리세요. 가축전염병이 의심되면 방역기관 신고가 먼저예요.</div></div>`
+    + easyCard("💊", "⑥ 약을 썼는데 계속 죽으면", "#6A1B9A",
+        `<div style="margin-bottom:8px">약을 바꾸기 전에 <b>이 여섯 가지부터</b> 점검하세요.</div>`
+        + easyList(["진단이 맞았나?", "닭이 약을 <b>실제로 먹었나?</b> (투약기·물)", "그 균에 약이 듣나?", "다른 병이 겹쳤나?", "균이 아직 농장에 남아 있나?", "이미 병변이 심한가?"])
+        + `<div style="margin-top:8px;font-size:15px;color:#555">약은 수의사와 제품 허가사항·휴약기간을 확인해서 쓰세요.</div>`)
+    + easyCard("🛡️", "⑦ 다시 안 걸리게 — 3가지만", "#2E7D32",
+        easyStep("1", "청소 순서 지키기", "제거 → 세척 → 건조 → 소독 → 건조 → 점검", "#2E7D32")
+        + easyStep("2", "물·환기·깔짚 관리", "급수라인 누수, 젖은 깔짚, 먼지 쌓이는 곳부터", "#2E7D32")
+        + easyStep("3", "누가·언제까지·어떻게 확인", "개선할 일마다 담당자와 기한을 적어 두세요", "#2E7D32"))
+    + easyBtn('class="coli-tab" data-t="plan"', C, "📝 우리 농장 대응계획서 쓰기 →")
+    + easyBtn('class="coli-tab" data-t="home"', "#455A64", "📚 12차시로 자세히 배우기 →");
+}
+
 function renderColiPanel(){
-  const t = COLI_TABS.some(x => x[0] === coliState.tab) ? coliState.tab : "home";
+  const t = COLI_TABS.some(x => x[0] === coliState.tab) ? coliState.tab : "easy";
   const head = `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:8px"><div><div class="display" style="font-size:16px;margin-bottom:2px">🧫 닭 대장균증 잡는 교실 — 발견부터 재발 방지까지</div><div style="font-size:11.5px;color:#777">육계·산란계 12차시 교육과정 · 최꼬 아카데미</div></div><button id="coli-back" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button></div>`;
   const nav = `<div style="display:flex;gap:5px;flex-wrap:wrap;margin:4px 0 12px">${COLI_TABS.map(([k, l]) => `<button type="button" class="coli-tab" data-t="${k}" style="border:1px solid ${k === t ? COLI_COLOR : "#ddd"};background:${k === t ? COLI_COLOR : "#fff"};color:${k === t ? "#fff" : "#555"};border-radius:16px;padding:7px 12px;font-size:12.5px;font-weight:700;cursor:pointer">${l}</button>`).join("")}</div>`;
-  const body = t === "compare" ? renderColiCompare() : t === "cases" ? renderColiCases() : t === "treat" ? renderColiTreat() : t === "research" ? renderColiResearch() : t === "plan" ? renderColiPlan() : (coliState.lesson ? renderColiLesson(coliState.lesson) : renderColiHome());
+  const body = t === "easy" ? renderColiEasy() : t === "compare" ? renderColiCompare() : t === "cases" ? renderColiCases() : t === "treat" ? renderColiTreat() : t === "research" ? renderColiResearch() : t === "plan" ? renderColiPlan() : (coliState.lesson ? renderColiLesson(coliState.lesson) : renderColiHome());
   const foot = `<div style="margin-top:14px;background:#FFF8E1;border-radius:8px;padding:9px 11px;font-size:10.6px;color:#6b5400;line-height:1.75"><b>유의</b> · 교육용 자료이며 개별 농장의 진단·처방을 대신하지 않습니다. 병 진단·치료·약 선택·휴약기간은 담당 수의사와 제품 허가사항에 따르세요. 그림은 이해를 돕는 모식도입니다.</div>`;
   return `<div class="card" id="coli-root" style="border-top:6px solid ${COLI_COLOR}">${head}${nav}${body}${foot}</div>`;
 }
@@ -13460,7 +13524,7 @@ function suppBind(){
 // 위험점수·가중치는 연구 시작을 위한 가설적 설계안이며 검증된 감염확률이 아니다 — 화면 곳곳에 같은 문구를 둔다.
 const HZ_COLOR = "#00695C";
 const HZ_STORE = "hpai_zero_v1";
-const hzState = { tab:"home", more:false, sim:[2, 2, 2, 2, 2], checks:{}, copied:"", tasks:{}, tv:"stage", ts:1, tt:1, sido:"" };
+const hzState = { tab:"easy", more:false, sim:[2, 2, 2, 2, 2], checks:{}, copied:"", tasks:{}, tv:"stage", ts:1, tt:1, sido:"" };
 (function hzLoad(){
   try {
     const j = JSON.parse(localStorage.getItem(HZ_STORE) || "{}");
@@ -13474,8 +13538,8 @@ function hzSave(){ try { localStorage.setItem(HZ_STORE, JSON.stringify({ sim:hzS
 function hzToday(){ const k = new Date(Date.now() + 9 * 3600000); return k.toISOString().slice(0, 10); }
 
 // 농장에서 자주 쓰는 4개(home·check·sim·report)는 맨 위에, 연구·설계 자료는 「연구 자료 더 보기」 안에 둔다.
-const HZ_TABS = [["home", "🏠 오늘 할 일"], ["check", "📝 오늘 방역 점검표"], ["sim", "🎚️ 우리 농장 위험도"], ["report", "📄 농장 보고서"], ["intro", "🧭 이 교실은?"], ["tasks", "✅ 농장 할 일 자세히"], ["program", "🪜 6단계 따라 하기"], ["refs", "📚 공식 자료"], ["prompt", "📋 인공지능에게 시키는 글"]];
-const HZ_MAIN_TABS = ["home", "check", "sim", "report"];
+const HZ_TABS = [["easy", "🌱 쉬운 요약"], ["home", "🏠 오늘 할 일"], ["check", "📝 오늘 방역 점검표"], ["sim", "🎚️ 우리 농장 위험도"], ["report", "📄 농장 보고서"], ["intro", "🧭 이 교실은?"], ["tasks", "✅ 농장 할 일 자세히"], ["program", "🪜 6단계 따라 하기"], ["refs", "📚 공식 자료"], ["prompt", "📋 인공지능에게 시키는 글"]];
+const HZ_MAIN_TABS = ["easy", "home", "check", "sim", "report"];
 const HZ_TEAMS = [
   ["총괄 연구책임 인공지능", "연구계획 수립, 결과 통합, 상충되는 의견 조정"],
   ["제1팀 바이러스·역학", "H5·H7 아형, 병원성, 전파 양상, 역학관계 분석"],
@@ -13782,6 +13846,43 @@ function hzHomeStatus(){
       <div style="font-size:10.8px;color:#888;line-height:1.7;margin-top:6px">시·도 전체 기준이에요. 우리 농장과 가까운 시·군에서 난 소식은 <button type="button" data-hz-go="hpai" style="border:none;background:none;color:#1565C0;text-decoration:underline;cursor:pointer;padding:0;font-size:inherit;font-family:inherit">AI관련정보 탭의 발생·검출 지도</button>에서 직접 확인하세요. 법정 방역지역·이동제한 등 정부 공고가 늘 먼저예요.</div>`;
   }
   return `<div style="border:1px solid ${HZ_COLOR}33;background:#F3FBFC;border-radius:12px;padding:12px 14px"><div style="font-size:14px;font-weight:900;color:${HZ_COLOR};margin-bottom:6px">① 우리 지역은 지금 어때요?</div>${picker}${msg}</div>`;
+}
+// ── 🌱 AI 막는 농장 지킴이 쉬운 요약 ──
+function renderHzEasy(){
+  const C = HZ_COLOR;
+  const go = (tab, icon, t, d) => `<button type="button" data-hz-tab="${tab}" style="text-align:left;border:2px solid ${C}55;background:#fff;border-radius:13px;padding:13px 14px;cursor:pointer;width:100%;margin-bottom:8px"><div style="font-size:17px;font-weight:900;color:${C}">${icon} ${t}</div><div style="font-size:14.5px;color:#555;margin-top:2px;line-height:1.6">${d}</div></button>`;
+  return easyHero(C, "3분이면 다 읽어요 👍", "조류인플루엔자(AI)가 <b>우리 농장에 못 들어오게</b> 꼭 필요한 것만 모았어요.")
+    + easyCard("🦠", "① AI가 뭐예요?", C, easyList([
+        "닭·오리가 걸리는 <b>무서운 전염병</b>이에요(조류인플루엔자).",
+        "겨울철 <b>철새 같은 야생조류</b>에서 시작되는 경우가 많아요.",
+        "고병원성은 짧은 기간에 <b>많은 닭이 죽을 수 있어요.</b>",
+      ]))
+    + easyCard("🚪", "② 어떻게 들어와요?", "#455A64", easyList([
+        "철새 분변에 묻은 바이러스가 <b>신발·차량·장비·사료·물</b>에 묻어서 와요.",
+        "철새가 왔다고 바로 발생하는 건 아니에요. <b>사람과 차량이 길이 되는 게</b> 문제예요.",
+      ]))
+    + `<div style="border:3px solid #C62828;background:#FFF5F5;border-radius:14px;padding:14px 15px;margin-bottom:13px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="font-size:30px">🚨</span><span style="font-size:18px;font-weight:900;color:#C62828">③ 이런 일이 보이면 바로!</span></div>
+        <div style="font-size:16px;line-height:1.8;color:#222;margin-bottom:8px">닭이 <b>갑자기 많이 죽거나</b>, 사료·물을 안 먹거나, 알이 확 줄거나, 숨소리가 거칠거나 <b>목이 꺾이는 닭</b>이 보이면:</div>
+        ${easyStep(1, "이동을 멈추세요", "닭·알·사람·차량 모두", "#C62828")}
+        ${easyStep(2, "농장 출입을 막으세요", "외부인·차량은 들이지 마세요", "#C62828")}
+        ${easyStep(3, "상태를 기록하세요", "언제부터, 어느 계사, 몇 마리인지 사진·메모", "#C62828")}
+        ${easyStep(4, "즉시 신고하세요", "관할 가축방역기관(지자체 방역 담당) — 수의사 상담보다 신고가 먼저예요", "#C62828")}
+        ${easyStep(5, "기다리세요", "방역기관 지시가 올 때까지 닭을 옮기거나 땅에 묻지 마세요", "#C62828")}</div>`
+    + easyCard("🛡️", "④ 매일 이것만 확인하세요", "#2E7D32", easyList([
+        "<b>울타리·방조망</b>이 찢어진 곳은 없나",
+        "<b>전실</b>에서 장화·작업복·손 소독을 하나",
+        "<b>외부 차량</b>은 승인받고 세척·소독했나",
+        "<b>사료·물</b>에 야생조류 분변 흔적은 없나",
+        "오늘 <b>폐사·사료·물</b>이 평소와 같은가",
+        "<b>정부 발생 소식</b>을 확인했나",
+      ]))
+    + easyCard("📍", "⑤ 우리 농장은 어떨까요?", C,
+        go("home", "🏠", "오늘 할 일", "우리 지역의 최근 발생 소식을 쉬운 말로 알려 드려요")
+        + go("check", "📝", "오늘 방역 점검표", "하나씩 눌러 체크해요")
+        + go("sim", "🎚️", "우리 농장 위험도", "5가지를 고르면 점수가 나와요")
+        + go("report", "📄", "농장 보고서", "입력한 내용으로 보고서를 만들어요"))
+    + `<div style="background:#FFF8E1;border-radius:12px;padding:12px 14px;font-size:15px;line-height:1.75;color:#6b5400"><b>꼭 기억하세요</b><br>· 법에 따른 조치(통제구역·행정명령·신고)가 항상 먼저예요.<br>· 위험 점수는 확진이 아니에요. 진단과 조치는 방역기관이 해요.<br>· 100% 막는다고 약속할 수는 없어요. 위험을 줄이는 거예요.</div>`;
 }
 function renderHzHome(){
   const day = hzToday(), mine = hzState.checks[day] || [];
@@ -14500,13 +14601,13 @@ function renderHzRefs(){
 // 「인공지능에게 시키는 글」은 연구 운영자용이라 관리자에게만 보인다(농장·유료 회원에게는 숨김)
 function hzTabs(){ return HZ_TABS.filter(([k]) => k !== "prompt" || isBoardAdmin()); }
 function renderHpaiZeroPanel(){
-  const t = hzTabs().some(x => x[0] === hzState.tab) ? hzState.tab : "home";
+  const t = hzTabs().some(x => x[0] === hzState.tab) ? hzState.tab : "easy";
   const secondary = hzTabs().filter(x => HZ_MAIN_TABS.indexOf(x[0]) < 0), isSecondary = HZ_MAIN_TABS.indexOf(t) < 0;
   const head = `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:10px"><div><div class="display" style="font-size:16px;margin-bottom:2px">🦠 AI 막는 농장 지킴이 교실 — HPAI ZERO FARM</div><div style="font-size:11.5px;color:#777">닭·오리 농장의 조류인플루엔자(AI) 예방을 매일 쉽게 챙기는 교실 — 오늘 할 일부터 보세요</div></div><button type="button" id="hz-back-btn" style="border:1px solid #ddd;background:#fff;color:#888;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button></div>`;
   const pill = ([k, l]) => `<button type="button" role="tab" aria-selected="${k === t}" data-hz-tab="${k}" style="border:1px solid ${k === t ? HZ_COLOR : "#ddd"};background:${k === t ? HZ_COLOR : "#fff"};color:${k === t ? "#fff" : "#555"};border-radius:16px;padding:7px 13px;font-size:12.5px;font-weight:700;cursor:pointer">${l}</button>`;
   const open = hzState.more || isSecondary;
   const nav = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 8px" role="tablist">${hzTabs().filter(x => HZ_MAIN_TABS.indexOf(x[0]) >= 0).map(pill).join("")}<button type="button" id="hz-more" style="border:1px dashed #90A4AE;background:${isSecondary ? "#ECEFF1" : "#fff"};color:#546E7A;border-radius:16px;padding:7px 13px;font-size:12.5px;font-weight:700;cursor:pointer">📚 연구 자료 ${open ? "접기 ▲" : "더 보기 ▼"}</button></div>${open ? `<div style="display:flex;gap:5px;flex-wrap:wrap;margin:0 0 12px;padding:8px 10px;background:#F5F7F8;border-radius:10px" role="tablist"><span style="font-size:11px;color:#78909C;align-self:center;font-weight:700">연구 자료</span>${secondary.map(pill).join("")}</div>` : `<div style="margin-bottom:12px"></div>`}`;
-  const body = t === "prompt" ? renderHzPrompt() : t === "program" ? renderHzProgram() : t === "tasks" ? renderHzTasks() : t === "sim" ? renderHzSim() : t === "report" ? renderHzReport() : t === "check" ? renderHzCheck() : t === "refs" ? renderHzRefs() : t === "intro" ? renderHzIntro() : renderHzHome();
+  const body = t === "easy" ? renderHzEasy() : t === "prompt" ? renderHzPrompt() : t === "program" ? renderHzProgram() : t === "tasks" ? renderHzTasks() : t === "sim" ? renderHzSim() : t === "report" ? renderHzReport() : t === "check" ? renderHzCheck() : t === "refs" ? renderHzRefs() : t === "intro" ? renderHzIntro() : renderHzHome();
   const foot = `<div style="margin-top:14px;background:#FFF8E1;border-radius:8px;padding:9px 11px;font-size:10.5px;color:#6b5400;line-height:1.75"><b>유의</b> · 교육용 안내 자료입니다. 감염의 완전 차단이나 100% 예방을 보장하지 않으며, 개별 농장의 진단·처방·방역 지시를 대신하지 않습니다. AI 의심 증상은 즉시 관할 가축방역기관에 신고하고, 정부의 현행 방역지침과 행정명령을 우선하세요.</div>`;
   return `<div class="card" id="hz-root" style="border-top:6px solid ${HZ_COLOR}">${head}${nav}${body}${foot}</div>`;
 }
