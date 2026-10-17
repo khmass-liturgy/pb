@@ -29370,64 +29370,65 @@ function renderHusbandryPointsCard(opts){
     extras.push(bullet(`🐷 <b>양돈</b> — 자돈 설사·폐사 위험. 보온등·매트와 이유자돈 구역난방 점검 (PIC Guidelines)`, "#6D4C41"));
   }
 
+  // 더운 날 전용 블록(목표 계사온도·물:사료·전해질·심야급이)은 열스트레스 구간(HSI 70↑)에서만 보인다.
+  // 쾌적·저온인 날에 "더운 환경 사양관리"가 따라 나오던 문제를 바로잡은 것.
+  const msg = {
+    comfort: seasonalComfort ? "더위·추위 걱정 없는 날이에요" : "쾌적한 날씨예요",
+    alert: "조금 덥습니다 — 환기를 올리세요",
+    danger: "덥습니다 — 바로 조치하세요",
+    emergency: "매우 덥습니다 — 비상 대응",
+    cold: "쌀쌀합니다 — 보온과 환기를 함께",
+  }[lv.key] || "";
+  const num = (arr) => arr.map((t, i) => `<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:5px">
+      <span style="flex:none;width:18px;height:18px;border-radius:50%;background:${lv.color};color:#fff;font-size:10.5px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-top:2px">${i + 1}</span>
+      <span style="font-size:12.3px;color:#333;line-height:1.65">${t}</span></div>`).join("");
+  const chip = (t) => `<span style="background:#fff;border:1px solid ${lv.color}44;color:#444;border-radius:12px;padding:2px 9px;font-size:11px;font-weight:600">${t}</span>`;
+  const hotBlock = hot ? `
+    <div style="border:1px solid #FFCCBC;background:#FFF8F3;border-radius:10px;padding:9px 11px;margin-bottom:10px">
+      <div style="font-size:11.5px;font-weight:800;color:#E8530A;margin-bottom:5px">🐔 육계 목표 계사온도 <span style="font-size:9.5px;font-weight:600;color:#aaa">습도 ${rhInt}% 기준</span></div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">${targetTiles}</div>
+      <div style="font-size:11.5px;font-weight:800;color:#0277BD;margin:9px 0 4px">💧 음수·급이</div>
+      ${bullet(`물:사료 <b>약 ${wfRatio.toFixed(1)} : 1</b> 예상 — 급수 실측이 이보다 낮으면 급수 병목 의심`, "#0277BD")}
+      ${bullet(`니플 유량 70 ml/분 이상 · 음수 온도 25°C 이하`, "#0277BD")}
+      ${bullet(`급이는 이른 아침·저녁에 몰고, 전해질은 급등 <b>전에</b> 미리 투여`, "#0277BD")}
+    </div>` : "";
+  const extrasShown = extras.slice(0, 4);
   return `
   <div class="card" style="margin-bottom:14px;border-top:6px solid ${lv.color}">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:10px">
-      <div>
-        <div style="font-size:14px;font-weight:700;color:#333">${title}</div>
-        <div style="font-size:10px;color:#aaa;margin-top:2px">
-          ${c.locationName ? c.locationName + " · " : ""}한낮 ${c.peakTemp!=null?Math.round(c.peakTemp)+"°C":"-"} · 습도 ${rhInt}% · 습구 ${c.wetBulb!=null?c.wetBulb.toFixed(1)+"°C":"-"}
+    <div style="font-size:14px;font-weight:700;color:#333">${title}</div>
+    <div style="font-size:10px;color:#aaa;margin:2px 0 9px">${c.locationName ? c.locationName + " · " : ""}오늘 한낮 기준</div>
+
+    <div style="background:${lv.bg};border-radius:12px;padding:11px 13px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div style="font-size:26px;line-height:1">${lv.icon}</div>
+        <div style="flex:1;min-width:140px">
+          <div style="font-size:14.5px;font-weight:800;color:${lv.color};line-height:1.35">${msg}</div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px">
+            ${chip(`🌡️ 한낮 ${c.peakTemp != null ? Math.round(c.peakTemp) + "°C" : "-"}`)}${chip(`💧 습도 ${rhInt}%`)}${inRange ? chip(`열스트레스 지수 ${c.hsi} · ${lv.label}`) : chip("열스트레스 판정범위 밖(20°C↓)")}
+          </div>
         </div>
       </div>
-      <div style="background:${lv.bg};border-radius:11px;padding:8px 13px;text-align:center;min-width:96px">
-        <div style="font-size:9px;color:${lv.color};font-weight:700;letter-spacing:.3px">열스트레스 지수</div>
-        ${inRange
-          ? `<div style="font-size:24px;font-weight:800;color:${lv.color};line-height:1.1">${c.hsi}</div>`
-          : `<div style="font-size:12px;font-weight:700;color:${lv.color};line-height:1.5;padding:4px 0">판정범위<br>밖(20°C↓)</div>`}
-        <div style="font-size:11px;font-weight:700;color:${lv.color}">${lv.icon} ${lv.label} <span style="font-size:9px;opacity:.7">${lv.short}</span></div>
-      </div>
     </div>
 
-    <div style="background:${lv.bg};border-radius:10px;padding:10px 12px;margin-bottom:12px">
-      <div style="font-size:11px;font-weight:700;color:${lv.color};margin-bottom:5px">
-        ${lv.icon} 지금 해야 할 조치 <span style="font-size:9px;font-weight:600;opacity:.75">${seasonalComfort ? "계절별 관리 포인트" : (inRange ? "Hy-Line 규정 조치" : "Hy-Line 적온대 기준")}</span>
-      </div>
-      ${actions.map(a => bullet(a)).join("")}
+    <div style="margin-bottom:10px">
+      <div style="font-size:11.5px;font-weight:800;color:${lv.color};margin-bottom:6px">${seasonalComfort ? "🍂 이 계절 관리 포인트" : "✅ 지금 할 일"}</div>
+      ${num(actions)}
     </div>
 
-    <div style="margin-bottom:12px">
-      <div style="font-size:11px;font-weight:700;color:#333;margin-bottom:5px">
-        🐔 오늘 습도(${rhInt}%)에 맞춘 목표 계사온도 <span style="font-size:9px;color:#aaa;font-weight:600">Aviagen 체감온도</span>
-      </div>
-      <div style="display:flex;gap:5px;flex-wrap:wrap">${targetTiles}</div>
-      <div style="font-size:9px;color:#aaa;margin-top:5px;line-height:1.6">
-        습도가 높으면 증발로 열을 못 버려 같은 온도라도 더 덥게 느낍니다 — 표시값은 습도 50% 표준조건 대비 증감입니다.
-        컨트롤러 설정온도를 이 값으로 맞추되, 최종 판단은 계군 행동(개구호흡·날개 벌림·밀집)으로 확인하세요.
-      </div>
-    </div>
-
-    <div style="margin-bottom:12px">
-      <div style="font-size:11px;font-weight:700;color:#333;margin-bottom:5px">💧 오늘의 음수·급이 기준</div>
-      ${bullet(`물:사료 비율 <b>약 ${wfRatio.toFixed(1)} : 1</b> 예상 (21°C 2:1 → 38°C 8:1) — 급수미터 실측값이 이보다 낮으면 급수 병목을 의심하세요`, "#0277BD")}
-      ${bullet(`니플 유량 <b>70 ml/분 이상</b> 확보 · 음수 온도는 <b>25°C 이하</b> 유지 (30°C 넘으면 음수량이 떨어지고 사료섭취까지 같이 떨어집니다)`, "#0277BD")}
-      ${hot ? bullet(`급이는 이른 아침·저녁으로 몰고, <b>심야급이 1~2시간</b>을 추가해 서늘한 시간대 섭취를 늘리세요`, "#0277BD") : ""}
-      ${hot ? bullet(`전해질(Na·K·Cl·중탄산) 보충 — 급등을 <b>예상해서 미리</b> 투여할 때 효과가 가장 큽니다`, "#0277BD") : ""}
-    </div>
-
-    ${extras.length ? `<div style="border-top:1px dashed #eee;padding-top:10px;margin-bottom:4px">
-      <div style="font-size:11px;font-weight:700;color:#333;margin-bottom:5px">⚠️ 오늘 함께 볼 위험요인</div>
-      ${extras.join("")}
+    ${hotBlock}
+    ${extrasShown.length ? `<div style="border-top:1px dashed #eee;padding-top:9px;margin-bottom:4px">
+      <div style="font-size:11.5px;font-weight:800;color:#333;margin-bottom:5px">👀 오늘 함께 볼 것</div>
+      ${extrasShown.join("")}
     </div>` : ""}
 
     ${anomPointsHtml(bullet)}
 
-    <div style="font-size:9px;color:#aaa;margin-top:8px;line-height:1.6">
-      ※ 판정도구 출처: 열스트레스 지수는 Hy-Line Technical Update
-      「Understanding Heat Stress in Layers」 Figure 2의 온도×습도 표를 그대로 조회한 값
-      (표 캡션 공식 0.6×건구°F + 0.4×습구°F, 원전 Xin &amp; Harmon, Iowa State Univ. 1998) ·
-      목표 계사온도 = Aviagen 「Ross Broiler Management Handbook 2025」 Table 2.5
-      (Dr. Malcolm Mitchell, SRUC 공식). 계군 행동 관찰이 최종 판단 기준입니다.
-    </div>
+    <details style="margin-top:8px"><summary style="cursor:pointer;font-size:10px;color:#aaa">판정 기준·출처</summary>
+      <div style="font-size:9.5px;color:#aaa;margin-top:4px;line-height:1.65">
+        열스트레스 지수: Hy-Line Technical Update 「Understanding Heat Stress in Layers」 Figure 2의 온도×습도 표 조회값(원전 Xin &amp; Harmon, Iowa State Univ. 1998) ·
+        목표 계사온도: Aviagen 「Ross Broiler Management Handbook 2025」 Table 2.5. 계군 행동 관찰이 최종 판단 기준입니다.
+      </div>
+    </details>
   </div>`;
 }
 
