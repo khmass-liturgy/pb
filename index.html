@@ -768,6 +768,7 @@ let premiumState = {
 const PREMIUM_ITEMS = [
   { key:"ibteam", icon:"🧬", title:"IB 닭기침 잡는 교실 — 전염성기관지염(IB) 차단 8단계 코스", desc:"IB가 어떤 병인지부터 들어오는 길·우리나라 발생·확인 방법·백신·우리 농장 적용·예방 시스템까지 단계별로 배웁니다. 육계/산란계 비교, 현장 사례, 농장 점검표를 함께 드려요.", color:"#C62828", category:"최꼬 아카데미" },
   { key:"coliclass", icon:"🧫", title:"닭 대장균증 잡는 교실 — 발견부터 재발 방지까지 12차시", desc:"육계·산란계를 나누어 대장균증을 쉽게 배웁니다. 기초 → 현장 판단 → 치료·재발 방지 → 백신·새 제품 따져보기, 그림과 사례, 우리 농장 대응계획서까지.", color:"#00897B", category:"최꼬 아카데미" },
+  { key:"avianphys", icon:"🫀", title:"조류생리 아카데미 — 닭 몸속 탐험", desc:"닭의 장기 10개 계통(소화·호흡·순환·배설·생식·신경·호르몬·면역·뼈근육)이 하는 일을 쉬운 비유와 그림으로 배우고, 농장에서 보는 문제와 연결해 봅니다.", color:"#AD1457", category:"최꼬 아카데미" },
   { key:"hpaizero", icon:"🦠", title:"AI 막는 농장 지킴이 교실 — HPAI ZERO FARM", desc:"조류인플루엔자(AI)가 우리 농장에 들어오지 못하게 오늘 할 일, 우리 농장 위험도, 농장 보고서, 매일 방역 점검표, 6단계 방역 수칙 만들기를 쉽게 알려 드립니다.", color:"#00695C", category:"최꼬 아카데미" },
   { key:"drug", icon:"💊", title:"약품조회 및 휴약기간 검색", desc:"동물용의약품을 제품명·업체명·성분명·축종·증상으로 검색하고, 축종별 휴약기간을 QIA 공식 데이터로 바로 확인합니다.", color:"#00838F", category:"약품·투약·소독" },
   { key:"drugusage", icon:"📇", title:"약품별 사용요령 카드", desc:"약품마다 용법·휴약기간·효능을 한 장 카드로 정리했습니다. 공식 설명서(QIA) 기준이며 약품 정보 링크도 함께 볼 수 있습니다.", color:"#00838F", category:"약품·투약·소독" },
@@ -883,7 +884,7 @@ const PREMIUM_MENU_LEGACY_PATH = "premium_menu/items.json";
 // 제공한다(회원관리·자동문자발송관리는 별도로 자동 추가되는 관리자 전용
 // 항목이라 목록에서 뺀다).
 const PREMIUM_MENU_KNOWN_KEYS = [
-  "ibteam","hpaizero","coliclass","drug","drugusage","treatment","seasonal","disinfect","newproducts","vaccine",
+  "ibteam","hpaizero","coliclass","avianphys","drug","drugusage","treatment","seasonal","disinfect","newproducts","vaccine",
   "ventfinder","lightguide","moltguide","feedstandard","feedgrain","grainprice","priceforecast","tradestats","supplement","selfcheck","diagnosis","specimen","faq","study",
   "research","diseasebrief","emerging","industrynews","drugnews","magazine","kkoko","feature_board","consult","consulting","smssub",
 ];
@@ -892,7 +893,7 @@ let premiumMenuState = { status:"idle", data:null, busy:false, msg:"", adminOpen
 
 // 관리자가 저장한 메뉴가 있어도, 그 뒤에 새로 만든 기본 메뉴(PREMIUM_MENU_NEW_SEED_KEYS)는 빠져 보이지 않게
 // 저장된 메뉴에 없을 때만 기본 위치(앞 메뉴 뒤)에 끼워 보여 준다.
-const PREMIUM_MENU_NEW_SEED_KEYS = ["ibteam", "hpaizero", "coliclass", "drugusage", "drugnews", "diseasebrief", "priceforecast", "tradestats", "supplement"];
+const PREMIUM_MENU_NEW_SEED_KEYS = ["ibteam", "hpaizero", "coliclass", "avianphys", "drugusage", "drugnews", "diseasebrief", "priceforecast", "tradestats", "supplement"];
 // 관리자가 예전에 저장한 메뉴에는 두 항목이 「사양관리」로 들어 있으므로, 분류만 새 묶음으로 강제한다.
 // 분류 이름이 바뀐 경우(관리자가 예전에 저장한 메뉴에 옛 이름이 남아 있어도 새 이름으로 묶는다)
 const PREMIUM_MENU_CATEGORY_RENAME = { "백신관리": "백신·약품관리", "AI공동연구팀": "최꼬 아카데미", "인공지능 공동연구팀": "최꼬 아카데미" };
@@ -9133,6 +9134,308 @@ function renderColiEasy(){
         + easyStep("3", "누가·언제까지·어떻게 확인", "개선할 일마다 담당자와 기한을 적어 두세요", "#2E7D32"))
     + easyBtn('class="coli-tab" data-t="plan"', C, "📝 우리 농장 대응계획서 쓰기 →")
     + easyBtn('class="coli-tab" data-t="home"', "#455A64", "📚 12차시로 자세히 배우기 →");
+}
+
+// ── 🫀 조류생리 아카데미 — 닭 몸속 탐험 (유료서비스 · 최꼬 아카데미, 정적 교육과정) ─────────────────────────
+// 닭의 장기를 10개 계통으로 나눠 ‘하는 일’을 쉬운 비유와 그림(인라인 SVG 도식)으로 설명하고, 농장에서 보는 문제와 잇는다.
+// 그림은 이해를 돕는 단순화 도식이며 실제 해부 위치·크기·비율을 정확히 그린 것이 아니다. 숫자(체온·산란 소요 시간 등)는 대략값이다.
+// 질병 이름·약·용량은 다루지 않고, 질병은 ‘어느 장기가 영향을 받는지’ 연결만 한다(진단·치료는 수의사).
+const PH_COLOR = "#AD1457";
+const phState = { tab:"overview" };
+function phFig(svg, cap){
+  return `<figure style="margin:10px 0;text-align:center"><div style="background:#fff;border:1px solid #f1d4e0;border-radius:14px;padding:6px">${svg}</div>${cap ? `<figcaption style="font-size:13px;color:#777;margin-top:4px;line-height:1.6">${cap}</figcaption>` : ""}</figure>`;
+}
+function phSvg(w, h, inner, label){
+  return `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${label}" style="width:100%;height:auto;max-width:560px;display:block;margin:0 auto" font-family="inherit">${inner}</svg>`;
+}
+function phArrow(id, color){ return `<defs><marker id="${id}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="${color}"/></marker></defs>`; }
+// 닭 옆모습 바탕(머리는 왼쪽) — 장기 그림과 번호 표시는 호출하는 쪽이 얹는다
+function phBodyBase(){
+  return `<path d="M318 120 Q385 70 392 108 Q372 118 382 150 Q350 150 330 160 Z" fill="#E7C9A5" stroke="#A1887F" stroke-width="2"/>
+    <path d="M110 135 Q92 100 84 90 L106 82 Q128 116 140 128 Z" fill="#FFF3E0" stroke="#A1887F" stroke-width="3"/>
+    <ellipse cx="215" cy="165" rx="124" ry="80" fill="#FFF3E0" stroke="#A1887F" stroke-width="3"/>
+    <circle cx="80" cy="68" r="27" fill="#FFF3E0" stroke="#A1887F" stroke-width="3"/>
+    <path d="M52 62 L26 72 L52 80 Z" fill="#FFB300" stroke="#F57F17" stroke-width="2"/>
+    <path d="M70 44 Q76 26 86 40 Q94 24 98 44 Z" fill="#E53935"/>
+    <ellipse cx="56" cy="88" rx="8" ry="12" fill="#E53935"/>
+    <circle cx="70" cy="62" r="4" fill="#333"/>
+    <path d="M178 244 L172 292 M172 292 L150 296 M172 292 L172 300 M172 292 L194 296 M238 244 L244 292 M244 292 L222 296 M244 292 L244 300 M244 292 L266 296" stroke="#FFB300" stroke-width="6" stroke-linecap="round" fill="none"/>
+    <ellipse cx="228" cy="150" rx="62" ry="34" fill="none" stroke="#D7B89C" stroke-width="2" stroke-dasharray="5 4"/>`;
+}
+function phMarker(n, x, y, c){ return `<circle cx="${x}" cy="${y}" r="12" fill="${c || "#AD1457"}" stroke="#fff" stroke-width="2.5"/><text x="${x}" y="${y + 5}" text-anchor="middle" font-size="14" font-weight="800" fill="#fff">${n}</text>`; }
+function phLegend(list){ return `<div style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 4px">${list.map(([n, t, c]) => `<span style="display:inline-flex;align-items:center;gap:6px;background:#fff;border:1.5px solid ${c || PH_COLOR}55;border-radius:16px;padding:4px 10px 4px 5px;font-size:14px;font-weight:700;color:#333"><b style="width:22px;height:22px;border-radius:50%;background:${c || PH_COLOR};color:#fff;font-size:12px;display:inline-flex;align-items:center;justify-content:center">${n}</b>${t}</span>`).join("")}</div>`; }
+
+// ── 그림들 ──
+function phFigOverview(){
+  const inner = phBodyBase()
+    + `<path d="M92 90 L104 118 L132 130" stroke="#90CAF9" stroke-width="4" fill="none" stroke-linecap="round"/>
+       <ellipse cx="165" cy="120" rx="26" ry="18" fill="#F8BBD0" stroke="#EC407A" stroke-width="2"/>
+       <circle cx="105" cy="120" r="14" fill="#FFE082" stroke="#FFA000" stroke-width="2"/>
+       <circle cx="152" cy="152" r="16" fill="#E53935" stroke="#B71C1C" stroke-width="2"/>
+       <ellipse cx="184" cy="170" rx="26" ry="18" fill="#A1522F" stroke="#6D3A1F" stroke-width="2"/>
+       <ellipse cx="207" cy="146" rx="9" ry="12" fill="#FFB74D" stroke="#EF6C00" stroke-width="2"/>
+       <circle cx="226" cy="172" r="19" fill="#8D6E63" stroke="#5D4037" stroke-width="2"/>
+       <path d="M236 196 Q256 214 276 198 Q296 184 316 200 Q326 206 334 202" stroke="#EF9A9A" stroke-width="9" fill="none" stroke-linecap="round"/>
+       <path d="M282 178 L306 170 M286 190 L310 184" stroke="#BCAAA4" stroke-width="7" stroke-linecap="round"/>
+       <rect x="248" y="126" width="46" height="16" rx="8" fill="#7E57C2" stroke="#4527A0" stroke-width="2"/>
+       <circle cx="262" cy="156" r="9" fill="#FFD54F" stroke="#F9A825" stroke-width="2"/><circle cx="276" cy="162" r="7" fill="#FFE082" stroke="#F9A825" stroke-width="2"/>
+       <circle cx="338" cy="204" r="8" fill="#A1887F" stroke="#5D4037" stroke-width="2"/>`
+    + phMarker(1, 105, 96, "#F9A825") + phMarker(2, 130, 108, "#1E88E5") + phMarker(3, 165, 100, "#EC407A") + phMarker(4, 152, 132, "#E53935")
+    + phMarker(5, 184, 190, "#A1522F") + phMarker(6, 207, 126, "#EF6C00") + phMarker(7, 226, 196, "#6D4C41") + phMarker(8, 270, 216, "#E57373")
+    + phMarker(9, 270, 112, "#7E57C2") + phMarker(10, 266, 180, "#F9A825") + phMarker(11, 304, 160, "#8D6E63") + phMarker(12, 338, 226, "#5D4037");
+  return phFig(phSvg(420, 310, inner, "닭 몸속 장기 위치를 번호로 나타낸 도식"), "머리는 왼쪽, 등은 위쪽 · 번호는 아래 목록과 같아요(위치는 단순화한 그림).")
+    + phLegend([[1, "소낭(모이주머니)", "#F9A825"], [2, "기관(숨관)", "#1E88E5"], [3, "폐", "#EC407A"], [4, "심장", "#E53935"], [5, "간", "#A1522F"], [6, "선위", "#EF6C00"], [7, "근위(모래주머니)", "#6D4C41"], [8, "소장", "#E57373"], [9, "신장", "#7E57C2"], [10, "난소·난관", "#F9A825"], [11, "맹장", "#8D6E63"], [12, "총배설강", "#5D4037"]]);
+}
+function phFigDigest(){
+  const box = (x, y, w, h, c, ic, t, s) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="14" fill="${c}22" stroke="${c}" stroke-width="3"/><text x="${x + w / 2}" y="${y + 30}" text-anchor="middle" font-size="26">${ic}</text><text x="${x + w / 2}" y="${y + 52}" text-anchor="middle" font-size="15" font-weight="800" fill="#333">${t}</text>${s ? `<text x="${x + w / 2}" y="${y + 70}" text-anchor="middle" font-size="11.5" fill="#666">${s}</text>` : ""}`;
+  const inner = phArrow("pda", "#555")
+    + box(8, 14, 90, 80, "#F9A825", "👄", "부리", "쪼아 삼킴") + box(116, 14, 90, 80, "#FB8C00", "🧵", "식도·소낭", "모이주머니") + box(224, 14, 90, 80, "#EF6C00", "🧪", "선위", "위산·효소") + box(326, 14, 86, 80, "#6D4C41", "⚙️", "근위", "모래로 갈기")
+    + `<path d="M98 54 H113" stroke="#555" stroke-width="3" marker-end="url(#pda)" fill="none"/><path d="M206 54 H221" stroke="#555" stroke-width="3" marker-end="url(#pda)" fill="none"/><path d="M314 54 H323" stroke="#555" stroke-width="3" marker-end="url(#pda)" fill="none"/><path d="M369 94 V131" stroke="#555" stroke-width="3" marker-end="url(#pda)"/>`
+    + box(326, 134, 86, 80, "#E57373", "🌀", "소장", "영양 흡수") + box(224, 134, 90, 80, "#8D6E63", "🫘", "맹장", "발효·2개") + box(116, 134, 90, 80, "#A1887F", "💧", "대장", "물 흡수") + box(8, 134, 90, 80, "#5D4037", "🚪", "총배설강", "한 출구")
+    + `<path d="M326 174 H317" stroke="#555" stroke-width="3" marker-end="url(#pda)" fill="none"/><path d="M224 174 H209" stroke="#555" stroke-width="3" marker-end="url(#pda)" fill="none"/><path d="M116 174 H101" stroke="#555" stroke-width="3" marker-end="url(#pda)" fill="none"/>`
+    + `<rect x="290" y="226" width="122" height="32" rx="16" fill="#A1522F22" stroke="#A1522F" stroke-width="2"/><text x="351" y="247" text-anchor="middle" font-size="13.5" font-weight="700" fill="#6D3A1F">🥩 간 · 췌장이 도와요</text>
+       <path d="M370 214 V224" stroke="#A1522F" stroke-width="2.5" stroke-dasharray="4 3"/>`;
+  return phFig(phSvg(420, 266, inner, "닭 소화기관이 이어진 순서"), "먹이는 화살표 순서대로 지나가요. 이빨이 없어서 근위(모래주머니)가 갈아 줍니다.");
+}
+function phFigResp(){
+  const panel = (ox, oy, title, step, cols) => {
+    const [fa, fr, ff] = cols;     // 앞기낭 · 폐 · 뒤기낭 색 진하기
+    return `<g transform="translate(${ox},${oy})">
+      <rect x="0" y="0" width="200" height="132" rx="12" fill="#fff" stroke="#BBDEFB" stroke-width="2"/>
+      <path d="M16 62 H46" stroke="#90CAF9" stroke-width="8" stroke-linecap="round"/><text x="14" y="82" font-size="12" font-weight="700" fill="#1565C0">입·코</text>
+      <ellipse cx="62" cy="86" rx="22" ry="26" fill="#64B5F6" fill-opacity="${fa}" stroke="#1E88E5" stroke-width="2"/>
+      <rect x="92" y="62" width="40" height="48" rx="10" fill="#F48FB1" fill-opacity="${fr}" stroke="#EC407A" stroke-width="2"/>
+      <ellipse cx="164" cy="88" rx="22" ry="26" fill="#64B5F6" fill-opacity="${ff}" stroke="#1E88E5" stroke-width="2"/>
+      <text x="62" y="126" text-anchor="middle" font-size="11" fill="#1565C0">앞 기낭</text><text x="112" y="126" text-anchor="middle" font-size="11" fill="#C2185B">폐</text><text x="164" y="126" text-anchor="middle" font-size="11" fill="#1565C0">뒤 기낭</text>
+      ${step}
+      <text x="100" y="20" text-anchor="middle" font-size="14.5" font-weight="800" fill="#333">${title}</text></g>`;
+  };
+  const a = (d, c) => `<path d="${d}" stroke="${c || "#2E7D32"}" stroke-width="4" fill="none" stroke-linecap="round" marker-end="url(#prs)"/>`;
+  const inner = phArrow("prs", "#2E7D32")
+    + panel(6, 4, "① 첫 번째 들숨", a("M44 62 Q110 40 164 66"), [0.15, 0.2, 0.75])
+    + panel(214, 4, "② 첫 번째 날숨", a("M150 70 Q130 50 120 66"), [0.15, 0.65, 0.25])
+    + panel(6, 146, "③ 두 번째 들숨", a("M100 66 Q80 44 66 64"), [0.7, 0.3, 0.15])
+    + panel(214, 146, "④ 두 번째 날숨", a("M56 64 Q46 52 20 62"), [0.4, 0.15, 0.15]);
+  return phFig(phSvg(420, 286, inner, "숨 두 번에 공기가 폐를 한 방향으로 지나가는 모습"), "초록 화살표가 공기가 가는 길이에요. 숨 두 번에 새 공기가 폐를 한 방향으로 지나가서 산소를 효율적으로 받아요.");
+}
+function phFigCirc(){
+  const box = (x, y, w, c, ic, t) => `<rect x="${x}" y="${y}" width="${w}" height="76" rx="14" fill="${c}22" stroke="${c}" stroke-width="3"/><text x="${x + w / 2}" y="${y + 36}" text-anchor="middle" font-size="30">${ic}</text><text x="${x + w / 2}" y="${y + 62}" text-anchor="middle" font-size="15" font-weight="800" fill="#333">${t}</text>`;
+  const heart = (x, y, c, t) => `<rect x="${x}" y="${y}" width="140" height="76" rx="14" fill="${c}" fill-opacity=".88" stroke="${c}" stroke-width="3"/><text x="${x + 70}" y="${y + 34}" text-anchor="middle" font-size="26">❤️</text><text x="${x + 70}" y="${y + 60}" text-anchor="middle" font-size="15" font-weight="800" fill="#fff">${t}</text>`;
+  const inner = phArrow("pcb", "#1E88E5") + phArrow("pcr", "#E53935")
+    + `<text x="8" y="22" font-size="15" font-weight="800" fill="#1565C0">① 쓰고 돌아온 피(파랑) → 폐로</text>`
+    + box(8, 30, 100, "#8D6E63", "🐔", "온몸") + heart(138, 30, "#1E88E5", "우심방·우심실") + box(312, 30, 100, "#EC407A", "🫁", "폐")
+    + `<path d="M108 68 H134" stroke="#1E88E5" stroke-width="5" marker-end="url(#pcb)" fill="none"/><path d="M278 68 H308" stroke="#1E88E5" stroke-width="5" marker-end="url(#pcb)" fill="none"/>`
+    + `<text x="8" y="136" font-size="15" font-weight="800" fill="#C62828">② 산소를 받은 피(빨강) → 온몸으로</text>`
+    + box(8, 144, 100, "#EC407A", "🫁", "폐") + heart(138, 144, "#E53935", "좌심방·좌심실") + box(312, 144, 100, "#8D6E63", "🐔", "온몸")
+    + `<path d="M108 182 H134" stroke="#E53935" stroke-width="5" marker-end="url(#pcr)" fill="none"/><path d="M278 182 H308" stroke="#E53935" stroke-width="5" marker-end="url(#pcr)" fill="none"/>`
+    + `<rect x="8" y="238" width="404" height="38" rx="10" fill="#FFF8E1" stroke="#FFE082"/><text x="210" y="262" text-anchor="middle" font-size="14" font-weight="700" fill="#6b5400">🌡️ 체온 약 41~42℃ · 땀샘이 없어 더우면 입을 벌리고 헐떡여요</text>`;
+  return phFig(phSvg(420, 284, inner, "심장 네 칸과 피가 도는 길"), "심장은 사람처럼 네 칸이에요. 오른쪽(파랑)은 폐로, 왼쪽(빨강)은 온몸으로 피를 보내요.");
+}
+function phFigExcrete(){
+  const inner = `<g><rect x="30" y="20" width="22" height="64" rx="11" fill="#7E57C2" stroke="#4527A0" stroke-width="2.5"/><rect x="58" y="14" width="22" height="76" rx="11" fill="#7E57C2" stroke="#4527A0" stroke-width="2.5"/><rect x="86" y="20" width="22" height="64" rx="11" fill="#7E57C2" stroke="#4527A0" stroke-width="2.5"/></g>
+    <text x="70" y="108" text-anchor="middle" font-size="14" font-weight="800" fill="#4527A0">신장(콩팥)</text><text x="70" y="124" text-anchor="middle" font-size="11.5" fill="#666">등뼈 양옆 · 3엽</text>
+    <path d="M70 90 Q120 150 232 170" stroke="#B39DDB" stroke-width="5" fill="none" stroke-linecap="round"/><text x="140" y="148" font-size="12.5" fill="#5E35B1" font-weight="700">요관</text>
+    <path d="M300 40 Q330 70 290 96 Q262 120 250 150" stroke="#EF9A9A" stroke-width="9" fill="none" stroke-linecap="round"/><text x="300" y="30" font-size="13" font-weight="700" fill="#C62828" text-anchor="middle">장(소화 찌꺼기)</text>
+    <circle cx="246" cy="172" r="22" fill="#D7CCC8" stroke="#5D4037" stroke-width="3"/><text x="246" y="177" text-anchor="middle" font-size="12.5" font-weight="800" fill="#4E342E">총배설강</text>
+    <path d="M246 196 V214" stroke="#5D4037" stroke-width="3"/>
+    <ellipse cx="246" cy="236" rx="46" ry="18" fill="#795548"/><ellipse cx="246" cy="226" rx="26" ry="10" fill="#fff" stroke="#cfcfcf"/>
+    <text x="304" y="224" font-size="12.5" font-weight="800" fill="#5D4037">갈색 = 분</text><text x="304" y="244" font-size="12.5" font-weight="800" fill="#616161">흰색 = 요산(오줌)</text>
+    <rect x="8" y="262" width="404" height="34" rx="10" fill="#FFF8E1" stroke="#FFE082"/><text x="210" y="284" text-anchor="middle" font-size="14" font-weight="700" fill="#6b5400">💧 방광이 없어요 — 오줌이 하얀 가루(요산)가 되어 분과 함께 나와요</text>`;
+  return phFig(phSvg(420, 304, inner, "신장과 장이 총배설강에서 만나 분과 요산이 나오는 모습"), "소화·배설·알 낳기가 모두 한 구멍(총배설강)으로 나와요.");
+}
+function phFigRepro(){
+  const seg = (y, h, c, t, tm, shape) => `${shape}<text x="190" y="${y + h / 2 - 2}" font-size="15" font-weight="800" fill="#333">${t}</text><text x="190" y="${y + h / 2 + 16}" font-size="13.5" fill="${c}" font-weight="800">${tm}</text>`;
+  const inner = `<g><circle cx="70" cy="40" r="26" fill="#FFB300" stroke="#F57F17" stroke-width="3"/><circle cx="108" cy="26" r="17" fill="#FFCA28" stroke="#F57F17" stroke-width="2.5"/><circle cx="130" cy="56" r="11" fill="#FFE082" stroke="#F9A825" stroke-width="2"/><circle cx="48" cy="82" r="8" fill="#FFECB3" stroke="#F9A825" stroke-width="2"/><circle cx="82" cy="86" r="6" fill="#FFF8E1" stroke="#F9A825" stroke-width="2"/></g>
+    <text x="190" y="30" font-size="15" font-weight="800" fill="#333">🥚 난소(왼쪽만 일해요)</text><text x="190" y="50" font-size="13" fill="#666">크기가 다른 노른자가 줄 서 있어요</text>
+    ${seg(96, 34, "#F9A825", "① 누두(깔때기)", "약 15분 · 노른자를 받아요", `<path d="M30 100 H110 L92 130 H48 Z" fill="#FFF176" stroke="#F9A825" stroke-width="3"/>`)}
+    ${seg(138, 70, "#757575", "② 팽대부", "약 3시간 · 흰자 대부분", `<rect x="46" y="138" width="48" height="70" rx="14" fill="#fff" stroke="#9E9E9E" stroke-width="3"/>`)}
+    ${seg(214, 40, "#8D6E63", "③ 협부", "약 1시간 15분 · 알막 2겹", `<rect x="50" y="214" width="40" height="40" rx="12" fill="#EFEBE9" stroke="#8D6E63" stroke-width="3"/>`)}
+    ${seg(260, 78, "#C62828", "④ 자궁(난각선)", "약 20시간 · 껍질을 입혀요", `<ellipse cx="70" cy="299" rx="46" ry="38" fill="#FFE0B2" stroke="#EF6C00" stroke-width="3"/><ellipse cx="70" cy="299" rx="22" ry="28" fill="#fff" stroke="#E0E0E0"/>`)}
+    ${seg(344, 40, "#5D4037", "⑤ 질 → 총배설강", "산란!", `<rect x="56" y="344" width="28" height="34" rx="10" fill="#D7CCC8" stroke="#5D4037" stroke-width="3"/>`)}
+    <rect x="8" y="394" width="404" height="36" rx="10" fill="#FFF8E1" stroke="#FFE082"/><text x="210" y="417" text-anchor="middle" font-size="14" font-weight="700" fill="#6b5400">⏱️ 알 한 개가 만들어지는 데 모두 약 25시간 걸려요</text>`;
+  return phFig(phSvg(420, 440, inner, "암탉의 난소와 난관에서 알이 만들어지는 순서"), "알은 위에서 아래로 내려오며 노른자 → 흰자 → 알막 → 껍질 순으로 만들어져요.");
+}
+function phFigNeuro(){
+  const inner = `<path d="M200 150 L60 40 A150 150 0 0 1 200 0 Z" fill="#81D4FA" fill-opacity=".5"/><path d="M200 150 L340 40 A150 150 0 0 0 200 0 Z" fill="#A5D6A7" fill-opacity=".5"/>
+    <path d="M200 150 L90 232 A150 150 0 0 0 310 232 Z" fill="#FFF59D" fill-opacity=".55"/>
+    <circle cx="200" cy="150" r="40" fill="#FFF3E0" stroke="#A1887F" stroke-width="3"/><path d="M188 116 L200 86 L212 116 Z" fill="#FFB300" stroke="#F57F17" stroke-width="2"/>
+    <circle cx="170" cy="146" r="7" fill="#333"/><circle cx="230" cy="146" r="7" fill="#333"/><path d="M186 106 Q200 96 214 106" fill="none" stroke="#E53935" stroke-width="6" stroke-linecap="round"/>
+    <text x="56" y="76" font-size="13.5" font-weight="800" fill="#0277BD">왼눈 시야</text><text x="296" y="76" font-size="13.5" font-weight="800" fill="#2E7D32">오른눈 시야</text>
+    <text x="200" y="258" text-anchor="middle" font-size="13.5" font-weight="800" fill="#8D6E00">뒤쪽은 안 보여요</text>
+    <rect x="8" y="270" width="404" height="34" rx="10" fill="#FFF8E1" stroke="#FFE082"/><text x="210" y="292" text-anchor="middle" font-size="14" font-weight="700" fill="#6b5400">👁️ 눈이 머리 양옆에 있어 시야가 아주 넓어요(양쪽 합쳐 약 300°)</text>`;
+  return phFig(phSvg(420, 312, inner, "머리를 위에서 본 닭의 시야"), "위에서 내려다본 머리예요. 부리가 위쪽, 하늘색·연두색이 두 눈이 보는 범위입니다.");
+}
+function phFigHormone(){
+  const node = (y, c, ic, t, s) => `<rect x="30" y="${y}" width="360" height="52" rx="14" fill="${c}22" stroke="${c}" stroke-width="3"/><text x="62" y="${y + 34}" font-size="28">${ic}</text><text x="104" y="${y + 24}" font-size="16" font-weight="800" fill="#333">${t}</text><text x="104" y="${y + 43}" font-size="12.5" fill="#666">${s}</text>`;
+  const ar = y => `<path d="M210 ${y} V${y + 16}" stroke="#555" stroke-width="3.5" marker-end="url(#pha)"/>`;
+  const inner = phArrow("pha", "#555")
+    + node(6, "#F9A825", "☀️", "낮의 길이(빛)", "점등 프로그램으로 조절하는 바로 그것") + ar(58)
+    + node(76, "#1E88E5", "👁️", "눈 · 뇌 속 빛 감지", "빛은 머리뼈를 지나 뇌 깊은 곳까지 닿아요") + ar(128)
+    + node(146, "#7E57C2", "🧠", "뇌하수체(호르몬 지휘자)", "‘알 낳을 때가 됐다’ 신호를 보내요") + ar(198)
+    + node(216, "#EC407A", "⚗️", "호르몬이 혈액을 타고 이동", "성호르몬 · 갑상선 · 칼슘 조절 호르몬") + ar(268)
+    + node(286, "#E53935", "🥚", "난소가 깨어나 산란 시작", "빛이 짧아지면 거꾸로 산란이 줄어요");
+  return phFig(phSvg(420, 350, inner, "빛이 호르몬을 거쳐 산란으로 이어지는 순서"), "빛 → 뇌 → 호르몬 → 난소. 그래서 점등 프로그램이 산란에 영향을 줘요.");
+}
+function phFigImmune(){
+  const inner = phBodyBase()
+    + `<path d="M102 100 L112 128" stroke="#7E57C2" stroke-width="8" stroke-linecap="round"/><ellipse cx="226" cy="190" rx="9" ry="7" fill="#C62828" stroke="#7F0000" stroke-width="2"/>
+       <circle cx="318" cy="186" r="9" fill="#00897B" stroke="#004D40" stroke-width="2"/><circle cx="296" cy="196" r="7" fill="#26A69A" stroke="#004D40" stroke-width="2"/>
+       <circle cx="64" cy="64" r="6" fill="#FBC02D" stroke="#F57F17" stroke-width="2"/>
+       <circle cx="190" cy="154" r="10" fill="#EF5350" stroke="#B71C1C" stroke-width="2"/>`
+    + phMarker(1, 120, 100, "#7E57C2") + phMarker(2, 326, 168, "#00897B") + phMarker(3, 226, 218, "#C62828") + phMarker(4, 292, 214, "#26A69A") + phMarker(5, 60, 40, "#F9A825");
+  return phFig(phSvg(420, 310, inner, "닭의 면역 기관 위치"), "면역 기관 위치를 단순화해 표시했어요.")
+    + phLegend([[1, "흉선(목 양쪽)", "#7E57C2"], [2, "파브리시우스낭(총배설강 위)", "#00897B"], [3, "비장", "#C62828"], [4, "맹장편도(장 림프조직)", "#26A69A"], [5, "하더선(눈 안쪽)", "#F9A825"]]);
+}
+function phFigSkeleton(){
+  const inner = phBodyBase()
+    + `<path d="M156 182 L196 138 L260 138" stroke="#B0BEC5" stroke-width="7" stroke-linecap="round" fill="none"/><path d="M178 244 L172 292" stroke="#CFD8DC" stroke-width="3" fill="none"/>
+       <ellipse cx="228" cy="150" rx="62" ry="34" fill="#E57373" fill-opacity=".35"/>
+       <path d="M300 214 Q320 232 316 244" stroke="#5D4037" stroke-width="2" fill="none"/><circle cx="332" cy="132" r="7" fill="#FFB300" stroke="#F57F17" stroke-width="2"/>`
+    + phMarker(1, 214, 118, "#546E7A") + phMarker(2, 176, 214, "#78909C") + phMarker(3, 228, 150, "#E57373") + phMarker(4, 98, 40, "#E53935") + phMarker(5, 332, 112, "#F9A825") + phMarker(6, 176, 250, "#FFB300");
+  return phFig(phSvg(420, 310, inner, "뼈·근육·피부 주요 부위"), "단순화한 위치 도식이에요.")
+    + phLegend([[1, "공기뼈(속이 빈 뼈)", "#546E7A"], [2, "수질골(칼슘 저장고)", "#78909C"], [3, "가슴근육", "#E57373"], [4, "벼슬·육수", "#E53935"], [5, "꼬리샘(기름샘)", "#F9A825"], [6, "다리·발", "#FFB300"]]);
+}
+
+// ── 계통별 내용 ──
+// organs: [아이콘, 이름, 쉬운 비유, [하는 일], [농장에서는]]
+const PH_SYSTEMS = [
+  { k:"overview", icon:"🐔", t:"한눈에 보기", color:"#AD1457", fig:phFigOverview,
+    intro:"닭 몸속에는 서로 돕는 <b>10개의 팀(계통)</b>이 있어요. 먼저 큰 그림부터 보고, 위의 탭을 눌러 팀별로 들어가 보세요.",
+    organs:[
+      ["🦷", "이빨이 없어요", "이빨 대신 ‘모래주머니’", ["부리로 쪼아 삼키고, 위(근위)가 먹이를 갈아 줘요"], ["사료 알갱이 크기와 모래(그릿) 이야기가 여기서 나와요"]],
+      ["🚽", "방광이 없어요", "오줌과 분이 한 번에", ["오줌이 하얀 요산 가루가 되어 분과 함께 나와요"], ["분의 흰 부분은 정상이에요. 묽은 흰 똥은 확인이 필요해요"]],
+      ["💦", "땀샘이 없어요", "더우면 헐떡임", ["입을 벌려 숨을 몰아쉬며 열을 내보내요"], ["여름철 환기·음수 관리가 중요한 이유예요"]],
+      ["🎈", "공기 주머니가 있어요", "몸 안의 풍선 9개", ["폐에 이어진 기낭이 공기를 한 방향으로 흘려 보내요"], ["먼지·암모니아가 숨길을 상하게 하면 기낭까지 영향을 받아요"]],
+      ["🌡️", "체온이 높아요", "약 41~42℃", ["사람보다 체온이 높고 신진대사가 빨라요"], ["추위·더위 모두 에너지 소모가 커요"]],
+    ],
+    quiz:[["닭이 이빨이 없는데 먹이는 어떻게 갈까요?", "근위(모래주머니)가 먹이를 갈아 줍니다. 모래나 잔자갈이 도움이 돼요."], ["닭의 하얀 똥은 무엇일까요?", "오줌이 가루(요산)가 된 것이에요. 분 위에 얹힌 흰 부분은 정상입니다."]],
+    sum:"입은 부리, 이빨은 근위, 오줌은 요산, 땀은 헐떡임 — 닭은 사람과 방식이 달라요." },
+  { k:"digest", icon:"🍽️", t:"소화", color:"#EF6C00", fig:phFigDigest,
+    intro:"먹이가 부리에서 총배설강까지 가는 길이에요. 닭은 <b>이빨이 없는 대신</b> 위 한 칸이 ‘맷돌’ 역할을 해요.",
+    organs:[
+      ["👄", "부리·혀", "쪼아 올리는 집게", ["먹이를 쪼아 올려 그대로 삼켜요", "침이 적어서 물을 자주 마셔요"], ["물이 안 나오면 사료도 못 먹어요 — 급수 점검이 먼저예요"]],
+      ["🎒", "식도·소낭", "먹이 저장 가방", ["소낭(모이주머니)에 먹이를 잠시 모아 불려요", "조금씩 아래로 내려보내요"], ["입추 첫날 소낭을 만져 먹이·물이 찼는지 확인하는 방법이 현장에서 쓰여요"]],
+      ["🧪", "선위(샘위)", "소화액 공장", ["위산과 소화효소를 내서 단백질을 분해해요"], ["사료의 품질·곰팡이가 소화에 영향을 줘요"]],
+      ["⚙️", "근위(모래주머니)", "먹이를 가는 맷돌", ["두꺼운 근육이 모래·사료를 으깨요", "이빨 대신 일해요"], ["사료 입자가 너무 곱거나 거칠면 근위 움직임이 달라져요"]],
+      ["🌀", "소장 + 간 · 췌장", "영양 흡수 창구", ["소장 벽으로 영양분을 흡수해요", "간은 쓸개즙을 만들고 영양을 저장·해독해요", "췌장은 소화효소를 보내요"], ["장 점막이 상하면(예: 콕시듐) 사료를 먹어도 크지 않아요"]],
+      ["🫘", "맹장 2개", "발효 탱크", ["막다른 두 갈래 주머니에서 섬유를 발효시켜요", "가끔 냄새 짙은 갈색 ‘맹장변’이 나와요 — 정상이에요"], ["맹장변은 걱정 말고, 평소 분 모양과 다른지만 보세요"]],
+      ["🚪", "대장·총배설강", "물 회수 + 공동 출구", ["남은 물을 흡수하고 총배설강으로 보내요"], ["분 색·묽기는 장 건강을 알려 주는 창문이에요"]],
+    ],
+    quiz:[["근위에 모래가 왜 필요할까요?", "이빨이 없어서 모래·잔자갈이 먹이를 갈아 주는 도구가 되기 때문이에요."], ["소낭을 만져 보는 이유는?", "새로 들어온 병아리가 먹이와 물을 잘 먹었는지 눈으로 보기 어려워서, 소낭이 찼는지 만져 확인해요."]],
+    sum:"부리 → 소낭 → 선위 → 근위 → 소장 → 맹장·대장 → 총배설강. 이빨 대신 근위가 갈아요." },
+  { k:"resp", icon:"🌬️", t:"호흡", color:"#1E88E5", fig:phFigResp,
+    intro:"닭의 숨쉬기는 사람과 많이 달라요. <b>폐는 작고 단단한 대신, 몸 곳곳의 공기 주머니(기낭)</b>가 풍선 펌프처럼 공기를 밀어 줘요.",
+    organs:[
+      ["👃", "콧구멍·비강", "먼지 거름망", ["들이쉰 공기의 먼지를 거르고 따뜻하게 데워요"], ["먼지가 많은 계사는 이 첫 관문부터 힘들어요"]],
+      ["🌬️", "기관(숨관)", "털 달린 빗자루 길", ["안쪽 섬모가 먼지·균을 점액에 묻혀 밖으로 쓸어내요"], ["암모니아·먼지·일부 바이러스는 이 섬모를 상하게 해요"]],
+      ["🎺", "울대(명관)", "소리 내는 악기", ["기관이 두 갈래로 갈라지는 곳에 있는 소리 기관이에요"], ["울음소리·가르랑 소리가 달라지면 숨길 문제를 의심해요"]],
+      ["🫁", "폐", "산소 교환소", ["작고 갈비뼈에 붙어 있어 부풀지 않아요", "공기가 한 방향으로 흘러 산소를 효율적으로 받아요"], ["폐 자체는 작아 병이 나면 빨리 힘들어해요"]],
+      ["🎈", "기낭(공기 주머니) 9개", "몸 안의 풍선 펌프", ["공기를 모았다가 폐로 밀어 보내요(가스 교환은 폐에서)", "일부는 뼈 속까지 이어져요"], ["기낭은 혈관이 적어 염증이 생기면 약이 잘 닿지 않는 편이에요"]],
+    ],
+    quiz:[["‘숨 두 번’에 공기가 어떻게 갈까요?", "첫 들숨에 뒤 기낭으로, 첫 날숨에 폐로, 두 번째 들숨에 앞 기낭으로, 두 번째 날숨에 밖으로 나가요."], ["더울 때 닭이 입을 벌리고 헐떡이는 이유는?", "땀샘이 없어서 숨을 몰아쉬며 몸의 열을 내보내려는 거예요."]],
+    sum:"작은 폐 + 9개의 공기 주머니. 먼지·암모니아는 섬모를 상하게 해요." },
+  { k:"circ", icon:"❤️", t:"순환·체온", color:"#E53935", fig:phFigCirc,
+    intro:"피를 온몸에 돌려 산소와 영양을 나르고 <b>체온도 조절</b>해요. 닭 심장도 사람처럼 4칸이에요.",
+    organs:[
+      ["❤️", "심장(4칸)", "쉬지 않는 펌프", ["오른쪽은 몸에서 돌아온 피를 폐로, 왼쪽은 산소 실은 피를 온몸으로 보내요", "사람보다 훨씬 빠르게 뛰어요"], ["빨리 크는 육계는 심장·폐에 부담이 커서 환기와 출하 시기 관리가 중요해요"]],
+      ["🩸", "혈관·혈액", "도로와 택배", ["혈액이 산소·영양·호르몬을 나르고 노폐물을 거둬요", "닭 적혈구에는 핵이 있어요(사람과 달라요)"], ["더위에는 피가 벼슬·다리 쪽으로 몰려 열을 식혀요"]],
+      ["🔥", "체온 조절", "약 41~42℃ 유지", ["땀샘이 없어 헐떡임·날개 펴기·물 마시기로 열을 내보내요", "추우면 깃털을 부풀리고 모여요"], ["더위·추위 모두 사료 섭취와 성적에 바로 영향을 줘요"]],
+      ["😮‍💨", "헐떡임의 부작용", "숨이 너무 빠르면", ["숨을 너무 빠르게 쉬면 혈액의 이산화탄소가 빠져 혈액이 알칼리로 기울어요", "그러면 알 껍질을 만드는 칼슘 이용이 떨어져요"], ["더운 날 껍질이 얇아지는 이유 중 하나예요"]],
+    ],
+    quiz:[["닭은 왜 땀을 못 흘려도 더위를 견딜까요?", "헐떡임으로 열을 내보내고 벼슬·육수·다리로 열을 식혀요. 하지만 한계가 있어 환기·물 관리가 필요해요."], ["닭의 체온은 대략 몇 도일까요?", "약 41~42℃로 사람보다 높아요."]],
+    sum:"4칸 심장이 피를 돌리고, 땀샘이 없는 닭은 헐떡임으로 열을 식혀요." },
+  { k:"excrete", icon:"💧", t:"신장·배설", color:"#7E57C2", fig:phFigExcrete,
+    intro:"닭은 <b>물을 아끼는 방식</b>으로 노폐물을 내보내요. 오줌이 물이 아니라 하얀 가루(요산)가 돼요.",
+    organs:[
+      ["🫘", "신장(콩팥)", "피를 거르는 필터", ["등뼈 양옆에 붙은 3엽짜리 장기예요", "피 속 노폐물을 걸러 요산으로 만들어요"], ["신장이 상하면 물을 많이 마시고 묽은 흰 똥이 나올 수 있어요"]],
+      ["〰️", "요관", "오줌 통로", ["요산을 총배설강으로 보내요", "방광은 없어요"], ["분 위의 흰 부분이 바로 이것이에요"]],
+      ["🚪", "총배설강", "공동 출구", ["장(분)과 신장(요산), 난관(알)이 모두 여기로 나와요"], ["이 한 출구가 오염되면 알·분에 모두 영향이 가요"]],
+      ["🔍", "분 관찰", "건강 일기", ["갈색 분 + 흰 요산 = 정상 모양이에요", "색·묽기·냄새가 갑자기 달라지면 신호예요"], ["갑자기 묽어지거나 색이 이상하면 음수량·사료·환경과 함께 기록하고 수의사에게 알리세요"]],
+    ],
+    quiz:[["닭 오줌이 하얀 이유는?", "물을 아끼려고 오줌을 요산이라는 흰 가루로 바꿔 내보내기 때문이에요."], ["닭에게 방광이 있을까요?", "없어요. 요산이 총배설강으로 나와 분과 함께 배출돼요."]],
+    sum:"신장이 요산을 만들어 분과 함께 내보내요. 분의 모양은 건강 창문이에요." },
+  { k:"repro", icon:"🥚", t:"알 만드는 공장", color:"#F9A825", fig:phFigRepro,
+    intro:"암탉의 <b>왼쪽 난소 하나</b>와 긴 난관이 알 공장이에요. 알 하나에 약 25시간이 걸려요.",
+    organs:[
+      ["🟡", "난소", "노른자 농장", ["크기가 다른 노른자(난포)가 포도송이처럼 줄 서 있어요", "왼쪽만 일하고 오른쪽은 퇴화해 있어요"], ["산란 전 어린 닭이 난소를 키우는 시기의 영양·점등이 중요해요"]],
+      ["🥄", "누두(깔때기)", "노른자 받이", ["배란된 노른자를 받아요(약 15분)", "정자를 만나는 곳도 여기예요"], ["무정란·유정란의 갈림길이에요"]],
+      ["⚪", "팽대부", "흰자 공장", ["진한 흰자 대부분을 입혀요(약 3시간)"], ["단백질 영양이 흰자 품질에 영향을 줘요"]],
+      ["🧵", "협부", "알막 짜는 곳", ["안팎 2겹의 알막을 만들어요(약 1시간 15분)"], ["난관이 상하면 알 모양이 이상해져요"]],
+      ["🛡️", "자궁(난각선)", "껍질 입히는 곳", ["칼슘으로 껍질을 만들고 색소를 입혀요(약 20시간)"], ["칼슘·더위·난관 손상이 껍질 두께에 영향을 줘요"]],
+      ["🐓", "수탉의 정소", "정자 공장", ["등쪽 신장 근처 몸속에 2개 있어요", "교미 때 총배설강끼리 맞대어 정자를 전해요"], ["수탉은 몸속에 정소가 있어 겉에서 안 보여요"]],
+    ],
+    quiz:[["알 하나가 만들어지는 데 얼마나 걸릴까요?", "대략 25시간이에요. 그래서 산란 시각이 매일 조금씩 늦어져요."], ["껍질은 난관의 어느 곳에서 만들어질까요?", "자궁(난각선)이에요. 알이 가장 오래(약 20시간) 머무는 곳입니다."]],
+    sum:"난소 → 누두 → 팽대부(흰자) → 협부(알막) → 자궁(껍질) → 총배설강, 약 25시간." },
+  { k:"neuro", icon:"🧠", t:"뇌·눈·귀", color:"#00897B", fig:phFigNeuro,
+    intro:"닭은 <b>눈이 아주 밝고</b> 빛에 민감해요. 빛·소리 환경이 행동과 산란에 바로 영향을 줘요.",
+    organs:[
+      ["🧠", "뇌·신경", "관제실", ["몸의 움직임·균형·반응을 조절해요", "뇌 깊은 곳에도 빛을 느끼는 부분이 있어요"], ["신경 증상(목 비틀림·다리 벌림 등)은 신경계 병을 의심하는 신호라 수의사에게 알려요"]],
+      ["👁️", "눈", "넓은 광각 카메라", ["머리 양옆에 있어 시야가 매우 넓어요(양쪽 합쳐 약 300°)", "사람보다 색을 더 다양하게 보고 자외선도 본다고 알려져 있어요"], ["빛의 세기·색은 닭의 활동과 스트레스에 영향을 줘요. 밤에는 거의 못 봐요"]],
+      ["👂", "귀", "귓구멍만 있는 귀", ["귀깃 밑에 있고 바깥귀(귓바퀴)가 없어요", "소리 방향과 균형을 느껴요"], ["갑작스러운 큰 소리는 놀람·압사를 일으킬 수 있어요"]],
+      ["👅", "후각·미각", "조용한 감각", ["사람보다 냄새·맛에는 덜 민감해요"], ["냄새보다 눈에 보이는 것에 더 반응해요"]],
+    ],
+    quiz:[["닭이 사람보다 잘 보는 것은?", "넓은 시야(약 300°)와 다양한 색, 자외선까지 본다고 알려져 있어요."], ["왜 갑작스러운 큰 소리를 피해야 할까요?", "놀라서 한쪽으로 몰리거나 날뛰어 다치고 스트레스를 받기 때문이에요."]],
+    sum:"넓고 밝은 눈, 바깥귀 없는 귀. 빛과 소리 환경을 안정적으로 해 주세요." },
+  { k:"endo", icon:"⚗️", t:"호르몬과 빛", color:"#7E57C2", fig:phFigHormone,
+    intro:"호르몬은 몸속 <b>무전기 신호</b>예요. 닭에서는 <b>빛의 길이</b>가 호르몬을 움직여 산란까지 이어져요.",
+    organs:[
+      ["🎼", "뇌하수체", "호르몬 지휘자", ["여러 호르몬을 내보내 난소·갑상선 등을 움직여요"], ["점등 프로그램이 닿는 곳이 바로 여기예요"]],
+      ["🦋", "갑상선", "대사 속도 조절", ["성장·에너지 사용·털갈이에 관여해요"], ["털갈이·성장 속도와 연결돼요"]],
+      ["🔔", "부신", "스트레스 호르몬", ["스트레스를 받으면 코르티코스테론이 올라가요"], ["지속적인 스트레스는 면역·산란율을 떨어뜨릴 수 있어요"]],
+      ["🦴", "부갑상선", "칼슘 관리자", ["혈액의 칼슘을 일정하게 유지해요", "껍질용 칼슘을 뼈(수질골)에서 가져오는 데 관여해요"], ["칼슘 부족·과잉 모두 알 품질에 영향을 줘요"]],
+      ["🌸", "난소 호르몬", "산란 신호", ["간에서 노른자 재료를 만들게 하고 난관을 키워요"], ["산란 시작 전 몸무게·점등이 맞아야 시작이 순조로워요"]],
+    ],
+    quiz:[["점등 프로그램이 산란에 영향을 주는 이유는?", "빛이 눈과 뇌에 닿아 호르몬을 움직이고, 호르몬이 난소를 깨우기 때문이에요."], ["스트레스를 받으면 왜 산란율이 떨어질 수 있을까요?", "스트레스 호르몬이 늘면 면역과 산란 호르몬 균형이 흐트러지기 때문이에요."]],
+    sum:"빛 → 뇌 → 호르몬 → 난소. 스트레스 호르몬은 산란과 면역을 흔들어요." },
+  { k:"immune", icon:"🛡️", t:"면역·방어", color:"#00897B", fig:phFigImmune,
+    intro:"병균이 들어와도 지켜 주는 <b>방어팀</b>이에요. 어린 병아리일수록 면역 기관이 크고 중요해요.",
+    organs:[
+      ["🧱", "피부·점막·섬모", "1차 성벽", ["피부와 기관 점막, 섬모가 균의 침입을 막아요"], ["환경 먼지·암모니아가 이 성벽을 무너뜨려요"]],
+      ["🎓", "흉선", "T세포 학교", ["목 양쪽에 줄지어 있는 덩어리예요", "세포성 면역을 길러요. 어릴 때 크고 자라면서 작아져요"], ["어린 병아리 시기의 영양·스트레스가 중요해요"]],
+      ["🏭", "파브리시우스낭", "항체 공장(B세포 학교)", ["총배설강 위쪽에 있고, 항체 만드는 세포를 길러요"], ["이곳이 상하면 면역이 약해져 백신 효과가 떨어질 수 있어요"]],
+      ["🩸", "비장", "혈액 청소부", ["늙은 혈구를 걸러내고 면역에도 관여해요"], ["부검 때 크기·색이 건강 단서가 돼요"]],
+      ["🫘", "맹장편도·장 림프조직", "장 속 경비대", ["장으로 들어오는 균을 지켜보며 면역 반응을 일으켜요"], ["장 건강과 면역이 이어져 있어요"]],
+      ["👁️", "하더선", "눈의 면역 샘", ["눈 안쪽에 있는 샘으로 점안 백신이 면역을 깨우는 데 관여해요"], ["점안·분무 백신을 고르게 해야 하는 이유예요"]],
+      ["🥚", "모체이행항체", "엄마가 주는 도시락", ["어미 항체가 노른자를 통해 병아리에게 전해져요"], ["어린 병아리를 초기에 지켜 줘요"]],
+    ],
+    quiz:[["점안 백신이 눈에 하는 이유는?", "눈 안쪽 하더선 같은 면역 기관이 반응해 면역을 만들기 때문이에요."], ["병아리 때 파브리시우스낭이 중요한 이유는?", "항체를 만드는 면역세포를 키우는 곳이라 상하면 백신이 잘 안 먹힐 수 있어요."]],
+    sum:"섬모·점막이 1차 방어, 흉선·파브리시우스낭이 면역 학교, 하더선은 점안 백신의 길목." },
+  { k:"skeleton", icon:"🦴", t:"뼈·근육·피부", color:"#546E7A", fig:phFigSkeleton,
+    intro:"가볍고 튼튼해야 하는 닭의 몸이에요. 뼈 속은 비어 있고, <b>산란계 뼈는 칼슘 창고</b> 역할도 해요.",
+    organs:[
+      ["🪶", "공기뼈", "속이 빈 가벼운 뼈", ["일부 뼈 속이 비어 있고 기낭과 이어져 있어요"], ["뼈 속까지 공기가 닿아 호흡기 문제가 뼈에까지 번질 수 있어요"]],
+      ["🏦", "수질골", "칼슘 저장고", ["산란 전부터 뼈 속에 칼슘을 쌓아 두었다가 껍질 만들 때 꺼내 써요"], ["칼슘·인·비타민 D 균형과 산란 후기 뼈 건강이 중요해요"]],
+      ["💪", "가슴근육·다리근육", "힘의 근원", ["가슴근육은 날갯짓, 다리근육은 걷기에 써요", "육계는 가슴·다리 살이 우리가 먹는 부위예요"], ["다리 약함·절뚝거림은 성장 속도·영양과 연결돼요"]],
+      ["🪶", "깃털·피부", "보온 겉옷", ["깃털이 체온을 지키고 방수해요", "땀샘이 없어요"], ["깃털 상태는 영양·스트레스 신호예요. 발바닥 피부는 깔짚이 젖으면 상하기 쉬워요"]],
+      ["🔴", "벼슬·육수", "온도계 겸 방열판", ["피가 많이 흘러 체온 조절과 건강 상태를 보여 줘요"], ["벼슬이 창백·푸르스름해지면 확인이 필요해요"]],
+      ["🛢️", "꼬리샘", "방수 기름통", ["꼬리 위 기름샘에서 나온 기름을 부리로 깃털에 발라요"], ["손질이 줄면 컨디션이 나쁘다는 신호예요"]],
+    ],
+    quiz:[["수질골은 무엇일까요?", "산란을 준비하며 뼈 속에 쌓아 두는 칼슘 저장고예요. 껍질 만들 때 꺼내 써요."], ["벼슬이 창백해지면?", "혈액·건강 상태가 나빠졌을 수 있어 다른 증상과 함께 살펴보고 수의사와 상의하세요."]],
+    sum:"뼈는 가볍고 칼슘 창고도 되고, 벼슬·깃털은 건강 거울이에요." },
+];
+
+function renderPhPanel(){
+  const idx = Math.max(0, PH_SYSTEMS.findIndex(x => x.k === phState.tab)), S = PH_SYSTEMS[idx], C = S.color;
+  const head = `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:8px"><div><div class="display" style="font-size:19px;margin-bottom:2px">🫀 조류생리 아카데미 — 닭 몸속 탐험</div><div style="font-size:13.5px;color:#777">닭의 장기가 하는 일을 쉬운 그림과 비유로 배워요</div></div><button id="ph-back" style="border:1px solid #ddd;border-radius:9px;background:#fff;color:#777;padding:9px 15px;font-size:14px;font-weight:700;cursor:pointer">← 메뉴로</button></div>`;
+  const nav = `<div style="display:flex;gap:6px;overflow-x:auto;padding:4px 0 8px;margin-bottom:6px">${PH_SYSTEMS.map(x => `<button type="button" class="ph-tab" data-t="${x.k}" style="flex:none;border:2px solid ${x.k === S.k ? x.color : "#e5e5e5"};background:${x.k === S.k ? x.color : "#fff"};color:${x.k === S.k ? "#fff" : "#555"};border-radius:18px;padding:8px 13px;font-size:14px;font-weight:800;cursor:pointer;white-space:nowrap">${x.icon} ${x.t}</button>`).join("")}</div>`;
+  const banner = `<div style="background:linear-gradient(135deg,${C},${C}cc);color:#fff;border-radius:16px;padding:14px 16px"><div style="font-size:13px;opacity:.9">${idx + 1} / ${PH_SYSTEMS.length}</div><div style="font-size:23px;font-weight:900;margin:2px 0 6px">${S.icon} ${S.t}</div><div style="font-size:15.5px;line-height:1.75">${S.intro}</div></div>`;
+  const organs = S.organs.map(o => `<div style="border:2px solid ${C}40;border-left:7px solid ${C};border-radius:14px;padding:12px 14px;margin-bottom:10px;background:#fff">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-size:30px;line-height:1">${o[0]}</span><span style="font-size:18px;font-weight:900;color:${C}">${o[1]}</span><span style="font-size:13.5px;background:${C}18;color:${C};border-radius:12px;padding:2px 10px;font-weight:800">${o[2]}</span></div>
+      <div style="font-size:15.5px;line-height:1.8;color:#222;margin-top:6px">${o[3].map(t => `<div style="display:flex;gap:8px"><span style="color:#999">●</span><span>${t}</span></div>`).join("")}</div>
+      <div style="margin-top:8px;background:#F1F8F4;border-radius:10px;padding:8px 11px;font-size:14.5px;line-height:1.7;color:#2E5E3A">🌾 <b>농장에서는</b> · ${o[4].join(" · ")}</div></div>`).join("");
+  const quiz = S.quiz.map((q, i) => `<details style="border:1.5px solid #e5e5e5;border-radius:12px;padding:10px 13px;margin:7px 0;background:#fff"><summary style="cursor:pointer;font-size:15.5px;font-weight:800;color:#333">❓ Q${i + 1}. ${q[0]}</summary><div style="font-size:15px;line-height:1.75;color:#444;margin-top:7px;padding-top:7px;border-top:1px dashed #ddd">${q[1]}</div></details>`).join("");
+  const prev = PH_SYSTEMS[idx - 1], next = PH_SYSTEMS[idx + 1];
+  const pager = `<div style="display:flex;justify-content:space-between;gap:8px;margin-top:14px">${prev ? `<button type="button" class="ph-tab" data-t="${prev.k}" style="border:1px solid #ccc;background:#fff;color:#555;border-radius:12px;padding:13px 16px;font-size:15px;font-weight:800;cursor:pointer">← ${prev.icon} ${prev.t}</button>` : "<span></span>"}${next ? `<button type="button" class="ph-tab" data-t="${next.k}" style="border:none;background:${next.color};color:#fff;border-radius:12px;padding:13px 16px;font-size:15px;font-weight:800;cursor:pointer">${next.icon} ${next.t} →</button>` : `<span style="font-size:15px;color:#2E7D32;font-weight:800;align-self:center">🎉 끝까지 보셨어요!</span>`}</div>`;
+  const foot = `<div style="margin-top:14px;background:#FFF8E1;border-radius:9px;padding:9px 12px;font-size:11.5px;color:#6b5400;line-height:1.75"><b>유의</b> · 그림은 이해를 돕는 단순화 도식이며 실제 해부 위치·크기와 다를 수 있어요. 숫자는 대략값입니다. 병의 진단·치료는 담당 수의사와 상의하세요.</div>`;
+  return `<div class="card" id="ph-root" style="border-top:6px solid ${PH_COLOR}">${head}${nav}${banner}${S.fig()}
+    <div style="font-size:17px;font-weight:900;color:${C};margin:14px 0 8px">🔎 하나씩 살펴보기</div>${organs}
+    <div style="background:${C}12;border:2px solid ${C}55;border-radius:14px;padding:12px 14px;margin:6px 0;font-size:16px;font-weight:800;color:${C};line-height:1.65">📌 한 줄 정리 · ${S.sum}</div>
+    <div style="font-size:17px;font-weight:900;color:#333;margin:14px 0 4px">🧩 눌러서 확인해 보세요</div>${quiz}${pager}${foot}</div>`;
+}
+function phBind(){
+  if(!(state.tab === "premium" && premiumState.view === "avianphys")) return;
+  const back = document.getElementById("ph-back"); if(back) back.onclick = () => { premiumState.view = "menu"; render(); };
+  document.querySelectorAll(".ph-tab").forEach(b => b.onclick = () => { phState.tab = b.dataset.t; render(); const r = document.getElementById("ph-root"); if(r) r.scrollIntoView({ block:"start" }); });
 }
 
 function renderColiPanel(){
@@ -27188,6 +27491,10 @@ function renderPremiumTab(){
   if(premiumState.view === "coliclass"){
     return renderPremiumGateHeader() + logoutBar + renderColiPanel();
   }
+  // 조류생리 아카데미(정적 교육과정)
+  if(premiumState.view === "avianphys"){
+    return renderPremiumGateHeader() + logoutBar + renderPhPanel();
+  }
   // 약품별 사용요령 카드 화면
   if(premiumState.view === "drugusage"){
     if(drugUseState.status === "idle") fetchDrugUse();
@@ -27487,6 +27794,7 @@ function renderHeaderSolarTerm(now){
 // go: {tab} 일반 탭으로 / {premium:"메뉴key"} 유료서비스의 그 화면으로(승인·로그인 안내는 그 화면이 처리) / {premium:"vaccine", vaccineView:"guide"} 처럼 보기까지 지정.
 const NEW_FEATURE_DAYS = 21;
 const NEW_FEATURES = [
+  { key:"avianphys",      date:"2026-10-19", label:"조류생리 아카데미 — 닭 몸속 탐험", where:"유료서비스 · 최꼬 아카데미", go:{ premium:"avianphys" } },
   { key:"coliclass",      date:"2026-10-15", label:"닭 대장균증 잡는 교실 (12차시)", where:"유료서비스 · 최꼬 아카데미", go:{ premium:"coliclass" } },
   { key:"drugusage",      date:"2026-10-14", label:"약품별 사용요령 카드", where:"유료서비스 · 약품·투약·소독", go:{ premium:"drugusage" } },
   { key:"hpaizero",       date:"2026-10-14", label:"AI 막는 농장 지킴이 교실 (HPAI ZERO FARM)", where:"유료서비스 · 최꼬 아카데미", go:{ premium:"hpaizero" } },
@@ -34351,6 +34659,7 @@ function attachEvents(){
   // 질병별 소독제 선택과 소독요령
   drugUseBind();
   coliBind();
+  phBind();
   dilBind();
   const disinfectBackBtn = document.getElementById("disinfect-back-btn");
   if(disinfectBackBtn) disinfectBackBtn.onclick = ()=>{ premiumState.view = "menu"; render(); };
