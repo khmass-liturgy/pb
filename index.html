@@ -31603,75 +31603,127 @@ function renderWelfarePanel(){
 }
 
 // ── 🛡️ 농장 HACCP 인증관리기준 요약 (육계/산란계 컨설팅 탭, 동물복지 자가진단 아래) ──────────
-// 근거: ① 한국식품안전관리인증원 「축산농장 HACCP 실시상황평가표 개정(2020.1.1 시행)」 반영 표준기준서 안내
-//        (대한양계협회 공지 2020-04-07: 선행요건 목차 = 농장 관리·위생 관리·사양 관리·반입 및 출하 관리·알 관리(닭·오리),
-//         산란계·육계 기준서 별도) ② 월간양계 「농장 HACCP의 올바른 접근」(2010.11, 항목별 해설 — 2020년 개정 전 자료)
-//        ③ 생활법령정보(신청 절차) ④ 축산신문(유효기간 3년, 계란 표기 — 식약처 안내).
-// 인증원의 표준기준서 원문(.hwp)은 직접 열람하지 못해, 위 자료로 정리한 요약이다 — 세부 수치·배점은 싣지 않는다.
-const HACCP_AREAS = [
-  { k:"farm", icon:"🚪", t:"농장 관리", sub:"차단방역 · 시설", color:"#1565C0", common:[
-      "농장 입구에 안내문과 방역 경고문을 붙였다",
-      "출입자·출입차량·반입물품을 소독하고 소독실시기록부에 적는다",
-      "방문자용 작업복·장화(일회용 가능)를 갖춰 두었다",
-      "농장 경계(울타리)를 표시하고 계사 출입을 통제한다",
-      "겨울에도 소독이 되도록 동파 방지(열선 등)를 해 두었다",
-      "계사별 사육밀도, 음수·사료 공급 설비, 분변 제거 설비를 점검한다",
-      "온도·습도·환기를 관리하고, 분뇨처리장에서 새어 나가지 않게 한다"], broiler:[], layer:[] },
-  { k:"hyg", icon:"🧼", t:"위생 관리", sub:"도구 · 폐사축 · 분뇨", color:"#2E7D32", common:[
-      "도구·신발을 깨끗이 하고 계사 입구 발판소독조를 운영한다",
-      "폐사축을 처리하고 그 기록을 남긴다",
-      "분뇨를 주기적으로 치우고 구서·구충을 한다",
-      "관리인 위생·방역 교육을 정기적으로 한다"], broiler:[], layer:[
-      "살모넬라(SE) 검사를 정기적으로 한다"] },
-  { k:"feed", icon:"🌾", t:"사양 관리", sub:"사료 · 약품 · 물 · 질병", color:"#EF6C00", common:[
-      "사료는 HACCP 인증 사료공장의 배합사료를 쓰고 입고를 기록한다",
-      "사료 보관소·저장빈·급이기·운반도구를 깨끗이 관리한다",
-      "자가제조 사료를 쓴다면 제조·설비 관리기준을 정해 둔다(안전성 검사·가열 기준 포함)",
-      "항생제 등 약품은 잔류 방지 방안을 세우고 입·출고를 기록한다. 쓰고 남은 약품·빈 용기도 관리한다",
-      "동물용의약품 안전사용기준의 ‘사용자 준수사항’을 지킨다",
-      "음수는 연 1회 이상 검사한다(지하수는 생활용수 수질 기준) — 아래 ③ 수질검사 참고",
-      "백신 접종과 임상관찰을 농장 프로그램대로 하고 기록한다",
-      "정기적으로 수의사 관리를 받고 내·외부 기생충을 구제한다"], broiler:[], layer:[] },
-  { k:"ship", icon:"🚚", t:"반입·출하 관리", sub:"입추(도입) · 출하", color:"#6A1B9A", common:[
-      "계군 구입처, 질병검진, 예방접종 기록을 보관한다",
-      "도입 계군은 임상관찰을 기록한다",
-      "가축·축산물 이력관리를 하고, 출하기준에 부적합할 때의 관리 방법을 정해 둔다"],
-    broiler:["출하일지에 출하처·운반자·<b>휴약기간·항생제 무첨가 사료 급여일</b>을 적는다"],
-    layer:["폐계 등 출하 때도 출하일지에 출하처·운반자·휴약기간을 적는다"] },
-  { k:"egg", icon:"🥚", t:"알 관리", sub:"산란계만 해당", color:"#D4A012", common:[], broiler:[], layer:[
-      "집란실의 방충·방서, 환기, 청결을 관리한다",
-      "집란기와 라인을 주기적으로 청소·소독한다",
-      "선입선출을 하고 농장 표시를 한다",
-      "집란·선별 뒤 온도 변화를 줄이고, 온도 관리가 되는 보관시설을 쓴다",
-      "오염란·파란을 처리하고 난좌를 위생적으로 관리한다",
-      "출하처·운반자·운반차량 상태·항생제 잔류 여부를 기록한다",
-      "알 잔류검사와 살모넬라 검사를 정기적으로 한다"] },
-];
-const HACCP_RECORDS = {
-  common: [["차단방역", "출입자·차량·반입물품 소독 기록, 소독실시기록부"], ["농장 위생", "폐사축 처리 현황, 교육 기록"], ["사료·약품·물", "사료 입고, 동물용의약품 입·출고, 음수 검사 결과"], ["질병 관리", "계군 구입처, 질병검진, 예방접종, 임상관찰"], ["HACCP 운영", "모니터링, 개선조치, 검증 기록"]],
-  broiler: [["출하", "출하일지(출하처·운반자·휴약기간·항생제 무첨가 사료 급여일)"]],
-  layer: [["출하", "출하일지(출하처·운반자·휴약기간)"], ["알", "출하처·운반자·운반차량 상태·잔류 여부, 알 잔류·살모넬라 검사 결과"], ["농장 위생", "살모넬라 검사 결과"]],
+// 근거: 한국식품안전관리인증원(haccp.or.kr) HACCP종합자료실 「육계농장 / 산란계농장 HACCP 표준기준서 개정(2023년)」 .hwp 원문
+//        (자료실 > 표준기준서자료 게시글 137778·137779, 파일 53199·53200)에서 선행요건·HACCP계획 항목을 직접 읽어 정리했다.
+//        인증 적용분야·수수료는 같은 사이트의 「적용분야」「인증수수료」 페이지(확인일 2026-10-18).
+// 개정(2023)의 핵심: 출하일지에 출하 전 절식기준 준수 여부·체표면 청결·운반차량 위생 점검 기록 추가.
+// 사육면적·수질 기준 수치는 기준서에 인용된 축산법 시행령·지하수법 규정이다. 세부 심사 배점은 실시상황평가표 파일로 확인한다.
+const HACCP_DL = "https://www.haccp.or.kr/fresh/haccp/process/haccpProcessMinwonFileDown.do?bdfiles=";
+const HACCP_FILES = {
+  broiler: { id:"53199", label:"🐔 육계농장 HACCP 기준서", col:"#E65100", bg:"#FFF3E0" },
+  layer:   { id:"53200", label:"🥚 산란계농장 HACCP 기준서", col:"#1565C0", bg:"#E3F2FD" },
 };
-const HACCP_STEPS = ["HACCP팀 구성(실제 역할이 있는 사람만, 부재 시 대행자 지정)", "가축·알 설명서 작성", "출하물의 용도 정리", "사양관리절차도(실제 흐름대로) 작성", "농장 평면도에 사람·차량·가축 동선 표시", "위해분석 — 농장에서 생길 수 있는 위해를 빠짐없이 적기", "중요관리점(CCP) 정하기", "한계기준 정하기(법령 기준 또는 과학적 근거)", "모니터링 — 누가·언제·무엇을·어떻게", "한계를 벗어났을 때의 개선조치를 미리 정하기", "검증 — 제대로 돌아가는지 확인", "기록 남기기"];
-// ── 💧 음수 수질검사 기준·주기 (농장 HACCP 카드 안) ─────────────────────────────
-// 닭 음수 기준: 산란계 = Hy-Line W-80 Plus 관리가이드(2026.4) p.19 「Drinking Water Quality for Poultry」(NC State Carter & Sneed 1996 등 인용),
-//               육계   = Ross Broiler Management Handbook 2025 Table 7.2 (p.109) · 본문 p.108·110(검사 주기).
-// 법정 기준·주기: 지하수 용도별 수질기준(이천시 안내 표), 지하수법 시행규칙 정기검사 주기(양평군·FITI 안내), 국립축산과학원 「가축의 음용수 수질기준과 검사방법」.
-// 확인일 2026-10-18. 육종회사 수치는 닭에게 적합한 권장 한계이고, 법정 기준은 지하수 이용 목적에 따른 것이라 서로 다르다.
+const HACCP_FILES_MORE = [
+  ["📝", "농장 HACCP 기록양식(2023) — 육계·산란계·오리", "53238", "zip"],
+  ["🧾", "소독실시 및 출입 기록부(공통)", "53240", "hwp"],
+  ["📋", "실시상황평가표(2025.2.18 기준, 업종별)", "57658", "zip"],
+  ["✅", "농장분야 HACCP 자체평가 가이드라인", "41756", "pdf"],
+];
+const HACCP_AREAS = [
+  { k:"farm", icon:"🚪", t:"농장 관리", sub:"출입 · 시설 (선행-1)", color:"#1565C0", common:[
+      "출입구에 차량 진입을 막는 차단시설(줄·차단기·문)과 방역 경고문을 둔다",
+      "사람·차량·동물이 못 들어오게 울타리를 친다(고도 차이·개천·경계림 같은 자연경계가 있으면 생략 가능)",
+      "「소독실시 및 출입 기록부」를 입구에 두고 방문자·차량을 빠짐없이 적는다",
+      "방문자는 입구에서 방역복·비닐장화(또는 외부인 전용 장화)를 신고 들어온다",
+      "차량소독시설(수동이면 차단시설)과 계사 내외부를 소독할 별도 시설을 운영한다",
+      "약품·소형 기자재·지대사료는 물품반입창고에서 소독한 뒤 들인다",
+      "외부인 차량은 지정 주차장에 세우고 농장 안으로 들이지 않는다",
+      "계사: 닭 상태를 볼 조명, 온·습도계, 지붕 누수 방지, <b>야생조류 차단망</b>",
+      "환기시설 작동 확인, 축사 입구마다 구획된 <b>전실</b>, 신발소독조를 정기 관리",
+      "분뇨처리장은 물이 스며들지 않는 바닥(위탁이면 계약서·인허가 보관), 분변 제거 장비 비치"],
+    broiler:["사육 면적(축산법 시행령): 무창계사 39 kg/㎡, 개방계사 강제환기 36·자연환기 33 kg/㎡, 케이지 0.046 ㎡/마리(토종닭은 육계 기준)"],
+    layer:["사육 면적(축산법 시행령): 종계·산란계 케이지 0.075 ㎡/마리·평사 9마리/㎡, 산란 육성계 케이지 0.025 ㎡/마리(100일령까지)"] },
+  { k:"hyg", icon:"🧼", t:"위생 관리", sub:"소독 · 폐사축 · 살모넬라 (선행-2)", color:"#2E7D32", common:[
+      "농장 통로는 출하·작업차량이 다닐 때 맞춰 소독하고, 작업화를 청결하게 관리한다",
+      "소독약 보관·희석 용기와 <b>전용 고압분무기</b>를 갖추고, 소독 주기를 정해 소독실시기록부에 적는다",
+      "추울 때(4℃ 이하)·특별방역기간에는 소독제를 사용설명서의 고농도(유기물 조건)로 쓰고, 소독조 동결을 막는다",
+      "쥐는 월별·수시로 구서제, 파리는 여름에 정기 구제(분뇨처리장 포함)",
+      "해충 약제는 닭에 허가된 동물용의약외품만, 용법·용량대로 쓰고 사용 기록을 남긴다",
+      "배수로를 점검하고 물고임(웅덩이·구덩이)을 없앤다",
+      "폐사축은 발생 즉시 수거·기록하고, 가축전염병예방법에 따라 처리하고 방역기관에 신고한다",
+      "면세유·농약 같은 유해 화학물질은 구분 보관, 깔짚은 곰팡이·오염 없이 보관한다",
+      "종사자(외국인 근로자 포함) 위생·방역교육 연간 계획을 세워(월·격월·분기) 교육일지에 적는다",
+      "<b>살모넬라(SE) 검사</b>: 매 입추 시 + 연 2회 이상, 공인기관·국가기관·부설연구소 직인 성적서만 인정"],
+    broiler:["SE 시료: 입추 때 병아리 박스 바닥 분변·폐사추, 육추·사육환경은 연 2회(분변 계사당 5수 이상, 자리깃·급수기·급이기·깔짚 동당 3곳 이상)",
+             "SE가 나오면 부화장에 바로 알리고, 청소·소독·출입절차·설치류 방제를 강화하며 수의사와 협의한다"],
+    layer:["SE 시료: 분변(계사당 5수 이상)·사육환경(동당 3곳 이상)·<b>식용란(계군당 5개 이상)</b> 각 연 2회",
+           "SE가 나오면 그 계사 알은 따로 집란해 폐기하고, 청소·소독·방제를 강화하며 수의사와 협의한다",
+           "닭 진드기 약제는 계군 출하 후 2~3일 안에 <b>빈 계사</b>에 살포한다. 산란 중인 계군에는 살충제를 쓰지 않고, 인접 빈 계사에 쓸 때도 알·사료·물에 들어가지 않게 한다",
+           "식용란 잔류물질 검사를 정기 실시하고 성적서를 2년 이상 보관한다"] },
+  { k:"feed", icon:"🌾", t:"사양 관리", sub:"사료 · 약품 · 물 · 질병 (선행-3)", color:"#EF6C00", common:[
+      "육추: 입추 전 29~32℃, 매주 3℃쯤 낮춰 21℃ 정도, 첫 주 습도 60~70%",
+      "급수기는 매일 청소, 급수탱크는 매 출하 뒤 세척·소독. 기계·자동화 설비·발전기는 하루 1회 이상 점검",
+      "사료는 <b>HACCP 지정 공장</b> 배합사료, 거래명세표의 약품 첨가 내용과 관능검사를 확인해 기록",
+      "사료빈·보관장소를 정기 청소·소독하고, 약품 첨가 사료는 무첨가 사료와 구분 보관. 항생제는 사료차량 약탕기에 섞지 않는다",
+      "자가제조사료·남은음식물을 쓰면 제조·검사 기준을 지킨다(남은음식물은 100℃ 30분 이상 가열)",
+      "약품: 제조일·유효기간을 확인해 입고, 구매내역과 <b>약품재고관리대장</b>(월 1회 등)을 보관",
+      "<b>약품사용기록부</b>에 날짜·계군·약품명·방법·휴약기간·휴약만료일을 적는다(사료에 첨가된 약품도 확인)",
+      "백신은 수의사와 프로그램을 정하고(접종일령·종류·사용량 표시), 남은 백신은 재사용 없이 폐기",
+      "수의사가 정기 방문하고, 임상관찰에서 증상이 보이면 출하를 중지하고 출하처에 알린다",
+      "AI 등 의심증상은 즉시 신고(1588-4060 또는 1588-9060). 음용수는 아래 ③ 수질검사 참고"],
+    broiler:[], layer:[] },
+  { k:"ship", icon:"🚚", t:"반입·출하 관리", sub:"입추 · 출하 (선행-4)", color:"#6A1B9A", common:[
+      "입추 전 계사를 점검·수리하고, 소독 뒤 충분히 말린다(훈증은 24시간 밀폐 후 완전 환기)",
+      "입추 때 임상관찰을 하고, 이상추·폐사추가 많으면 부검해 부화장에 알린다",
+      "종계장·부화장의 SE 검사 결과서를 받거나 자체 SE 검사를 의뢰한다",
+      "월별 사육현황을 다음 달 5일까지 축산물품질평가원에 신고한다",
+      "닭을 옮길 때 농장식별번호를 표시한다(날개인식표·발목링이 있으면 생략 가능)",
+      "계군별 이력(입식일·약품 사용내역)을 관리해 출하기준 부적합 때 원인을 찾을 수 있게 한다"],
+    broiler:[
+      "깔짚 수분 20~25%. 일제 입식·일제 출하, 입식제한 기간을 14일 미만으로 줄이지 않는다",
+      "출하 전 <b>3시간 이상 절식</b>, <b>항생제 무첨가 사료를 출하 전 7일 이상</b> 급이",
+      "출하일지에 계사번호·출하처·운반자·휴약기간 경과·무첨가사료 급여일·<b>절식 준수·체표면 청결·운반차량 위생</b>을 적는다(2023 개정)",
+      "휴약기간을 지키지 않았으면 출하 정지, 법정전염병이 의심되면 출하 금지"],
+    layer:[
+      "알 출하일지: 출하처·휴약기간 준수·운반자·운반차량 상태를 적는다",
+      "알 보관 장소는 온도 변화로 결로가 생기지 않게 관리(필요하면 냉난방)",
+      "오염란은 규격란과 분리하고, 휴약을 안 지킨 계군의 알은 구분 집란·표시해 폐기하고 기록한다",
+      "노계 출하: 3시간 이상 절식, 항생제 무첨가 사료 7일 이상 급이, 출하일지(절식·체표면 청결·운반차량 위생 포함)"] },
+  { k:"egg", icon:"🥚", t:"알 관리", sub:"산란계만 해당 (선행-5)", color:"#D4A012", common:[], broiler:[], layer:[
+      "집란실에 방충·방서·환기시설·신발소독조를 두고 정기 청소·소독한다",
+      "집란기·집란라인·기구를 정기적으로 세척·소독한다",
+      "집란실·달걀 보관은 온도 관리가 되는 시설(에어컨 등)로, 온도·습도를 정해 유지한다",
+      "집란 때 휴약 중인 계군이 있으면 약품 기록과 휴약기간을 확인한다",
+      "집란일을 표시해 구분 보관·선입선출하고, 껍데기에 <b>산란일·사육업 허가(등록)증 고유번호·사육환경번호</b>를 표시한다",
+      "파란·오란은 규격란과 분리 보관하고, 폐기는 연월일·량·방법·처리처를 기록한다",
+      "물로 씻는다면 30℃ 이상이면서 알 온도보다 5℃ 이상 높은 깨끗한 물(100~200 ppm 차아염소산나트륨 등)로 씻고, 씻은 알은 냉장 보존·유통한다",
+      "세척용수가 지하수면 먹는물 수질기준 <b>전 항목을 연 1회 이상</b> 검사한다",
+      "알 잔류물질·살모넬라 검사를 정기 실시한다(기준을 벗어나면 그 계사 알 출하 중지·별도 집란 폐기)",
+      "난좌는 바닥·벽에서 띄워 청결하게 보관한다"] },
+];
+const HACCP_CCP = {
+  broiler:[
+    ["CCP-1B 입추", "SE(살모넬라) 감염 병아리 반입", "반입 병아리 SE 불검출", "매 입추 시 · 도입처 SE 성적서 확인 또는 공인기관 검사", "구입처에 알리고 SE 감소 프로그램·재검사"],
+    ["CCP-2C 출하", "항생제 등 약품 잔류", "약제별 휴약기간 준수", "매 출하 직전 · 약품사용기록부로 휴약만료일 확인", "미준수면 출하 정지, 지킨 뒤 출하"] ],
+  layer:[
+    ["CCP-1B 입추", "SE(살모넬라) 감염 병아리 반입", "반입 병아리 SE 불검출", "매 입추 시 · 도입처 SE 성적서 확인 또는 공인기관 검사", "구입처에 알리고 SE 감소 프로그램·재검사"],
+    ["CCP-2C 집란", "달걀에 약품(항생제 등) 잔류", "약제별 휴약기간 준수", "매 집란 시 · 사양관리일지·약품사용기록부 확인", "미준수 계군 달걀은 표시 후 폐기"],
+    ["CCP-3C 출하(노계)", "항생제 등 약품 잔류", "약제별 휴약기간 준수", "매 출하 직전 · 약품사용기록부로 휴약만료일 확인", "미준수면 출하 정지, 지킨 뒤 출하"] ],
+};
+const HACCP_DOCS = {
+  common: [["등록(허가)증", "축산업(가축사육업·종축업) 등록(허가)증"], ["교육수료증", "대표자 축산물 HACCP 교육 4시간 이상 수료"], ["수질검사서", "지하수: 생활용수 기준 20항목 3년 1회 이상 / 상수도: 요금 납입영수증 또는 마을상수도 성적서"], ["살모넬라 성적서", "매 입추 시 계군 + 분변·시설 연 2회 이상(직인 필요)"], ["분뇨처리 계약서", "위탁이면 계약서와 업체 허가증·신고필증 사본"]],
+  broiler: [],
+  layer: [["식용란 검사", "식용란 SE 검사 연 2회 이상, 잔류물질 검사 연 2회 이상"], ["세척용수 검사", "달걀 세척용수가 지하수면 먹는물 수질기준 전 항목 연 1회 이상"]],
+  own: [["사육일지", "매일 · 입추·도태·폐사, 사료·약품 입고, 소독·구서, 약품·백신 사용, 교육·회의, CCP 모니터링일지"], ["약품재고관리대장", "월 1회"], ["소독실시 및 출입 기록부", "발생할 때마다"], ["실시상황평가표 자체평가", "연 1회"]],
+};
+const HACCP_STEPS = ["HACCP팀 구성(대표자·팀장·팀원·외부자문)", "가축(알) 설명서 작성", "의도한 용도 확인", "사양관리절차도(원·부자재 반입→사육→출하) 작성", "농장 평면도에 사람·차량·가축 동선 표시", "위해요소분석(B 생물학적 · C 화학적 · P 물리적)", "중요관리점(CCP) 결정", "한계기준 정하기", "모니터링 — 누가·언제·무엇을·어떻게", "개선조치 미리 정하기", "검증 — 정기 자체평가", "기록 유지"];
+// ── 💧 음수 수질검사 기준·주기 ──
+// 법정: 농장 HACCP 표준기준서 「동물용 음용수 관리기준」(선행-3), 지하수법 시행규칙 정기검사 주기(지자체 안내).
+// 닭 음수 권장 한계: 산란계 = Hy-Line W-80 Plus 관리가이드(2026.4) p.19, 육계 = Ross Broiler Management Handbook 2025 Table 7.2 · p.108·110.
 const HACCP_WATER_CYCLE = [
-  ["📅", "1년에 1번 이상", "종합 수질검사", "Ross 2025: 종합 수질검사는 <b>연 1회 이상</b>, 수질 문제나 성적 이상이 있으면 더 자주. 농장 HACCP의 음수 검사도 연 1회 이상(2010 해설, 지하수는 생활용수 수질 이상이면 충족)."],
+  ["🏛️", "3년에 1번 이상", "HACCP 기준서 — 지하수", "표준기준서(2023 개정): 지하수는 <b>공인 먹는물 수질검사기관</b>에서 <b>생활용수 기준 20항목</b>을 <b>3년에 1회 이상</b> 검사하고 기록을 남겨요. 상수도는 요금 납입영수증 또는 마을상수도 성적서를 받아 보관해요."],
+  ["📅", "1년에 1번 이상", "육종회사 권고(종합검사)", "Ross 2025: 종합 수질검사는 <b>연 1회 이상</b>, 수질 문제나 성적 이상이 있으면 더 자주. (HACCP 법정 주기보다 촘촘한 권고예요)"],
   ["🧹", "계군 사이마다", "입추 전 세균검사", "Ross 2025: 계사 청소 뒤 <b>입추 전</b>에 ①수원 ②저장탱크 ③급수기(닭이 먹는 곳)에서 물을 떠 세균 오염을 확인."],
-  ["👀", "사육 중 수시로", "눈으로 확인", "급수라인 끝에서 물을 빼 <b>맑은지</b> 봅니다. 눈에 안 보여도 깨끗하다는 뜻은 아니에요(Ross)."],
-  ["⛏️", "지하수를 쓴다면", "법정 정기검사", "지하수법에 따라 음용은 <b>2년에 1회</b>(양수능력 30㎥/일 초과, 이하는 3년에 1회), 생활용수는 <b>3년에 1회</b>(30㎥/일 이상). 지정 수질검사 전문기관 성적서만 인정. <span style=\"color:#999\">지자체 안내 기준이라 관할 수도사업소에 확인하세요.</span>"],
+  ["👀", "사육 중 수시로", "눈으로 확인", "급수라인 끝에서 물을 빼 <b>맑은지</b> 봅니다. 기준서도 음수조·급수라인 청결을 수시로 확인하라고 해요. 눈에 안 보여도 깨끗하다는 뜻은 아니에요(Ross)."],
 ];
 const HACCP_WATER_LAW = [
-  ["일반세균", "100 CFU/mL 이하", "—"],
-  ["총대장균군", "100mL에서 불검출", "5,000(군수/100mL) 이하"],
+  ["수소이온농도(pH)", "5.8~8.5", "5.8~8.5"],
+  ["총대장균군", "100mL에서 불검출", "5,000 이하(군수/100mL)"],
   ["질산성질소", "10 mg/L 이하", "20 mg/L 이하"],
   ["염소이온", "250 mg/L 이하", "250 mg/L 이하"],
-  ["수소이온농도(pH)", "5.8~8.5", "5.8~8.5"],
-  ["경도", "1,000 mg/L 이하", "—"],
-  ["탁도", "0.5 NTU 이하", "—"],
+  ["카드뮴", "—", "0.01 mg/L 이하"],
+  ["납 · 비소 · 수은", "—", "0.1 · 0.05 · 0.001 mg/L 이하"],
+  ["일반세균 · 경도 · 탁도", "100 CFU/mL · 1,000 mg/L · 0.5 NTU 이하", "—"],
 ];
 const HACCP_WATER_BIRD = {
   layer: { name:"산란계 (Hy-Line 가이드 2026.4)", rows:[
@@ -31704,10 +31756,10 @@ const HACCP_WATER_BIRD = {
 
 let haccpState = (function(){
   const base = { open:false, sp:"layer", checks:{} };
-  try { const j = JSON.parse(localStorage.getItem("haccp_v1") || "null"); if(j) return Object.assign(base, j, { open:false }); } catch(e){}
+  try { const j = JSON.parse(localStorage.getItem("haccp_v2") || "null"); if(j) return Object.assign(base, j, { open:false }); } catch(e){}
   return base;
 })();
-function haccpSave(){ try { localStorage.setItem("haccp_v1", JSON.stringify(haccpState)); } catch(e){} }
+function haccpSave(){ try { localStorage.setItem("haccp_v2", JSON.stringify(haccpState)); } catch(e){} }
 function haccpItems(sp){
   const out = [];
   HACCP_AREAS.forEach(a => { const list = a.common.concat(a[sp] || []); list.forEach((t, i) => out.push({ area:a, text:t, key:sp + ":" + a.k + ":" + i })); });
@@ -31716,12 +31768,13 @@ function haccpItems(sp){
 function renderHaccpPanel(){
   const st = haccpState, sp = st.sp, C = "#00796B";
   const head = `<div id="haccp-toggle" role="button" tabindex="0" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;gap:10px">
-    <div><div class="display" style="font-size:15px">🛡️ 농장 HACCP 인증관리기준 요약</div><div style="font-size:11px;color:#888;margin-top:2px">육계·산란계로 나누어, 농장에서 지킬 것을 한눈에 정리했습니다</div></div>
+    <div><div class="display" style="font-size:15px">🛡️ 농장 HACCP 인증관리기준 요약</div><div style="font-size:11px;color:#888;margin-top:2px">한국식품안전관리인증원 기준서를 육계·산란계로 나누어 정리했습니다</div></div>
     <div style="font-size:12px;color:${C};font-weight:700;white-space:nowrap">${st.open ? "접기 ▲" : "열기 ▼"}</div></div>`;
   if(!st.open) return `<div class="card" style="margin-bottom:16px;border-top:6px solid ${C}">${head}</div>`;
   const items = haccpItems(sp), done = items.filter(x => st.checks[x.key]).length;
   const spBtn = (k, label, col) => `<button type="button" class="haccp-sp" data-sp="${k}" style="flex:1;border:2px solid ${sp === k ? col : "#eee"};background:${sp === k ? col : "#fff"};color:${sp === k ? "#fff" : "#444"};border-radius:10px;padding:10px 6px;font-size:13.5px;font-weight:800;cursor:pointer">${label}</button>`;
   const info = (icon, t, d) => `<div style="flex:1 1 150px;background:#F1F8F6;border:1px solid #B2DFDB;border-radius:10px;padding:8px 10px"><div style="font-size:11px;font-weight:800;color:${C}">${icon} ${t}</div><div style="font-size:12px;color:#333;line-height:1.55;margin-top:2px">${d}</div></div>`;
+  const fileBtn = k => { const f = HACCP_FILES[k]; return `<a href="${HACCP_DL}${f.id}" target="_blank" rel="noopener" style="flex:1 1 200px;text-decoration:none;text-align:center;border:2px solid ${sp === k ? f.col : "#ddd"};background:${sp === k ? f.bg : "#fff"};color:${f.col};border-radius:11px;padding:11px 8px;font-size:13.5px;font-weight:800">${f.label} ⬇</a>`; };
   const areas = HACCP_AREAS.map(a => {
     const list = a.common.concat(a[sp] || []);
     if(!list.length) return `<div style="border:1px dashed #ddd;border-radius:11px;padding:9px 12px;margin-bottom:9px;background:#fafafa"><div style="font-size:13.5px;font-weight:800;color:#999">${a.icon} ${a.t} <span style="font-size:11px;font-weight:500">— 육계는 해당 없어요(산란계 항목)</span></div></div>`;
@@ -31731,65 +31784,70 @@ function renderHaccpPanel(){
       ${list.map((t, i) => { const key = sp + ":" + a.k + ":" + i; const mine = i >= spec;
         return `<label style="display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-top:1px solid #f1f1f1;cursor:pointer"><input type="checkbox" class="haccp-chk" data-k="${key}" ${st.checks[key] ? "checked" : ""} style="margin-top:3px;width:17px;height:17px;flex-shrink:0"><span style="font-size:12.8px;line-height:1.6;color:#333">${mine ? `<span style="font-size:10px;font-weight:800;color:#fff;background:${sp === "broiler" ? "#E65100" : "#1565C0"};border-radius:4px;padding:0 5px;margin-right:4px">${sp === "broiler" ? "육계" : "산란계"}</span>` : ""}${t}</span></label>`; }).join("")}
     </div>`; }).join("");
-  const recs = HACCP_RECORDS.common.concat(HACCP_RECORDS[sp]);
+  const docs = HACCP_DOCS.common.concat(HACCP_DOCS[sp]);
+  const cycles = HACCP_WATER_CYCLE.concat(sp === "layer" ? [["🥚", "1년에 1번 이상", "산란계 · 달걀 세척용수(지하수)", "물로 달걀을 씻는다면 <b>먹는물 수질기준 전 항목</b>을 연 1회 이상 검사해요(기준서 선행-5)."]] : []);
+  const th = (t, c) => `<th style="padding:6px 8px;text-align:left;border:1px solid #dde;background:${c};white-space:nowrap">${t}</th>`;
   return `<div class="card" style="margin-bottom:16px;border-top:6px solid ${C}">
     ${head}
     <div style="display:flex;gap:8px;margin:14px 0 10px">${spBtn("broiler", "🐔 육계 농장", "#E65100")}${spBtn("layer", "🥚 산란계 농장", "#1565C0")}</div>
 
-    <div style="font-size:12.5px;font-weight:800;color:#333;margin-bottom:5px">① 인증 제도 한눈에</div>
+    <div style="font-size:12.5px;font-weight:800;color:#333;margin-bottom:5px">① 인증 제도 한눈에 <span style="font-weight:500;color:#999">(인증원 안내)</span></div>
     <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px">
-      ${info("🏛️", "인증 기관", "한국식품안전관리인증원")}
-      ${info("🤝", "신청", "의무가 아닌 <b>자율</b>. 인증신청서에 농장(축종)별 운용계획서를 붙여 제출")}
-      ${info("📅", "유효기간", "3년마다 재인증")}
-      ${info("📘", "기준서", "7개 축종(산란계·육계 포함)별 표준기준서, 2020.1.1 평가표 개정 반영")}
+      ${info("🏛️", "인증 기관", "한국식품안전관리인증원. 농장(가축사육업)은 육계·산란계 등 축종별로 인증")}
+      ${info("📝", "신청", "인증(연장) 신청서 + 농장(축종)별 운용계획서를 인증원에 제출. <b>자율</b> 인증")}
+      ${info("💰", "심사 수수료", "가축사육업·종축업·부화업 인증심사 대 420 · 중 380 · 소 330천원 (연장 410·370·320)")}
+      ${info("📅", "유효기간", "3년마다 재인증(축산신문 기사 기준)")}
+      ${info("🎓", "교육·자체평가", "대표자 축산물 HACCP 교육 4시간 이상, 실시상황평가표로 연 1회 자체평가")}
     </div>
 
-
-    <div style="font-size:12.5px;font-weight:800;color:#333;margin-bottom:5px">📘 관리기준서(표준기준서) 내려받기 <span style="font-weight:500;color:#999">— 한글(.hwp) 파일</span></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px">
-      <a href="https://www.poultry.or.kr/bbs/download.php?bo_table=notice&wr_id=66048&no=1" target="_blank" rel="noopener" style="flex:1 1 200px;text-decoration:none;text-align:center;border:2px solid ${sp === "broiler" ? "#E65100" : "#ddd"};background:${sp === "broiler" ? "#FFF3E0" : "#fff"};color:#E65100;border-radius:11px;padding:11px 8px;font-size:13.5px;font-weight:800">🐔 육계농장 HACCP 기준서 ⬇</a>
-      <a href="https://www.poultry.or.kr/bbs/download.php?bo_table=notice&wr_id=66048&no=0" target="_blank" rel="noopener" style="flex:1 1 200px;text-decoration:none;text-align:center;border:2px solid ${sp === "layer" ? "#1565C0" : "#ddd"};background:${sp === "layer" ? "#E3F2FD" : "#fff"};color:#1565C0;border-radius:11px;padding:11px 8px;font-size:13.5px;font-weight:800">🥚 산란계농장 HACCP 기준서 ⬇</a>
-    </div>
-    <div style="font-size:10.5px;color:#999;margin-bottom:12px;line-height:1.6">2020.4 개정본 · 대한양계협회 공지 첨부 파일로 연결됩니다(한글 프로그램이 필요해요). 원본은 <a href="https://www.haccp.or.kr" target="_blank" rel="noopener" style="color:#00796B">인증원 누리집</a> 고객센터 → 자료실 → HACCP 종합자료실에서 최신본을 확인하세요.</div>
+    <div style="font-size:12.5px;font-weight:800;color:#333;margin-bottom:5px">📘 인증원 자료실 기준서 내려받기 <span style="font-weight:500;color:#999">— 2023년 개정본 · 한글(.hwp)</span></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px">${fileBtn("broiler")}${fileBtn("layer")}</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px">${HACCP_FILES_MORE.map(f => `<a href="${HACCP_DL}${f[2]}" target="_blank" rel="noopener" style="text-decoration:none;border:1px solid #cfe3e0;background:#F7FBFA;color:#00695C;border-radius:16px;padding:5px 11px;font-size:11.5px;font-weight:700">${f[0]} ${f[1]} <span style="color:#999;font-weight:500">.${f[3]}</span></a>`).join("")}</div>
+    <div style="font-size:10.5px;color:#999;margin-bottom:12px;line-height:1.6">파일은 한국식품안전관리인증원 HACCP종합자료실에서 바로 내려받습니다(<a href="https://www.haccp.or.kr/fresh/board/boardDataList.do?board=117" target="_blank" rel="noopener" style="color:#00796B">표준기준서자료 목록 ↗</a>). 2023 개정 요점: 출하일지에 <b>출하 전 절식 준수·체표면 청결·운반차량 위생</b> 점검·기록 추가.</div>
 
     <div style="font-size:12.5px;font-weight:800;color:#333;margin-bottom:2px">② 선행요건 — 농장에서 지킬 것 <span style="font-weight:500;color:#999">(지키는 것에 체크 · ${done}/${items.length})</span></div>
     <div style="background:#eee;border-radius:6px;height:7px;margin:5px 0 9px"><div style="background:${C};width:${items.length ? done / items.length * 100 : 0}%;height:7px;border-radius:6px"></div></div>
     ${areas}
 
-
     <div style="font-size:12.5px;font-weight:800;color:#333;margin:14px 0 5px">③ 💧 음수 수질검사 — 주기와 기준</div>
     <div style="font-size:12px;font-weight:800;color:#0277BD;margin:2px 0 5px">언제 검사하나요?</div>
-    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px">${HACCP_WATER_CYCLE.map(c => `<div style="display:flex;gap:9px;align-items:flex-start;background:#E1F5FE;border:1px solid #B3E5FC;border-radius:10px;padding:8px 10px"><span style="font-size:20px;line-height:1.2">${c[0]}</span><div><div style="font-size:13px;font-weight:800;color:#01579B">${c[1]} <span style="font-weight:600;color:#0277BD">· ${c[2]}</span></div><div style="font-size:12.2px;line-height:1.6;color:#333;margin-top:2px">${c[3]}</div></div></div>`).join("")}</div>
+    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px">${cycles.map(c => `<div style="display:flex;gap:9px;align-items:flex-start;background:#E1F5FE;border:1px solid #B3E5FC;border-radius:10px;padding:8px 10px"><span style="font-size:20px;line-height:1.2">${c[0]}</span><div><div style="font-size:13px;font-weight:800;color:#01579B">${c[1]} <span style="font-weight:600;color:#0277BD">· ${c[2]}</span></div><div style="font-size:12.2px;line-height:1.6;color:#333;margin-top:2px">${c[3]}</div></div></div>`).join("")}</div>
 
-    <div style="font-size:12px;font-weight:800;color:#0277BD;margin:6px 0 5px">닭이 먹는 물, 이 수치를 넘지 않게 <span style="font-weight:500;color:#999">(${HACCP_WATER_BIRD[sp].name})</span></div>
+    <div style="font-size:12px;font-weight:800;color:#0277BD;margin:6px 0 5px">HACCP 법정 기준 — 지하수는 <b>생활용수 20항목</b> <span style="font-weight:500;color:#999">(일부만 표시 · 기준서 수록)</span></div>
+    <div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;min-width:300px;font-size:12.2px">
+      <tr style="color:#4527A0">${th("항목", "#EDE7F6")}${th("음용수(참고)", "#EDE7F6")}${th("생활용수 ★HACCP", "#D1C4E9")}</tr>
+      ${HACCP_WATER_LAW.map((r, i) => `<tr style="background:${i % 2 ? "#fafafa" : "#fff"}"><td style="padding:5px 8px;border:1px solid #e6e6e6;font-weight:700;white-space:nowrap">${r[0]}</td><td style="padding:5px 8px;border:1px solid #e6e6e6;color:#777">${r[1]}</td><td style="padding:5px 8px;border:1px solid #e6e6e6;font-weight:700;color:#4527A0">${r[2]}</td></tr>`).join("")}
+    </table></div>
+    <div style="font-size:11.5px;color:#555;line-height:1.7;margin-top:5px">· 생활용수 20항목 = 일반오염물질 4(pH·총대장균군·질산성질소·염소이온) + 특정유해물질 16(중금속·유기용제·농약 등). 근거: 지하수법 제20조·지하수의 수질보전 등에 관한 규칙 제11조.<br>· 지하수를 먹는 물로 쓸 때의 <b>법정 정기검사</b>는 음용 2년·생활용수 3년 주기이고(지자체 안내), 검사는 지정 수질검사 전문기관이 해요(결과까지 약 2주).</div>
+
+    <div style="font-size:12px;font-weight:800;color:#0277BD;margin:12px 0 5px">닭이 먹는 물, 이 수치를 넘지 않게 <span style="font-weight:500;color:#999">(${HACCP_WATER_BIRD[sp].name})</span></div>
     <div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;min-width:320px;font-size:12.2px">
-      <tr style="background:#E1F5FE;color:#01579B"><th style="padding:6px 8px;text-align:left;border:1px solid #cfe8f3">항목</th><th style="padding:6px 8px;text-align:left;border:1px solid #cfe8f3">기준</th><th style="padding:6px 8px;text-align:left;border:1px solid #cfe8f3">참고</th></tr>
+      <tr style="color:#01579B">${th("항목", "#E1F5FE")}${th("기준", "#E1F5FE")}${th("참고", "#E1F5FE")}</tr>
       ${HACCP_WATER_BIRD[sp].rows.map((r, i) => `<tr style="background:${i % 2 ? "#fafafa" : "#fff"}"><td style="padding:5px 8px;border:1px solid #e6e6e6;font-weight:700;white-space:nowrap;vertical-align:top">${r[0]}</td><td style="padding:5px 8px;border:1px solid #e6e6e6;font-weight:700;color:#01579B;vertical-align:top">${r[1]}</td><td style="padding:5px 8px;border:1px solid #e6e6e6;line-height:1.5;color:#444">${r[2]}</td></tr>`).join("")}
     </table></div>
+    <div style="font-size:11.5px;color:#555;line-height:1.7;margin-top:5px">· 법정 기준은 사람·일반 용도 기준이고, 닭에게 맞는 권장 한계는 육종회사 수치예요. <b>둘 다 통과</b>하는지 보세요.</div>
+    <div style="background:#FFF8E1;border-radius:9px;padding:8px 11px;margin-top:8px;font-size:11.8px;line-height:1.7;color:#6b5400">🧪 <b>어디서 검사하나요?</b> 각 도 보건환경연구원 또는 지정 수질검사 전문기관(지하수 정기검사는 지정 전문기관 성적서만 인정). 수돗물은 대체로 문제가 적지만 저장탱크·급수라인 오염은 따로 확인하고, 지하수·우물물은 질산염과 세균이 높을 수 있어요(Ross).</div>
 
-    <div style="font-size:12px;font-weight:800;color:#0277BD;margin:12px 0 5px">법에서 정한 지하수 수질기준 <span style="font-weight:500;color:#999">(이용 목적별 · 일부 항목만)</span></div>
-    <div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;min-width:300px;font-size:12.2px">
-      <tr style="background:#EDE7F6;color:#4527A0"><th style="padding:6px 8px;text-align:left;border:1px solid #d9d0ee">항목</th><th style="padding:6px 8px;text-align:left;border:1px solid #d9d0ee">음용수(먹는 물)</th><th style="padding:6px 8px;text-align:left;border:1px solid #d9d0ee">생활용수</th></tr>
-      ${HACCP_WATER_LAW.map((r, i) => `<tr style="background:${i % 2 ? "#fafafa" : "#fff"}"><td style="padding:5px 8px;border:1px solid #e6e6e6;font-weight:700;white-space:nowrap">${r[0]}</td><td style="padding:5px 8px;border:1px solid #e6e6e6">${r[1]}</td><td style="padding:5px 8px;border:1px solid #e6e6e6">${r[2]}</td></tr>`).join("")}
+    <div style="font-size:12.5px;font-weight:800;color:#333;margin:14px 0 5px">④ 🎯 중요관리점(CCP) <span style="font-weight:500;color:#999">— 이것만은 꼭 (${sp === "broiler" ? "육계 2개" : "산란계 3개"})</span></div>
+    <div style="display:flex;flex-direction:column;gap:7px">${HACCP_CCP[sp].map(c => `<div style="border:1.5px solid #E5737355;border-left:6px solid #D32F2F;border-radius:10px;padding:8px 11px;background:#FFF8F8"><div style="font-size:13px;font-weight:800;color:#C62828">${c[0]} <span style="font-weight:600;color:#555">· ${c[1]}</span></div><div style="font-size:12.2px;line-height:1.65;color:#333;margin-top:3px">✔ 한계기준: <b>${c[2]}</b><br>👀 확인: ${c[3]}<br>🛠️ 어기면: ${c[4]}</div></div>`).join("")}</div>
+
+    <div style="font-size:12.5px;font-weight:800;color:#333;margin:14px 0 5px">⑤ 갖춰 둘 서류와 기록 <span style="font-weight:500;color:#999">(${sp === "broiler" ? "육계" : "산란계"})</span></div>
+    <div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;min-width:300px;font-size:12.3px">
+      <tr>${th("외부에서 받는 서류", "#E0F2F1")}${th("내용", "#E0F2F1")}</tr>
+      ${docs.map((r, i) => `<tr style="background:${i % 2 ? "#fafafa" : "#fff"}"><td style="padding:6px 9px;border:1px solid #e6e6e6;font-weight:700;color:${C};white-space:nowrap;vertical-align:top">${r[0]}</td><td style="padding:6px 9px;border:1px solid #e6e6e6;color:#333;line-height:1.55">${r[1]}</td></tr>`).join("")}
+      <tr>${th("농장에서 쓰는 기록", "#E8F5E9")}${th("주기·내용", "#E8F5E9")}</tr>
+      ${HACCP_DOCS.own.map((r, i) => `<tr style="background:${i % 2 ? "#fafafa" : "#fff"}"><td style="padding:6px 9px;border:1px solid #e6e6e6;font-weight:700;color:#2E7D32;white-space:nowrap;vertical-align:top">${r[0]}</td><td style="padding:6px 9px;border:1px solid #e6e6e6;color:#333;line-height:1.55">${r[1]}${r[0] === "사육일지" ? (sp === "broiler" ? " · 육계: 입추(CCP-1B)·출하(CCP-2C) 모니터링" : " · 산란계: 입추(CCP-1B)·집란(CCP-2C)·노계출하(CCP-3C) 모니터링") : ""}</td></tr>`).join("")}
     </table></div>
-    <div style="font-size:11.5px;color:#555;line-height:1.7;margin-top:5px">· 음용수는 46~48개, 생활용수는 20개 항목을 검사해요. 농장 HACCP과 친환경(무항생제·유기) 축산 인증에서 지하수는 <b>생활용수 기준</b>을, 환경친화축산농장 인증은 <b>먹는물 기준</b>을 따릅니다(국립축산과학원).<br>· 법정 기준은 사람·일반 용도 기준이고, 닭에게 맞는 권장 한계는 위의 육종회사 수치입니다. <b>둘 다 통과</b>하는지 보세요.</div>
 
-    <div style="background:#FFF8E1;border-radius:9px;padding:8px 11px;margin-top:8px;font-size:11.8px;line-height:1.7;color:#6b5400">🧪 <b>어디서 검사하나요?</b> 각 도 보건환경연구원 또는 지정 수질검사 전문기관에 의뢰해요(결과까지 약 2주). 지하수 법정 정기검사는 <b>지정 전문기관 성적서만 인정</b>됩니다. 수돗물은 대체로 문제가 적지만, 저장탱크·급수라인 오염은 따로 확인해야 해요. 지하수·우물물은 질산염과 세균 수치가 높을 수 있어요(Ross).</div>
-
-    <div style="font-size:12.5px;font-weight:800;color:#333;margin:14px 0 5px">④ 꼭 남겨야 할 기록 <span style="font-weight:500;color:#999">(${sp === "broiler" ? "육계" : "산란계"})</span></div>
-    <div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;min-width:300px;font-size:12.3px">${recs.map((r, i) => `<tr style="background:${i % 2 ? "#fafafa" : "#fff"}"><td style="padding:6px 9px;border:1px solid #e6e6e6;font-weight:700;color:${C};white-space:nowrap;vertical-align:top">${r[0]}</td><td style="padding:6px 9px;border:1px solid #e6e6e6;color:#333;line-height:1.55">${r[1]}</td></tr>`).join("")}</table></div>
-
-    <div style="font-size:12.5px;font-weight:800;color:#333;margin:14px 0 5px">⑤ HACCP 계획 만드는 순서 (12절차)</div>
+    <div style="font-size:12.5px;font-weight:800;color:#333;margin:14px 0 5px">⑥ HACCP 계획 만드는 순서 (기준서 HACCP-1~7)</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:6px">${HACCP_STEPS.map((t, i) => `<div style="display:flex;gap:8px;align-items:flex-start;background:#F1F8F6;border-radius:9px;padding:6px 9px"><span style="flex:none;width:20px;height:20px;border-radius:50%;background:${C};color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center">${i + 1}</span><span style="font-size:12.3px;line-height:1.5;color:#333">${t}</span></div>`).join("")}</div>
 
-    ${sp === "layer" ? `<div style="font-size:11.8px;color:#6b5400;background:#FFF8E1;border-radius:9px;padding:8px 11px;margin-top:12px;line-height:1.65">🥚 <b>계란 포장에 HACCP 마크를 쓰려면</b> 농장 인증만으로는 안 되고 식용란수집판매업(소규모 포함) HACCP 인증이 따로 필요해요. 농장만 인증받았다면 <b>“HACCP인증을 받은 산란계 농장에서 생산한 계란”</b> 문구만 쓸 수 있어요(식약처 안내).</div>` : ""}
+    ${sp === "layer" ? `<div style="font-size:11.8px;color:#6b5400;background:#FFF8E1;border-radius:9px;padding:8px 11px;margin-top:12px;line-height:1.65">🥚 <b>계란 포장에 HACCP 마크를 쓰려면</b> 농장 인증만으로는 안 되고 식용란수집판매업(소규모 포함) HACCP 인증이 따로 필요해요. 농장만 인증받았다면 <b>“HACCP인증을 받은 산란계 농장에서 생산한 계란”</b> 문구만 쓸 수 있어요(식약처 안내, 2016 기사).</div>` : ""}
 
     <div style="font-size:10.3px;color:#aaa;line-height:1.75;margin-top:12px;border-top:1px dashed #eee;padding-top:8px">
-      ※ <b>정리 근거와 한계</b>: 인증원의 표준기준서 원문(.hwp)은 직접 열어 보지 못했습니다. 항목은 ① 인증원 개정 안내(2020, 대한양계협회 공지)의 선행요건 구성 ② 월간양계 「농장 HACCP의 올바른 접근」(2010, 개정 전 해설) ③ 생활법령정보 ④ 축산신문 기사를 종합한 요약이며, 세부 수치·배점은 싣지 않았습니다.
-      2020년 개정(자가제조사료 검사·가열 기준, 약품 사용자 준수사항, 이력관리 추가)은 반영했지만, <b>실제 심사 기준은 인증원 자료실의 산란계·육계 기준서와 실시상황평가표로 꼭 확인하세요.</b>
-      수질 기준은 Hy-Line W-80 Plus 관리가이드(2026.4)·Ross Broiler Handbook 2025(Table 7.2), 지하수 기준·주기는 지자체(이천시·양평군) 안내와 국립축산과학원 자료를 따랐고 확인일은 2026-10-18입니다. 법령은 개정될 수 있으니 관할 기관에 확인하세요.
-      <a href="https://www.haccp.or.kr" target="_blank" rel="noopener" style="color:${C}">한국식품안전관리인증원 ↗</a> ·
-      <a href="https://www.poultry.or.kr/bbs/board.php?bo_table=notice&wr_id=66048" target="_blank" rel="noopener" style="color:${C}">기준서 개정 안내(대한양계협회) ↗</a>
+      ※ <b>정리 근거</b>: 한국식품안전관리인증원 HACCP종합자료실의 육계·산란계농장 표준기준서(2023 개정 .hwp) 원문에서 선행요건·CCP·서류 항목을 읽어 요약했습니다. 요약이라 세부 문구는 생략됐고, 실제 심사 배점은 <b>실시상황평가표(2025.2.18 기준)</b>와 인증원 안내를 따르세요. 법령·기준은 개정될 수 있습니다.
+      수질 권장 한계: Hy-Line W-80 Plus 관리가이드(2026.4)·Ross Broiler Handbook 2025 Table 7.2. 확인일 2026-10-18.
+      <a href="https://www.haccp.or.kr" target="_blank" rel="noopener" style="color:${C}">한국식품안전관리인증원 ↗</a>
     </div>
   </div>`;
 }
