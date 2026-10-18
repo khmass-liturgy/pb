@@ -84,7 +84,7 @@ Two pieces are **not** static, both Firebase, both under the 유료서비스 tab
     registry with an empty (or one-member) list and silently drop every other member.
   - `premium_content/{dataset}/latest.json` holds the four premium-only datasets (상황별 처방,
     계절별 패키지, 농장 맞춤 찾기, 온라인 자가진단— `treatment_packages`/`seasonal_packages`/
-    `farm_finder`/`self_check`). These used to be public GitHub files like everything else in this
+    `farm_finder`/`self_check`; the 「내 농장에 맞는 약품 찾기」 menu was removed from the UI in 2026-10, its data file/code remain unused). These used to be public GitHub files like everything else in this
     repo, which meant anyone who found the raw URL could read paid content without logging in —
     moved here so only approved members (or admins) can read it, and only admins can write it.
     Approval is checked via a Firebase Auth **custom claim** (`request.auth.token.approved`), since
