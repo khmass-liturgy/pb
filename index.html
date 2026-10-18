@@ -32490,12 +32490,24 @@ function wnCard(it, lead){
   const st = `display:block;text-decoration:none;color:inherit;background:${lead ? th.bg + "66" : "#fff"};border:1px solid ${th.c}33;border-left:5px solid ${th.c};border-radius:12px;padding:11px 13px`;
   return u ? `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer" style="${st}">${body}</a>` : `<div style="${st}">${body}</div>`;
 }
+// 같은 소식을 다르게 쓴 기사·한 매체의 여러 기사를 걷어내고 최대 35건만 보여준다(수집 스크립트 thin_items와 같은 규칙).
+function wnThin(items){
+  const grams = t => { t = String(t || "").replace(/\[[^\]]*\]|〔[^〕]*〕|\([^)]*\)/g, " ").replace(/[^0-9A-Za-z가-힣]+/g, ""); const s = new Set(); for(let i = 0; i < t.length - 1; i++) s.add(t.slice(i, i + 2)); return s; };
+  const kept = [], gs = [], seen = new Set();
+  for(const it of items){
+    const src = it.source || "", g = grams(it.title);
+    if(src && seen.has(src)) continue;
+    if(gs.some(h => { let n = 0; g.forEach(x => { if(h.has(x)) n++; }); return n / Math.max(1, Math.min(g.size, h.size)) >= 0.4; })) continue;
+    kept.push(it); gs.push(g); if(src) seen.add(src);
+  }
+  return kept.slice(0, 35);
+}
 function renderWeatherNewsCard(){
   const st = weatherNewsState;
   const head = (sub) => `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px"><div><div class="display" style="font-size:15px">📰 오늘의 날씨 뉴스</div><div style="font-size:11px;color:#999;margin-top:2px">${sub}</div></div></div>`;
   const shell = inner => `<div class="card" id="wn-card" style="margin-top:16px;border-top:6px solid #0277BD">${inner}</div>`;
   if(st.status === "idle" || st.status === "loading") return shell(head("날씨·기상 특보·농업 기상 기사를 모았습니다") + `<div style="text-align:center;padding:18px;color:#aaa;font-size:12px">⏳ 불러오는 중...</div>`);
-  const items = (st.status === "done" && st.data && st.data.items) || [];
+  const items = wnThin((st.status === "done" && st.data && st.data.items) || []);
   if(!items.length) return shell(head("날씨·기상 특보·농업 기상 기사를 모았습니다") + `<div style="text-align:center;padding:16px;color:#aaa;font-size:12px;line-height:1.7">${st.status === "error" ? "날씨 뉴스를 불러오지 못했습니다." : "아직 수집된 날씨 뉴스가 없습니다 — 하루 6번 자동으로 모읍니다."}${st.status === "error" ? `<br><button id="wn-retry" style="margin-top:6px;border:1px solid #0277BD;color:#0277BD;background:#fff;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer">다시 불러오기</button>` : ""}</div>`);
   const today = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10), nToday = items.filter(i => String(i.ts).startsWith(today)).length;
   const tags = Object.keys(WN_TAGS).filter(t => items.some(i => (i.tags || []).includes(t)));

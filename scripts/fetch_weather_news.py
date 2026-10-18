@@ -29,7 +29,7 @@ import fetch_industry_news as fin
 KST = timezone(timedelta(hours=9))
 OUT_PATH = Path("weather_news/latest.json")
 KEEP_DAYS = 3
-MAX_ITEMS = 70
+MAX_ITEMS = 35        # 2026-10: 같은 내용이 너무 많아 70 → 35로 절반
 MAX_NEW_SUMMARIES = 40
 HEADERS = fin.HEADERS
 
@@ -59,17 +59,40 @@ DISASTER = re.compile(r"폭염|한파|태풍|호우|폭우|대설|폭설|강풍|
 # 태그 우선순위 — 구체적인 분류가 앞(카드 색·첫 배지가 「오늘 날씨」 하나로 쏠리지 않게)
 TAG_ORDER = ["농업·축산 기상", "폭염·한파", "호우·태풍", "눈·바람·먼지", "기상 전망", "오늘 날씨"]
 # 분류별 최대 보관 건수 — 「오늘 날씨」 기사는 비슷한 것이 수십 건씩 나와 다른 분류를 밀어내므로 상한을 둔다(기사는 첫 태그 기준으로 센다)
-TAG_CAP = {"농업·축산 기상": 16, "폭염·한파": 14, "호우·태풍": 14, "눈·바람·먼지": 10, "기상 전망": 10, "오늘 날씨": 16}
+TAG_CAP = {"농업·축산 기상": 8, "폭염·한파": 7, "호우·태풍": 7, "눈·바람·먼지": 5, "기상 전망": 5, "오늘 날씨": 8}
 
 
 def order_tags(tags: list[str]) -> list[str]:
     return sorted(dict.fromkeys(tags), key=lambda t: TAG_ORDER.index(t) if t in TAG_ORDER else 99)
 
 
+def _title_grams(title: str) -> set[str]:
+    t = re.sub(r"\[[^\]]*\]|〔[^〕]*〕|\([^)]*\)", " ", title)
+    t = re.sub(r"[^0-9A-Za-z가-힣]+", "", t)
+    return {t[i:i + 2] for i in range(len(t) - 1)}
+
+
+def thin_items(items: list[dict]) -> list[dict]:
+    """같은 소식을 다르게 쓴 기사(제목 2글자 조각이 40% 이상 겹침)와 한 매체의 여러 기사를 걷어낸다 — 최신순 입력에서 먼저 나온 기사가 남는다."""
+    kept: list[dict] = []
+    grams: list[set[str]] = []
+    seen_src: set[str] = set()
+    for it in items:
+        src = it.get("source", "")
+        g = _title_grams(it.get("title", ""))
+        if (src and src in seen_src) or any(len(g & h) / max(1, min(len(g), len(h))) >= 0.4 for h in grams):
+            continue
+        kept.append(it)
+        grams.append(g)
+        if src:
+            seen_src.add(src)
+    return kept
+
+
 def cap_items(items: list[dict]) -> list[dict]:
     used: dict[str, int] = {}
     out = []
-    for it in items:                                    # 최신순으로 들어오므로 분류마다 최신 기사부터 남는다
+    for it in thin_items(items):                                    # 최신순으로 들어오므로 분류마다 최신 기사부터 남는다
         it["tags"] = order_tags(it.get("tags") or [])
         k = it["tags"][0] if it["tags"] else ""
         if used.get(k, 0) >= TAG_CAP.get(k, 10):
