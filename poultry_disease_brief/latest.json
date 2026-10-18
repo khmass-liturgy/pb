@@ -1,6 +1,106 @@
 {
- "updated": "2026-10-12 09:54 KST",
+ "updated": "2026-10-19 08:51 KST",
  "weeks": [
+  {
+   "week": "2026-10-19",
+   "items": [
+    {
+     "id": "pmid:42879833",
+     "title": "HVT 벡터 재조합백신, IBDV·H9N2 동시 방어 확인(실험)",
+     "species": "공통",
+     "topic": "백신·면역",
+     "cls": "paper",
+     "evidence": "백신 실험 감염 시험(SPF 병아리)",
+     "new": [
+      "HVT 벡터(BAC 시스템)에 IBDV VP2 항원과 H9N2 AIV HA 항원을 동시 발현하도록 제작한 재조합 백신(rHVT BAC-VP2-HA) 개발",
+      "SPF 병아리에서 상용 사백신과 유사한 체액성 면역 및 CD3+CD8+ T세포 반응 증가 확인",
+      "공격접종 시 IBDV에 대해 BBIX≥0.7 기준 86.7% 법낭 보호 및 임상적 완전 보호, H9N2에 대해서는 배출 차단·호흡기 바이러스 증식 억제를 포함한 100% 보호"
+     ],
+     "why": [
+      "IBDV 면역억제와 H9N2 저병원성 AI를 벡터백신 1회 접종으로 동시 방어할 가능성을 시사하여 다가백신 전략에 참고 가능",
+      "세포성 면역(CD8+ T세포) 유도가 강화되어 기존 사백신 대비 면역 질 개선 가능성을 보여줌"
+     ],
+     "caution": [
+      "SPF 병아리 실험 결과로 상업 농장의 모체이행항체·혼합감염 등 현장 조건에서의 효능은 초록만으로는 확인할 수 없음",
+      "국내 등록·허가 여부 및 야외 유행주와의 항원 상동성은 초록에 없음"
+     ],
+     "limits": [
+      "SPF 병아리를 이용한 실험적 공격접종 시험으로 현장 자료가 아님",
+      "표본 수, 반복 시험 여부 등 세부 수치가 초록에 제시되지 않음"
+     ],
+     "origTitle": "Co-expression of IBDV VP2 and H9N2 HA by recombinant HVT induces high protection against both pathogens in chickens.",
+     "publisher": "Veterinary microbiology",
+     "date": "2026-10-12",
+     "url": "https://doi.org/10.1016/j.vetmic.2026.111252",
+     "pubmed": "https://pubmed.ncbi.nlm.nih.gov/42879833/"
+    },
+    {
+     "id": "pmid:42870740",
+     "title": "브라질 방사 가금서 IB GI-23 계통 순환 첫 분자역학 확인",
+     "species": "공통",
+     "topic": "변이·역학",
+     "cls": "paper",
+     "evidence": "현장 감시(분자역학) 조사 보고",
+     "new": [
+      "상파울루주 방사 가금(backyard poultry) 893수 대상 RT-qPCR 검사 결과 IBV 전체 양성률 13.8%(42/304 pool, 95%CI 10.1-18.2)",
+      "IBV 양성 샘플 중 23.9%가 GI-23 계통으로 확인되었고 GI-1·GI-11 계통은 검출되지 않음",
+      "전장유전체 분석 결과 브라질 GI-23 분리주가 멕시코 바이러스와 높은 상동성을 보였고 유럽·중동 계통과의 재조합 사건 확인"
+     ],
+     "why": [
+      "상업 농장이 아닌 방사·소규모 사육 환경에서도 GI-23 IB 바이러스가 순환하고 있어 상업 농장 유입 위험 요인으로 바이오시큐리티 점검 필요",
+      "재조합을 통한 신규 유전형 출현 가능성은 기존 IB 백신주와의 항원 불일치 위험을 시사함"
+     ],
+     "caution": [
+      "조사 대상이 닭에 한정되었고 지역이 브라질 상파울루주로 국한되어 국내 유행주와의 직접 비교는 초록만으로는 확인할 수 없음",
+      "GI-23 검출이 실제 임상 증상·생산성에 미친 영향은 초록에 없음"
+     ],
+     "limits": [
+      "단일 국가·단일 주(São Paulo) 대상 조사로 지역적 한계가 있음",
+      "표본이 방사 가금에 한정되어 상업 농장 자료로 일반화하기 어려움"
+     ],
+     "origTitle": "Emergence of the GI-23 lineage of infectious bronchitis virus in Brazilian backyard poultry.",
+     "publisher": "Avian pathology : journal of the W.V.P.A",
+     "date": "2026-10-14",
+     "url": "https://doi.org/10.1080/03079457.2026.2718378",
+     "pubmed": "https://pubmed.ncbi.nlm.nih.gov/42870740/"
+    },
+    {
+     "id": "pmid:42873378",
+     "title": "육계 고밀도 사육 스트레스, 아연·비타민E 보충으로 완화",
+     "species": "육계",
+     "topic": "사양환경·방역",
+     "cls": "paper",
+     "evidence": "사양시험 기반 실험연구",
+     "new": [
+      "Cobb 수평아리 636수를 저(23kg/m²)·중(34kg/m²)·고(39kg/m²) 밀도 등 7개군으로 나누고 중·고밀도군에 아연 또는 비타민E 100mg/kg DM을 보충",
+      "중·고밀도 사육은 사료섭취량·증체량·도체수율·경제성을 유의하게 감소시키고(P<0.05) 간 HSP70 발현 및 스트레스 지표를 증가시켰으며 혈장 IgM·IgG·IgA 및 IFN-γ·IL-1β·IL-4·SOD mRNA 발현을 저하시킴",
+      "아연 또는 비타민E 보충 시 성장·면역·항산화·경제성 지표가 개선되었고, 아연 보충군은 사육밀도를 23→34kg/m²로 올려도 생산성을 유지함"
+     ],
+     "why": [
+      "고밀도 사육에 따른 체액성 면역 저하와 생산성 손실을 영양적 중재(아연·비타민E)로 완화할 수 있어 현장 사양관리에 참고 가능",
+      "아연 보충을 통해 생산성을 유지하면서 사육밀도를 높일 수 있다는 결과는 공간 효율 개선 전략으로 참고할 만함"
+     ],
+     "caution": [
+      "100mg/kg DM 보충 용량은 실험 설계값이며 국내 사료 기준·허용량 대비 적정성은 초록만으로는 확인할 수 없음",
+      "Cobb 품종·해당 실험 환경에 특이적인 결과이므로 타 품종·국내 환경 적용 시 재검증 필요"
+     ],
+     "limits": [
+      "단일 품종(Cobb 수컷) 대상 실험으로 암컷·타 품종 결과는 확인할 수 없음",
+      "단일 시험(사육기간·지역 등) 기반으로 반복성·현장 적용성은 초록만으로는 확인할 수 없음"
+     ],
+     "origTitle": "Mitigating high-density housing stress in broilers: a comparative evaluation of vitamin E vs. Zinc on immunity, molecular markers, carcass yield, and profitability.",
+     "publisher": "Tropical animal health and production",
+     "date": "2026-10-14",
+     "url": "https://doi.org/10.1007/s11250-026-05349-3",
+     "pubmed": "https://pubmed.ncbi.nlm.nih.gov/42873378/"
+    }
+   ],
+   "checkpoints": [
+    "인근 방사·소규모 사육장과의 접촉·반입 경로를 점검해 IB GI-23 계통 유입 가능성을 바이오시큐리티 관점에서 확인한다.",
+    "IBDV·H9N2 동시 방어 재조합백신은 아직 실험 단계이므로 현재 농장에서 사용 중인 백신 제품의 국내 허가 여부를 별도로 확인한다.",
+    "고밀도 사육 시기 급이 프로그램에 아연 또는 비타민E 보충 적용 여부와 급여 용량을 사양관리팀과 검토한다."
+   ]
+  },
   {
    "week": "2026-10-12",
    "items": [
