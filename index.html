@@ -32943,47 +32943,75 @@ function renderWeatherBody(){
   const ly = Array.isArray(weatherState.lastYear) ? weatherState.lastYear : [];
   const loc = weatherState.locationName;
 
-  // 올해/작년 7일 비교 카드 (클릭 시 시간대별 상세)
-  const compCards = fc.map((d,i)=>{
-    const l = ly[i]||null;
-    const isToday = i===0;
-    const isSel = d.date === weatherState.selectedDate;
+  // 올해/작년 비교 카드 (클릭 시 시간대별 상세)
+  // 앞 3일은 크게(큰 글씨·넉넉한 칸), 나머지 4일은 한 줄에 4개씩 작게 보여준다.
+  const dayLabel = (d,i)=> i===0 ? "오늘" : i===1 ? "내일" : i===2 ? "모레" : fmtDay(d.date).split("(")[0];
+  const diffPill = (a,b,big)=>{
+    if(a==null||b==null) return "";
+    const df = Math.round(a)-Math.round(b);
+    const col = df>0 ? "#D32F2F" : df<0 ? "#1565C0" : "#888", bg = df>0 ? "#FFEBEE" : df<0 ? "#E3F2FD" : "#F5F5F5";
+    const t = df>0 ? "▲"+df+"°" : df<0 ? "▼"+Math.abs(df)+"°" : "±0°";
+    return `<span style="display:inline-block;background:${bg};color:${col};font-weight:800;border-radius:7px;padding:${big?"2px 8px":"1px 6px"};font-size:${big?14:11}px">${t}</span>`;
+  };
+  const humStr = (d)=> (d.humDay!=null||d.humNight!=null)
+    ? `🌞${d.humDay!=null?Math.round(d.humDay)+"%":"-"} 🌙${d.humNight!=null?Math.round(d.humNight)+"%":"-"}` : "";
+  const windStr = (d)=> (d.windDay!=null||d.windNight!=null)
+    ? `<span style="color:${d.windDay!=null?windLevel(d.windDay).color:"#aaa"}">🌞${d.windDay!=null?d.windDay.toFixed(1):"-"}</span> <span style="color:${d.windNight!=null?windLevel(d.windNight).color:"#aaa"}">🌙${d.windNight!=null?d.windNight.toFixed(1):"-"}</span>m/s` : "";
+  const cardBorder = (d,i)=> d.date === weatherState.selectedDate ? "#F9A825" : i===0 ? "#1a2744" : "#e6e6e6";
+  const bigCard = (d,i)=>{
+    const l = ly[i]||null, isToday = i===0;
     return `
-    <div class="wx-day-card" data-date="${d.date}"
-      style="border-radius:14px;overflow:hidden;border:2px solid ${isSel?"#F9A825":isToday?"#1a2744":"#efefef"};cursor:pointer">
-      <!-- 날짜 헤더 -->
-      <div style="background:${isToday?"#1a2744":"#f5f5f5"};padding:8px;text-align:center">
-        <div style="font-size:11px;font-weight:700;color:${isToday?"#F9C74F":"#555"}">${isToday?"오늘":fmtDay(d.date)}</div>
-        ${isSel?`<div style="font-size:9px;color:${isToday?"#F9C74F":"#F9A825"};margin-top:1px">▼ 시간대</div>`:""}
+    <div class="wx-day-card" data-date="${d.date}" style="border-radius:16px;overflow:hidden;border:2px solid ${cardBorder(d,i)};cursor:pointer;background:#fff">
+      <div style="background:${isToday?"#1a2744":"#eef1f6"};padding:9px 6px;text-align:center">
+        <div style="font-size:17px;font-weight:800;color:${isToday?"#F9C74F":"#1a2744"}">${dayLabel(d,i)} <span style="font-size:12px;font-weight:600;opacity:.8">${fmtDay(d.date)}</span></div>
+        ${d.date===weatherState.selectedDate?`<div style="font-size:10px;color:${isToday?"#F9C74F":"#F9A825"}">▼ 시간대 보기</div>`:""}
       </div>
-      <!-- 올해 -->
-      <div style="background:${isToday?"#f0f4ff":"#fff"};padding:12px 8px;text-align:center;border-bottom:1px dashed #efefef">
-        <div style="font-size:9px;color:#888;margin-bottom:4px;font-weight:600">올해</div>
-        <div style="font-size:24px">${icon(d.code)}</div>
-        <div style="font-size:9px;color:#aaa;margin:2px 0">${desc(d.code)}</div>
-        <div style="font-size:13px;font-weight:700;color:#D32F2F">${tStr(d.tMax)}</div>
-        <div style="font-size:11px;color:#1565C0">${tStr(d.tMin)}</div>
-        ${(d.humDay!=null||d.humNight!=null)?`<div style="font-size:9px;color:#0288D1;margin-top:2px">💦 🌞${d.humDay!=null?Math.round(d.humDay)+"%":"-"} 🌙${d.humNight!=null?Math.round(d.humNight)+"%":"-"}</div>`:""}
-        ${d.rain>0?`<div style="font-size:9px;color:#1565C0;margin-top:2px">💧${d.rain.toFixed(1)}mm</div>`:""}
-        ${(d.windDay!=null||d.windNight!=null)?`<div style="font-size:9px;margin-top:2px"><span style="color:${d.windDay!=null?windLevel(d.windDay).color:"#aaa"}">🌞${d.windDay!=null?d.windDay.toFixed(1):"-"}</span> <span style="color:${d.windNight!=null?windLevel(d.windNight).color:"#aaa"}">🌙${d.windNight!=null?d.windNight.toFixed(1):"-"}</span>m/s</div>`:""}
-      </div>
-      <!-- 작년 -->
-      <div style="background:#fafafa;padding:12px 8px;text-align:center">
-        <div style="font-size:9px;color:#888;margin-bottom:4px;font-weight:600">작년</div>
-        ${l ? `
-        <div style="font-size:24px">${icon(l.code)}</div>
-        <div style="font-size:9px;color:#aaa;margin:2px 0">${desc(l.code)}</div>
-        <div style="font-size:13px;font-weight:700;color:#D32F2F">${tStr(l.tMax)}</div>
-        <div style="font-size:11px;color:#1565C0">${tStr(l.tMin)}</div>
-        ${l.hum!=null?`<div style="font-size:9px;color:#0288D1;margin-top:2px">💦 습도 ${Math.round(l.hum)}%</div>`:""}
-        ${l.rain>0?`<div style="font-size:9px;color:#1565C0;margin-top:2px">💧${l.rain.toFixed(1)}mm</div>`:""}
-        <div style="margin-top:6px;padding-top:6px;border-top:1px solid #eee;font-size:10px">
-          최고 ${diffStr(d.tMax,l.tMax)} / 최저 ${diffStr(d.tMin,l.tMin)}
+      <div style="display:grid;grid-template-columns:1.25fr 1fr;border-bottom:1px dashed #e3e3e3">
+        <div style="background:${isToday?"#f0f4ff":"#fff"};padding:12px 6px;text-align:center">
+          <div style="font-size:12px;color:#777;font-weight:700">올해</div>
+          <div style="font-size:44px;line-height:1.15">${icon(d.code)}</div>
+          <div style="font-size:13px;color:#666;margin-bottom:3px">${desc(d.code)}</div>
+          <div style="font-size:32px;font-weight:800;color:#D32F2F;line-height:1.1">${tStr(d.tMax)}</div>
+          <div style="font-size:22px;font-weight:700;color:#1565C0">${tStr(d.tMin)}</div>
+          ${humStr(d)?`<div style="font-size:13px;color:#0288D1;font-weight:600;margin-top:5px">💦 ${humStr(d)}</div>`:""}
+          ${windStr(d)?`<div style="font-size:13px;font-weight:600;margin-top:2px">💨 ${windStr(d)}</div>`:""}
+          ${d.rain>0?`<div style="font-size:15px;color:#1565C0;font-weight:800;margin-top:3px">💧 ${d.rain.toFixed(1)}mm</div>`:""}
         </div>
-        ` : `<div style="font-size:20px;color:#ddd">-</div><div style="font-size:9px;color:#ccc">데이터 없음</div>`}
+        <div style="background:#fafafa;padding:12px 6px;text-align:center;border-left:1px dashed #e3e3e3">
+          <div style="font-size:12px;color:#888;font-weight:700">작년</div>
+          ${l ? `
+          <div style="font-size:32px;line-height:1.2">${icon(l.code)}</div>
+          <div style="font-size:12px;color:#888;margin-bottom:3px">${desc(l.code)}</div>
+          <div style="font-size:22px;font-weight:800;color:#D32F2F;line-height:1.1">${tStr(l.tMax)}</div>
+          <div style="font-size:17px;font-weight:700;color:#1565C0">${tStr(l.tMin)}</div>
+          ${l.hum!=null?`<div style="font-size:12px;color:#0288D1;margin-top:5px">💦 ${Math.round(l.hum)}%</div>`:""}
+          ${l.rain>0?`<div style="font-size:13px;color:#1565C0;font-weight:700;margin-top:2px">💧 ${l.rain.toFixed(1)}mm</div>`:""}
+          ` : `<div style="font-size:22px;color:#ddd;margin-top:14px">-</div><div style="font-size:11px;color:#ccc">데이터 없음</div>`}
+        </div>
+      </div>
+      ${l ? `<div style="padding:8px 6px;text-align:center;font-size:13px;color:#555;background:#fff">작년보다 최고 ${diffPill(d.tMax,l.tMax,true)} &nbsp; 최저 ${diffPill(d.tMin,l.tMin,true)}</div>` : ""}
+    </div>`;
+  };
+  const smallCard = (d,i)=>{
+    const l = ly[i]||null;
+    return `
+    <div class="wx-day-card" data-date="${d.date}" style="border-radius:13px;overflow:hidden;border:2px solid ${cardBorder(d,i)};cursor:pointer;background:#fff">
+      <div style="background:#f5f5f5;padding:6px 4px;text-align:center;font-size:12px;font-weight:800;color:#444">${fmtDay(d.date)}</div>
+      <div style="padding:8px 4px;text-align:center">
+        <div style="font-size:28px;line-height:1.1">${icon(d.code)}</div>
+        <div style="font-size:11px;color:#888">${desc(d.code)}</div>
+        <div style="font-size:17px;font-weight:800;color:#D32F2F;line-height:1.15">${tStr(d.tMax)}</div>
+        <div style="font-size:14px;font-weight:700;color:#1565C0">${tStr(d.tMin)}</div>
+        ${d.humDay!=null?`<div style="font-size:11px;color:#0288D1;margin-top:2px">💦${Math.round(d.humDay)}%</div>`:""}
+        ${d.rain>0?`<div style="font-size:12px;color:#1565C0;font-weight:700">💧${d.rain.toFixed(1)}mm</div>`:""}
+      </div>
+      <div style="background:#fafafa;padding:6px 3px;text-align:center;border-top:1px dashed #e6e6e6;font-size:11px;color:#777;line-height:1.7">
+        ${l ? `작년 ${icon(l.code)} ${tStr(l.tMax)}/${tStr(l.tMin)}<br>${diffPill(d.tMax,l.tMax,false)} ${diffPill(d.tMin,l.tMin,false)}` : `<span style="color:#ccc">작년 -</span>`}
       </div>
     </div>`;
-  }).join("");
+  };
+  const bigCards = fc.slice(0,3).map((d,i)=>bigCard(d,i)).join("");
+  const smallCards = fc.slice(3).map((d,i)=>smallCard(d,i+3)).join("");
 
   // ── 시간대별 상세 패널 ──────────────────────────────────────────────────
   const selDate  = weatherState.selectedDate;
@@ -33075,11 +33103,15 @@ function renderWeatherBody(){
     ${anomTodayLine(fc[0])}
   </div>` : ""}
 
-  <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:12px">
-    ${compCards}
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(285px,1fr));gap:10px;margin-bottom:10px">
+    ${bigCards}
   </div>
+  ${smallCards ? `<div style="font-size:12px;font-weight:800;color:#777;margin:4px 0 6px">📅 그 뒤 ${fc.length - 3}일</div>
+  <div style="display:grid;grid-template-columns:repeat(${Math.min(4, Math.max(1, fc.length - 3))},1fr);gap:8px;margin-bottom:12px">
+    ${smallCards}
+  </div>` : ""}
   <div style="font-size:10px;color:#aaa;text-align:right">
-    기온 차이: <span style="color:#D32F2F">▲ 올해가 높음</span> · <span style="color:#1565C0">▼ 올해가 낮음</span> ·
+    작년과 기온 차이: <span style="color:#D32F2F">▲ 올해가 높음</span> · <span style="color:#1565C0">▼ 올해가 낮음</span> ·
     풍속: <span style="color:#2E7D32">약(4미만)</span> · <span style="color:#F57F17">보통</span> ·
     <span style="color:#E65100">강함(8↑)</span> · <span style="color:#B71C1C">매우강함(14↑)</span> · 단위 m/s ·
     날짜 카드를 누르면 시간대별 날씨
