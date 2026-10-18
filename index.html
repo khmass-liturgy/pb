@@ -32856,12 +32856,15 @@ function renderAnomalyPanel(){
   if(frz.length) msgs.push(`❄️ 한파(최저 -12°↓) 가능성 30%↑: ${frz.map(d=>fmt(d.date)).join(", ")}`);
   if(heavy.length) msgs.push(`🌧️ 호우(일 30mm↑) 가능성 30%↑: ${heavy.map(d=>fmt(d.date)).join(", ")}`);
   const calm = !msgs.length;
-  const sum = `<div class="anom-info-open" role="button" tabindex="0" title="눌러서 예측 기준 보기" style="cursor:pointer;background:${calm?"#E8F5E9":"#F3E5F5"};border-radius:12px;padding:12px 14px;margin:14px 0 12px">
-    <div style="font-size:13.5px;font-weight:800;color:${calm?"#2E7D32":"#6A1B9A"}">${calm ? "✅ 앞으로 2주 뚜렷한 이상기온 신호는 없습니다" : "⚠️ 앞으로 2주 이상기온 신호가 있습니다"}</div>
-    ${msgs.map(m=>`<div style="font-size:12px;color:#444;margin-top:5px;line-height:1.5">${m}</div>`).join("")}
-    ${bestHot && bestHot.pHot>=0.3 ? `<div style="font-size:11px;color:#777;margin-top:7px">🐔 고온 대비: 환기·냉방 점검, 음수·전해질 준비, 입추·출하 시간 조정 검토</div>` : ""}
-    ${bestCold && bestCold.pCold>=0.3 ? `<div style="font-size:11px;color:#777;margin-top:4px">🐔 저온 대비: 보온·난방 점검, 틈새풍 차단, 급수 동결 방지</div>` : ""}
-    <div style="font-size:10px;color:#6A1B9A;margin-top:8px;font-weight:700">ⓘ 눌러서 예측 기준 보기</div>
+  const sum = `<div class="anom-info-open" role="button" tabindex="0" title="눌러서 예측 기준 보기" style="cursor:pointer;background:${calm?"#E8F5E9":"#F3E5F5"};border:2px solid ${calm?"#A5D6A7":"#CE93D8"};border-radius:16px;padding:16px 16px;margin:14px 0 14px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <span style="font-size:40px;line-height:1">${calm ? "✅" : "⚠️"}</span>
+      <div style="font-size:19px;font-weight:900;line-height:1.4;color:${calm?"#2E7D32":"#6A1B9A"}">${calm ? "앞으로 2주 뚜렷한 이상기온 신호는 없습니다" : "앞으로 2주 이상기온 신호가 있습니다"}</div>
+    </div>
+    ${msgs.length ? `<div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">${msgs.map(m=>`<div style="background:#fff;border-radius:11px;padding:10px 12px;font-size:16px;color:#333;line-height:1.6">${m}</div>`).join("")}</div>` : ""}
+    ${bestHot && bestHot.pHot>=0.3 ? `<div style="font-size:15px;color:#555;margin-top:12px;line-height:1.6;background:#FFF3E0;border-radius:11px;padding:9px 12px">🐔 <b>고온 대비</b> · 환기·냉방 점검, 음수·전해질 준비, 입추·출하 시간 조정 검토</div>` : ""}
+    ${bestCold && bestCold.pCold>=0.3 ? `<div style="font-size:15px;color:#555;margin-top:8px;line-height:1.6;background:#E3F2FD;border-radius:11px;padding:9px 12px">🐔 <b>저온 대비</b> · 보온·난방 점검, 틈새풍 차단, 급수 동결 방지</div>` : ""}
+    <div style="font-size:13px;color:#6A1B9A;margin-top:10px;font-weight:700">ⓘ 눌러서 예측 기준 보기</div>
   </div>`;
 
   const rows = near.map(d=>{
@@ -32882,23 +32885,23 @@ function renderAnomalyPanel(){
   const weeks = D.weeks.map((w,i)=>{
     const dv = w.mean - w.clim, hi = Math.max(w.pHot, w.pCold) >= 0.3;
     const tag = w.pHot>=0.3 && w.pHot>=w.pCold ? `<span style="color:#D84315;font-weight:800">따뜻함 경향 ${pc(w.pHot)}%</span>` : w.pCold>=0.3 ? `<span style="color:#1565C0;font-weight:800">추움 경향 ${pc(w.pCold)}%</span>` : `<span style="color:#888">평년 범위</span>`;
-    return `<div class="anom-info-open" role="button" tabindex="0" style="cursor:pointer;flex:1;min-width:120px;border:1px solid ${hi?"#CE93D8":"#eee"};border-radius:10px;padding:8px 10px;background:${hi?"#FAF3FC":"#fff"}">
-      <div style="font-size:10.5px;color:#888">${i+1}주차 ${fmt(w.from)}~${fmt(w.to)}</div>
-      <div style="font-size:15px;font-weight:800;margin-top:2px">${w.mean.toFixed(1)}° <span style="font-size:11px;font-weight:700;color:${dv>=0?"#D32F2F":"#1565C0"}">${dv>=0?"+":""}${dv.toFixed(1)}</span></div>
-      <div style="font-size:10.5px;color:#999">평년 ${w.clim.toFixed(1)}°</div>
-      <div style="font-size:11px;margin-top:3px">${tag}</div>
+    return `<div class="anom-info-open" role="button" tabindex="0" style="cursor:pointer;flex:1;min-width:150px;border:2px solid ${hi?"#CE93D8":"#eee"};border-radius:13px;padding:11px 12px;background:${hi?"#FAF3FC":"#fff"}">
+      <div style="font-size:13px;color:#777;font-weight:700">${i+1}주차 ${fmt(w.from)}~${fmt(w.to)}</div>
+      <div style="font-size:24px;font-weight:900;margin-top:3px">${w.mean.toFixed(1)}° <span style="font-size:16px;font-weight:800;color:${dv>=0?"#D32F2F":"#1565C0"}">${dv>=0?"+":""}${dv.toFixed(1)}</span></div>
+      <div style="font-size:13px;color:#999">평년 ${w.clim.toFixed(1)}°</div>
+      <div style="font-size:14px;margin-top:4px">${tag}</div>
     </div>`;
   }).join("");
 
   return wrap(`
     ${sum}
-    <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:4px">📅 일별 (앞 ${near.length}일)</div>
+    <div style="font-size:15px;font-weight:800;color:#333;margin-bottom:6px">📅 일별 (앞 ${near.length}일)</div>
     <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;min-width:520px">
       <thead><tr style="color:#999;font-size:10.5px;text-align:left;border-bottom:1px solid #eee">
         <th style="padding:4px 6px;font-weight:600">날짜</th><th style="padding:4px;font-weight:600">예측 평균(범위)</th><th style="padding:4px;font-weight:600">평년·편차</th>
         <th style="padding:4px;font-weight:600">이상고온↑</th><th style="padding:4px;font-weight:600">이상저온↓</th><th style="padding:4px;font-weight:600">강수·경보</th></tr></thead>
       <tbody>${rows}</tbody></table></div>
-    <div style="font-size:12px;font-weight:700;color:#333;margin:14px 0 6px">🗓️ 주간 평균기온 경향 (최대 5주)</div>
+    <div style="font-size:15px;font-weight:800;color:#333;margin:16px 0 8px">🗓️ 주간 평균기온 경향 (최대 5주)</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">${weeks || `<div style="font-size:12px;color:#999">주간 자료가 없습니다</div>`}</div>
     <div style="font-size:10px;color:#aaa;line-height:1.7;margin-top:12px;border-top:1px dashed #eee;padding-top:8px">
       <a class="anom-info-open" role="button" tabindex="0" style="color:#6A1B9A;font-weight:700;cursor:pointer">ⓘ 예측 기준 자세히 보기</a><br>※ 이상고온/저온 확률 = 앙상블 ${D.members}개 시나리오 중 일평균(주간은 주평균) 기온이 평년보다 1.28σ 이상 높거나 낮은 시나리오의 비율입니다. 평소(정상)에도 약 10%는 나오는 값이라 <b>30% 이상이면 주의</b>로 봅니다.
