@@ -29886,27 +29886,9 @@ function renderLivestockWeatherPanel(fc, hourlyByDate){
   hourlyByDate = hourlyByDate || {};
 
   // ── 지표 계산 함수들 ──────────────────────────────────────────────────────
-  // THI (온습도지수): USDA 공식 (소·돼지·가금 공통 기준)
-  // THI = T - (0.55 - 0.55×RH/100) × (T - 58)  [T: °F]
-  const calcTHI = (tempC, rh) => {
-    if(tempC==null || rh==null) return null;
-    const T = tempC * 9/5 + 32; // °C → °F
-    return Math.round(T - (0.55 - 0.55*(rh/100)) * (T - 58));
-  };
-
-  // THI 단계 (가금·돼지·소 통합 기준)
-  const thiLevel = (thi) => {
-    if(thi == null) return null;
-    if(thi < 68) return {label:"정상", color:"#2E7D32", bg:"#E8F5E9", icon:"✅"};
-    if(thi < 72) return {label:"경미", color:"#F57F17", bg:"#FFFDE7", icon:"⚠️"};
-    if(thi < 80) return {label:"중등도", color:"#E65100", bg:"#FFF3E0", icon:"🔶"};
-    if(thi < 90) return {label:"심각", color:"#B71C1C", bg:"#FFEBEE", icon:"🔴"};
-    return {label:"위험", color:"#880000", bg:"#FCE4EC", icon:"🚨"};
-  };
-
   // ── 겨울철 한랭 스트레스: 체감온도(윈드칠) ────────────────────────────────
-  // THI는 더위 전용 지표라 겨울에는 항상 "정상"으로만 나온다(가금·돼지·소
-  // 모두 THI<68이면 정상 판정이라, 영하 10도여도 계산상 문제없다고 뜬다).
+  // 온습도지수(THI)는 더위 전용 지표라 겨울에는 항상 "정상"으로만 나온다(영하 10도여도
+  // 계산상 문제없다고 뜬다) — 그래서 이 패널의 THI 카드는 추위 지수로 바꿨다.
   // 국립축산과학원 가축사육기상정보시스템(축사로)도 확인해 보니 폭염 지수만
   // 제공하고 겨울철 지수는 없다. 그래서 국제 표준인 윈드칠(체감온도) 공식을
   // 쓴다 — 미국 NWS·캐나다 기상청이 2001년 공동 제정한 공식으로, 기온
@@ -29948,26 +29930,11 @@ function renderLivestockWeatherPanel(fc, hourlyByDate){
   const today = fc[0];
   const todayDate = today?.date;
 
-  // 오늘 시간대별 데이터에서 THI 계산 (정오~15시 최악 조건 기준)
   const todayHourly = (hourlyByDate[todayDate] || []);
-  const peakHours = todayHourly.filter(h => h.hour >= 11 && h.hour <= 15);
-  let peakTHI = null, peakTemp = null, peakHumidity = null;
-  if(peakHours.length > 0){
-    // 가장 더운 시간대
-    const worst = peakHours.reduce((a,b)=>
-      (calcTHI(b.temp,b.humidity)||0) > (calcTHI(a.temp,a.humidity)||0) ? b : a
-    );
-    peakTemp     = worst.temp;
-    peakHumidity = worst.humidity;
-    peakTHI      = calcTHI(peakTemp, peakHumidity);
-  } else if(today) {
-    // 시간대별 없으면 최고기온 + 평균습도 추정
-    peakTemp = today.tMax;
-    peakHumidity = today.hum || 70;
-    peakTHI = calcTHI(peakTemp, peakHumidity);
-  }
+  // 오후 습도(Hy-Line 습도 보정에 쓴다) — 정오~15시 중 가장 높은 값, 없으면 일 평균
+  const peakHours = todayHourly.filter(h => h.hour >= 11 && h.hour <= 15 && h.humidity != null);
+  const peakHumidity = peakHours.length ? Math.max(...peakHours.map(h => h.humidity)) : (today ? (today.hum || 70) : null);
 
-  const thiLv = thiLevel(peakTHI);
   const dt = (today?.tMax != null && today?.tMin != null)
     ? Math.round(today.tMax - today.tMin) : null;
   const dtLv = dtLevel(dt);
@@ -29976,25 +29943,6 @@ function renderLivestockWeatherPanel(fc, hourlyByDate){
   const todayHum = today?.hum != null ? today.hum : peakHumidity;
   const humAdj = (todayHum != null && todayHum > 60)
     ? Math.floor((todayHum - 60) / 5) : 0;
-
-  // 7일 THI 추이 (일별 최고기온 + 평균습도)
-  const weekTHI = fc.map(d => ({
-    date: d.date,
-    thi:  calcTHI(d.tMax, d.hum || 70),
-    rain: d.rain,
-    tMax: d.tMax, tMin: d.tMin,
-    dt:   (d.tMax!=null && d.tMin!=null) ? Math.round(d.tMax-d.tMin) : null,
-  }));
-
-  // 오늘 야간 최저(새벽 3~5시) THI - 고온다습 야간 위험 체크
-  const nightHours = todayHourly.filter(h => h.hour >= 3 && h.hour <= 5);
-  let nightTHI = null;
-  if(nightHours.length > 0){
-    const worst = nightHours.reduce((a,b)=>
-      (calcTHI(b.temp,b.humidity)||0) > (calcTHI(a.temp,a.humidity)||0) ? b : a
-    );
-    nightTHI = calcTHI(worst.temp, worst.humidity);
-  }
 
   // 겨울철 한랭 스트레스 — 심야~새벽(22~06시)이 가장 춥고 바람도 잘 안 죽어
   // 체감온도가 가장 낮은 시간대라, 그 구간에서 최악값을 찾는다. 시간대별
@@ -30039,28 +29987,27 @@ function renderLivestockWeatherPanel(fc, hourlyByDate){
     return `${d.getMonth()+1}/${d.getDate()}(${dn[d.getDay()]})`;
   };
 
-  // THI 게이지 바
-  const thiGauge = (thi) => {
-    if(thi==null) return "";
-    const pct = Math.min(100, Math.max(0, ((thi-55)/45)*100));
-    const lv = thiLevel(thi);
-    return `<div style="background:#eee;border-radius:4px;height:6px;margin-top:4px">
-      <div style="background:${lv.color};width:${pct}%;height:6px;border-radius:4px;transition:width 0.5s"></div>
-    </div>`;
+  // ── 추위 지수(온습도지수 THI 대신) ────────────────────────────────────────
+  // 기온 10°C 이하: 체감온도(윈드칠), 10~20°C: 쌀쌀·선선 구간, 20°C 이상: 안전. 하루 단위는 그날 최저기온과 최대풍속으로 본다.
+  const coldFor = (tMin, wind) => {
+    if(tMin == null) return null;
+    if(tMin <= 10){ const v = calcWindChill(tMin, wind); return v == null ? null : { v, lv: windChillLevel(v), wc: true }; }
+    if(tMin < 15) return { v: Math.round(tMin), lv: {label:"쌀쌀", color:"#E65100", bg:"#FFF3E0", icon:"🧥", note:"병아리·육추계 보온 확인, 틈새바람 차단"}, wc: false };
+    if(tMin < 20) return { v: Math.round(tMin), lv: {label:"선선", color:"#0277BD", bg:"#E1F5FE", icon:"🍂", note:"새벽 일교차에 유의 — 새벽 보온과 최소환기량을 함께 확인"}, wc: false };
+    return { v: Math.round(tMin), lv: {label:"안전", color:"#2E7D32", bg:"#E8F5E9", icon:"✅", note:"추위 걱정 없는 기온"}, wc: false };
   };
-
-  // 7일 THI 바 차트
-  const thiBars = weekTHI.map(d => {
-    const lv = thiLevel(d.thi);
-    const pct = d.thi ? Math.min(100, Math.max(0, ((d.thi-55)/45)*100)) : 0;
-    const isToday = d.date === todayDate;
+  const todayCold = coldFor(coldTemp, coldWind);
+  const weekCold = fc.map(d => ({ date: d.date, tMin: d.tMin, rain: d.rain, c: coldFor(d.tMin, d.wind) }));
+  const coldestDay = weekCold.filter(d => d.tMin != null).reduce((m, d) => (m == null || d.tMin < m.tMin) ? d : m, null);
+  // 7일 추위 막대: 추울수록 막대가 길다(20°C 이상=0, -20°C 이하=100%)
+  const coldBars = weekCold.map(d => {
+    const isToday = d.date === todayDate, c = d.c;
+    const pct = c ? Math.min(100, Math.max(0, ((20 - c.v) / 40) * 100)) : 0;
     return `<div style="flex:1;text-align:center">
-      <div style="font-size:10px;color:${isToday?"#1a2744":"#888"};font-weight:${isToday?"700":"400"};margin-bottom:2px">
-        ${fmtDay2(d.date)}
-      </div>
+      <div style="font-size:10px;color:${isToday?"#1a2744":"#888"};font-weight:${isToday?"700":"400"};margin-bottom:2px">${fmtDay2(d.date)}</div>
       <div style="height:48px;display:flex;align-items:flex-end;justify-content:center">
-        <div style="background:${lv?lv.color:"#ccc"};width:22px;height:${pct}%;border-radius:3px 3px 0 0;min-height:3px;position:relative">
-          ${d.thi ? `<div style="position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:700;color:${lv.color};white-space:nowrap">${d.thi}</div>` : ""}
+        <div style="background:${c?c.lv.color:"#ccc"};width:22px;height:${pct}%;border-radius:3px 3px 0 0;min-height:3px;position:relative">
+          ${c ? `<div style="position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:700;color:${c.lv.color};white-space:nowrap">${c.v}°</div>` : ""}
         </div>
       </div>
       ${d.rain >= 5 ? `<div style="font-size:10px;color:#1565C0">💧</div>` : `<div style="font-size:10px;color:transparent">·</div>`}
@@ -30069,21 +30016,27 @@ function renderLivestockWeatherPanel(fc, hourlyByDate){
 
   return `
   <div class="card" style="margin-top:16px;margin-bottom:16px">
-    <div class="display" style="font-size:16px;margin-bottom:14px">🌡️ 축산 날씨 스트레스 지표</div>
+    <div class="display" style="font-size:16px;margin-bottom:14px">🥶 축산 추위 지표</div>
 
-    <!-- 핵심 지표 (평소 3종 + 새벽 기온 10~20°C면 쌀쌀 주의, 10°C 이하면 겨울철 한랭 스트레스(윈드칠) 1종 추가) -->
+    <!-- 핵심 지표 — 추위 지수(오늘 새벽 체감·일교차·이번 주 가장 추운 날) -->
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px">
 
-      <!-- THI 오늘 -->
-      <div id="card-thi" role="button" tabindex="0" title="눌러서 THI 기준표 보기" style="background:${thiLv ? thiLv.bg : "#f5f5f5"};border-radius:12px;padding:12px;text-align:center;position:relative;cursor:pointer">
-        <button id="btn-thi-info" title="THI 기준표 보기"
+      <!-- 오늘 새벽 추위 -->
+      ${todayCold ? `
+      <div id="card-cold" role="button" tabindex="0" title="눌러서 체감온도 기준 보기" style="background:${todayCold.lv.bg};border-radius:12px;padding:12px;text-align:center;position:relative;cursor:pointer">
+        <button id="btn-cold-info" title="체감온도 기준 보기"
           style="position:absolute;top:6px;right:6px;border:none;background:rgba(255,255,255,0.7);border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;color:#555;padding:0;line-height:1">ⓘ</button>
-        <div style="font-size:11px;color:#888;font-weight:600;margin-bottom:4px">온습도지수 (THI)</div>
-        <div style="font-size:29px;font-weight:800;color:${thiLv ? thiLv.color : "#333"}">${peakTHI ?? "-"}</div>
-        <div style="font-size:12px;font-weight:700;color:${thiLv ? thiLv.color : "#aaa"}">${thiLv ? thiLv.icon+" "+thiLv.label : "-"}</div>
-        ${thiGauge(peakTHI)}
-        <div style="font-size:10px;color:#aaa;margin-top:4px">오후 최고 기준 · 눌러서 기준표 보기</div>
-      </div>
+        <div style="font-size:11px;color:#888;font-weight:600;margin-bottom:4px">${todayCold.wc ? "오늘 새벽 체감온도" : "오늘 새벽 최저기온"}</div>
+        <div style="font-size:29px;font-weight:800;color:${todayCold.lv.color}">${todayCold.v}°</div>
+        <div style="font-size:12px;font-weight:700;color:${todayCold.lv.color}">${todayCold.lv.icon} ${todayCold.lv.label}</div>
+        <div style="font-size:10px;color:#aaa;margin-top:4px">${todayCold.wc ? `실제 ${Math.round(coldTemp)}° · 풍속 ${coldWind!=null?coldWind.toFixed(1)+"m/s":"-"} 반영` : "10° 이하가 되면 체감온도(윈드칠)로 표시"}</div>
+        <div style="font-size:10px;color:#666;margin-top:6px;line-height:1.5">${todayCold.lv.note}</div>
+        <div style="font-size:10px;color:#aaa;margin-top:4px">눌러서 기준 보기</div>
+      </div>` : `
+      <div style="background:#f5f5f5;border-radius:12px;padding:12px;text-align:center">
+        <div style="font-size:11px;color:#888;font-weight:600;margin-bottom:4px">오늘 새벽 추위</div>
+        <div style="font-size:29px;font-weight:800;color:#333">-</div>
+      </div>`}
 
       <!-- 일교차 -->
       <div style="background:${dtLv ? (dt>=12?"#FFEBEE":dt>=8?"#FFFDE7":"#E8F5E9") : "#f5f5f5"};border-radius:12px;padding:12px;text-align:center">
@@ -30093,50 +30046,28 @@ function renderLivestockWeatherPanel(fc, hourlyByDate){
         <div style="font-size:10px;color:#aaa;margin-top:8px">호흡기·면역 저하 위험<br>10°↑주의 / 12°↑경보</div>
       </div>
 
-      <!-- 야간 THI -->
-      <div style="background:${nightTHI!=null&&nightTHI>=72?"#FFEBEE":nightTHI!=null&&nightTHI>=68?"#FFF3E0":"#f5f5f5"};border-radius:12px;padding:12px;text-align:center">
-        <div style="font-size:11px;color:#888;font-weight:600;margin-bottom:4px">야간 THI (새벽3~5시)</div>
-        <div style="font-size:29px;font-weight:800;color:${nightTHI!=null&&nightTHI>=72?"#B71C1C":nightTHI!=null&&nightTHI>=68?"#E65100":"#2E7D32"}">${nightTHI ?? "-"}</div>
-        <div style="font-size:12px;font-weight:700;color:${nightTHI!=null&&nightTHI>=68?"#B71C1C":"#2E7D32"}">
-          ${nightTHI!=null?(nightTHI>=72?"🔴 야간 고온주의":nightTHI>=68?"⚠️ 주의":"✅ 안전"):"-"}
-        </div>
-        <div style="font-size:10px;color:#aaa;margin-top:8px">야간 폐사 위험 구간<br>(가금 새벽 2~5시 취약)</div>
-      </div>
-
-      ${showChillCard ? `
-      <!-- 쌀쌀 주의 (새벽 기온 10~20°C) — 윈드칠 적용 구간(10°C↓) 바로 위 -->
-      <div style="background:${chillLv.bg};border-radius:12px;padding:12px;text-align:center">
-        <div style="font-size:11px;color:#888;font-weight:600;margin-bottom:4px">쌀쌀 주의 (새벽 최저)</div>
-        <div style="font-size:29px;font-weight:800;color:${chillLv.color}">${Math.round(chillTemp)}°</div>
-        <div style="font-size:12px;font-weight:700;color:${chillLv.color}">${chillLv.icon} ${chillLv.label}</div>
-        <div style="font-size:10px;color:#aaa;margin-top:4px">10~15° 쌀쌀 / 15~20° 선선${chillWind!=null?" · 풍속 "+chillWind.toFixed(1)+"m/s":""}</div>
-        <div style="font-size:10px;color:#666;margin-top:6px;line-height:1.5">${chillLv.note}</div>
-      </div>` : ""}
-
-      ${showColdCard ? `
-      <!-- 겨울철 한랭 스트레스 (체감온도/윈드칠) -->
-      <div id="card-cold" role="button" tabindex="0" title="눌러서 체감온도 기준 보기" style="background:${coldLv.bg};border-radius:12px;padding:12px;text-align:center;position:relative;cursor:pointer">
-        <button id="btn-cold-info" title="체감온도 기준 보기"
-          style="position:absolute;top:6px;right:6px;border:none;background:rgba(255,255,255,0.7);border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;color:#555;padding:0;line-height:1">ⓘ</button>
-        <div style="font-size:11px;color:#888;font-weight:600;margin-bottom:4px">겨울철 체감온도(윈드칠)</div>
-        <div style="font-size:29px;font-weight:800;color:${coldLv.color}">${coldWCT}°</div>
-        <div style="font-size:12px;font-weight:700;color:${coldLv.color}">${coldLv.icon} ${coldLv.label}</div>
-        <div style="font-size:10px;color:#aaa;margin-top:4px">실제 ${Math.round(coldTemp)}° · 풍속 ${coldWind!=null?coldWind.toFixed(1)+"m/s":"-"} 반영</div>
-        <div style="font-size:10px;color:#666;margin-top:6px;line-height:1.5">${coldLv.note}</div>
-        <div style="font-size:10px;color:#aaa;margin-top:4px">눌러서 기준 보기</div>
+      <!-- 이번 주 가장 추운 날 -->
+      ${coldestDay && coldestDay.c ? `
+      <div style="background:${coldestDay.c.lv.bg};border-radius:12px;padding:12px;text-align:center">
+        <div style="font-size:11px;color:#888;font-weight:600;margin-bottom:4px">이번 주 가장 추운 날</div>
+        <div style="font-size:29px;font-weight:800;color:${coldestDay.c.lv.color}">${coldestDay.c.v}°</div>
+        <div style="font-size:12px;font-weight:700;color:${coldestDay.c.lv.color}">${coldestDay.c.lv.icon} ${coldestDay.c.lv.label}</div>
+        <div style="font-size:10px;color:#aaa;margin-top:8px">${fmtDay2(coldestDay.date)} · 최저 ${Math.round(coldestDay.tMin)}°${coldestDay.c.wc ? "<br>(체감온도)" : ""}</div>
       </div>` : ""}
     </div>
 
-    <!-- 7일 THI 추이 -->
+    <!-- 7일 추위 추이 -->
     <div style="margin-bottom:14px">
-      <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:6px">📊 7일 THI 추이 (일 최고 기준) · 💧=강수 5mm↑</div>
-      <div style="display:flex;gap:4px;align-items:flex-end">${thiBars}</div>
+      <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:6px">📊 7일 추위 추이 (그날 최저기온 · 10° 이하는 체감온도) · 💧=강수 5mm↑</div>
+      <div style="display:flex;gap:4px;align-items:flex-end">${coldBars}</div>
       <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap">
-        <span style="font-size:10px;color:#2E7D32">■ <68 정상</span>
-        <span style="font-size:10px;color:#F57F17">■ 68~72 경미</span>
-        <span style="font-size:10px;color:#E65100">■ 72~80 중등도</span>
-        <span style="font-size:10px;color:#B71C1C">■ 80~90 심각</span>
-        <span style="font-size:10px;color:#880000">■ 90↑ 위험</span>
+        <span style="font-size:10px;color:#2E7D32">■ 20°↑ 안전</span>
+        <span style="font-size:10px;color:#0277BD">■ 15~20° 선선</span>
+        <span style="font-size:10px;color:#E65100">■ 10~15° 쌀쌀</span>
+        <span style="font-size:10px;color:#2E7D32">■ 체감 0°↑ 약</span>
+        <span style="font-size:10px;color:#F57F17">■ 0~-10° 경미</span>
+        <span style="font-size:10px;color:#E65100">■ -10~-20° 중등도</span>
+        <span style="font-size:10px;color:#B71C1C">■ -20°↓ 심각</span>
       </div>
     </div>
 
@@ -30199,7 +30130,7 @@ function renderLivestockWeatherPanel(fc, hourlyByDate){
     ${renderHusbandryPointsCard({title:"📋 오늘의 축산 관리 포인트"})}
 
     <div style="font-size:10px;color:#aaa;margin-top:8px;text-align:right">
-      THI 공식: USDA/Clemson Univ. · 육계: Aviagen Broiler Guide · 산란계: Hy-Line Layer Management Guide
+      체감온도(윈드칠): 미국 NWS·캐나다 기상청 공식 · 육계: Aviagen Broiler Guide · 산란계: Hy-Line Layer Management Guide
     </div>
   </div>`;
 }
