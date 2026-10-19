@@ -21,10 +21,27 @@ OUT = Path("taxfree_fuel/latest.json")
 KEYS = ["gasoline", "diesel", "kerosene"]          # 휘발유 · 자동차용경유 · 실내등유
 
 
-def fetch_html() -> str:
-    req = urllib.request.Request(URL, headers={"User-Agent": "Mozilla/5.0 (compatible; pb-dashboard)"})
+def fetch_html(day: str | None = None) -> str:
+    """day(YYYY-MM-DD)를 주면 그날 하루치 일간 조회(POST), 없으면 기본 화면(최근 이틀)."""
+    headers = {"User-Agent": "Mozilla/5.0 (compatible; pb-dashboard)"}
+    data = None
+    if day:
+        y, m, d = day.split("-")
+        form = (f"all_chk_cnt=3&INIF_FLAG=N&chk_cnt=3&TERM=D&STA_Y={y}&STA_M={int(m)}&STA_D={int(d)}"
+                f"&END_Y={y}&END_M={int(m)}&END_D={int(d)}&OIL_CD_B127=Y&OIL_CD_D147=Y&OIL_CD_C104=Y&equal=Y")
+        data = form.encode()
+        headers["Content-Type"] = "application/x-www-form-urlencoded"
+    req = urllib.request.Request(URL, data=data, headers=headers)
     with urllib.request.urlopen(req, timeout=30) as r:
         return r.read().decode("utf-8", errors="replace")
+
+
+def year_ago(day: str) -> str:
+    """같은 월·일의 작년 날짜(2/29는 2/28로)."""
+    y, m, d = (int(x) for x in day.split("-"))
+    if (m, d) == (2, 29):
+        d = 28
+    return f"{y - 1:04d}-{m:02d}-{d:02d}"
 
 
 def parse(html: str) -> dict:
@@ -48,7 +65,23 @@ def parse(html: str) -> dict:
             raise ValueError(f"가격이 비정상 범위: {v}")
     chg = ({k: float(v) for k, v in zip(KEYS, diff.groups())} if diff
            else {k: round(prices[k] - before[k], 2) for k in KEYS})
-    return {"date": day(cur), "prev_date": day(prev), "prices": prices, "prev": before, "diff": chg}
+    return {"date": day(cur), "prev_date": day(prev), "prices": prices, "prev": before, "diff": chg, "_rows": {day(r): {k: float(v) for k, v in zip(KEYS, r[3:6])} for r in rows[:2]}}
+
+
+def parse_day(html: str, day: str) -> dict:
+    """일간 조회 결과에서 지정한 날짜 행의 가격을 읽는다."""
+    t = re.sub(r"<script[\s\S]*?</script>|<style[\s\S]*?</style>", " ", html)
+    t = re.sub(r"<[^>]+>", " ", t)
+    t = re.sub(r"\s+", " ", t.replace("&nbsp;", " "))
+    y, m, d = day.split("-")
+    mt = re.search(rf"{y}년\s?{m}월\s?{d}일\s+(\d{{3,4}}(?:\.\d+)?)\s+(\d{{3,4}}(?:\.\d+)?)\s+(\d{{3,4}}(?:\.\d+)?)", t)
+    if not mt:
+        raise ValueError(f"{day} 행을 찾지 못함")
+    prices = {k: float(v) for k, v in zip(KEYS, mt.groups())}
+    for v in prices.values():
+        if not (300 <= v <= 4000):
+            raise ValueError(f"전년 가격이 비정상 범위: {v}")
+    return prices
 
 
 def main() -> int:
@@ -60,6 +93,16 @@ def main() -> int:
             prev_json = None
     try:
         data = parse(fetch_html())
+        rows = data.pop("_rows")
+        # 전년 같은 날짜 — 못 가져오면 전년 대비만 빼고 저장한다(현재가 갱신이 막히지 않게)
+        try:
+            ago = year_ago(data["date"])
+            ago_prices = parse_day(fetch_html(ago), ago)
+            data["year_ago"] = {"date": ago, "prices": ago_prices}
+            data["yoy"] = {k: round(data["prices"][k] - ago_prices[k], 2) for k in KEYS}
+            data["yoy_pct"] = {k: round((data["prices"][k] / ago_prices[k] - 1) * 100, 1) for k in KEYS}
+        except Exception as exc2:
+            print(f"::warning::전년 같은 날짜 조회 실패: {type(exc2).__name__}: {exc2}")
     except Exception as exc:
         print(f"::warning::면세유 평균가 수집 실패: {type(exc).__name__}: {exc}")
         return 0 if prev_json else 1                       # 이전 값이 있으면 그대로 두고 통과
