@@ -580,7 +580,28 @@ let poultryPriceState = { status:"idle", data:null };
 const BROILER_PRICE_TODAY_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/broiler_price_today/latest.json";
 let broilerPriceTodayState = { status:"idle", data:null };
 
+// 한국석유공사 오피넷 면세유 평균판매가격(전국) — 지역별 면세유 평균은 오피넷이 2026-02까지만 공개해 전국 평균만 보여준다.
+const TAXFREE_FUEL_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/taxfree_fuel/latest.json";
+let taxfreeFuelState = { status:"idle", data:null };
+async function fetchTaxfreeFuel(force){
+  if(taxfreeFuelState.status === "loading") return;
+  taxfreeFuelState.status = "loading";
+  try {
+    const bust = force ? Date.now() : Math.floor(Date.now()/600000);
+    const resp = await fetchWithTimeout(TAXFREE_FUEL_JSON_URL + "?t=" + bust, 8000);
+    if(!resp.ok) throw new Error("HTTP " + resp.status);
+    const data = await resp.json();
+    if(!data.prices) throw new Error("면세유 자료 없음");
+    taxfreeFuelState = { status:"done", data };
+  } catch(e){
+    console.warn("면세유 평균가(오피넷) 로딩 실패:", e.message);
+    taxfreeFuelState = { status:"error", data:null };
+  }
+  if(state.tab==="price") render();
+}
+
 async function fetchBroilerPriceToday(force){
+  if(taxfreeFuelState.status === "idle") fetchTaxfreeFuel(force);
   broilerPriceTodayState.status = "loading";
   try {
     const bust = force ? Date.now() : Math.floor(Date.now()/600000);
@@ -5532,7 +5553,7 @@ let coinFetchStatus = "idle"; // idle | loading | done | error
 // 저장소 기준 경로에서 .json을 떼고 영문·숫자 이외를 _로 바꾼 것(market/quotes.json → market_quotes).
 // Storage에 아직 없거나 함수가 실패하면 예전처럼 raw를 시도한다(저장소가 공개인 동안의 안전망).
 const DATA_RAW_PREFIX = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/";
-const DATA_DIRS_RE = /^(poultry_price|broiler_price_today|prices|egg_report|layer_stats|feed_production|jungchu_price|hpai_risk|hpai_kr|poultry_disease|research_papers|market|news|notices|grain_quality|grain_price|import_status|industry_news|animal_drug_news|poultry_disease_brief|price_history|weather_news|farm_density)\//;
+const DATA_DIRS_RE = /^(poultry_price|broiler_price_today|taxfree_fuel|prices|egg_report|layer_stats|feed_production|jungchu_price|hpai_risk|hpai_kr|poultry_disease|research_papers|market|news|notices|grain_quality|grain_price|import_status|industry_news|animal_drug_news|poultry_disease_brief|price_history|weather_news|farm_density)\//;
 function dataDatasetOf(url){
   if(typeof url !== "string" || url.indexOf(DATA_RAW_PREFIX) !== 0) return null;
   const rel = url.slice(DATA_RAW_PREFIX.length).split("?")[0];
@@ -28936,6 +28957,30 @@ function renderBroilerPriceTodayPanel(){
       </table>
     </div>
     <div style="font-size:9px;color:#bbb;margin-top:8px;text-align:right">${esc(d.note||"")} · 수집 ${esc(d.updated||"")} · 출처: 대한양계협회</div>
+    ${renderTaxfreeFuelBlock()}
+  </div>`;
+}
+
+// ⛽ 면세유 평균가(전국) — 한국석유공사 오피넷. 농가가 쓰는 면세 경유·등유·휘발유 평균 판매가격과 전일 대비.
+function renderTaxfreeFuelBlock(){
+  const st = taxfreeFuelState;
+  if(st.status !== "done" || !st.data || !st.data.prices) return "";
+  const f = st.data, items = [["diesel", "경유", "🚜"], ["kerosene", "등유", "🔥"], ["gasoline", "휘발유", "⛽"]];
+  const dateLbl = f.date ? f.date.slice(5).replace("-", "/") : "";
+  const cell = ([k, lab, ic]) => {
+    const v = f.prices[k], dv = f.diff ? f.diff[k] : null;
+    const col = dv > 0 ? "#D32F2F" : dv < 0 ? "#1565C0" : "#888";
+    return `<div style="flex:1 1 90px;background:#FFF8E1;border:1px solid #FFE082;border-radius:11px;padding:9px 6px;text-align:center">
+      <div style="font-size:12px;font-weight:700;color:#6b5400">${ic} 면세 ${lab}</div>
+      <div style="font-size:22px;font-weight:800;color:#333;line-height:1.2">${Math.round(v).toLocaleString()}<span style="font-size:11px;font-weight:600;color:#888"> 원/L</span></div>
+      <div style="font-size:12px;font-weight:700;color:${col}">${dv == null ? "" : (dv > 0 ? "▲" : dv < 0 ? "▼" : "") + Math.abs(dv).toFixed(1)} <span style="font-weight:500;color:#aaa">전일 대비</span></div>
+    </div>`;
+  };
+  return `<div style="margin-top:14px;padding-top:12px;border-top:1px dashed #e5e5e5">
+    <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:8px"><div style="font-size:14px;font-weight:800;color:#333">⛽ 면세유 평균가 <span style="font-size:12px;font-weight:600;color:#888">전국 · ${esc(dateLbl)} 기준</span></div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">${items.map(cell).join("")}</div>
+    <div style="font-size:11px;color:#8D6E00;background:#FFF8E1;border-radius:8px;padding:6px 10px;margin-top:8px;line-height:1.6">ℹ️ 오피넷이 <b>지역(시·도)별 면세유 평균</b>은 2026년 2월까지만 공개하고 3월부터는 공개하지 않아, 지금은 <b>전국 평균</b>만 보여 드려요.</div>
+    <div style="font-size:9px;color:#bbb;margin-top:6px;text-align:right">출처: <a href="${esc(f.url || "https://www.opinet.co.kr")}" target="_blank" rel="noopener" style="color:#999">한국석유공사 오피넷</a> · 당일 거래 주유소 면세 판매가 평균 · 수집 ${esc(f.updated || "")}</div>
   </div>`;
 }
 
