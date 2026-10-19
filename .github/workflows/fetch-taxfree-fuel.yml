@@ -1,0 +1,50 @@
+name: 면세유 평균가(오피넷) 수집
+
+# 한국석유공사 오피넷이 매일 새벽 전일자 평균을 공개하므로 한국시간 아침 8시 10분에 하루 한 번 가져온다.
+# (지역별 면세유 평균은 오피넷이 2026-02까지만 공개해 전국 평균만 다룬다)
+on:
+  schedule:
+    # 23:10 UTC(전날) = 한국시간 08:10
+    - cron: "10 23 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - scripts/fetch_taxfree_fuel.py
+      - .github/workflows/fetch-taxfree-fuel.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-taxfree-fuel:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: 면세유 평균가 수집
+        run: python scripts/fetch_taxfree_fuel.py
+      - name: 결과 커밋
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add taxfree_fuel/
+          git diff --staged --quiet && exit 0
+          git commit -m "⛽ 면세유 평균가(오피넷) 갱신"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin ${GITHUB_REF_NAME} && git push && exit 0
+            echo "푸시 재시도 $i"
+            sleep 5
+          done
+          exit 1
+
+      - name: Firebase Storage 업로드 (저장소 비공개 대비)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          pip install -q firebase-admin
+          python scripts/upload_to_storage.py taxfree_fuel/
