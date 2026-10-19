@@ -31978,7 +31978,7 @@ const HACCP_STEPS = ["HACCP팀 구성(대표자·팀장·팀원·외부자문)",
 // 닭 음수 권장 한계: 산란계 = Hy-Line W-80 Plus 관리가이드(2026.4) p.19, 육계 = Ross Broiler Management Handbook 2025 Table 7.2 · p.108·110.
 const HACCP_WATER_CYCLE = [
   ["🏛️", "3년에 1번 이상", "HACCP 기준서 — 지하수", "표준기준서(2023 개정): 지하수는 <b>공인 먹는물 수질검사기관</b>에서 <b>생활용수 기준 20항목</b>을 <b>3년에 1회 이상</b> 검사하고 기록을 남겨요. 상수도는 요금 납입영수증 또는 마을상수도 성적서를 받아 보관해요."],
-  ["📅", "1년에 1번 이상", "육종회사 권고(종합검사)", "Ross 2025: 종합 수질검사는 <b>연 1회 이상</b>, 수질 문제나 성적 이상이 있으면 더 자주. (HACCP 법정 주기보다 촘촘한 권고예요)"],
+  ["📅", "1년에 1번 이상", "육종회사 권고 — HACCP 기준 아님", "Ross 2025: 종합 수질검사는 <b>연 1회 이상</b>, 수질 문제나 성적 이상이 있으면 더 자주. (HACCP 법정 주기보다 촘촘한 권고예요)"],
   ["🧹", "계군 사이마다", "입추 전 세균검사", "Ross 2025: 계사 청소 뒤 <b>입추 전</b>에 ①수원 ②저장탱크 ③급수기(닭이 먹는 곳)에서 물을 떠 세균 오염을 확인."],
   ["👀", "사육 중 수시로", "눈으로 확인", "급수라인 끝에서 물을 빼 <b>맑은지</b> 봅니다. 기준서도 음수조·급수라인 청결을 수시로 확인하라고 해요. 눈에 안 보여도 깨끗하다는 뜻은 아니에요(Ross)."],
 ];
@@ -32051,7 +32051,7 @@ function renderHaccpPanel(){
         return `<label style="display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-top:1px solid #f1f1f1;cursor:pointer"><input type="checkbox" class="haccp-chk" data-k="${key}" ${st.checks[key] ? "checked" : ""} style="margin-top:3px;width:17px;height:17px;flex-shrink:0"><span style="font-size:12.8px;line-height:1.6;color:#333">${mine ? `<span style="font-size:10px;font-weight:800;color:#fff;background:${sp === "broiler" ? "#E65100" : "#1565C0"};border-radius:4px;padding:0 5px;margin-right:4px">${sp === "broiler" ? "육계" : "산란계"}</span>` : ""}${t}</span></label>`; }).join("")}
     </div>`; }).join("");
   const docs = HACCP_DOCS.common.concat(HACCP_DOCS[sp]);
-  const cycles = HACCP_WATER_CYCLE.concat(sp === "layer" ? [["🥚", "1년에 1번 이상", "산란계 · 달걀 세척용수(지하수)", "물로 달걀을 씻는다면 <b>먹는물 수질기준 전 항목</b>을 연 1회 이상 검사해요(기준서 선행-5)."]] : []);
+  const cycles = HACCP_WATER_CYCLE.concat(sp === "layer" ? [["🥚", "1년에 1번 이상", "산란계 · 달걀 ‘씻는 물’ 별도 기준(닭이 먹는 물 아님)", "물로 달걀을 씻는다면 <b>먹는물 수질기준 전 항목</b>을 연 1회 이상 검사해요(기준서 선행-5)."]] : []);
   const th = (t, c) => `<th style="padding:6px 8px;text-align:left;border:1px solid #dde;background:${c};white-space:nowrap">${t}</th>`;
   return `<div class="card" style="margin-bottom:16px;border-top:6px solid ${C}">
     ${head}
@@ -32076,6 +32076,7 @@ function renderHaccpPanel(){
     ${areas}
 
     <div style="font-size:12.5px;font-weight:800;color:#333;margin:14px 0 5px">③ 💧 음수 수질검사 — 주기와 기준</div>
+    <div style="background:#E8EAF6;border:2px solid #7986CB;border-radius:11px;padding:10px 12px;margin:2px 0 9px;font-size:14px;font-weight:800;color:#283593;line-height:1.6">✅ 농장 HACCP 기준(닭이 먹는 물): <b>지하수 → 3년에 1회 이상</b> 공인기관 검사(생활용수 20항목) · 상수도 → 영수증·성적서 보관<div style="font-size:11.5px;font-weight:500;color:#555;margin-top:2px">인증원 표준기준서(2023 개정) 확인 · 아래 ‘1년’ 항목은 육종회사 권고와 달걀 세척용수 기준이라 서로 다른 이야기예요.</div></div>
     <div style="font-size:12px;font-weight:800;color:#0277BD;margin:2px 0 5px">언제 검사하나요?</div>
     <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px">${cycles.map(c => `<div style="display:flex;gap:9px;align-items:flex-start;background:#E1F5FE;border:1px solid #B3E5FC;border-radius:10px;padding:8px 10px"><span style="font-size:20px;line-height:1.2">${c[0]}</span><div><div style="font-size:13px;font-weight:800;color:#01579B">${c[1]} <span style="font-weight:600;color:#0277BD">· ${c[2]}</span></div><div style="font-size:12.2px;line-height:1.6;color:#333;margin-top:2px">${c[3]}</div></div></div>`).join("")}</div>
 
