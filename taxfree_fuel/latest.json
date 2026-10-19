@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-19 17:05 KST",
+ "updated": "2026-10-19 17:10 KST",
  "scope": "전국",
  "unit": "원/리터",
  "source": "한국석유공사 오피넷 면세유 평균판매가격",
@@ -21,5 +21,23 @@
   "gasoline": -0.87,
   "diesel": -2.15,
   "kerosene": 6.27
+ },
+ "year_ago": {
+  "date": "2025-10-18",
+  "prices": {
+   "gasoline": 1017.54,
+   "diesel": 1096.01,
+   "kerosene": 1104.09
+  }
+ },
+ "yoy": {
+  "gasoline": 166.24,
+  "diesel": 302.31,
+  "kerosene": 283.71
+ },
+ "yoy_pct": {
+  "gasoline": 16.3,
+  "diesel": 27.6,
+  "kerosene": 25.7
  }
 }
