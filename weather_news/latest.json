@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-20 09:17 KST",
+ "updated": "2026-10-21 08:50 KST",
  "groups": [
   "오늘 날씨",
   "폭염·한파",
@@ -10,63 +10,341 @@
  ],
  "items": [
   {
-   "title": "[오늘 날씨] 쌀쌀한데 전국 곳곳 빗방울",
-   "source": "뉴스포스트",
-   "link": "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1WYVFicmRGa0N1cEttMm01NnUtNHBndXpodEJzazdqZE01OWU0eDYtWUp1dHRfeDdzY0tfMERYQXM3czFDQ3RBcW9UaWM5ZkQ1RWVKcmlMbHdyY3h3eVBoVGh2eVNYSjgy?oc=5",
-   "ts": "2026-10-20 09:08",
+   "title": "[오늘날씨] 낮부터 기온 '뚝' 떨어진다… 제주 오전 '5∼20㎜' 비",
+   "source": "독립신문",
+   "link": "https://news.google.com/rss/articles/CBMia0FVX3lxTE5rOGVxeGhWWTdqQzRNSndLcmY5OE9wWXVoWUtxT0lOTWNnSmh3d05fQVdTcEMtTnVTWkZEQ3pLVWxhZDRhbTg3SWNFbjB5WWI1T2gybTM4MkJwS2tWMWx1cWpON2xIa3lyM2hB?oc=5",
+   "ts": "2026-10-21 08:31",
    "tags": [
     "오늘 날씨"
    ],
-   "url": "http://www.newspost.kr/news/articleView.html?idxno=226514",
-   "summary": "20일 전국이 쌀쌀한 날씨를 보이며 곳곳에 빗방울이 떨어진다. 남부지방과 제주도는 정체전선의 영향을 받고, 중부지방은 고기압 가장자리에 들어 흐리겠다. 충청권·전남권·경남권에 10~50mm, 제주도에 5~60mm의 강수가 예상되며, 아침 최저기온 7~19도, 낮 최고기온 19~23도이다.",
+   "url": "https://www.ainews1.co.kr/news/articleView.html?idxno=37769",
+   "summary": "21일은 북서쪽 찬 공기가 남하하면서 낮부터 기온이 떨어지고 바람이 강해 체감온도가 낮아지겠다. 제주는 오전에 5∼20㎜ 비가 내리고, 전국 대부분 지역은 오전까지 비가 내린 후 그치겠다. 서울 낮 15도, 대구 19도, 부산 22도이며 전국 미세먼지는 '좋음' 수준이다.",
    "summary_ai": true
   },
   {
-   "title": "전국 오전 가을비 내린 뒤 기온 뚝…서울 낮 최고 15도[내일 날씨]",
-   "source": "뉴스1",
-   "link": "https://news.google.com/rss/articles/CBMiY0FVX3lxTFBKSlE3enJUeGVSUUNUZmtMV0lQZFhDLXVlSTMyelNSWjNOcmZoTW1KbWg5MXo0Ry1DOHNhQWdDb1U2elBuVUNQVUh2QnhHT0tiSF9aT0QyUjFkMmVnWXdYYnFJdw?oc=5",
-   "ts": "2026-10-20 09:06",
+   "title": "[30호 태풍 참피 경로 등 전국 오늘의 날씨 및 내일날씨]오늘 낮부터 기온 낮아져 쌀쌀, 강풍/풍랑 유의",
+   "source": "이코노미톡뉴스",
+   "link": "https://news.google.com/rss/articles/CBMibEFVX3lxTE1HM25fZng2d3A4ZENYMEMya1NIay1xSHpfZlpnUDE3Q3FBR2dPNWRYV0dvU0J1R1VnaERxT3hoQ3djb3RqNGJzZ2xxYktWcDVCNzFGRXdCNGpGNzNxVGItajVlNlFWYzlwaF91Nw?oc=5",
+   "ts": "2026-10-21 08:23",
+   "tags": [
+    "호우·태풍",
+    "눈·바람·먼지",
+    "오늘 날씨"
+   ],
+   "url": "http://www.economytalk.kr/news/articleView.html?idxno=424778",
+   "summary": "제30호 태풍 참피가 26일 오전 제주도 남쪽 약 320km 부근 해상까지 접근할 것으로 전망된다. 21일 낮부터 기온이 크게 낮아지고 북서쪽에서 찬 공기가 남하하며 강풍이 불어 쌀쌀하겠다. 서해안과 제주도, 동해안을 중심으로 순간풍속 70km/h 이상의 강풍과 물결 1.5~3.5m의 풍랑이 예상되니 유의가 필요하다.",
+   "summary_ai": true
+  },
+  {
+   "title": "비 그치면 '찬바람 쌩쌩'...널뛰는 가을 날씨, 왜 [뉴스UP]",
+   "source": "YTN",
+   "link": "https://news.google.com/rss/articles/CBMiXkFVX3lxTE9PNlNEa0xSMXFzTGF3bmpzSlpnQWJaaEFicmE1Z1doSTNRN3FjVlRGS3pjZjNsYXgtaUQtcUI2a0s4STdCeTNaVlB6VmtCZGhmQXctZEtOei1WdTlUS0E?oc=5",
+   "ts": "2026-10-21 08:23",
+   "tags": [
+    "호우·태풍",
+    "오늘 날씨"
+   ],
+   "url": "https://www.ytn.co.kr/_ln/0108_202610210823250678",
+   "summary": "오늘 오전에 5mm 미만의 약한 비가 내린 후 기온이 크게 떨어져 서울 아침 기온이 4~5도, 산간지역에는 얼음이 얼 것으로 예상된다. 엘니뇨의 영향으로 올가을 날씨가 변덕스러우며, 슈퍼태풍 참피는 한반도 직격 가능성은 낮으나 제주도와 남해안이 직접 영향권에 들 수 있다.",
+   "summary_ai": true
+  },
+  {
+   "title": "[날씨] 비 그친 뒤 낮부터 급 쌀쌀…찬 바람에 기온 ’뚝’",
+   "source": "연합뉴스TV",
+   "link": "https://news.google.com/rss/articles/CBMiZ0FVX3lxTFBKMGlfRzU3R1BQUmFpdjBrY1d4aURjVzBkbDJCSlAtZTQ1N1lDZDBPNmw5OHd4QjF2WjB6VFVXbHhMUGt2RlRqWFJNUFdBNVdGSjROdC02bmdoVmV1MWRPTFd2ZjZYLWc?oc=5",
+   "ts": "2026-10-21 08:13",
+   "tags": [
+    "폭염·한파",
+    "오늘 날씨"
+   ],
+   "url": "https://www.yonhapnewstv.co.kr/news/MYH202610210813117zR",
+   "summary": "오늘 낮부터 찬 바람이 불어 기온이 급격히 떨어진다. 남해안과 중부지방, 전북에는 아침부터 오전까지 5mm 미만의 비가 더 내리고, 해안가와 산간지역에는 초속 20~25m 이상의 강풍이 불겠다. 내일 아침 서울 기온은 5도로 올가을 들어 가장 낮으며 일부 지역은 영하권으로 떨어질 전망이다.",
+   "summary_ai": true
+  },
+  {
+   "title": "[오늘날씨] 전국에 가을비 뚝뚝⋯낮부터는 본격적으로 기온↓",
+   "source": "아이뉴스24",
+   "link": "https://news.google.com/rss/articles/CBMiS0FVX3lxTE0ySkdTQlFrZHY2bkdIUlFZRjk0eVFzQWROU2NXZ05tNGZ2eVVXa3l1SmxiSDRqSEpPY1ZieU94LWlka2FOaTdsUW5PUQ?oc=5",
+   "ts": "2026-10-21 08:02",
+   "tags": [
+    "오늘 날씨"
+   ],
+   "url": "http://www.inews24.com/view/2017167",
+   "summary": "21일 전국에 아침까지 가을비가 내리겠으며, 낮부터 기온이 평년보다 2~6℃ 낮아지면서 쌀쌀해진다. 제주도를 제외한 대부분 지역에 5㎜ 미만의 강수가 예상되고, 낮 기온은 15~22℃, 찬 공기의 남하로 체감온도는 더욱 낮겠다.",
+   "summary_ai": true
+  },
+  {
+   "title": "‘초강력 태풍’ 참피, 중국 대신 한반도 향하나?…예상 경로 꺾였다",
+   "source": "위키트리",
+   "link": "https://news.google.com/rss/articles/CBMiVkFVX3lxTE1fYjlRQzRnaThiMFQxRkN4UUlFN2dJTHJKTVd1RzF0d05xQk01bnU0dmI2aERsbFlYMnplcG1xOE9fdHMtQTk0MnRuMzJ2RkJ0OWZEaThR?oc=5",
+   "ts": "2026-10-21 07:34",
+   "tags": [
+    "호우·태풍",
+    "오늘 날씨"
+   ],
+   "url": "https://www.wikitree.co.kr/articles/1167844",
+   "summary": "제30호 태풍 '참피'가 초강력 태풍으로 발달하며 당초 중국 동부 상륙 예상에서 한반도 남쪽 해상으로 진로가 변경됐다. 최대풍속 시속 209㎞의 참피는 26일 오전 서귀포 남쪽 약 320㎞ 해상에 도달할 것으로 예보되며, 일본 기상청은 더 가까운 제주 동쪽 경로를 제시해 제주·남해안 영향 가능성이 제기되고 있다.",
+   "summary_ai": true
+  },
+  {
+   "title": "[날씨] 오전까지 수도권 등 곳곳에 비...낮부터 찬바람 불며 기온 '뚝'",
+   "source": "딜라이트닷넷",
+   "link": "https://news.google.com/rss/articles/CBMickFVX3lxTE91aDdNcDJjR0tKa1JhcjBSV0ljZ201TWlIWUx6QkFDT3lDOFVtazJ3QzJJTXhiMXRmS1pGdVhpSEpaYzlaZkdyMEphSlRiRWFoRFZNWTdmVXhQNEJMUThCUVlFb3drVl9CbTNaWXd2NThwQdIBckFVX3lxTE91aDdNcDJjR0tKa1JhcjBSV0ljZ201TWlIWUx6QkFDT3lDOFVtazJ3QzJJTXhiMXRmS1pGdVhpSEpaYzlaZkdyMEphSlRiRWFoRFZNWTdmVXhQNEJMUThCUVlFb3drVl9CbTNaWXd2NThwQQ?oc=5",
+   "ts": "2026-10-21 07:33",
    "tags": [
     "눈·바람·먼지",
     "오늘 날씨"
    ],
-   "url": "https://www.news1.kr/society/weather-disaster/6325328"
+   "url": "https://www.delighti.co.kr/news/articleViewAmp.html?idxno=123558",
+   "summary": "21일 오전까지 수도권과 강원, 충청권, 제주도에 5㎜ 미만의 비가 내리겠다. 낮부터 북서쪽 찬 공기가 남하하면서 기온이 떨어지고 전국적으로 강한 바람이 불어 체감온도가 낮아지겠으며, 서해안·동해안·제주도 중심으로 순간풍속 70㎞ 이상의 강풍특보 가능성이 있다. 22일 내륙지역 아침 기온은 5도 이하로 춥겠고 얼음이 어는 곳이 있을 것으로 예상된다.",
+   "summary_ai": true
   },
   {
-   "title": "[내일날씨] 오전까지 전국 곳곳 비…북서쪽 찬 공기에 체감온도 '뚝'",
+   "title": "오늘 날씨 10월 21일 강풍에 체감 뚝, 뭐 입어야 해? : 날씨",
+   "source": "재경일보",
+   "link": "https://news.google.com/rss/articles/CBMiS0FVX3lxTFBTQThnY3pvalcxU2p3dlZjdjR4OUc1V252c285Yi1mZWhQalVkT2RVZDlYQmR4Q1I0bnZIU2tJRzdwNktYMHc4U3l1cw?oc=5",
+   "ts": "2026-10-21 07:30",
+   "tags": [
+    "눈·바람·먼지",
+    "오늘 날씨"
+   ],
+   "url": "https://news.jkn.co.kr/post/1038018",
+   "summary": "10월 21일 서울은 낮 최고기온 14.6도에 초속 10m의 강풍이 불어 체감온도가 10도 안팎으로 떨어집니다. 저녁 기온은 7~8도까지 내려가며 바람까지 매서워 초겨울 수준의 5도 안팎 체감온도를 보이겠습니다. 방풍 겉옷과 레이어링으로 체온을 유지해야 합니다.",
+   "summary_ai": true
+  },
+  {
+   "title": "[오늘날씨] 비 그친 뒤 찬 공기·강풍 몰아친다…서울 낮 15도, 내일 아침 올가을 가장 춥다",
+   "source": "톱뉴스",
+   "link": "https://news.google.com/rss/articles/CBMib0FVX3lxTE42NzVNdUIxUElNTktFRzg1a2UzREExMjUzNGU0VGNBbmwzUXYyMnJzR2tuRGp6SzdFa25qSHJLbUlnWE5JajlaUFVKWjNqb1JZWDh2MjNwX1FUaWZjUTgyaHVnVHVnb3FZZnV0eUdHNA?oc=5",
+   "ts": "2026-10-21 07:29",
+   "tags": [
+    "눈·바람·먼지",
+    "오늘 날씨"
+   ],
+   "url": "https://www.seoultopnews.kr/news/articleView.html?idxno=100175",
+   "summary": "21일 전국에 약한 비가 내린 뒤 낮부터 맑아지지만, 북서쪽 찬 공기와 강풍이 몰아쳐 체감이 쌀쌀하겠다. 서울은 낮 기온이 15도에 그쳐 어제보다 7~8도 떨어지고, 22일 아침에는 4도까지 내려가 올가을 가장 춥겠다. 서해안·제주·동해안은 순간풍속이 시속 70㎞ 이상에 달할 전망이다.",
+   "summary_ai": true
+  },
+  {
+   "title": "태풍 ‘참피’ 북상 경로 한·대만 전망 엇갈려…제주 진입 가능성",
+   "source": "싱글리스트",
+   "link": "https://news.google.com/rss/articles/CBMiZkFVX3lxTE9Icl9fZlNMTEZ6WjVJTlBqNW01SFlGQWIzTHhOa05DV2l4X0JUS3V4aDNPYjdrNGdYX2dsY0FqV1RDZDRpc0dBQmV2ajdMWU5SYlJwa3Y5NXJYRHBvTGZKVllLY0Jodw?oc=5",
+   "ts": "2026-10-21 07:20",
+   "tags": [
+    "호우·태풍",
+    "기상 전망"
+   ],
+   "url": "https://www.slist.kr/news/articleView.html?idxno=775010",
+   "summary": "제30호 태풍 '참피'의 북상 경로를 놓고 한국 기상청과 대만 중앙기상서의 전망이 엇갈렸다. 기상청은 참피가 동중국해 진입 후 북동진하며 제주 남서쪽 먼 해상을 지날 것으로 예상한 반면, 대만 기상서는 22일부터 더 일찍 북쪽으로 전향할 가능성을 제시했다. 현재 중심기압 910hPa, 최대풍속 초속 56m의 강도 5단계로 21일 더욱 발달할 전망이다.",
+   "summary_ai": true
+  },
+  {
+   "title": "제30호 태풍 참피, 제주 남쪽 320㎞까지 북상…진로 변수 커졌다",
+   "source": "톱스타뉴스",
+   "link": "https://news.google.com/rss/articles/CBMickFVX3lxTE5zLXJrenN2VXRMOWtWeFhWeGNHb3FTT0VRSTMtVi15UEpzYVBLR0NxbXhOc0FVYWs5d0pMamlpdU82ZzdiMFF4ZmVWSmt0cTNmTlpqRG5MOUFsRXFzNEd6LVowaG5hcFZxcHk1U3dpYUJwUQ?oc=5",
+   "ts": "2026-10-21 07:15",
+   "tags": [
+    "호우·태풍"
+   ],
+   "url": "https://www.topstarnews.net/news/articleView.html?idxno=16253037",
+   "summary": "제30호 태풍 참피가 중심기압 905hPa, 최대풍속 초속 58m의 초강력 세력으로 북상 중이다. 기상청은 참피가 대만 동쪽을 지나 동중국해에서 북상한 뒤 26일 북동쪽으로 방향을 바꿀 것으로 예상하고 있으나, 홍콩천문대는 더 빠른 북상을, 중국 기상당국은 대만 통과 또는 북동진의 두 가지 시나리오를 제시하면서 후반 진로 불확실성이 크다. 기상청은 25~26일 국내 강수 전망에 참피의 진로와 강도 변화를 변수로 명시했다.",
+   "summary_ai": true
+  },
+  {
+   "title": "[오늘의 전북 날씨] 오전까지 흐리고 가끔 비...낮 최고 15~19도 '쌀쌀'",
+   "source": "전북의소리",
+   "link": "https://news.google.com/rss/articles/CBMiZ0FVX3lxTE1BMjNGelh6SjFLLWVhb0xCQS1vc1BxVFNGbDlLNUVEekNwaEhhMXA2d08zN1hSZXF4YWk0S1l3clhPN1lNOVppYlpYVEZHblpCTF9WQm85ZGlvanA2M3dVenBhS3NUXzg?oc=5",
+   "ts": "2026-10-21 07:12",
+   "tags": [
+    "오늘 날씨"
+   ],
+   "url": "https://www.jbsori.com/news/articleView.html?idxno=18071",
+   "summary": "21일 전북지역은 오전까지 흐리고 곳에 따라 5mm 미만의 비가 내리다 오후부터 맑아진다. 아침 최저기온 10~14℃, 낮 최고기온 15~19℃로 쌀쌀한 날씨가 이어진다. 미세먼지는 좋음 수준이며 서해 앞바다 물결은 1.0~3.0m로 일겠다.",
+   "summary_ai": true
+  },
+  {
+   "title": "오늘 비 온 뒤 추운 날씨…태풍 참피 경로 변화에 긴장 고조 > 뉴스",
+   "source": "지데일리",
+   "link": "https://news.google.com/rss/articles/CBMibEFVX3lxTE1LU1lHX3JnaERZWWNQN3kzeHRoTHlGMHVpMzRCLVg3a0g1NndWVHlrTDcydlNOSXFTdnFKbnBXMWxPTzJVSVRiRC1Lb2ZZM29jR3k5enhudGx0M3VBbTAwdzZXWUxONGUwelZfMA?oc=5",
+   "ts": "2026-10-21 06:50",
+   "tags": [
+    "호우·태풍",
+    "오늘 날씨"
+   ],
+   "url": "http://www.gdaily.kr/bbs/board.php?bo_table=news&wr_id=22369",
+   "summary": "21일 전국에 비가 내린 뒤 기온이 크게 떨어지며 이른 추위가 시작된다. 서울의 낮 최고기온은 16도로 전날보다 6도 낮아지고, 22일 아침에는 5도까지 내려갈 전망이다. 해안과 산지를 중심으로 순간풍속 20m 안팎의 돌풍이 불 수 있으며, 제30호 태풍 참피의 이동 경로 변화도 주시되고 있다.",
+   "summary_ai": true
+  },
+  {
+   "title": "[북한날씨] 평안·함경 곳에 따라 비 또는 눈…\"센바람 주의 경보\"",
    "source": "연합뉴스",
-   "link": "https://news.google.com/rss/articles/CBMiW0FVX3lxTE5rQUllSFk5cVV2b0ZnbnROMDRSUG9tTUNwTlpqY3B2ZS0wYTRGX0FMbmJvLWRqdEwzbzlMWFZOWVJCVnpOVUVlSVRDOXg5Uzd0VlFaU2RaSllwZkXSAWBBVV95cUxOTUJQUFhiUHVHNFQ1dDdNeERycGhOdk1Gc3hRcnF6bUk4TlgtanB6WTBTc0tRNmJwdWlHVjU0ZnhEaFp2YTJrVXZMTGt3ZFZCd2sxMEFMSDZ6SUNLYlhlRTI?oc=5",
-   "ts": "2026-10-20 09:00",
+   "link": "https://news.google.com/rss/articles/CBMiW0FVX3lxTFBGSDUzM3FaMHdjM25kTm1XUFZheDgzVDVMeHJVa04yekk2WGVlMzI3RE0zY3pEellzbWZMczBVVTlEVko3WGR3U0FGNDB2eWJJYzgzbTV2WWRtNFnSAWBBVV95cUxPOEc1NmxPSllqWlVCTHZRNzdlZEh4cEh1NlZTdjZmSzFLQXp6UWpfandZeU5UZmlHaGpiWGFXX3ZaT0RhR2x1QkV2U2g5U3A5NjJlUHB5d3NBNm9MUjF3Yzc?oc=5",
+   "ts": "2026-10-21 06:32",
    "tags": [
+    "기상 전망",
     "오늘 날씨"
    ],
-   "url": "https://www.yna.co.kr/view/AKR20261020009300004",
-   "summary": "21일 전국은 흐리다가 낮부터 맑아지겠다. 중부·전북은 오전까지, 남부는 새벽까지 비가 내리며 낮부터 북서쪽 찬 공기가 남하해 기온이 떨어지고 체감온도가 낮아지겠다. 아침 최저기온 10~17도, 낮 최고기온 15~22도로 예상된다.",
+   "url": "https://www.yna.co.kr/view/AKR20261021009700504",
+   "summary": "북한은 21일 전 지역이 대체로 흐리다가 오후부터 맑아질 예정이다. 오전까지 평안도, 오후까지 함경도는 곳에 따라 비 또는 눈이 내리고, 황해도는 아침까지 곳에 따라 비가 내린다. 서해안 여러 지역과 내륙, 동해안 북부 일부 지역에는 센바람 주의 경보가 발령됐다.",
    "summary_ai": true
   },
   {
-   "title": "[오늘 날씨] 남부와 제주 중심 가을비-경기 남부·충청에도 오후 들어 비-비 그친 뒤 찬공기 유입 쌀쌀",
+   "title": "[오늘 날씨] 찬공기 남하 오후들어 기온 뚝 쌀쌀-강풍에 체감온도 더 낮아⋯중부 등 일부 오전까지 가을비",
    "source": "이코노뉴스",
-   "link": "https://news.google.com/rss/articles/CBMib0FVX3lxTE14d2VFQk9wNUlWU1NwVHQyMWpOckpBYWJmQ0V0THh0TE5Wcmx5c2N3U0hZZ05sR05EeThVV1RXb0J6RUhBb3J2N09IVjlaQjZFcXZYbXVxZXVlb0tMZUpsWnZKc0pBY3lkNHFpb2ZEUQ?oc=5",
-   "ts": "2026-10-20 08:52",
-   "tags": [
-    "오늘 날씨"
-   ],
-   "url": "https://www.econonews.co.kr/news/articleView.html?idxno=445951",
-   "summary": "20일 북서쪽 찬 공기 유입으로 아침 최저 7도까지 내려가며 쌀쌀하겠다. 남부지방과 제주도를 중심으로 비가 내리고, 오후부터 경기남부·충청권에도 비가 확산되겠으며, 제주도에는 밤부터 초속 15m의 강풍이 부는 곳이 있겠다. 낮 기온은 19~22도로 평년 수준을 유지하고, 미세먼지는 전 권역 '좋음'~'보통' 수준이다.",
-   "summary_ai": true
-  },
-  {
-   "title": "[오늘날씨] 남부·제주 비 20일 시작, 21일 중부로…서해안·강원 강풍특보 가능성",
-   "source": "공감신문",
-   "link": "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1IWFBYdkFaaGhaYkpxVnY4ZnVKQTlDeURIWTJKc1owem5KYzhCaEpJNFlHWEJkSXo2djFhU3FtT1ZidHViV3I1MkU0c3RRNkxfMzdmQmRTSHlrZ2dmbU1IT2xQaUxvYnVr?oc=5",
-   "ts": "2026-10-20 08:38",
+   "link": "https://news.google.com/rss/articles/CBMib0FVX3lxTE8xWjBZWFFtR3hFOEcwd25JOU1aaUVYQ1MwR2ZjTkVUMkViampYMXlFMkhCRlFwSEtLcjltU0s2Y3NDRUtpSU54bjNJY2drSmQxVHdOSnkzLXdjYW9sbHZJZUFIT1B2R2JyVTFZM1V0aw?oc=5",
+   "ts": "2026-10-21 06:31",
    "tags": [
     "눈·바람·먼지",
     "오늘 날씨"
    ],
-   "url": "https://www.gokorea.kr/news/articleView.html?idxno=882010",
-   "summary": "20일 남부·제주에서 시작된 비가 21일 중부로 확대된다. 21일 새벽부터 서해안·강원산지·동해안을 중심으로 순간풍속 70km/h 이상의 강풍이 불어 강풍특보가 발표될 가능성이 있다. 21일 낮부터 찬 공기가 내려와 기온이 평년보다 낮아지며, 22일 아침에는 경기북동부와 강원내륙·산지에서 영하권으로 떨어진다.",
+   "url": "https://www.econonews.co.kr/news/articleView.html?idxno=445993",
+   "summary": "21일 찬공기 남하로 기온이 크게 떨어져 쌀쌀하겠다. 아침 최저기온 10~16도, 낮 최고기온 15~22도이며, 서해안·제주도·동해안에서 초속 20m 이상 강풍이 불어 체감온도가 더욱 낮아질 것으로 예상된다. 중부와 남부 일부지역에는 오전까지 가을비가 내리겠다.",
+   "summary_ai": true
+  },
+  {
+   "title": "[오늘날씨] 전국 곳곳 오전에 비…오후부터 '쌀쌀'",
+   "source": "뉴스핌",
+   "link": "https://news.google.com/rss/articles/CBMiXEFVX3lxTE03MXRPU2RQeE9PWmtKbWtLek5sVG5NUTNJQUNyODRGdGU2YjFsbURTeC1aQU95LWN4X0VaaDNfNXVGZnc1cE1WTEJQbDZZdWxkQldYVzBVWHBEVkli?oc=5",
+   "ts": "2026-10-21 06:30",
+   "tags": [
+    "오늘 날씨"
+   ],
+   "url": "https://www.newspim.com/news/view/20261020001088",
+   "summary": "전국 곳곳에서 오전에 비가 내리다가 오후부터 기온이 떨어져 쌀쌀한 날씨가 이어질 전망이다.",
+   "summary_ai": true
+  },
+  {
+   "title": "가을비 내린 뒤 기온 '뚝'…전국 곳곳에 비[오늘날씨]",
+   "source": "뉴스1",
+   "link": "https://news.google.com/rss/articles/CBMiY0FVX3lxTFBuWXlGR0NNRVpJVURuVGV1Nm8yNEhfT19FY0NxMkkyVGQ0T2FjMHpVV08wVzFQdTlWX3gzNW9uR09LVml1ZlVoWEFHbWpMZVhwUFZXSTVHWWFoR2dRZ3dIbXJERQ?oc=5",
+   "ts": "2026-10-21 06:00",
+   "tags": [
+    "오늘 날씨"
+   ],
+   "url": "https://www.news1.kr/society/weather-disaster/6326497"
+  },
+  {
+   "title": "오늘의 날씨 - 오전 (2026년 10월 21일)",
+   "source": "국민일보",
+   "link": "https://news.google.com/rss/articles/CBMiWEFVX3lxTE0wNVpLNXpzeEtEMW1oRF9fcjFHQnNzcDB4c2RVY2FDRXltdll5b0ZUWVNxYkRxZmNpVlNKd0l3SWU1ZUFDOWlYdjFPTTdHeU1yU0hyMkJoV2g?oc=5",
+   "ts": "2026-10-21 05:30",
+   "tags": [
+    "오늘 날씨"
+   ],
+   "url": "https://www.kmib.co.kr/article/20261021500015",
+   "summary": "죄송하지만, 제공하신 기사 내용에는 날씨·기상 정보가 포함되어 있지 않습니다. \n\n기사의 제목은 \"오늘의 날씨 - 오전 (2026년 10월 21일)\"이지만, 본문은 보호아동의 금전 피해, 금융권 해킹 보상, 자립준비청년 범죄 피해, 부동산 정책 등의 내용으로 구성되어 있습니다.\n\n날씨·기상 관련 정보(지역, 기간, 기온, 강수량, 특보 등)가 없어 요약할 수 없습니다.",
+   "summary_ai": true
+  },
+  {
+   "title": "시속 209km 슈퍼태풍 '참피' 급커브…제주·남해안 가을 태풍 비상",
+   "source": "ABC뉴스",
+   "link": "https://news.google.com/rss/articles/CBMiY0FVX3lxTE9FYkxmRmMzVE9tYzNTclFtYlhKR09VTjNZM3l4MFNQcW1SWVEzcHNjQm1CVHo3VFRDMGFKTjdRdVJpRUE2V2RRNThlTkYwVDZkRnlCWU94dE53T2xteGRzdTQ5aw?oc=5",
+   "ts": "2026-10-21 05:15",
+   "tags": [
+    "호우·태풍"
+   ],
+   "url": "https://www.abcn.kr/news/articleView.html?idxno=93368",
+   "summary": "시속 209km의 슈퍼태풍 '참피'가 북상 중이며, 26일 오전 제주도 서귀포 남쪽 약 320㎞ 해상까지 접근할 것으로 예상된다. 한반도 상륙이 확정되지는 않았으나 진로대로 이동할 경우 제주와 남해안이 강풍과 높은 파도 등의 간접적 영향을 받을 수 있다. 10월 태풍은 드물지만 상륙 시 큰 피해가 우려된다.",
+   "summary_ai": true
+  },
+  {
+   "title": "[기상속보]오늘날씨 출근길 전국 내일까지 5∼60㎜ 비 찬 공기에 체감온도 '뚝' 서울 낮 15도...주말예보",
+   "source": "퍼블릭타임스",
+   "link": "https://news.google.com/rss/articles/CBMiakFVX3lxTFBESmxfWHplS0lib1liZGtQMElfZjVycW5MV29aRE9FMGhHWWVWaFRPbVZuSm5ZTHktVTlDczVna1FyRHItRGhhODcza0NScUFZU001V3BKN3BKSnozVkF1NHZhN0s2QWlMeGfSAW5BVV95cUxOenhFLUU1V1VsWGsydDR2OEdFQV9faWxwVjRfSTRjSWVreG85dGFoTm03MVE2ZXlMWkk0X0o0eENZa2ZfZjdBQ2pJN0xfQlk3akRKaUs5VURDeXE0OXVaMDVOMEVUd2tWeXh1TWM3UQ?oc=5",
+   "ts": "2026-10-21 05:00",
+   "tags": [
+    "오늘 날씨"
+   ],
+   "url": "https://www.public25.com/news/articleView.html?idxno=56855",
+   "summary": "21일 전국에 5~60㎜의 비가 내리고 찬 공기가 남하하면서 기온이 떨어진다. 서울 낮 최고기온은 15도로 예보되며 체감온도는 더욱 낮아질 것으로 예상된다. 22일은 전국이 맑겠으나 기온 차가 15℃ 안팎으로 크므로 건강관리에 유의해야 한다.",
+   "summary_ai": true
+  },
+  {
+   "title": "\"출근길 겉옷 필수\"…낮부터 체감온도 급락[오늘날씨]",
+   "source": "이데일리",
+   "link": "https://news.google.com/rss/articles/CBMigAFBVV95cUxNS0ZQVXlwVXh3NW5ENUpQZFpsMl8tSzczY1N2SmZkblk3ZzlpMUN3SkxQZmYyV1JiRlktaGE5d0h3bVJlY0NoaHc2Skw5d1JUY0lJcGJrSHNsZkFYOXBNdTZYU3JIUTV6X0RfNHpWNlJaYkhYQmlTWlVkLVpNX1MxYg?oc=5",
+   "ts": "2026-10-21 05:00",
+   "tags": [
+    "오늘 날씨"
+   ],
+   "url": "https://www.edaily.co.kr/News/Read?newsId=01653126645615216&mediaCodeNo=257",
+   "summary": "21일은 오전 중 비가 대부분 그친 후 낮부터 기온이 크게 내려가고 전국에 강한 바람이 불겠다. 강원·호남·영남 지역에 10~60㎜의 강수가 예상되며, 순간풍속 시속 55㎞ 안팎의 강풍으로 체감온도가 더욱 낮아질 것으로 보인다. 해상에서는 풍랑특보 가능성이 있으니 주의가 필요하다.",
+   "summary_ai": true
+  },
+  {
+   "title": "[강원날씨]21일 오전까지 내륙·산지 중심 약하게 5㎜ 미만 비⋯강풍·풍랑 유의",
+   "source": "강원일보",
+   "link": "https://news.google.com/rss/articles/CBMiW0FVX3lxTE1ENUVacDlzMmJjVmU3RTIxVTRseW1LV0tsekNVRl8wT0pPOHAzMWVzU1djRHpDRjgyek15NDdxd3pEVDVEc3lPNV85U1NHb2FENXkwUFlzSGw3QXM?oc=5",
+   "ts": "2026-10-21 00:20",
+   "tags": [
+    "눈·바람·먼지",
+    "오늘 날씨"
+   ],
+   "url": "https://www.kwnews.co.kr/article/20261020501656",
+   "summary": "강원도는 21일 오전까지 내륙·산지 중심으로 5㎜ 미만의 약한 비가 내린다. 아침기온은 7~15도, 낮 최고기온은 12~21도이며, 강풍과 풍랑 예비특보가 발령됐다. 22일부터 기온이 급격히 내려가 대관령 영하 3도, 영서 내륙 0도까지 떨어질 것으로 예상된다.",
+   "summary_ai": true
+  },
+  {
+   "title": "[오늘의 날씨] 비 그치고 강한 바람…'가을 추위' 조심",
+   "source": "더팩트",
+   "link": "https://news.google.com/rss/articles/CBMiXEFVX3lxTE41cWxNZDR0ei1KdDhGeHBWd3hMczNHSTRFcmdhSC1XcmVMWUxLemp0VllIUlJ5b0tERy1NcDRCVW00aUxzbXFRQTBzUDNSSE9IYU0xR3V5ZG9FcWhS0gFcQVVfeXFMTjVxbE1kNHR6LUp0OEZ4cFZ3eExzM0dJNEVyZ2FILVdyZUxZTEt6anRWWUhSUnlvS0RHLU1wNEJVbTRpTHNtcVFBMHNQM1JIT0hhTTFHdXlkb0VxaFI?oc=5",
+   "ts": "2026-10-21 00:00",
+   "tags": [
+    "폭염·한파",
+    "오늘 날씨"
+   ],
+   "url": "https://m.tf.co.kr/amp/livingculture/2378655.htm",
+   "summary": "21일 오전 가을비가 그치고 전국이 맑아지겠으나, 쌀쌀한 날씨를 보이겠다. 서울 낮 최고기온 15도, 아침 최저기온 10~16도로 예상되며, 서해안과 제주도, 강원 산지·동해안을 중심으로 순간풍속 70km/h 이상의 강한 바람이 불겠다.",
+   "summary_ai": true
+  },
+  {
+   "title": "비가 왔는데도 가뭄이 이어지는 까닭",
+   "source": "비건뉴스",
+   "link": "https://news.google.com/rss/articles/CBMiZkFVX3lxTE50ZE5jX0dITzlXeld5dHdMVVJwZTdpQnBsRFl2aXVNdUYycGMzSTdjblp4eFNrMVotRU5hX3JSdmt4VWw5aVlQZ25WNUZwb1VoNGZYSC04R3A3UzVBSERwMURHdDdoQQ?oc=5",
+   "ts": "2026-10-20 23:46",
+   "tags": [
+    "농업·축산 기상"
+   ],
+   "url": "https://www.vegannews.co.kr/news/article.html?no=394756",
+   "summary": "비가 내려도 가뭄이 계속되는 이유는 강수량, 토양수분, 저수량이 서로 다른 지표이기 때문이다. 기상학적·농업적·수문학적 가뭄으로 구분되며, 내린 비가 토양에 스며들거나 증발하는 과정을 거치면서 저수지나 지하수 회복은 시간이 걸린다. 가뭄 해소 여부는 누적 강수량, 토양수분, 저수율, 하천 유량 등 종합적 지표를 확인해야 판단할 수 있다.",
+   "summary_ai": true
+  },
+  {
+   "title": "도쿄·나고야·오사카, 21일 30도 이상 예상…역대 가장 늦은 여름 날씨 가능성",
+   "source": "재팬코리아데일리",
+   "link": "https://news.google.com/rss/articles/CBMibEFVX3lxTFB1ZkllUWhrSU9YUXV2NFMyZ1h5dExNVzJCMjVLZ1EzSkpEaDA1Mk9NWGhtdm1CMXpBbGVqWUJfeF8yUFRQS2lMb2NsbkZfd0xNS1cxMHBwNTE1NUJWcF92RHhuTHRfX1pfclRKWA?oc=5",
+   "ts": "2026-10-20 18:15",
+   "tags": [
+    "기상 전망",
+    "오늘 날씨"
+   ],
+   "url": "https://www.jk-daily.co.kr/news/articleView.html?idxno=41876",
+   "summary": "일본의 도쿄, 나고야, 오사카에서 21일 최고기온이 30℃ 이상으로 올라 관측 사상 가장 늦은 시기에 30℃ 이상을 기록할 가능성이 있다. 남쪽에서 유입되는 따뜻한 공기의 영향으로 홋카이도부터 간토, 도카이 지역까지 최고기온이 전날보다 5℃ 이상 높아질 전망이다. 다만 21일 밤부터는 저기압과 전선 통과로 북쪽의 찬 공기가 유입되면서 기온이 급격히 떨어질 예상이다.",
+   "summary_ai": true
+  },
+  {
+   "title": "슈퍼엘니뇨發 이상기상 경고 나왔다…“11월 강수량 평년 2배 전망”",
+   "source": "농민신문",
+   "link": "https://news.google.com/rss/articles/CBMiWkFVX3lxTFB6bWNLNVFaTTNsUXlDRHQzLW0xLUtmeUdhZ211Wng1OV9MOWtLVlhJSFVwcHlaQmNUY1piZ2NvNlZ5QWNabjBxRmNRUG01aVJMMGJuTk1UcHpyUQ?oc=5",
+   "ts": "2026-10-20 16:30",
+   "tags": [
+    "농업·축산 기상",
+    "기상 전망"
+   ],
+   "url": "https://www.nongmin.com/article/20261019500725",
+   "summary": "올겨울 슈퍼 엘니뇨의 영향으로 11월 강수량이 평년의 2배에 달할 것으로 예상된다. 세계기상기구는 이번 엘니뇨가 1950년 이후 가장 강할 것으로 전망했으며, 습설로 인한 농업시설 피해가 우려된다. 농협중앙회는 배수로 정비와 시설물 보강을 사전에 진행할 것을 당부했다.",
+   "summary_ai": true
+  },
+  {
+   "title": "온열질환자 줄었는데 사망자는 왜 늘었나...\"집중된 폭염 영향 가능성↑\"",
+   "source": ":: 위즈경제 ::",
+   "link": "https://news.google.com/rss/articles/CBMiVEFVX3lxTE1MSFZPeGtTWkRESGZwYmRuVm5EOVNIU0xYQ2pxczZvekN3ZFExdWMyeXVtRWF2Vi1qN090R3NMV0JoQWlSTHp3UVU4SkFhVy1SZmpBaw?oc=5",
+   "ts": "2026-10-20 13:31",
+   "tags": [
+    "폭염·한파"
+   ],
+   "url": "https://wikyung.com/news/article?news=6362",
+   "summary": "올해 온열질환자는 4066명으로 지난해보다 8.8% 감소했으나, 추정 사망자는 29명에서 36명으로 증가했다. 7월 26일부터 8월 8일 사이 집중된 강한 폭염과 열대야가 영향을 미쳤으며, 특히 이 기간에 전체 사망자의 69.4%가 집중됐다. 전문가들은 주거 취약지역 냉방설비 지원 등 집 안으로 들어가는 방식의 폭염 대책 보완을 제안했다.",
    "summary_ai": true
   },
   {
@@ -84,158 +362,6 @@
    "summary_ai": true
   },
   {
-   "title": "[오늘날씨] 제주 최대 60㎜ 가을비…낮 최고 23도",
-   "source": "신아일보",
-   "link": "https://news.google.com/rss/articles/CBMicEFVX3lxTE5iaGtuN1FrSS00TGw4WWlzc0JxZFdlUjFDeU5vNGtoeVowTjgtSldpZXNIbmpOQ240ZWlYYTBxbjlWVU9yRlVRTndpSjhIdU04VXp5bENxMjRQcGgwWWk2ZXBPZVR2QWppdWlhdWM0ZXk?oc=5",
-   "ts": "2026-10-20 08:27",
-   "tags": [
-    "오늘 날씨"
-   ],
-   "url": "https://www.shinailbo.co.kr/news/articleView.html?idxno=5073547",
-   "summary": "20일 남부지방과 제주도를 중심으로 비가 내리며, 제주도는 최대 60㎜의 강수가 예상된다. 일부 지역에서는 21일까지 비가 이어질 것으로 보인다. 낮 최고기온은 19~23도로 평년과 비슷하거나 다소 높을 전망이다.",
-   "summary_ai": true
-  },
-  {
-   "title": "[오늘 날씨] 남부·제주 '가을비'…아침 최저 7도 '쌀쌀'",
-   "source": "서울뉴스통신",
-   "link": "https://news.google.com/rss/articles/CBMia0FVX3lxTE0yZGhmem1leGRGQWdHRWZMaXctZ2RMcWdFYzVldmphTVpVZzRQaUJuUng0MmQ2a29VcUlNVFJQVi1OX2VNcFlYNDdxNktMSGlJLUlyYXVqZDJZZmd4am5hc3dVd1dJQ2xqTXJr?oc=5",
-   "ts": "2026-10-20 08:25",
-   "tags": [
-    "오늘 날씨"
-   ],
-   "url": "http://www.snakorea.com/news/articleView.html?idxno=1057947",
-   "summary": "오늘은 남부지방과 제주도를 중심으로 비가 내리겠다. 아침 최저기온 7~19도, 낮 최고기온 19~22도로 평년과 비슷하겠다. 강수량은 광주·전남과 부산·울산·경남 20~60mm, 제주도 5~40mm(많은 곳 60mm 이상)일 것으로 예상된다.",
-   "summary_ai": true
-  },
-  {
-   "title": "제30호 초강력 태풍 ‘참피’ 북상…예상 경로 북쪽 틀어, 한국 영향은?",
-   "source": "위키트리",
-   "link": "https://news.google.com/rss/articles/CBMiVkFVX3lxTE5SQU5nWGtLNkdndVRnelJPNkVQM2ZmckpCWWVRVXlrdGZhWTNlS2RSeHpJQVpwQi1VaWVnRmRiT1ZMeGlvX2FHQ3EzV21JVEhOVmJqYlVn?oc=5",
-   "ts": "2026-10-20 08:09",
-   "tags": [
-    "호우·태풍",
-    "기상 전망",
-    "오늘 날씨"
-   ],
-   "url": "https://www.wikitree.co.kr/articles/1167514",
-   "summary": "제30호 태풍 '참피'가 북상하며 21일 초속 56m의 초강력 태풍으로 발달할 전망이다. 한국·일본 기상청은 대만 부근으로 이동할 것으로 예상하지만, 대만 기상청은 더 빠르게 북상해 제주도 남쪽 동중국해까지 올 가능성을 제시해 한반도 영향 여부가 주목된다. 국내에서는 20~21일 가을비가 내린 후 22일 아침 서울 기온이 4도까지 떨어질 전망이다.",
-   "summary_ai": true
-  },
-  {
-   "title": "[출근길 날씨] 오늘~내일, 곳곳 가을비…내일 낮부터 기온 뚝",
-   "source": "KBS 뉴스",
-   "link": "https://news.google.com/rss/articles/CBMiW0FVX3lxTE9GeVFNTGlhVVdlLWNMVlVkbUc1NEN3NVF3di1jSWdELTJ6V2xzVHJHcmsxNGpYUmpFQTNLMVNoczNoTGtaY0hGSzFPZ3hFZU52ZXRrRXZSMk5UNGM?oc=5",
-   "ts": "2026-10-20 08:00",
-   "tags": [
-    "오늘 날씨"
-   ],
-   "url": "https://news.kbs.co.kr/news/view.do?ncd=8689850",
-   "summary": "오늘부터 내일 새벽까지 충청과 남부지방을 중심으로 가을비가 내리겠습니다. 예상 강수량은 제주 산지 20~60mm, 남해안 10~50mm, 서울 등 기타 지역 5~20mm입니다. 내일 낮부터 기온이 급락해 서울 15도, 목요일 아침 4도까지 내려갈 것으로 예보됩니다.",
-   "summary_ai": true
-  },
-  {
-   "title": "[굿모닝 날씨]대구경북 5~20mm 비...내일 새벽까지 이어져",
-   "source": "Tbc.co.kr",
-   "link": "https://news.google.com/rss/articles/CBMihgFBVV95cUxNbjJkN0cwdE9CWTc2cmlIR29abVZHRm1GUmFmajNaZFdscDRpVzloamdJWjdUeWdvSTdxZmd0cTRTMjhobEc5blpqc2VKVGphOFBXa1poQWRzMHdVejY1T2I5QXl3NklDdER3dzVkSldfelA1SjRIa1dNOGJoNHlzTzFfMFNYZw?oc=5",
-   "ts": "2026-10-20 07:49",
-   "tags": [
-    "눈·바람·먼지",
-    "오늘 날씨"
-   ],
-   "url": "https://www.tbc.co.kr/news/view?pno=20261020073612AE07117&id=212324&c1=code&c2=",
-   "summary": "19일 밤부터 대구경북에 비가 내리고 있으며, 내일 새벽까지 이어질 것으로 예상된다. 대구와 경북 중·남부에 5~20mm, 경북북부와 울릉도·독도에 5mm 안팎의 강수량이 예상되며, 동해안과 울릉도·독도에는 강풍특보가 내려질 것으로 보인다. 오늘 대구의 낮기온은 20도 안팎으로 어제보다 1~2도 낮겠다.",
-   "summary_ai": true
-  },
-  {
-   "title": "[출근길 YTN 날씨 10/20] 오늘 남부·제주 중심 비...밤부터 수도권·강원 확대",
-   "source": "YTN",
-   "link": "https://news.google.com/rss/articles/CBMiXkFVX3lxTE1CQi1VQ3NjZmgzX0xTa3NZN2M3VWxfREpYMlZuLWFxanRGeXFPZXhVTU5xUzdxQktRaEJKc21WN2liUXIzamRVc0hhUDIzVEplY0FVQU5tbFZaVWw4Z0E?oc=5",
-   "ts": "2026-10-20 07:38",
-   "tags": [
-    "오늘 날씨"
-   ],
-   "url": "https://www.ytn.co.kr/_ln/0108_202610200738112383",
-   "summary": "20일 남부·제주 지역은 산발적인 비가 내리며 제주 산간에 최고 60mm, 남해안에 최고 50mm의 가을비가 예상된다. 중부지방은 구름만 많고 일교차가 크겠으나, 오후부터 충청에, 내일 새벽 중북부에도 비가 확대될 전망이다. 비가 그친 후에는 찬 공기가 유입되어 초겨울 같은 추위가 찾아올 예정이다.",
-   "summary_ai": true
-  },
-  {
-   "title": "[날씨-전남광주] 21일 비 그친 뒤 기온 뚝...강풍에 체감온도 낮아져",
-   "source": "뉴스프리존",
-   "link": "https://news.google.com/rss/articles/CBMic0FVX3lxTE54UXNabGJfZU1VVGVFalBlc2t6cXlmS2t1NFVtdHNIdEI3WEoycWh4VzFSQjZvdmQ5OXVtaTJKMXI4MlcxanhveEFlczdxS1pJdDZrS0Jfc0xIeENhaGRzTzdaenRWeEh0SVd3NTk4NFk4VjjSAXdBVV95cUxQVy1kbWpMeHFqZllwTHdod3hzN3FSM0pyd255eFl1RXRxWnJqWVJ2Z21zM0pVbDA5ZnRnSDBfNU1NUFJiYU5oSk5pOHZnY05LMlZ2TzJ2RUVwWk1DcE5FUzR4cUhWNzVtR1pwbklYQUhiMHVBV3p0bw?oc=5",
-   "ts": "2026-10-20 07:38",
-   "tags": [
-    "눈·바람·먼지",
-    "기상 전망",
-    "오늘 날씨"
-   ],
-   "url": "https://www.newsfreezone.co.kr/news/articleView.html?idxno=714816",
-   "summary": "20일부터 21일 새벽까지 전남광주에 10~50㎜의 비가 내린 후 북서쪽 찬 공기 유입으로 22일 아침 기온이 21일보다 5~10도 하락할 예정이다. 21일 새벽부터 전남 해안을 중심으로 시속 70㎞ 이상의 강풍이 불어 체감온도가 낮아지고, 서해남부와 남해서부 해상에는 높은 물결이 예상되어 시설물 관리와 해상안전에 주의가 필요하다.",
-   "summary_ai": true
-  },
-  {
-   "title": "오늘 날씨 10월 20일 – 일교차 10도 감기 주의, 겉옷 꼭 챙기세요 : 날씨",
-   "source": "재경일보",
-   "link": "https://news.google.com/rss/articles/CBMiS0FVX3lxTE1sQVJRNkU4OUNfYUN0a21ralZKQW45T21wS25ja2o0T3VVMXUybnZtdC1nNDNPc0F4WEd2NWFiS0h3NERfZnZoY2NKaw?oc=5",
-   "ts": "2026-10-20 07:30",
-   "tags": [
-    "오늘 날씨"
-   ],
-   "url": "https://news.jkn.co.kr/post/1035366",
-   "summary": "10월 20일 서울은 낮 최고 20도까지 오르지만 아침저녁 10도 안팎의 큰 일교차를 보이겠습니다. 수도권은 초미세먼지가 '나쁨' 수준이고 남부 지방�는 비가 내리겠으니 겉옷, 마스크, 우산을 챙겨야 합니다. 내일부터 기온이 급강하하며 모레 아침 최저 4.9도의 초겨울급 추위가 예상됩니다.",
-   "summary_ai": true
-  },
-  {
-   "title": "[오늘의 날씨 및 내일날씨]30호 태풍 참피에 대만 비상,오늘 남부지방/제주도 중심 비, 내일 아침 중부지방 비, 강풍/풍랑 유의!",
-   "source": "뉴스잡",
-   "link": "https://news.google.com/rss/articles/CBMiZ0FVX3lxTFBSMm9zSzFXWXI2aGlxNURrejVXdHZwSVplcVgwY09YUU9nV3JuWFpRZF9vOUNGaXhuTXpBWF9rdWtxaHRLaFZZZEFkNFJLTWljUm4zRHNUVkE4M1laQm9rdTBaRHloaEnSAWtBVV95cUxNY2s3Q0xUQWRiNC1XTnNCdGdkZEtxaDhVRWFhc0p0TVJ5TlFFczNQMzRlaGVWOGQxMjNia0h2VW1hRTQyZS1GeGV5MzBHaS1BYU9TMWZmdFMxNGdOSmpDSHRCN3QwUXpDYmZxbw?oc=5",
-   "ts": "2026-10-20 07:11",
-   "tags": [
-    "호우·태풍",
-    "눈·바람·먼지",
-    "오늘 날씨"
-   ],
-   "url": "http://www.newsjob.kr/news/articleView.html?idxno=238829",
-   "summary": "30호 태풍 참피는 대만에 접근 중이며 한반도는 별다른 영향을 받지 않을 것으로 예상된다. 오늘(20일) 남부지방과 제주도 중심으로 비가 내리고, 내일(21일) 새벽부터 중부지방까지 비가 확대되겠다. 내일 새벽부터 강풍과 풍랑특보 가능성이 있으니 각별히 유의해야 한다.",
-   "summary_ai": true
-  },
-  {
-   "title": "30호 태풍 참피 괌→일본→타이완 간다…세기 어느 정도?",
-   "source": "아주경제",
-   "link": "https://news.google.com/rss/articles/CBMiWEFVX3lxTE5KMnNJbFhzLV9maUN5ZnVOa280eWpwOVN6cXNBR0xZYjR0RV9fNU1BbW5DQnJGM2R6ejlsemUyQlg0UTVrR2t4M0xYVngzdWt3NDM0OHhBVVPSAVhBVV95cUxOSjJzSWxYcy1fZmlDeWZ1TmtvNHlqcDlTenFzQUdMWWI0dEVfXzVNQW1uQ0JyRjNkeno5bHplMkJYNFE1a0dreDNMWFZ4M3VrdzQzNDh4QVVT?oc=5",
-   "ts": "2026-10-20 07:07",
-   "tags": [
-    "호우·태풍"
-   ],
-   "url": "https://www.ajunews.com/amp/20261020062725101",
-   "summary": "30호 태풍 '참피'는 20일 오전 기준 괌 서북서쪽 약 900㎞ 해상에서 중심기압 920hPa, 최대풍속 초속 53m/s의 강도 4 수준으로 이동 중이다. 향후 일본 오키나와 남쪽을 거쳐 타이완으로 향할 것으로 예상되며, 기상청은 한반도로 향하지 않을 것으로 보인다고 밝혔다. 올해 30번째 태풍으로 한 해 30개 이상 발생은 2013년 이후 처음이다.",
-   "summary_ai": true
-  },
-  {
-   "title": "오늘 산지 중심 비 20~60mm··내일부터 강풍·풍랑 주의",
-   "source": "제주MBC",
-   "link": "https://news.google.com/rss/articles/CBMiT0FVX3lxTE03U3NwaVJMYzZwRkZsZ2N4T1U5ajM5MEFZbHFXR2thWG5jbXgzVmZPaFJVQjNDaVdmc05OMndyVVdEaFBCYTZYTkhkN19ZZXM?oc=5",
-   "ts": "2026-10-20 06:25",
-   "tags": [
-    "눈·바람·먼지"
-   ],
-   "url": "https://jejumbc.com/NewsArticle/868348",
-   "summary": "오늘 정체전선의 영향으로 제주에서 시작해 전국으로 비가 확대되며, 제주 산지·중산간에 20~60mm, 그 외 지역에 5~40mm의 강수가 예상된다. 내일부터는 대부분 지역에서 순간풍속 20m 이상의 강풍이 불고 해상에서는 물결이 최대 3.5m로 높아져 강풍·풍랑 특보가 내려질 가능성이 높다.",
-   "summary_ai": true
-  },
-  {
-   "title": "인천, 대부분 지역서 일교차 10도 안팎",
-   "source": "뉴시스",
-   "link": "https://news.google.com/rss/articles/CBMieEFVX3lxTE1GOTMxcVIyVEMzY2p2ZnJLMDQ3ckVMWTRVNmJSa1ZfWHpuWUw5SEVuWWpnQ3luaExJOUhQMVRPV0hUd2tDSU12NE1KSnhkTk01WllfMjR4Z19Gck96TWxnM2hrenV3akhyamdlQmFkSmk0b3AzM19iS9IBeEFVX3lxTE1GOTMxcVIyVEMzY2p2ZnJLMDQ3ckVMWTRVNmJSa1ZfWHpuWUw5SEVuWWpnQ3luaExJOUhQMVRPV0hUd2tDSU12NE1KSnhkTk01WllfMjR4Z19Gck96TWxnM2hrenV3akhyamdlQmFkSmk0b3AzM19iSw?oc=5",
-   "ts": "2026-10-20 05:01",
-   "tags": [
-    "기상 전망",
-    "오늘 날씨"
-   ],
-   "url": "https://mobile.newsis.com/view_amp.html?ar_id=NISX20261019_0003832237",
-   "summary": "20일 인천은 대부분 지역에서 일교차가 10도 이상으로 벌어질 것으로 예보됐다. 아침 최저기온은 7~13도, 낮 최고기온은 19~21도로 분포하겠으며, 하늘은 가끔 구름 많다가 늦은 오후부터 흐리겠다. 미세먼지 농도는 좋음 수준이다.",
-   "summary_ai": true
-  },
-  {
    "title": "출근길 경기 내륙 안개…모레 아침 경기 북동부 영하권[오늘날씨]",
    "source": "한국대학신문",
    "link": "https://news.google.com/rss/articles/CBMiZkFVX3lxTE9sSDRfX0pDQjZUTDZzZy1SMmxQQUVtZl9fWFNvY0FYczFaVlFpSFlzTDVuVF8wend4LUVOOEFObm15OE9tQnJDRmNleWhtODRPMVdGS09JYmo3VEJ5RUlvSUtQZGxadw?oc=5",
@@ -247,33 +373,6 @@
    ],
    "url": "https://news.unn.net/news/articleView.html?idxno=598891",
    "summary": "오늘 경기 내륙에 아침까지 안개가 끼며, 수도권은 종일 구름이 많고 밤에 경기 남부에 빗방울이 내린다. 내일 낮부터 찬바람이 불며 기온이 떨어져 모레 아침 경기 북동부 등에서 영하권 추위가 나타날 전망이며, 내일 새벽부터 서해안과 제주도, 강원 산지·동해안을 중심으로 매우 강한 바람이 불겠다.",
-   "summary_ai": true
-  },
-  {
-   "title": "[내일날씨] 중부 구름많고 남부 비…전남·경남 최대 60㎜, 제주 산지 60㎜ 이상",
-   "source": "톱스타뉴스",
-   "link": "https://news.google.com/rss/articles/CBMickFVX3lxTFB0bjdEaWdldGtXb2o5RTlyVjJHQnk4R0JURnlhM3VUVXZrT1h6TzVDSjZXQ056eVZUNEo4R2N1WWlYVXZEQ0RpakZzTDAxVGduZGpXbUVYVDU1M28zOW5XZVg5TDZiVTdFcGVrMmp2SHRNUQ?oc=5",
-   "ts": "2026-10-19 21:35",
-   "tags": [
-    "기상 전망",
-    "오늘 날씨"
-   ],
-   "url": "https://www.topstarnews.net/news/articleView.html?idxno=16251864",
-   "summary": "20일 중부지방은 구름이 많겠으나, 남부지방과 제주도는 정체전선의 영향으로 흐리고 비가 내리겠다. 광주·전남과 부산·울산·경남의 강수량은 20~60㎜, 제주 산지는 60㎜ 이상으로 예상된다. 기온은 아침 최저 7~19도, 낮 최고 19~22도로 예보됐다.",
-   "summary_ai": true
-  },
-  {
-   "title": "[날씨/XR] 추위 부르는 가을비…수요일 낮부터 '쌀쌀'",
-   "source": "SBS 뉴스",
-   "link": "https://news.google.com/rss/articles/CBMiZkFVX3lxTE9RV3ZNbGpUSTctX0Q1UDJlS3MxVFBEUk9TNWFwTU5UeVVZVVlhVHV5bVhENUQwTHRsclB3NjhNcVB6MlFQMXRyTXhSVnlzemFZVVdYUmgyMlRjUHMxMF90bHBLYmVwQdIBZkFVX3lxTE9RV3ZNbGpUSTctX0Q1UDJlS3MxVFBEUk9TNWFwTU5UeVVZVVlhVHV5bVhENUQwTHRsclB3NjhNcVB6MlFQMXRyTXhSVnlzemFZVVdYUmgyMlRjUHMxMF90bHBLYmVwQQ?oc=5",
-   "ts": "2026-10-19 21:10",
-   "tags": [
-    "폭염·한파",
-    "눈·바람·먼지",
-    "오늘 날씨"
-   ],
-   "url": "https://news.sbs.co.kr/amp/news.amp?news_id=N1008805009",
-   "summary": "오늘부터 모레까지 전국에 비가 내리면서 날이 급격히 추워진다. 전남과 경남에 최고 60mm의 비가 예상되고 모레 새벽부터 강풍이 불겠다. 수요일 낮부터 금요일까지 올가을 들어 가장 추운 날씨가 이어질 예정으로 보온에 주의가 필요하다.",
    "summary_ai": true
   },
   {
@@ -317,69 +416,6 @@
    "summary_ai": true
   },
   {
-   "title": "검단소방서, 주말 기습 폭우ㆍ강풍에 따른 풍수해 현장 대응 - FPN-소방방재신문",
-   "source": "FPN-소방방재신문",
-   "link": "https://news.google.com/rss/articles/CBMiREFVX3lxTE1VdHI0OU5fQ1JKaUxuWm9BRU90Z3FVVmg1RHBIekxoOVdTZVktM0xwREJIUjRKOWhBdWVwclQ1NXlSU2FG?oc=5",
-   "ts": "2026-10-19 13:00",
-   "tags": [
-    "호우·태풍",
-    "눈·바람·먼지"
-   ],
-   "url": "http://www.fpn119.co.kr/258047",
-   "summary": "검단소방서는 지난 18일 인천 지역에 발효된 호우·강풍 특보에 따라 풍수해 현장 안전조치 활동을 펼쳤다. 시간당 강한 비와 거센 바람이 몰아치는 가운데 소방대는 침수 우려 지역 배수 지원, 도로의 쓰러진 수목 제거, 위험 시설물 고정 등의 작업을 통해 시민 안전을 확보했다.",
-   "summary_ai": true
-  },
-  {
-   "title": "지붕 뜯기고 가로수 쓰러져... 전국 강풍·폭우 피해 잇따라",
-   "source": "한국재난뉴스",
-   "link": "https://news.google.com/rss/articles/CBMiakFVX3lxTFAtT1NMdl84UkJlV0ZpbE40Y3lWUERmM0ZIcVpiaENCV3VidHE3cjBOV09YVlRTU1VVODdOaDRtQm1iUFJmX2pubEkwVXpwQXE4T041Y1k0VVRHU253eHFfcGhuRGRRYTYwY3c?oc=5",
-   "ts": "2026-10-19 10:56",
-   "tags": [
-    "호우·태풍",
-    "눈·바람·먼지"
-   ],
-   "url": "https://www.hjnews.co.kr/news/articleView.html?idxno=24959",
-   "summary": "18일 상층 기압골의 영향으로 전국에 태풍급 강풍과 시간당 50mm 안팎의 폭우가 내렸다. 수도권과 중부지방을 중심으로 지붕 파손, 도로 침수, 가로수 전도 등 230여 건의 피해가 발생했으며, 인천국제공항 등에서 40편 이상 항공편이 결항했다.",
-   "summary_ai": true
-  },
-  {
-   "title": "[날씨] 내일 동해안 비...남부 폭염특보 속 소나기 / 연합뉴스TV (YonhapnewsTV) Apple Iphone 18 Pro (iY9BiGUNCd)",
-   "source": "Unisba Media",
-   "link": "https://news.google.com/rss/articles/CBMiggFBVV95cUxPcXJTaDB5RnM5Y1loS1JlQVVLSnlGNUxBOTFsMHpzUmRYQ01ob0ZtSGhWVy1kWVl2WV9HVklGcVY0MHVLYkRJTmhpWmR5YjFETGc1cXlKQjlzRTVBNkpReE4yN2tKbmFEMWVmZlRHSzVkOWVlYmd4ejZyMU1Ya1VndGdn?oc=5",
-   "ts": "2026-10-19 10:36",
-   "tags": [
-    "폭염·한파",
-    "오늘 날씨"
-   ],
-   "url": "https://media.unisba.ac.id/c8031a6b/f6e7c4e5afIWwrtl4cY/?share=telegram&nb=1"
-  },
-  {
-   "title": "보령시, 겨울철 대설·한파 대비 방재단과 대응체계 점검",
-   "source": "www.gukjenews.com",
-   "link": "https://news.google.com/rss/articles/CBMibkFVX3lxTFBxUWRTTnJZek1rMFQ4T2s1bUxIYUFQYmp5OE4yX0NDdl9lTHVHd3E5UjR6Smc1azI5Z0lGMHEwUUJqdUQ4aFFfcExicVVzVjRwd1R2VWYxRlFXMXBfaS1EN2EzR19SbXB0M0gzbTNn?oc=5",
-   "ts": "2026-10-19 10:22",
-   "tags": [
-    "폭염·한파",
-    "눈·바람·먼지"
-   ],
-   "url": "https://www.gukjenews.com/news/articleView.html?idxno=3725223",
-   "summary": "보령시는 577명의 방재단원으로 구성된 민관 협력 체계를 통해 11월 15일부터 내년 3월 15일까지 겨울철 대설·한파에 대비한다. 상습 결빙지역과 제설 취약구간을 사전 점검하고, 특보 발효 시 신속한 현장 대응과 제설 지원을 강화하며, 독거노인 등 재난취약계층 보호와 한파쉼터 점검을 추진할 방침이다.",
-   "summary_ai": true
-  },
-  {
-   "title": "[내일 날씨] 남부에 비 소식.. 태풍 '참피' 강도 4 세력으로 북상",
-   "source": "이코리아",
-   "link": "https://news.google.com/rss/articles/CBMib0FVX3lxTFBBbENBTnVIdG8xMDdiVXlGOXRCSVVlNVhzZnlyOHR2WTdtekxkRnZONkVLZHVVWFpJN3BlT2NLMHg1NkNBdjlZU3dCVWN5T1BoU01zNGVxMEQ2M21mZXRFUUlnQTZPM1owalNjbjlxVQ?oc=5",
-   "ts": "2026-10-19 10:11",
-   "tags": [
-    "호우·태풍",
-    "오늘 날씨"
-   ],
-   "url": "https://www.ekoreanews.co.kr/news/articleView.html?idxno=88699",
-   "summary": "20일 남부지방과 제주도에는 비가 내리겠다. 비는 새벽부터 전남·경남·제주도에서 시작해 오후에 전북·경북으로 확대되며, 강수량은 지역별로 5~40㎜로 예상된다. 아침 최저기온 7~17도, 낮 최고기온 20~23도로 평년과 비슷하겠으며, 태풍 '참피'는 강도 4의 세력으로 북상 중이다.",
-   "summary_ai": true
-  },
-  {
    "title": "군포, 주중 아침 최저 4도…낮 기온 오르며 큰 일교차",
    "source": "군포시민신문",
    "link": "https://news.google.com/rss/articles/CBMiQ0FVX3lxTE5Yb2E1b3lLVnlrUFVoeW1VUXVjSXA4M3BselpDZFlabUxkWmFyWkFlWlNMdlBkblppNzJHUVJzbFl3ODQ?oc=5",
@@ -390,19 +426,6 @@
    ],
    "url": "http://mediagunpo.co.kr/21972",
    "summary": "죄송하지만, 제공하신 기사 본문에는 회사소개, 약관, 기자 소개 등의 정보만 포함되어 있고, 실제 날씨 기사 내용이 없습니다. 제목에만 \"군포, 주중 아침 최저 4도…낮 기온 오르며 큰 일교차\"라고 되어 있습니다.\n\n기사의 본문 내용(지역, 기간, 기온, 강수량, 특보 등)을 제공해 주시면 요약해드리겠습니다.",
-   "summary_ai": true
-  },
-  {
-   "title": "[오늘 날씨] 낮부터 가끔 구름...북상하는 태풍 진로와 이번 주 주간예보는?",
-   "source": "헤드라인제주",
-   "link": "https://news.google.com/rss/articles/CBMic0FVX3lxTE1GS212aU0zUEVyUVFSNnd1TXpteFlCTzZSU3N5OGFpUWNZSHRCcGhFdjN5N1gzTmJnLVFCQmdTbHU0Wm91RkRBTWU0eVpqancybGh1VGV5ZjVsZ1R6UjlkRmt1UWQyeENTMVd6dm9EZmZNSzQ?oc=5",
-   "ts": "2026-10-19 06:05",
-   "tags": [
-    "호우·태풍",
-    "오늘 날씨"
-   ],
-   "url": "https://www.headlinejeju.co.kr/news/articleView.html?idxno=600632",
-   "summary": "19일 중부지방은 가끔 구름 많고, 남부지방과 제주도는 대체로 흐리며 비가 내리다 오후부터 그칠 전망이다. 제주도 산지에 30~80mm, 중산간·해안지역에 10~60mm의 강수가 예상되며, 기온은 평년과 비슷하거나 조금 높겠다. 북상 중인 제30호 태풍 '참피'는 23일 대만 근처까지 접근할 것으로 보이나 이후 진로는 유동적이다.",
    "summary_ai": true
   },
   {
