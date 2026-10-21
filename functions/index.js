@@ -985,3 +985,57 @@ exports.sendDirectSms = onCall({ secrets: [SMS_RELAY_URL, SMS_RELAY_SECRET], tim
   await writeLog({ ok: "unknown", error: errText });
   throw new HttpsError("deadline-exceeded", "발송 결과를 확인하지 못했습니다 — 이미 발송됐을 수 있으니 받는 분께 먼저 확인한 뒤 다시 보내세요.");
 });
+
+// 뉴스 검색 RSS 대신 읽기 — 브라우저에서 쓰던 공개 RSS→JSON 변환 서비스(rss2json 등)가 막히거나
+// CORS 프록시가 자주 죽어 「AI 관련 소식 · 새 소식 추가」 검색이 실패해서, 서버에서 직접 읽는다.
+// 구글 뉴스·빙 뉴스 검색 RSS 주소만 허용(아무 주소나 대신 읽어 주는 프록시가 되지 않게), 한 번에 6개까지.
+// 공개 뉴스 검색이라 로그인은 요구하지 않는다(무료 탭의 「최신 연구되는 질병」도 쓴다).
+const RSS_ALLOWED_HOSTS = ["news.google.com", "www.bing.com"];
+function rssDecode(t) {
+  return String(t || "").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'")
+    .replace(/&#(\d+);/g, (m, n) => String.fromCharCode(+n)).replace(/&amp;/g, "&");
+}
+function parseRssItems(xml) {
+  const items = [];
+  const re = /<item>([\s\S]*?)<\/item>/g;
+  let m;
+  while ((m = re.exec(xml))) {
+    const b = m[1];
+    const tag = (t) => {
+      const x = new RegExp("<" + t + "(?: [^>]*)?>([^]*?)</" + t + ">").exec(b);
+      return x ? x[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").trim() : "";
+    };
+    const d = new Date(tag("pubDate"));
+    items.push({
+      title: rssDecode(tag("title")),
+      link: rssDecode(tag("link")),
+      pubDate: isNaN(d) ? "" : d.toISOString(),
+      description: rssDecode(tag("description")),
+      author: rssDecode(tag("source")),
+    });
+  }
+  return items;
+}
+exports.fetchRssItems = onCall({ timeoutSeconds: 30 }, async (request) => {
+  const { urls } = request.data || {};
+  if (!Array.isArray(urls) || !urls.length || urls.length > 6) {
+    throw new HttpsError("invalid-argument", "urls는 1~6개여야 합니다.");
+  }
+  const results = await Promise.all(urls.map(async (u) => {
+    try {
+      const url = new URL(String(u));
+      if (url.protocol !== "https:" || !RSS_ALLOWED_HOSTS.includes(url.hostname)) {
+        return { error: "허용되지 않은 주소" };
+      }
+      const res = await fetch(url, {
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; pb-dashboard)", "Accept": "application/rss+xml, application/xml, text/xml, */*" },
+        signal: AbortSignal.timeout(12000),
+      });
+      if (!res.ok) return { error: "HTTP " + res.status };
+      return { items: parseRssItems(await res.text()).slice(0, 15) };
+    } catch (e) {
+      return { error: String((e && e.message) || e).slice(0, 120) };
+    }
+  }));
+  return { results };
+});

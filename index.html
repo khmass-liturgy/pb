@@ -5243,6 +5243,37 @@ async function publishHpaiNews(items, opts){
 // 채워진다.
 let hpaiSearchState = { status:"idle", query:"", results:[] };
 
+async function fetchRssViaFunction(urls){
+  if(typeof firebaseReady === "undefined" || !firebaseReady) return null;
+  const fn = firebase.app().functions().httpsCallable("fetchRssItems", { timeout: 25000 });
+  const res = await fn({ urls });
+  return (res.data && res.data.results) || null;
+}
+function parseRssXml(xml){
+  const doc = new DOMParser().parseFromString(xml, "text/xml");
+  const txt = (el, tag) => { const n = el.getElementsByTagName(tag)[0]; return n ? (n.textContent || "").trim() : ""; };
+  return Array.from(doc.getElementsByTagName("item")).slice(0, 15).map(it => {
+    const d = new Date(txt(it, "pubDate"));
+    return { title:txt(it, "title"), link:txt(it, "link"), pubDate:isNaN(d) ? "" : d.toISOString(), description:txt(it, "description"), author:txt(it, "source") };
+  });
+}
+async function fetchRssFallback(rssUrl){
+  try {
+    return await Promise.any(CORS_PROXIES.map(async mk => {
+      const resp = await fetchWithTimeout(mk(rssUrl), 8000);
+      if(!resp.ok) throw new Error("HTTP " + resp.status);
+      const tx = await resp.text();
+      if(!/<item[ >]/.test(tx)) throw new Error("항목 없음");
+      return parseRssXml(tx);
+    }));
+  } catch(e){
+    const resp = await fetchWithTimeout(RSS2JSON + "?rss_url=" + encodeURIComponent(rssUrl) + "&count=10", 12000);
+    if(!resp.ok) throw new Error("HTTP " + resp.status);
+    const data = await resp.json();
+    if(data.status !== "ok") throw new Error(data.message || "검색 오류");
+    return data.items || [];
+  }
+}
 // 여러 검색 RSS를 합쳐 최근 days일 이내 기사를 최신순·중복 제거로 돌려준다.
 // AI 관련 소식 관리 폼과 양계질병 탭의 "최신 연구되는 질병"이 함께 쓴다.
 async function fetchPortalNews(q, days){
@@ -5259,13 +5290,15 @@ async function fetchPortalNews(q, days){
       { label:"방역·농가(구글)", rss: gn(q + " 방역 농가") },
       { label:"축산(빙)", rss: bn(q + " 축산 양계") },
     ];
-    const settled = await Promise.allSettled(feeds.map(async f => {
-      const url = RSS2JSON + "?rss_url=" + encodeURIComponent(f.rss) + "&count=10";
-      const resp = await fetchWithTimeout(url, 12000);
-      if(!resp.ok) throw new Error("HTTP " + resp.status);
-      const data = await resp.json();
-      if(data.status !== "ok") throw new Error(data.message || "검색 오류");
-      return (data.items || []).map(item => {
+    // ① 서버(Cloud Function fetchRssItems)가 직접 읽는 것이 가장 안정적이다 — 공개 RSS→JSON 서비스(rss2json)는
+    // 막히고 CORS 프록시는 자주 죽는다. ② 함수가 없거나 실패하면 CORS 프록시로 XML을 받아 직접 해석하고,
+    // ③ 그것도 안 되면 예전 rss2json 방식을 마지막으로 시도한다.
+    let viaFn = null;
+    try { viaFn = await fetchRssViaFunction(feeds.map(f => f.rss)); } catch(e){ console.warn("fetchRssItems 실패 — 프록시로 대체:", e); }
+    const settled = await Promise.allSettled(feeds.map(async (f, fi) => {
+      const fr = viaFn && viaFn[fi];
+      const rawItems = (fr && !fr.error) ? (fr.items || []) : await fetchRssFallback(f.rss);
+      return rawItems.map(item => {
         let title = (item.title || "").replace(/<[^>]+>/g, "").trim();
         let source = item.author || "";
         // 구글뉴스 제목은 "기사제목 - 매체명" 꼴이라 매체명을 떼어 따로 보여준다.
