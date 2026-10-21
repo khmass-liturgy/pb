@@ -132,7 +132,7 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
 .log li span{min-width:0}
 
 /* 모달 */
-.modal{position:fixed;inset:0;z-index:100;background:#3A365888;display:flex;align-items:center;justify-content:center;
+.modal{position:fixed;inset:0;z-index:1000;background:#3A365888;display:flex;align-items:center;justify-content:center;
   padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
 .sheet{background:var(--card);border:3px solid var(--ink);border-radius:24px;box-shadow:0 7px 0 var(--ink);padding:18px;width:100%;max-width:520px;max-height:100%;overflow:auto;display:flex;flex-direction:column;gap:12px;animation:pop .35s}
 .sheet h2{font-size:23px}
@@ -189,7 +189,7 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
 .rep{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .rep .stat .v{font-size:21px}
 .fb{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:14px}
-.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(30px);background:var(--ink);color:#fff;border-radius:14px;padding:8px 14px;font-size:14px;opacity:0;transition:.3s;z-index:120;max-width:calc(100% - 32px)}
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(30px);background:var(--ink);color:#fff;border-radius:14px;padding:8px 14px;font-size:14px;opacity:0;transition:.3s;z-index:1200;max-width:calc(100% - 32px)}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 @media (prefers-reduced-motion:reduce){
   .cloud,.hen.walk .l1,.hen.walk .l2,.hen.walk .bodyg,.hen .eye,.particle{animation:none}
@@ -436,7 +436,7 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
 </div>
 
 <div class="modal" id="modal" hidden><div class="sheet" id="sheet" role="dialog" aria-modal="true"></div></div>
-<div class="modal" id="modal2" hidden style="z-index:110"><div class="sheet" id="sheet2" role="dialog" aria-modal="true"></div></div>
+<div class="modal" id="modal2" hidden style="z-index:1100"><div class="sheet" id="sheet2" role="dialog" aria-modal="true"></div></div>
 <div class="toast" id="toast"></div>
 
 <script>
