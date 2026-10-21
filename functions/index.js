@@ -614,21 +614,21 @@ exports.getFarmGameSaves = onCall(async (request) => {
     return { save };
   }
   const [files] = await bucket.getFiles({ prefix });
-  const saves = [];
-  for (const file of files) {
-    const parts = file.name.split("/"); // premium_board/farmgame/{uid}/{nickKey}/save.json
-    if (parts.length !== 5 || parts[4] !== "save.json") continue;
+  // 저장 칸이 많아도(이전엔 하나씩 차례로 내려받아 칸이 늘면 30초를 넘겼다) 한꺼번에 읽고, 최근 40칸까지만 돌려준다.
+  const saveFiles = files.filter((file) => { const parts = file.name.split("/"); return parts.length === 5 && parts[4] === "save.json"; });
+  const rows = await Promise.all(saveFiles.map(async (file) => {
     const s = await readJson(file);
-    if (!s) continue;
+    if (!s) return null;
     const g = s.game || {};
-    saves.push({
-      nickKey: parts[3], nickname: String(s.nickname || ""), savedAt: String(s.savedAt || ""),
+    return {
+      nickKey: file.name.split("/")[3], nickname: String(s.nickname || ""), savedAt: String(s.savedAt || ""),
       mode: String(g.mode || ""), day: Number(g.day) || 0, done: !!g.done,
       money: typeof g.money === "number" ? Math.round(g.money) : null,
-    });
-  }
+    };
+  }));
+  const saves = rows.filter(Boolean);
   saves.sort((a, b) => b.savedAt.localeCompare(a.savedAt));
-  return { saves };
+  return { saves: saves.slice(0, 40) };
 });
 
 exports.getBoardPosts = onCall(async (request) => {
