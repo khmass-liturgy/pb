@@ -41,8 +41,11 @@ service firebase.storage {
         // 사진 용량 제한(15MB) — index.html 쪽 제한(MAX_PHOTO_MB)과 별개로
         // 서버 쪽에서도 한 번 더 막는다.
         allow read: if isOwner(uid) || isAdmin();
-        allow write: if (isOwner(uid) || isAdmin())
+        // 삭제는 request.resource가 없어 크기 검사를 쓸 수 없다 — 따로 허용한다
+        // (예전엔 한 줄 write라 삭제가 막혀, 닭 키우기 저장 삭제가 안 됐다).
+        allow create, update: if (isOwner(uid) || isAdmin())
           && request.resource.size < 15 * 1024 * 1024;
+        allow delete: if isOwner(uid) || isAdmin();
       }
     }
 
