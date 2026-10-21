@@ -1028,11 +1028,17 @@ exports.fetchRssItems = onCall({ timeoutSeconds: 30 }, async (request) => {
         return { error: "허용되지 않은 주소" };
       }
       const res = await fetch(url, {
-        headers: { "User-Agent": "Mozilla/5.0 (compatible; pb-dashboard)", "Accept": "application/rss+xml, application/xml, text/xml, */*" },
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+          "Accept": "application/rss+xml, application/xml, text/xml, */*;q=0.8",
+          "Accept-Language": "ko-KR,ko;q=0.9,en;q=0.5",
+        },
         signal: AbortSignal.timeout(12000),
       });
-      if (!res.ok) return { error: "HTTP " + res.status };
-      return { items: parseRssItems(await res.text()).slice(0, 15) };
+      const body = await res.text();
+      if (!res.ok) return { error: "HTTP " + res.status, debug: body.slice(0, 160) };
+      const items = parseRssItems(body).slice(0, 15);
+      return items.length ? { items } : { error: "결과 없음", debug: body.slice(0, 160) };
     } catch (e) {
       return { error: String((e && e.message) || e).slice(0, 120) };
     }
