@@ -792,6 +792,8 @@ const GST_DEF=JSON.parse(JSON.stringify(GSTAGES));
 const COSTS_DEF={broiler:{feed:3000,water:1000,vent:5000,litter:40000,supp:10000,rat:5000},layer:{feed:3000,water:2000,vent:12000,litter:60000,supp:10000,rat:5000}};   // 버튼 한 번당 비용(원)
 const COSTS={broiler:Object.assign({},COSTS_DEF.broiler),layer:Object.assign({},COSTS_DEF.layer)};
 // 급이 버튼 한 번의 가격 = 선택한 사료 종류의 가격(원). 육계: 전기 3,000 · 중기 4,000 · 후기 3,000. 산란계는 같은 틀로 육추·육성 3,000 / 산란 준비·전기 4,000 / 후기 3,000.
+const VAX={broiler:[],layer:[]};                 // 관리자가 백신관리 카드에서 가져온 접종 일정(게임 단위: 육계=일령, 산란계=주령)
+const VAX_COST_DEF={broiler:30000,layer:50000},VAX_COST={broiler:30000,layer:50000};
 const CURE_BONUS={broiler:100000,layer:100000};   // 질병 퀴즈 치료 성공 보너스(원) — 관리자가 조정
 const FEED_PRICE_DEF={broiler:{pre:3000,grow:4000,fin:3000},layer:{brood:3000,grow:3000,pre:4000,peak:4000,late:3000}};
 const FEED_PRICE={broiler:Object.assign({},FEED_PRICE_DEF.broiler),layer:Object.assign({},FEED_PRICE_DEF.layer)};
@@ -823,6 +825,10 @@ function applyCfg(cfg){
         from:isFinite(x.from)?+x.from:1,to:isFinite(x.to)?+x.to:MODES[m].maxDay,on:x.on!==false});
     });
     COSTS[m]=Object.assign({},COSTS_DEF[m]);
+    VAX[m]=(Array.isArray(c.vaccines)?c.vaccines:[]).filter(x=>x&&x.on!==false&&x.name&&isFinite(x.day)&&+x.day>=1&&+x.day<=MODES[m].maxDay)
+      .map((x,i)=>({k:String(x.k||('v'+i)).slice(0,24),age:String(x.age||'').slice(0,24),day:Math.round(+x.day),name:String(x.name).slice(0,60),method:String(x.method||'').slice(0,24),note:String(x.note||'').slice(0,60),src:String(x.src||'').slice(0,40)}))
+      .sort((a,b)=>a.day-b.day);
+    {const v=+c.vaccineCost;VAX_COST[m]=isFinite(v)&&v>=0&&v<=10000000?Math.round(v):VAX_COST_DEF[m]}
     {const v=+c.cureBonus;CURE_BONUS[m]=isFinite(v)&&v>=0&&v<=10000000?Math.round(v):100000}
     FEED_PRICE[m]=Object.assign({},FEED_PRICE_DEF[m]);
     if(c.feedPrices)Object.keys(FEED_PRICE_DEF[m]).forEach(id=>{const v=+c.feedPrices[id];if(isFinite(v)&&v>=0&&v<=1000000)FEED_PRICE[m][id]=Math.round(v)});
@@ -872,6 +878,16 @@ function showDiseaseQuiz(forced,preview){
 }
 /* ── 게임 관리(관리자 전용): 구간별 질병 발생 구간·빈도, 사양관리 포인트 ── */
 const isAdm=()=>{try{return !!(CLOUD&&CLOUD.isAdmin&&CLOUD.isAdmin())}catch(e){return false}};
+function vxRowHtml(x,u,max){
+  return `<div class="stg vxr"><div class="row2"><label><input type="checkbox" data-vx="on" ${x.on!==false?'checked':''}> 사용</label>
+    <input type="number" min="1" max="${max}" data-vx="day" value="${x.day}"> ${u}
+    <input type="text" data-vx="name" maxlength="60" value="${escH(x.name||'')}" placeholder="백신·약품 이름" style="flex:1;min-width:120px">
+    <button class="btn prev" type="button" data-vxdel>삭제</button></div>
+    <div class="row2"><input type="text" data-vx="age" maxlength="24" value="${escH(x.age||'')}" placeholder="카드 일령(참고)" style="width:110px">
+    <input type="text" data-vx="method" maxlength="24" value="${escH(x.method||'')}" placeholder="방법(음수·분무…)" style="width:120px">
+    <input type="text" data-vx="note" maxlength="60" value="${escH(x.note||'')}" placeholder="비고" style="flex:1;min-width:90px"></div>
+    <input type="hidden" data-vx="src" value="${escH(x.src||'')}"><input type="hidden" data-vx="k" value="${escH(x.k||'')}"></div>`;
+}
 function czHtml(z,u,max){
   const inf=k=>escH((z.info.find(r=>r[0]===k)||[,''])[1]);
   return `<div class="stg cz"><div class="row2"><label><input type="checkbox" data-cz="on" ${z.on!==false?'checked':''}> 사용</label>
@@ -906,6 +922,12 @@ function openAdmin(){
    <p class="note">질병 퀴즈를 맞혀 치료에 성공하면 이 금액(원)을 받아요.</p>
    <p class="note">🌾 급이 버튼 가격은 사료 종류마다 달라요(원).</p>
    <div class="row2">${FEEDS[m].map(f=>`<label>${f.name} <input type="number" min="0" max="1000000" step="500" data-fp="${f.id}" value="${FEED_PRICE[m][f.id]}" style="width:86px"></label>`).join('')}</div>
+   <h3>💉 백신 프로그램</h3>
+   <p class="note">백신관리의 백신 카드(프로그램)를 가져와 일정으로 써요. 해당 ${u}가 되면 게임에서 「백신」 버튼으로 접종하고, 제때 맞출수록 질병이 줄어요.</p>
+   <div class="row2"><label>접종비(1회) <input type="number" min="0" max="10000000" step="5000" data-vxcost value="${VAX_COST[m]}" style="width:100px"></label></div>
+   <div id="admVxPick" class="note">백신 카드를 불러오는 중…</div>
+   <div id="admVx">${VAX[m].map(x=>vxRowHtml(x,u,max)).join('')}</div>
+   <button class="btn" type="button" id="admVxAdd">+ 접종 행 추가</button>
    <h3>➕ 질병 추가</h3>
    <p class="note">새 질병을 만들면 위 질병과 함께 구간 안에서 무작위로 나와요. 설명은 간단하게, 약 이름·용량은 쓰지 마세요.</p>
    <div id="admCz">${DZ[m].filter(z=>z.custom).map(z=>czHtml(z,u,max)).join('')}</div>
@@ -919,6 +941,33 @@ function openAdmin(){
    <div class="admbar"><div class="gmsg" id="gmsg" role="status"></div>
    <div class="row"><button class="btn primary" type="button" id="admSave">저장·발행</button><button class="btn" type="button" id="admReset">기본값으로</button><button class="btn" type="button" id="gClose">닫기</button></div></div></div>`);
   $('#gClose').addEventListener('click',closeModal);
+  const vxAdd=(x)=>{const d=document.createElement('div');d.innerHTML=vxRowHtml(x,u,max);$('#admVx').appendChild(d.firstElementChild)};
+  $('#admVxAdd').addEventListener('click',()=>vxAdd({day:1,on:true}));
+  $('#admVx').addEventListener('click',e=>{const b=e.target.closest('[data-vxdel]');if(b)b.closest('.vxr').remove()});
+  (async()=>{
+    const box=$('#admVxPick');
+    try{
+      const programs=((await CLOUD.getVaccinePrograms()).programs||[]).filter(pg=>pg.species===m);
+      if(!programs.length){box.textContent='이 축종에 등록된 백신 카드가 없어요. (백신관리 메뉴에서 먼저 만들어 주세요)';return}
+      box.innerHTML=`<b>백신 카드에서 가져오기</b><div style="display:flex;flex-direction:column;gap:4px;margin:4px 0">${programs.map(pg=>`<label><input type="checkbox" data-vxprog="${escH(pg.key)}"> ${escH(pg.title)} <small>(${(pg.schedule||[]).length}행)</small></label>`).join('')}</div>
+        <button class="btn" type="button" id="admVxImport">선택한 카드 가져오기</button> <span id="admVxMsg"></span>`;
+      $('#admVxImport').addEventListener('click',()=>{
+        const picked=[...box.querySelectorAll('[data-vxprog]:checked')].map(c=>programs.find(pg=>pg.key===c.dataset.vxprog)).filter(Boolean);
+        if(!picked.length){$('#admVxMsg').textContent='가져올 카드를 선택해 주세요.';return}
+        const have=new Set([...document.querySelectorAll('#admVx [data-vx="k"]')].map(i=>i.value));
+        let added=0,skipped=0;
+        picked.forEach(pg=>(pg.schedule||[]).forEach((r,i)=>{
+          const k=pg.key+':'+i,days=CLOUD.ageDays(r.age);
+          if(days==null||!r.vaccine){skipped++;return}
+          if(have.has(k))return;
+          const day=m==='layer'?(days<=0?1:Math.ceil(days/7)):(days<=0?1:Math.round(days));
+          vxAdd({k,on:true,day:Math.min(max,Math.max(1,day)),age:String(r.age||''),name:String(r.vaccine||''),method:String(r.method||''),note:String(r.note||''),src:pg.title});
+          added++;
+        }));
+        $('#admVxMsg').textContent=`${added}행 가져왔어요${skipped?` (일령을 알 수 없는 ${skipped}행은 건너뜀)`:''}. 아래에서 고친 뒤 저장·발행하세요.`;
+      });
+    }catch(e){box.textContent='백신 카드를 불러오지 못했어요: '+(e.message||e)}
+  })();
   $('#admAddDz').addEventListener('click',()=>{
     const d=document.createElement('div');d.innerHTML=czHtml({icon:'🤒',name:'',signs:'',info:[],q:'',right:'',wrong:['',''],why:'',from:1,to:max,on:true},u,max);
     $('#admCz').appendChild(d.firstElementChild);
@@ -967,9 +1016,18 @@ function openAdmin(){
     for(const k of ['water','vent','litter','supp','rat']){const v=+$(`[data-cost="${k}"]`).value;if(!(v>=0&&v<=1000000))throw new Error('버튼 비용은 0~1,000,000원 사이로 적어 주세요.');costs[k]=Math.round(v)}
     const feedPrices={};
     for(const f of FEEDS[m]){const v=+$(`[data-fp="${f.id}"]`).value;if(!(v>=0&&v<=1000000))throw new Error('사료 가격은 0~1,000,000원 사이로 적어 주세요.');feedPrices[f.id]=Math.round(v)}
+    const vaccines=[...document.querySelectorAll('#admVx .vxr')].map(r=>{
+      const g=k=>r.querySelector(`[data-vx="${k}"]`).value.trim();
+      const o={k:g('k')||('m'+Math.random().toString(36).slice(2,8)),on:r.querySelector('[data-vx="on"]').checked,day:+g('day'),name:g('name'),age:g('age'),method:g('method'),note:g('note'),src:g('src')};
+      if(!o.name)throw new Error('백신 행의 이름을 적어 주세요.');
+      if(!(o.day>=1&&o.day<=max))throw new Error(`${o.name}: ${u}는 1~${max} 사이로 적어 주세요.`);
+      return o;
+    });
+    const vaccineCost=+$('[data-vxcost]').value;
+    if(!(vaccineCost>=0&&vaccineCost<=10000000))throw new Error('접종비는 0~10,000,000원 사이로 적어 주세요.');
     const cureBonus=+$('[data-bonus]').value;
     if(!(cureBonus>=0&&cureBonus<=10000000))throw new Error('치료 보너스는 0~10,000,000원 사이로 적어 주세요.');
-    return {diseaseWeight:+$('#admW').value,diseases,stages,custom,costs,feedPrices,cureBonus:Math.round(cureBonus)};
+    return {diseaseWeight:+$('#admW').value,diseases,stages,custom,costs,feedPrices,cureBonus:Math.round(cureBonus),vaccines,vaccineCost:Math.round(vaccineCost)};
   };
   const publish=async(section,okMsg)=>{
     gmsg('저장 중…',true);
@@ -991,7 +1049,11 @@ function maybeEvent(){
   const p=S.mode==='broiler'?.16:.24;
   if(rnd()>p) return null;
   const pool=[];
-  EVENTS.filter(e=>e.modes.includes(S.mode)&&e.when(S)&&!(S.fx[e.id]>0)).forEach(e=>{const n=e.id==='disease'?DZ_WEIGHT[S.mode]:1;for(let i=0;i<n;i++)pool.push(e)});
+  const vp=vaxProtection();
+  EVENTS.filter(e=>e.modes.includes(S.mode)&&e.when(S)&&!(S.fx[e.id]>0)).forEach(e=>{
+    let n=e.id==='disease'?DZ_WEIGHT[S.mode]:1;
+    if(e.id==='disease'&&n>0){if(rnd()<vp.prot)n=0;else if(vp.missed>0)n+=1}     // 백신: 제때 맞춘 만큼 질병 감소 / 놓치면 증가
+    for(let i=0;i<n;i++)pool.push(e)});
   return pool.length?pool[Math.floor(rnd()*pool.length)]:null;
 }
 
@@ -1020,6 +1082,44 @@ function buildFlock(n){
 function visibleCount(){return Math.max(1,Math.round(7*S.alive/S.birds0))}
 /* ── 쥐 ──
    하루/한 주를 보낼 때 가끔 나타나(S.rat), 병아리들을 놀라게 하고 사료를 축낸다. 쥐약 버튼(₩5,000)으로 퇴치. */
+/* ── 백신 프로그램 ──
+   관리자가 가져온 일정(VAX)의 일령/주령이 되면 「💉 백신」 버튼이 노랗게 깜박이고, 눌러서 접종(비용)한다.
+   제때 맞출수록 질병 발생 확률이 줄고, 안 맞추면 오히려 늘어난다. */
+const vaxList=()=>VAX[S.mode]||[];
+function vaxPending(){if(!S)return[];S.vaxDone=S.vaxDone||{};return vaxList().filter(x=>x.day<=S.day&&!S.vaxDone[x.k])}
+function vaxNext(){if(!S)return null;S.vaxDone=S.vaxDone||{};return vaxList().find(x=>x.day>S.day&&!S.vaxDone[x.k])||null}
+function vaxProtection(){      // 0 ~ .5 : 이미 지난 일정 중 제때(2차례 안) 맞춘 비율
+  const due=vaxList().filter(x=>x.day<=S.day);if(!due.length)return{prot:0,missed:0};
+  let credit=0,missed=0;
+  due.forEach(x=>{const d=S.vaxDone&&S.vaxDone[x.k];if(d)credit+=(d.at<=x.day+2)?1:.5;else if(S.day>x.day+2)missed++});
+  return{prot:.5*credit/due.length,missed};
+}
+function vaxCheck(){           // 하루/한 주를 보낸 뒤: 새로 도래한 접종 알림
+  const u=S.mode==='layer'?'주령':'일령';
+  S.vaxSeen=S.vaxSeen||{};
+  const fresh=vaxPending().filter(x=>!S.vaxSeen[x.k]);
+  if(!fresh.length)return;
+  fresh.forEach(x=>{S.vaxSeen[x.k]=true;addLog(`💉 ${x.day}${u} 접종일: ${x.name}${x.method?' ('+x.method+')':''}`)});
+  toast('💉 백신 접종일이에요! 오른쪽 「백신」 버튼을 눌러요');
+}
+function showVaccine(){
+  const items=vaxPending(),cost=VAX_COST[S.mode],u=S.mode==='layer'?'주령':'일령';
+  if(!items.length){toast('지금 맞출 백신이 없어요');return}
+  openModal(`<div class="ev-icon">💉</div><h2>백신 접종</h2><p class="note">정해진 ${u}에 맞출수록 병에 덜 걸려요. 1회 접종비 ${won(cost)}이에요. 실제 백신 사용·용법은 제품 설명서와 수의사 지시를 따르세요.</p>
+   <div style="display:flex;flex-direction:column;gap:8px">${items.map(x=>`<div class="result" style="display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap">
+     <div style="min-width:0"><b>${x.day}${u} · ${escH(x.name)}</b><br><small>${escH([x.method,x.note,x.src].filter(Boolean).join(' · '))}</small>${x.day<S.day?`<br><small style="color:var(--bad)">${S.day-x.day}${S.mode==='layer'?'주':'일'} 늦었어요</small>`:''}</div>
+     <button class="btn primary" type="button" data-vx="${escH(x.k)}">접종하기 ${won(cost)}</button></div>`).join('')}</div>
+   <button class="btn" type="button" id="vxClose">닫기</button>`);
+  $('#vxClose').addEventListener('click',closeModal);
+  $('#sheet').querySelectorAll('[data-vx]').forEach(b=>b.addEventListener('click',()=>{
+    const it=items.find(x=>x.k===b.dataset.vx);if(!it||(S.vaxDone&&S.vaxDone[it.k]))return;
+    S.vaxDone=S.vaxDone||{};S.vaxDone[it.k]={at:S.day};
+    S.money-=cost;S.tot.other+=cost;S.health=clamp(S.health-1,0,100);
+    addLog(`💉 ${it.name} 접종 (${won(cost)})`);burst('💉',3);toast('접종했어요! 면역이 올라가요');
+    render();autosave();
+    if(vaxPending().length)showVaccine();else closeModal();
+  }));
+}
 let ratGhost=null;      // 퇴치되는 쥐의 마지막 모습(잠깐 보여 주기)
 function ratStep(){
   if(!S||S.done)return;
@@ -1170,8 +1270,9 @@ function renderActs(){
     +(S.mode==='layer'?`<button type="button" class="act" data-act="calc" style="--lv:${S.ctrl.calcium?100:0}%" aria-label="칼슘 보충 ${S.ctrl.calcium?'켜짐':'꺼짐'}"><span class="r"><span class="em">🥚</span>칼슘</span><small>${S.ctrl.calcium?'켜짐':'꺼짐'}</small></button>`:'')
     +`<button type="button" class="act sel${fcur!==frec?' low':''}" data-act="feedsel" style="--lv:0%" aria-label="사료 종류 선택, 지금 ${FL[fcur].name}"><span class="r"><span class="em">🥣</span>사료</span><small>${FL[fcur].name.replace(' 사료','')}</small></button>`
     +`<button type="button" class="act" data-act="supp" style="--lv:${S.suppOn?100:0}%;--gc:#CFE8FF" aria-label="영양제 주기 ${won(COSTS[S.mode].supp)}"><span class="r"><span class="em">💊</span>영양제</span><small>${S.suppOn?'급여함':won(COSTS[S.mode].supp)}</small></button>`
+    +(vaxPending().length?`<button type="button" class="act low" data-act="vax" style="--lv:0%" aria-label="백신 접종"><span class="r"><span class="em">💉</span>백신</span><small>${vaxPending().length}건</small></button>`:'')
     +(S.rat?`<button type="button" class="act low" data-act="rat" style="--lv:0%" aria-label="쥐약 놓기 ${won(COSTS[S.mode].rat)}"><span class="r"><span class="em">🐭</span>쥐약</span><small>${won(COSTS[S.mode].rat)}</small></button>`:'');
-  el.classList.toggle('dense',!!S.rat);
+  el.classList.toggle('dense',!!S.rat||vaxPending().length>0);
   const pop=$('#fdpop');
   if(pop){
     pop.hidden=!fdOpen||!!S.done;
@@ -1184,6 +1285,7 @@ function doAct(k){
   if(k==='feedsel'){fdOpen=!fdOpen;renderActs();return}
   if(k==='calc'){S.ctrl.calcium=S.ctrl.calcium?0:1;toast(S.ctrl.calcium?'칼슘 보충을 켰어요 (주 ₩14,000)':'칼슘 보충을 껐어요');render();autosave();return}
   const cost=btnCost(k);
+  if(k==='vax'){showVaccine();return}
   if(k==='rat'){if(!S.rat){toast('지금은 쥐가 없어요');return}S.money-=cost;S.tot.other+=cost;killRat();burst('🐭',3);toast('쥐약을 놓았어요! 쥐를 퇴치했어요 🐭💨');addLog(`🐭 쥐약으로 쥐를 퇴치했어요 (${won(cost)})`);render();autosave();return}
   if(k==='supp'){if(S.suppOn){toast('이번 차례에는 이미 영양제를 줬어요');return}S.suppOn=true;S.health=clamp(S.health+5,0,100);S.money-=cost;S.tot.other+=cost;burst('💊',3);toast('영양제를 줬어요 · 스트레스를 덜 받아요');render();autosave();return}
   if(k==='litter'){if(S.litter>=98){toast('깔짚이 이미 보송해요');return}S.litter=clamp(S.litter+35,0,100);S.ammonia=clamp(S.ammonia-10,0,60);burst('✨',3);toast('새 깔짚을 깔았어요')}
@@ -1275,6 +1377,13 @@ function wxTip(){
   if(WX.max-WX.min>=10)t.push('일교차가 커요 — 호흡기 관리');
   return t.join(' · ');
 }
+function vaxLine(d,u){
+  if(!S||!vaxList().length)return '';
+  const pend=vaxPending(),nx=vaxNext();
+  if(pend.length)return `<div class="gwx" style="background:#FFF3C4">💉 <b>접종 대기 ${pend.length}건</b> · ${escH(pend[0].name)} — 오른쪽 「백신」 버튼</div>`;
+  if(nx)return `<div class="gwx" style="background:#E8F0FF">💉 다음 백신 · ${nx.day}${u} ${escH(nx.name)} (${nx.day-S.day}${S.mode==='layer'?'주':'일'} 뒤)</div>`;
+  return `<div class="gwx" style="background:#E8F0FF">💉 백신 일정을 모두 마쳤어요</div>`;
+}
 function renderGuide(){
   const el=$('#guide');if(!el||!S)return;
   const lay=S.mode==='layer',d=Math.max(1,S.day+1),u=lay?'주령':'일령';
@@ -1296,6 +1405,7 @@ function renderGuide(){
   }).join('');
   el.innerHTML=`<div class="gline"><b class="ttl">📋 환경</b><span title="권장 온도 ${e.lo}~${e.hi}℃">🌡️ <b class="num">${e.t}℃</b></span><span class="sep">|</span>💧 <b class="num">${e.rh[0]}~${e.rh[1]}%</b>${lay?`<span class="sep">|</span>💡 <b class="num">${e.light}시간</b>`:''}</div>
    ${wx}
+   ${vaxLine(d,u)}
    <details class="gpts"><summary>✅ ${S.done?'':d+u+' '+g.name+' · '}${g.pts.join(' · ')}</summary><ul class="pts">${g.pts.map(t=>`<li>${t}</li>`).join('')}</ul></details>
    <details><summary>${lay?'주령':'일령'}별 권장표 보기</summary><table class="gt"><thead><tr><th>구간</th><th>온도</th><th>습도</th>${lay?'<th>점등</th>':''}</tr></thead><tbody>${rows}</tbody></table>
    <p style="margin:6px 0 0;font-size:12px;color:var(--muted)">교육용 참고값이에요. 실제 농장은 품종 관리지침과 사료회사·수의사 기준을 따르세요.${lay?` 점등은 ${d>=18?'주 1시간씩 늘려 16시간까지':d>=7?'육성기에는 10시간 유지':'점점 줄여 10시간까지'}.`:''}</p></details>`;
@@ -1379,7 +1489,7 @@ $('#btnNext').addEventListener('click',()=>{
   setTimeout(()=>{
     const prevH=S.health;
     if(S.mode==='broiler')stepBroiler();else stepLayer();
-    ratStep();
+    ratStep();vaxCheck();
     render();
     scene.classList.remove('night');
     burst(S.health>=prevH?'♥':'💧',S.health>=prevH?4:2);
