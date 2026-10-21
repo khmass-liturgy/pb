@@ -34,7 +34,7 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
 .top{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .brand{display:flex;align-items:center;gap:8px}
 .brand svg{width:38px;height:38px}
-.brand h1{font-size:24px;letter-spacing:.5px}
+.brand h1{font-size:24px;letter-spacing:.5px;max-width:9em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .brand small{display:block;font-size:12px;color:var(--muted);font-family:var(--f-body)}
 .iconbtn{border:2px solid var(--ink);background:var(--card);border-radius:14px;padding:6px 10px;font-family:var(--f-display);font-size:14px;box-shadow:0 3px 0 var(--ink)}
 .iconbtn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
@@ -343,7 +343,7 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
   <header class="top">
     <div class="brand">
       <svg viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="60" height="60" rx="16" fill="#FFE08A" stroke="#3A3658" stroke-width="3"/><circle cx="32" cy="36" r="17" fill="#FFD84D" stroke="#3A3658" stroke-width="3"/><path d="M26 20q3-8 6 0q3-8 6 0" fill="#FF7F6E" stroke="#3A3658" stroke-width="2.5"/><circle cx="26" cy="34" r="2.6" fill="#3A3658"/><circle cx="38" cy="34" r="2.6" fill="#3A3658"/><path d="M29 39l3 4 3-4z" fill="#F39A2B" stroke="#3A3658" stroke-width="2" stroke-linejoin="round"/><ellipse cx="22" cy="40" rx="3" ry="2" fill="#FF9F9F"/><ellipse cx="42" cy="40" rx="3" ry="2" fill="#FF9F9F"/></svg>
-      <div><h1>꼬꼬 농장</h1><small id="subtitle">병아리부터 닭까지, 우리 농장 경영기</small></div>
+      <div style="min-width:0"><h1 id="brandName">꼬꼬 농장</h1><small id="subtitle">병아리부터 닭까지, 우리 농장 경영기</small></div>
     </div>
     <div class="row" style="flex:none">
       <button class="iconbtn" id="btnNick" type="button">🐥 닉네임</button>
@@ -1484,6 +1484,7 @@ const CLOUD=(()=>{try{return window.parent!==window&&window.parent.farmGameCloud
 const escH=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nickErr=n=>!n?'닉네임을 입력해 주세요.':n.length<2||n.length>12?'닉네임은 2~12자로 지어 주세요.':!/^[가-힣A-Za-z0-9_]+$/.test(n)?'한글·영문·숫자·밑줄(_)만 쓸 수 있어요.':'';
 function renderNick(){
+  const bn=$('#brandName');if(bn){bn.textContent=NICK||'꼬꼬 농장';bn.title=NICK||''}
   if(S&&$('#sign'))$('#sign').textContent=signText();
   $('#btnNick').textContent=NICK?'🐥 '+NICK:'🐥 닉네임';
   const nl=$('#nickline');
