@@ -4227,7 +4227,8 @@ function authDialog(cfg){
     catch(err){ say(cfg.errMsg(err)); }
     ok.disabled = false;
   });
-  form.elements.email.focus();
+  try { const saved = localStorage.getItem("pb_login_email"); if(saved && !form.elements.email.value) form.elements.email.value = saved; } catch(e){}
+  (form.elements.password && form.elements.email.value ? form.elements.password : form.elements.email).focus();
 }
 
 function premiumSignInEmail(){
@@ -4250,7 +4251,35 @@ function premiumSignInEmail(){
 
 function premiumSignOut(){
   if(!firebaseReady) return;
+  try { localStorage.setItem("pb_manual_logout", "1"); localStorage.removeItem("pb_logged_in"); } catch(e){}
   firebase.auth().signOut();
+}
+
+// ── 로그인이 자꾸 풀릴 때를 위한 보강 ──────────────────────────────────────
+// Firebase 로그인은 이 기기의 브라우저 저장소(IndexedDB)에 남는데, 카카오톡·네이버 같은 앱 안 브라우저나
+// 저장 공간이 부족할 때·사파리의 7일 규칙처럼 브라우저가 그 저장소를 지우면 서버 문제가 아니어도 로그아웃된다.
+// ① 저장소를 지우지 않게 요청(navigator.storage.persist) ② LOCAL 저장을 명시 ③ 앱 안 브라우저면 안내
+// ④ 예전에 로그인했는데 지금 풀렸다면 이유를 알려 주고 아이디를 미리 채워 준다.
+function pbInAppBrowser(){
+  const ua = navigator.userAgent || "";
+  if(/KAKAOTALK/i.test(ua)) return "카카오톡";
+  if(/NAVER\(inapp|NAVER\/|; wv\)/i.test(ua) && /NAVER/i.test(ua)) return "네이버";
+  if(/Instagram/i.test(ua)) return "인스타그램";
+  if(/FBAN|FBAV/i.test(ua)) return "페이스북";
+  if(/Line\//i.test(ua)) return "라인";
+  if(/DaumApps/i.test(ua)) return "다음";
+  return "";
+}
+function pbKeepLogin(user){
+  try {
+    localStorage.setItem("pb_logged_in", user.email || "1");
+    localStorage.removeItem("pb_manual_logout");
+    if(user.email) localStorage.setItem("pb_login_email", user.email);
+  } catch(e){}
+  try { if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{}); } catch(e){}
+}
+if(firebaseReady){
+  try { firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(e => console.warn("로그인 저장 방식 설정 실패:", e)); } catch(e){}
 }
 
 // 비밀번호를 잊었을 때 — 관리자가 비밀번호를 알거나 바꿔줄 방법이 없으므로
@@ -4275,6 +4304,11 @@ if(firebaseReady){
     const prevUid = premiumState.user ? premiumState.user.uid : null;
     premiumState.user = user;
     premiumState.authChecked = true;
+    if(user){ pbKeepLogin(user); premiumState.lostLogin = ""; }
+    else {
+      // 처음 확인했는데 로그인 기록은 있고 직접 로그아웃한 적이 없다면 = 브라우저가 로그인 정보를 지운 것
+      try { if(!prevUid && localStorage.getItem("pb_logged_in") && !localStorage.getItem("pb_manual_logout")) premiumState.lostLogin = localStorage.getItem("pb_logged_in"); } catch(e){}
+    }
     // 명부는 계정마다 다르게 오므로(관리자 전체/회원 본인만) 계정이 바뀌면 새로 읽는다.
     if((user ? user.uid : null) !== prevUid){
       premiumApprovedGen++;
@@ -27712,6 +27746,14 @@ function pfBind(){
   pfBindCharts();
 }
 
+function renderPremiumLoginHints(){
+  const app = pbInAppBrowser();
+  const lost = premiumState.lostLogin ? `<div style="background:#FFF8E1;border:1px solid #FFE082;border-radius:10px;padding:10px 12px;font-size:12px;color:#6b5400;line-height:1.7;margin-bottom:12px;text-align:left">
+      🔔 <b>로그인이 풀렸어요.</b> 이 기기의 브라우저가 저장된 로그인 정보를 지운 것 같아요${app ? ` (지금 ${esc(app)} 앱 안 브라우저로 보고 계세요)` : ""}. 아이디는 <b>${esc(premiumState.lostLogin === "1" ? "" : premiumState.lostLogin)}</b>${premiumState.lostLogin === "1" ? "(저장됨)" : ""}로 다시 로그인해 주세요.</div>` : "";
+  const inapp = app ? `<div style="background:#E3F2FD;border:1px solid #BBDEFB;border-radius:10px;padding:10px 12px;font-size:12px;color:#0D47A1;line-height:1.7;margin-bottom:12px;text-align:left">
+      ℹ️ ${esc(app)} 안에서 열면 앱을 닫을 때 로그인 정보가 지워져 <b>자주 로그아웃</b>돼요. 오른쪽 위 메뉴(⋮ / 공유)에서 <b>「다른 브라우저로 열기」</b>를 눌러 크롬·사파리·삼성 인터넷으로 여시면 계속 유지돼요.</div>` : "";
+  return lost + inapp;
+}
 function renderPremiumTab(){
   // Firebase 설정이 아직 안 된 경우(콘솔에서 FIREBASE_CONFIG 값을 안 넣은 상태)
   if(!firebaseReady){
@@ -27734,6 +27776,7 @@ function renderPremiumTab(){
       <div style="font-size:30px;margin-bottom:10px">🔒</div>
       <div class="display" style="font-size:15px;margin-bottom:8px">승인된 회원만 이용할 수 있습니다</div>
       <div style="font-size:12px;color:#888;margin-bottom:20px;line-height:1.7">010-9150-8844로 가입 문의 문자를 보내 주시면 안내 후 유료회원 아이디·비밀번호를 발급하여 전달해 드립니다.<br>전달받은 아이디(이메일)·비밀번호로 로그인해 주세요.<br>로그인 후에도 관리자 승인 전까지는 상담·진단·컨설팅 내용을 볼 수 없습니다.</div>
+      ${renderPremiumLoginHints()}
       <div style="display:flex;gap:14px;justify-content:center;align-items:center;flex-wrap:wrap;margin-bottom:14px">
         <button id="btn-premium-email" style="border:1px solid #1a2744;border-radius:10px;background:#fff;color:#1a2744;padding:12px 24px;font-size:13px;font-weight:600">🔑 아이디/비밀번호 로그인</button>
       </div>
