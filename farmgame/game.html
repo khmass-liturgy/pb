@@ -47,7 +47,7 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
 @media (max-width:520px){.hud{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 /* 장면 */
-.scene{position:relative;width:100%;aspect-ratio:16/10;max-width:100%;border-radius:24px;overflow:hidden;border:3px solid var(--ink);box-shadow:0 6px 0 var(--ink);
+.scene{position:relative;width:100%;aspect-ratio:4/3;max-width:100%;border-radius:24px;overflow:hidden;border:3px solid var(--ink);box-shadow:0 6px 0 var(--ink);
   background:repeating-linear-gradient(90deg,var(--wood) 0 46px,var(--wood2) 46px 49px)}
 .window{position:absolute;left:8%;top:7%;width:30%;height:30%;border:5px solid #FFF8EC;border-radius:14px;overflow:hidden;background:linear-gradient(#9FDCF1,#DFF5FB);box-shadow:inset 0 0 0 3px #C88F5C}
 .window::before,.window::after{content:"";position:absolute;background:#FFF8EC;z-index:3}
@@ -233,18 +233,16 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
 .adm .dzr{display:flex;gap:6px;align-items:center;flex-wrap:wrap;background:var(--soft);border-radius:10px;padding:6px 8px}
 .adm .dzr b{flex:1;min-width:120px}
 
-.acts{position:absolute;right:2%;top:21%;display:flex;flex-direction:column;gap:4px;z-index:200}
-.act{width:56px;border:2px solid var(--ink);border-radius:14px;background:#FFFFFFEE;box-shadow:0 3px 0 var(--ink);padding:2px 2px 3px;font-family:var(--f-display);font-size:11px;line-height:1.1;display:flex;flex-direction:column;align-items:center;gap:0;cursor:pointer}
+.acts{position:absolute;right:2%;top:17%;display:flex;flex-direction:column;gap:4px;z-index:200}
+.act{width:56px;background:linear-gradient(to top,var(--gc,#BFE8B8) var(--lv,0%),#FFFFFFEE var(--lv,0%));border:2px solid var(--ink);border-radius:14px;background:#FFFFFFEE;box-shadow:0 3px 0 var(--ink);padding:2px 2px 3px;font-family:var(--f-display);font-size:11px;line-height:1.1;display:flex;flex-direction:column;align-items:center;gap:0;cursor:pointer}
 .act .r{display:flex;align-items:center;gap:2px}
 .act .em{font-size:14px}
 .act small{font-size:9.5px;color:var(--muted);font-family:inherit}
-.act .g{width:84%;height:4px;border-radius:3px;background:#DDD;overflow:hidden;margin-top:1px}
-.act .g i{display:block;height:100%}
 .acts[hidden]{display:none}
 .act:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+@keyframes actblink{50%{outline:3px solid #FF7F6E88;outline-offset:1px}}
 .act.low{animation:actblink 1s infinite}
-@keyframes actblink{50%{background:#FFE0DA}}
-@media (prefers-reduced-motion:reduce){.act.low{animation:none;background:#FFE0DA}}
+@media (prefers-reduced-motion:reduce){.act.low{animation:none;outline:3px solid #FF7F6E88;outline-offset:1px}}
 
 .window{transition:background .8s}
 .window .fx{position:absolute;inset:0;pointer-events:none;z-index:2;opacity:0;transition:opacity .8s}
@@ -268,6 +266,16 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
 @keyframes snowfall{to{background-position:6px 15px}}
 @keyframes flash{0%,92%,100%{filter:none}94%{filter:brightness(2.2)}96%{filter:none}98%{filter:brightness(1.8)}}
 @media (prefers-reduced-motion:reduce){.window .fx{animation:none!important}}
+
+.scene{aspect-ratio:4/3}
+@media (max-width:560px){.scene{aspect-ratio:1/1}}
+.sbar{position:absolute;left:2%;right:2%;bottom:3%;display:flex;gap:6px;align-items:stretch;z-index:200}
+.sctl{display:flex;align-items:center;gap:4px;background:#FFFFFFEE;border:2px solid var(--ink);border-radius:14px;padding:3px 6px;box-shadow:0 3px 0 var(--ink);font-family:var(--f-display);font-size:12px;line-height:1.1}
+.sctl>div{white-space:nowrap}
+.sctl small{display:block;font-size:10px;color:var(--muted);font-family:inherit}
+.sctl button{width:28px;height:28px;border:2px solid var(--ink);border-radius:9px;background:var(--straw);font-size:16px;line-height:1;padding:0}
+.sctl output{min-width:40px;text-align:center;font-size:14px}
+.sbar .gobtn{flex:1;width:auto;padding:6px 8px;font-size:15px;white-space:nowrap;border-radius:14px;border-width:2px;box-shadow:0 4px 0 var(--ink)}
 </style>
 </head>
 <body>
@@ -339,6 +347,7 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
       <div id="flock"></div>
       <div class="nest" id="nest" hidden></div>
       <div class="acts" id="acts"></div>
+      <div class="sbar"><div class="sctl" id="sbarCtl"></div><button class="gobtn" id="btnNext" type="button">하루 보내기 🌙</button></div>
       <div class="nightveil"></div><div class="moon"></div><div class="zzz">쿨쿨… 💤</div>
     </div>
 
@@ -353,7 +362,6 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
       </div>
       <h2>오늘의 관리</h2>
       <div class="ctrls" id="ctrls"></div>
-      <button class="gobtn" id="btnNext" type="button">하루 보내기 🌙</button>
       <div class="cloudnote" id="cloudnote" role="status"></div>
     </div>
 
@@ -689,7 +697,7 @@ const DZ_RANGE={
  layer:{'전염성기관지염(IB)':[4,40],'뉴캐슬병':[4,40],'대장균증':[8,40],'마이코플라즈마(만성호흡기병)':[8,40],'산란저하증후군(EDS)':[18,40],'닭 응애(닭진드기)':[8,40]}
 };
 const GST_DEF=JSON.parse(JSON.stringify(GSTAGES));
-const COSTS_DEF={broiler:{feed:2000,water:1000,vent:5000},layer:{feed:4000,water:2000,vent:12000}};   // 버튼 한 번당 비용(원)
+const COSTS_DEF={broiler:{feed:2000,water:1000,vent:5000,litter:40000},layer:{feed:4000,water:2000,vent:12000,litter:0}};   // 버튼 한 번당 비용(원)
 const COSTS={broiler:Object.assign({},COSTS_DEF.broiler),layer:Object.assign({},COSTS_DEF.layer)};
 const DZ_BUILTIN={broiler:DZ.broiler.slice(),layer:DZ.layer.slice()};
 const DZ_WEIGHT={broiler:1,layer:1};
@@ -718,7 +726,7 @@ function applyCfg(cfg){
         from:isFinite(x.from)?+x.from:1,to:isFinite(x.to)?+x.to:MODES[m].maxDay,on:x.on!==false});
     });
     COSTS[m]=Object.assign({},COSTS_DEF[m]);
-    if(c.costs)['feed','water','vent'].forEach(k=>{const v=+c.costs[k];if(isFinite(v)&&v>=0&&v<=1000000)COSTS[m][k]=Math.round(v)});
+    if(c.costs)['feed','water','vent','litter'].forEach(k=>{const v=+c.costs[k];if(isFinite(v)&&v>=0&&v<=1000000)COSTS[m][k]=Math.round(v)});
     DZ_WEIGHT[m]=isFinite(c.diseaseWeight)?clamp(Math.round(c.diseaseWeight),0,3):1;
   }
 }
@@ -790,7 +798,7 @@ function openAdmin(){
      <input type="number" min="1" max="${max}" data-from="${i}" value="${z.from}"> ~ <input type="number" min="1" max="${max}" data-to="${i}" value="${z.to}"> ${u}</div>`).join('')}</div>
    <h3>💰 버튼 비용 (한 번 누를 때)</h3>
    <p class="note">급이·급수·환기 버튼을 한 번 누를 때 드는 돈(원)이에요. 사료 구입비는 먹은 만큼 따로 계산돼요.</p>
-   <div class="row2">${[['feed','🌾 급이'],['water','💧 급수'],['vent','🌀 환기']].map(([k,t])=>`<label>${t} <input type="number" min="0" max="1000000" step="500" data-cost="${k}" value="${COSTS[m][k]}" style="width:86px"></label>`).join('')}</div>
+   <div class="row2">${[['feed','🌾 급이'],['water','💧 급수'],['vent','🌀 환기']].concat(m==='broiler'?[['litter','🪵 깔짚']]:[]).map(([k,t])=>`<label>${t} <input type="number" min="0" max="1000000" step="500" data-cost="${k}" value="${COSTS[m][k]}" style="width:86px"></label>`).join('')}</div>
    <h3>➕ 질병 추가</h3>
    <p class="note">새 질병을 만들면 위 질병과 함께 구간 안에서 무작위로 나와요. 설명은 간단하게, 약 이름·용량은 쓰지 마세요.</p>
    <div id="admCz">${DZ[m].filter(z=>z.custom).map(z=>czHtml(z,u,max)).join('')}</div>
@@ -840,7 +848,7 @@ function openAdmin(){
     });
     if(new Set(custom.map(x=>x.name)).size!==custom.length)throw new Error('추가한 질병 이름이 겹쳐요.');
     const costs={};
-    for(const k of ['feed','water','vent']){const v=+$(`[data-cost="${k}"]`).value;if(!(v>=0&&v<=1000000))throw new Error('버튼 비용은 0~1,000,000원 사이로 적어 주세요.');costs[k]=Math.round(v)}
+    for(const k of (m==='broiler'?['feed','water','vent','litter']:['feed','water','vent'])){const v=+$(`[data-cost="${k}"]`).value;if(!(v>=0&&v<=1000000))throw new Error('버튼 비용은 0~1,000,000원 사이로 적어 주세요.');costs[k]=Math.round(v)}
     return {diseaseWeight:+$('#admW').value,diseases,stages,custom,costs};
   };
   const publish=async(section,okMsg)=>{
@@ -898,7 +906,7 @@ function buildFlock(n){
   flockEl.innerHTML='';sprites=[];
   for(let i=0;i<n;i++){
     const el=document.createElement('div');el.className='hen';el.innerHTML=henSVG();flockEl.appendChild(el);
-    sprites.push({el,x:.1+rnd()*.8,y:.6+rnd()*.28,tx:0,ty:0,mode:'idle',timer:rnd()*80,dir:rnd()<.5?1:-1,bubbleT:0});
+    sprites.push({el,x:.1+rnd()*.8,y:.56+rnd()*.2,tx:0,ty:0,mode:'idle',timer:rnd()*80,dir:rnd()<.5?1:-1,bubbleT:0});
   }
 }
 function visibleCount(){return Math.max(1,Math.round(12*S.alive/S.birds0))}
@@ -927,7 +935,7 @@ function animFlock(dt){
     if(s.timer<=0){
       const r=rnd();
       if(m==='cold'&&r<.7){s.mode='walk';s.tx=.42+rnd()*.16;s.ty=.6+rnd()*.12}
-      else if(r<.45){s.mode='walk';s.tx=.06+rnd()*.86;s.ty=.58+rnd()*.3}
+      else if(r<.45){s.mode='walk';s.tx=.06+rnd()*.7;s.ty=.54+rnd()*.22}
       else if(r<.75){s.mode='peck';s.timer=60}
       else{s.mode='idle';s.timer=40+rnd()*90}
       if(s.mode==='walk') s.timer=999;
@@ -971,17 +979,29 @@ function renderWindowWx(){
   w.title=ok?`오늘 날씨: ${(WXC[WX.code]||['','날씨'])[1]} ${Math.round(WX.t)}℃`:'';
 }
 const signText=()=>`${NICK?NICK:'꼬꼬'} ${S&&S.mode==='layer'?'산란계사':'육계사'}`;
+function renderBar(){
+  const el=$('#sbarCtl');if(!el||!S)return;
+  const c=S.ctrl;
+  el.hidden=!!S.done;
+  el.innerHTML=S.mode==='layer'
+    ?`<div>💡 점등<small>권장 ${recLight(S.day+1)}시간</small></div><button type="button" id="lMinus" aria-label="점등 줄이기">−</button><output class="num">${c.light}시간</output><button type="button" id="lPlus" aria-label="점등 늘리기">+</button>`
+    :`<div>🔥 온도<small>권장 ${recTemp(S.day+1).toFixed(0)}℃</small></div><button type="button" id="tMinus" aria-label="온도 내리기">−</button><output class="num">${c.temp}℃</output><button type="button" id="tPlus" aria-label="온도 올리기">+</button>`;
+}
 function renderActs(){
   const el=$('#acts');if(!el||!S)return;
   el.hidden=!!S.done;
   const it=[['feed','🌾','급이',S.feedLv,FEED_DROP],['water','💧','급수',S.waterLv,WATER_DROP],['vent','🌀','환기',S.ventLv,34]];
-  el.innerHTML=it.map(([k,em,lab,lv,need])=>`<button type="button" class="act${lv<need?' low':''}" data-act="${k}" aria-label="${lab}하기 ${won(COSTS[S.mode][k])}"><span class="r"><span class="em">${em}</span>${lab}</span><small>${won(COSTS[S.mode][k])}</small><span class="g"><i style="width:${lv}%;background:${lv>=need?'var(--good)':lv>0?'var(--warn)':'var(--bad)'}"></i></span></button>`).join('');
+  if(S.mode==='broiler')it.push(['litter','🪵','깔짚',S.litter,45]);
+  el.innerHTML=it.map(([k,em,lab,lv,need])=>`<button type="button" class="act${lv<need?' low':''}" data-act="${k}" style="--lv:${Math.round(lv)}%;--gc:${lv>=need?'#BFE8B8':lv>0?'#FFE29A':'#FFB3A6'}" aria-label="${lab}하기 ${won(COSTS[S.mode][k])}"><span class="r"><span class="em">${em}</span>${lab}</span><small>${won(COSTS[S.mode][k])}</small></button>`).join('')
+    +(S.mode==='layer'?`<button type="button" class="act" data-act="calc" style="--lv:${S.ctrl.calcium?100:0}%" aria-label="칼슘 보충 ${S.ctrl.calcium?'켜짐':'꺼짐'}"><span class="r"><span class="em">🥚</span>칼슘</span><small>${S.ctrl.calcium?'켜짐':'꺼짐'}</small></button>`:'');
 }
 function doAct(k){
   if(!S||S.done||$('#btnNext').disabled)return;
   ensureGauges();
+  if(k==='calc'){S.ctrl.calcium=S.ctrl.calcium?0:1;toast(S.ctrl.calcium?'칼슘 보충을 켰어요 (주 ₩14,000)':'칼슘 보충을 껐어요');render();autosave();return}
   const cost=COSTS[S.mode][k];
-  if(k==='feed'){if(S.feedLv>=98){toast('사료통이 이미 가득해요');return}S.feedLv=100;burst('🌾',3);toast('급이했어요')}
+  if(k==='litter'){if(S.litter>=98){toast('깔짚이 이미 보송해요');return}S.litter=clamp(S.litter+35,0,100);S.ammonia=clamp(S.ammonia-10,0,60);burst('✨',3);toast('새 깔짚을 깔았어요')}
+  else if(k==='feed'){if(S.feedLv>=98){toast('사료통이 이미 가득해요');return}S.feedLv=100;burst('🌾',3);toast('급이했어요')}
   else if(k==='water'){if(S.waterLv>=98){toast('물통이 이미 가득해요');return}S.waterLv=100;burst('💧',3);toast('급수했어요')}
   else{if(S.ventLv>=98){toast('환기가 충분해요');return}S.ventLv=clamp(S.ventLv+50,0,100);burst('🌀',3);toast('환기팬을 가동했어요')}
   S.money-=cost;S.tot.other+=cost;
@@ -989,7 +1009,7 @@ function doAct(k){
 }
 $('#acts').addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(b)doAct(b.dataset.act)});
 function renderScene(){
-  renderActs();
+  renderActs();renderBar();
   const t=growthT(),col=colors(S.mode,t);
   flockEl.style.setProperty('--b',col.b);flockEl.style.setProperty('--w',col.w);flockEl.style.setProperty('--comb',col.comb);flockEl.style.setProperty('--hs',col.hs);
   if(sprites.length!==visibleCount()) buildFlock(visibleCount());
@@ -1123,25 +1143,12 @@ function renderCtrls(){
   const c=S.ctrl,lay=S.mode==='layer';
   ensureGauges();
   let h=S.feedCut?`<div class="ctrl"><div class="lab"><span>🌾 급여 제한 중</span></div><button class="mini" type="button" id="btnFeedCut">급여 제한 풀기</button></div>`:'';
-  if(!lay){
-    h+=`<div class="ctrl"><div class="lab"><span>🔥 온도 설정</span><span class="hint">권장 ${recTemp(S.day+1).toFixed(0)}℃</span></div>
-    <div class="stepper"><button type="button" id="tMinus" aria-label="온도 내리기">−</button><output class="num">${c.temp}℃</output><button type="button" id="tPlus" aria-label="온도 올리기">+</button></div></div>`;
-  } else {
-    h+=`<div class="ctrl"><div class="lab"><span>💡 점등 시간</span><span class="hint">권장 ${recLight(S.day+1)}시간</span></div>
-    <div class="stepper"><button type="button" id="lMinus" aria-label="점등 줄이기">−</button><output class="num">${c.light}시간</output><button type="button" id="lPlus" aria-label="점등 늘리기">+</button></div></div>`;
-  }
-  if(!lay){
-    h+=`<div class="ctrl"><div class="lab"><span>🪵 깔짚</span><span class="hint">상태 ${Math.round(S.litter)}%</span></div><div class="bar" style="height:9px"><i style="width:${S.litter}%;background:${S.litter>60?'var(--good)':S.litter>35?'var(--warn)':'var(--bad)'}"></i></div><button class="mini" type="button" id="btnLitter">깔짚 보충 (₩40,000, +35%)</button></div>`;
-  } else {
-    h+=`<div class="ctrl"><div class="lab"><span>🥚 난각 관리</span><span class="hint">칼슘 보충 주 ₩14,000</span></div>${seg('calcium',['끄기','칼슘 보충']).replace(/data-v="(\d)"/g,(m,v)=>`data-v="${v-1}"`).replace(/aria-pressed="(true|false)"/g,'')}</div>`;
-  }
   {
     const L=FEEDS[S.mode],rec=feedRecIdx(S.mode,S.day+1);
     h+=`<div class="ctrl wide"><div class="lab"><span>🥣 사료 종류 (구간별)</span><span class="hint">지금 권장: ${L[rec].name}</span></div>
     <div class="fdopts">${L.map((f,i)=>`<button type="button" data-fd="${f.id}" class="${i===rec?'rec':''}" aria-pressed="${c.fd===f.id}">${f.name}<small>${f.sub}</small></button>`).join('')}</div></div>`;
   }
   $('#ctrls').innerHTML=h;
-  if(lay) document.querySelectorAll('[data-k="calcium"]').forEach(b=>b.setAttribute('aria-pressed',String(+b.dataset.v===c.calcium)));
 }
 function renderChart(){
   const H=S.hist,lay=S.mode==='layer';
@@ -1171,7 +1178,7 @@ function renderLog(){
 }
 
 /* ── 입력 ── */
-$('#ctrls').addEventListener('click',e=>{
+const onCtl=e=>{
   const b=e.target.closest('button');if(!b||!S||S.done)return;
   const c=S.ctrl;
   if(b.id==='btnFeedCut'){S.feedCut=false;toast('급여 제한을 풀었어요')}
@@ -1181,9 +1188,9 @@ $('#ctrls').addEventListener('click',e=>{
   else if(b.id==='tPlus')c.temp=clamp(c.temp+1,18,36);
   else if(b.id==='lMinus')c.light=clamp(c.light-1,6,22);
   else if(b.id==='lPlus')c.light=clamp(c.light+1,6,22);
-  else if(b.id==='btnLitter'){if(S.litter>=98){toast('깔짚이 이미 보송해요');return}S.money-=40000;S.tot.other+=40000;S.litter=clamp(S.litter+35,0,100);S.ammonia=clamp(S.ammonia-10,0,60);burst('✨',3);toast('새 깔짚을 깔았어요')}
   render();autosave();
-});
+};
+$('#ctrls').addEventListener('click',onCtl);$('#sbarCtl').addEventListener('click',onCtl);
 $('#btnNext').addEventListener('click',()=>{
   if(!S)return;
   if(S.done){showReport();return}
