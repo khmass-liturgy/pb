@@ -198,6 +198,30 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
   .cloud,.hen.walk .l1,.hen.walk .l2,.hen.walk .bodyg,.hen .eye,.particle{animation:none}
   .egg,.sheet{animation:none}
 }
+
+.guide{gap:10px}
+.guide h2{display:flex;justify-content:space-between;gap:8px;align-items:baseline;flex-wrap:wrap}
+.guide h2 small{font-size:12px;color:var(--muted);font-weight:400}
+.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:8px}
+.chip{background:var(--soft);border-radius:14px;padding:8px 10px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.chip .k{font-size:12px;color:var(--muted)}
+.chip .v{font-size:19px;font-family:var(--f-display)}
+.chip .s{font-size:12px;color:var(--muted)}
+.wx{background:var(--mint);border-radius:14px;padding:8px 12px;font-size:14px;line-height:1.55}
+.wx .big{font-size:22px;vertical-align:middle;margin-right:4px}
+.wx small{display:block;color:var(--muted);font-size:12px}
+.pts{margin:0;padding-left:18px;font-size:14px;line-height:1.6}
+.guide details{font-size:13px}
+.guide summary{cursor:pointer;color:var(--muted);padding:4px 0}
+.gt{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:6px}
+.gt th,.gt td{border-bottom:1px solid var(--line);padding:5px 4px;text-align:left;vertical-align:top}
+.gt tr.now{background:var(--straw)}
+.ctrl.wide{grid-column:1/-1}
+.fdopts{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:6px}
+.fdopts button{border:2px solid var(--line);background:#fff;border-radius:11px;padding:6px 4px;font-size:13px;display:flex;flex-direction:column;gap:1px;align-items:center;line-height:1.3}
+.fdopts button small{font-size:11px;color:var(--muted)}
+.fdopts button[aria-pressed="true"]{background:var(--straw);border-color:var(--ink)}
+.fdopts button.rec::before{content:'★ 지금 권장';font-size:11px;color:#C77700}
 </style>
 </head>
 <body>
@@ -270,6 +294,8 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
       <div class="nightveil"></div><div class="moon"></div><div class="zzz">쿨쿨… 💤</div>
     </div>
 
+    <div class="panel guide" id="guide"></div>
+
     <div class="panel">
       <div class="tip" id="tip"></div>
       <div class="hud" style="grid-template-columns:repeat(3,minmax(0,1fr))">
@@ -317,6 +343,72 @@ const LAY=[[17,0],[18,.05],[19,.22],[20,.52],[21,.76],[22,.88],[24,.93],[30,.93]
 const stdW=d=>interp(STD_W,d);
 const recTemp=d=>33-12*(d-1)/34;
 const recLight=w=>w<=1?20:w<=6?20-2*(w-1):w<=17?10:Math.min(16,10+(w-17));
+/* ── 일령·주령별 가이드(교육용 참고값 — 품종 관리지침·사료회사 기준이 우선) ── */
+const recTempL=w=>w<=1?33:w<=4?33-3*(w-1):w<18?22:21;
+function envRec(mode,d){
+  if(mode==='broiler'){const t=recTemp(d);return{t:Math.round(t),lo:Math.round(t-1),hi:Math.round(t+1),rh:d<=3?[60,70]:d<=14?[55,65]:[50,60]}}
+  const t=recTempL(d);
+  return d>=18?{t,lo:18,hi:24,rh:[50,70],light:recLight(d)}:{t,lo:t-1,hi:t+1,rh:d<=2?[60,70]:[50,70],light:recLight(d)};
+}
+const GSTAGES={
+ broiler:[
+  {from:1,to:3,name:'입추 직후',pts:['바닥(깔짚) 온도 확인 — 병아리 발이 따뜻해야 해요','사료·물을 바로 먹는지, 모이는 위치가 고른지 관찰','병아리가 한쪽에 몰리면 온도·외풍 점검']},
+  {from:4,to:7,name:'육추 전반',pts:['1주령 체중이 표준(약 190g)에 닿는지 확인','환기는 적게 시작하되 암모니아 냄새를 매일 체크','온도는 하루 0.5℃씩 서서히 낮추기']},
+  {from:8,to:14,name:'육추 후반',pts:['깔짚 상태·급수 라인 누수 점검','환기량을 조금씩 늘리기','백신 일정은 수의사 지시대로 확인']},
+  {from:15,to:21,name:'성장 초기',pts:['깔짚 습기·암모니아 관리 — 환기 늘리기','물 섭취가 갑자기 줄면 이상 신호','급이기·급수기 높이를 닭 등 높이에 맞추기']},
+  {from:22,to:28,name:'성장 후기',pts:['더위에 약해지는 시기 — 환기·쿨링 미리 준비','폐사·기침·묽은 변을 매일 확인','25일령쯤 후기 사료로 바꿀 시점']},
+  {from:29,to:35,name:'출하 준비',pts:['출하 전 사료 중단 시점과 휴약기간 확인','출하 전 폭염·밀도 스트레스 대비','출하 체중·사료요구율 기록']}],
+ layer:[
+  {from:1,to:6,name:'육추기',pts:['온도는 주 3℃씩 낮추기(33℃ 시작)','점등은 길게 시작해 10시간까지 줄이기','1주령 체중·균일도 확인']},
+  {from:7,to:15,name:'육성기',pts:['점등 10시간 유지 — 늘리지 않기','체중 균일도 점검, 작은 닭은 따로 관리','백신·부리 관리 일정 확인']},
+  {from:16,to:17,name:'산란 준비',pts:['산란 준비 사료로 바꿔 칼슘 올리기','체중이 표준에 도달했는지 확인','18주 점등 자극 준비']},
+  {from:18,to:29,name:'산란 전기',pts:['점등을 주 1시간씩 늘려 16시간까지','산란율 상승기 — 사료·물 부족 금지','칼슘 보충과 집란 횟수 늘리기']},
+  {from:30,to:40,name:'산란 후기',pts:['산란율 하락이 급하면 원인부터 점검','난각 품질 — 칼슘 입자·집란 관리','폭염·소음 같은 스트레스 줄이기']}]
+};
+const gStage=(mode,d)=>GSTAGES[mode].find(g=>d>=g.from&&d<=g.to)||GSTAGES[mode][GSTAGES[mode].length-1];
+/* 구간별 사료 */
+const FEEDS={
+ broiler:[
+  {id:'pre',name:'전기 사료',sub:'1~10일 · 단백질 21~23%',from:1,to:10,price:1.12},
+  {id:'grow',name:'중기 사료',sub:'11~24일 · 단백질 19~21%',from:11,to:24,price:1.0},
+  {id:'fin',name:'후기 사료',sub:'25~35일 · 단백질 17~19%',from:25,to:35,price:.94}],
+ layer:[
+  {id:'brood',name:'육추 사료',sub:'1~6주 · 단백질 19~20%',from:1,to:6,price:1.1},
+  {id:'grow',name:'육성 사료',sub:'7~15주 · 단백질 15~16%',from:7,to:15,price:.95},
+  {id:'pre',name:'산란 준비',sub:'16~17주 · 칼슘 2%대',from:16,to:17,price:1.0},
+  {id:'peak',name:'산란 전기',sub:'18~29주 · 단백질 17~18%',from:18,to:29,price:1.05},
+  {id:'late',name:'산란 후기',sub:'30~40주 · 칼슘 4%대',from:30,to:40,price:1.0}]
+};
+const feedRecIdx=(mode,d)=>{const L=FEEDS[mode];const i=L.findIndex(f=>d>=f.from&&d<=f.to);return i<0?L.length-1:i};
+function feedFx(d){
+  const L=FEEDS[S.mode],rec=feedRecIdx(S.mode,d);
+  let ci=L.findIndex(f=>f.id===S.ctrl.fd);if(ci<0)ci=rec;
+  const diff=ci-rec,a=Math.abs(diff),fx={ci,rec,diff,g:1,br:0,h:0,b:0,price:L[ci].price,msg:''};
+  if(diff===0) return fx;
+  if(S.mode==='broiler'){
+    if(diff>0){fx.g=1-.06*a;fx.msg=`${L[ci].name}는 아직 일러요. 영양이 모자라 덜 자라요 — ${L[rec].name}로 바꿔요.`}
+    else{fx.msg=`${L[ci].name}는 이 시기엔 값만 비싸요 — ${L[rec].name}로 바꿔요.`}
+  } else {
+    const laying=d>=18;
+    if(diff>0){
+      if(laying){fx.g=1-.03*a;fx.msg=`${L[ci].name}는 이 시기 산란에 영양이 모자라요 — ${L[rec].name}로 바꿔요.`}
+      else{fx.h=-2*a;fx.msg=`${L[ci].name}는 칼슘이 높아 어린 닭에게 부담이에요 — ${L[rec].name}로 바꿔요.`}
+    } else {
+      if(laying){fx.g=1-.07*a;fx.br=.02*a;fx.msg=`${L[ci].name}는 칼슘이 모자라 산란율이 떨어지고 껍데기가 약해져요 — ${L[rec].name}로 바꿔요.`}
+      else{fx.b=a;fx.msg=`${L[ci].name}는 이 시기엔 값만 비싸고 살이 쉽게 쪄요 — ${L[rec].name}로 바꿔요.`}
+    }
+  }
+  return fx;
+}
+function noteFeed(fx){
+  const key=fx.ci+':'+fx.rec;
+  if(S.fdKey===key) return;
+  S.fdKey=key;
+  if(fx.diff!==0) addLog(fx.msg);
+  else if(S.fdBad) addLog('사료를 이 시기에 맞게 바꿨어요. 👍');
+  S.fdBad=fx.diff!==0;
+}
+
 const MODES={
   broiler:{name:'육계 키우기',maxDay:35,birds:1000,chick:650,start:3000000,unit:'일령'},
   layer:{name:'산란계 키우기',maxDay:40,birds:1000,chick:1200,start:6000000,unit:'주령'}
@@ -342,7 +434,7 @@ function newGame(mode){
   S={v:1,mode,day:0,alive:M.birds,birds0:M.birds,money:M.start-M.birds*M.chick,start:M.start,
     health:90,weight:mode==='broiler'?42:40,litter:100,ammonia:4,feedPrice:mode==="broiler"?650:520,basePrice:mode==="broiler"?650:520,
     salePrice:1900,eggPrice:180,bodyCond:80,early:0,rate:0,eff:33,
-    ctrl:mode==='broiler'?{feed:2,water:2,temp:33,vent:1}:{feed:2,water:2,light:20,vent:1,calcium:0},
+    ctrl:mode==='broiler'?{feed:2,water:2,temp:33,vent:1,fd:'pre'}:{feed:2,water:2,light:20,vent:1,calcium:0,fd:'brood'},
     fx:{},tot:{feedKg:0,feedCost:0,other:0,chick:M.birds*M.chick,revenue:0,eggs:0,good:0,rateSum:0,layWeeks:0,deaths:0},
     hist:[],log:[],done:false};
   addLog(mode==='broiler'?'병아리 1,000수가 도착했어요. 첫 주는 따뜻하게!':'산란계 병아리 1,000수 입추. 18주까지 몸을 잘 만들어 줘요.');
@@ -366,11 +458,12 @@ function stepBroiler(){
   S.health=clamp(S.health+(stress<12?3:-(stress-12)*.35),0,100);
   const base=stdW(d)-stdW(d-1);
   const feedF=[.84,1,1.06][c.feed-1],useF=[.84,1,1.14][c.feed-1];
-  const gain=base*feedF*(c.water===1?.8:1)*(.5+.5*S.health/100)*(tdev>3?.88:1)*(S.ammonia>25?.93:1);
+  const ff=feedFx(d);noteFeed(ff);
+  const gain=ff.g*base*feedF*(c.water===1?.8:1)*(.5+.5*S.health/100)*(tdev>3?.88:1)*(S.ammonia>25?.93:1);
   S.weight+=gain;
   const intake=base*(1.05+d*.017)*useF*(1+(100-S.health)/300);
   const feedKg=S.alive*intake/1000;
-  const price=fx.lock>0?S.basePrice:S.feedPrice;
+  const price=(fx.lock>0?S.basePrice:S.feedPrice)*ff.price;
   const heatCost=Math.max(0,c.temp-outside)*400, ventCost=[0,2500,6000][c.vent-1];
   S.tot.feedKg+=feedKg;S.tot.feedCost+=feedKg*price;S.tot.other+=heatCost+ventCost;
   S.money-=feedKg*price+heatCost+ventCost;
@@ -394,6 +487,7 @@ function stepBroiler(){
 function stepLayer(){
   const w=S.day+1,c=S.ctrl,fx=S.fx;
   const recL=recLight(w), growing=w<18;
+  const ff=feedFx(w);noteFeed(ff);
   S.ammonia=clamp(14+w*.25-(c.vent-1)*8,0,50);
   const heatStress=fx.heat>0?(fx.cool?4:18-(c.vent-1)*4):(c.vent===1&&w>=18?3:0);
   S.eff=fx.heat>0?(fx.cool?27:33-(c.vent-1)):22;
@@ -401,12 +495,13 @@ function stepLayer(){
   if(fx.heat>0&&fx.vit) stress*=.6;
   S.health=clamp(S.health+(stress<10?5:-(stress-10)*.6),0,100);
   if(growing){
-    S.bodyCond=clamp(S.bodyCond+(c.feed===1?-6:c.feed===3?2.5:3)-(stress>15?3:0),0,100);
+    S.bodyCond=clamp(S.bodyCond+(c.feed===1?-6:c.feed===3?2.5:3)-(stress>15?3:0)+ff.b,0,100);
+    S.health=clamp(S.health+ff.h,0,100);
     if(w>=8&&c.light>recL+2){S.early++;if(S.early===1||S.early%3===0)addLog('육성기에 빛이 너무 길어요. 너무 일찍 성성숙하면 알이 작고 산란 지속성이 떨어져요.')}
   }
   const intake=(growing?10+w*4.2:112)*[.86,1,1.12][c.feed-1];
   const feedKg=S.alive*intake*7/1000;
-  const price=fx.lock>0?S.basePrice:S.feedPrice;
+  const price=(fx.lock>0?S.basePrice:S.feedPrice)*ff.price;
   const lightCost=c.light*7*100, calCost=c.calcium?14000:0, ventCost=[0,7000,15000][c.vent-1];
   S.tot.feedKg+=feedKg;S.tot.feedCost+=feedKg*price;S.tot.other+=lightCost+calCost+ventCost;
   S.money-=feedKg*price+lightCost+calCost+ventCost;
@@ -418,9 +513,9 @@ function stepLayer(){
     const bodyF=Math.min(1,.75+.25*S.bodyCond/80)*(S.bodyCond>96?.97:1);
     const earlyF=1-Math.min(.12,S.early*.015);
     const hF=.55+.45*S.health/100;
-    rate=clamp(pot*lightF*feedF*bodyF*earlyF*hF*(fx.layDrop>0?1-fx.dropAmt:1)*(c.water===1?.85:1),0,.97);
+    rate=clamp(ff.g*pot*lightF*feedF*bodyF*earlyF*hF*(fx.layDrop>0?1-fx.dropAmt:1)*(c.water===1?.85:1),0,.97);
     const eggs=S.alive*rate*7;
-    const brokenR=.015+(c.calcium?.003:.03)*(w>24?1:.5)+Math.max(0,w-30)*(c.calcium?.001:.003)+(fx.heat>0?.02:0)+(fx.broken>0?fx.brokenAmt:0);
+    const brokenR=.015+(c.calcium?.003:.03)*(w>24?1:.5)+Math.max(0,w-30)*(c.calcium?.001:.003)+(fx.heat>0?.02:0)+(fx.broken>0?fx.brokenAmt:0)+ff.br;
     const good=eggs*(1-brokenR);
     const ep=S.eggPrice*(fx.eggLow>0?fx.eggMul:1);
     const rev=good*ep;
@@ -604,6 +699,8 @@ function renderScene(){
 }
 function render(){
   if(!S) return;
+  if(S.ctrl.fd==null) S.ctrl.fd=FEEDS[S.mode][feedRecIdx(S.mode,Math.max(1,S.day+1))].id;
+  ensureWx();
   const M=MODES[S.mode],c=S.ctrl,lay=S.mode==='layer';
   const showDay=Math.max(1,S.day);
   $('#kDay').textContent=lay?'주령':'일령';
@@ -622,7 +719,71 @@ function render(){
   const nb=$('#bNh3');nb.style.width=clamp(S.ammonia/50*100,0,100)+'%';nb.style.background=S.ammonia<15?'var(--good)':S.ammonia<25?'var(--warn)':'var(--bad)';
   $('#btnNext').textContent=S.done?'성적표 보기 📋':lay?'일주일 보내기 🌙':'하루 보내기 🌙';
   $('#subtitle').textContent=`${M.name} · ${lay?(S.day<18?'육성기':'산란기'):S.day<10?'육추기':S.day<25?'성장기':'출하 준비'}`;
-  renderTip();renderCtrls();renderChart();renderLog();renderScene();
+  renderGuide();renderTip();renderCtrls();renderChart();renderLog();renderScene();
+}
+/* 오늘의 날씨 — 현재 위치(허용 시) → 사이트에서 저장한 날씨 지역 → 서울 순서로 Open-Meteo에서 읽어 온다. 표시만 하고 게임 수치에는 넣지 않는다. */
+const WX={status:'idle'};
+const WXC={0:['☀️','맑음'],1:['🌤️','대체로 맑음'],2:['⛅','구름 조금'],3:['☁️','흐림'],45:['🌫️','안개'],48:['🌫️','안개'],51:['🌦️','이슬비'],53:['🌦️','이슬비'],55:['🌧️','이슬비'],61:['🌧️','비'],63:['🌧️','비'],65:['🌧️','강한 비'],71:['🌨️','눈'],73:['🌨️','눈'],75:['❄️','많은 눈'],80:['🌦️','소나기'],81:['🌧️','소나기'],82:['⛈️','강한 소나기'],95:['⛈️','뇌우'],96:['⛈️','뇌우'],99:['⛈️','뇌우']};
+function wxFetch(lat,lng,name,approx){
+  const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=Asia%2FSeoul&forecast_days=1`;
+  return fetch(url).then(r=>r.json()).then(j=>{
+    const c=j.current,d=j.daily;
+    if(!c||!d)throw new Error('no data');
+    Object.assign(WX,{status:'ok',name,approx,t:c.temperature_2m,rh:c.relative_humidity_2m,code:c.weather_code,max:d.temperature_2m_max[0],min:d.temperature_2m_min[0],rain:d.precipitation_sum[0]});
+  });
+}
+function ensureWx(){
+  if(WX.status!=='idle')return;
+  WX.status='loading';
+  const done=()=>{if(S&&!$('#gameView').hidden)renderGuide()};
+  const fallback=()=>{
+    let loc=null;try{loc=JSON.parse(localStorage.getItem('weather_loc')||'null')}catch(e){}
+    const use=loc&&isFinite(loc.lat)&&isFinite(loc.lng)?{lat:loc.lat,lng:loc.lng,name:loc.name||'저장된 지역',approx:false}:{lat:37.57,lng:126.98,name:'서울(기본)',approx:true};
+    wxFetch(use.lat,use.lng,use.name,use.approx).catch(()=>{WX.status='error'}).then(done);
+  };
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(p=>{wxFetch(p.coords.latitude,p.coords.longitude,'현재 위치',false).catch(()=>{WX.status='error'}).then(done)},()=>fallback(),{timeout:7000,maximumAge:900000});
+  } else fallback();
+}
+function wxTip(){
+  if(WX.status!=='ok')return '';
+  const t=[];
+  if(WX.max>=30)t.push('더운 날이에요 — 환기·급수를 넉넉히');
+  if(WX.min<=0)t.push('영하로 떨어져요 — 보온과 외풍 차단, 급수 라인 동파 점검');
+  else if(WX.min<=5)t.push('쌀쌀해요 — 새벽 보온 확인');
+  if(WX.rain>=10)t.push('비가 많아 습해요 — 깔짚·환기 점검');
+  if(WX.max-WX.min>=10)t.push('일교차가 커요 — 호흡기 관리');
+  return t.join(' · ');
+}
+function renderGuide(){
+  const el=$('#guide');if(!el||!S)return;
+  const lay=S.mode==='layer',d=Math.max(1,S.day+1),u=lay?'주령':'일령';
+  const e=envRec(S.mode,Math.min(d,MODES[S.mode].maxDay)),g=gStage(S.mode,d);
+  let wx;
+  if(WX.status==='ok'){
+    const [ic,ds]=WXC[WX.code]||['🌡️','날씨'];
+    const tip=wxTip();
+    wx=`<div class="wx"><span class="big">${ic}</span><b>${ds} ${Math.round(WX.t)}℃</b> · 최저 ${Math.round(WX.min)}° / 최고 ${Math.round(WX.max)}° · 습도 ${Math.round(WX.rh)}%${WX.rain>0?` · 강수 ${WX.rain.toFixed(1)}mm`:''}
+    <small>${escH(WX.name)}${WX.approx?' (위치를 못 읽어 서울 기준)':''}${tip?' · '+escH(tip):''}</small></div>`;
+  } else if(WX.status==='error') wx=`<div class="wx">날씨를 불러오지 못했어요. <small>잠시 후 다시 열어 보세요.</small></div>`;
+  else wx=`<div class="wx">날씨를 읽는 중…</div>`;
+  const rows=GSTAGES[S.mode].map(x=>{
+    const a=envRec(S.mode,x.from),b=envRec(S.mode,x.to);
+    const tr=a.t===b.t?a.t+'℃':a.t+'→'+b.t+'℃';
+    const rh=a.rh[0]+'~'+a.rh[1]+'%';
+    const lt=lay?`<td>${a.light===b.light?a.light+'시간':a.light+'→'+b.light+'시간'}</td>`:'';
+    return `<tr class="${d>=x.from&&d<=x.to?'now':''}"><td>${x.from}~${x.to}${lay?'주':'일'}<br><b>${x.name}</b></td><td>${tr}</td><td>${rh}</td>${lt}</tr>`;
+  }).join('');
+  el.innerHTML=`<h2>📋 오늘의 환경 가이드 <small>${S.done?'':d+u+' · '+g.name}</small></h2>
+   <div class="chips">
+    <div class="chip"><div class="k">🌡️ 권장 온도</div><div class="v num">${e.t}℃</div><div class="s">${e.lo}~${e.hi}℃</div></div>
+    <div class="chip"><div class="k">💧 권장 습도</div><div class="v num">${e.rh[0]}~${e.rh[1]}%</div><div class="s">계사 안 상대습도</div></div>
+    ${lay?`<div class="chip"><div class="k">💡 권장 점등</div><div class="v num">${e.light}시간</div><div class="s">${d>=18?'주 1시간씩 늘려 16시간':d>=7?'육성기는 10시간 유지':'점점 줄여 10시간'}</div></div>`:''}
+   </div>
+   ${wx}
+   <div><b style="font-family:var(--f-display)">✅ 관리 포인트</b><ul class="pts">${g.pts.map(t=>`<li>${t}</li>`).join('')}</ul></div>
+   <details><summary>${lay?'주령':'일령'}별 권장표 보기</summary><table class="gt"><thead><tr><th>구간</th><th>온도</th><th>습도</th>${lay?'<th>점등</th>':''}</tr></thead><tbody>${rows}</tbody></table>
+   <p style="margin:6px 0 0;font-size:12px;color:var(--muted)">교육용 참고값이에요. 실제 농장은 품종 관리지침과 사료회사·수의사 기준을 따르세요.</p></details>`;
 }
 function renderTip(){
   const d=S.day+1,c=S.ctrl;let t='';
@@ -650,7 +811,7 @@ function renderCtrls(){
   const c=S.ctrl,lay=S.mode==='layer';
   const feedHint=['성장 ↓ 사료 ↓','표준 급여','성장 ↑ 낭비 ↑'][c.feed-1];
   const ventHint=['전기료 0','하루 '+won(lay?1000:2500),'하루 '+won(lay?2143:6000)][c.vent-1];
-  let h=`<div class="ctrl"><div class="lab"><span>🌾 사료</span><span class="hint">${feedHint}</span></div>${seg('feed',['제한','적정','충분'])}</div>
+  let h=`<div class="ctrl"><div class="lab"><span>🌾 급여량</span><span class="hint">${feedHint}</span></div>${seg('feed',['제한','적정','충분'])}</div>
   <div class="ctrl"><div class="lab"><span>💧 물</span><span class="hint">${c.water===1?'성장·산란 ↓':'깨끗한 물 충분'}</span></div>${seg('water',['부족','충분'])}</div>`;
   if(!lay){
     h+=`<div class="ctrl"><div class="lab"><span>🔥 온도 설정</span><span class="hint">권장 ${recTemp(S.day+1).toFixed(0)}℃</span></div>
@@ -664,6 +825,11 @@ function renderCtrls(){
     h+=`<div class="ctrl"><div class="lab"><span>🪵 깔짚</span><span class="hint">상태 ${Math.round(S.litter)}%</span></div><div class="bar" style="height:9px"><i style="width:${S.litter}%;background:${S.litter>60?'var(--good)':S.litter>35?'var(--warn)':'var(--bad)'}"></i></div><button class="mini" type="button" id="btnLitter">깔짚 보충 (₩40,000, +35%)</button></div>`;
   } else {
     h+=`<div class="ctrl"><div class="lab"><span>🥚 난각 관리</span><span class="hint">칼슘 보충 주 ₩14,000</span></div>${seg('calcium',['끄기','칼슘 보충']).replace(/data-v="(\d)"/g,(m,v)=>`data-v="${v-1}"`).replace(/aria-pressed="(true|false)"/g,'')}</div>`;
+  }
+  {
+    const L=FEEDS[S.mode],rec=feedRecIdx(S.mode,S.day+1);
+    h+=`<div class="ctrl wide"><div class="lab"><span>🥣 사료 종류 (구간별)</span><span class="hint">지금 권장: ${L[rec].name}</span></div>
+    <div class="fdopts">${L.map((f,i)=>`<button type="button" data-fd="${f.id}" class="${i===rec?'rec':''}" aria-pressed="${c.fd===f.id}">${f.name}<small>${f.sub}</small></button>`).join('')}</div></div>`;
   }
   $('#ctrls').innerHTML=h;
   if(lay) document.querySelectorAll('[data-k="calcium"]').forEach(b=>b.setAttribute('aria-pressed',String(+b.dataset.v===c.calcium)));
@@ -699,7 +865,8 @@ function renderLog(){
 $('#ctrls').addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b||!S||S.done)return;
   const c=S.ctrl;
-  if(b.dataset.k){c[b.dataset.k]=+b.dataset.v}
+  if(b.dataset.fd){c.fd=b.dataset.fd}
+  else if(b.dataset.k){c[b.dataset.k]=+b.dataset.v}
   else if(b.id==='tMinus')c.temp=clamp(c.temp-1,18,36);
   else if(b.id==='tPlus')c.temp=clamp(c.temp+1,18,36);
   else if(b.id==='lMinus')c.light=clamp(c.light-1,6,22);
