@@ -1295,7 +1295,7 @@ function showReport(){
 /* ── 화면 전환 ── */
 function start(mode){newGame(mode);sprites=[];$('#startView').hidden=true;$('#gameView').hidden=false;render();autosave();window.scrollTo({top:0,behavior:'smooth'})}
 const HOME_SUB=LOCK?MODES[LOCK].name+' · 우리 농장 경영기':'병아리부터 닭까지, 우리 농장 경영기';
-function goHome(){$('#startView').hidden=false;$('#gameView').hidden=true;$('#subtitle').textContent=HOME_SUB;renderRecords()}
+function goHome(){$('#startView').hidden=false;$('#gameView').hidden=true;$('#subtitle').textContent=HOME_SUB;renderRecords();fetchCloudHint()}
 if(LOCK){
   $(LOCK==='broiler'?'#pickLayer':'#pickBroiler').hidden=true;
   $('.picks').classList.add('one');$('#subtitle').textContent=HOME_SUB;
@@ -1303,12 +1303,31 @@ if(LOCK){
 $('#pickBroiler').addEventListener('click',()=>needNick(()=>start('broiler')));
 $('#pickLayer').addEventListener('click',()=>needNick(()=>start('layer')));
 $('#btnHome').addEventListener('click',goHome);
+let CH={state:'idle',hit:null};     // 내 계정(Firebase)에 저장된 이 닉네임의 농장 — 시작 화면에 「불러오기」로 보여 준다
+function fetchCloudHint(){
+  if(!CLOUD||!NICK){CH={state:'idle',hit:null};return}
+  CH={state:'loading',hit:null};renderRecords();
+  const nick=NICK;
+  CLOUD.list().then(list=>{if(nick!==NICK)return;CH={state:'ok',hit:list.filter(ownSlot).find(x=>baseName(x.nickname)===NICK)||null}})
+    .catch(e=>{CH={state:'err',hit:null,msg:e.message||'저장 목록을 읽지 못했어요.'}})
+    .then(()=>{if(!$('#startView').hidden)renderRecords()});
+}
 function renderRecords(){
   const r=[];if(R.broiler.best!=null&&(!LOCK||LOCK==='broiler'))r.push(`육계 최고 ${won(R.broiler.best)}`);if(R.layer.best!=null&&(!LOCK||LOCK==='layer'))r.push(`산란계 최고 ${won(R.layer.best)}`);
   let saved=LS.get(lsKey('kkokko-autosave'),null);
   if(!saved&&LOCK){const old=LS.get(lsKeyN('kkokko-autosave'),null);if(old&&old.mode===LOCK)saved=old}
   $('#records').innerHTML=(r.length?r.join(' · '):'아직 기록이 없어요. 첫 농장을 시작해 볼까요?')+(saved&&!saved.done?` · <button class="btn" type="button" id="resume" style="padding:3px 10px;font-size:13px">이어하기 (${MODES[saved.mode].name} ${Math.max(1,saved.day)}${saved.mode==='layer'?'주':'일'})</button>`:'');
   const rb=$('#resume');if(rb)rb.addEventListener('click',()=>{S=saved;sprites=[];$('#startView').hidden=true;$('#gameView').hidden=false;render()});
+  if(CLOUD&&NICK){
+    let ch='';
+    const hit=CH.hit,unit=hit&&hit.mode==='layer'?'주':'일';
+    if(CH.state==='loading')ch=' · <span style="font-size:13px;color:var(--muted)">☁ 저장된 농장 확인 중…</span>';
+    else if(CH.state==='err')ch=` · <span style="font-size:13px;color:var(--bad)">☁ ${escH(CH.msg)}</span> <button class="btn" type="button" id="cloudRetry" style="padding:3px 10px;font-size:13px">다시 시도</button>`;
+    else if(hit&&!hit.done&&MODES[hit.mode]&&(!saved||saved.done||(hit.day||0)>(saved.day||0)))ch=` · <button class="btn primary" type="button" id="cloudResume" style="padding:3px 10px;font-size:13px">☁ 저장된 농장 불러오기 (${MODES[hit.mode].name} ${Math.max(1,hit.day||0)}${unit})</button>`;
+    if(ch){$('#records').insertAdjacentHTML('beforeend',ch);
+      const a=$('#cloudResume');if(a)a.addEventListener('click',()=>cloudLoad(hit.nickname));
+      const b=$('#cloudRetry');if(b)b.addEventListener('click',fetchCloudHint)}
+  }
 }
 async function flush(){
   if(!S)return;
@@ -1347,7 +1366,7 @@ function needNick(go){if(NICK){go();return}openNick(go)}
 function setNick(n){
   NICK=n;LS.set('kkokko-nick',n);R=loadR();
   if(S&&!$('#gameView').hidden){LS.set(lsKey('kkokko-autosave'),S)}
-  renderNick();renderRecords();
+  renderNick();renderRecords();fetchCloudHint();
 }
 function openNick(after){
   openModal(`<div class="ev-icon">🐥</div><h2>닉네임 정하기</h2>
@@ -1388,7 +1407,7 @@ function showFound(hit,after){
 $('#btnNick').addEventListener('click',()=>openNick());
 $('#btnSave').addEventListener('click',openCloud);
 function gmsg(t,ok){const el=$('#gmsg');if(el){el.textContent=t;el.style.color=ok?'var(--good)':'var(--bad)'}}
-function cloudNote(t,bad){const el=$('#cloudnote');if(el){el.textContent=t;el.style.color=bad?'var(--bad)':''}}
+function cloudNote(t,bad){const el=$('#cloudnote');if(el){el.textContent=t;el.style.color=bad?'var(--bad)':''}try{window.parent.farmGameNote&&window.parent.farmGameNote(t,bad)}catch(e){}}
 async function openCloud(){
   if(!CLOUD){openModal(`<h2>☁ 저장·불러오기</h2><p>농장동물 컨설팅 유료서비스 화면에서 열어야 Firebase에 저장할 수 있어요. 지금은 이 기기에만 자동 저장돼요.</p><button class="btn" type="button" id="gClose">닫기</button>`);$('#gClose').addEventListener('click',closeModal);return}
   if(!NICK){openNick(openCloud);return}
@@ -1462,7 +1481,7 @@ async function cloudLoad(nick){
 
 $('#modal').addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#gClose'))closeModal()});
 window.claude?.hot?.snapshot?.(()=>({S}));
-const boot=d=>{renderNick();$('#btnAdmin').hidden=!isAdm();if(d&&d.S){S=d.S;$('#startView').hidden=true;$('#gameView').hidden=false;render()}else renderRecords()};
+const boot=d=>{renderNick();$('#btnAdmin').hidden=!isAdm();if(d&&d.S){S=d.S;$('#startView').hidden=true;$('#gameView').hidden=false;render()}else{renderRecords();fetchCloudHint()}};
 window.claude?.hot?.ready?window.claude.hot.ready(boot):boot(window.claude?.hot?.data??{});
 requestAnimationFrame(loop);
 })();
