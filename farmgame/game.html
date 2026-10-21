@@ -432,7 +432,7 @@ let R=loadR();
 function newGame(mode){
   const M=MODES[mode];
   S={v:1,mode,day:0,alive:M.birds,birds0:M.birds,money:M.start-M.birds*M.chick,start:M.start,
-    health:90,weight:mode==='broiler'?42:40,litter:100,ammonia:4,feedPrice:mode==="broiler"?650:520,basePrice:mode==="broiler"?650:520,
+    health:90,weight:mode==='broiler'?42:40,litter:100,feedLv:100,waterLv:100,ventLv:60,feedCut:false,ammonia:4,feedPrice:mode==="broiler"?650:520,basePrice:mode==="broiler"?650:520,
     salePrice:1900,eggPrice:180,bodyCond:80,early:0,rate:0,eff:33,
     ctrl:mode==='broiler'?{feed:2,water:2,temp:33,vent:1,fd:'pre'}:{feed:2,water:2,light:20,vent:1,calcium:0,fd:'brood'},
     fx:{},tot:{feedKg:0,feedCost:0,other:0,chick:M.birds*M.chick,revenue:0,eggs:0,good:0,rateSum:0,layWeeks:0,deaths:0},
@@ -441,9 +441,26 @@ function newGame(mode){
 }
 function addLog(t){S.log.unshift({d:S.day,t});S.log=S.log.slice(0,8)}
 
+/* ── 사료통·물통·환기: 깔짚처럼 시간이 지나면 줄고, 터치로 채우거나 가동한다 ── */
+const FEED_DROP=55,WATER_DROP=45,VENT_DROP=30;
+function ensureGauges(){if(S.feedLv==null){S.feedLv=100;S.waterLv=100;S.ventLv=60;S.feedCut=false}}
+function useGauges(){
+  ensureGauges();
+  const c=S.ctrl,fc=clamp(S.feedLv/FEED_DROP,0,1),wc=clamp(S.waterLv/WATER_DROP,0,1);
+  c.feed=(fc<.85||S.feedCut)?1:2;
+  c.water=wc<.85?1:2;
+  c.vent=S.ventLv<34?1:S.ventLv<67?2:3;
+  if(fc<.85&&!S.feedCut) addLog('사료통이 비었어요! 닭들이 굶었어요. 하루 보내기 전에 급이해 주세요.');
+  if(wc<.85) addLog('물통이 비었어요! 닭들이 목말라해요. 급수해 주세요.');
+}
+function decayGauges(){
+  S.feedLv=Math.max(0,S.feedLv-FEED_DROP);S.waterLv=Math.max(0,S.waterLv-WATER_DROP);S.ventLv=Math.max(0,S.ventLv-VENT_DROP);
+}
+
 /* ── 하루(육계) ── */
 function stepBroiler(){
   const d=S.day+1,c=S.ctrl,fx=S.fx;
+  useGauges();
   const target=recTemp(d);
   const outside=fx.heat>0?34:19+Math.sin(d/4)*2;
   let eff=Math.max(c.temp,outside);
@@ -464,7 +481,7 @@ function stepBroiler(){
   const intake=base*(1.05+d*.017)*useF*(1+(100-S.health)/300);
   const feedKg=S.alive*intake/1000;
   const price=(fx.lock>0?S.basePrice:S.feedPrice)*ff.price;
-  const heatCost=Math.max(0,c.temp-outside)*400, ventCost=[0,2500,6000][c.vent-1];
+  const heatCost=Math.max(0,c.temp-outside)*400, ventCost=0;
   S.tot.feedKg+=feedKg;S.tot.feedCost+=feedKg*price;S.tot.other+=heatCost+ventCost;
   S.money-=feedKg*price+heatCost+ventCost;
   const mort=.0004+(100-S.health)*.00008+(fx.disease>0?fx.sev*.00025:0)+(tdev>5?.002:0);
@@ -475,7 +492,7 @@ function stepBroiler(){
   if(dead>=5) addLog(`폐사 ${dead}수. 스트레스 요인을 점검해요.`);
   if(tdev>4) addLog(eff>target?`계사가 너무 더워요 (${eff.toFixed(0)}℃). 헐떡이는 닭이 많아요.`:`계사가 추워요 (${eff.toFixed(0)}℃). 병아리들이 한 곳에 몰려요.`);
   if(S.ammonia>25&&rnd()<.5) addLog(`암모니아 ${S.ammonia.toFixed(0)}ppm. 눈이 따가워요. 환기·깔짚을 챙겨요.`);
-  tick();
+  decayGauges();tick();
   if(d>=MODES.broiler.maxDay){
     const rev=S.alive*S.weight/1000*S.salePrice;
     S.tot.revenue+=rev;S.money+=rev;S.done=true;
@@ -486,6 +503,7 @@ function stepBroiler(){
 /* ── 한 주(산란계) ── */
 function stepLayer(){
   const w=S.day+1,c=S.ctrl,fx=S.fx;
+  useGauges();
   const recL=recLight(w), growing=w<18;
   const ff=feedFx(w);noteFeed(ff);
   S.ammonia=clamp(14+w*.25-(c.vent-1)*8,0,50);
@@ -502,7 +520,7 @@ function stepLayer(){
   const intake=(growing?10+w*4.2:112)*[.86,1,1.12][c.feed-1];
   const feedKg=S.alive*intake*7/1000;
   const price=(fx.lock>0?S.basePrice:S.feedPrice)*ff.price;
-  const lightCost=c.light*7*100, calCost=c.calcium?14000:0, ventCost=[0,7000,15000][c.vent-1];
+  const lightCost=c.light*7*100, calCost=c.calcium?14000:0, ventCost=0;
   S.tot.feedKg+=feedKg;S.tot.feedCost+=feedKg*price;S.tot.other+=lightCost+calCost+ventCost;
   S.money-=feedKg*price+lightCost+calCost+ventCost;
   let rate=0;
@@ -531,7 +549,7 @@ function stepLayer(){
   S.day=w;
   S.hist.push({x:w,a:rate,s:interp(LAY,w),b:S.bodyCond});
   if(dead>=8) addLog(`이번 주 폐사 ${dead}수.`);
-  tick();
+  decayGauges();tick();
   if(w>=MODES.layer.maxDay){S.done=true;addLog('40주령 도달! 성적표를 확인해요.')}
 }
 function tick(){for(const k of ['heat','lock','disease','layDrop','broken','eggLow']) if(S.fx[k]>0){S.fx[k]--; if(S.fx[k]===0) endFx(k)}}
@@ -546,14 +564,14 @@ const EVENTS=[
  {id:'heat',icon:'🌡️',modes:['broiler','layer'],when:s=>s.day>=5,title:'폭염 경보!',
   desc:s=>`바깥 기온이 34℃까지 올라가요. ${s.mode==='broiler'&&s.day>20?'다 큰 육계는 더위에 특히 약해요.':'닭은 땀샘이 없어 헐떡여서 열을 내보내요.'} 3${s.mode==='broiler'?'일':'주'} 동안 이어질 것 같아요.`,
   choices:[
-   {label:'쿨링패드 가동 + 환기 강하게',cost:s=>s.mode==='broiler'?60000:120000,sub:'계사 온도를 크게 낮춰요',apply:s=>{s.fx.heat=3;s.fx.cool=true;s.ctrl.vent=3;return '젖은 패드를 통과한 바람이 계사를 식혀요. 환기량을 늘리는 것이 더위 대책의 기본이에요.'}},
+   {label:'쿨링패드 가동 + 환기 강하게',cost:s=>s.mode==='broiler'?60000:120000,sub:'계사 온도를 크게 낮춰요',apply:s=>{s.fx.heat=3;s.fx.cool=true;s.ctrl.vent=3;s.ventLv=100;return '젖은 패드를 통과한 바람이 계사를 식혀요. 환기량을 늘리는 것이 더위 대책의 기본이에요.'}},
    {label:'물에 비타민·전해질 타기',cost:s=>s.mode==='broiler'?20000:40000,sub:'스트레스를 줄여요',apply:s=>{s.fx.heat=3;s.fx.vit=true;return '물을 더 마시게 되고 더위 스트레스가 줄어요. 온도 자체는 그대로라 환기도 함께 챙기세요.'}},
    {label:'그냥 지켜본다',cost:()=>0,sub:'비용은 없어요',apply:s=>{s.fx.heat=3;return '폭염 중에는 성장과 산란이 떨어지고 폐사가 늘 수 있어요.'}}]},
  {id:'feed',icon:'💸',modes:['broiler','layer'],when:s=>s.feedPrice===s.basePrice&&s.day>=3,title:'사료값 20% 인상',
   desc:()=>'곡물 국제 가격이 올라 다음 주문부터 사료값이 오른대요. 사료비는 생산비의 절반 이상을 차지해요.',
   choices:[
    {label:'미리 사료를 사 둔다',cost:s=>s.mode==='broiler'?150000:400000,sub:s=>`${s.mode==='broiler'?'7일':'4주'} 동안 예전 가격`,apply:s=>{s.feedPrice=Math.round(s.basePrice*1.2);s.fx.lock=s.mode==='broiler'?7:4;return '보관 비용이 들지만 한동안 오르기 전 가격으로 먹일 수 있어요.'}},
-   {label:'급여량을 줄인다',cost:()=>0,sub:'사료를 "제한"으로 바꿔요',apply:s=>{s.feedPrice=Math.round(s.basePrice*1.2);s.ctrl.feed=1;return '사료는 아끼지만 성장·산란도 같이 줄어요. 사료를 줄이는 것이 항상 이익은 아니에요.'}},
+   {label:'급여량을 줄인다',cost:()=>0,sub:'사료를 "제한"으로 바꿔요',apply:s=>{s.feedPrice=Math.round(s.basePrice*1.2);s.ctrl.feed=1;s.feedCut=true;return '사료는 아끼지만 성장·산란도 같이 줄어요. 사료를 줄이는 것이 항상 이익은 아니에요.'}},
    {label:'그대로 받아들인다',cost:()=>0,sub:'관리 방식 유지',apply:s=>{s.feedPrice=Math.round(s.basePrice*1.2);return '사료요구율을 낮추는 관리(적정 온도, 깨끗한 환경)가 결국 사료비를 줄이는 길이에요.'}}]},
  {id:'disease',icon:'🤒',modes:['broiler','layer'],when:s=>s.day>=(s.mode==='broiler'?8:4)&&!(s.fx.disease>0),title:'질병 의심',
   desc:s=>`기침을 하거나 묽은 변을 보는 ${s.mode==='broiler'?'닭':'닭'}이 보여요. ${s.ammonia>20?'암모니아가 높아 호흡기가 약해진 상태예요.':'빨리 원인을 찾아야 해요.'}`,
@@ -569,7 +587,7 @@ const EVENTS=[
  {id:'drop',icon:'📉',modes:['layer'],when:s=>s.day>=21,title:'산란율 하락',
   desc:()=>'이번 주 알이 눈에 띄게 줄었어요. 점등 시간, 사료, 물, 스트레스를 점검해 볼 때예요.',
   choices:[
-   {label:'점등·사료·급수 점검',cost:()=>0,sub:'잘못된 설정을 바로잡아요',apply:s=>{const fix=[];if(s.ctrl.light<16){s.ctrl.light=16;fix.push('점등 16시간')}if(s.ctrl.feed===1){s.ctrl.feed=2;fix.push('사료 적정')}if(s.ctrl.water===1){s.ctrl.water=2;fix.push('물 충분')}s.fx.layDrop=fix.length?1:2;s.fx.dropAmt=.06;return fix.length?`원인을 찾아 고쳤어요: ${fix.join(', ')}.`:'설정은 문제없었어요. 일시적인 스트레스였나 봐요.'}},
+   {label:'점등·사료·급수 점검',cost:()=>0,sub:'잘못된 설정을 바로잡아요',apply:s=>{const fix=[];if(s.ctrl.light<16){s.ctrl.light=16;fix.push('점등 16시간')}if(s.ctrl.feed===1||s.feedCut||s.feedLv<FEED_DROP){s.ctrl.feed=2;s.feedCut=false;s.feedLv=100;fix.push('사료통 채움')}if(s.ctrl.water===1||s.waterLv<WATER_DROP){s.ctrl.water=2;s.waterLv=100;fix.push('물통 채움')}s.fx.layDrop=fix.length?1:2;s.fx.dropAmt=.06;return fix.length?`원인을 찾아 고쳤어요: ${fix.join(', ')}.`:'설정은 문제없었어요. 일시적인 스트레스였나 봐요.'}},
    {label:'영양제 투여',cost:()=>50000,sub:'회복을 도와요',apply:s=>{s.fx.layDrop=2;s.fx.dropAmt=.03;return '비타민과 아미노산 보충으로 빠르게 회복 중이에요.'}},
    {label:'지켜본다',cost:()=>0,sub:'비용은 없어요',apply:s=>{s.fx.layDrop=3;s.fx.dropAmt=.08;return '원인을 놔두면 하락이 길어질 수 있어요.'}}]},
  {id:'broken',icon:'🥚',modes:['layer'],when:s=>s.day>=22,title:'파란 증가',
@@ -809,10 +827,10 @@ function seg(key,labels,hints){
 }
 function renderCtrls(){
   const c=S.ctrl,lay=S.mode==='layer';
-  const feedHint=['성장 ↓ 사료 ↓','표준 급여','성장 ↑ 낭비 ↑'][c.feed-1];
-  const ventHint=['전기료 0','하루 '+won(lay?1000:2500),'하루 '+won(lay?2143:6000)][c.vent-1];
-  let h=`<div class="ctrl"><div class="lab"><span>🌾 급여량</span><span class="hint">${feedHint}</span></div>${seg('feed',['제한','적정','충분'])}</div>
-  <div class="ctrl"><div class="lab"><span>💧 물</span><span class="hint">${c.water===1?'성장·산란 ↓':'깨끗한 물 충분'}</span></div>${seg('water',['부족','충분'])}</div>`;
+  ensureGauges();
+  const gauge=(label,lv,need,id,btn,hint,extra)=>`<div class="ctrl"><div class="lab"><span>${label}</span><span class="hint">${hint}</span></div><div class="bar" style="height:9px"><i style="width:${lv}%;background:${lv>=need?'var(--good)':lv>0?'var(--warn)':'var(--bad)'}"></i></div><button class="mini" type="button" id="${id}">${btn}</button>${extra||''}</div>`;
+  let h=gauge('🌾 사료통',S.feedLv,FEED_DROP,'btnFeed','급이하기 (가득 채우기)',S.feedCut?'급여 제한 중':`${Math.round(S.feedLv)}% · ${S.feedLv>=FEED_DROP?'다음 번까지 충분':'모자라요!'}`,S.feedCut?'<button class="mini" type="button" id="btnFeedCut">급여 제한 풀기</button>':'')
+   +gauge('💧 물통',S.waterLv,WATER_DROP,'btnWater','급수하기 (가득 채우기)',`${Math.round(S.waterLv)}% · ${S.waterLv>=WATER_DROP?'다음 번까지 충분':'모자라요!'}`);
   if(!lay){
     h+=`<div class="ctrl"><div class="lab"><span>🔥 온도 설정</span><span class="hint">권장 ${recTemp(S.day+1).toFixed(0)}℃</span></div>
     <div class="stepper"><button type="button" id="tMinus" aria-label="온도 내리기">−</button><output class="num">${c.temp}℃</output><button type="button" id="tPlus" aria-label="온도 올리기">+</button></div></div>`;
@@ -820,7 +838,7 @@ function renderCtrls(){
     h+=`<div class="ctrl"><div class="lab"><span>💡 점등 시간</span><span class="hint">권장 ${recLight(S.day+1)}시간</span></div>
     <div class="stepper"><button type="button" id="lMinus" aria-label="점등 줄이기">−</button><output class="num">${c.light}시간</output><button type="button" id="lPlus" aria-label="점등 늘리기">+</button></div></div>`;
   }
-  h+=`<div class="ctrl"><div class="lab"><span>🌀 환기</span><span class="hint">${ventHint}</span></div>${seg('vent',['약','보통','강'])}</div>`;
+  h+=gauge('🌀 환기',S.ventLv,34,'btnVent',`환기 가동 (${won(lay?12000:5000)}, +50%)`,`${Math.round(S.ventLv)}% · ${S.ventLv>=67?'강':S.ventLv>=34?'보통':'약 — 공기가 탁해져요'}`);
   if(!lay){
     h+=`<div class="ctrl"><div class="lab"><span>🪵 깔짚</span><span class="hint">상태 ${Math.round(S.litter)}%</span></div><div class="bar" style="height:9px"><i style="width:${S.litter}%;background:${S.litter>60?'var(--good)':S.litter>35?'var(--warn)':'var(--bad)'}"></i></div><button class="mini" type="button" id="btnLitter">깔짚 보충 (₩40,000, +35%)</button></div>`;
   } else {
@@ -865,7 +883,11 @@ function renderLog(){
 $('#ctrls').addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b||!S||S.done)return;
   const c=S.ctrl;
-  if(b.dataset.fd){c.fd=b.dataset.fd}
+  if(b.id==='btnFeed'){S.feedLv=100;burst('🌾',3);toast('사료통을 가득 채웠어요')}
+  else if(b.id==='btnWater'){S.waterLv=100;burst('💧',3);toast('물통을 가득 채웠어요')}
+  else if(b.id==='btnVent'){const cost=S.mode==='layer'?12000:5000;if(S.ventLv>=98){toast('환기가 충분해요');return}S.money-=cost;S.tot.other+=cost;S.ventLv=clamp(S.ventLv+50,0,100);burst('🌀',3);toast('환기팬을 가동했어요')}
+  else if(b.id==='btnFeedCut'){S.feedCut=false;toast('급여 제한을 풀었어요')}
+  else if(b.dataset.fd){c.fd=b.dataset.fd}
   else if(b.dataset.k){c[b.dataset.k]=+b.dataset.v}
   else if(b.id==='tMinus')c.temp=clamp(c.temp-1,18,36);
   else if(b.id==='tPlus')c.temp=clamp(c.temp+1,18,36);
@@ -963,6 +985,17 @@ function renderRecords(){
   $('#records').innerHTML=(r.length?r.join(' · '):'아직 기록이 없어요. 첫 농장을 시작해 볼까요?')+(saved&&!saved.done?` · <button class="btn" type="button" id="resume" style="padding:3px 10px;font-size:13px">이어하기 (${MODES[saved.mode].name} ${Math.max(1,saved.day)}${saved.mode==='layer'?'주':'일'})</button>`:'');
   const rb=$('#resume');if(rb)rb.addEventListener('click',()=>{S=saved;sprites=[];$('#startView').hidden=true;$('#gameView').hidden=false;render()});
 }
+async function flush(){
+  if(!S)return;
+  LS.set(lsKey('kkokko-autosave'),S);
+  clearTimeout(cloudTimer);
+  if(!CLOUD||!NICK)return;
+  for(let i=0;i<20&&cloudBusy;i++)await new Promise(r=>setTimeout(r,150));
+  await cloudSave(true);
+}
+window.farmGameFlush=flush;
+window.addEventListener('pagehide',()=>{if(S)LS.set(lsKey('kkokko-autosave'),S)});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&S)flush()});
 function autosave(){if(!S)return;LS.set(lsKey('kkokko-autosave'),S);scheduleCloudSave()}
 function pickPreview(id,mode,t){
   const box=$(id),col=colors(mode,t);
