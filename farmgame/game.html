@@ -233,7 +233,7 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
 .adm .dzr{display:flex;gap:6px;align-items:center;flex-wrap:wrap;background:var(--soft);border-radius:10px;padding:6px 8px}
 .adm .dzr b{flex:1;min-width:120px}
 
-.acts{position:absolute;right:2%;top:17%;display:flex;flex-direction:column;gap:4px;z-index:200}
+.acts{position:absolute;right:2%;top:15%;display:flex;flex-direction:column;gap:4px;z-index:200}
 .act{width:56px;background:linear-gradient(to top,var(--gc,#BFE8B8) var(--lv,0%),#FFFFFFEE var(--lv,0%));border:2px solid var(--ink);border-radius:14px;background:#FFFFFFEE;box-shadow:0 3px 0 var(--ink);padding:2px 2px 3px;font-family:var(--f-display);font-size:11px;line-height:1.1;display:flex;flex-direction:column;align-items:center;gap:0;cursor:pointer}
 .act .r{display:flex;align-items:center;gap:2px}
 .act .em{font-size:14px}
@@ -268,7 +268,7 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
 @media (prefers-reduced-motion:reduce){.window .fx{animation:none!important}}
 
 .scene{aspect-ratio:4/3}
-@media (max-width:560px){.scene{aspect-ratio:1/1}}
+@media (max-width:560px){.scene{aspect-ratio:5/6}}
 .sbar{position:absolute;left:2%;right:2%;bottom:3%;display:flex;gap:6px;align-items:flex-end;justify-content:space-between;z-index:200;pointer-events:none}
 .sbar>*{pointer-events:auto}
 .sctl{display:flex;flex-direction:column;gap:3px;background:#FFFFFFEE;border:2px solid var(--ink);border-radius:14px;padding:4px 6px;box-shadow:0 3px 0 var(--ink);font-family:var(--f-display);font-size:12px;line-height:1.1}
@@ -580,7 +580,8 @@ function stepLayer(){
   const ff=feedFx(w);noteFeed(ff);
   const rh=envRec('layer',w).rh,hd=c.hum<rh[0]?rh[0]-c.hum:c.hum>rh[1]?c.hum-rh[1]:0;
   if(hd>=10&&rnd()<.5)addLog(c.hum>rh[1]?'습도가 높아요. 깔짚·계분이 눅눅해지고 암모니아가 올라가요.':'습도가 낮아요. 먼지가 날려 호흡기에 부담이에요.');
-  S.ammonia=clamp(14+w*.25-(c.vent-1)*8+(c.hum>rh[1]+5?2:0),0,50);
+  S.litter=clamp(S.litter-(7+(c.hum>rh[1]+5?4:0)),0,100);
+  S.ammonia=clamp(14+w*.25-(c.vent-1)*8+(c.hum>rh[1]+5?2:0)+(100-S.litter)*.12,0,50);
   const heatStress=fx.heat>0?(fx.cool?4:18-(c.vent-1)*4):(c.vent===1&&w>=18?3:0);
   S.eff=fx.heat>0?(fx.cool?27:33-(c.vent-1)):22;
   let stress=heatStress+hd*.25+Math.max(0,S.ammonia-20)+(c.water===1?20:0)+(c.feed===1?6:0)+(fx.disease>0?fx.sev:0);
@@ -715,7 +716,7 @@ const DZ_RANGE={
  layer:{'전염성기관지염(IB)':[4,40],'뉴캐슬병':[4,40],'대장균증':[8,40],'마이코플라즈마(만성호흡기병)':[8,40],'산란저하증후군(EDS)':[18,40],'닭 응애(닭진드기)':[8,40]}
 };
 const GST_DEF=JSON.parse(JSON.stringify(GSTAGES));
-const COSTS_DEF={broiler:{feed:2000,water:1000,vent:5000,litter:40000},layer:{feed:4000,water:2000,vent:12000,litter:0}};   // 버튼 한 번당 비용(원)
+const COSTS_DEF={broiler:{feed:2000,water:1000,vent:5000,litter:40000},layer:{feed:4000,water:2000,vent:12000,litter:60000}};   // 버튼 한 번당 비용(원)
 const COSTS={broiler:Object.assign({},COSTS_DEF.broiler),layer:Object.assign({},COSTS_DEF.layer)};
 const DZ_BUILTIN={broiler:DZ.broiler.slice(),layer:DZ.layer.slice()};
 const DZ_WEIGHT={broiler:1,layer:1};
@@ -816,7 +817,7 @@ function openAdmin(){
      <input type="number" min="1" max="${max}" data-from="${i}" value="${z.from}"> ~ <input type="number" min="1" max="${max}" data-to="${i}" value="${z.to}"> ${u}</div>`).join('')}</div>
    <h3>💰 버튼 비용 (한 번 누를 때)</h3>
    <p class="note">급이·급수·환기 버튼을 한 번 누를 때 드는 돈(원)이에요. 사료 구입비는 먹은 만큼 따로 계산돼요.</p>
-   <div class="row2">${[['feed','🌾 급이'],['water','💧 급수'],['vent','🌀 환기']].concat(m==='broiler'?[['litter','🪵 깔짚']]:[]).map(([k,t])=>`<label>${t} <input type="number" min="0" max="1000000" step="500" data-cost="${k}" value="${COSTS[m][k]}" style="width:86px"></label>`).join('')}</div>
+   <div class="row2">${[['feed','🌾 급이'],['water','💧 급수'],['vent','🌀 환기']].concat([['litter','🪵 깔짚']]).map(([k,t])=>`<label>${t} <input type="number" min="0" max="1000000" step="500" data-cost="${k}" value="${COSTS[m][k]}" style="width:86px"></label>`).join('')}</div>
    <h3>➕ 질병 추가</h3>
    <p class="note">새 질병을 만들면 위 질병과 함께 구간 안에서 무작위로 나와요. 설명은 간단하게, 약 이름·용량은 쓰지 마세요.</p>
    <div id="admCz">${DZ[m].filter(z=>z.custom).map(z=>czHtml(z,u,max)).join('')}</div>
@@ -866,7 +867,7 @@ function openAdmin(){
     });
     if(new Set(custom.map(x=>x.name)).size!==custom.length)throw new Error('추가한 질병 이름이 겹쳐요.');
     const costs={};
-    for(const k of (m==='broiler'?['feed','water','vent','litter']:['feed','water','vent'])){const v=+$(`[data-cost="${k}"]`).value;if(!(v>=0&&v<=1000000))throw new Error('버튼 비용은 0~1,000,000원 사이로 적어 주세요.');costs[k]=Math.round(v)}
+    for(const k of ['feed','water','vent','litter']){const v=+$(`[data-cost="${k}"]`).value;if(!(v>=0&&v<=1000000))throw new Error('버튼 비용은 0~1,000,000원 사이로 적어 주세요.');costs[k]=Math.round(v)}
     return {diseaseWeight:+$('#admW').value,diseases,stages,custom,costs};
   };
   const publish=async(section,okMsg)=>{
@@ -1013,7 +1014,7 @@ function renderActs(){
   const el=$('#acts');if(!el||!S)return;
   el.hidden=!!S.done;
   const it=[['feed','🌾','급이',S.feedLv,FEED_DROP],['water','💧','급수',S.waterLv,WATER_DROP],['vent','🌀','환기',S.ventLv,34]];
-  if(S.mode==='broiler')it.push(['litter','🪵','깔짚',S.litter,45]);
+  it.push(['litter','🪵','깔짚',S.litter,45]);
   const FL=FEEDS[S.mode],frec=feedRecIdx(S.mode,S.day+1),fcur=Math.max(0,FL.findIndex(f=>f.id===S.ctrl.fd));
   el.innerHTML=it.map(([k,em,lab,lv,need])=>`<button type="button" class="act${lv<need?' low':''}" data-act="${k}" style="--lv:${Math.round(lv)}%;--gc:${lv>=need?'#BFE8B8':lv>0?'#FFE29A':'#FFB3A6'}" aria-label="${lab}하기 ${won(COSTS[S.mode][k])}"><span class="r"><span class="em">${em}</span>${lab}</span><small>${won(COSTS[S.mode][k])}</small></button>`).join('')
     +(S.mode==='layer'?`<button type="button" class="act" data-act="calc" style="--lv:${S.ctrl.calcium?100:0}%" aria-label="칼슘 보충 ${S.ctrl.calcium?'켜짐':'꺼짐'}"><span class="r"><span class="em">🥚</span>칼슘</span><small>${S.ctrl.calcium?'켜짐':'꺼짐'}</small></button>`:'')
@@ -1047,7 +1048,7 @@ function renderScene(){
   scene.classList.toggle('hot',S.fx.heat>0);
   const floor=$('#floor');
   if(S.mode==='broiler') floor.style.setProperty('--floor',mixHex('#B58A55','#F6D57E',S.litter/100));
-  else floor.style.setProperty('--floor','#E8D3B0');
+  else floor.style.setProperty('--floor',mixHex('#B58A55','#E8D3B0',S.litter/100));
   $('#haze').style.opacity=clamp((S.ammonia-12)/45,0,.75);
   const bulb=$('#bulb');
   if(S.mode==='broiler'){const g=clamp((S.ctrl.temp-18)/16,0,1);bulb.style.background=mixHex('#FFE7B0','#FF8A3D',g);bulb.style.boxShadow=`0 0 ${10+g*40}px ${4+g*18}px ${mixHex('#FFE7B0','#FFA05A',g)}aa`}
