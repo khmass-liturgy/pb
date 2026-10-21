@@ -296,6 +296,14 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
 
 .tapfx{position:absolute;font-size:20px;pointer-events:none;z-index:150;animation:tapfx .9s ease-out forwards}
 @keyframes tapfx{from{transform:scale(.6);opacity:1}to{transform:scale(1.5) translateY(-8px);opacity:0}}
+
+.scene.lay .lamp{left:48%;width:12%;z-index:200}
+.lamp .bulb .bn{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--f-display);font-size:13px;color:#3A3658;pointer-events:none}
+.lamp .bulb .bn.warn{color:#C62828}
+.lb{position:absolute;top:50%;transform:translateY(-50%);width:26px;height:26px;border:2px solid var(--ink);border-radius:50%;background:var(--straw);font-size:16px;line-height:1;padding:0;box-shadow:0 2px 0 var(--ink)}
+.lb.l{left:-31px}.lb.r{right:-31px}
+.lb:active{transform:translateY(-48%)}
+.lamp .lrec{position:absolute;top:100%;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:10px;background:#FFFFFFD9;border-radius:8px;padding:0 6px;color:var(--muted);margin-top:2px;pointer-events:none}
 </style>
 </head>
 <body>
@@ -967,7 +975,7 @@ const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 let lure=null;const LURE_MS=5000;
 (function(){
   const place=e=>{
-    if(!S||S.done||e.target.closest('.acts,.sbar,.fdpop,.sign'))return false;
+    if(!S||S.done||e.target.closest('.acts,.sbar,.fdpop,.sign,.lb'))return false;
     const r=scene.getBoundingClientRect();
     lure={x:clamp((e.clientX-r.left)/r.width,0,1),y:clamp((e.clientY-r.top)/r.height,0,1),t:performance.now()};
     return true;
@@ -1047,8 +1055,12 @@ function renderBar(){
   const c=S.ctrl,lay=S.mode==='layer',d=Math.min(S.day+1,MODES[S.mode].maxDay),rh=envRec(S.mode,d).rh;
   el.hidden=!!S.done;
   const row=(e,minus,val,plus,lab,rec,bad)=>`<div class="rw"><span class="e" aria-hidden="true">${e}</span><button type="button" id="${minus}" aria-label="${lab} 내리기">−</button><output class="num${bad?' warn':''}">${val}</output><button type="button" id="${plus}" aria-label="${lab} 올리기">+</button><small>${rec}</small></div>`;
+  const bu=$('#bulb');
+  if(bu){
+    bu.innerHTML=(lay&&!S.done)?`<span class="bn${Math.abs(c.light-recLight(S.day+1))>1?' warn':''}">${c.light}</span><button class="lb l" id="lMinus" type="button" aria-label="점등 1시간 줄이기">−</button><button class="lb r" id="lPlus" type="button" aria-label="점등 1시간 늘리기">+</button><span class="lrec">점등(시간) 권장 ${recLight(S.day+1)}</span>`:'';
+  }
   el.innerHTML=(lay
-    ?row('💡','lMinus',c.light+'시간','lPlus','점등',`권장<br>${recLight(S.day+1)}시간`,Math.abs(c.light-recLight(S.day+1))>1)
+    ?''
     :row('🔥','tMinus',c.temp+'℃','tPlus','온도',`권장<br>${recTemp(S.day+1).toFixed(0)}℃`,Math.abs(c.temp-recTemp(S.day+1))>1.5))
    +row('💧','hMinus',c.hum+'%','hPlus','습도',`권장<br>${rh[0]}~${rh[1]}%`,c.hum<rh[0]||c.hum>rh[1]);
 }
@@ -1088,7 +1100,7 @@ function renderScene(){
   const t=growthT(),col=colors(S.mode,t);
   flockEl.style.setProperty('--b',col.b);flockEl.style.setProperty('--w',col.w);flockEl.style.setProperty('--comb',col.comb);flockEl.style.setProperty('--hs',col.hs);
   if(sprites.length!==visibleCount()) buildFlock(visibleCount());
-  scene.classList.toggle('hot',S.fx.heat>0);
+  scene.classList.toggle('hot',S.fx.heat>0);scene.classList.toggle('lay',S.mode==='layer');
   const floor=$('#floor');
   if(S.mode==='broiler') floor.style.setProperty('--floor',mixHex('#B58A55','#F6D57E',S.litter/100));
   else floor.style.setProperty('--floor',mixHex('#B58A55','#E8D3B0',S.litter/100));
@@ -1262,7 +1274,7 @@ const onCtl=e=>{
   else if(b.id==='lPlus')c.light=clamp(c.light+1,6,22);
   render();autosave();
 };
-$('#ctrls').addEventListener('click',onCtl);$('#sbarCtl').addEventListener('click',onCtl);
+$('#ctrls').addEventListener('click',onCtl);$('#sbarCtl').addEventListener('click',onCtl);$('#bulb').addEventListener('click',onCtl);
 $('#btnNext').addEventListener('click',()=>{
   if(!S)return;
   if(S.done){showReport();return}
@@ -1343,17 +1355,59 @@ if(LOCK){
   $(LOCK==='broiler'?'#pickLayer':'#pickBroiler').hidden=true;
   $('.picks').classList.add('one');$('#subtitle').textContent=HOME_SUB;
 }
-$('#pickBroiler').addEventListener('click',()=>needNick(()=>start('broiler')));
-$('#pickLayer').addEventListener('click',()=>needNick(()=>start('layer')));
+function getSaved(){
+  let sv=LS.get(lsKey('kkokko-autosave'),null);
+  if(!sv&&LOCK){const old=LS.get(lsKeyN('kkokko-autosave'),null);if(old&&old.mode===LOCK)sv=old}
+  return sv;
+}
+function resumeLocal(sv){S=sv;sprites=[];$('#startView').hidden=true;$('#gameView').hidden=false;render()}
+// 시작 버튼을 눌렀을 때 이 닉네임으로 저장된 농장이 있으면(이 기기 또는 내 계정) 덮어쓰기 전에 꼭 물어본다.
+function startGuarded(mode){
+  needNick(async()=>{
+    if(CLOUD&&CHP&&CH.state==='loading')toast('저장된 농장을 확인하는 중…');
+    if(CLOUD&&CHP)await Promise.race([CHP.catch(()=>{}),new Promise(r=>setTimeout(r,5000))]);
+    const sv=getSaved(),hit=CH.hit,unit=mode==='layer'?'주':'일';
+    const localOk=!!(sv&&!sv.done&&sv.mode===mode);
+    const cloudOk=!!(hit&&!hit.done&&hit.mode===mode&&(!localOk||(hit.day||0)>(sv.day||0)));
+    if(!localOk&&!cloudOk){
+      if(CLOUD&&CH.state==='err'){
+        openModal(`<div class="ev-icon">⚠️</div><h2>저장 확인을 못 했어요</h2><p>내 계정에 저장된 농장이 있는지 읽지 못했어요. 지금 새로 시작하면 저장돼 있던 농장을 덮어쓸 수 있어요.</p>
+         <div class="row"><button class="btn" type="button" id="gkRetry">다시 확인</button><button class="btn" type="button" id="gkForce">그래도 새로 시작</button><button class="btn" type="button" id="gClose">취소</button></div>`);
+        $('#gClose').addEventListener('click',closeModal);
+        $('#gkRetry').addEventListener('click',()=>{closeModal();fetchCloudHint();toast('다시 확인하는 중…')});
+        $('#gkForce').addEventListener('click',()=>{closeModal();start(mode)});
+        return;
+      }
+      start(mode);return;
+    }
+    const day=cloudOk?hit.day:sv.day;
+    openModal(`<div class="ev-icon">🏡</div><h2>저장된 농장이 있어요</h2>
+     <div class="result">${MODES[mode].name} ${Math.max(1,day||0)}${unit}${cloudOk?' · ☁ 내 계정에 저장':''}</div>
+     <p>새로 시작하면 저장된 농장이 사라져요. 이어서 하시겠어요?</p>
+     <div class="row"><button class="btn primary" type="button" id="gkResume">이어하기</button><button class="btn" type="button" id="gkNew">새로 시작</button><button class="btn" type="button" id="gClose">취소</button></div>`);
+    $('#gClose').addEventListener('click',closeModal);
+    $('#gkResume').addEventListener('click',()=>{closeModal();if(cloudOk)cloudLoad(hit.nickname);else resumeLocal(sv)});
+    $('#gkNew').addEventListener('click',()=>{
+      const b=$('#gkNew');
+      if(b.dataset.armed!=='1'){b.dataset.armed='1';b.textContent='정말 새로 시작(덮어쓰기)';b.style.background='var(--bad)';b.style.color='#fff';return}
+      if(sv)LS.set(lsKey('kkokko-prev'),sv);      // 이 기기에는 직전 농장을 하나 남겨 둬요(시작 화면의 「직전 농장 복구」)
+      closeModal();start(mode);
+    });
+  });
+}
+$('#pickBroiler').addEventListener('click',()=>startGuarded('broiler'));
+$('#pickLayer').addEventListener('click',()=>startGuarded('layer'));
 $('#btnHome').addEventListener('click',goHome);
+let CHP=null;
 let CH={state:'idle',hit:null};     // 내 계정(Firebase)에 저장된 이 닉네임의 농장 — 시작 화면에 「불러오기」로 보여 준다
 function fetchCloudHint(){
-  if(!CLOUD||!NICK){CH={state:'idle',hit:null};return}
+  if(!CLOUD||!NICK){CH={state:'idle',hit:null};CHP=null;return}
   CH={state:'loading',hit:null};renderRecords();
   const nick=NICK;
-  CLOUD.list().then(list=>{if(nick!==NICK)return;CH={state:'ok',hit:list.filter(ownSlot).find(x=>baseName(x.nickname)===NICK)||null}})
+  CHP=CLOUD.list().then(list=>{if(nick!==NICK)return;CH={state:'ok',hit:list.filter(ownSlot).find(x=>baseName(x.nickname)===NICK)||null}})
     .catch(e=>{CH={state:'err',hit:null,msg:e.message||'저장 목록을 읽지 못했어요.'}})
     .then(()=>{if(!$('#startView').hidden)renderRecords()});
+  return CHP;
 }
 function renderRecords(){
   const r=[];if(R.broiler.best!=null&&(!LOCK||LOCK==='broiler'))r.push(`육계 최고 ${won(R.broiler.best)}`);if(R.layer.best!=null&&(!LOCK||LOCK==='layer'))r.push(`산란계 최고 ${won(R.layer.best)}`);
@@ -1361,6 +1415,11 @@ function renderRecords(){
   if(!saved&&LOCK){const old=LS.get(lsKeyN('kkokko-autosave'),null);if(old&&old.mode===LOCK)saved=old}
   $('#records').innerHTML=(r.length?r.join(' · '):'아직 기록이 없어요. 첫 농장을 시작해 볼까요?')+(saved&&!saved.done?` · <button class="btn" type="button" id="resume" style="padding:3px 10px;font-size:13px">이어하기 (${MODES[saved.mode].name} ${Math.max(1,saved.day)}${saved.mode==='layer'?'주':'일'})</button>`:'');
   const rb=$('#resume');if(rb)rb.addEventListener('click',()=>{S=saved;sprites=[];$('#startView').hidden=true;$('#gameView').hidden=false;render()});
+  const prev=LS.get(lsKey('kkokko-prev'),null);
+  if(prev&&!prev.done&&MODES[prev.mode]&&(!saved||saved.done||(prev.day||0)!==(saved.day||0)||prev.money!==saved.money)){
+    $('#records').insertAdjacentHTML('beforeend',` · <button class="btn" type="button" id="prevRestore" style="padding:3px 10px;font-size:13px">↩ 직전 농장 복구 (${MODES[prev.mode].name} ${Math.max(1,prev.day||0)}${prev.mode==='layer'?'주':'일'})</button>`);
+    $('#prevRestore').addEventListener('click',()=>{S=prev;sprites=[];$('#startView').hidden=true;$('#gameView').hidden=false;render();autosave();toast('직전 농장을 되살렸어요')});
+  }
   if(CLOUD&&NICK){
     let ch='';
     const hit=CH.hit,unit=hit&&hit.mode==='layer'?'주':'일';
