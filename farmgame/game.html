@@ -269,13 +269,26 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
 
 .scene{aspect-ratio:4/3}
 @media (max-width:560px){.scene{aspect-ratio:1/1}}
-.sbar{position:absolute;left:2%;right:2%;bottom:3%;display:flex;gap:6px;align-items:stretch;z-index:200}
-.sctl{display:flex;align-items:center;gap:4px;background:#FFFFFFEE;border:2px solid var(--ink);border-radius:14px;padding:3px 6px;box-shadow:0 3px 0 var(--ink);font-family:var(--f-display);font-size:12px;line-height:1.1}
-.sctl>div{white-space:nowrap}
-.sctl small{display:block;font-size:10px;color:var(--muted);font-family:inherit}
-.sctl button{width:28px;height:28px;border:2px solid var(--ink);border-radius:9px;background:var(--straw);font-size:16px;line-height:1;padding:0}
-.sctl output{min-width:40px;text-align:center;font-size:14px}
-.sbar .gobtn{flex:1;width:auto;padding:6px 8px;font-size:15px;white-space:nowrap;border-radius:14px;border-width:2px;box-shadow:0 4px 0 var(--ink)}
+.sbar{position:absolute;left:2%;right:2%;bottom:3%;display:flex;gap:6px;align-items:flex-end;justify-content:space-between;z-index:200;pointer-events:none}
+.sbar>*{pointer-events:auto}
+.sctl{display:flex;flex-direction:column;gap:3px;background:#FFFFFFEE;border:2px solid var(--ink);border-radius:14px;padding:4px 6px;box-shadow:0 3px 0 var(--ink);font-family:var(--f-display);font-size:12px;line-height:1.1}
+.sctl .rw{display:flex;align-items:center;gap:3px;white-space:nowrap}
+.sctl .e{font-size:15px;width:20px;text-align:center}
+.sctl small{font-size:9.5px;color:var(--muted);font-family:inherit;line-height:1.15}
+.sctl button{width:26px;height:26px;border:2px solid var(--ink);border-radius:9px;background:var(--straw);font-size:15px;line-height:1;padding:0}
+.sctl output{min-width:38px;text-align:center;font-size:13px}
+.sbar .gobtn{flex:none;width:auto;min-width:96px;padding:9px 10px;font-size:14px;white-space:nowrap;border-radius:14px;border-width:2px;box-shadow:0 4px 0 var(--ink)}
+@container (max-width:340px){.sctl small{display:none}}
+@container (max-width:300px){.act small{display:none}}
+.sctl output.warn{color:#C62828}
+.scene{container-type:inline-size}
+.fdpop{position:absolute;right:calc(2% + 60px);top:17%;z-index:220;background:#FFFFFFF5;border:2px solid var(--ink);border-radius:14px;padding:6px;display:flex;flex-direction:column;gap:4px;box-shadow:0 4px 0 var(--ink);max-width:62%}
+.fdpop[hidden]{display:none}
+.fdpop button{border:2px solid var(--line);background:#fff;border-radius:10px;padding:4px 8px;font-family:var(--f-display);font-size:12.5px;text-align:left;line-height:1.2}
+.fdpop button small{display:block;font-size:10px;color:var(--muted);font-family:inherit}
+.fdpop button[aria-pressed="true"]{background:var(--straw);border-color:var(--ink)}
+.fdpop button.rec::after{content:' ★ 권장';font-size:10.5px;color:#C77700}
+.act.sel small{font-size:9.5px}
 </style>
 </head>
 <body>
@@ -348,6 +361,7 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
       <div class="nest" id="nest" hidden></div>
       <div class="acts" id="acts"></div>
       <div class="sbar"><div class="sctl" id="sbarCtl"></div><button class="gobtn" id="btnNext" type="button">하루 보내기 🌙</button></div>
+      <div class="fdpop" id="fdpop" hidden></div>
       <div class="nightveil"></div><div class="moon"></div><div class="zzz">쿨쿨… 💤</div>
     </div>
 
@@ -360,7 +374,7 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
         <div class="stat"><div class="k" id="kEnv">계사 온도</div><div class="v num" id="vEnv">33℃</div></div>
         <div class="stat"><div class="k">암모니아</div><div class="v num" id="vNh3">5ppm</div><div class="bar"><i id="bNh3"></i></div></div>
       </div>
-      <h2>오늘의 관리</h2>
+      <h2 id="ctrlsHead">오늘의 관리</h2>
       <div class="ctrls" id="ctrls"></div>
       <div class="cloudnote" id="cloudnote" role="status"></div>
     </div>
@@ -499,7 +513,7 @@ function addLog(t){S.log.unshift({d:S.day,t});S.log=S.log.slice(0,8)}
 
 /* ── 사료통·물통·환기: 깔짚처럼 시간이 지나면 줄고, 터치로 채우거나 가동한다 ── */
 const FEED_DROP=55,WATER_DROP=45,VENT_DROP=30;
-function ensureGauges(){if(S.feedLv==null){S.feedLv=100;S.waterLv=100;S.ventLv=60;S.feedCut=false}}
+function ensureGauges(){if(S.feedLv==null){S.feedLv=100;S.waterLv=100;S.ventLv=60;S.feedCut=false}if(S.ctrl.hum==null)S.ctrl.hum=S.mode==='layer'?60:65}
 function useGauges(){
   ensureGauges();
   const c=S.ctrl,fc=clamp(S.feedLv/FEED_DROP,0,1),wc=clamp(S.waterLv/WATER_DROP,0,1);
@@ -524,9 +538,11 @@ function stepBroiler(){
   else if(c.vent===3&&d<14) eff-=2;
   S.eff=eff;
   const tdev=Math.abs(eff-target);
-  S.litter=clamp(S.litter-(2.2+d*.07+(c.water===1?0:.4)),0,100);
-  S.ammonia=clamp((100-S.litter)*.42+d*.3-(c.vent-1)*10,0,60);
-  let stress=tdev*3.5+Math.max(0,S.ammonia-20)+(c.water===1?18:0)+(c.feed===1?4:0)+(fx.disease>0?fx.sev:0);
+  const rh=envRec('broiler',d).rh,hd=c.hum<rh[0]?rh[0]-c.hum:c.hum>rh[1]?c.hum-rh[1]:0,wet=c.hum>rh[1]+5;
+  if(hd>=10&&rnd()<.5)addLog(c.hum>rh[1]?'습도가 높아요. 깔짚이 눅눅해지고 암모니아가 올라가요.':'습도가 낮아요. 먼지가 날려 호흡기에 부담이에요.');
+  S.litter=clamp(S.litter-(2.2+d*.07+(c.water===1?0:.4)+(wet?.8:0)),0,100);
+  S.ammonia=clamp((100-S.litter)*.42+d*.3-(c.vent-1)*10+(wet?3:0),0,60);
+  let stress=tdev*3.5+hd*.3+Math.max(0,S.ammonia-20)+(c.water===1?18:0)+(c.feed===1?4:0)+(fx.disease>0?fx.sev:0);
   if(fx.heat>0&&fx.vit) stress*=.6;
   S.health=clamp(S.health+(stress<12?3:-(stress-12)*.35),0,100);
   const base=stdW(d)-stdW(d-1);
@@ -562,10 +578,12 @@ function stepLayer(){
   useGauges();
   const recL=recLight(w), growing=w<18;
   const ff=feedFx(w);noteFeed(ff);
-  S.ammonia=clamp(14+w*.25-(c.vent-1)*8,0,50);
+  const rh=envRec('layer',w).rh,hd=c.hum<rh[0]?rh[0]-c.hum:c.hum>rh[1]?c.hum-rh[1]:0;
+  if(hd>=10&&rnd()<.5)addLog(c.hum>rh[1]?'습도가 높아요. 깔짚·계분이 눅눅해지고 암모니아가 올라가요.':'습도가 낮아요. 먼지가 날려 호흡기에 부담이에요.');
+  S.ammonia=clamp(14+w*.25-(c.vent-1)*8+(c.hum>rh[1]+5?2:0),0,50);
   const heatStress=fx.heat>0?(fx.cool?4:18-(c.vent-1)*4):(c.vent===1&&w>=18?3:0);
   S.eff=fx.heat>0?(fx.cool?27:33-(c.vent-1)):22;
-  let stress=heatStress+Math.max(0,S.ammonia-20)+(c.water===1?20:0)+(c.feed===1?6:0)+(fx.disease>0?fx.sev:0);
+  let stress=heatStress+hd*.25+Math.max(0,S.ammonia-20)+(c.water===1?20:0)+(c.feed===1?6:0)+(fx.disease>0?fx.sev:0);
   if(fx.heat>0&&fx.vit) stress*=.6;
   S.health=clamp(S.health+(stress<10?5:-(stress-10)*.6),0,100);
   if(growing){
@@ -906,7 +924,7 @@ function buildFlock(n){
   flockEl.innerHTML='';sprites=[];
   for(let i=0;i<n;i++){
     const el=document.createElement('div');el.className='hen';el.innerHTML=henSVG();flockEl.appendChild(el);
-    sprites.push({el,x:.1+rnd()*.8,y:.56+rnd()*.2,tx:0,ty:0,mode:'idle',timer:rnd()*80,dir:rnd()<.5?1:-1,bubbleT:0});
+    sprites.push({el,x:.1+rnd()*.8,y:.52+rnd()*.18,tx:0,ty:0,mode:'idle',timer:rnd()*80,dir:rnd()<.5?1:-1,bubbleT:0});
   }
 }
 function visibleCount(){return Math.max(1,Math.round(12*S.alive/S.birds0))}
@@ -935,7 +953,7 @@ function animFlock(dt){
     if(s.timer<=0){
       const r=rnd();
       if(m==='cold'&&r<.7){s.mode='walk';s.tx=.42+rnd()*.16;s.ty=.6+rnd()*.12}
-      else if(r<.45){s.mode='walk';s.tx=.06+rnd()*.7;s.ty=.54+rnd()*.22}
+      else if(r<.45){s.mode='walk';s.tx=.06+rnd()*.7;s.ty=.5+rnd()*.2}
       else if(r<.75){s.mode='peck';s.timer=60}
       else{s.mode='idle';s.timer=40+rnd()*90}
       if(s.mode==='walk') s.timer=999;
@@ -981,23 +999,35 @@ function renderWindowWx(){
 const signText=()=>`${NICK?NICK:'꼬꼬'} ${S&&S.mode==='layer'?'산란계사':'육계사'}`;
 function renderBar(){
   const el=$('#sbarCtl');if(!el||!S)return;
-  const c=S.ctrl;
+  ensureGauges();
+  const c=S.ctrl,lay=S.mode==='layer',d=Math.min(S.day+1,MODES[S.mode].maxDay),rh=envRec(S.mode,d).rh;
   el.hidden=!!S.done;
-  el.innerHTML=S.mode==='layer'
-    ?`<div>💡 점등<small>권장 ${recLight(S.day+1)}시간</small></div><button type="button" id="lMinus" aria-label="점등 줄이기">−</button><output class="num">${c.light}시간</output><button type="button" id="lPlus" aria-label="점등 늘리기">+</button>`
-    :`<div>🔥 온도<small>권장 ${recTemp(S.day+1).toFixed(0)}℃</small></div><button type="button" id="tMinus" aria-label="온도 내리기">−</button><output class="num">${c.temp}℃</output><button type="button" id="tPlus" aria-label="온도 올리기">+</button>`;
+  const row=(e,minus,val,plus,lab,rec,bad)=>`<div class="rw"><span class="e" aria-hidden="true">${e}</span><button type="button" id="${minus}" aria-label="${lab} 내리기">−</button><output class="num${bad?' warn':''}">${val}</output><button type="button" id="${plus}" aria-label="${lab} 올리기">+</button><small>${rec}</small></div>`;
+  el.innerHTML=(lay
+    ?row('💡','lMinus',c.light+'시간','lPlus','점등',`권장<br>${recLight(S.day+1)}시간`,Math.abs(c.light-recLight(S.day+1))>1)
+    :row('🔥','tMinus',c.temp+'℃','tPlus','온도',`권장<br>${recTemp(S.day+1).toFixed(0)}℃`,Math.abs(c.temp-recTemp(S.day+1))>1.5))
+   +row('💧','hMinus',c.hum+'%','hPlus','습도',`권장<br>${rh[0]}~${rh[1]}%`,c.hum<rh[0]||c.hum>rh[1]);
 }
+let fdOpen=false;
 function renderActs(){
   const el=$('#acts');if(!el||!S)return;
   el.hidden=!!S.done;
   const it=[['feed','🌾','급이',S.feedLv,FEED_DROP],['water','💧','급수',S.waterLv,WATER_DROP],['vent','🌀','환기',S.ventLv,34]];
   if(S.mode==='broiler')it.push(['litter','🪵','깔짚',S.litter,45]);
+  const FL=FEEDS[S.mode],frec=feedRecIdx(S.mode,S.day+1),fcur=Math.max(0,FL.findIndex(f=>f.id===S.ctrl.fd));
   el.innerHTML=it.map(([k,em,lab,lv,need])=>`<button type="button" class="act${lv<need?' low':''}" data-act="${k}" style="--lv:${Math.round(lv)}%;--gc:${lv>=need?'#BFE8B8':lv>0?'#FFE29A':'#FFB3A6'}" aria-label="${lab}하기 ${won(COSTS[S.mode][k])}"><span class="r"><span class="em">${em}</span>${lab}</span><small>${won(COSTS[S.mode][k])}</small></button>`).join('')
-    +(S.mode==='layer'?`<button type="button" class="act" data-act="calc" style="--lv:${S.ctrl.calcium?100:0}%" aria-label="칼슘 보충 ${S.ctrl.calcium?'켜짐':'꺼짐'}"><span class="r"><span class="em">🥚</span>칼슘</span><small>${S.ctrl.calcium?'켜짐':'꺼짐'}</small></button>`:'');
+    +(S.mode==='layer'?`<button type="button" class="act" data-act="calc" style="--lv:${S.ctrl.calcium?100:0}%" aria-label="칼슘 보충 ${S.ctrl.calcium?'켜짐':'꺼짐'}"><span class="r"><span class="em">🥚</span>칼슘</span><small>${S.ctrl.calcium?'켜짐':'꺼짐'}</small></button>`:'')
+    +`<button type="button" class="act sel${fcur!==frec?' low':''}" data-act="feedsel" style="--lv:0%" aria-label="사료 종류 선택, 지금 ${FL[fcur].name}"><span class="r"><span class="em">🥣</span>사료</span><small>${FL[fcur].name.replace(' 사료','')}</small></button>`;
+  const pop=$('#fdpop');
+  if(pop){
+    pop.hidden=!fdOpen||!!S.done;
+    pop.innerHTML=FL.map((f,i)=>`<button type="button" data-fd="${f.id}" class="${i===frec?'rec':''}" aria-pressed="${i===fcur}">${f.name}<small>${f.sub}</small></button>`).join('');
+  }
 }
 function doAct(k){
   if(!S||S.done||$('#btnNext').disabled)return;
   ensureGauges();
+  if(k==='feedsel'){fdOpen=!fdOpen;renderActs();return}
   if(k==='calc'){S.ctrl.calcium=S.ctrl.calcium?0:1;toast(S.ctrl.calcium?'칼슘 보충을 켰어요 (주 ₩14,000)':'칼슘 보충을 껐어요');render();autosave();return}
   const cost=COSTS[S.mode][k];
   if(k==='litter'){if(S.litter>=98){toast('깔짚이 이미 보송해요');return}S.litter=clamp(S.litter+35,0,100);S.ammonia=clamp(S.ammonia-10,0,60);burst('✨',3);toast('새 깔짚을 깔았어요')}
@@ -1007,6 +1037,7 @@ function doAct(k){
   S.money-=cost;S.tot.other+=cost;
   render();autosave();
 }
+$('#fdpop').addEventListener('click',e=>{const b=e.target.closest('[data-fd]');if(!b||!S||S.done)return;S.ctrl.fd=b.dataset.fd;fdOpen=false;toast(`${b.firstChild.textContent} 선택`);render();autosave()});
 $('#acts').addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(b)doAct(b.dataset.act)});
 function renderScene(){
   renderActs();renderBar();
@@ -1143,12 +1174,7 @@ function renderCtrls(){
   const c=S.ctrl,lay=S.mode==='layer';
   ensureGauges();
   let h=S.feedCut?`<div class="ctrl"><div class="lab"><span>🌾 급여 제한 중</span></div><button class="mini" type="button" id="btnFeedCut">급여 제한 풀기</button></div>`:'';
-  {
-    const L=FEEDS[S.mode],rec=feedRecIdx(S.mode,S.day+1);
-    h+=`<div class="ctrl wide"><div class="lab"><span>🥣 사료 종류 (구간별)</span><span class="hint">지금 권장: ${L[rec].name}</span></div>
-    <div class="fdopts">${L.map((f,i)=>`<button type="button" data-fd="${f.id}" class="${i===rec?'rec':''}" aria-pressed="${c.fd===f.id}">${f.name}<small>${f.sub}</small></button>`).join('')}</div></div>`;
-  }
-  $('#ctrls').innerHTML=h;
+  $('#ctrls').innerHTML=h;$('#ctrls').hidden=!h;{const hd=$('#ctrlsHead');if(hd)hd.hidden=!h}
 }
 function renderChart(){
   const H=S.hist,lay=S.mode==='layer';
@@ -1186,6 +1212,8 @@ const onCtl=e=>{
   else if(b.dataset.k){c[b.dataset.k]=+b.dataset.v}
   else if(b.id==='tMinus')c.temp=clamp(c.temp-1,18,36);
   else if(b.id==='tPlus')c.temp=clamp(c.temp+1,18,36);
+  else if(b.id==='hMinus')c.hum=clamp((c.hum||60)-5,30,90);
+  else if(b.id==='hPlus')c.hum=clamp((c.hum||60)+5,30,90);
   else if(b.id==='lMinus')c.light=clamp(c.light-1,6,22);
   else if(b.id==='lPlus')c.light=clamp(c.light+1,6,22);
   render();autosave();
