@@ -303,6 +303,7 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
 .hen .bo{position:relative;transform-origin:50% 100%}
 .hen .sa{position:absolute;left:0;top:0;opacity:var(--grow,0)}
 .hen .sc{opacity:calc(1 - var(--grow,0))}
+.hen .sa,.hen .sc{transition:none}
 .hen.walk .bo{animation:hop .34s infinite alternate}
 @keyframes hop{to{transform:translateY(-7%) rotate(-3deg)}}
 .hen.peck .bo{animation:peckb .5s ease-in-out 2}
@@ -1300,7 +1301,7 @@ $('#acts').addEventListener('click',e=>{const b=e.target.closest('[data-act]');i
 function renderScene(){
   renderActs();renderBar();
   const t=growthT(),col=colors(S.mode,t);
-  flockEl.style.setProperty('--grow',String(clamp((t-.3)/.45,0,1)));
+  flockEl.style.setProperty('--grow',t>=.5?'1':'0');   // 두 그림이 반투명으로 겹쳐 보이지 않게 한 번에 바꾼다(크기는 계속 조금씩 커짐)
   flockEl.style.setProperty('--b',col.b);flockEl.style.setProperty('--w',col.w);flockEl.style.setProperty('--comb',col.comb);flockEl.style.setProperty('--hs',col.hs);
   if(sprites.length!==visibleCount()) buildFlock(visibleCount());
   scene.classList.toggle('hot',S.fx.heat>0);scene.classList.toggle('lay',S.mode==='layer');
