@@ -431,10 +431,9 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
       <div class="tip" id="tip"></div>
     </div>
 
-    <div class="panel">
+    <div class="panel" id="ctrlPanel" hidden>
       <h2 id="ctrlsHead">오늘의 관리</h2>
       <div class="ctrls" id="ctrls"></div>
-      <div class="cloudnote" id="cloudnote" role="status"></div>
     </div>
 
     <div class="two">
@@ -1311,7 +1310,7 @@ function renderCtrls(){
   const c=S.ctrl,lay=S.mode==='layer';
   ensureGauges();
   let h=S.feedCut?`<div class="ctrl"><div class="lab"><span>🌾 급여 제한 중</span></div><button class="mini" type="button" id="btnFeedCut">급여 제한 풀기</button></div>`:'';
-  $('#ctrls').innerHTML=h;$('#ctrls').hidden=!h;{const hd=$('#ctrlsHead');if(hd)hd.hidden=!h}
+  $('#ctrls').innerHTML=h;$('#ctrls').hidden=!h;{const cp=$('#ctrlPanel');if(cp)cp.hidden=!h}{const hd=$('#ctrlsHead');if(hd)hd.hidden=!h}
 }
 function renderChart(){
   const H=S.hist,lay=S.mode==='layer';
