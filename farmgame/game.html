@@ -652,6 +652,7 @@ const DZ_RANGE={
  layer:{'전염성기관지염(IB)':[4,40],'뉴캐슬병':[4,40],'대장균증':[8,40],'마이코플라즈마(만성호흡기병)':[8,40],'산란저하증후군(EDS)':[18,40],'닭 응애(닭진드기)':[8,40]}
 };
 const GST_DEF=JSON.parse(JSON.stringify(GSTAGES));
+const DZ_BUILTIN={broiler:DZ.broiler.slice(),layer:DZ.layer.slice()};
 const DZ_WEIGHT={broiler:1,layer:1};
 let CFG=window.FG_CONFIG||null;      // 관리자가 발행한 설정(부모 창이 srcdoc에 심어 줌)
 function applyCfg(cfg){
@@ -663,10 +664,19 @@ function applyCfg(cfg){
         .map(x=>({from:+x.from,to:+x.to,name:String(x.name||'').slice(0,20),pts:x.pts.map(t=>String(t).slice(0,80)).filter(Boolean).slice(0,6)}));
       if(ok.length)GSTAGES[m]=ok;
     }
+    DZ[m]=DZ_BUILTIN[m].slice();
     DZ[m].forEach(z=>{
       const r=DZ_RANGE[m][z.name]||[1,40];z.from=r[0];z.to=r[1];z.on=true;
       const o=c.diseases&&c.diseases[z.name];
       if(o){if(o.on===false)z.on=false;if(isFinite(o.from))z.from=+o.from;if(isFinite(o.to))z.to=+o.to}
+    });
+    (Array.isArray(c.custom)?c.custom:[]).forEach(x=>{
+      if(!x||!x.name||!x.q||!x.right||!Array.isArray(x.wrong)||x.wrong.filter(Boolean).length<1)return;
+      const t=(v,n)=>String(v==null?'':v).slice(0,n);
+      DZ[m].push({custom:true,icon:t(x.icon,4)||'🤒',name:t(x.name,30),signs:t(x.signs,160),
+        info:[['원인',t(x.cause,160)],['증상',t(x.symptom,160)],['예방',t(x.prevent,160)]].filter(r=>r[1]),
+        q:t(x.q,120),right:t(x.right,80),wrong:x.wrong.filter(Boolean).slice(0,2).map(v=>t(v,80)),why:t(x.why,160),
+        from:isFinite(x.from)?+x.from:1,to:isFinite(x.to)?+x.to:MODES[m].maxDay,on:x.on!==false});
     });
     DZ_WEIGHT[m]=isFinite(c.diseaseWeight)?clamp(Math.round(c.diseaseWeight),0,3):1;
   }
@@ -711,6 +721,23 @@ function showDiseaseQuiz(){
 }
 /* ── 게임 관리(관리자 전용): 구간별 질병 발생 구간·빈도, 사양관리 포인트 ── */
 const isAdm=()=>{try{return !!(CLOUD&&CLOUD.isAdmin&&CLOUD.isAdmin())}catch(e){return false}};
+function czHtml(z,u,max){
+  const inf=k=>escH((z.info.find(r=>r[0]===k)||[,''])[1]);
+  return `<div class="stg cz"><div class="row2"><label><input type="checkbox" data-cz="on" ${z.on!==false?'checked':''}> 사용</label>
+    <input type="text" data-cz="icon" maxlength="4" value="${escH(z.icon||'🤒')}" style="width:54px" aria-label="아이콘">
+    <input type="text" data-cz="name" maxlength="30" value="${escH(z.name)}" placeholder="질병 이름" style="flex:1;min-width:110px">
+    <input type="number" min="1" max="${max}" data-cz="from" value="${z.from}"> ~ <input type="number" min="1" max="${max}" data-cz="to" value="${z.to}"> ${u}
+    <button class="btn" type="button" data-czdel style="padding:4px 10px">삭제</button></div>
+    <textarea data-cz="signs" maxlength="160" placeholder="현장에서 보이는 증상(진단 상황) — 예: 기침을 하고 식욕이 떨어진 닭이 보여요.">${escH(z.signs)}</textarea>
+    <input type="text" data-cz="cause" maxlength="160" value="${inf('원인')}" placeholder="원인(한 줄)">
+    <input type="text" data-cz="symptom" maxlength="160" value="${inf('증상')}" placeholder="증상 정리(한 줄)">
+    <input type="text" data-cz="prevent" maxlength="160" value="${inf('예방')}" placeholder="예방·관리(한 줄)">
+    <input type="text" data-cz="q" maxlength="120" value="${escH(z.q)}" placeholder="퀴즈 문제">
+    <input type="text" data-cz="right" maxlength="80" value="${escH(z.right)}" placeholder="정답">
+    <input type="text" data-cz="w1" maxlength="80" value="${escH(z.wrong[0]||'')}" placeholder="오답 1">
+    <input type="text" data-cz="w2" maxlength="80" value="${escH(z.wrong[1]||'')}" placeholder="오답 2(선택)">
+    <input type="text" data-cz="why" maxlength="160" value="${escH(z.why)}" placeholder="해설(선택)"></div>`;
+}
 function openAdmin(){
   const m=LOCK||(S&&S.mode)||'broiler',u=m==='layer'?'주령':'일령',max=MODES[m].maxDay;
   const w=DZ_WEIGHT[m];
@@ -718,8 +745,12 @@ function openAdmin(){
    <p class="note">저장하면 모든 회원이 다음에 게임 창을 열 때부터 적용돼요. 숫자는 ${u}(1~${max}) 기준이에요.</p>
    <h3>🤒 질병 발생</h3>
    <label>발생 빈도 <select id="admW">${[[0,'끄기(질병 없음)'],[1,'보통'],[2,'자주'],[3,'아주 자주']].map(([v,t])=>`<option value="${v}" ${v===w?'selected':''}>${t}</option>`).join('')}</select></label>
-   <div id="admDz">${DZ[m].map((z,i)=>`<div class="dzr"><label><input type="checkbox" data-dz="${i}" ${z.on?'checked':''}> </label><b>${z.icon} ${z.name}</b>
+   <div id="admDz">${DZ_BUILTIN[m].map((z,i)=>`<div class="dzr"><label><input type="checkbox" data-dz="${i}" ${z.on?'checked':''}> </label><b>${z.icon} ${z.name}</b>
      <input type="number" min="1" max="${max}" data-from="${i}" value="${z.from}"> ~ <input type="number" min="1" max="${max}" data-to="${i}" value="${z.to}"> ${u}</div>`).join('')}</div>
+   <h3>➕ 질병 추가</h3>
+   <p class="note">새 질병을 만들면 위 질병과 함께 구간 안에서 무작위로 나와요. 설명은 간단하게, 약 이름·용량은 쓰지 마세요.</p>
+   <div id="admCz">${DZ[m].filter(z=>z.custom).map(z=>czHtml(z,u,max)).join('')}</div>
+   <button class="btn" type="button" id="admAddDz">+ 질병 추가</button>
    <h3>✅ 구간별 사양관리 포인트</h3>
    <p class="note">구간(시작~끝 ${u}), 이름, 관리 포인트(한 줄에 하나, 최대 6개)를 고쳐요.</p>
    <div id="admSt">${GSTAGES[m].map((g,i)=>`<div class="stg" data-st="${i}"><div class="row2"><input type="number" min="1" max="${max}" data-sf value="${g.from}"> ~ <input type="number" min="1" max="${max}" data-sto value="${g.to}"> ${u}
@@ -729,6 +760,11 @@ function openAdmin(){
    <div class="gmsg" id="gmsg" role="status"></div>
    <div class="row"><button class="btn primary" type="button" id="admSave">저장·발행</button><button class="btn" type="button" id="admReset">기본값으로</button><button class="btn" type="button" id="gClose">닫기</button></div></div>`);
   $('#gClose').addEventListener('click',closeModal);
+  $('#admAddDz').addEventListener('click',()=>{
+    const d=document.createElement('div');d.innerHTML=czHtml({icon:'🤒',name:'',signs:'',info:[],q:'',right:'',wrong:['',''],why:'',from:1,to:max,on:true},u,max);
+    $('#admCz').appendChild(d.firstElementChild);
+  });
+  $('#admCz').addEventListener('click',e=>{const b=e.target.closest('[data-czdel]');if(b)b.closest('.cz').remove()});
   $('#admAdd').addEventListener('click',()=>{
     const last=[...$('#admSt').querySelectorAll('.stg')].pop(),lt=last?+last.querySelector('[data-sto]').value:0,f=Math.min(max,lt+1);
     const d=document.createElement('div');d.className='stg';
@@ -738,8 +774,8 @@ function openAdmin(){
   $('#admSt').addEventListener('click',e=>{const b=e.target.closest('[data-sdel]');if(b)b.closest('.stg').remove()});
   const collect=()=>{
     const diseases={};
-    for(let i=0;i<DZ[m].length;i++){
-      const z=DZ[m][i],on=$(`[data-dz="${i}"]`).checked,f=+$(`[data-from="${i}"]`).value,t=+$(`[data-to="${i}"]`).value;
+    for(let i=0;i<DZ_BUILTIN[m].length;i++){
+      const z=DZ_BUILTIN[m][i],on=$(`[data-dz="${i}"]`).checked,f=+$(`[data-from="${i}"]`).value,t=+$(`[data-to="${i}"]`).value;
       if(!(f>=1&&t<=max&&f<=t))throw new Error(`${z.name}: 구간은 1~${max} 사이에서 시작 ≤ 끝이어야 해요.`);
       diseases[z.name]={on,from:f,to:t};
     }
@@ -747,7 +783,19 @@ function openAdmin(){
     if(!stages.length)throw new Error('사양관리 구간이 하나 이상 있어야 해요.');
     stages.forEach(g=>{if(!(g.from>=1&&g.to<=max&&g.from<=g.to))throw new Error(`구간 ${g.name||g.from}: 1~${max} 사이에서 시작 ≤ 끝이어야 해요.`);if(!g.name)throw new Error('구간 이름을 적어 주세요.')});
     stages.sort((a,b)=>a.from-b.from);
-    return {diseaseWeight:+$('#admW').value,diseases,stages};
+    const custom=[...document.querySelectorAll('#admCz .cz')].map(c=>{
+      const g=k=>c.querySelector(`[data-cz="${k}"]`).value.trim();
+      const o={icon:g('icon')||'🤒',name:g('name'),signs:g('signs'),cause:g('cause'),symptom:g('symptom'),prevent:g('prevent'),q:g('q'),right:g('right'),wrong:[g('w1'),g('w2')].filter(Boolean),why:g('why'),
+        from:+g('from'),to:+g('to'),on:c.querySelector('[data-cz="on"]').checked};
+      if(!o.name)throw new Error('추가한 질병의 이름을 적어 주세요.');
+      if(!o.signs)throw new Error(`${o.name}: 현장에서 보이는 증상(진단 상황)을 적어 주세요.`);
+      if(!o.q||!o.right||!o.wrong.length)throw new Error(`${o.name}: 퀴즈 문제·정답·오답을 적어 주세요(오답은 1개 이상).`);
+      if(!(o.from>=1&&o.to<=max&&o.from<=o.to))throw new Error(`${o.name}: 구간은 1~${max} 사이에서 시작 ≤ 끝이어야 해요.`);
+      if(DZ_BUILTIN[m].some(z=>z.name===o.name))throw new Error(`${o.name}: 이미 있는 질병 이름이에요.`);
+      return o;
+    });
+    if(new Set(custom.map(x=>x.name)).size!==custom.length)throw new Error('추가한 질병 이름이 겹쳐요.');
+    return {diseaseWeight:+$('#admW').value,diseases,stages,custom};
   };
   const publish=async(section,okMsg)=>{
     gmsg('저장 중…',true);
