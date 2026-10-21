@@ -154,6 +154,17 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
 .btn.primary{background:var(--straw)}
 .note{font-size:12.5px;color:var(--muted)}
 .gmsg{min-height:1.4em;font-size:13.5px}
+.nickline{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;font-size:14px}
+.nickline b{font-family:var(--f-display);font-weight:400;font-size:18px;color:var(--coral)}
+.slots{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.slot{display:flex;align-items:center;gap:8px;background:var(--soft);border-radius:14px;padding:8px 10px;min-width:0}
+.slot.me{background:#FFF3C8;border:2px solid var(--ink)}
+.slot .who{flex:1;min-width:0}
+.slot .who b{font-family:var(--f-display);font-weight:400;font-size:16px;display:block}
+.slot .who small{color:var(--muted);font-size:12px;display:block;overflow-wrap:anywhere}
+.slot button{flex:none;padding:6px 10px;font-size:13px}
+.cloudnote{font-size:12px;color:var(--muted);text-align:right;min-height:1.2em}
+@media (max-width:520px){.top{flex-wrap:wrap}.top .row{width:100%}.top .row>button{min-width:0}}
 
 /* 시작 화면 */
 .start{display:flex;flex-direction:column;gap:14px}
@@ -196,7 +207,8 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
       <div><h1>꼬꼬 농장</h1><small id="subtitle">병아리부터 닭까지, 우리 농장 경영기</small></div>
     </div>
     <div class="row" style="flex:none">
-      <button class="iconbtn" id="btnSave" type="button">☁ 저장</button>
+      <button class="iconbtn" id="btnNick" type="button">🐥 닉네임</button>
+      <button class="iconbtn" id="btnSave" type="button">☁ 저장·불러오기</button>
       <button class="iconbtn" id="btnHome" type="button">처음으로</button>
     </div>
   </header>
@@ -231,6 +243,7 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
         <span class="go">한 주씩 키우기 ▶</span>
       </button>
     </div>
+    <div class="nickline" id="nickline"></div>
     <p class="records" id="records"></p>
   </section>
 
@@ -265,6 +278,7 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
       <h2>오늘의 관리</h2>
       <div class="ctrls" id="ctrls"></div>
       <button class="gobtn" id="btnNext" type="button">하루 보내기 🌙</button>
+      <div class="cloudnote" id="cloudnote" role="status"></div>
     </div>
 
     <div class="two">
@@ -286,7 +300,6 @@ const won=v=>(v<0?'-':'')+'₩'+Math.round(Math.abs(v)).toLocaleString('ko-KR');
 const fmt=v=>Math.round(v).toLocaleString('ko-KR');
 const pct=(v,d=1)=>(v*100).toFixed(d)+'%';
 const rnd=Math.random;
-const SAVE_FILE='kkokko-farm-save.json';
 const LS={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 
 function interp(pts,x){
@@ -308,7 +321,12 @@ const MODES={
 };
 
 let S=null;
-let R=LS.get('kkokko-records',{broiler:{best:null,plays:0},layer:{best:null,plays:0}});
+// 닉네임마다 기록·이어하기가 따로 저장된다(같은 기기에서 여러 사람이 해도 섞이지 않게).
+let NICK=LS.get('kkokko-nick','');
+const lsKey=b=>NICK?b+':'+NICK:b;
+const emptyR=()=>({broiler:{best:null,plays:0},layer:{best:null,plays:0}});
+const loadR=()=>LS.get(lsKey('kkokko-records'),null)||emptyR();
+let R=loadR();
 
 function newGame(mode){
   const M=MODES[mode];
@@ -741,7 +759,7 @@ function showReport(){
   const g=grade(score);
   fb.push(profit>0?`순이익 ${won(profit)} 흑자 농장!`:'이번엔 적자예요. 사료비와 관리비를 다시 살펴봐요.');
   const rec=R[S.mode];
-  if(!S.recorded){rec.plays++;if(rec.best==null||profit>rec.best)rec.best=profit;S.recorded=true;LS.set('kkokko-records',R)}
+  if(!S.recorded){rec.plays++;if(rec.best==null||profit>rec.best)rec.best=profit;S.recorded=true;LS.set(lsKey('kkokko-records'),R);autosave()}
   openModal(`<h2>${MODES[S.mode].name} 성적표</h2><div class="grade">${g}</div>
    <div class="rep">${cards.map(([k,v])=>`<div class="stat"><div class="k">${k}</div><div class="v num">${v}</div></div>`).join('')}</div>
    <ul class="fb">${fb.map(f=>`<li>${f}</li>`).join('')}</ul>
@@ -754,16 +772,16 @@ function showReport(){
 /* ── 화면 전환 ── */
 function start(mode){newGame(mode);sprites=[];$('#startView').hidden=true;$('#gameView').hidden=false;render();autosave();window.scrollTo({top:0,behavior:'smooth'})}
 function goHome(){$('#startView').hidden=false;$('#gameView').hidden=true;$('#subtitle').textContent='병아리부터 닭까지, 우리 농장 경영기';renderRecords()}
-$('#pickBroiler').addEventListener('click',()=>start('broiler'));
-$('#pickLayer').addEventListener('click',()=>start('layer'));
+$('#pickBroiler').addEventListener('click',()=>needNick(()=>start('broiler')));
+$('#pickLayer').addEventListener('click',()=>needNick(()=>start('layer')));
 $('#btnHome').addEventListener('click',goHome);
 function renderRecords(){
   const r=[];if(R.broiler.best!=null)r.push(`육계 최고 ${won(R.broiler.best)}`);if(R.layer.best!=null)r.push(`산란계 최고 ${won(R.layer.best)}`);
-  const saved=LS.get('kkokko-autosave',null);
+  const saved=LS.get(lsKey('kkokko-autosave'),null);
   $('#records').innerHTML=(r.length?r.join(' · '):'아직 기록이 없어요. 첫 농장을 시작해 볼까요?')+(saved&&!saved.done?` · <button class="btn" type="button" id="resume" style="padding:3px 10px;font-size:13px">이어하기 (${MODES[saved.mode].name} ${Math.max(1,saved.day)}${saved.mode==='layer'?'주':'일'})</button>`:'');
   const rb=$('#resume');if(rb)rb.addEventListener('click',()=>{S=saved;sprites=[];$('#startView').hidden=true;$('#gameView').hidden=false;render()});
 }
-function autosave(){if(S)LS.set('kkokko-autosave',S)}
+function autosave(){if(!S)return;LS.set(lsKey('kkokko-autosave'),S);scheduleCloudSave()}
 function pickPreview(id,mode,t){
   const box=$(id),col=colors(mode,t);
   box.style.setProperty('--b',col.b);box.style.setProperty('--w',col.w);box.style.setProperty('--comb',col.comb);box.style.setProperty('--hs',col.hs);
@@ -772,57 +790,137 @@ function pickPreview(id,mode,t){
 }
 pickPreview('#picB','broiler',1);pickPreview('#picL','layer',1);
 
-/* ── GitHub Gist 저장 ── */
-$('#btnSave').addEventListener('click',()=>{
-  const tok=LS.get('kkokko-gist-token',''),gid=LS.get('kkokko-gist-id','');
-  openModal(`<h2>☁ GitHub Gist 저장</h2>
-   <p class="note">게임 진행 상황과 기록을 내 Gist에 저장하고, 다른 기기에서 불러올 수 있어요. 토큰은 이 브라우저에만 보관돼요.</p>
-   <label class="field" for="gToken">Gist 토큰 (gist 권한)<input id="gToken" type="password" autocomplete="off" placeholder="ghp_..." value="${tok.replace(/"/g,'')}"></label>
-   <label class="field" for="gId">Gist ID (비우면 새로 만들어요)<input id="gId" type="text" autocomplete="off" placeholder="예: 1a2b3c4d..." value="${gid.replace(/"/g,'')}"></label>
-   <div class="row"><button class="btn primary" type="button" id="gSave">저장하기</button><button class="btn" type="button" id="gLoad">불러오기</button></div>
-   <div class="gmsg" id="gmsg" role="status"></div>
-   <button class="btn" type="button" id="gClose">닫기</button>`);
-  $('#gSave').addEventListener('click',gistSave);$('#gLoad').addEventListener('click',gistLoad);$('#gClose').addEventListener('click',closeModal);
-});
-function gmsg(t,ok){const el=$('#gmsg');if(el){el.textContent=t;el.style.color=ok?'var(--good)':'var(--bad)'}}
-function netErr(e){return e&&e.message==='Failed to fetch'||e instanceof TypeError?'GitHub에 연결하지 못했어요. 이 미리보기 화면에서는 외부 접속이 막혀 있어요. GitHub Pages에 올린 파일에서 사용해 주세요.':e.message}
-function httpErr(r){return r.status===401?'토큰이 올바르지 않아요 (401). gist 권한이 있는 토큰인지 확인해 주세요.':r.status===404?'Gist를 찾을 수 없어요 (404). Gist ID를 확인해 주세요.':r.status===403?'요청이 거부됐어요 (403). 토큰 권한이나 사용 한도를 확인해 주세요.':'GitHub 응답 오류 '+r.status}
-async function gistSave(){
-  const token=$('#gToken').value.trim(),id=$('#gId').value.trim();
-  if(!token){gmsg('토큰을 입력해 주세요.');return}
-  LS.set('kkokko-gist-token',token);
-  gmsg('저장 중…',true);
-  const body={description:'꼬꼬 농장 게임 저장',files:{[SAVE_FILE]:{content:JSON.stringify({app:'kkokko-farm',savedAt:new Date().toISOString(),game:S,records:R},null,1)}}};
-  if(!id)body.public=false;
-  try{
-    const r=await fetch(id?`https://api.github.com/gists/${encodeURIComponent(id)}`:'https://api.github.com/gists',{method:id?'PATCH':'POST',headers:{Authorization:'Bearer '+token,Accept:'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify(body)});
-    if(!r.ok)throw new Error(httpErr(r));
-    const j=await r.json();$('#gId').value=j.id;LS.set('kkokko-gist-id',j.id);
-    gmsg(`저장했어요. Gist ID ${j.id.slice(0,8)}…`,true);
-  }catch(e){gmsg(netErr(e))}
+/* ── 닉네임 · Firebase 저장 ──
+   유료서비스 화면(부모 창)이 window.farmGameCloud를 열어 준다(srcdoc이라 같은 출처).
+   저장 위치: Firebase Storage premium_board/farmgame/{로그인 uid}/{닉네임 키}/save.json — 내 계정 안에서 닉네임별로 따로. */
+const CLOUD=(()=>{try{return window.parent!==window&&window.parent.farmGameCloud||null}catch(e){return null}})();
+const escH=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const nickErr=n=>!n?'닉네임을 입력해 주세요.':n.length<2||n.length>12?'닉네임은 2~12자로 지어 주세요.':!/^[가-힣A-Za-z0-9_]+$/.test(n)?'한글·영문·숫자·밑줄(_)만 쓸 수 있어요.':'';
+function renderNick(){
+  $('#btnNick').textContent=NICK?'🐥 '+NICK:'🐥 닉네임';
+  const nl=$('#nickline');
+  if(nl)nl.innerHTML=NICK?`농장주 <b>${escH(NICK)}</b> <button class="btn" type="button" id="nlChange" style="padding:3px 10px;font-size:13px">닉네임 바꾸기</button>`:`<button class="btn primary" type="button" id="nlChange">🐥 닉네임 정하고 시작하기</button>`;
+  const c=$('#nlChange');if(c)c.addEventListener('click',()=>openNick());
 }
-async function gistLoad(){
-  const token=$('#gToken').value.trim(),id=$('#gId').value.trim();
-  if(!id){gmsg('불러올 Gist ID를 입력해 주세요.');return}
+function needNick(go){if(NICK){go();return}openNick(go)}
+function setNick(n){
+  NICK=n;LS.set('kkokko-nick',n);R=loadR();
+  if(S&&!$('#gameView').hidden){LS.set(lsKey('kkokko-autosave'),S)}
+  renderNick();renderRecords();
+}
+function openNick(after){
+  openModal(`<div class="ev-icon">🐥</div><h2>닉네임 정하기</h2>
+   <p>닉네임마다 농장이 따로 저장돼요. 다른 기기에서도 같은 닉네임을 넣으면 내 농장을 불러올 수 있어요.</p>
+   <label class="field" for="nkIn">닉네임 (2~12자)<input id="nkIn" type="text" maxlength="12" autocomplete="off" placeholder="예: 꼬꼬농부" value="${escH(NICK)}"></label>
+   <div class="gmsg" id="gmsg" role="status"></div>
+   <div class="row"><button class="btn primary" type="button" id="nkOk">확인</button><button class="btn" type="button" id="gClose">취소</button></div>`);
+  const inp=$('#nkIn');inp.focus();inp.select();
+  const ok=async()=>{
+    const n=inp.value.trim(),err=nickErr(n);if(err){gmsg(err);return}
+    const changed=n!==NICK;setNick(n);
+    if(CLOUD&&changed){
+      gmsg('저장된 농장을 찾는 중…',true);
+      try{
+        const list=await CLOUD.list(),hit=list.find(x=>x.nickname===n);
+        if(hit){showFound(hit,after);return}
+      }catch(e){/* 목록을 못 읽어도 닉네임 설정은 그대로 진행 */}
+    }
+    closeModal();if(after)after();
+  };
+  $('#nkOk').addEventListener('click',ok);
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter')ok()});
+  $('#gClose').addEventListener('click',closeModal);
+}
+function slotText(x){
+  const m=MODES[x.mode];const when=x.savedAt?new Date(x.savedAt).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+  if(!m)return when;
+  return `${m.name} ${Math.max(1,x.day||0)}${x.mode==='layer'?'주':'일'}${x.done?' · 완료':''}${typeof x.money==='number'?' · '+won(x.money):''} · ${when}`;
+}
+function showFound(hit,after){
+  openModal(`<div class="ev-icon">🏡</div><h2>${escH(hit.nickname)}님의 농장이 있어요</h2>
+   <div class="result">${escH(slotText(hit))}</div>
+   <div class="row"><button class="btn primary" type="button" id="fdLoad">불러와서 이어하기</button><button class="btn" type="button" id="fdNew">${after?'새로 시작하기':'닫기'}</button></div>
+   <div class="gmsg" id="gmsg" role="status"></div>`);
+  $('#fdLoad').addEventListener('click',()=>cloudLoad(hit.nickname));
+  $('#fdNew').addEventListener('click',()=>{closeModal();if(after)after()});
+}
+$('#btnNick').addEventListener('click',()=>openNick());
+$('#btnSave').addEventListener('click',openCloud);
+function gmsg(t,ok){const el=$('#gmsg');if(el){el.textContent=t;el.style.color=ok?'var(--good)':'var(--bad)'}}
+function cloudNote(t,bad){const el=$('#cloudnote');if(el){el.textContent=t;el.style.color=bad?'var(--bad)':''}}
+async function openCloud(){
+  if(!CLOUD){openModal(`<h2>☁ 저장·불러오기</h2><p>농장동물 컨설팅 유료서비스 화면에서 열어야 Firebase에 저장할 수 있어요. 지금은 이 기기에만 자동 저장돼요.</p><button class="btn" type="button" id="gClose">닫기</button>`);$('#gClose').addEventListener('click',closeModal);return}
+  if(!NICK){openNick(openCloud);return}
+  openModal(`<h2>☁ 저장·불러오기</h2>
+   <div class="nickline" style="justify-content:flex-start">지금 닉네임 <b>${escH(NICK)}</b></div>
+   <button class="btn primary" type="button" id="csSave" ${S?'':'disabled'}>${S?'지금 농장 저장하기':'시작한 농장이 없어요'}</button>
+   <h3 style="font-size:16px">내 계정에 저장된 농장</h3>
+   <ul class="slots" id="slots"><li class="note">불러오는 중…</li></ul>
+   <div class="gmsg" id="gmsg" role="status"></div>
+   <p class="note">게임을 진행하면 자동으로 저장돼요. 내 계정 안에서 닉네임별로 최대 ${CLOUD.maxSlots||10}개까지 둘 수 있어요.</p>
+   <button class="btn" type="button" id="gClose">닫기</button>`);
+  $('#gClose').addEventListener('click',closeModal);
+  $('#csSave').addEventListener('click',async()=>{gmsg('저장 중…',true);const r=await cloudSave(false);if(r)refreshSlots('저장했어요.');});
+  refreshSlots();
+}
+async function refreshSlots(okMsg){
+  const ul=$('#slots');if(!ul)return;
+  let list;
+  try{list=await CLOUD.list()}catch(e){ul.innerHTML='';gmsg(e.message);return}
+  if(okMsg)gmsg(okMsg,true);
+  if(!list.length){ul.innerHTML='<li class="note">아직 저장된 농장이 없어요.</li>';return}
+  ul.innerHTML=list.map((x,i)=>`<li class="slot${x.nickname===NICK?' me':''}"><span class="who"><b>${escH(x.nickname||'(이름 없음)')}</b><small>${escH(slotText(x))}</small></span>
+    <button class="btn primary" type="button" data-load="${i}">불러오기</button><button class="btn" type="button" data-del="${i}">삭제</button></li>`).join('');
+  ul.querySelectorAll('[data-load]').forEach(b=>b.addEventListener('click',()=>cloudLoad(list[+b.dataset.load].nickname)));
+  ul.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',async()=>{
+    const x=list[+b.dataset.del];
+    if(b.dataset.armed!=='1'){b.dataset.armed='1';b.textContent='정말 삭제';b.style.background='var(--bad)';b.style.color='#fff';return}
+    gmsg('삭제 중…',true);
+    try{await CLOUD.remove(x.nickname);refreshSlots(`${x.nickname} 농장을 지웠어요.`)}catch(e){gmsg(e.message)}
+  }));
+}
+let cloudTimer=null,cloudBusy=false,cloudAgain=false;
+function scheduleCloudSave(){
+  if(!CLOUD||!NICK)return;
+  clearTimeout(cloudTimer);cloudTimer=setTimeout(()=>cloudSave(true),2000);
+}
+async function cloudSave(silent){
+  if(!CLOUD||!NICK||!S)return null;
+  if(cloudBusy){cloudAgain=true;return null}
+  cloudBusy=true;
+  try{
+    if(!silent){
+      const list=await CLOUD.list();
+      if(!list.some(x=>x.nickname===NICK)&&list.length>=(CLOUD.maxSlots||10))throw new Error(`저장 칸이 가득 찼어요(${CLOUD.maxSlots||10}개). 안 쓰는 농장을 지워 주세요.`);
+    }
+    const r=await CLOUD.save(NICK,{game:S,records:R});
+    cloudNote('☁ '+new Date(r.savedAt).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})+' 저장됨');
+    return r;
+  }catch(e){
+    if(silent)cloudNote('☁ 저장 실패: '+e.message,true);else gmsg(e.message);
+    return null;
+  }finally{
+    cloudBusy=false;
+    if(cloudAgain){cloudAgain=false;scheduleCloudSave()}
+  }
+}
+async function cloudLoad(nick){
   gmsg('불러오는 중…',true);
   try{
-    const h={Accept:'application/vnd.github+json'};if(token)h.Authorization='Bearer '+token;
-    const r=await fetch(`https://api.github.com/gists/${encodeURIComponent(id)}`,{headers:h});
-    if(!r.ok)throw new Error(httpErr(r));
-    const j=await r.json(),f=j.files&&j.files[SAVE_FILE];
-    if(!f)throw new Error(`이 Gist에 ${SAVE_FILE} 파일이 없어요.`);
-    let txt=f.content;if(f.truncated){const rr=await fetch(f.raw_url);txt=await rr.text()}
-    const data=JSON.parse(txt);
-    if(data.records)R=data.records,LS.set('kkokko-records',R);
-    LS.set('kkokko-gist-id',id);
-    if(data.game&&data.game.mode){S=data.game;sprites=[];$('#startView').hidden=true;$('#gameView').hidden=false;render();autosave()}
-    gmsg('불러왔어요!',true);
-  }catch(e){gmsg(netErr(e))}
+    const data=await CLOUD.load(nick);
+    if(!data||!data.game||!data.game.mode)throw new Error('저장 파일이 비어 있어요.');
+    NICK=data.nickname||nick;LS.set('kkokko-nick',NICK);
+    R=data.records||loadR();LS.set(lsKey('kkokko-records'),R);
+    S=data.game;LS.set(lsKey('kkokko-autosave'),S);
+    sprites=[];$('#startView').hidden=true;$('#gameView').hidden=false;
+    closeModal();renderNick();render();
+    cloudNote('☁ '+escH(NICK)+' 농장을 불러왔어요');toast(`${NICK}님의 농장을 불러왔어요`);
+  }catch(e){gmsg(e.message)}
 }
 
 $('#modal').addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#gClose'))closeModal()});
 window.claude?.hot?.snapshot?.(()=>({S}));
-const boot=d=>{if(d&&d.S){S=d.S;$('#startView').hidden=true;$('#gameView').hidden=false;render()}else renderRecords()};
+const boot=d=>{renderNick();if(d&&d.S){S=d.S;$('#startView').hidden=true;$('#gameView').hidden=false;render()}else renderRecords()};
 window.claude?.hot?.ready?window.claude.hot.ready(boot):boot(window.claude?.hot?.data??{});
 requestAnimationFrame(loop);
 })();
