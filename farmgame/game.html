@@ -232,6 +232,19 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
 .adm .stg{background:var(--soft);border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:6px}
 .adm .dzr{display:flex;gap:6px;align-items:center;flex-wrap:wrap;background:var(--soft);border-radius:10px;padding:6px 8px}
 .adm .dzr b{flex:1;min-width:120px}
+
+.acts{position:absolute;right:2%;top:5%;display:flex;flex-direction:column;gap:4px;z-index:200}
+.act{width:56px;border:2px solid var(--ink);border-radius:14px;background:#FFFFFFEE;box-shadow:0 3px 0 var(--ink);padding:2px 2px 3px;font-family:var(--f-display);font-size:11px;line-height:1.1;display:flex;flex-direction:column;align-items:center;gap:0;cursor:pointer}
+.act .r{display:flex;align-items:center;gap:2px}
+.act .em{font-size:14px}
+.act small{font-size:9.5px;color:var(--muted);font-family:inherit}
+.act .g{width:84%;height:4px;border-radius:3px;background:#DDD;overflow:hidden;margin-top:1px}
+.act .g i{display:block;height:100%}
+.acts[hidden]{display:none}
+.act:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+.act.low{animation:actblink 1s infinite}
+@keyframes actblink{50%{background:#FFE0DA}}
+@media (prefers-reduced-motion:reduce){.act.low{animation:none;background:#FFE0DA}}
 </style>
 </head>
 <body>
@@ -262,7 +275,7 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
         <h2>육계 키우기</h2>
         <dl>
           <dt>시작</dt><dd>병아리 1,000수 입추</dd>
-          <dt>목표</dt><dd>35일 키워 출하 수익 얻기</dd>
+          <dt>목표</dt><dd>33일 키워 출하 수익 얻기</dd>
           <dt>관리</dt><dd>사료·물·온도·환기·깔짚</dd>
           <dt>성적표</dt><dd>출하체중·생존율·사료요구율·순이익</dd>
         </dl>
@@ -302,6 +315,7 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
       <div class="haze" id="haze"></div>
       <div id="flock"></div>
       <div class="nest" id="nest" hidden></div>
+      <div class="acts" id="acts"></div>
       <div class="nightveil"></div><div class="moon"></div><div class="zzz">쿨쿨… 💤</div>
     </div>
 
@@ -349,10 +363,10 @@ function interp(pts,x){
 function mixHex(a,b,t){const p=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));const A=p(a),B=p(b);return '#'+A.map((v,i)=>Math.round(v+(B[i]-v)*t).toString(16).padStart(2,'0')).join('')}
 
 /* ── 모델 기준값 (실제 원리를 단순화) ── */
-const STD_W=[[0,42],[7,190],[14,480],[21,950],[28,1550],[35,2250]];     // 육계 표준 체중(g)
+const STD_W=[[0,42],[7,190],[14,480],[21,950],[28,1550],[33,2100]];     // 육계 표준 체중(g)
 const LAY=[[17,0],[18,.05],[19,.22],[20,.52],[21,.76],[22,.88],[24,.93],[30,.93],[40,.885]]; // 표준 산란율
 const stdW=d=>interp(STD_W,d);
-const recTemp=d=>33-12*(d-1)/34;
+const recTemp=d=>33-12*(d-1)/32;
 const recLight=w=>w<=1?20:w<=6?20-2*(w-1):w<=17?10:Math.min(16,10+(w-17));
 /* ── 일령·주령별 가이드(교육용 참고값 — 품종 관리지침·사료회사 기준이 우선) ── */
 const recTempL=w=>w<=1?33:w<=4?33-3*(w-1):w<18?22:21;
@@ -368,7 +382,7 @@ const GSTAGES={
   {from:8,to:14,name:'육추 후반',pts:['깔짚 상태·급수 라인 누수 점검','환기량을 조금씩 늘리기','백신 일정은 수의사 지시대로 확인']},
   {from:15,to:21,name:'성장 초기',pts:['깔짚 습기·암모니아 관리 — 환기 늘리기','물 섭취가 갑자기 줄면 이상 신호','급이기·급수기 높이를 닭 등 높이에 맞추기']},
   {from:22,to:28,name:'성장 후기',pts:['더위에 약해지는 시기 — 환기·쿨링 미리 준비','폐사·기침·묽은 변을 매일 확인','25일령쯤 후기 사료로 바꿀 시점']},
-  {from:29,to:35,name:'출하 준비',pts:['출하 전 사료 중단 시점과 휴약기간 확인','출하 전 폭염·밀도 스트레스 대비','출하 체중·사료요구율 기록']}],
+  {from:29,to:33,name:'출하 준비',pts:['출하 전 사료 중단 시점과 휴약기간 확인','출하 전 폭염·밀도 스트레스 대비','출하 체중·사료요구율 기록']}],
  layer:[
   {from:1,to:6,name:'육추기',pts:['온도는 주 3℃씩 낮추기(33℃ 시작)','점등은 길게 시작해 10시간까지 줄이기','1주령 체중·균일도 확인']},
   {from:7,to:15,name:'육성기',pts:['점등 10시간 유지 — 늘리지 않기','체중 균일도 점검, 작은 닭은 따로 관리','백신·부리 관리 일정 확인']},
@@ -382,7 +396,7 @@ const FEEDS={
  broiler:[
   {id:'pre',name:'전기 사료',sub:'1~10일 · 단백질 21~23%',from:1,to:10,price:1.12},
   {id:'grow',name:'중기 사료',sub:'11~24일 · 단백질 19~21%',from:11,to:24,price:1.0},
-  {id:'fin',name:'후기 사료',sub:'25~35일 · 단백질 17~19%',from:25,to:35,price:.94}],
+  {id:'fin',name:'후기 사료',sub:'25~33일 · 단백질 17~19%',from:25,to:33,price:.94}],
  layer:[
   {id:'brood',name:'육추 사료',sub:'1~6주 · 단백질 19~20%',from:1,to:6,price:1.1},
   {id:'grow',name:'육성 사료',sub:'7~15주 · 단백질 15~16%',from:7,to:15,price:.95},
@@ -421,7 +435,7 @@ function noteFeed(fx){
 }
 
 const MODES={
-  broiler:{name:'육계 키우기',maxDay:35,birds:1000,chick:650,start:3000000,unit:'일령'},
+  broiler:{name:'육계 키우기',maxDay:33,birds:1000,chick:650,start:3000000,unit:'일령'},
   layer:{name:'산란계 키우기',maxDay:40,birds:1000,chick:1200,start:6000000,unit:'주령'}
 };
 
@@ -648,10 +662,12 @@ const DZ={
    q:'응애를 찾기 좋은 곳과 시간은?',right:'밤이나 새벽, 계사 틈새·산란상 주변',wrong:['한낮, 사료통 안쪽','한낮, 마당 풀밭'],why:'응애는 낮에 틈새에 숨고 밤에 닭을 공격해요.'}]
 };
 const DZ_RANGE={
- broiler:{'대장균증':[8,35],'콕시듐증':[14,35],'괴사성장염':[14,35],'전염성 F낭병(감보로)':[18,35],'복수증':[21,35]},
+ broiler:{'대장균증':[8,33],'콕시듐증':[14,33],'괴사성장염':[14,33],'전염성 F낭병(감보로)':[18,33],'복수증':[21,33]},
  layer:{'전염성기관지염(IB)':[4,40],'뉴캐슬병':[4,40],'대장균증':[8,40],'마이코플라즈마(만성호흡기병)':[8,40],'산란저하증후군(EDS)':[18,40],'닭 응애(닭진드기)':[8,40]}
 };
 const GST_DEF=JSON.parse(JSON.stringify(GSTAGES));
+const COSTS_DEF={broiler:{feed:2000,water:1000,vent:5000},layer:{feed:4000,water:2000,vent:12000}};   // 버튼 한 번당 비용(원)
+const COSTS={broiler:Object.assign({},COSTS_DEF.broiler),layer:Object.assign({},COSTS_DEF.layer)};
 const DZ_BUILTIN={broiler:DZ.broiler.slice(),layer:DZ.layer.slice()};
 const DZ_WEIGHT={broiler:1,layer:1};
 let CFG=window.FG_CONFIG||null;      // 관리자가 발행한 설정(부모 창이 srcdoc에 심어 줌)
@@ -678,6 +694,8 @@ function applyCfg(cfg){
         q:t(x.q,120),right:t(x.right,80),wrong:x.wrong.filter(Boolean).slice(0,2).map(v=>t(v,80)),why:t(x.why,160),
         from:isFinite(x.from)?+x.from:1,to:isFinite(x.to)?+x.to:MODES[m].maxDay,on:x.on!==false});
     });
+    COSTS[m]=Object.assign({},COSTS_DEF[m]);
+    if(c.costs)['feed','water','vent'].forEach(k=>{const v=+c.costs[k];if(isFinite(v)&&v>=0&&v<=1000000)COSTS[m][k]=Math.round(v)});
     DZ_WEIGHT[m]=isFinite(c.diseaseWeight)?clamp(Math.round(c.diseaseWeight),0,3):1;
   }
 }
@@ -747,6 +765,9 @@ function openAdmin(){
    <label>발생 빈도 <select id="admW">${[[0,'끄기(질병 없음)'],[1,'보통'],[2,'자주'],[3,'아주 자주']].map(([v,t])=>`<option value="${v}" ${v===w?'selected':''}>${t}</option>`).join('')}</select></label>
    <div id="admDz">${DZ_BUILTIN[m].map((z,i)=>`<div class="dzr"><label><input type="checkbox" data-dz="${i}" ${z.on?'checked':''}> </label><b>${z.icon} ${z.name}</b>
      <input type="number" min="1" max="${max}" data-from="${i}" value="${z.from}"> ~ <input type="number" min="1" max="${max}" data-to="${i}" value="${z.to}"> ${u}</div>`).join('')}</div>
+   <h3>💰 버튼 비용 (한 번 누를 때)</h3>
+   <p class="note">급이·급수·환기 버튼을 한 번 누를 때 드는 돈(원)이에요. 사료 구입비는 먹은 만큼 따로 계산돼요.</p>
+   <div class="row2">${[['feed','🌾 급이'],['water','💧 급수'],['vent','🌀 환기']].map(([k,t])=>`<label>${t} <input type="number" min="0" max="1000000" step="500" data-cost="${k}" value="${COSTS[m][k]}" style="width:86px"></label>`).join('')}</div>
    <h3>➕ 질병 추가</h3>
    <p class="note">새 질병을 만들면 위 질병과 함께 구간 안에서 무작위로 나와요. 설명은 간단하게, 약 이름·용량은 쓰지 마세요.</p>
    <div id="admCz">${DZ[m].filter(z=>z.custom).map(z=>czHtml(z,u,max)).join('')}</div>
@@ -795,7 +816,9 @@ function openAdmin(){
       return o;
     });
     if(new Set(custom.map(x=>x.name)).size!==custom.length)throw new Error('추가한 질병 이름이 겹쳐요.');
-    return {diseaseWeight:+$('#admW').value,diseases,stages,custom};
+    const costs={};
+    for(const k of ['feed','water','vent']){const v=+$(`[data-cost="${k}"]`).value;if(!(v>=0&&v<=1000000))throw new Error('버튼 비용은 0~1,000,000원 사이로 적어 주세요.');costs[k]=Math.round(v)}
+    return {diseaseWeight:+$('#admW').value,diseases,stages,custom,costs};
   };
   const publish=async(section,okMsg)=>{
     gmsg('저장 중…',true);
@@ -823,7 +846,7 @@ function maybeEvent(){
 
 /* ── 렌더 ── */
 const flockEl=$('#flock'),scene=$('#scene');
-function growthT(){return S.mode==='broiler'?clamp(S.day/35,0,1):clamp(S.day/18,0,1)}
+function growthT(){return S.mode==='broiler'?clamp(S.day/33,0,1):clamp(S.day/18,0,1)}
 function colors(mode,t){
   const adult=mode==='broiler'?['#FFFFFF','#E9ECF4']:['#C9773E','#A35A2A'];
   return {b:mixHex('#FFD84D',adult[0],t),w:mixHex('#FFC22E',adult[1],t),comb:t<.25?0:Math.min(1,(t-.25)/.5),hs:(1.3-.35*t).toFixed(2)};
@@ -906,7 +929,25 @@ function animFlock(dt){
 }
 function showBubble(s,txt){const b=s.el.querySelector('.bubble');b.textContent=txt;b.classList.add('show');s.bubbleT=1600}
 
+function renderActs(){
+  const el=$('#acts');if(!el||!S)return;
+  el.hidden=!!S.done;
+  const it=[['feed','🌾','급이',S.feedLv,FEED_DROP],['water','💧','급수',S.waterLv,WATER_DROP],['vent','🌀','환기',S.ventLv,34]];
+  el.innerHTML=it.map(([k,em,lab,lv,need])=>`<button type="button" class="act${lv<need?' low':''}" data-act="${k}" aria-label="${lab}하기 ${won(COSTS[S.mode][k])}"><span class="r"><span class="em">${em}</span>${lab}</span><small>${won(COSTS[S.mode][k])}</small><span class="g"><i style="width:${lv}%;background:${lv>=need?'var(--good)':lv>0?'var(--warn)':'var(--bad)'}"></i></span></button>`).join('');
+}
+function doAct(k){
+  if(!S||S.done||$('#btnNext').disabled)return;
+  ensureGauges();
+  const cost=COSTS[S.mode][k];
+  if(k==='feed'){if(S.feedLv>=98){toast('사료통이 이미 가득해요');return}S.feedLv=100;burst('🌾',3);toast('급이했어요')}
+  else if(k==='water'){if(S.waterLv>=98){toast('물통이 이미 가득해요');return}S.waterLv=100;burst('💧',3);toast('급수했어요')}
+  else{if(S.ventLv>=98){toast('환기가 충분해요');return}S.ventLv=clamp(S.ventLv+50,0,100);burst('🌀',3);toast('환기팬을 가동했어요')}
+  S.money-=cost;S.tot.other+=cost;
+  render();autosave();
+}
+$('#acts').addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(b)doAct(b.dataset.act)});
 function renderScene(){
+  renderActs();
   const t=growthT(),col=colors(S.mode,t);
   flockEl.style.setProperty('--b',col.b);flockEl.style.setProperty('--w',col.w);flockEl.style.setProperty('--comb',col.comb);flockEl.style.setProperty('--hs',col.hs);
   if(sprites.length!==visibleCount()) buildFlock(visibleCount());
@@ -933,7 +974,7 @@ function render(){
   const M=MODES[S.mode],c=S.ctrl,lay=S.mode==='layer';
   const showDay=Math.max(1,S.day);
   $('#kDay').textContent=lay?'주령':'일령';
-  $('#vDay').textContent=lay?`${showDay}주 / 40`:`${showDay}일 / 35`;
+  $('#vDay').textContent=lay?`${showDay}주 / 40`:`${showDay}일 / 33`;
   $('#vAlive').textContent=fmt(S.alive)+'수';
   if(lay){
     if(S.day<18){$('#kMain').textContent='체형 점수';$('#vMain').textContent=Math.round(S.bodyCond)+'점'}
@@ -1039,9 +1080,7 @@ function seg(key,labels,hints){
 function renderCtrls(){
   const c=S.ctrl,lay=S.mode==='layer';
   ensureGauges();
-  const gauge=(label,lv,need,id,btn,hint,extra)=>`<div class="ctrl"><div class="lab"><span>${label}</span><span class="hint">${hint}</span></div><div class="bar" style="height:9px"><i style="width:${lv}%;background:${lv>=need?'var(--good)':lv>0?'var(--warn)':'var(--bad)'}"></i></div><button class="mini" type="button" id="${id}">${btn}</button>${extra||''}</div>`;
-  let h=gauge('🌾 사료통',S.feedLv,FEED_DROP,'btnFeed','급이하기 (가득 채우기)',S.feedCut?'급여 제한 중':`${Math.round(S.feedLv)}% · ${S.feedLv>=FEED_DROP?'다음 번까지 충분':'모자라요!'}`,S.feedCut?'<button class="mini" type="button" id="btnFeedCut">급여 제한 풀기</button>':'')
-   +gauge('💧 물통',S.waterLv,WATER_DROP,'btnWater','급수하기 (가득 채우기)',`${Math.round(S.waterLv)}% · ${S.waterLv>=WATER_DROP?'다음 번까지 충분':'모자라요!'}`);
+  let h=S.feedCut?`<div class="ctrl"><div class="lab"><span>🌾 급여 제한 중</span></div><button class="mini" type="button" id="btnFeedCut">급여 제한 풀기</button></div>`:'';
   if(!lay){
     h+=`<div class="ctrl"><div class="lab"><span>🔥 온도 설정</span><span class="hint">권장 ${recTemp(S.day+1).toFixed(0)}℃</span></div>
     <div class="stepper"><button type="button" id="tMinus" aria-label="온도 내리기">−</button><output class="num">${c.temp}℃</output><button type="button" id="tPlus" aria-label="온도 올리기">+</button></div></div>`;
@@ -1049,7 +1088,6 @@ function renderCtrls(){
     h+=`<div class="ctrl"><div class="lab"><span>💡 점등 시간</span><span class="hint">권장 ${recLight(S.day+1)}시간</span></div>
     <div class="stepper"><button type="button" id="lMinus" aria-label="점등 줄이기">−</button><output class="num">${c.light}시간</output><button type="button" id="lPlus" aria-label="점등 늘리기">+</button></div></div>`;
   }
-  h+=gauge('🌀 환기',S.ventLv,34,'btnVent',`환기 가동 (${won(lay?12000:5000)}, +50%)`,`${Math.round(S.ventLv)}% · ${S.ventLv>=67?'강':S.ventLv>=34?'보통':'약 — 공기가 탁해져요'}`);
   if(!lay){
     h+=`<div class="ctrl"><div class="lab"><span>🪵 깔짚</span><span class="hint">상태 ${Math.round(S.litter)}%</span></div><div class="bar" style="height:9px"><i style="width:${S.litter}%;background:${S.litter>60?'var(--good)':S.litter>35?'var(--warn)':'var(--bad)'}"></i></div><button class="mini" type="button" id="btnLitter">깔짚 보충 (₩40,000, +35%)</button></div>`;
   } else {
@@ -1066,13 +1104,13 @@ function renderCtrls(){
 function renderChart(){
   const H=S.hist,lay=S.mode==='layer';
   const W=320,Ht=150,p={l:36,r:10,t:10,b:22};
-  const maxX=lay?40:35,maxY=lay?1:2400;
+  const maxX=lay?40:33,maxY=lay?1:2400;
   const X=x=>p.l+(x/maxX)*(W-p.l-p.r),Y=y=>Ht-p.b-(y/maxY)*(Ht-p.t-p.b);
   const std=[];for(let x=lay?17:0;x<=maxX;x++)std.push([X(x),Y(lay?interp(LAY,x):stdW(x))]);
   const act=(lay?H.filter(h=>h.x>=18):[{x:0,a:42},...H]).map(h=>[X(h.x),Y(h.a)]);
   const path=a=>a.map((q,i)=>(i?'L':'M')+q[0].toFixed(1)+' '+q[1].toFixed(1)).join('');
   const ticksY=lay?[0,.25,.5,.75,1]:[0,600,1200,1800,2400];
-  const ticksX=lay?[0,10,18,30,40]:[0,7,14,21,28,35];
+  const ticksX=lay?[0,10,18,30,40]:[0,7,14,21,28,33];
   let s=`<svg viewBox="0 0 ${W} ${Ht}" role="img" aria-label="${lay?'산란율':'체중'} 변화">`;
   s+=ticksY.map(v=>`<line x1="${p.l}" x2="${W-p.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="#E2E6F0"/><text x="${p.l-5}" y="${Y(v)+4}" font-size="10" text-anchor="end" fill="#7D7A99">${lay?(v*100)+'%':(v/1000).toFixed(1)+'kg'}</text>`).join('');
   s+=ticksX.map(v=>`<text x="${X(v)}" y="${Ht-6}" font-size="10" text-anchor="middle" fill="#7D7A99">${v}${lay?'주':'일'}</text>`).join('');
@@ -1094,10 +1132,7 @@ function renderLog(){
 $('#ctrls').addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b||!S||S.done)return;
   const c=S.ctrl;
-  if(b.id==='btnFeed'){S.feedLv=100;burst('🌾',3);toast('사료통을 가득 채웠어요')}
-  else if(b.id==='btnWater'){S.waterLv=100;burst('💧',3);toast('물통을 가득 채웠어요')}
-  else if(b.id==='btnVent'){const cost=S.mode==='layer'?12000:5000;if(S.ventLv>=98){toast('환기가 충분해요');return}S.money-=cost;S.tot.other+=cost;S.ventLv=clamp(S.ventLv+50,0,100);burst('🌀',3);toast('환기팬을 가동했어요')}
-  else if(b.id==='btnFeedCut'){S.feedCut=false;toast('급여 제한을 풀었어요')}
+  if(b.id==='btnFeedCut'){S.feedCut=false;toast('급여 제한을 풀었어요')}
   else if(b.dataset.fd){c.fd=b.dataset.fd}
   else if(b.dataset.k){c[b.dataset.k]=+b.dataset.v}
   else if(b.id==='tMinus')c.temp=clamp(c.temp-1,18,36);
@@ -1153,8 +1188,8 @@ function showReport(){
   if(!lay){
     const fcr=S.tot.feedKg/Math.max(1,S.alive*S.weight/1000);
     cards=[['출하체중',(S.weight/1000).toFixed(2)+'kg'],['생존율',pct(surv)],['사료요구율',fcr.toFixed(2)],['순이익',won(profit)]];
-    score=clamp((S.weight/2250)*35,0,40)+clamp((surv-.9)/.08*25,0,25)+clamp((1.9-fcr)/.4*20,0,20)+clamp(profit/800000*15,0,15);
-    fb.push(S.weight>=2150?'표준 체중에 맞게 잘 키웠어요.':'출하체중이 표준(2.25kg)보다 가벼워요. 적정 온도와 충분한 물·사료가 성장의 바탕이에요.');
+    score=clamp((S.weight/stdW(33))*35,0,40)+clamp((surv-.9)/.08*25,0,25)+clamp((1.9-fcr)/.4*20,0,20)+clamp(profit/800000*15,0,15);
+    fb.push(S.weight>=stdW(33)*.95?'표준 체중에 맞게 잘 키웠어요.':`출하체중이 표준(${(stdW(33)/1000).toFixed(2)}kg)보다 가벼워요. 적정 온도와 충분한 물·사료가 성장의 바탕이에요.`);
     fb.push(surv>=.95?'폐사를 잘 막았어요.':'폐사가 많았어요. 온도 편차, 암모니아, 질병 초기 대응을 점검해요.');
     fb.push(fcr<=1.55?'사료요구율이 좋아요. 사료 1kg으로 고기를 많이 만들었어요.':'사료요구율이 높아요. 스트레스가 크면 같은 사료로 덜 자라요.');
   } else {
