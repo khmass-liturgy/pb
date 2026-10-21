@@ -678,6 +678,12 @@ exports.getBoardPosts = onCall(async (request) => {
       const reply = await readJsonFile(file.name);
       if (reply) posts[key].reply = reply;
     }
+    if (parts.length === 5 && parts[4] === "ai.json") {     // 부검 사진 AI 예비 진단(analyzeNecropsyPhotos가 저장)
+      const key = parts[2] + "/" + parts[3];
+      if (!posts[key]) continue;
+      const ai = await readJsonFile(file.name);
+      if (ai) posts[key].ai = ai;
+    }
   }
   const list = Object.values(posts);
   list.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
@@ -1044,4 +1050,108 @@ exports.fetchRssItems = onCall({ timeoutSeconds: 30 }, async (request) => {
     }
   }));
   return { results };
+});
+
+// ── 🔬 부검 사진 AI 예비 진단(온라인 진단) ─────────────────────────────────────
+// 회원이 올린 부검 사진(간/비장·소장·신장·기타)과 농장 정보를 Claude(비전)에 보내 "예비 소견"을
+// 만든다. 결과는 premium_board/diagnosis/{uid}/{postId}/ai.json 에 저장하고, 최동명 수의사가
+// 같은 글에 최종 진단·코멘트(reply.json)를 달아 확정한다. AI 결과는 확정 진단이 아니다 —
+// 화면에도 「AI 예비 소견 · 수의사 확인 전」으로 표시한다. 약 이름·용량은 말하지 않게 한다.
+// 회원은 글마다 3번까지, 관리자는 제한 없이 다시 돌릴 수 있다.
+const NECROPSY_SYSTEM = `당신은 닭(육계·산란계) 부검 사진을 1차로 살펴 주는 「AI 보조 분석가」입니다. 현장수의사가 운영하는 양계 컨설팅 사이트에서, 농가가 올린 부검 사진을 수의사가 확인하기 전에 예비 소견을 정리합니다.
+
+반드시 지킬 것
+- 확정 진단을 내리지 않습니다. 「~가 의심됩니다/가능성이 있습니다」처럼 말하고, 사진만으로는 확정할 수 없다는 점을 분명히 합니다.
+- 사진에 실제로 보이는 것만 적습니다. 보이지 않거나 사진이 흐리거나 장기가 안 보이면 「판단 불가」로 두고 지어내지 않습니다. 부검 사진이 아닌 것 같으면 그렇게 말합니다.
+- 약 이름·항생제·용량·투약 방법은 말하지 않습니다. 치료는 수의사 진단과 처방에 따르라고만 합니다.
+- 법정가축전염병(고병원성 조류인플루엔자·뉴캐슬병 등)이 의심되면 urgent를 true로 하고, 즉시 수의사·방역기관에 알리고 사람·차량 이동을 통제하라고 next에 적습니다.
+- 쉬운 한국어로, 농가가 이해할 수 있게 짧게 씁니다.
+
+사진마다 라벨(간/비장, 소장, 신장, 기타 등)이 붙어 있습니다. 장기별로 색·크기·표면(점상출혈, 괴사 반점, 퇴색, 종대, 요산염 침착, 장 점막 출혈·괴사, 장내용물 이상 등)을 관찰하세요.
+
+출력은 아래 JSON 한 덩어리만 냅니다(설명 문장·코드블록 표시 없이).
+{
+ "summary": "3문장 이내 요약",
+ "findings": [{"organ": "간/비장|소장|신장|기타 등 사진 라벨", "observation": "보이는 소견", "abnormal": true|false|null}],
+ "suspected": [{"name": "의심 질병명(한국어)", "likelihood": "높음|중간|낮음", "reasons": "사진·농장 정보에서 그렇게 본 근거"}],
+ "limits": "사진 품질·누락된 장기·정보 부족 등 한계",
+ "next": ["권장 추가 확인(예: 다른 장기 사진, 병성감정 가검물 의뢰, 방역 조치) — 약·용량 제외"],
+ "urgent": true|false
+}
+suspected는 가능성이 높은 순서로 최대 4개입니다.`;
+
+function necropsyMediaType(name) {
+  const ext = String(name).split(".").pop().toLowerCase();
+  return { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", gif: "image/gif" }[ext] || null;
+}
+
+exports.analyzeNecropsyPhotos = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 180, memory: "1GiB" }, async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
+  if (!isApprovedOrAdmin(request)) throw new HttpsError("permission-denied", "승인된 회원만 쓸 수 있습니다.");
+  const { boardType, uid, postId } = request.data || {};
+  if (boardType !== "diagnosis" || !/^[A-Za-z0-9_-]{6,64}$/.test(String(uid || "")) || !/^b[a-z0-9]{5,40}$/.test(String(postId || ""))) {
+    throw new HttpsError("invalid-argument", "잘못된 요청입니다.");
+  }
+  const email = request.auth.token && request.auth.token.email;
+  const isAdm = !!(email && ADMIN_EMAILS.includes(String(email).toLowerCase()));
+  if (request.auth.uid !== uid && !isAdm) throw new HttpsError("permission-denied", "내 글만 분석할 수 있습니다.");
+
+  const bucket = admin.storage().bucket(STORAGE_BUCKET);
+  const base = `premium_board/diagnosis/${uid}/${postId}`;
+  const readJson = async (path) => {
+    const f = bucket.file(path);
+    const [exists] = await f.exists();
+    if (!exists) return null;
+    try { const [buf] = await f.download(); return JSON.parse(buf.toString("utf-8")); } catch (e) { return null; }
+  };
+  const post = await readJson(`${base}/post.json`);
+  if (!post) throw new HttpsError("not-found", "글을 찾지 못했습니다.");
+  const prev = await readJson(`${base}/ai.json`);
+  const runs = (prev && prev.runs) || 0;
+  if (!isAdm && runs >= 3) throw new HttpsError("resource-exhausted", "이 글은 AI 분석을 3번 다 사용했어요. 수의사의 확인을 기다려 주세요.");
+
+  const labelOf = {};
+  (post.photos || []).forEach((p) => { labelOf[p.slot] = p.label || p.slot; });
+  const [files] = await bucket.getFiles({ prefix: `${base}/photos/` });
+  const blocks = [];
+  const used = [];
+  for (const f of files.slice(0, 8)) {
+    const mt = necropsyMediaType(f.name);
+    if (!mt) continue;
+    const [meta] = await f.getMetadata();
+    if (Number(meta.size) > 4.5 * 1024 * 1024) continue;           // Claude 이미지 한도(5MB) 안쪽만
+    const [buf] = await f.download();
+    const slot = f.name.split("/").pop().replace(/\.[^.]+$/, "");
+    const label = labelOf[slot] || slot;
+    blocks.push({ type: "text", text: `[사진] ${label}` });
+    blocks.push({ type: "image", source: { type: "base64", media_type: mt, data: buf.toString("base64") } });
+    used.push(label);
+  }
+  if (!used.length) throw new HttpsError("failed-precondition", "분석할 사진이 없어요. 사진을 올린 뒤 다시 눌러 주세요.");
+
+  const fv = post.fields || {};
+  const info = [
+    fv.kind ? `축종: ${fv.kind}` : "", fv.age ? `주령/일령: ${fv.age}` : "",
+    fv.symptom ? `증상 및 농장 상황: ${String(fv.symptom).slice(0, 800)}` : "",
+  ].filter(Boolean).join("\n");
+  const content = [{ type: "text", text: `농가가 올린 부검 사진입니다.\n${info || "(농장 정보 없음)"}\n사진 ${used.length}장: ${used.join(", ")}` }, ...blocks,
+    { type: "text", text: "위 사진과 정보를 바탕으로 지정된 JSON 형식으로만 예비 소견을 작성하세요." }];
+  const response = await callClaude({ system: NECROPSY_SYSTEM, max_tokens: 3000, messages: [{ role: "user", content }] });
+  const raw = responseText(response);
+  const i = raw.indexOf("{"), j = raw.lastIndexOf("}");
+  let result = null;
+  try { result = JSON.parse(raw.slice(i, j + 1)); } catch (e) { result = null; }
+  if (!result || typeof result !== "object") throw new HttpsError("internal", "AI 응답을 읽지 못했습니다. 다시 시도해 주세요.");
+  const clean = (t, n) => String(t == null ? "" : t).slice(0, n);
+  const out = {
+    summary: clean(result.summary, 600),
+    findings: (Array.isArray(result.findings) ? result.findings : []).slice(0, 8).map((x) => ({ organ: clean(x.organ, 30), observation: clean(x.observation, 400), abnormal: x.abnormal === true ? true : x.abnormal === false ? false : null })),
+    suspected: (Array.isArray(result.suspected) ? result.suspected : []).slice(0, 4).map((x) => ({ name: clean(x.name, 60), likelihood: ["높음", "중간", "낮음"].includes(x.likelihood) ? x.likelihood : "낮음", reasons: clean(x.reasons, 400) })),
+    limits: clean(result.limits, 500),
+    next: (Array.isArray(result.next) ? result.next : []).slice(0, 6).map((t) => clean(t, 200)),
+    urgent: result.urgent === true,
+  };
+  const ai = { version: 1, model: response.model, createdAt: new Date().toISOString(), runs: runs + 1, photos: used, result: out };
+  await bucket.file(`${base}/ai.json`).save(JSON.stringify(ai), { contentType: "application/json" });
+  return { ai };
 });
