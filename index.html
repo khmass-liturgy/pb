@@ -4192,18 +4192,59 @@ function isPremiumApproved(){
 // 이메일/비밀번호 계정은 회원이 직접 만들지 않는다 — 관리자가 Firebase 콘솔
 // (Authentication > Users > Add user)에서 아이디(이메일)·비밀번호를 만들어
 // 회원에게 전달하는 방식이라, 화면에는 "로그인"만 있고 "회원가입"은 없다.
+// prompt()/alert()가 막힌 환경(앱 안 브라우저 등)에서도 되도록 화면 안 입력창(모달)을 쓴다.
+// 입력값은 이 창 안에서만 쓰이고 저장·전송은 Firebase 로그인 호출뿐이다.
+function authDialog(cfg){
+  const old = document.getElementById("auth-dialog"); if(old) old.remove();
+  const esc = t => String(t).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const el = document.createElement("div");
+  el.id = "auth-dialog";
+  el.style.cssText = "position:fixed;inset:0;z-index:100000;background:rgba(20,28,48,.55);display:flex;align-items:center;justify-content:center;padding:16px";
+  const inputStyle = "width:100%;box-sizing:border-box;border:1px solid #ccd3e0;border-radius:10px;padding:12px;font-size:16px;margin-top:4px";
+  el.innerHTML = `<form style="background:#fff;border-radius:16px;max-width:380px;width:100%;padding:20px 18px;box-shadow:0 10px 40px rgba(0,0,0,.3)" autocomplete="on">
+    <div style="font-size:18px;font-weight:800;color:#1a2744;margin-bottom:6px">${esc(cfg.title)}</div>
+    <div style="font-size:12.5px;color:#666;line-height:1.6;margin-bottom:10px">${esc(cfg.desc)}</div>
+    <label style="display:block;font-size:12.5px;font-weight:700;color:#444">아이디(이메일)
+      <input name="email" type="email" inputmode="email" autocomplete="username" autocapitalize="off" required style="${inputStyle}"></label>
+    ${cfg.password ? `<label style="display:block;font-size:12.5px;font-weight:700;color:#444;margin-top:10px">비밀번호
+      <input name="password" type="password" autocomplete="current-password" required style="${inputStyle}"></label>` : ""}
+    <div class="ad-msg" role="status" style="min-height:18px;margin-top:10px;font-size:12.5px;line-height:1.5"></div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button type="submit" class="ad-ok" style="flex:1;border:0;border-radius:10px;background:#1a2744;color:#fff;padding:12px;font-size:15px;font-weight:700;cursor:pointer">${esc(cfg.ok)}</button>
+      <button type="button" class="ad-cancel" style="border:1px solid #ccd3e0;border-radius:10px;background:#fff;color:#666;padding:12px 16px;font-size:15px;cursor:pointer">취소</button>
+    </div></form>`;
+  document.body.appendChild(el);
+  const form = el.querySelector("form"), msg = el.querySelector(".ad-msg"), ok = el.querySelector(".ad-ok");
+  const close = () => el.remove();
+  const say = (t, good) => { msg.textContent = t; msg.style.color = good ? "#2E7D32" : "#C62828"; };
+  el.querySelector(".ad-cancel").onclick = close;
+  el.addEventListener("mousedown", e => { if(e.target === el) close(); });
+  el.addEventListener("keydown", e => { if(e.key === "Escape") close(); });
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+    ok.disabled = true; say(cfg.busy || "확인 중…", true);
+    try { await cfg.run(form.elements.email.value.trim(), cfg.password ? form.elements.password.value : "", say, close); }
+    catch(err){ say(cfg.errMsg(err)); }
+    ok.disabled = false;
+  });
+  form.elements.email.focus();
+}
+
 function premiumSignInEmail(){
-  if(!firebaseReady){ alert("Firebase 설정이 아직 완료되지 않았습니다."); return; }
-  const email = prompt("관리자에게 전달받은 아이디(이메일)를 입력하세요.");
-  if(!email) return;
-  const password = prompt("관리자에게 전달받은 비밀번호를 입력하세요.");
-  if(!password) return;
-  firebase.auth().signInWithEmailAndPassword(email.trim(), password).catch(e => {
-    console.warn("이메일 로그인 실패:", e);
-    const msg = e.code==="auth/user-not-found" ? "등록되지 않은 계정입니다. 관리자에게 아이디·비밀번호 발급을 요청하세요."
-      : e.code==="auth/wrong-password" ? "비밀번호가 올바르지 않습니다."
-      : "로그인에 실패했습니다: " + (e.message || e);
-    alert(msg);
+  if(!firebaseReady){ authDialog({ title:"로그인", desc:"Firebase 설정이 아직 완료되지 않았습니다.", ok:"확인", run:(e,p,say,close)=>close(), errMsg:()=>"" }); return; }
+  authDialog({
+    title:"🔑 유료서비스 로그인",
+    desc:"관리자에게 전달받은 아이디(이메일)와 비밀번호를 입력하세요.",
+    password:true, ok:"로그인", busy:"로그인 중…",
+    run: async (email, password, say, close) => { await firebase.auth().signInWithEmailAndPassword(email, password); close(); },
+    errMsg: e => {
+      console.warn("이메일 로그인 실패:", e);
+      return e.code==="auth/user-not-found" ? "등록되지 않은 계정입니다. 관리자에게 아이디·비밀번호 발급을 요청하세요."
+        : (e.code==="auth/wrong-password" || e.code==="auth/invalid-credential" || e.code==="auth/invalid-login-credentials") ? "아이디 또는 비밀번호가 올바르지 않습니다."
+        : e.code==="auth/invalid-email" ? "이메일 형식이 올바르지 않습니다."
+        : e.code==="auth/too-many-requests" ? "시도가 너무 많아 잠시 막혔어요. 잠시 후 다시 시도해 주세요."
+        : "로그인에 실패했습니다: " + (e.message || e);
+    }
   });
 }
 
@@ -4215,18 +4256,18 @@ function premiumSignOut(){
 // 비밀번호를 잊었을 때 — 관리자가 비밀번호를 알거나 바꿔줄 방법이 없으므로
 // (Firebase가 해시로만 저장) Firebase의 재설정 메일 발송 기능을 그대로 쓴다.
 function premiumResetPassword(){
-  if(!firebaseReady){ alert("Firebase 설정이 아직 완료되지 않았습니다."); return; }
-  const email = prompt("가입한 이메일 주소를 입력하세요. 비밀번호 재설정 링크를 보내드립니다.");
-  if(!email) return;
-  firebase.auth().sendPasswordResetEmail(email.trim())
-    .then(() => alert("비밀번호 재설정 메일을 보냈습니다. 메일함(스팸함 포함)을 확인해 주세요."))
-    .catch(e => {
+  if(!firebaseReady){ authDialog({ title:"비밀번호 재설정", desc:"Firebase 설정이 아직 완료되지 않았습니다.", ok:"확인", run:(e,p,say,close)=>close(), errMsg:()=>"" }); return; }
+  authDialog({
+    title:"비밀번호 재설정", desc:"가입한 이메일 주소를 입력하세요. 비밀번호 재설정 링크를 보내드립니다.",
+    password:false, ok:"메일 보내기", busy:"보내는 중…",
+    run: async (email, _p, say) => { await firebase.auth().sendPasswordResetEmail(email); say("재설정 메일을 보냈습니다. 메일함(스팸함 포함)을 확인해 주세요.", true); },
+    errMsg: e => {
       console.warn("비밀번호 재설정 메일 발송 실패:", e);
-      const msg = e.code==="auth/user-not-found" ? "가입되지 않은 이메일입니다."
+      return e.code==="auth/user-not-found" ? "가입되지 않은 이메일입니다."
         : e.code==="auth/invalid-email" ? "이메일 형식이 올바르지 않습니다."
         : "메일 발송에 실패했습니다: " + (e.message || e);
-      alert(msg);
-    });
+    }
+  });
 }
 
 if(firebaseReady){
