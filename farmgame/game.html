@@ -97,8 +97,8 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
 .bubble.show{opacity:1;transform:translateX(-50%) scale(1)}
 .nest{position:absolute;left:4%;right:4%;bottom:3%;height:13%;background:#C98A55;border:3px solid var(--ink);border-radius:12px;z-index:30;display:flex;align-items:center;gap:4%;padding:0 4%;overflow:hidden}
 @keyframes pop{from{transform:scale(0)}70%{transform:scale(1.2)}}
-.particle{position:absolute;z-index:45;pointer-events:none;font-size:18px;animation:rise 1.4s ease-out forwards}
-@keyframes rise{to{transform:translateY(-60px);opacity:0}}
+.particle{position:absolute;z-index:150;pointer-events:none;font-size:36px;line-height:1;filter:drop-shadow(0 2px 2px #0003);animation:rise 1.4s ease-out forwards}
+@keyframes rise{to{transform:translateY(-100px);opacity:0}}
 
 /* 패널 */
 .panel{background:var(--card);border:2px solid var(--line);border-radius:22px;padding:14px;display:flex;flex-direction:column;gap:12px}
