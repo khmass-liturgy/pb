@@ -59,7 +59,7 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
 @keyframes drift{to{left:110%}}
 .hot .window{background:linear-gradient(#FFB27A,#FFE3B0)}
 .hot .sun{background:#FF6B4A;box-shadow:0 0 0 8px #FF9B7A90;transform:scale(1.15)}
-.sign{position:absolute;right:6%;top:9%;background:#FFF8EC;border:3px solid var(--ink);border-radius:12px;padding:4px 10px;font-family:var(--f-display);font-size:clamp(12px,2.6vw,17px);transform:rotate(3deg)}
+.sign{position:absolute;right:3%;top:3%;max-width:42%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:#FFF8EC;border:3px solid var(--ink);border-radius:12px;padding:3px 9px;font-family:var(--f-display);font-size:clamp(11px,2.5vw,16px);transform:rotate(2deg);z-index:210}
 .lamp{position:absolute;left:46%;top:0;width:7%;height:36%}
 .lamp .cord{position:absolute;left:50%;top:0;width:3px;height:60%;background:var(--ink);margin-left:-1.5px}
 .lamp .bulb{position:absolute;left:0;right:0;top:56%;aspect-ratio:1;border-radius:50% 50% 45% 45%;background:#FFB34D;border:3px solid var(--ink);transition:box-shadow .6s,background .6s}
@@ -233,7 +233,7 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
 .adm .dzr{display:flex;gap:6px;align-items:center;flex-wrap:wrap;background:var(--soft);border-radius:10px;padding:6px 8px}
 .adm .dzr b{flex:1;min-width:120px}
 
-.acts{position:absolute;right:2%;top:5%;display:flex;flex-direction:column;gap:4px;z-index:200}
+.acts{position:absolute;right:2%;top:21%;display:flex;flex-direction:column;gap:4px;z-index:200}
 .act{width:56px;border:2px solid var(--ink);border-radius:14px;background:#FFFFFFEE;box-shadow:0 3px 0 var(--ink);padding:2px 2px 3px;font-family:var(--f-display);font-size:11px;line-height:1.1;display:flex;flex-direction:column;align-items:center;gap:0;cursor:pointer}
 .act .r{display:flex;align-items:center;gap:2px}
 .act .em{font-size:14px}
@@ -245,6 +245,29 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
 .act.low{animation:actblink 1s infinite}
 @keyframes actblink{50%{background:#FFE0DA}}
 @media (prefers-reduced-motion:reduce){.act.low{animation:none;background:#FFE0DA}}
+
+.window{transition:background .8s}
+.window .fx{position:absolute;inset:0;pointer-events:none;z-index:2;opacity:0;transition:opacity .8s}
+.window.wx-pcloud .sun{opacity:.9}
+.window.wx-cloudy{background:linear-gradient(#B9C5CD,#DEE4E8)}
+.window.wx-cloudy .sun{opacity:.22}
+.window.wx-fog{background:linear-gradient(#D5DDE1,#EEF2F4)}
+.window.wx-fog .sun{opacity:.3}
+.window.wx-fog .fx{opacity:.65;background:linear-gradient(#F4F7F8,#E2E8EB)}
+.window.wx-rain,.window.wx-storm{background:linear-gradient(#7C8B96,#AAB6BF)}
+.window.wx-storm{background:linear-gradient(#545F6B,#8793A0)}
+.window.wx-rain .sun,.window.wx-storm .sun,.window.wx-snow .sun{opacity:0}
+.window.wx-rain .cloud,.window.wx-storm .cloud{background:#CBD3D9}
+.window.wx-rain .fx,.window.wx-storm .fx{opacity:1;background:repeating-linear-gradient(105deg,transparent 0 7px,#FFFFFFAA 7px 8px);background-size:22px 22px;animation:rainfall .45s linear infinite}
+.window.wx-storm .fx{animation:rainfall .35s linear infinite,flash 5s infinite}
+.window.wx-snow{background:linear-gradient(#A9BAC6,#DCE5EB)}
+.window.wx-snow .fx{opacity:1;background-image:radial-gradient(circle,#fff 1.6px,transparent 2.4px);background-size:15px 15px;animation:snowfall 3.2s linear infinite}
+.window.hot .sun{background:#FF8A3D;transform:scale(1.25);box-shadow:0 0 0 8px #FFB07A88}
+.window.cold .sun{background:#F6F2D2;box-shadow:0 0 0 6px #FFFFFF66}
+@keyframes rainfall{to{background-position:-8px 22px}}
+@keyframes snowfall{to{background-position:6px 15px}}
+@keyframes flash{0%,92%,100%{filter:none}94%{filter:brightness(2.2)}96%{filter:none}98%{filter:brightness(1.8)}}
+@media (prefers-reduced-motion:reduce){.window .fx{animation:none!important}}
 </style>
 </head>
 <body>
@@ -306,7 +329,7 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
       <div class="stat"><div class="k">자금</div><div class="v num" id="vMoney">₩0</div></div>
     </div>
     <div class="scene" id="scene">
-      <div class="window"><div class="sun"></div><div class="cloud"></div><div class="cloud c2"></div></div>
+      <div class="window" id="win"><div class="sun"></div><div class="cloud"></div><div class="cloud c2"></div><div class="fx"></div></div>
       <div class="sign" id="sign">꼬꼬 계사</div>
       <div class="lamp"><div class="cord"></div><div class="bulb" id="bulb"></div></div>
       <div class="floor" id="floor"></div>
@@ -929,6 +952,25 @@ function animFlock(dt){
 }
 function showBubble(s,txt){const b=s.el.querySelector('.bubble');b.textContent=txt;b.classList.add('show');s.bubbleT=1600}
 
+function wxClass(code){
+  if(code==null)return 'wx-clear';
+  if(code===0)return 'wx-clear';
+  if(code<=2)return 'wx-pcloud';
+  if(code===3)return 'wx-cloudy';
+  if(code===45||code===48)return 'wx-fog';
+  if((code>=51&&code<=67)||(code>=80&&code<=82))return 'wx-rain';
+  if((code>=71&&code<=77)||code===85||code===86)return 'wx-snow';
+  if(code>=95)return 'wx-storm';
+  return 'wx-clear';
+}
+// 창문 밖 풍경이 오늘의 실제 날씨(현재 위치)를 따라간다 — 맑음·구름·흐림·안개·비·눈·뇌우, 더위·추위는 해 색으로.
+function renderWindowWx(){
+  const w=$('#win');if(!w)return;
+  const ok=WX.status==='ok';
+  w.className='window '+(ok?wxClass(WX.code):'wx-clear')+(ok&&WX.t>=30?' hot':'')+(ok&&WX.t<=0?' cold':'');
+  w.title=ok?`오늘 날씨: ${(WXC[WX.code]||['','날씨'])[1]} ${Math.round(WX.t)}℃`:'';
+}
+const signText=()=>`${NICK?NICK:'꼬꼬'} ${S&&S.mode==='layer'?'산란계사':'육계사'}`;
 function renderActs(){
   const el=$('#acts');if(!el||!S)return;
   el.hidden=!!S.done;
@@ -959,7 +1001,7 @@ function renderScene(){
   const bulb=$('#bulb');
   if(S.mode==='broiler'){const g=clamp((S.ctrl.temp-18)/16,0,1);bulb.style.background=mixHex('#FFE7B0','#FF8A3D',g);bulb.style.boxShadow=`0 0 ${10+g*40}px ${4+g*18}px ${mixHex('#FFE7B0','#FFA05A',g)}aa`}
   else{const g=clamp(S.ctrl.light/18,0,1);bulb.style.background=mixHex('#EEE8D5','#FFF27A',g);bulb.style.boxShadow=`0 0 ${8+g*36}px ${3+g*16}px #FFF5A0${g>.3?'cc':'55'}`}
-  $('#sign').textContent=S.mode==='broiler'?'꼬꼬 육계사':'꼬꼬 산란계사';
+  $('#sign').textContent=signText();renderWindowWx();
   const nest=$('#nest');
   if(S.mode==='layer'&&S.day>=18&&S.rate>0){
     nest.hidden=false;
@@ -1005,7 +1047,7 @@ function wxFetch(lat,lng,name,approx){
 function ensureWx(){
   if(WX.status!=='idle')return;
   WX.status='loading';
-  const done=()=>{if(S&&!$('#gameView').hidden)renderGuide()};
+  const done=()=>{if(S&&!$('#gameView').hidden){renderGuide();renderWindowWx()}};
   const fallback=()=>{
     let loc=null;try{loc=JSON.parse(localStorage.getItem('weather_loc')||'null')}catch(e){}
     const use=loc&&isFinite(loc.lat)&&isFinite(loc.lng)?{lat:loc.lat,lng:loc.lng,name:loc.name||'저장된 지역',approx:false}:{lat:37.57,lng:126.98,name:'서울(기본)',approx:true};
@@ -1259,6 +1301,7 @@ const CLOUD=(()=>{try{return window.parent!==window&&window.parent.farmGameCloud
 const escH=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nickErr=n=>!n?'닉네임을 입력해 주세요.':n.length<2||n.length>12?'닉네임은 2~12자로 지어 주세요.':!/^[가-힣A-Za-z0-9_]+$/.test(n)?'한글·영문·숫자·밑줄(_)만 쓸 수 있어요.':'';
 function renderNick(){
+  if(S&&$('#sign'))$('#sign').textContent=signText();
   $('#btnNick').textContent=NICK?'🐥 '+NICK:'🐥 닉네임';
   const nl=$('#nickline');
   if(nl)nl.innerHTML=NICK?`농장주 <b>${escH(NICK)}</b> <button class="btn" type="button" id="nlChange" style="padding:3px 10px;font-size:13px">닉네임 바꾸기</button>`:`<button class="btn primary" type="button" id="nlChange">🐥 닉네임 정하고 시작하기</button>`;
