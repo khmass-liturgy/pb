@@ -222,6 +222,16 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
 .fdopts button small{font-size:11px;color:var(--muted)}
 .fdopts button[aria-pressed="true"]{background:var(--straw);border-color:var(--ink)}
 .fdopts button.rec::before{content:'★ 지금 권장';font-size:11px;color:#C77700}
+
+.adm{display:flex;flex-direction:column;gap:10px;font-size:13.5px}
+.adm h3{margin:6px 0 0;font-size:16px}
+.adm .row2{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.adm input[type=number]{width:58px;border:2px solid var(--line);border-radius:9px;padding:5px;font-size:14px}
+.adm input[type=text],.adm textarea,.adm select{border:2px solid var(--line);border-radius:9px;padding:6px;font-size:14px;font-family:inherit;width:100%;box-sizing:border-box}
+.adm textarea{min-height:62px}
+.adm .stg{background:var(--soft);border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:6px}
+.adm .dzr{display:flex;gap:6px;align-items:center;flex-wrap:wrap;background:var(--soft);border-radius:10px;padding:6px 8px}
+.adm .dzr b{flex:1;min-width:120px}
 </style>
 </head>
 <body>
@@ -235,6 +245,7 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
     <div class="row" style="flex:none">
       <button class="iconbtn" id="btnNick" type="button">🐥 닉네임</button>
       <button class="iconbtn" id="btnSave" type="button">☁ 저장·불러오기</button>
+      <button class="iconbtn" id="btnAdmin" type="button" hidden>⚙ 관리</button>
       <button class="iconbtn" id="btnHome" type="button">처음으로</button>
     </div>
   </header>
@@ -573,12 +584,8 @@ const EVENTS=[
    {label:'미리 사료를 사 둔다',cost:s=>s.mode==='broiler'?150000:400000,sub:s=>`${s.mode==='broiler'?'7일':'4주'} 동안 예전 가격`,apply:s=>{s.feedPrice=Math.round(s.basePrice*1.2);s.fx.lock=s.mode==='broiler'?7:4;return '보관 비용이 들지만 한동안 오르기 전 가격으로 먹일 수 있어요.'}},
    {label:'급여량을 줄인다',cost:()=>0,sub:'사료를 "제한"으로 바꿔요',apply:s=>{s.feedPrice=Math.round(s.basePrice*1.2);s.ctrl.feed=1;s.feedCut=true;return '사료는 아끼지만 성장·산란도 같이 줄어요. 사료를 줄이는 것이 항상 이익은 아니에요.'}},
    {label:'그대로 받아들인다',cost:()=>0,sub:'관리 방식 유지',apply:s=>{s.feedPrice=Math.round(s.basePrice*1.2);return '사료요구율을 낮추는 관리(적정 온도, 깨끗한 환경)가 결국 사료비를 줄이는 길이에요.'}}]},
- {id:'disease',icon:'🤒',modes:['broiler','layer'],when:s=>s.day>=(s.mode==='broiler'?8:4)&&!(s.fx.disease>0),title:'질병 의심',
-  desc:s=>`기침을 하거나 묽은 변을 보는 ${s.mode==='broiler'?'닭':'닭'}이 보여요. ${s.ammonia>20?'암모니아가 높아 호흡기가 약해진 상태예요.':'빨리 원인을 찾아야 해요.'}`,
-  choices:[
-   {label:'수의사 진단 + 처방',cost:s=>s.mode==='broiler'?120000:200000,sub:'가장 확실한 방법',apply:s=>{s.health=clamp(s.health+8,0,100);return '정확한 진단으로 알맞은 처방을 받았어요. 휴약기간을 꼭 지켜야 해요.'}},
-   {label:'소독·격리 강화',cost:s=>s.mode==='broiler'?40000:60000,sub:'반반의 확률',apply:s=>{if(rnd()<.5){return '다행히 퍼지지 않았어요. 차단 방역이 효과를 봤어요.'}s.fx.disease=s.mode==='broiler'?4:2;s.fx.sev=10;return '확산은 줄였지만 일부 닭이 여전히 아파요.'}},
-   {label:'좀 더 지켜본다',cost:()=>0,sub:'비용은 없어요',apply:s=>{s.fx.disease=s.mode==='broiler'?6:3;s.fx.sev=22;return '병이 퍼지기 시작했어요. 의심될 때 빨리 진단받는 것이 손해를 줄여요.'}}]},
+ {id:'disease',icon:'🤒',modes:['broiler','layer'],quiz:true,when:s=>!(s.fx.disease>0)&&DZ_WEIGHT[s.mode]>0&&dzPool(s).length>0,title:'질병 의심',
+  desc:()=>'',choices:[]},
  {id:'wet',icon:'💧',modes:['broiler'],when:s=>s.day>=6,title:'급수기 누수',
   desc:()=>'급수 라인이 새서 깔짚이 축축해졌어요. 젖은 깔짚은 암모니아와 발바닥 피부염의 원인이에요.',
   choices:[
@@ -602,11 +609,167 @@ const EVENTS=[
    {label:'직거래 판로 개척',cost:()=>80000,sub:'하락 폭을 줄여요',apply:s=>{s.fx.eggLow=3;s.fx.eggMul=.93;return '단골 판로 덕분에 가격 하락을 덜 받아요.'}},
    {label:'그대로 판매',cost:()=>0,sub:'시세대로',apply:s=>{s.fx.eggLow=3;s.fx.eggMul=.75;return '가격은 시장이 정하지만 생산비는 내가 관리할 수 있어요.'}}]}
 ];
+/* ── 질병 노트 + 퀴즈 (교육용 요약 — 확진·치료·약 사용은 수의사 몫) ── */
+const DZ={
+ broiler:[
+  {icon:'🦠',name:'대장균증',signs:'기침을 하고 사료를 덜 먹는 닭이 보여요. 폐사한 닭의 배를 열어 보니 복막과 심장 주머니가 뿌옇대요.',
+   info:[['원인','환경에 흔한 대장균이 먼지·암모니아·젖은 깔짚 때문에 약해진 닭에게 파고들어요.'],['증상','기침, 식욕 저하, 배가 부은 닭, 복막염·심낭염으로 인한 폐사'],['예방','환기·깔짚·암모니아 관리, 급수 라인 청결, 입추 전 소독']],
+   q:'가장 먼저 점검할 환경 관리는?',right:'환기와 깔짚·암모니아 관리',wrong:['사료를 줄여 굶긴다','계사 온도를 최대한 낮춘다'],why:'대장균은 환경이 나쁠 때 병이 돼요. 먼저 환기·깔짚·암모니아부터 바로잡아요.'},
+  {icon:'🔬',name:'콕시듐증',signs:'털이 헝클어지고 웅크린 닭이 늘었고, 묽은 변에 피가 섞여 있어요.',
+   info:[['원인','원충(콕시듐)의 알이 따뜻하고 젖은 깔짚에서 퍼져요.'],['증상','혈변·묽은 변, 웅크림, 성장 저하'],['예방','깔짚을 건조하게, 급수기 누수 막기, 사육 밀도 관리, 수의사 지시 프로그램']],
+   q:'콕시듐이 퍼지기 좋은 환경은?',right:'따뜻하고 젖은 깔짚',wrong:['건조하고 서늘한 깔짚','환기가 강한 계사'],why:'젖은 깔짚이 콕시듐의 보금자리예요. 깔짚을 마르게 하는 것이 예방의 핵심이에요.'},
+  {icon:'💩',name:'괴사성장염',signs:'멀쩡하던 닭이 갑자기 죽고, 악취 나는 설사를 하는 닭이 보여요.',
+   info:[['원인','장이 상했을 때 장내 세균(클로스트리디움)이 갑자기 늘어나요. 콕시듐이나 사료 급변이 계기가 돼요.'],['증상','갑작스러운 폐사, 악취 설사, 식욕 저하'],['예방','장 건강 관리, 콕시듐 관리, 사료를 갑자기 바꾸지 않기']],
+   q:'장 손상을 줄이는 방법은?',right:'사료를 갑자기 바꾸지 않고 콕시듐을 관리한다',wrong:['사료를 하루 이틀 굶긴다','물 공급을 줄인다'],why:'장이 상하지 않게 하는 것이 예방이에요. 사료 급변과 콕시듐을 조심해요.'},
+  {icon:'🛡️',name:'전염성 F낭병(감보로)',signs:'3~4주령 닭이 떨고 흰 설사를 하며 폐사가 늘고 있어요.',
+   info:[['원인','면역 기관(F낭)을 망가뜨리는 바이러스예요. 환경에서 오래 살아남아요.'],['증상','흰 설사, 떨림, 갑작스러운 폐사 증가'],['예방','백신 프로그램, 입추 전 철저한 청소·소독']],
+   q:'이 병이 더 무서운 이유는?',right:'면역이 약해져 다른 병에도 잘 걸린다',wrong:['사람에게 쉽게 옮는다','알을 못 낳게 된다'],why:'면역 기관이 상해서 다른 질병·백신 효과에까지 영향을 줘요.'},
+  {icon:'🫁',name:'복수증',signs:'배가 불룩하고 숨을 가쁘게 쉬는 큰 닭이 보여요.',
+   info:[['원인','빠르게 크는 닭이 산소가 모자랄 때(환기 부족·추위·먼지) 심장과 폐에 부담이 생겨요.'],['증상','배에 물이 차 불룩함, 호흡 곤란, 보라색 벼슬'],['예방','충분한 환기, 적정 온도, 초기 급성장 조절']],
+   q:'산소를 충분히 공급하려면?',right:'환기를 챙기고 먼지를 줄인다',wrong:['문과 환기구를 모두 닫는다','온도를 크게 낮춰 추위를 준다'],why:'복수증은 산소 부족과 관련이 커요. 환기가 기본이에요.'}],
+ layer:[
+  {icon:'🤧',name:'전염성기관지염(IB)',signs:'닭들이 재채기를 하고, 알 껍데기가 얇거나 거칠고 모양이 이상해요.',
+   info:[['원인','코로나 계열 바이러스가 호흡기로 퍼져요.'],['증상','기침·재채기, 산란율 저하, 껍데기가 얇거나 울퉁불퉁한 알'],['예방','백신 프로그램, 차단 방역, 환기·스트레스 관리']],
+   q:'이 병에 걸린 산란계의 흔한 알 변화는?',right:'껍데기가 얇거나 거칠고 모양이 이상하다',wrong:['알이 갑자기 커진다','노른자가 모두 붉어진다'],why:'알을 만드는 관에 영향을 줘서 알 품질이 떨어져요.'},
+  {icon:'🧠',name:'뉴캐슬병',signs:'녹색 설사를 하고 목이 비틀린 닭이 보이며 산란율이 확 떨어졌어요.',
+   info:[['원인','전염력이 강한 바이러스예요. 사람·차량·장비로도 옮겨요.'],['증상','녹색 설사, 호흡기 증상, 목 비틀림 같은 신경 증상, 산란 급감'],['예방','백신 프로그램, 차단 방역(출입 통제·소독)']],
+   q:'뉴캐슬병이 의심될 때 올바른 행동은?',right:'즉시 수의사·방역기관에 알리고 이동을 통제한다',wrong:['아픈 닭을 다른 계사로 옮긴다','달걀을 그대로 출하한다'],why:'법정 가축전염병이라 의심되면 바로 알리고 사람·차량 이동을 막아야 해요.'},
+  {icon:'🦠',name:'대장균증',signs:'산란율이 떨어지고 배가 부은 닭이 폐사했어요. 복막이 뿌옇대요.',
+   info:[['원인','먼지·암모니아·불량한 환경으로 닭이 약해질 때 대장균이 감염을 일으켜요.'],['증상','산란 저하, 난관염·복막염, 폐사'],['예방','환기·깔짚·청결한 급수, 집란 위생(바닥란 줄이기)']],
+   q:'예방에 가장 도움이 되는 것은?',right:'환기와 청결한 환경 관리',wrong:['점등을 최대한 길게','칼슘을 끊는다'],why:'환경이 좋으면 대장균이 병을 일으키기 어려워요.'},
+  {icon:'🌬️',name:'마이코플라즈마(만성호흡기병)',signs:'기침과 콧물이 서서히 퍼지고 산란율도 조금씩 떨어져요.',
+   info:[['원인','세균의 한 종류가 호흡기에 오래 머물러요. 스트레스를 받으면 심해져요.'],['증상','서서히 번지는 기침·콧물, 눈 주변 부종, 산란율 저하'],['예방','청정 병아리 입식, 차단 방역, 스트레스(온도·먼지·밀도) 줄이기']],
+   q:'이 병의 특징은?',right:'서서히 퍼지고 스트레스를 받으면 심해진다',wrong:['하루 만에 전부 폐사한다','알만 이상하고 숨소리는 멀쩡하다'],why:'만성 호흡기병이라 천천히 번지고, 환경 스트레스가 겹치면 악화돼요.'},
+  {icon:'🥚',name:'산란저하증후군(EDS)',signs:'닭은 멀쩡해 보이는데 껍데기 없는 알이 갑자기 많아졌어요.',
+   info:[['원인','아데노바이러스 계열이에요. 닭이 아프지 않은데 알 만드는 기능이 흔들려요.'],['증상','연란·무각란 급증, 산란율 급락(닭 상태는 정상)'],['예방','백신 프로그램, 청결한 입식·소독']],
+   q:'대표 증상은?',right:'닭은 멀쩡한데 껍데기 없는 알이 늘고 산란율이 급락한다',wrong:['닭이 모두 기침을 한다','닭이 눈에 띄게 마른다'],why:'닭 상태는 정상인데 알 껍데기만 이상해지는 것이 특징이에요.'},
+  {icon:'🕷️',name:'닭 응애(닭진드기)',signs:'밤에 닭들이 안절부절못하고, 벼슬이 창백하며 알을 덜 낳아요.',
+   info:[['원인','닭 응애가 낮에는 계사 틈새에 숨었다가 밤에 닭의 피를 빨아요.'],['증상','빈혈(창백한 벼슬), 불안, 산란 저하, 알에 핏자국'],['예방','계사 틈새 청소·소독, 정기적인 점검']],
+   q:'응애를 찾기 좋은 곳과 시간은?',right:'밤이나 새벽, 계사 틈새·산란상 주변',wrong:['한낮, 사료통 안쪽','한낮, 마당 풀밭'],why:'응애는 낮에 틈새에 숨고 밤에 닭을 공격해요.'}]
+};
+const DZ_RANGE={
+ broiler:{'대장균증':[8,35],'콕시듐증':[14,35],'괴사성장염':[14,35],'전염성 F낭병(감보로)':[18,35],'복수증':[21,35]},
+ layer:{'전염성기관지염(IB)':[4,40],'뉴캐슬병':[4,40],'대장균증':[8,40],'마이코플라즈마(만성호흡기병)':[8,40],'산란저하증후군(EDS)':[18,40],'닭 응애(닭진드기)':[8,40]}
+};
+const GST_DEF=JSON.parse(JSON.stringify(GSTAGES));
+const DZ_WEIGHT={broiler:1,layer:1};
+let CFG=window.FG_CONFIG||null;      // 관리자가 발행한 설정(부모 창이 srcdoc에 심어 줌)
+function applyCfg(cfg){
+  for(const m of ['broiler','layer']){
+    const c=(cfg&&cfg[m])||{};
+    GSTAGES[m]=JSON.parse(JSON.stringify(GST_DEF[m]));
+    if(Array.isArray(c.stages)&&c.stages.length){
+      const ok=c.stages.filter(x=>x&&isFinite(x.from)&&isFinite(x.to)&&+x.to>=+x.from&&Array.isArray(x.pts))
+        .map(x=>({from:+x.from,to:+x.to,name:String(x.name||'').slice(0,20),pts:x.pts.map(t=>String(t).slice(0,80)).filter(Boolean).slice(0,6)}));
+      if(ok.length)GSTAGES[m]=ok;
+    }
+    DZ[m].forEach(z=>{
+      const r=DZ_RANGE[m][z.name]||[1,40];z.from=r[0];z.to=r[1];z.on=true;
+      const o=c.diseases&&c.diseases[z.name];
+      if(o){if(o.on===false)z.on=false;if(isFinite(o.from))z.from=+o.from;if(isFinite(o.to))z.to=+o.to}
+    });
+    DZ_WEIGHT[m]=isFinite(c.diseaseWeight)?clamp(Math.round(c.diseaseWeight),0,3):1;
+  }
+}
+applyCfg(CFG);
+const dzPool=st=>DZ[st.mode].filter(z=>z.on&&st.day>=z.from&&st.day<=z.to);
+function pickDz(){
+  const L=DZ[S.mode],all=dzPool(S);if(!S.dzSeen)S.dzSeen=[];
+  let pool=all.filter(z=>!S.dzSeen.includes(L.indexOf(z)));
+  if(!pool.length){S.dzSeen=S.dzSeen.filter(i=>!all.includes(L[i]));pool=all}
+  if(!pool.length)pool=L;
+  const z=pool[Math.floor(rnd()*pool.length)];S.dzSeen.push(L.indexOf(z));return z;
+}
+function showDiseaseQuiz(){
+  const z=pickDz(),cost=S.mode==='broiler'?150000:250000;
+  openModal(`<div class="ev-icon">🤒</div><h2>질병 의심 — 진단 결과</h2><p>${z.signs}</p>
+   <div class="result"><b>${z.icon} ${z.name}</b>이(가) 의심돼요. 질병 노트를 읽고 퀴즈를 맞히면 치료돼요.</div>
+   <ul class="dzl" style="margin:0;padding-left:18px;line-height:1.7">${z.info.map(([k,v])=>`<li><b>${k}</b> ${v}</li>`).join('')}</ul>
+   <p class="note">퀴즈를 맞히면 치료 성공! 틀리면 진료·처치비 ${won(cost)}을 내요. 실제 진단·치료·약 사용은 수의사 지시에 따르세요.</p>
+   <button class="btn primary" type="button" id="dzGo">퀴즈 풀기</button>`);
+  $('#dzGo').addEventListener('click',()=>{
+    const opts=[{t:z.right,ok:true},...z.wrong.map(t=>({t,ok:false}))].sort(()=>rnd()-.5);
+    openModal(`<div class="ev-icon">❓</div><h2>${z.icon} ${z.name} 퀴즈</h2><p>${z.q}</p>
+     <div style="display:flex;flex-direction:column;gap:8px">${opts.map((o,i)=>`<button class="choice" type="button" data-i="${i}"><b>${o.t}</b></button>`).join('')}</div>`);
+    $('#sheet').querySelectorAll('.choice').forEach(b=>b.addEventListener('click',()=>{
+      const o=opts[+b.dataset.i];let msg;
+      if(o.ok){
+        S.health=clamp(S.health+8,0,100);
+        msg=`<b>정답! 치료 성공 🎉</b><br>${z.why}<br>건강이 회복돼요.`;
+        addLog(`${z.name} 퀴즈 정답 → 치료 성공`);
+      } else {
+        S.money-=cost;S.tot.other+=cost;S.health=clamp(S.health+2,0,100);
+        S.fx.disease=S.mode==='broiler'?2:1;S.fx.sev=12;
+        msg=`<b>아쉬워요 😢 진료·처치비 ${won(cost)}을 냈어요.</b><br>정답: ${z.right}<br>${z.why}`;
+        addLog(`${z.name} 퀴즈 오답 → 처치비 ${won(cost)}`);
+      }
+      render();autosave();
+      openModal(`<div class="ev-icon">${o.ok?'💊':'🧾'}</div><h2>${o.ok?'치료했어요':'치료비 지불'}</h2><div class="result">${msg}</div><button class="btn primary" type="button" id="evOk">알겠어요</button>`);
+      $('#evOk').addEventListener('click',()=>{closeModal();if(S.done)setTimeout(showReport,300)});
+    }));
+  });
+}
+/* ── 게임 관리(관리자 전용): 구간별 질병 발생 구간·빈도, 사양관리 포인트 ── */
+const isAdm=()=>{try{return !!(CLOUD&&CLOUD.isAdmin&&CLOUD.isAdmin())}catch(e){return false}};
+function openAdmin(){
+  const m=LOCK||(S&&S.mode)||'broiler',u=m==='layer'?'주령':'일령',max=MODES[m].maxDay;
+  const w=DZ_WEIGHT[m];
+  openModal(`<div class="adm"><h2>⚙ ${MODES[m].name} 관리</h2>
+   <p class="note">저장하면 모든 회원이 다음에 게임 창을 열 때부터 적용돼요. 숫자는 ${u}(1~${max}) 기준이에요.</p>
+   <h3>🤒 질병 발생</h3>
+   <label>발생 빈도 <select id="admW">${[[0,'끄기(질병 없음)'],[1,'보통'],[2,'자주'],[3,'아주 자주']].map(([v,t])=>`<option value="${v}" ${v===w?'selected':''}>${t}</option>`).join('')}</select></label>
+   <div id="admDz">${DZ[m].map((z,i)=>`<div class="dzr"><label><input type="checkbox" data-dz="${i}" ${z.on?'checked':''}> </label><b>${z.icon} ${z.name}</b>
+     <input type="number" min="1" max="${max}" data-from="${i}" value="${z.from}"> ~ <input type="number" min="1" max="${max}" data-to="${i}" value="${z.to}"> ${u}</div>`).join('')}</div>
+   <h3>✅ 구간별 사양관리 포인트</h3>
+   <p class="note">구간(시작~끝 ${u}), 이름, 관리 포인트(한 줄에 하나, 최대 6개)를 고쳐요.</p>
+   <div id="admSt">${GSTAGES[m].map((g,i)=>`<div class="stg" data-st="${i}"><div class="row2"><input type="number" min="1" max="${max}" data-sf value="${g.from}"> ~ <input type="number" min="1" max="${max}" data-sto value="${g.to}"> ${u}
+     <input type="text" data-sn maxlength="20" value="${escH(g.name)}" style="flex:1;min-width:100px" placeholder="구간 이름"><button class="btn" type="button" data-sdel="${i}" style="padding:4px 10px">삭제</button></div>
+     <textarea data-sp>${escH(g.pts.join('\n'))}</textarea></div>`).join('')}</div>
+   <button class="btn" type="button" id="admAdd">+ 구간 추가</button>
+   <div class="gmsg" id="gmsg" role="status"></div>
+   <div class="row"><button class="btn primary" type="button" id="admSave">저장·발행</button><button class="btn" type="button" id="admReset">기본값으로</button><button class="btn" type="button" id="gClose">닫기</button></div></div>`);
+  $('#gClose').addEventListener('click',closeModal);
+  $('#admAdd').addEventListener('click',()=>{
+    const last=[...$('#admSt').querySelectorAll('.stg')].pop(),lt=last?+last.querySelector('[data-sto]').value:0,f=Math.min(max,lt+1);
+    const d=document.createElement('div');d.className='stg';
+    d.innerHTML=`<div class="row2"><input type="number" min="1" max="${max}" data-sf value="${f}"> ~ <input type="number" min="1" max="${max}" data-sto value="${max}"> ${u}<input type="text" data-sn maxlength="20" placeholder="구간 이름" style="flex:1;min-width:100px"><button class="btn" type="button" data-sdel style="padding:4px 10px">삭제</button></div><textarea data-sp></textarea>`;
+    $('#admSt').appendChild(d);
+  });
+  $('#admSt').addEventListener('click',e=>{const b=e.target.closest('[data-sdel]');if(b)b.closest('.stg').remove()});
+  const collect=()=>{
+    const diseases={};
+    for(let i=0;i<DZ[m].length;i++){
+      const z=DZ[m][i],on=$(`[data-dz="${i}"]`).checked,f=+$(`[data-from="${i}"]`).value,t=+$(`[data-to="${i}"]`).value;
+      if(!(f>=1&&t<=max&&f<=t))throw new Error(`${z.name}: 구간은 1~${max} 사이에서 시작 ≤ 끝이어야 해요.`);
+      diseases[z.name]={on,from:f,to:t};
+    }
+    const stages=[...document.querySelectorAll('#admSt .stg')].map(d=>({from:+d.querySelector('[data-sf]').value,to:+d.querySelector('[data-sto]').value,name:d.querySelector('[data-sn]').value.trim(),pts:d.querySelector('[data-sp]').value.split('\n').map(t=>t.trim()).filter(Boolean).slice(0,6)}));
+    if(!stages.length)throw new Error('사양관리 구간이 하나 이상 있어야 해요.');
+    stages.forEach(g=>{if(!(g.from>=1&&g.to<=max&&g.from<=g.to))throw new Error(`구간 ${g.name||g.from}: 1~${max} 사이에서 시작 ≤ 끝이어야 해요.`);if(!g.name)throw new Error('구간 이름을 적어 주세요.')});
+    stages.sort((a,b)=>a.from-b.from);
+    return {diseaseWeight:+$('#admW').value,diseases,stages};
+  };
+  const publish=async(section,okMsg)=>{
+    gmsg('저장 중…',true);
+    try{
+      const next=Object.assign({},CFG||{},{v:1});
+      if(section)next[m]=section;else delete next[m];
+      await CLOUD.saveConfig(next);
+      CFG=next;applyCfg(CFG);render();
+      gmsg(okMsg,true);
+      if(!section){setTimeout(()=>{closeModal();openAdmin()},700)}
+    }catch(e){gmsg(e.message||'저장하지 못했어요.')}
+  };
+  $('#admSave').addEventListener('click',()=>{let sec;try{sec=collect()}catch(e){gmsg(e.message);return}publish(sec,'저장했어요. 회원들이 다음에 창을 열 때부터 적용돼요.')});
+  $('#admReset').addEventListener('click',()=>{const b=$('#admReset');if(b.dataset.armed!=='1'){b.dataset.armed='1';b.textContent='정말 기본값으로';return}publish(null,'기본값으로 되돌렸어요.')});
+}
+$('#btnAdmin').addEventListener('click',openAdmin);
 function maybeEvent(){
   if(S.done) return null;
   const p=S.mode==='broiler'?.16:.24;
   if(rnd()>p) return null;
-  const pool=EVENTS.filter(e=>e.modes.includes(S.mode)&&e.when(S)&&!(S.fx[e.id]>0));
+  const pool=[];
+  EVENTS.filter(e=>e.modes.includes(S.mode)&&e.when(S)&&!(S.fx[e.id]>0)).forEach(e=>{const n=e.id==='disease'?DZ_WEIGHT[S.mode]:1;for(let i=0;i<n;i++)pool.push(e)});
   return pool.length?pool[Math.floor(rnd()*pool.length)]:null;
 }
 
@@ -921,6 +1084,7 @@ let toastT;function toast(t){const el=$('#toast');el.textContent=t;el.classList.
 function openModal(html){$('#sheet').innerHTML=html;$('#modal').hidden=false;const f=$('#sheet').querySelector('button,input');if(f)f.focus()}
 function closeModal(){$('#modal').hidden=true}
 function showEvent(ev){
+  if(ev.quiz){showDiseaseQuiz();return}
   const subOf=c=>typeof c.sub==='function'?c.sub(S):c.sub;
   openModal(`<div class="ev-icon">${ev.icon}</div><h2>${ev.title}</h2><p>${ev.desc(S)}</p>
    <div style="display:flex;flex-direction:column;gap:8px">${ev.choices.map((c,i)=>{const cost=c.cost(S);return `<button class="choice" type="button" id="ch${i}" data-i="${i}"><b>${c.label}</b><small>${cost?won(cost)+' · ':''}${subOf(c)}</small></button>`}).join('')}</div>`);
@@ -1136,7 +1300,7 @@ async function cloudLoad(nick){
 
 $('#modal').addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#gClose'))closeModal()});
 window.claude?.hot?.snapshot?.(()=>({S}));
-const boot=d=>{renderNick();if(d&&d.S){S=d.S;$('#startView').hidden=true;$('#gameView').hidden=false;render()}else renderRecords()};
+const boot=d=>{renderNick();$('#btnAdmin').hidden=!isAdm();if(d&&d.S){S=d.S;$('#startView').hidden=true;$('#gameView').hidden=false;render()}else renderRecords()};
 window.claude?.hot?.ready?window.claude.hot.ready(boot):boot(window.claude?.hot?.data??{});
 requestAnimationFrame(loop);
 })();
