@@ -810,7 +810,7 @@ const PREMIUM_ITEMS = [
   { key:"grainprice", icon:"📈", title:"사료곡물 가격동향·전망", desc:"세계 곡물 선물시장(옥수수·대두박·대두·밀)의 가격 흐름을 카드로 보고, 환율·달러·유가·산지 기상 등 대내외 변수로 1~3개월 가격 전망을 확인합니다.", color:"#EF6C00", category:"시세 예측·분석" },
   { key:"priceforecast", icon:"🔮", title:"육계·계란 시세예측", desc:"배합사료 생산량으로 추정한 마릿수(생산잠재력)와 과거 소비 패턴(소비잠재력)을 견줘 육계·계란 산지 시세가 1·2·3개월 뒤 오를지·보합일지·내릴지 확률로 보여드립니다. 예측이 만들어지는 과정을 도식으로 함께 봅니다.", color:"#4527A0", category:"시세 예측·분석" },
   { key:"selfcheck", icon:"🐔", title:"온라인 자가진단", desc:"닭 해부도에서 장기를 클릭하면 그 장기의 기능과 흔히 나타나는 질병을 보여드립니다.", color:"#AD1457", category:"진단" },
-  { key:"diagnosis", icon:"🔍", title:"온라인 진단", desc:"닭의 외부모습·분변상태·부검사진(기관지·간·신장·소장)을 올리면 최동명 수의사가 직접 진단합니다. 사진·진단 내용은 작성자만 볼 수 있습니다.", color:"#2E7D32", category:"진단" },
+  { key:"diagnosis", icon:"🔍", title:"온라인 진단", desc:"부검 사진(간/비장·소장·신장·기타)을 올리면 AI가 먼저 예비 진단을 내리고, 최동명 수의사가 확인해 최종 진단과 코멘트를 답니다. 사진·진단 내용은 작성자와 수의사만 볼 수 있습니다.", color:"#2E7D32", category:"진단" },
   { key:"specimen", icon:"🧪", title:"가검물 의뢰(유료)", desc:"혈청·부검·조직 등 가검물 검사를 의뢰서 양식 그대로 입력해 온라인으로 의뢰합니다. 접수 후 최동명 수의사가 확인해 안내합니다.", color:"#00695C", category:"진단" },
   { key:"faq", icon:"❓", title:"농장에서 많이 궁금해 하는 질문", desc:"농장에서 자주 묻는 질문과 답변을 카드로 모아뒀습니다. 카드를 누르면 답변이 펼쳐집니다.", color:"#5D4037", category:"질문·학습·교육" },
   { key:"study", icon:"🎓", title:"최수의사의 온라인 학습(카드 학습)", desc:"수의사가 올린 카드형 학습자료(앞면/뒷면)로 필요할 때마다 학습할 수 있습니다.", color:"#4527A0", category:"질문·학습·교육" },
@@ -4304,17 +4304,18 @@ if(firebaseReady){
 // 읽고/쓸 수 있다.
 const PREMIUM_BOARDS = {
   diagnosis: {
-    introText: "아래 항목에 맞춰 사진을 올려주시면 진단에 큰 도움이 됩니다. 사진이 없어도 요청할 수 있습니다.",
+    introText: "부검 사진(간/비장·소장·신장·기타)을 올리면 AI가 먼저 예비 진단을 내리고, 최동명 수의사가 사진과 AI 소견을 확인해 최종 진단과 코멘트를 달아 드립니다. 사진이 없어도 요청할 수 있어요.",
+    aiAnalysis: true,
     photoSlots: [
-      { key:"outer", label:"닭 외부모습" },
-      { key:"feces", label:"분변 상태" },
-      { key:"trachea", label:"부검 - 기관지" },
-      { key:"liver", label:"부검 - 간" },
-      { key:"kidney", label:"부검 - 신장" },
+      { key:"liver_spleen", label:"부검 - 간/비장" },
       { key:"intestine", label:"부검 - 소장" },
+      { key:"kidney", label:"부검 - 신장" },
+      { key:"etc", label:"부검 - 기타 (기관지·심장 등)" },
     ],
     fields: [
-      { key:"symptom", label:"증상 및 농장 상황", type:"textarea", required:true, placeholder:"주령, 사육수수, 증상, 폐사 여부 등을 적어주세요." },
+      { key:"kind", label:"축종", type:"radio", options:["육계","산란계","기타"] },
+      { key:"age", label:"주령/일령", type:"text", w:"half", placeholder:"예: 24일령, 32주령" },
+      { key:"symptom", label:"증상 및 농장 상황", type:"textarea", required:true, placeholder:"사육수수, 증상, 폐사 여부·폐사율, 최근 백신·환경 변화 등을 적어주세요." },
     ],
   },
   specimen: {
@@ -4409,6 +4410,8 @@ let boardState = {
   formOpen: false,
   busy: false,
   msg: "",
+  aiBusy: {},          // { [postId]: true } — 부검 사진 AI 분석 중
+  aiMsg: "",
 };
 
 function newBoardPostId(){
@@ -4556,9 +4559,9 @@ async function submitBoardPost(boardType, fields, photos){
   }
 }
 
-async function submitBoardReply(boardType, uid, postId, text){
+async function submitBoardReply(boardType, uid, postId, text, extra){
   try {
-    const reply = { text, repliedAt:new Date().toISOString(), by:PICK_BY };
+    const reply = Object.assign({ text, repliedAt:new Date().toISOString(), by:PICK_BY }, extra || {});
     await withStorageTimeout(firebase.storage().ref(boardPostPath(boardType, uid, postId) + "/reply.json")
       .putString(JSON.stringify(reply), "raw", { contentType:"application/json" }));
     return { ok:true, reply };
@@ -13059,10 +13062,115 @@ function renderBoardCreateForm(cfg){
   </div>`;
 }
 
+// ── 부검 사진 AI 예비 진단 + 수의사 확인(온라인 진단) ───────────────────────────
+// 사진은 긴 변 1600px·JPEG로 줄여 올린다(AI 분석 한도와 속도). 줄이지 못하면 원본 그대로.
+async function boardShrinkPhoto(file){
+  try {
+    if(!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size < 400 * 1024) return file;
+    const bmp = await createImageBitmap(file);
+    const scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+    const w = Math.round(bmp.width * scale), h = Math.round(bmp.height * scale);
+    const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+    cv.getContext("2d").drawImage(bmp, 0, 0, w, h);
+    const blob = await new Promise(res => cv.toBlob(res, "image/jpeg", 0.85));
+    if(!blob || blob.size >= file.size) return file;
+    return new File([blob], file.name.replace(/\.[^.]+$/, "") + ".jpg", { type:"image/jpeg" });
+  } catch(e){ return file; }
+}
+
+// 글 하나의 AI 분석을 서버(Cloud Function analyzeNecropsyPhotos)에 요청하고 목록의 그 글에 결과를 붙인다.
+async function requestNecropsyAi(boardType, uid, postId){
+  boardState.aiBusy = boardState.aiBusy || {};
+  boardState.aiBusy[postId] = true; boardState.aiMsg = ""; render();
+  try {
+    const fn = firebase.app().functions().httpsCallable("analyzeNecropsyPhotos", { timeout: 175000 });
+    const res = await fn({ boardType, uid, postId });
+    const ai = res.data && res.data.ai;
+    [boardState.inboxPosts[boardType], boardState.posts[boardType]].forEach(list => {
+      const p = (list || []).find(x => x.id === postId);
+      if(p) p.ai = ai;
+    });
+  } catch(e){
+    console.warn("AI 분석 실패:", e);
+    boardState.aiMsg = "AI 분석 실패: " + ((e && e.message) || e);
+  }
+  boardState.aiBusy[postId] = false; render();
+}
+
+const NECROPSY_LIKELY_COLOR = { "높음":"#C62828", "중간":"#E65100", "낮음":"#757575" };
+function renderNecropsyAi(post, cfg, admin){
+  if(!cfg.aiAnalysis) return "";
+  const busy = !!(boardState.aiBusy && boardState.aiBusy[post.id]);
+  const uid = post.uid || (premiumState.user && premiumState.user.uid) || "";
+  const hasPhotos = !!(post.photos && post.photos.length);
+  const runBtn = (label) => `<button class="board-ai-run" data-uid="${esc(uid)}" data-post="${esc(post.id)}" ${busy || !hasPhotos ? "disabled" : ""}
+      style="margin-top:6px;border:1px solid #5E35B1;background:${busy || !hasPhotos ? "#ccc" : "#5E35B1"};color:#fff;border-radius:7px;padding:6px 14px;font-size:11.5px;font-weight:700">${busy ? "AI가 사진을 살펴보는 중… (30초~1분)" : label}</button>`;
+  const msg = boardState.aiMsg ? `<div style="font-size:11px;color:#C62828;margin-top:6px">${esc(boardState.aiMsg)}</div>` : "";
+  const ai = post.ai && post.ai.result;
+  if(!ai){
+    return `<div style="margin-top:10px;background:#F3EEFB;border:1px solid #D9CCF0;border-radius:9px;padding:10px">
+      <div style="font-size:11.5px;font-weight:800;color:#5E35B1">🤖 AI 예비 진단</div>
+      <div style="font-size:11.5px;color:#555;line-height:1.6;margin-top:3px">${hasPhotos ? "올린 부검 사진을 AI가 먼저 살펴 예비 소견을 정리합니다. 확정 진단이 아니며, 최동명 수의사가 확인해 최종 진단을 답니다." : "AI 분석은 사진이 있어야 해요."}</div>
+      ${runBtn("🤖 AI 진단 받기")}${msg}
+    </div>`;
+  }
+  const findings = (ai.findings || []).map(f => `
+    <div style="display:flex;gap:8px;padding:4px 0;border-bottom:1px solid #EEE6F8">
+      <div style="width:64px;flex-shrink:0;font-size:11px;font-weight:700;color:#5E35B1">${esc(f.organ)}</div>
+      <div style="font-size:12px;color:#333;line-height:1.55">${f.abnormal === true ? "⚠️ " : f.abnormal === false ? "✅ " : ""}${esc(f.observation)}</div>
+    </div>`).join("");
+  const suspected = (ai.suspected || []).map(s => `
+    <div style="margin-top:5px;font-size:12px;line-height:1.55"><span style="display:inline-block;background:${NECROPSY_LIKELY_COLOR[s.likelihood] || "#757575"};color:#fff;border-radius:5px;padding:1px 6px;font-size:10.5px;font-weight:700;margin-right:5px">${esc(s.likelihood)}</span><b>${esc(s.name)}</b><div style="color:#555;margin-left:2px">${esc(s.reasons)}</div></div>`).join("");
+  const next = (ai.next || []).length ? `<ul style="margin:4px 0 0;padding-left:18px;font-size:12px;color:#333;line-height:1.6">${ai.next.map(t => `<li>${esc(t)}</li>`).join("")}</ul>` : "";
+  return `<div style="margin-top:10px;background:#F3EEFB;border:1px solid #D9CCF0;border-radius:9px;padding:10px">
+    <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center">
+      <div style="font-size:11.5px;font-weight:800;color:#5E35B1">🤖 AI 예비 소견 <span style="font-weight:600;color:#8E24AA">· 수의사 확인 전</span></div>
+      <div style="font-size:10px;color:#999">${esc(((post.ai.createdAt) || "").slice(0, 16).replace("T", " "))}</div>
+    </div>
+    ${ai.urgent ? `<div style="margin-top:6px;background:#FFEBEE;border:1px solid #FFCDD2;color:#B71C1C;border-radius:7px;padding:6px 9px;font-size:12px;font-weight:700">🚨 급한 상황일 수 있어요. 바로 수의사·방역기관에 연락하고 사람·차량 이동을 막아 주세요. (010-9150-8844)</div>` : ""}
+    <div style="font-size:12.5px;color:#333;line-height:1.65;margin-top:6px;white-space:pre-wrap">${esc(ai.summary)}</div>
+    ${findings ? `<div style="margin-top:8px"><div style="font-size:11px;font-weight:700;color:#777">장기별 소견</div>${findings}</div>` : ""}
+    ${suspected ? `<div style="margin-top:8px"><div style="font-size:11px;font-weight:700;color:#777">의심되는 질병 (가능성 순)</div>${suspected}</div>` : ""}
+    ${next ? `<div style="margin-top:8px"><div style="font-size:11px;font-weight:700;color:#777">다음에 확인할 것</div>${next}</div>` : ""}
+    ${ai.limits ? `<div style="margin-top:8px;font-size:11px;color:#888;line-height:1.55">한계: ${esc(ai.limits)}</div>` : ""}
+    <div style="margin-top:8px;font-size:10.5px;color:#999;line-height:1.55">※ AI 예비 소견은 확정 진단이 아니며 약·용량은 안내하지 않습니다. 치료와 투약은 수의사 진단·처방에 따르세요.</div>
+    ${(admin || ((post.ai.runs || 1) < 3)) ? runBtn("🔄 AI 다시 분석") : ""}${msg}
+  </div>`;
+}
+
+const NECROPSY_MATCH_LABEL = { agree:"AI 소견에 동의", partial:"AI 소견을 일부 수정", disagree:"AI 소견과 다름" };
+function renderVetDiagnosis(post){
+  const r = post.reply; if(!r) return "";
+  return `<div style="margin-top:10px;background:#F1F8F4;border:1px solid #D6EBDB;border-radius:9px;padding:10px">
+    <div style="font-size:11.5px;font-weight:800;color:#2E7D32;margin-bottom:4px">👨‍⚕️ ${esc(r.by || PICK_BY)} 확인 · 온라인 진단</div>
+    ${r.diagnosis ? `<div style="font-size:13px;font-weight:800;color:#1B5E20;margin-bottom:3px">🩺 최종 진단: ${esc(r.diagnosis)}</div>` : ""}
+    ${r.aiMatch && NECROPSY_MATCH_LABEL[r.aiMatch] ? `<div style="font-size:11px;color:#2E7D32;margin-bottom:4px">${esc(NECROPSY_MATCH_LABEL[r.aiMatch])}</div>` : ""}
+    <div style="font-size:12.5px;color:#333;white-space:pre-wrap;line-height:1.6">${esc(r.text)}</div>
+    <div style="font-size:10px;color:#999;margin-top:5px">${esc((r.repliedAt || "").slice(0, 16).replace("T", " "))}</div>
+  </div>`;
+}
+function renderVetReplyForm(post, cfg){
+  const r = post.reply || {};
+  const dx = cfg.aiAnalysis ? `
+      <input class="board-reply-dx" data-uid="${esc(post.uid)}" data-post="${esc(post.id)}" type="text" placeholder="최종 진단 (예: 대장균증 의심, 전염성 F낭병 의심)" value="${esc(r.diagnosis || "")}"
+        style="width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;margin-bottom:6px" />
+      <div style="display:flex;flex-wrap:wrap;gap:4px 12px;margin-bottom:6px;font-size:12px;color:#333">
+        <span style="color:#777;font-weight:700">AI 소견은?</span>
+        ${Object.keys(NECROPSY_MATCH_LABEL).map(k => `<label style="display:flex;align-items:center;gap:3px;cursor:pointer"><input type="radio" name="aim-${esc(post.id)}" class="board-reply-aim" data-post="${esc(post.id)}" value="${k}" ${r.aiMatch === k ? "checked" : ""}> ${NECROPSY_MATCH_LABEL[k]}</label>`).join("")}
+      </div>` : "";
+  return `<div style="margin-top:10px">
+      ${dx}
+      <textarea class="board-reply-input" data-uid="${esc(post.uid)}" data-post="${esc(post.id)}" placeholder="${cfg.aiAnalysis ? "수의사 코멘트 — 사진 소견, AI가 놓친 부분, 현장에서 할 일" : "답변 내용을 입력하세요"}"
+        style="width:100%;min-height:80px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit;box-sizing:border-box">${esc(r.text || "")}</textarea>
+      <button class="board-reply-submit" data-uid="${esc(post.uid)}" data-post="${esc(post.id)}" ${boardState.busy ? "disabled" : ""}
+        style="margin-top:6px;border:1px solid #2E7D32;background:${boardState.busy ? "#ccc" : "#2E7D32"};color:#fff;border-radius:7px;padding:6px 14px;font-size:11.5px;font-weight:600">${post.reply ? "진단·코멘트 수정" : (cfg.aiAnalysis ? "최종 진단·코멘트 등록" : "답변 등록")}</button>
+    </div>`;
+}
+
 function boardStatusBadge(post){
-  return post.reply
-    ? `<span style="font-size:10.5px;color:#2E7D32;background:#E8F5E9;border-radius:6px;padding:3px 8px;font-weight:700;white-space:nowrap">답변완료</span>`
-    : `<span style="font-size:10.5px;color:#F57F17;background:#FFFDE7;border-radius:6px;padding:3px 8px;font-weight:700;white-space:nowrap">답변대기</span>`;
+  if(post.reply) return `<span style="font-size:10.5px;color:#2E7D32;background:#E8F5E9;border-radius:6px;padding:3px 8px;font-weight:700;white-space:nowrap">${post.reply.diagnosis ? "수의사 진단 완료" : "답변완료"}</span>`;
+  if(post.ai) return `<span style="font-size:10.5px;color:#5E35B1;background:#F3EEFB;border-radius:6px;padding:3px 8px;font-weight:700;white-space:nowrap">AI 소견 · 수의사 확인 대기</span>`;
+  return `<span style="font-size:10.5px;color:#F57F17;background:#FFFDE7;border-radius:6px;padding:3px 8px;font-weight:700;white-space:nowrap">답변대기</span>`;
 }
 
 function renderBoardPhotos(post){
@@ -13106,18 +13214,13 @@ function renderBoardPostDetail(cfg, post, admin){
   <div style="margin-top:10px;padding-top:10px;border-top:1px dashed #eee">
     ${renderBoardFields(cfg, post)}
     ${renderBoardPhotos(post)}
-    ${post.reply ? `
+    ${renderNecropsyAi(post, cfg, admin)}
+    ${post.reply ? (cfg.aiAnalysis ? renderVetDiagnosis(post) : `
     <div style="margin-top:10px;background:#F1F8F4;border:1px solid #D6EBDB;border-radius:9px;padding:10px">
       <div style="font-size:10.5px;font-weight:700;color:#2E7D32;margin-bottom:4px">💬 ${esc(post.reply.by||PICK_BY)}의 답변</div>
       <div style="font-size:12.5px;color:#333;white-space:pre-wrap;line-height:1.6">${esc(post.reply.text)}</div>
-    </div>` : (admin ? "" : `<div style="margin-top:10px;font-size:11.5px;color:#aaa">아직 답변이 등록되지 않았습니다.</div>`)}
-    ${admin ? `
-    <div style="margin-top:10px">
-      <textarea class="board-reply-input" data-uid="${esc(post.uid)}" data-post="${esc(post.id)}" placeholder="답변 내용을 입력하세요"
-        style="width:100%;min-height:80px;padding:8px 9px;border:1px solid #ddd;border-radius:7px;font-size:12px;font-family:inherit">${esc(post.reply?post.reply.text:"")}</textarea>
-      <button class="board-reply-submit" data-uid="${esc(post.uid)}" data-post="${esc(post.id)}" ${boardState.busy?"disabled":""}
-        style="margin-top:6px;border:1px solid #2E7D32;background:${boardState.busy?"#ccc":"#2E7D32"};color:#fff;border-radius:7px;padding:6px 14px;font-size:11.5px;font-weight:600">${post.reply?"답변 수정":"답변 등록"}</button>
-    </div>` : ""}
+    </div>`) : (admin ? "" : `<div style="margin-top:10px;font-size:11.5px;color:#aaa">${cfg.aiAnalysis ? "최동명 수의사의 최종 진단·코멘트를 기다리고 있습니다." : "아직 답변이 등록되지 않았습니다."}</div>`)}
+    ${admin ? renderVetReplyForm(post, cfg) : ""}
   </div>`;
 }
 
@@ -36361,6 +36464,7 @@ function attachEvents(){
     if(tooBig){ alert((tooBig.label||"사진") + " 파일이 너무 큽니다(" + MAX_PHOTO_MB + "MB 이하로 올려주세요)."); return; }
 
     boardState.busy = true; boardState.msg = "등록 중..."; render();
+    if(cfg.aiAnalysis){ for(const p of photos){ p.file = await boardShrinkPhoto(p.file); } }
     const r = await submitBoardPost(cfg.key, fields, photos);
     boardState.busy = false;
     if(r.ok){
@@ -36372,25 +36476,38 @@ function attachEvents(){
         boardState.inboxStatus[cfg.key] = "done";
       } else {
         const list = boardState.posts[cfg.key] || (boardState.posts[cfg.key] = []);
-        list.unshift(Object.assign({}, r.post, { reply:null }));
+        list.unshift(Object.assign({}, r.post, { reply:null, uid: premiumState.user.uid }));
         boardState.status[cfg.key] = "done";
       }
       boardState.formOpen = false;
       boardState.msg = "";
+      boardState.openId = r.post.id;
+      if(cfg.aiAnalysis && r.post.photos && r.post.photos.length) requestNecropsyAi(cfg.key, premiumState.user.uid, r.post.id);   // 사진이 있으면 AI 예비 진단을 바로 시작
     } else {
       boardState.msg = "등록 실패: " + r.error;
     }
     render();
   };
 
+  document.querySelectorAll(".board-ai-run").forEach(b=>b.onclick=()=>{
+    requestNecropsyAi(currentBoardCfg().key, b.dataset.uid, b.dataset.post);
+  });
   document.querySelectorAll(".board-reply-submit").forEach(b=>b.onclick=async ()=>{
     const uid = b.dataset.uid, postId = b.dataset.post;
     const cfg = currentBoardCfg();
     const ta = document.querySelector(`.board-reply-input[data-uid="${uid}"][data-post="${postId}"]`);
     const text = (ta && ta.value || "").trim();
     if(!text){ alert("답변 내용을 입력하세요."); return; }
+    const extra = {};
+    if(cfg.aiAnalysis){
+      const dx = document.querySelector(`.board-reply-dx[data-uid="${uid}"][data-post="${postId}"]`);
+      extra.diagnosis = (dx && dx.value || "").trim();
+      const am = document.querySelector(`.board-reply-aim[data-post="${postId}"]:checked`);
+      if(am) extra.aiMatch = am.value;
+      if(!extra.diagnosis){ alert("최종 진단을 입력하세요."); return; }
+    }
     boardState.busy = true; render();
-    const r = await submitBoardReply(cfg.key, uid, postId, text);
+    const r = await submitBoardReply(cfg.key, uid, postId, text, extra);
     boardState.busy = false;
     if(r.ok){
       const list = boardState.inboxPosts[cfg.key] || [];
