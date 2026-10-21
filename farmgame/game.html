@@ -233,7 +233,9 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
 .adm .dzr{display:flex;gap:6px;align-items:center;flex-wrap:wrap;background:var(--soft);border-radius:10px;padding:6px 8px}
 .adm .dzr b{flex:1;min-width:120px}
 
-.acts{position:absolute;right:2%;top:15%;display:flex;flex-direction:column;gap:4px;z-index:200}
+.rcol{position:absolute;right:2%;top:12%;bottom:3%;display:flex;flex-direction:column;align-items:flex-end;gap:5px;z-index:200;pointer-events:none}
+.rcol>*{pointer-events:auto}
+.acts{display:flex;flex-direction:column;gap:4px}
 .act{width:56px;background:linear-gradient(to top,var(--gc,#BFE8B8) var(--lv,0%),#FFFFFFEE var(--lv,0%));border:2px solid var(--ink);border-radius:14px;background:#FFFFFFEE;box-shadow:0 3px 0 var(--ink);padding:2px 2px 3px;font-family:var(--f-display);font-size:11px;line-height:1.1;display:flex;flex-direction:column;align-items:center;gap:0;cursor:pointer}
 .act .r{display:flex;align-items:center;gap:2px}
 .act .em{font-size:14px}
@@ -268,17 +270,15 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
 @media (prefers-reduced-motion:reduce){.window .fx{animation:none!important}}
 
 .scene{aspect-ratio:4/3}
-@media (max-width:560px){.scene{aspect-ratio:5/6}}
-.sbar{position:absolute;left:2%;right:2%;bottom:3%;display:flex;gap:6px;align-items:flex-end;justify-content:space-between;z-index:200;pointer-events:none}
-.sbar>*{pointer-events:auto}
-.sctl{display:flex;flex-direction:column;gap:3px;background:#FFFFFFEE;border:2px solid var(--ink);border-radius:14px;padding:4px 6px;box-shadow:0 3px 0 var(--ink);font-family:var(--f-display);font-size:12px;line-height:1.1}
+@media (max-width:560px){.scene{aspect-ratio:5/7}}
+.sctl{display:flex;flex-direction:column;gap:4px;background:#FFFFFFF2;border:2px solid var(--ink);border-radius:14px;padding:5px 7px;box-shadow:0 3px 0 var(--ink);font-family:var(--f-display);line-height:1.1}
 .sctl .rw{display:flex;align-items:center;gap:3px;white-space:nowrap}
-.sctl .e{font-size:15px;width:20px;text-align:center}
+.sctl .e{font-size:18px;width:22px;text-align:center}
 .sctl small{font-size:9.5px;color:var(--muted);font-family:inherit;line-height:1.15}
-.sctl button{width:26px;height:26px;border:2px solid var(--ink);border-radius:9px;background:var(--straw);font-size:15px;line-height:1;padding:0}
-.sctl output{min-width:38px;text-align:center;font-size:13px}
-.sbar .gobtn{flex:none;width:auto;min-width:96px;padding:9px 10px;font-size:14px;white-space:nowrap;border-radius:14px;border-width:2px;box-shadow:0 4px 0 var(--ink)}
-@container (max-width:340px){.sctl small{display:none}}
+.sctl button{width:30px;height:30px;border:2px solid var(--ink);border-radius:9px;background:var(--straw);font-size:15px;line-height:1;padding:0}
+.sctl output{min-width:46px;text-align:center;font-size:16px}
+.rcol .gobtn{align-self:stretch;margin-top:auto;width:auto;padding:9px 10px;font-size:15px;white-space:nowrap;border-radius:14px;border-width:2px;box-shadow:0 4px 0 var(--ink)}
+@container (max-width:340px){.sctl{padding:3px 6px;gap:3px}.sctl button{width:27px;height:27px}.sctl output{min-width:42px;font-size:15px}}
 @container (max-width:300px){.act small{display:none}}
 .sctl output.warn{color:#C62828}
 .scene{container-type:inline-size}
@@ -305,11 +305,6 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
 .lb:active{transform:translateY(-48%)}
 .lamp .lrec{position:absolute;top:100%;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:10px;background:#FFFFFFD9;border-radius:8px;padding:0 6px;color:var(--muted);margin-top:2px;pointer-events:none}
 
-.thbar{position:absolute;left:8%;top:1%;width:30%;display:flex;gap:3px;z-index:60;font-family:var(--f-display);font-size:11px;line-height:1}
-.thbar[hidden]{display:none}
-.thbar span{flex:1;text-align:center;white-space:nowrap;background:#FFFFFFEE;border:2px solid var(--ink);border-radius:8px;padding:2px 0}
-.thbar span.warn{color:#C62828;background:#FFE9E4}
-@container (max-width:300px){.thbar{font-size:10px}}
 </style>
 </head>
 <body>
@@ -371,7 +366,6 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
       <div class="stat"><div class="k">자금</div><div class="v num" id="vMoney">₩0</div></div>
     </div>
     <div class="scene" id="scene">
-      <div class="thbar" id="thbar"></div>
       <div class="window" id="win"><div class="sun"></div><div class="cloud"></div><div class="cloud c2"></div><div class="fx"></div></div>
       <div class="sign" id="sign">꼬꼬 계사</div>
       <div class="lamp"><div class="cord"></div><div class="bulb" id="bulb"></div></div>
@@ -381,8 +375,7 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
       <div class="haze" id="haze"></div>
       <div id="flock"></div>
       <div class="nest" id="nest" hidden></div>
-      <div class="acts" id="acts"></div>
-      <div class="sbar"><div class="sctl" id="sbarCtl"></div><button class="gobtn" id="btnNext" type="button">하루 보내기 🌙</button></div>
+      <div class="rcol"><div class="acts" id="acts"></div><div class="sctl" id="sbarCtl"></div><button class="gobtn" id="btnNext" type="button">하루 보내기 🌙</button></div>
       <div class="fdpop" id="fdpop" hidden></div>
       <div class="nightveil"></div><div class="moon"></div><div class="zzz">쿨쿨… 💤</div>
     </div>
@@ -536,7 +529,7 @@ function addLog(t){S.log.unshift({d:S.day,t});S.log=S.log.slice(0,8)}
 
 /* ── 사료통·물통·환기: 깔짚처럼 시간이 지나면 줄고, 터치로 채우거나 가동한다 ── */
 const FEED_DROP=55,WATER_DROP=45,VENT_DROP=30;
-function ensureGauges(){if(S.feedLv==null){S.feedLv=100;S.waterLv=100;S.ventLv=60;S.feedCut=false}if(S.ctrl.hum==null)S.ctrl.hum=S.mode==='layer'?60:65}
+function ensureGauges(){if(S.feedLv==null){S.feedLv=100;S.waterLv=100;S.ventLv=60;S.feedCut=false}if(S.ctrl.hum==null)S.ctrl.hum=S.mode==='layer'?60:65;if(S.ctrl.temp==null)S.ctrl.temp=S.mode==='layer'?envRec('layer',Math.min(MODES.layer.maxDay,Math.max(1,S.day+1))).t:33}
 function useGauges(){
   ensureGauges();
   const c=S.ctrl,fc=clamp(S.feedLv/FEED_DROP,0,1),wc=clamp(S.waterLv/WATER_DROP,0,1);
@@ -606,8 +599,11 @@ function stepLayer(){
   S.litter=clamp(S.litter-(7+(c.hum>rh[1]+5?4:0)),0,100);
   S.ammonia=clamp(14+w*.25-(c.vent-1)*8+(c.hum>rh[1]+5?2:0)+(100-S.litter)*.12,0,50);
   const heatStress=fx.heat>0?(fx.cool?4:18-(c.vent-1)*4):(c.vent===1&&w>=18?3:0);
-  S.eff=fx.heat>0?(fx.cool?27:33-(c.vent-1)):22;
-  let stress=heatStress+hd*.25+Math.max(0,S.ammonia-20)+(c.water===1?20:0)+(c.feed===1?6:0)+(fx.disease>0?fx.sev:0);
+  const outsideL=19+Math.sin(w/4)*2,recT=envRec('layer',w).t;
+  S.eff=fx.heat>0?(fx.cool?27:33-(c.vent-1)):Math.max(c.temp,outsideL);
+  const tdevL=fx.heat>0?0:Math.abs(S.eff-recT);
+  if(tdevL>3&&rnd()<.5)addLog(S.eff>recT?`계사가 너무 더워요(${S.eff.toFixed(0)}℃). 권장은 ${recT}℃예요.`:`계사가 추워요(${S.eff.toFixed(0)}℃). 권장은 ${recT}℃예요.`);
+  let stress=heatStress+Math.max(0,tdevL-1)*2.2+hd*.25+Math.max(0,S.ammonia-20)+(c.water===1?20:0)+(c.feed===1?6:0)+(fx.disease>0?fx.sev:0);
   if(fx.heat>0&&fx.vit) stress*=.6;
   S.health=clamp(S.health+(stress<10?5:-(stress-10)*.6),0,100);
   if(growing){
@@ -618,7 +614,7 @@ function stepLayer(){
   const intake=(growing?10+w*4.2:112)*[.86,1,1.12][c.feed-1];
   const feedKg=S.alive*intake*7/1000;
   const price=(fx.lock>0?S.basePrice:S.feedPrice)*ff.price;
-  const lightCost=c.light*7*100, calCost=c.calcium?14000:0, ventCost=0;
+  const lightCost=c.light*7*100, calCost=c.calcium?14000:0, ventCost=fx.heat>0?0:Math.max(0,c.temp-outsideL)*2800;   // 산란계 난방비(설정 온도가 바깥보다 높을수록)
   S.tot.feedKg+=feedKg;S.tot.feedCost+=feedKg*price;S.tot.other+=lightCost+calCost+ventCost;
   S.money-=feedKg*price+lightCost+calCost+ventCost;
   let rate=0;
@@ -641,7 +637,7 @@ function stepLayer(){
     if(c.light<recL-1) addLog(`빛이 부족해요 (${c.light}시간). 산란 자극이 약해요.`);
   }
   S.rate=rate;
-  const mort=.001+(100-S.health)*.0004+(fx.disease>0?fx.sev*.0008:0)+(heatStress>12?.004:0);
+  const mort=.001+(100-S.health)*.0004+(fx.disease>0?fx.sev*.0008:0)+(heatStress>12?.004:0)+(tdevL>6?.002:0);
   const dead=Math.min(S.alive,Math.floor(S.alive*mort+rnd()));
   S.alive-=dead;S.tot.deaths+=dead;
   S.day=w;
@@ -965,8 +961,9 @@ function buildFlock(n){
 }
 function visibleCount(){return Math.max(1,Math.round(12*S.alive/S.birds0))}
 function mood(){
-  const target=S.mode==='broiler'?recTemp(Math.max(1,S.day)):22;
-  if(S.mode==='broiler'||S.fx.heat>0){if(S.eff-target>3)return 'hot';if(target-S.eff>3)return 'cold'}
+  const target=S.mode==='broiler'?recTemp(Math.max(1,S.day)):envRec('layer',Math.max(1,S.day)).t;
+  if(S.eff-target>3)return 'hot';
+  if(target-S.eff>3)return 'cold';
   if(S.health<55||S.fx.disease>0)return 'sick';
   if(S.ammonia>25)return 'smelly';
   return 'happy';
@@ -1059,17 +1056,16 @@ const signText=()=>`${NICK?NICK:'꼬꼬'} ${S&&S.mode==='layer'?'산란계사':'
 function renderBar(){
   const el=$('#sbarCtl');if(!el||!S)return;
   ensureGauges();
-  const c=S.ctrl,lay=S.mode==='layer',d=Math.min(S.day+1,MODES[S.mode].maxDay),rh=envRec(S.mode,d).rh;
+  const c=S.ctrl,lay=S.mode==='layer',d=Math.min(S.day+1,MODES[S.mode].maxDay),e=envRec(S.mode,d),rh=e.rh;
   el.hidden=!!S.done;
-  const row=(e,minus,val,plus,lab,rec,bad)=>`<div class="rw"><span class="e" aria-hidden="true">${e}</span><button type="button" id="${minus}" aria-label="${lab} 내리기">−</button><output class="num${bad?' warn':''}">${val}</output><button type="button" id="${plus}" aria-label="${lab} 올리기">+</button><small>${rec}</small></div>`;
+  const row=(em,minus,val,plus,lab,bad,tip)=>`<div class="rw" title="${tip}"><span class="e" aria-hidden="true">${em}</span><button type="button" id="${minus}" aria-label="${lab} 내리기">−</button><output class="num${bad?' warn':''}">${val}</output><button type="button" id="${plus}" aria-label="${lab} 올리기">+</button></div>`;
   const bu=$('#bulb');
   if(bu){
     bu.innerHTML=(lay&&!S.done)?`<span class="bn${Math.abs(c.light-recLight(S.day+1))>1?' warn':''}">${c.light}</span><button class="lb l" id="lMinus" type="button" aria-label="점등 1시간 줄이기">−</button><button class="lb r" id="lPlus" type="button" aria-label="점등 1시간 늘리기">+</button><span class="lrec">점등(시간) 권장 ${recLight(S.day+1)}</span>`:'';
   }
-  el.innerHTML=(lay
-    ?''
-    :row('🔥','tMinus',c.temp+'℃','tPlus','온도',`권장<br>${recTemp(S.day+1).toFixed(0)}℃`,Math.abs(c.temp-recTemp(S.day+1))>1.5))
-   +row('💧','hMinus',c.hum+'%','hPlus','습도',`권장<br>${rh[0]}~${rh[1]}%`,c.hum<rh[0]||c.hum>rh[1]);
+  const tRec=lay?e.t:+recTemp(S.day+1).toFixed(0);
+  el.innerHTML=row('🌡️','tMinus',c.temp+'℃','tPlus','온도',Math.abs(c.temp-tRec)>1.5,`온도 설정 (권장 ${tRec}℃)`)
+    +row('💧','hMinus',c.hum+'%','hPlus','습도',c.hum<rh[0]||c.hum>rh[1],`습도 설정 (권장 ${rh[0]}~${rh[1]}%)`);
 }
 let fdOpen=false;
 function renderActs(){
@@ -1102,16 +1098,8 @@ function doAct(k){
 }
 $('#fdpop').addEventListener('click',e=>{const b=e.target.closest('[data-fd]');if(!b||!S||S.done)return;S.ctrl.fd=b.dataset.fd;fdOpen=false;toast(`${b.firstChild.textContent} 선택`);render();autosave()});
 $('#acts').addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(b)doAct(b.dataset.act)});
-function renderThBar(){
-  const el=$('#thbar');if(!el||!S)return;
-  ensureGauges();
-  const d=Math.min(S.day+1,MODES[S.mode].maxDay),e=envRec(S.mode,d),temp=Math.round(S.eff||e.t),hum=S.ctrl.hum;
-  const tw=Math.abs(temp-e.t)>3,hw=hum<e.rh[0]||hum>e.rh[1];
-  el.hidden=!!S.done;
-  el.innerHTML=`<span class="${tw?'warn':''}" title="계사 온도(권장 ${e.t}℃)">🌡️${temp}℃</span><span class="${hw?'warn':''}" title="습도(권장 ${e.rh[0]}~${e.rh[1]}%)">💧${hum}%</span>`;
-}
 function renderScene(){
-  renderActs();renderBar();renderThBar();
+  renderActs();renderBar();
   const t=growthT(),col=colors(S.mode,t);
   flockEl.style.setProperty('--b',col.b);flockEl.style.setProperty('--w',col.w);flockEl.style.setProperty('--comb',col.comb);flockEl.style.setProperty('--hs',col.hs);
   if(sprites.length!==visibleCount()) buildFlock(visibleCount());
