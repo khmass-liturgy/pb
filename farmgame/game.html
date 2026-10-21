@@ -289,6 +289,13 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
 .fdpop button[aria-pressed="true"]{background:var(--straw);border-color:var(--ink)}
 .fdpop button.rec::after{content:' ★ 권장';font-size:10.5px;color:#C77700}
 .act.sel small{font-size:9.5px}
+
+.adm .admbar{position:sticky;bottom:-18px;background:var(--card);padding:8px 0 2px;border-top:2px solid var(--line);margin-top:6px;z-index:2;display:flex;flex-direction:column;gap:6px}
+.adm .cz.bad{outline:3px solid var(--bad)}
+.adm .prev{padding:3px 8px;font-size:12px}
+
+.tapfx{position:absolute;font-size:20px;pointer-events:none;z-index:150;animation:tapfx .9s ease-out forwards}
+@keyframes tapfx{from{transform:scale(.6);opacity:1}to{transform:scale(1.5) translateY(-8px);opacity:0}}
 </style>
 </head>
 <body>
@@ -387,6 +394,7 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
 </div>
 
 <div class="modal" id="modal" hidden><div class="sheet" id="sheet" role="dialog" aria-modal="true"></div></div>
+<div class="modal" id="modal2" hidden style="z-index:110"><div class="sheet" id="sheet2" role="dialog" aria-modal="true"></div></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -758,32 +766,34 @@ function pickDz(){
   if(!pool.length)pool=L;
   const z=pool[Math.floor(rnd()*pool.length)];S.dzSeen.push(L.indexOf(z));return z;
 }
-function showDiseaseQuiz(){
-  const z=pickDz(),cost=S.mode==='broiler'?150000:250000;
-  openModal(`<div class="ev-icon">🤒</div><h2>질병 의심 — 진단 결과</h2><p>${z.signs}</p>
+function showDiseaseQuiz(forced,preview){
+  const mode=(S&&S.mode)||LOCK||'broiler';
+  const z=forced||pickDz(),cost=mode==='broiler'?150000:250000;
+  const om=preview?(h=>{$('#sheet2').innerHTML=h;$('#modal2').hidden=false}):openModal;
+  const cm=preview?(()=>{$('#modal2').hidden=true}):closeModal;
+  const sh=()=>preview?$('#sheet2'):$('#sheet');
+  om(`<div class="ev-icon">🤒</div><h2>${preview?'[미리보기] ':''}질병 의심 — 진단 결과</h2><p>${z.signs}</p>
    <div class="result"><b>${z.icon} ${z.name}</b>이(가) 의심돼요. 질병 노트를 읽고 퀴즈를 맞히면 치료돼요.</div>
    <ul class="dzl" style="margin:0;padding-left:18px;line-height:1.7">${z.info.map(([k,v])=>`<li><b>${k}</b> ${v}</li>`).join('')}</ul>
    <p class="note">퀴즈를 맞히면 치료 성공! 틀리면 진료·처치비 ${won(cost)}을 내요. 실제 진단·치료·약 사용은 수의사 지시에 따르세요.</p>
-   <button class="btn primary" type="button" id="dzGo">퀴즈 풀기</button>`);
-  $('#dzGo').addEventListener('click',()=>{
+   <button class="btn primary" type="button" id="dzGo">퀴즈 풀기</button>${preview?'<button class="btn" type="button" id="dzX">닫기</button>':''}`);
+  if(preview)sh().querySelector('#dzX').addEventListener('click',cm);
+  sh().querySelector('#dzGo').addEventListener('click',()=>{
     const opts=[{t:z.right,ok:true},...z.wrong.map(t=>({t,ok:false}))].sort(()=>rnd()-.5);
-    openModal(`<div class="ev-icon">❓</div><h2>${z.icon} ${z.name} 퀴즈</h2><p>${z.q}</p>
+    om(`<div class="ev-icon">❓</div><h2>${preview?'[미리보기] ':''}${z.icon} ${z.name} 퀴즈</h2><p>${z.q}</p>
      <div style="display:flex;flex-direction:column;gap:8px">${opts.map((o,i)=>`<button class="choice" type="button" data-i="${i}"><b>${o.t}</b></button>`).join('')}</div>`);
-    $('#sheet').querySelectorAll('.choice').forEach(b=>b.addEventListener('click',()=>{
+    sh().querySelectorAll('.choice').forEach(b=>b.addEventListener('click',()=>{
       const o=opts[+b.dataset.i];let msg;
       if(o.ok){
-        S.health=clamp(S.health+8,0,100);
-        msg=`<b>정답! 치료 성공 🎉</b><br>${z.why}<br>건강이 회복돼요.`;
-        addLog(`${z.name} 퀴즈 정답 → 치료 성공`);
+        if(!preview){S.health=clamp(S.health+8,0,100);addLog(`${z.name} 퀴즈 정답 → 치료 성공`)}
+        msg=`<b>정답! 치료 성공 🎉</b><br>${z.why}<br>${preview?'(미리보기라 게임에는 영향이 없어요)':'건강이 회복돼요.'}`;
       } else {
-        S.money-=cost;S.tot.other+=cost;S.health=clamp(S.health+2,0,100);
-        S.fx.disease=S.mode==='broiler'?2:1;S.fx.sev=12;
-        msg=`<b>아쉬워요 😢 진료·처치비 ${won(cost)}을 냈어요.</b><br>정답: ${z.right}<br>${z.why}`;
-        addLog(`${z.name} 퀴즈 오답 → 처치비 ${won(cost)}`);
+        if(!preview){S.money-=cost;S.tot.other+=cost;S.health=clamp(S.health+2,0,100);S.fx.disease=S.mode==='broiler'?2:1;S.fx.sev=12;addLog(`${z.name} 퀴즈 오답 → 처치비 ${won(cost)}`)}
+        msg=`<b>아쉬워요 😢 ${preview?`(실제로는 처치비 ${won(cost)}이 나가요)`:`진료·처치비 ${won(cost)}을 냈어요.`}</b><br>정답: ${z.right}<br>${z.why}`;
       }
-      render();autosave();
-      openModal(`<div class="ev-icon">${o.ok?'💊':'🧾'}</div><h2>${o.ok?'치료했어요':'치료비 지불'}</h2><div class="result">${msg}</div><button class="btn primary" type="button" id="evOk">알겠어요</button>`);
-      $('#evOk').addEventListener('click',()=>{closeModal();if(S.done)setTimeout(showReport,300)});
+      if(!preview){render();autosave()}
+      om(`<div class="ev-icon">${o.ok?'💊':'🧾'}</div><h2>${o.ok?'치료했어요':'치료비 지불'}</h2><div class="result">${msg}</div><button class="btn primary" type="button" id="evOk">${preview?'닫기':'알겠어요'}</button>`);
+      sh().querySelector('#evOk').addEventListener('click',()=>{cm();if(!preview&&S.done)setTimeout(showReport,300)});
     }));
   });
 }
@@ -795,7 +805,8 @@ function czHtml(z,u,max){
     <input type="text" data-cz="icon" maxlength="4" value="${escH(z.icon||'🤒')}" style="width:54px" aria-label="아이콘">
     <input type="text" data-cz="name" maxlength="30" value="${escH(z.name)}" placeholder="질병 이름" style="flex:1;min-width:110px">
     <input type="number" min="1" max="${max}" data-cz="from" value="${z.from}"> ~ <input type="number" min="1" max="${max}" data-cz="to" value="${z.to}"> ${u}
-    <button class="btn" type="button" data-czdel style="padding:4px 10px">삭제</button></div>
+    <button class="btn prev" type="button" data-czprev>미리보기</button><button class="btn prev" type="button" data-czdel>삭제</button></div>
+    <div class="note">※ 이름·증상(진단 상황)·퀴즈 문제·정답·오답 1개는 꼭 적어 주세요.</div>
     <textarea data-cz="signs" maxlength="160" placeholder="현장에서 보이는 증상(진단 상황) — 예: 기침을 하고 식욕이 떨어진 닭이 보여요.">${escH(z.signs)}</textarea>
     <input type="text" data-cz="cause" maxlength="160" value="${inf('원인')}" placeholder="원인(한 줄)">
     <input type="text" data-cz="symptom" maxlength="160" value="${inf('증상')}" placeholder="증상 정리(한 줄)">
@@ -813,7 +824,7 @@ function openAdmin(){
    <p class="note">저장하면 모든 회원이 다음에 게임 창을 열 때부터 적용돼요. 숫자는 ${u}(1~${max}) 기준이에요.</p>
    <h3>🤒 질병 발생</h3>
    <label>발생 빈도 <select id="admW">${[[0,'끄기(질병 없음)'],[1,'보통'],[2,'자주'],[3,'아주 자주']].map(([v,t])=>`<option value="${v}" ${v===w?'selected':''}>${t}</option>`).join('')}</select></label>
-   <div id="admDz">${DZ_BUILTIN[m].map((z,i)=>`<div class="dzr"><label><input type="checkbox" data-dz="${i}" ${z.on?'checked':''}> </label><b>${z.icon} ${z.name}</b>
+   <div id="admDz">${DZ_BUILTIN[m].map((z,i)=>`<div class="dzr"><label><input type="checkbox" data-dz="${i}" ${z.on?'checked':''}> </label><b>${z.icon} ${z.name}</b><button class="btn prev" type="button" data-dzprev="${i}">미리보기</button>
      <input type="number" min="1" max="${max}" data-from="${i}" value="${z.from}"> ~ <input type="number" min="1" max="${max}" data-to="${i}" value="${z.to}"> ${u}</div>`).join('')}</div>
    <h3>💰 버튼 비용 (한 번 누를 때)</h3>
    <p class="note">급이·급수·환기 버튼을 한 번 누를 때 드는 돈(원)이에요. 사료 구입비는 먹은 만큼 따로 계산돼요.</p>
@@ -828,14 +839,22 @@ function openAdmin(){
      <input type="text" data-sn maxlength="20" value="${escH(g.name)}" style="flex:1;min-width:100px" placeholder="구간 이름"><button class="btn" type="button" data-sdel="${i}" style="padding:4px 10px">삭제</button></div>
      <textarea data-sp>${escH(g.pts.join('\n'))}</textarea></div>`).join('')}</div>
    <button class="btn" type="button" id="admAdd">+ 구간 추가</button>
-   <div class="gmsg" id="gmsg" role="status"></div>
-   <div class="row"><button class="btn primary" type="button" id="admSave">저장·발행</button><button class="btn" type="button" id="admReset">기본값으로</button><button class="btn" type="button" id="gClose">닫기</button></div></div>`);
+   <div class="admbar"><div class="gmsg" id="gmsg" role="status"></div>
+   <div class="row"><button class="btn primary" type="button" id="admSave">저장·발행</button><button class="btn" type="button" id="admReset">기본값으로</button><button class="btn" type="button" id="gClose">닫기</button></div></div></div>`);
   $('#gClose').addEventListener('click',closeModal);
   $('#admAddDz').addEventListener('click',()=>{
     const d=document.createElement('div');d.innerHTML=czHtml({icon:'🤒',name:'',signs:'',info:[],q:'',right:'',wrong:['',''],why:'',from:1,to:max,on:true},u,max);
     $('#admCz').appendChild(d.firstElementChild);
   });
-  $('#admCz').addEventListener('click',e=>{const b=e.target.closest('[data-czdel]');if(b)b.closest('.cz').remove()});
+  $('#admCz').addEventListener('click',e=>{
+    const del=e.target.closest('[data-czdel]');if(del){del.closest('.cz').remove();return}
+    const pv=e.target.closest('[data-czprev]');if(!pv)return;
+    const c=pv.closest('.cz'),g=k=>c.querySelector(`[data-cz="${k}"]`).value.trim();
+    if(!g('name')||!g('signs')||!g('q')||!g('right')||!g('w1')){gmsg('미리보기: 이름·증상·퀴즈 문제·정답·오답 1을 먼저 적어 주세요.');c.classList.add('bad');c.scrollIntoView({block:'center',behavior:'smooth'});return}
+    c.classList.remove('bad');gmsg('',true);
+    showDiseaseQuiz({icon:g('icon')||'🤒',name:g('name'),signs:g('signs'),info:[['원인',g('cause')],['증상',g('symptom')],['예방',g('prevent')]].filter(r=>r[1]),q:g('q'),right:g('right'),wrong:[g('w1'),g('w2')].filter(Boolean),why:g('why')},true);
+  });
+  $('#admDz').addEventListener('click',e=>{const pv=e.target.closest('[data-dzprev]');if(pv)showDiseaseQuiz(DZ_BUILTIN[m][+pv.dataset.dzprev],true)});
   $('#admAdd').addEventListener('click',()=>{
     const last=[...$('#admSt').querySelectorAll('.stg')].pop(),lt=last?+last.querySelector('[data-sto]').value:0,f=Math.min(max,lt+1);
     const d=document.createElement('div');d.className='stg';
@@ -858,11 +877,12 @@ function openAdmin(){
       const g=k=>c.querySelector(`[data-cz="${k}"]`).value.trim();
       const o={icon:g('icon')||'🤒',name:g('name'),signs:g('signs'),cause:g('cause'),symptom:g('symptom'),prevent:g('prevent'),q:g('q'),right:g('right'),wrong:[g('w1'),g('w2')].filter(Boolean),why:g('why'),
         from:+g('from'),to:+g('to'),on:c.querySelector('[data-cz="on"]').checked};
-      if(!o.name)throw new Error('추가한 질병의 이름을 적어 주세요.');
-      if(!o.signs)throw new Error(`${o.name}: 현장에서 보이는 증상(진단 상황)을 적어 주세요.`);
-      if(!o.q||!o.right||!o.wrong.length)throw new Error(`${o.name}: 퀴즈 문제·정답·오답을 적어 주세요(오답은 1개 이상).`);
-      if(!(o.from>=1&&o.to<=max&&o.from<=o.to))throw new Error(`${o.name}: 구간은 1~${max} 사이에서 시작 ≤ 끝이어야 해요.`);
-      if(DZ_BUILTIN[m].some(z=>z.name===o.name))throw new Error(`${o.name}: 이미 있는 질병 이름이에요.`);
+      const fail=t=>{const er=new Error(t);er.el=c;throw er};
+      if(!o.name)fail('추가한 질병의 이름을 적어 주세요.');
+      if(!o.signs)fail(`${o.name}: 현장에서 보이는 증상(진단 상황)을 적어 주세요.`);
+      if(!o.q||!o.right||!o.wrong.length)fail(`${o.name}: 퀴즈 문제·정답·오답을 적어 주세요(오답은 1개 이상).`);
+      if(!(o.from>=1&&o.to<=max&&o.from<=o.to))fail(`${o.name}: 구간은 1~${max} 사이에서 시작 ≤ 끝이어야 해요.`);
+      if(DZ_BUILTIN[m].some(z=>z.name===o.name))fail(`${o.name}: 이미 있는 질병 이름이에요.`);
       return o;
     });
     if(new Set(custom.map(x=>x.name)).size!==custom.length)throw new Error('추가한 질병 이름이 겹쳐요.');
@@ -881,7 +901,7 @@ function openAdmin(){
       if(!section){setTimeout(()=>{closeModal();openAdmin()},700)}
     }catch(e){gmsg(e.message||'저장하지 못했어요.')}
   };
-  $('#admSave').addEventListener('click',()=>{let sec;try{sec=collect()}catch(e){gmsg(e.message);return}publish(sec,'저장했어요. 회원들이 다음에 창을 열 때부터 적용돼요.')});
+  $('#admSave').addEventListener('click',()=>{let sec;document.querySelectorAll('#admCz .cz.bad').forEach(x=>x.classList.remove('bad'));try{sec=collect()}catch(e){gmsg(e.message);if(e.el){e.el.classList.add('bad');e.el.scrollIntoView({block:'center',behavior:'smooth'})}return}publish(sec,'저장했어요. 회원들이 다음에 창을 열 때부터 적용돼요.')});
   $('#admReset').addEventListener('click',()=>{const b=$('#admReset');if(b.dataset.armed!=='1'){b.dataset.armed='1';b.textContent='정말 기본값으로';return}publish(null,'기본값으로 되돌렸어요.')});
 }
 $('#btnAdmin').addEventListener('click',openAdmin);
@@ -925,7 +945,7 @@ function buildFlock(n){
   flockEl.innerHTML='';sprites=[];
   for(let i=0;i<n;i++){
     const el=document.createElement('div');el.className='hen';el.innerHTML=henSVG();flockEl.appendChild(el);
-    sprites.push({el,x:.1+rnd()*.8,y:.52+rnd()*.18,tx:0,ty:0,mode:'idle',timer:rnd()*80,dir:rnd()<.5?1:-1,bubbleT:0});
+    sprites.push({el,ox:(rnd()-.5)*.16,oy:(rnd()-.5)*.09,fol:false,x:.1+rnd()*.8,y:.52+rnd()*.18,tx:0,ty:0,mode:'idle',timer:rnd()*80,dir:rnd()<.5?1:-1,bubbleT:0});
   }
 }
 function visibleCount(){return Math.max(1,Math.round(12*S.alive/S.birds0))}
@@ -944,14 +964,37 @@ function loop(ts){
   requestAnimationFrame(loop);
 }
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+let lure=null;const LURE_MS=5000;
+(function(){
+  const place=e=>{
+    if(!S||S.done||e.target.closest('.acts,.sbar,.fdpop,.sign'))return false;
+    const r=scene.getBoundingClientRect();
+    lure={x:clamp((e.clientX-r.left)/r.width,0,1),y:clamp((e.clientY-r.top)/r.height,0,1),t:performance.now()};
+    return true;
+  };
+  scene.addEventListener('pointerdown',e=>{
+    if(!place(e))return;
+    const f=document.createElement('span');f.className='tapfx';f.textContent='🌾';
+    const r=scene.getBoundingClientRect();f.style.left=(e.clientX-r.left-10)+'px';f.style.top=(e.clientY-r.top-10)+'px';
+    scene.appendChild(f);setTimeout(()=>f.remove(),900);
+  });
+  scene.addEventListener('pointermove',e=>{if(e.buttons)place(e)});
+})();
 function animFlock(dt){
   const W=scene.clientWidth,t=growthT();
   const size=W*(.075+.065*t);
   const m=mood();
   const speed=(reduce?.00002:.00009)*(S.health<50?.5:1)*(m==='hot'?.5:1);
+  const follow=lure&&performance.now()-lure.t<LURE_MS;
   for(const s of sprites){
+    if(follow){
+      // 누르거나 터치한 자리로 병아리들이 모여들고, 끌면 따라와요(조금씩 흩어진 자리로)
+      s.fol=true;s.tx=clamp(lure.x+s.ox,.05,.76);s.ty=clamp(lure.y+s.oy,.5,.72);
+      s.mode=Math.hypot(s.tx-s.x,s.ty-s.y)<.014?'peck':'walk';s.timer=999;
+      if(s.mode==='walk'&&rnd()<.004)showBubble(s,'삐약!');
+    } else if(s.fol){s.fol=false;s.mode='idle';s.timer=10+rnd()*40}
     s.timer-=dt/16;
-    if(s.timer<=0){
+    if(s.timer<=0&&!follow){
       const r=rnd();
       if(m==='cold'&&r<.7){s.mode='walk';s.tx=.42+rnd()*.16;s.ty=.6+rnd()*.12}
       else if(r<.45){s.mode='walk';s.tx=.06+rnd()*.7;s.ty=.5+rnd()*.2}
@@ -963,7 +1006,7 @@ function animFlock(dt){
     if(s.mode==='walk'){
       const dx=s.tx-s.x,dy=s.ty-s.y,dist=Math.hypot(dx,dy);
       if(dist<.01){s.mode='idle';s.timer=20+rnd()*60}
-      else{const st=Math.min(dist,speed*dt);s.x+=dx/dist*st;s.y+=dy/dist*st;if(Math.abs(dx)>.004)s.dir=dx>0?1:-1}
+      else{const st=Math.min(dist,speed*(follow?2.6:1)*dt);s.x+=dx/dist*st;s.y+=dy/dist*st;if(Math.abs(dx)>.004)s.dir=dx>0?1:-1}
     }
     const el=s.el;
     el.style.width=size+'px';
