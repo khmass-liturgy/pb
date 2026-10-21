@@ -304,6 +304,12 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
 .lb.l{left:-33px}.lb.r{right:-33px}
 .lb:active{transform:translateY(-48%)}
 .lamp .lrec{position:absolute;top:100%;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:10px;background:#FFFFFFD9;border-radius:8px;padding:0 6px;color:var(--muted);margin-top:2px;pointer-events:none}
+
+.thbar{position:absolute;left:8%;top:1%;width:30%;display:flex;gap:3px;z-index:60;font-family:var(--f-display);font-size:11px;line-height:1}
+.thbar[hidden]{display:none}
+.thbar span{flex:1;text-align:center;white-space:nowrap;background:#FFFFFFEE;border:2px solid var(--ink);border-radius:8px;padding:2px 0}
+.thbar span.warn{color:#C62828;background:#FFE9E4}
+@container (max-width:300px){.thbar{font-size:10px}}
 </style>
 </head>
 <body>
@@ -365,6 +371,7 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
       <div class="stat"><div class="k">자금</div><div class="v num" id="vMoney">₩0</div></div>
     </div>
     <div class="scene" id="scene">
+      <div class="thbar" id="thbar"></div>
       <div class="window" id="win"><div class="sun"></div><div class="cloud"></div><div class="cloud c2"></div><div class="fx"></div></div>
       <div class="sign" id="sign">꼬꼬 계사</div>
       <div class="lamp"><div class="cord"></div><div class="bulb" id="bulb"></div></div>
@@ -1095,8 +1102,16 @@ function doAct(k){
 }
 $('#fdpop').addEventListener('click',e=>{const b=e.target.closest('[data-fd]');if(!b||!S||S.done)return;S.ctrl.fd=b.dataset.fd;fdOpen=false;toast(`${b.firstChild.textContent} 선택`);render();autosave()});
 $('#acts').addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(b)doAct(b.dataset.act)});
+function renderThBar(){
+  const el=$('#thbar');if(!el||!S)return;
+  ensureGauges();
+  const d=Math.min(S.day+1,MODES[S.mode].maxDay),e=envRec(S.mode,d),temp=Math.round(S.eff||e.t),hum=S.ctrl.hum;
+  const tw=Math.abs(temp-e.t)>3,hw=hum<e.rh[0]||hum>e.rh[1];
+  el.hidden=!!S.done;
+  el.innerHTML=`<span class="${tw?'warn':''}" title="계사 온도(권장 ${e.t}℃)">🌡️${temp}℃</span><span class="${hw?'warn':''}" title="습도(권장 ${e.rh[0]}~${e.rh[1]}%)">💧${hum}%</span>`;
+}
 function renderScene(){
-  renderActs();renderBar();
+  renderActs();renderBar();renderThBar();
   const t=growthT(),col=colors(S.mode,t);
   flockEl.style.setProperty('--b',col.b);flockEl.style.setProperty('--w',col.w);flockEl.style.setProperty('--comb',col.comb);flockEl.style.setProperty('--hs',col.hs);
   if(sprites.length!==visibleCount()) buildFlock(visibleCount());
