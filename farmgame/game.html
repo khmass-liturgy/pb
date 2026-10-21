@@ -1060,6 +1060,22 @@ function animFlock(dt){
   const size=W*(.105+.07*t);
   const m=mood();
   const speed=(reduce?.00002:.00009)*(S.health<50?.5:1)*(m==='hot'?.5:1)*(S.rat?2.4:1);
+  // 병아리끼리 겹치지 않게 서로 밀어낸다(같은 곳으로 모이거나 도망칠 때도 간격 유지)
+  {
+    const Hh=scene.clientHeight,minD=size*.92;
+    for(let pass=0;pass<2;pass++)for(let i=0;i<sprites.length;i++)for(let j=i+1;j<sprites.length;j++){
+      const a=sprites[i],b=sprites[j];
+      let dx=(a.x-b.x)*W,dy=(a.y-b.y)*Hh*1.6;       // 세로는 원근 때문에 더 민감하게
+      let d=Math.hypot(dx,dy);
+      if(d<minD){
+        if(d<.5){dx=rnd()-.5;dy=rnd()-.5;d=Math.hypot(dx,dy)||1}
+        const push=(minD-d)*.8,nx=dx/d,ny=dy/d;
+        a.x+=nx*push/W;b.x-=nx*push/W;
+        a.y+=ny*push/(Hh*1.6);b.y-=ny*push/(Hh*1.6);
+      }
+    }
+    for(const q of sprites){q.x=clamp(q.x,.04,.86);q.y=clamp(q.y,.48,.78)}
+  }
   // 쥐 움직임(바닥을 좌우로 오감)과 퇴치 연출
   const ratEl=$('#ratImg'),baitEl=$('#baitImg');
   if(S.rat){
