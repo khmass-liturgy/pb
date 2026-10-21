@@ -1053,10 +1053,10 @@ function openAdmin(){
   $('#admReset').addEventListener('click',()=>{const b=$('#admReset');if(b.dataset.armed!=='1'){b.dataset.armed='1';b.textContent='정말 기본값으로';return}publish(null,'기본값으로 되돌렸어요.')});
 }
 $('#btnAdmin').addEventListener('click',openAdmin);
-function maybeEvent(){
+function maybeEvent(force){
   if(S.done) return null;
   const p=S.mode==='broiler'?.16:.24;
-  if(rnd()>p) return null;
+  if(!force&&rnd()>p) return null;
   const pool=[];
   const vp=vaxProtection();
   EVENTS.filter(e=>e.modes.includes(S.mode)&&e.when(S)&&!(S.fx[e.id]>0)).forEach(e=>{
@@ -1141,10 +1141,13 @@ function sickStep(){
     if(S.sick.steps>=3&&S.sick.n<3){S.sick.n++;addLog('🤒 아픈 닭이 늘었어요! 치료해 주세요.')}
     else addLog('🤒 아픈 닭을 그냥 두면 다른 닭에게 옮고 폐사가 늘어요. 치료해 주세요.');
   } else if((S.mode==='broiler'?S.day>=4:S.day>=3)&&rnd()<(.09+(S.health<60?.12:0))){
-    S.sick={n:1+(rnd()<.3?1:0),steps:0};
-    addLog('🤒 아픈 닭이 보여요! 오른쪽 「치료」 버튼으로 치료해 주세요.');
-    toast('🤒 아픈 닭이 나왔어요! 치료 ₩10,000');
+    newSick();
   }
+}
+function newSick(){
+  S.sick={n:1+(rnd()<.3?1:0),steps:0};
+  addLog('🤒 아픈 닭이 보여요! 오른쪽 「치료」 버튼으로 치료해 주세요.');
+  toast('🤒 아픈 닭이 나왔어요! 치료 ₩10,000');
 }
 let ratGhost=null;      // 퇴치되는 쥐의 마지막 모습(잠깐 보여 주기)
 function ratStep(){
@@ -1155,10 +1158,13 @@ function ratStep(){
     S.feedLv=Math.max(0,S.feedLv-12);
     addLog('🐭 쥐가 사료를 축내고 닭들이 겁먹었어요! 쥐약을 놓아 주세요.');
   } else if((S.mode==='broiler'?S.day>=3:S.day>=2)&&rnd()<.14){
-    S.rat={x:.36,dir:-1,steps:0};
-    addLog('🐭 쥐가 나타났어요! 병아리들이 놀랐어요. 쥐약을 놓아 주세요.');
-    toast('🐭 쥐가 나타났어요! 쥐약 놓기로 퇴치해요');
+    newRat();
   }
+}
+function newRat(){
+  S.rat={x:.36,dir:-1,steps:0};
+  addLog('🐭 쥐가 나타났어요! 병아리들이 놀랐어요. 쥐약을 놓아 주세요.');
+  toast('🐭 쥐가 나타났어요! 쥐약 놓기로 퇴치해요');
 }
 function killRat(){
   ratGhost={x:S.rat.x,dir:S.rat.dir,t:performance.now()};
@@ -1175,9 +1181,22 @@ function mood(){
 }
 const BUB={scared:['꺅!','😱','쥐다!','무서워'],hot:['헥헥…','💦','더워요!'],cold:['추워요','❄️','오들오들'],sick:['콜록','🤒','힘없어요'],smelly:['콜록','눈 따가워','😣'],happy:['삐약!','♥','꼬꼬','냠냠']};
 let rafLast=0;
+/* ── 실시간 이벤트 ──
+   「하루/한 주 보내기」를 누르지 않고 가만히 있어도 20~45초마다 한 번쯤 쥐·아픈 닭·공지(사료값·폭염·질병 등)가 생긴다.
+   창이 떠 있거나 밤 연출·진행 중이면 건너뛴다. */
+let liveT=15000+Math.random()*15000;
+function liveTick(dt){
+  if(!S||S.done||document.hidden||!$('#modal').hidden||!$('#modal2').hidden||$('#btnNext').disabled||S.day<1)return;
+  liveT-=dt;if(liveT>0)return;
+  liveT=20000+rnd()*25000;
+  const early=S.mode==='broiler'?3:2,r=rnd();
+  if(r<.3&&!S.rat&&S.day>=early){newRat();render();autosave()}
+  else if(r<.58&&!S.sick&&S.day>=early+1){newSick();render();autosave()}
+  else if(r<.9){const ev=maybeEvent(true);if(ev){showEvent(ev);autosave()}}
+}
 function loop(ts){
   const dt=Math.min(50,ts-(rafLast||ts));rafLast=ts;
-  if(S&&!$('#gameView').hidden) animFlock(dt);
+  if(S&&!$('#gameView').hidden){animFlock(dt);liveTick(dt)}
   requestAnimationFrame(loop);
 }
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
