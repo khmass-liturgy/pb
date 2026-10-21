@@ -590,6 +590,47 @@ const BOARD_TYPES = ["diagnosis", "consult", "consulting", "specimen"];
 // <img> 태그는 fetch()와 달리 CORS 없이도 렌더링되므로 여기서 같이
 // 내려줄 필요는 없다 — post.json·reply.json 본문만 이 문제(리다이렉트
 // CORS)를 겪는다.
+// 유료서비스 「닭 키우기」 게임의 닉네임별 저장(premium_board/farmgame/{uid}/{nickKey}/save.json)을
+// 본인 것만 읽어 준다. 쓰기·삭제는 브라우저가 storage.rules의 premium_board 규칙(본인만)으로 직접 한다.
+// nickKey 없이 부르면 내 저장 목록(요약), nickKey를 주면 그 저장 전체를 돌려준다.
+exports.getFarmGameSaves = onCall(async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
+  if (!isApprovedOrAdmin(request)) throw new HttpsError("permission-denied", "승인된 회원만 쓸 수 있습니다.");
+  const { nickKey } = request.data || {};
+  const bucket = admin.storage().bucket(STORAGE_BUCKET);
+  const prefix = `premium_board/farmgame/${request.auth.uid}/`;
+  const readJson = async (file) => {
+    try { const [buf] = await file.download(); return JSON.parse(buf.toString("utf-8")); } catch (e) { return null; }
+  };
+  if (nickKey !== undefined) {
+    if (typeof nickKey !== "string" || !/^n[0-9a-f]{2,96}$/.test(nickKey)) {
+      throw new HttpsError("invalid-argument", "잘못된 닉네임입니다.");
+    }
+    const file = bucket.file(prefix + nickKey + "/save.json");
+    const [exists] = await file.exists();
+    if (!exists) throw new HttpsError("not-found", "저장된 농장이 없습니다.");
+    const save = await readJson(file);
+    if (!save) throw new HttpsError("internal", "저장 파일을 읽지 못했습니다.");
+    return { save };
+  }
+  const [files] = await bucket.getFiles({ prefix });
+  const saves = [];
+  for (const file of files) {
+    const parts = file.name.split("/"); // premium_board/farmgame/{uid}/{nickKey}/save.json
+    if (parts.length !== 5 || parts[4] !== "save.json") continue;
+    const s = await readJson(file);
+    if (!s) continue;
+    const g = s.game || {};
+    saves.push({
+      nickKey: parts[3], nickname: String(s.nickname || ""), savedAt: String(s.savedAt || ""),
+      mode: String(g.mode || ""), day: Number(g.day) || 0, done: !!g.done,
+      money: typeof g.money === "number" ? Math.round(g.money) : null,
+    });
+  }
+  saves.sort((a, b) => b.savedAt.localeCompare(a.savedAt));
+  return { saves };
+});
+
 exports.getBoardPosts = onCall(async (request) => {
   if (!request.auth) throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
   const { boardType, scope } = request.data || {};
