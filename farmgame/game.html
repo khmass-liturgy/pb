@@ -315,6 +315,22 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
 @keyframes actblink{0%,100%{outline:4px solid #FFD400;outline-offset:1px;box-shadow:0 0 0 2px #FFF3A0,0 0 12px 3px #FFD400}50%{outline:4px solid #FFD40000;outline-offset:1px;box-shadow:0 3px 0 var(--ink)}}
 .act.low{animation:actblink .9s infinite;border-color:#E6B800}
 @media (prefers-reduced-motion:reduce){.act.low{animation:none;outline:4px solid #FFD400;outline-offset:1px}}
+
+.gline{display:flex;flex-wrap:nowrap;align-items:center;gap:4px 10px;font-size:13px;line-height:1.2;overflow-x:auto;white-space:nowrap;scrollbar-width:none}
+.gline::-webkit-scrollbar{display:none}
+.gline b{font-family:var(--f-display);font-size:15px;font-weight:400}
+.gline .sep{color:#C9C5DD}
+.gline i{font-style:normal;color:var(--muted);font-size:12px}
+.hline{justify-content:space-between;gap:6px}
+.hline .hi{display:flex;align-items:center;gap:3px;white-space:nowrap}
+.bar.sm{display:none}
+.hline{font-size:12.5px}.hline b{font-size:14px}
+.health{gap:8px}
+.health h2{font-size:16px}
+.gwx{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px;background:var(--mint);border-radius:12px;padding:6px 10px}
+.gpts summary{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;font-size:13px;padding:2px 0;list-style:none}
+.gpts summary::-webkit-details-marker{display:none}
+.gpts[open] summary{white-space:normal}
 </style>
 </head>
 <body>
@@ -392,13 +408,17 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
 
     <div class="panel guide" id="guide"></div>
 
-    <div class="panel">
-      <div class="tip" id="tip"></div>
-      <div class="hud" style="grid-template-columns:repeat(3,minmax(0,1fr))">
-        <div class="stat"><div class="k">건강</div><div class="v num" id="vHealth">90</div><div class="bar"><i id="bHealth"></i></div></div>
-        <div class="stat"><div class="k" id="kEnv">계사 온도</div><div class="v num" id="vEnv">33℃</div></div>
-        <div class="stat"><div class="k">암모니아</div><div class="v num" id="vNh3">5ppm</div><div class="bar"><i id="bNh3"></i></div></div>
+    <div class="panel health" id="healthPanel">
+      <h2>🩺 오늘의 건강 가이드</h2>
+      <div class="gline hline">
+        <span class="hi">❤️ 건강 <b class="num" id="vHealth">90</b><span class="bar sm"><i id="bHealth"></i></span></span>
+        <span class="hi">🌡️ <span id="kEnv">체감온도</span> <b class="num" id="vEnv">33℃</b></span>
+        <span class="hi">🫧 암모니아 <b class="num" id="vNh3">5ppm</b><span class="bar sm"><i id="bNh3"></i></span></span>
       </div>
+      <div class="tip" id="tip"></div>
+    </div>
+
+    <div class="panel">
       <h2 id="ctrlsHead">오늘의 관리</h2>
       <div class="ctrls" id="ctrls"></div>
       <div class="cloudnote" id="cloudnote" role="status"></div>
@@ -1109,11 +1129,11 @@ function render(){
   } else {$('#kMain').textContent='평균 체중';$('#vMain').textContent=fmt(S.weight)+'g'}
   $('#vMoney').textContent=won(S.money);$('#vMoney').style.color=S.money<0?'var(--bad)':'';
   $('#vHealth').textContent=Math.round(S.health);
-  const hb=$('#bHealth');hb.style.width=S.health+'%';hb.style.background=S.health>70?'var(--good)':S.health>45?'var(--warn)':'var(--bad)';
-  $('#kEnv').textContent=lay?'점등 시간':'체감 온도';
+  const hb=$('#bHealth');hb.style.width=S.health+'%';hb.style.background=S.health>70?'var(--good)':S.health>45?'var(--warn)':'var(--bad)';$('#vHealth').style.color=S.health>70?'var(--good)':S.health>45?'#C77700':'var(--bad)';
+  $('#kEnv').textContent=lay?'점등':'체감';
   $('#vEnv').textContent=lay?`${c.light}시간`:`${S.eff.toFixed(0)}℃`;
   $('#vNh3').textContent=S.ammonia.toFixed(0)+'ppm';
-  const nb=$('#bNh3');nb.style.width=clamp(S.ammonia/50*100,0,100)+'%';nb.style.background=S.ammonia<15?'var(--good)':S.ammonia<25?'var(--warn)':'var(--bad)';
+  const nb=$('#bNh3');nb.style.width=clamp(S.ammonia/50*100,0,100)+'%';nb.style.background=S.ammonia<15?'var(--good)':S.ammonia<25?'var(--warn)':'var(--bad)';$('#vNh3').style.color=S.ammonia<15?'var(--good)':S.ammonia<25?'#C77700':'var(--bad)';
   $('#btnNext').textContent=S.done?'성적표 보기 📋':lay?'일주일 보내기 🌙':'하루 보내기 🌙';
   $('#subtitle').textContent=`${M.name} · ${lay?(S.day<18?'육성기':'산란기'):S.day<10?'육추기':S.day<25?'성장기':'출하 준비'}`;
   renderGuide();renderTip();renderCtrls();renderChart();renderLog();renderScene();
@@ -1160,10 +1180,10 @@ function renderGuide(){
   if(WX.status==='ok'){
     const [ic,ds]=WXC[WX.code]||['🌡️','날씨'];
     const tip=wxTip();
-    wx=`<div class="wx"><span class="big">${ic}</span><b>${ds} ${Math.round(WX.t)}℃</b> · 최저 ${Math.round(WX.min)}° / 최고 ${Math.round(WX.max)}° · 습도 ${Math.round(WX.rh)}%${WX.rain>0?` · 강수 ${WX.rain.toFixed(1)}mm`:''}
-    <small>${escH(WX.name)}${WX.approx?' (위치를 못 읽어 서울 기준)':''}${tip?' · '+escH(tip):''}</small></div>`;
-  } else if(WX.status==='error') wx=`<div class="wx">날씨를 불러오지 못했어요. <small>잠시 후 다시 열어 보세요.</small></div>`;
-  else wx=`<div class="wx">날씨를 읽는 중…</div>`;
+    const full=`${ds} ${Math.round(WX.t)}℃ · 최저 ${Math.round(WX.min)}° / 최고 ${Math.round(WX.max)}° · 습도 ${Math.round(WX.rh)}%${WX.rain>0?` · 강수 ${WX.rain.toFixed(1)}mm`:''} · ${WX.name}${WX.approx?' (서울 기준)':''}${tip?' · '+tip:''}`;
+    wx=`<div class="gwx" title="${escH(full)}">${ic} <b>${ds} ${Math.round(WX.t)}℃</b> · ${Math.round(WX.min)}°/${Math.round(WX.max)}° · 습도 ${Math.round(WX.rh)}%${WX.rain>0?` · 💧${WX.rain.toFixed(1)}mm`:''} · ${escH(WX.name)}${WX.approx?'(서울)':''}${tip?' · '+escH(tip):''}</div>`;
+  } else if(WX.status==='error') wx=`<div class="gwx">날씨를 불러오지 못했어요 · 잠시 후 다시 열어 보세요</div>`;
+  else wx=`<div class="gwx">날씨를 읽는 중…</div>`;
   const rows=GSTAGES[S.mode].map(x=>{
     const a=envRec(S.mode,x.from),b=envRec(S.mode,x.to);
     const tr=a.t===b.t?a.t+'℃':a.t+'→'+b.t+'℃';
@@ -1172,15 +1192,11 @@ function renderGuide(){
     return `<tr class="${d>=x.from&&d<=x.to?'now':''}"><td>${x.from}~${x.to}${lay?'주':'일'}<br><b>${x.name}</b></td><td>${tr}</td><td>${rh}</td>${lt}</tr>`;
   }).join('');
   el.innerHTML=`<h2>📋 오늘의 환경 가이드 <small>${S.done?'':d+u+' · '+g.name}</small></h2>
-   <div class="chips">
-    <div class="chip"><div class="k">🌡️ 권장 온도</div><div class="v num">${e.t}℃</div><div class="s">${e.lo}~${e.hi}℃</div></div>
-    <div class="chip"><div class="k">💧 권장 습도</div><div class="v num">${e.rh[0]}~${e.rh[1]}%</div><div class="s">계사 안 상대습도</div></div>
-    ${lay?`<div class="chip"><div class="k">💡 권장 점등</div><div class="v num">${e.light}시간</div><div class="s">${d>=18?'주 1시간씩 늘려 16시간':d>=7?'육성기는 10시간 유지':'점점 줄여 10시간'}</div></div>`:''}
-   </div>
+   <div class="gline"><span title="권장 온도 ${e.lo}~${e.hi}℃">🌡️ <b class="num">${e.t}℃</b></span><span class="sep">|</span>💧 <b class="num">${e.rh[0]}~${e.rh[1]}%</b>${lay?`<span class="sep">|</span>💡 <b class="num">${e.light}시간</b>`:''}</div>
    ${wx}
-   <div><b style="font-family:var(--f-display)">✅ 관리 포인트</b><ul class="pts">${g.pts.map(t=>`<li>${t}</li>`).join('')}</ul></div>
+   <details class="gpts"><summary>✅ ${g.pts.join(' · ')}</summary><ul class="pts">${g.pts.map(t=>`<li>${t}</li>`).join('')}</ul></details>
    <details><summary>${lay?'주령':'일령'}별 권장표 보기</summary><table class="gt"><thead><tr><th>구간</th><th>온도</th><th>습도</th>${lay?'<th>점등</th>':''}</tr></thead><tbody>${rows}</tbody></table>
-   <p style="margin:6px 0 0;font-size:12px;color:var(--muted)">교육용 참고값이에요. 실제 농장은 품종 관리지침과 사료회사·수의사 기준을 따르세요.</p></details>`;
+   <p style="margin:6px 0 0;font-size:12px;color:var(--muted)">교육용 참고값이에요. 실제 농장은 품종 관리지침과 사료회사·수의사 기준을 따르세요.${lay?` 점등은 ${d>=18?'주 1시간씩 늘려 16시간까지':d>=7?'육성기에는 10시간 유지':'점점 줄여 10시간까지'}.`:''}</p></details>`;
 }
 function renderTip(){
   const d=S.day+1,c=S.ctrl;let t='';
