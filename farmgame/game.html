@@ -803,7 +803,8 @@ const COSTS={broiler:Object.assign({},COSTS_DEF.broiler),layer:Object.assign({},
 // 급이 버튼 한 번의 가격 = 선택한 사료 종류의 가격(원). 육계: 전기 3,000 · 중기 4,000 · 후기 3,000. 산란계는 같은 틀로 육추·육성 3,000 / 산란 준비·전기 4,000 / 후기 3,000.
 const VAX={broiler:[],layer:[]};                 // 관리자가 백신관리 카드에서 가져온 접종 일정(게임 단위: 육계=일령, 산란계=주령)
 const VAX_COST_DEF={broiler:30000,layer:50000},VAX_COST={broiler:30000,layer:50000};
-const CURE_BONUS={broiler:100000,layer:100000};   // 질병 퀴즈 치료 성공 보너스(원) — 관리자가 조정
+const CURE_BONUS={broiler:100000,layer:100000};
+const PRICE_REWARD={broiler:10000,layer:10000};   // 시세 퀴즈 보상(원)   // 질병 퀴즈 치료 성공 보너스(원) — 관리자가 조정
 const FEED_PRICE_DEF={broiler:{pre:3000,grow:4000,fin:3000},layer:{brood:3000,grow:3000,pre:4000,peak:4000,late:3000}};
 const FEED_PRICE={broiler:Object.assign({},FEED_PRICE_DEF.broiler),layer:Object.assign({},FEED_PRICE_DEF.layer)};
 function btnCost(k){return k==='feed'?(FEED_PRICE[S.mode][S.ctrl.fd]??COSTS[S.mode].feed):COSTS[S.mode][k]}
@@ -838,6 +839,7 @@ function applyCfg(cfg){
       .map((x,i)=>({k:String(x.k||('v'+i)).slice(0,24),age:String(x.age||'').slice(0,24),day:Math.round(+x.day),name:String(x.name).slice(0,60),method:String(x.method||'').slice(0,24),note:String(x.note||'').slice(0,60),src:String(x.src||'').slice(0,40)}))
       .sort((a,b)=>a.day-b.day);
     {const v=+c.vaccineCost;VAX_COST[m]=isFinite(v)&&v>=0&&v<=10000000?Math.round(v):VAX_COST_DEF[m]}
+    {const v=+c.priceReward;PRICE_REWARD[m]=isFinite(v)&&v>=0&&v<=10000000?Math.round(v):10000}
     {const v=+c.cureBonus;CURE_BONUS[m]=isFinite(v)&&v>=0&&v<=10000000?Math.round(v):100000}
     FEED_PRICE[m]=Object.assign({},FEED_PRICE_DEF[m]);
     if(c.feedPrices)Object.keys(FEED_PRICE_DEF[m]).forEach(id=>{const v=+c.feedPrices[id];if(isFinite(v)&&v>=0&&v<=1000000)FEED_PRICE[m][id]=Math.round(v)});
@@ -927,6 +929,7 @@ function openAdmin(){
    <h3>💰 버튼 비용 (한 번 누를 때)</h3>
    <p class="note">급이·급수·환기 버튼을 한 번 누를 때 드는 돈(원)이에요. 사료 구입비는 먹은 만큼 따로 계산돼요.</p>
    <div class="row2">${[['water','💧 급수'],['vent','🌀 환기']].concat([['litter','🪵 깔짚'],['supp','💊 영양제'],['rat','🐭 쥐약'],['cure','🩺 닭 치료']]).map(([k,t])=>`<label>${t} <input type="number" min="0" max="1000000" step="500" data-cost="${k}" value="${COSTS[m][k]}" style="width:86px"></label>`).join('')}</div>
+   <div class="row2"><label>📈 시세 퀴즈 보상 <input type="number" min="0" max="10000000" step="1000" data-prbonus value="${PRICE_REWARD[m]}" style="width:100px"></label></div>
    <div class="row2"><label>🏅 치료 성공 보너스 <input type="number" min="0" max="10000000" step="10000" data-bonus value="${CURE_BONUS[m]}" style="width:100px"></label></div>
    <p class="note">질병 퀴즈를 맞혀 치료에 성공하면 이 금액(원)을 받아요.</p>
    <p class="note">🌾 급이 버튼 가격은 사료 종류마다 달라요(원).</p>
@@ -1034,9 +1037,11 @@ function openAdmin(){
     });
     const vaccineCost=+$('[data-vxcost]').value;
     if(!(vaccineCost>=0&&vaccineCost<=10000000))throw new Error('접종비는 0~10,000,000원 사이로 적어 주세요.');
+    const priceReward=+$('[data-prbonus]').value;
+    if(!(priceReward>=0&&priceReward<=10000000))throw new Error('시세 퀴즈 보상은 0~10,000,000원 사이로 적어 주세요.');
     const cureBonus=+$('[data-bonus]').value;
     if(!(cureBonus>=0&&cureBonus<=10000000))throw new Error('치료 보너스는 0~10,000,000원 사이로 적어 주세요.');
-    return {diseaseWeight:+$('#admW').value,diseases,stages,custom,costs,feedPrices,cureBonus:Math.round(cureBonus),vaccines,vaccineCost:Math.round(vaccineCost)};
+    return {diseaseWeight:+$('#admW').value,diseases,stages,custom,costs,feedPrices,cureBonus:Math.round(cureBonus),priceReward:Math.round(priceReward),vaccines,vaccineCost:Math.round(vaccineCost)};
   };
   const publish=async(section,okMsg)=>{
     gmsg('저장 중…',true);
@@ -1131,6 +1136,45 @@ function showVaccine(){
 }
 /* ── 아픈 닭 ──
    가끔(건강이 나쁠수록 자주) 몇 마리가 아프다(S.sick). 치료 버튼(₩10,000)으로 낫게 하고, 두면 건강이 깎이고 폐사·전염이 늘어난다. */
+/* ── 시세 퀴즈 ──
+   사이트 「금일 육계시세」(대한양계협회)·「계란 산지가격」의 오늘 값을 묻는 3지선다. 맞히면 보상(기본 ₩10,000, 관리자 조정). */
+let PRICES=null,PRICES_T=0;
+async function loadPrices(){
+  if(PRICES&&Date.now()-PRICES_T<10*60*1000)return PRICES;
+  try{const api=window.parent&&window.parent.farmGameCloud;if(!api||!api.getMarketPrices)return null;PRICES=await api.getMarketPrices();PRICES_T=Date.now();return PRICES}catch(e){return null}
+}
+function pqOffer(){
+  if(!S||S.done||S.pq||!(window.parent&&window.parent!==window))return;
+  S.pq={t:rnd()<.5?'broiler':'egg'};
+  toast('📈 오늘의 시세 퀴즈! 맞히면 '+won(PRICE_REWARD[S.mode]));
+}
+function pqStep(){if(S&&!S.done&&!S.pq&&S.day>=1&&rnd()<.22)pqOffer()}
+async function showPriceQuiz(){
+  const reward=PRICE_REWARD[S.mode];
+  toast('시세를 불러오는 중…');
+  const P=await loadPrices();
+  const kind=S.pq&&S.pq.t,d=P&&P[kind];
+  if(!d||!(d.price>0)){toast('시세를 불러오지 못했어요. 잠시 후 다시 눌러 주세요');return}
+  const egg=kind==='egg',step=egg?10:50,unit=egg?'원/10개':'원/kg';
+  const title=egg?'오늘의 계란 시세':'오늘의 육계 시세';
+  const q=egg?`계란 산지가격(${escH(d.grade||'특란')}) 가장 최근 값은 얼마일까요?`:`금일 육계 시세(${escH(d.grade||'대')}${d.spec?' '+escH(d.spec):''})는 얼마일까요?`;
+  const diffs=(egg?[-120,-80,-50,50,80,120]:[-200,-150,-100,100,150,200]).filter(x=>d.price+x>0).sort(()=>rnd()-.5).slice(0,2);
+  const opts=[{v:d.price,ok:true},...diffs.map(x=>({v:d.price+x,ok:false}))].sort(()=>rnd()-.5);
+  const fmtv=v=>v.toLocaleString('ko-KR')+' '+unit;
+  openModal(`<div class="ev-icon">📈</div><h2>${title}</h2><p>${q}</p><p class="note">정답이면 🎁 ${won(reward)}을 벌어요. 사이트 맨 위 「시세,통계」 탭의 ${egg?'계란':'금일 육계시세'} 칸에서 볼 수 있어요.</p>
+   <div style="display:flex;flex-direction:column;gap:8px">${opts.map((o,i)=>`<button class="choice" type="button" data-i="${i}"><b>${fmtv(o.v)}</b></button>`).join('')}</div>
+   <button class="btn" type="button" id="pqLater">나중에</button>`);
+  $('#pqLater').addEventListener('click',closeModal);
+  $('#sheet').querySelectorAll('.choice').forEach(b=>b.addEventListener('click',()=>{
+    const o=opts[+b.dataset.i];
+    if(o.ok){S.money+=reward;S.tot.bonus=(S.tot.bonus||0)+reward;addLog(`📈 ${title} 퀴즈 정답! 보상 ${won(reward)}`);burst('💰',4)}
+    else addLog(`📈 ${title} 퀴즈 오답 (정답 ${fmtv(d.price)})`);
+    S.pq=null;
+    render();autosave();
+    openModal(`<div class="ev-icon">${o.ok?'💰':'📉'}</div><h2>${o.ok?'정답!':'아쉬워요'}</h2><div class="result">${o.ok?`<b>${won(reward)}</b>을 벌었어요 🎉<br>`:`정답은 <b>${fmtv(d.price)}</b>이에요.<br>`}${escH(d.source||'')} ${escH(d.date||'')} 기준</div><button class="btn primary" type="button" id="pqOk">알겠어요</button>`);
+    $('#pqOk').addEventListener('click',closeModal);
+  }));
+}
 function sickStep(){
   if(!S||S.done)return;
   if(S.sick){
@@ -1192,7 +1236,8 @@ function liveTick(dt){
   const early=S.mode==='broiler'?3:2,r=rnd();
   if(r<.3&&!S.rat&&S.day>=early){newRat();render();autosave()}
   else if(r<.58&&!S.sick&&S.day>=early+1){newSick();render();autosave()}
-  else if(r<.9){const ev=maybeEvent(true);if(ev){showEvent(ev);autosave()}}
+  else if(r<.76){pqOffer();render();autosave()}
+  else if(r<.93){const ev=maybeEvent(true);if(ev){showEvent(ev);autosave()}}
 }
 function loop(ts){
   const dt=Math.min(50,ts-(rafLast||ts));rafLast=ts;
@@ -1333,9 +1378,10 @@ function renderActs(){
     +`<button type="button" class="act sel${fcur!==frec?' low':''}" data-act="feedsel" style="--lv:0%" aria-label="사료 종류 선택, 지금 ${FL[fcur].name}"><span class="r"><span class="em">🥣</span>사료</span><small>${FL[fcur].name.replace(' 사료','')}</small></button>`
     +`<button type="button" class="act" data-act="supp" style="--lv:${S.suppOn?100:0}%;--gc:#CFE8FF" aria-label="영양제 주기 ${won(COSTS[S.mode].supp)}"><span class="r"><span class="em">💊</span>영양제</span><small>${S.suppOn?'급여함':won(COSTS[S.mode].supp)}</small></button>`
     +(vaxPending().length?`<button type="button" class="act low" data-act="vax" style="--lv:0%" aria-label="백신 접종"><span class="r"><span class="em">💉</span>백신</span><small>${vaxPending().length}건</small></button>`:'')
+    +(S.pq?`<button type="button" class="act low" data-act="pq" style="--lv:0%" aria-label="시세 퀴즈"><span class="r"><span class="em">📈</span>시세</span><small>+${won(PRICE_REWARD[S.mode])}</small></button>`:'')
     +(S.sick?`<button type="button" class="act low" data-act="cure" style="--lv:0%" aria-label="아픈 닭 치료 ${won(COSTS[S.mode].cure)}"><span class="r"><span class="em">🩺</span>치료</span><small>${won(COSTS[S.mode].cure)}</small></button>`:'')
     +(S.rat?`<button type="button" class="act low" data-act="rat" style="--lv:0%" aria-label="쥐약 놓기 ${won(COSTS[S.mode].rat)}"><span class="r"><span class="em">🐭</span>쥐약</span><small>${won(COSTS[S.mode].rat)}</small></button>`:'');
-  el.classList.toggle('dense',!!S.rat||!!S.sick||vaxPending().length>0);
+  el.classList.toggle('dense',!!S.rat||!!S.sick||!!S.pq||vaxPending().length>0);
   const pop=$('#fdpop');
   if(pop){
     pop.hidden=!fdOpen||!!S.done;
@@ -1349,6 +1395,7 @@ function doAct(k){
   if(k==='calc'){S.ctrl.calcium=S.ctrl.calcium?0:1;toast(S.ctrl.calcium?'칼슘 보충을 켰어요 (주 ₩14,000)':'칼슘 보충을 껐어요');render();autosave();return}
   const cost=btnCost(k);
   if(k==='vax'){showVaccine();return}
+  if(k==='pq'){showPriceQuiz();return}
   if(k==='cure'){if(!S.sick){toast('지금은 아픈 닭이 없어요');return}S.money-=cost;S.tot.other+=cost;S.sick=null;S.health=clamp(S.health+4,0,100);burst('💊',3);toast('치료했어요! 닭들이 기운을 차려요 🐥');addLog(`🩺 아픈 닭을 치료했어요 (${won(cost)})`);render();autosave();return}
   if(k==='rat'){if(!S.rat){toast('지금은 쥐가 없어요');return}S.money-=cost;S.tot.other+=cost;killRat();burst('🐭',3);toast('쥐약을 놓았어요! 쥐를 퇴치했어요 🐭💨');addLog(`🐭 쥐약으로 쥐를 퇴치했어요 (${won(cost)})`);render();autosave();return}
   if(k==='supp'){if(S.suppOn){toast('이번 차례에는 이미 영양제를 줬어요');return}S.suppOn=true;S.health=clamp(S.health+5,0,100);S.money-=cost;S.tot.other+=cost;burst('💊',3);toast('영양제를 줬어요 · 스트레스를 덜 받아요');render();autosave();return}
@@ -1553,7 +1600,7 @@ $('#btnNext').addEventListener('click',()=>{
   setTimeout(()=>{
     const prevH=S.health;
     if(S.mode==='broiler')stepBroiler();else stepLayer();
-    ratStep();vaxCheck();sickStep();
+    ratStep();vaxCheck();sickStep();pqStep();
     render();
     scene.classList.remove('night');
     burst(S.health>=prevH?'♥':'💧',S.health>=prevH?4:2);
