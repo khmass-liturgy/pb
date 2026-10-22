@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-21 10:17 KST",
+  "updated": "2026-10-22 10:13 KST",
   "channels": {
     "livestock": {
       "label": "축산·농업",
@@ -25,19 +25,18 @@
     },
     "feed": {
       "label": "사료·약품",
-      "items": [
-        {
-          "title": "사료비 부담 뒤에 담합 있었나…8년 6개월 의혹 사실이면 '충격' - 돼지와사람",
-          "link": "https://news.google.com/rss/articles/CBMiYkFVX3lxTFBLYk10UmN1VUdEYjg3U3oycXo1ZVZHNDR3dXpQV1F1dTRhZUpZaHNBQ0tDT2JKUHZRVklhVFUyaWJycTFvLVlqX3J1dkwtTEk4Q0h1M2hDekE4VmVmakd4Xzdn?oc=5",
-          "date": "10/14 21:11",
-          "source": "돼지와사람"
-        }
-      ],
-      "count": 1
+      "items": [],
+      "count": 0
     },
     "economy": {
       "label": "경제",
       "items": [
+        {
+          "title": "[경제놀이터 이보라 컬럼][자녀 경제역량편] 미국 금리가 오르는데 왜 우리나라가 걱정할까요? - 캐어유 뉴스",
+          "link": "https://news.google.com/rss/articles/CBMibkFVX3lxTFAtVEFFdkkxZ1lUSzRBWm96UlJvSXQ5cjg5QTV0QmEtQUF4UVV4YUlYSm5ISlMtbHRzSGNmaU50cThUUTVnRXBQTTBsanJieFdvMVZnUThwRDJNX25POGgtLUk5MU9hVzBPeGpMUFZR?oc=5",
+          "date": "10/21 08:00",
+          "source": "캐어유 뉴스"
+        },
         {
           "title": "[로드픽] 미국발 인플레이션 경고, 한국경제 덮치나…환율·금리·반도체 ‘삼중 압박’ - 뉴스로드",
           "link": "https://news.google.com/rss/articles/CBMia0FVX3lxTE1qdWVwY3Rva1M5T0JyaWJvRElnQ2JGVnZFWHJHTE1MdmlETUNwQ2JCWlc1SEFSSEgtd1pZY0FTb3BvZHBSTWxLMXFzT0Jna21tZW51T3JQdFJWVWg0OUxuTDJUclBaRXdjNE400gFvQVVfeXFMTzRBZkp2RzB6VEsySGZpYzdtNHowSUhwVFBGYUNFeFV2T1FKWW9xYzl1WEx4TUJSQ1ZpY0t5dGppVmRSWlBfRnBybmRhTUdvSmM5UEdrRGV6cDlwZ1ZyQS1Qa054Y2xjeldTdEpiM2Nn?oc=5",
@@ -45,11 +44,17 @@
           "source": "뉴스로드"
         }
       ],
-      "count": 1
+      "count": 2
     },
     "world": {
       "label": "국제",
       "items": [
+        {
+          "title": "광명시, 4개국 결집 ‘국제 청년교류’ 성료…독일-미국-중국-일본 청년 대거 초청 - CNB뉴스",
+          "link": "https://news.google.com/rss/articles/CBMia0FVX3lxTFByMXZDX3NMRHhDTDItREw5cGItREZERWQzYnlTcDNhMU9yNzJnXzZnZ21DbzhzX2ZiZU9sOHN1UUt6eWFvSVo3ZG12bDNTTDVkaTNlTjlGRF95NXJFX29LOUNUVTZJM05PWnlj?oc=5",
+          "date": "10/21 21:19",
+          "source": "CNB뉴스"
+        },
         {
           "title": "[영상] 10월 20일 국제 뉴스 요약: 러시아, 미국, 중국, APEC 회의 기간 중 정상회담 개최 가능성; 프랑스, ​​여러 도시에 야간 통행금지령 발령; 미국 유권자들, 사전 투표 참여. - Vietnam.vn",
           "link": "https://news.google.com/rss/articles/CBMigAJBVV95cUxNcHhIb2RWekZFZzhaVVNGeEpNck5qVnpPWnlqRExMMHphdlhNdGxyTk9nMFlCY3ZyQVVubm9aanlRQXgtUkZaZXVtb01yS1ZwVWVxRU1IZ19mWWVzYVpRa085S0ZHTFhQT2Jjc1hSelZpMFBuVXQxYnJyWGx5VFBYSDdEUFFlM1BaWlRYM3ZVNEg0RXRfQkVnQ1ZaVWNlSHlYVGd1ZWpIQkxGRXJybGw5M1RZWHNoT2pTN3d2bGtzeUFMUkZkWHlrQmc2UjE1azdITkZvS1lEOFB4TTEzQlFRZlpSTTh2RDlCRGZibVFNS1JNOUMwWWRmTXJGSnFNZXZ3?oc=5",
@@ -57,7 +62,7 @@
           "source": "Vietnam.vn"
         }
       ],
-      "count": 1
+      "count": 2
     }
   }
 }
