@@ -1145,7 +1145,7 @@ async function loadPrices(){
 }
 function pqOffer(){
   if(!S||S.done||S.pq||!(window.parent&&window.parent!==window))return;
-  S.pq={t:rnd()<.5?'broiler':'egg'};
+  S.pq={t:S.mode==='layer'?'egg':'broiler'};      // 육계 게임=육계시세, 산란계 게임=계란시세
   toast('📈 오늘의 시세 퀴즈! 맞히면 '+won(PRICE_REWARD[S.mode]));
 }
 function pqStep(){if(S&&!S.done&&!S.pq&&S.day>=1&&rnd()<.22)pqOffer()}
@@ -1153,7 +1153,7 @@ async function showPriceQuiz(){
   const reward=PRICE_REWARD[S.mode];
   toast('시세를 불러오는 중…');
   const P=await loadPrices();
-  const kind=S.pq&&S.pq.t,d=P&&P[kind];
+  const kind=S.mode==='layer'?'egg':'broiler',d=P&&P[kind];
   if(!d||!(d.price>0)){toast('시세를 불러오지 못했어요. 잠시 후 다시 눌러 주세요');return}
   const egg=kind==='egg',step=egg?10:50,unit=egg?'원/10개':'원/kg';
   const title=egg?'오늘의 계란 시세':'오늘의 육계 시세';
