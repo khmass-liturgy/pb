@@ -33532,6 +33532,21 @@ function renderAnomalyPanel(){
     </div>`);
 }
 
+// 체감온도(윈드칠, 기온 10℃ 이하에서만 공식 적용 — 그 위는 기온 그대로). 오늘 요약 카드용 — 축산 날씨 지표의 같은 공식·등급 구간.
+function wxFeelTemp(tempC, windMs){
+  if(tempC == null) return null;
+  if(tempC > 10 || windMs == null) return Math.round(tempC);
+  const vKmh = Math.max(windMs * 3.6, 4.8), v016 = Math.pow(vKmh, 0.16);
+  return Math.round(13.12 + 0.6215*tempC - 11.37*v016 + 0.3965*tempC*v016);
+}
+function wxFeelLevel(v){
+  if(v == null) return {label:"-", color:"#aaa", bg:"#f5f5f5"};
+  if(v > 10)  return {label:"포근", color:"#2E7D32", bg:"#E8F5E9"};
+  if(v > 0)   return {label:"쌀쌀", color:"#0277BD", bg:"#E1F5FE"};
+  if(v > -10) return {label:"추움", color:"#F57F17", bg:"#FFFDE7"};
+  if(v > -20) return {label:"매우 추움", color:"#E65100", bg:"#FFF3E0"};
+  return {label:"혹한", color:"#B71C1C", bg:"#FFEBEE"};
+}
 function renderWeatherBody(){
   const today = new Date();
   const dayNames = ["일","월","화","수","목","금","토"];
@@ -33697,6 +33712,8 @@ function renderWeatherBody(){
   const twlDay = windLevel(twDay) || {color:"#aaa",bg:"#f5f5f5",label:"-",note:""};
   const twlNight = windLevel(twNight) || {color:"#aaa",bg:"#f5f5f5",label:"-",note:""};
   const thDay = fc[0]?.humDay, thNight = fc[0]?.humNight;
+  const feelDay = wxFeelTemp(todayHigh, twDay), feelNight = wxFeelTemp(todayLow, twNight);
+  const feelLv = wxFeelLevel(feelNight != null ? feelNight : feelDay);
 
   return `
   <div style="margin-bottom:16px">
@@ -33733,6 +33750,13 @@ function renderWeatherBody(){
           <div style="font-size:32px;font-weight:800;margin-top:2px">
             <span style="color:${twlDay.color}">🌞${twDay!=null?twDay.toFixed(1):"-"}</span> / <span style="color:${twlNight.color}">🌙${twNight!=null?twNight.toFixed(1):"-"}</span>m/s
             <span style="font-size:22px;background:${twl.bg};color:${twl.color};border-radius:6px;padding:1px 7px;margin-left:2px">${twl.label}</span>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:22px;color:#888">체감온도 (낮/밤)</div>
+          <div style="font-size:32px;font-weight:800;margin-top:2px;color:${feelLv.color}">
+            🌞${feelDay!=null?feelDay+"°":"-"} / 🌙${feelNight!=null?feelNight+"°":"-"}
+            <span style="font-size:22px;background:${feelLv.bg};color:${feelLv.color};border-radius:6px;padding:1px 7px;margin-left:2px">${feelLv.label}</span>
           </div>
         </div>
       </div>
