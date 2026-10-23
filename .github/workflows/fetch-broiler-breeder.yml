@@ -30,6 +30,9 @@ jobs:
       - name: 월보 확인·예측
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # KREI가 GitHub(미국) 접속을 막으면 국내 중계 서버(farm-pro sms-relay /fetch-krei)로 우회한다.
+          SMS_RELAY_URL: ${{ secrets.SMS_RELAY_URL }}
+          SMS_RELAY_SECRET: ${{ secrets.SMS_RELAY_SECRET }}
         run: python scripts/fetch_broiler_breeder.py
       - name: 결과 커밋
         run: |

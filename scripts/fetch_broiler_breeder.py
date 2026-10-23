@@ -110,10 +110,43 @@ def ask_claude(pdf_bytes: bytes, api_key: str) -> dict | None:
     return None
 
 
-def newest_report_id() -> str | None:
+def _relay() -> tuple[str, str] | None:
+    """국내 중계 서버(farm-pro/sms-relay, Oracle Cloud VM)의 주소·비밀값. 문자 발송·농식품부 수집과 같은 두 시크릿을 쓴다."""
+    url = os.environ.get("SMS_RELAY_URL", "").strip()
+    secret = os.environ.get("SMS_RELAY_SECRET", "").strip()
+    return (re.sub(r"/send-sms/?$", "", url), secret) if url and secret else None
+
+
+def kreI_get(url: str, ok, timeout: int = 60):
+    """KREI 주소를 받는다. 직접 먼저, 막히면(접속 실패·오류 응답·엉뚱한 내용) 국내 중계 서버(/fetch-krei)로 우회한다.
+    ok(response) 가 True 인 응답만 돌려주고, 둘 다 실패하면 RuntimeError."""
     import requests
-    r = requests.get(LIST_URL, headers=UA, timeout=30)
-    r.raise_for_status()
+    why: list[str] = []
+    try:
+        r = requests.get(url, headers=UA, timeout=timeout)
+        if r.status_code == 200 and ok(r):
+            return r
+        why.append(f"직접 접속 HTTP {r.status_code}")
+    except Exception as e:  # noqa: BLE001
+        why.append(f"직접 접속 실패 {type(e).__name__}")
+    relay = _relay()
+    if relay:
+        base, secret = relay
+        try:
+            r = requests.get(f"{base}/fetch-krei", params={"url": url}, headers={**UA, "Authorization": f"Bearer {secret}"}, timeout=timeout + 30)
+            if r.status_code == 200 and ok(r):
+                print("직접 접속이 안 돼 국내 중계 서버로 받았습니다.")
+                return r
+            why.append(f"중계 서버 HTTP {r.status_code}")
+        except Exception as e:  # noqa: BLE001
+            why.append(f"중계 서버 실패 {type(e).__name__}")
+    else:
+        why.append("중계 서버 설정(SMS_RELAY_URL/SMS_RELAY_SECRET) 없음")
+    raise RuntimeError(" · ".join(why))
+
+
+def newest_report_id() -> str | None:
+    r = kreI_get(LIST_URL, lambda r: "ORGTEXT_FILE" in r.text, timeout=30)
     ids = re.findall(r"/download/(\d+)/ORGTEXT_FILE", r.text)
     return ids[0] if ids else None
 
@@ -196,7 +229,6 @@ def update_from_kreI(data: dict) -> bool:
         print("ANTHROPIC_API_KEY 없음 — 새 월보 읽기를 건너뜁니다.")
         return False
     try:
-        import requests
         fid = newest_report_id()
         if not fid:
             print("월보 목록에서 파일을 찾지 못했습니다.")
@@ -204,11 +236,7 @@ def update_from_kreI(data: dict) -> bool:
         if data.get("latest_file_id") == fid:
             print(f"새 월보 없음(파일 {fid}).")
             return False
-        r = requests.get(DOWNLOAD.format(id=fid), headers=UA, timeout=90)
-        r.raise_for_status()
-        if not r.content.startswith(b"%PDF"):
-            print("내려받은 것이 PDF가 아닙니다.")
-            return False
+        r = kreI_get(DOWNLOAD.format(id=fid), lambda r: r.content.startswith(b"%PDF"), timeout=90)
         got = ask_claude(r.content, key)
         if not got:
             print("Claude가 표를 읽지 못했습니다 — 이번에는 합치지 않습니다.")
