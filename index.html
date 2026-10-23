@@ -716,6 +716,7 @@ const PRICES_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/mai
 const EGG_REPORT_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/egg_report/latest.json";
 // 산란계 사육 마리수(분기) — mtrace 통계누리 DT_1EO415를 scripts/fetch_layer_stats.py가 모아둔 파일
 const LAYER_STATS_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/layer_stats/latest.json";
+const BROILER_BREEDER_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/broiler_breeder/latest.json";
 const FEED_PRODUCTION_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/feed_production/latest.json";
 // 산란계 중추가격 — (사)대한산란계협회(kegg.or.kr) 게시판 이미지를 scripts/fetch_jungchu_price.py가 그대로 미러링한 파일.
 // 표가 이미지 한 장으로만 올라오는 자료라 숫자로 파싱하지 않고 이미지 자체를 보여준다(자세한 이유는 스크립트 상단 설명 참고).
@@ -5485,6 +5486,23 @@ function renderHpaiNewsCard(){
   </div>`;
 }
 
+let broilerBreederState = { status: "idle", data: null }; // idle|loading|done|error — 육용종계 사육현황·병아리 생산잠재력(KREI 월보)
+
+async function fetchBroilerBreeder(){
+  if(broilerBreederState.status === "loading") return;
+  broilerBreederState.status = "loading";
+  try {
+    const resp = await fetchWithTimeout(BROILER_BREEDER_JSON_URL + "?t=" + Math.floor(Date.now() / 600000), 8000);
+    if(!resp.ok) throw new Error("HTTP " + resp.status);
+    broilerBreederState.data   = await resp.json();
+    broilerBreederState.status = "done";
+  } catch(e) {
+    console.warn("육용종계 사육현황 로딩 실패:", e);
+    broilerBreederState.status = "error";
+  }
+  if(state.tab === "price") render();
+}
+
 let layerStatsState = { status: "idle", data: null }; // idle|loading|done|error
 
 async function fetchLayerStats(){
@@ -5668,7 +5686,7 @@ let coinFetchStatus = "idle"; // idle | loading | done | error
 // 저장소 기준 경로에서 .json을 떼고 영문·숫자 이외를 _로 바꾼 것(market/quotes.json → market_quotes).
 // Storage에 아직 없거나 함수가 실패하면 예전처럼 raw를 시도한다(저장소가 공개인 동안의 안전망).
 const DATA_RAW_PREFIX = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/";
-const DATA_DIRS_RE = /^(poultry_price|broiler_price_today|taxfree_fuel|prices|egg_report|layer_stats|feed_production|jungchu_price|hpai_risk|hpai_kr|poultry_disease|research_papers|market|news|notices|grain_quality|grain_price|import_status|industry_news|animal_drug_news|poultry_disease_brief|price_history|weather_news|farm_density)\//;
+const DATA_DIRS_RE = /^(poultry_price|broiler_price_today|taxfree_fuel|prices|egg_report|layer_stats|feed_production|jungchu_price|hpai_risk|hpai_kr|poultry_disease|research_papers|market|news|notices|grain_quality|grain_price|import_status|industry_news|animal_drug_news|poultry_disease_brief|price_history|weather_news|farm_density|broiler_breeder)\//;
 function dataDatasetOf(url){
   if(typeof url !== "string" || url.indexOf(DATA_RAW_PREFIX) !== 0) return null;
   const rel = url.slice(DATA_RAW_PREFIX.length).split("?")[0];
@@ -28163,6 +28181,7 @@ function renderHeaderSolarTerm(now){
 // go: {tab} 일반 탭으로 / {premium:"메뉴key"} 유료서비스의 그 화면으로(승인·로그인 안내는 그 화면이 처리) / {premium:"vaccine", vaccineView:"guide"} 처럼 보기까지 지정.
 const NEW_FEATURE_DAYS = 21;
 const NEW_FEATURES = [
+  { key:"broilerbreeder", date:"2026-10-23", label:"육용종계 육성계·성계 사육현황과 초생추 병아리 생산잠재력", where:"시세·통계", go:{ tab:"price" } },
   { key:"farmgame2",      date:"2026-10-21", label:"육계 키우기 · 산란계 키우기 — 게임이 두 카드로 나뉘었어요", where:"유료서비스 · 체험·게임", go:{ premium:"farmgame_broiler" } },
   { key:"avianphys",      date:"2026-10-19", label:"조류생리 아카데미 — 닭 몸속 탐험", where:"유료서비스 · 최꼬 아카데미", go:{ premium:"avianphys" } },
   { key:"coliclass",      date:"2026-10-15", label:"닭 대장균증 잡는 교실 (12차시)", where:"유료서비스 · 최꼬 아카데미", go:{ premium:"coliclass" } },
@@ -28588,6 +28607,172 @@ function fpTable(o){
       <tbody>${rows}</tbody>
     </table>
   </details>`;
+}
+
+// ── 육용종계 사육현황 · 초생추 병아리 생산잠재력 ─────────────────────────────────────────
+// 자료: KREI 농업관측센터 「축산관측 육계」 월보(종계 사육 동향·병아리 입식). broiler_breeder/latest.json 은
+// scripts/fetch_broiler_breeder.py 가 만든다(원자료 data.json + 성계 흐름·병아리 생산능력 예측 + 백테스트).
+// 종계 마릿수는 천 마리, 병아리 입식은 만 마리 단위로 저장돼 있다.
+const BB_COLOR = "#6A1B9A";
+const bbMan = (v, d) => v == null ? "-" : (v / 10).toLocaleString("ko-KR", { minimumFractionDigits: d == null ? 1 : d, maximumFractionDigits: d == null ? 1 : d });
+const bbMonth = ym => String(+ym.slice(5)) + "월";
+const bbYm = ym => ym.slice(0, 4) + "." + String(+ym.slice(5));
+function bbDelta(pct){ return pct == null ? "" : lsDelta(pct); }
+function bbPctOf(a, b){ return a == null || !b ? null : (a / b - 1) * 100; }
+
+// 월별 쌓은 막대(성계+육성계) + 예상 성계(옅은 막대·오차 막대)
+function bbChartSvg(rows, fc){
+  const W = 640, H = 230, L = 44, R = 8, T = 14, B = 34;
+  const all = rows.map(m => ({ ym:m.ym, adult:m.adult, grower:m.total - m.adult, est:false })).concat(
+    fc.map(f => ({ ym:f.ym, adult:f.adult, lo:f.lo, hi:f.hi, grower:0, est:true })));
+  const ymax = 9000, n = all.length, bw = (W - L - R) / n;
+  const y = v => T + (H - T - B) * (1 - v / ymax);
+  let g = "";
+  [0, 3000, 6000, 9000].forEach(v => { g += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#eee"/><text x="${L - 5}" y="${y(v) + 3}" text-anchor="end" font-size="9" fill="#aaa">${(v / 10).toLocaleString("ko-KR")}</text>`; });
+  all.forEach((m, i) => {
+    const x = L + i * bw + bw * 0.14, w = bw * 0.72;
+    if(!m.est){
+      g += `<rect x="${x}" y="${y(m.adult)}" width="${w}" height="${y(0) - y(m.adult)}" fill="${BB_COLOR}" rx="1"><title>${bbYm(m.ym)} 성계 ${bbMan(m.adult)}만</title></rect>`;
+      g += `<rect x="${x}" y="${y(m.adult + m.grower)}" width="${w}" height="${y(m.adult) - y(m.adult + m.grower)}" fill="#CE93D8" rx="1"><title>${bbYm(m.ym)} 육성계 ${bbMan(m.grower)}만</title></rect>`;
+    } else {
+      g += `<rect x="${x}" y="${y(m.adult)}" width="${w}" height="${y(0) - y(m.adult)}" fill="#E1BEE7" stroke="${BB_COLOR}" stroke-dasharray="3 2" rx="1"><title>${bbYm(m.ym)} 성계 예상 ${bbMan(m.adult)}만 (${bbMan(m.lo)}~${bbMan(m.hi)})</title></rect>`;
+      const cx = x + w / 2;
+      g += `<line x1="${cx}" x2="${cx}" y1="${y(m.hi)}" y2="${y(m.lo)}" stroke="${BB_COLOR}" stroke-width="1.2"/><line x1="${cx - 3}" x2="${cx + 3}" y1="${y(m.hi)}" y2="${y(m.hi)}" stroke="${BB_COLOR}"/><line x1="${cx - 3}" x2="${cx + 3}" y1="${y(m.lo)}" y2="${y(m.lo)}" stroke="${BB_COLOR}"/>`;
+    }
+    if(i % 2 === 0 || n <= 14) g += `<text x="${x + w / 2}" y="${H - B + 12}" text-anchor="middle" font-size="9" fill="#888">${m.ym.slice(2, 4)}.${+m.ym.slice(5)}</text>`;
+  });
+  g += `<text x="${L - 5}" y="${T - 4}" text-anchor="end" font-size="9" fill="#aaa">만 마리</text>`;
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block" role="img" aria-label="월별 육용종계 성계·육성계 마릿수와 성계 예상">${g}</svg>`;
+}
+
+function renderBroilerBreederPanel(){
+  const d = broilerBreederState;
+  const shell = inner => `
+  <div class="card" style="margin-bottom:16px;border-top:6px solid ${BB_COLOR}">
+    <div class="display" style="font-size:15px;margin-bottom:2px">🐓 육용종계 사육현황 · 초생추 생산잠재력</div>
+    <div style="font-size:11px;color:#999;margin-bottom:10px">육성계·성계 월별 마릿수(2025년~)와 성계 기준 병아리 생산능력 — KREI 농업관측센터 월보</div>
+    ${inner}
+  </div>`;
+  if(d.status === "loading" || d.status === "idle")
+    return shell(`<div style="text-align:center;padding:18px;color:#aaa">⏳ 불러오는 중...</div>`);
+  const r = d.data;
+  const rows = r && Array.isArray(r.months) ? r.months.filter(m => m.total != null && m.adult != null) : [];
+  if(d.status === "error" || !rows.length)
+    return shell(`<div style="text-align:center;padding:12px;color:#aaa;font-size:12px">데이터 없음 — 월보가 나오는 매월 초순 갱신<br>
+      <a href="https://aglook.krei.re.kr/main/uObserveMonth/OVR0000000014" target="_blank" rel="noopener" style="color:${BB_COLOR};font-size:11px">📊 KREI 농업관측센터 육계 월보 바로가기</a></div>`);
+
+  const byYm = {}; r.months.forEach(m => { byYm[m.ym] = m; });
+  (r.prev_year || []).forEach(m => { if(!byYm[m.ym]) byYm[m.ym] = m; });
+  const shift = (ym, k) => { let y = +ym.slice(0, 4), mo = +ym.slice(5) + k; y += Math.floor((mo - 1) / 12); mo = ((mo - 1) % 12 + 12) % 12 + 1; return y + "-" + String(mo).padStart(2, "0"); };
+  const cur = rows[rows.length - 1], ly = byYm[shift(cur.ym, -12)] || {};
+  const fcA = r.adult_forecast || [], fcC = r.chick_potential || [], M = r.model || {}, bt = M.backtest || null;
+  const grower = cur.total - cur.adult;
+  const kpi = (label, val, unit, sub, pct, color) => `
+    <div style="flex:1 1 140px;min-width:130px;border:1px solid #eee;border-radius:10px;padding:9px 11px;border-top:3px solid ${color}">
+      <div style="font-size:10.5px;color:#777;font-weight:700">${label}</div>
+      <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap"><span style="font-size:20px;font-weight:900;font-variant-numeric:tabular-nums;color:#222">${val}</span><span style="font-size:10.5px;color:#888">${unit}</span>${bbDelta(pct)}</div>
+      <div style="font-size:10px;color:#999;margin-top:1px">${sub}</div>
+    </div>`;
+  const lyG = ly.total != null && ly.adult != null ? ly.total - ly.adult : null;
+  const cards = [
+    kpi("종계 전체", bbMan(cur.total), "만 마리", `전년 동월 ${bbMan(ly.total)}만`, bbPctOf(cur.total, ly.total), BB_COLOR),
+    kpi("성계 (산란 중)", bbMan(cur.adult), "만 마리", `전년 동월 ${bbMan(ly.adult)}만`, bbPctOf(cur.adult, ly.adult), "#4527A0"),
+    kpi("육성계 (6개월 미만)", bbMan(grower), "만 마리", `전년 동월 ${bbMan(lyG)}만`, bbPctOf(grower, lyG), "#AB47BC"),
+    kpi(`${bbMonth(cur.ym)} 종계 입식`, bbMan(cur.placed), "만 마리", `도태 ${bbMan(cur.culled)}만 · 전년 입식 ${bbMan(ly.placed)}만`, bbPctOf(cur.placed, ly.placed), "#00897B"),
+  ].join("");
+
+  const mark = (m, k) => (m.flags || []).indexOf(k) >= 0;
+  const tr = m => {
+    const gr = m.total != null && m.adult != null ? m.total - m.adult : null;
+    const est = m.ym === cur.ym ? ` <span style="font-size:9px;color:#E65100">추정</span>` : "";
+    const chickMid = mark(m, "chick_mid") ? "≈" : "", plDer = mark(m, "placed_derived") ? "≈" : "";
+    return `<tr style="border-bottom:1px solid #f6f6f6">
+      <td style="padding:5px 6px;font-size:12px;white-space:nowrap">${bbYm(m.ym)}${est}</td>
+      <td style="padding:5px 6px;text-align:right;font-variant-numeric:tabular-nums">${bbMan(m.total)}</td>
+      <td style="padding:5px 6px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:#4527A0">${bbMan(m.adult)}</td>
+      <td style="padding:5px 6px;text-align:right;font-variant-numeric:tabular-nums;color:#8E24AA">${bbMan(gr)}</td>
+      <td style="padding:5px 6px;text-align:right;font-variant-numeric:tabular-nums">${m.placed == null ? "-" : plDer + bbMan(m.placed)}</td>
+      <td style="padding:5px 6px;text-align:right;font-variant-numeric:tabular-nums">${m.culled == null ? "-" : bbMan(m.culled)}</td>
+      <td style="padding:5px 6px;text-align:right;font-variant-numeric:tabular-nums;border-left:1px solid #f0f0f0">${m.chick == null ? "-" : chickMid + m.chick.toLocaleString("ko-KR")}</td>
+    </tr>`;
+  };
+  const th = (t, extra) => `<th style="padding:5px 6px;text-align:right;font-size:10px;color:#888;font-weight:600;position:sticky;top:0;background:#fff;${extra || ""}">${t}</th>`;
+  const table = `
+    <div style="max-height:330px;overflow:auto;border:1px solid #f0f0f0;border-radius:8px">
+      <table style="width:100%;border-collapse:collapse;min-width:520px;font-size:12px">
+        <thead><tr style="border-bottom:1px solid #eee">
+          <th style="padding:5px 6px;text-align:left;font-size:10px;color:#888;font-weight:600;position:sticky;top:0;background:#fff">월말</th>
+          ${th("종계 전체")}${th("성계")}${th("육성계")}${th("종계 입식")}${th("종계 도태")}${th("육계 병아리 입식", "border-left:1px solid #f0f0f0")}
+        </tr></thead>
+        <tbody>${rows.slice().reverse().concat(r.months.filter(m => m.total == null && m.chick != null).reverse()).map(tr).join("")}</tbody>
+      </table>
+    </div>
+    <div style="font-size:10px;color:#aaa;margin-top:4px">단위: 종계는 만 마리, 병아리 입식은 만 마리(육계 농가 입식 추정, 수입 종란·병아리 포함). ≈는 월보에 확정치가 없어 전망 범위의 중간값 또는 증감률로 역산한 값. 같은 달 값도 다음 호에서 고쳐지는 일이 잦아 가장 최근 호의 값을 썼습니다.</div>`;
+
+  // 예측
+  const gradeColor = { "낮음":["#E65100", "#FFF3E0"], "보통":["#1565C0", "#E3F2FD"], "검증 불가":["#757575", "#F5F5F5"] }[M.grade] || ["#757575", "#F5F5F5"];
+  const fcRowsA = fcA.map(f => {
+    const c = fcC.find(x => x.ym === f.ym) || null;
+    return `<tr style="border-bottom:1px solid #f6f6f6">
+      <td style="padding:5px 6px;font-size:12px;white-space:nowrap">${bbYm(f.ym)}</td>
+      <td style="padding:5px 6px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:#4527A0">${bbMan(f.adult)}<div style="font-size:9.5px;font-weight:400;color:#aaa">${bbMan(f.lo)}~${bbMan(f.hi)}</div></td>
+      <td style="padding:5px 6px;text-align:right">${bbDelta(f.yoy_pct)}</td>
+      <td style="padding:5px 6px;text-align:right;font-size:11px;color:#777;font-variant-numeric:tabular-nums">${bbMan(f.entering)}만<div style="font-size:9.5px;color:#aaa">${bbYm(f.entering_ym)} 입식분</div></td>
+      <td style="padding:5px 6px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700;border-left:1px solid #f0f0f0">${c ? c.chick.toLocaleString("ko-KR") : "-"}${c ? `<div style="font-size:9.5px;font-weight:400;color:#aaa">${c.lo.toLocaleString("ko-KR")}~${c.hi.toLocaleString("ko-KR")}</div>` : ""}</td>
+      <td style="padding:5px 6px;text-align:right">${c ? bbDelta(c.yoy_pct) : ""}</td>
+      <td style="padding:5px 6px;text-align:right;font-size:11px;color:#777">${c && c.kreI ? c.kreI[0].toLocaleString("ko-KR") + "~" + c.kreI[1].toLocaleString("ko-KR") : "-"}</td>
+    </tr>`;
+  }).join("");
+  const next = fcC.find(x => !fcA.some(a => a.ym === x.ym));
+  const fcTable = fcA.length ? `
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:560px;font-size:12px">
+      <thead><tr style="border-bottom:1px solid #eee">
+        <th style="padding:5px 6px;text-align:left;font-size:10px;color:#888;font-weight:600">월</th>
+        ${th("성계 예상(만)")}${th("성계 전년비")}${th("새로 성계가 되는 육성계")}${th("병아리 생산능력(만 마리)", "border-left:1px solid #f0f0f0")}${th("전년 동월 입식 대비")}${th("KREI 입식 전망(만)")}
+      </tr></thead>
+      <tbody>${fcRowsA}</tbody>
+    </table></div>
+    ${next ? `<div style="font-size:10.5px;color:#777;margin-top:3px">${bbYm(next.ym)} 병아리 생산능력 ${next.chick.toLocaleString("ko-KR")}만 (${next.lo.toLocaleString("ko-KR")}~${next.hi.toLocaleString("ko-KR")}) — 성계 예상 ${bbMan(next.adult_basis)}만 기준</div>` : ""}` :
+    `<div style="font-size:12px;color:#999;padding:8px 0">예측에 필요한 종계 입식 자료가 아직 모자랍니다.</div>`;
+
+  const how = `
+    <details style="margin-top:10px;font-size:11.5px;color:#555;line-height:1.7">
+      <summary style="cursor:pointer;font-weight:700;color:${BB_COLOR}">산정 방법과 한계</summary>
+      <ol style="margin:6px 0 0 18px;padding:0">
+        <li><b>성계 흐름</b>: 입식한 병아리는 약 ${M.L || "-"}개월 뒤 성계(산란 가능)가 된다고 보고, 월별 성계 증감 = ${M.a != null ? M.a.toFixed(2) : "-"}×(${M.L || "-"}개월 전 종계 입식) − ${M.b != null ? M.b.toFixed(2) : "-"}×(도태)로 계산했습니다. 계수는 2025년 이후 월보 ${M.adult_n || "-"}개월 자료로 추정했고, 미래 도태는 최근 ${M.cull_months || "-"}개월 평균 ${M.cull_assumed != null ? bbMan(M.cull_assumed) : "-"}만 마리로 뒀습니다. 입식 자료가 있는 ${M.L || "-"}개월 앞까지만 계산합니다. 한 달 앞 성계 오차는 약 ±${M.adult_rmse != null ? bbMan(M.adult_rmse, 0) : "-"}만 마리(1표준편차)였고, 구간은 80% 범위입니다.</li>
+        <li><b>병아리 생산능력</b>: 월 병아리 입식 ≈ 계수 × 전월 성계 마릿수. 계수는 「${esc(M.ratio_method || "-")}」 방식이며 지금 ${fcC[0] ? fcC[0].ratio : "-"} 안팎(성계 1천 마리당 병아리 입식 만 마리)입니다.</li>
+        <li><b>검증</b>: ${bt ? `2025년 이후 ${bt.n}개월 롤링 백테스트에서 실제 입식과의 평균 오차(MAPE)는 ${bt.mape_pct}%였고, 같은 달 전년 입식을 그대로 쓴 값은 ${bt.naive_last_year_mape_pct == null ? "-" : bt.naive_last_year_mape_pct + "%"}였습니다.` : "백테스트 표본이 부족합니다."} ${esc(M.grade_why || "")}</li>
+        <li>병아리 입식은 성계 마릿수 외에 작업일수·육계 수요·수입 종란에도 크게 좌우되어, 여기 나온 값은 <b>입식 예측이 아니라 성계 기준 생산능력</b>입니다. 실제 입식 전망은 맨 오른쪽 KREI 값을 보세요. 도태는 AI 살처분·노계 정리에 따라 크게 달라질 수 있습니다.</li>
+        <li>대한양계협회 종계 DB·생산통계는 회원 전용이라 이 카드에는 쓰지 못했습니다. 월보에 없는 값(2025.11·12월 종계 입식 등)은 비워 두었습니다.</li>
+      </ol>
+    </details>`;
+
+  return shell(`
+    <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+      <span style="font-size:11px;background:#F3E5F5;color:${BB_COLOR};border-radius:10px;padding:2px 9px;font-weight:600">${cur.ym.slice(0, 4)}년 ${+cur.ym.slice(5)}월 말 기준 (KREI 추정)</span>
+      <span style="font-size:10px;color:#aaa">축산관측 ${esc(String(r.latest_report || "").slice(0, 4))}년 ${esc(String(+String(r.latest_report || "").slice(5) || ""))}월호 · 월 1회 갱신</span>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">${cards}</div>
+
+    <div style="font-size:12px;font-weight:800;color:#333;margin:2px 0 4px">월별 종계 사육 마릿수 <span style="font-weight:500;color:#999;font-size:10.5px">■ 성계 ■ 육성계 · 점선=성계 예상</span></div>
+    ${bbChartSvg(rows, fcA)}
+
+    <div style="font-size:12px;font-weight:800;color:#333;margin:14px 0 4px">월별 현황 (2025년 1월~)</div>
+    ${table}
+
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:16px 0 4px">
+      <span style="font-size:12px;font-weight:800;color:#333">🐣 초생추 병아리 생산잠재력 전망</span>
+      <span style="font-size:10.5px;font-weight:700;color:${gradeColor[0]};background:${gradeColor[1]};border-radius:9px;padding:2px 8px">신뢰도 ${esc(M.grade || "-")}</span>
+    </div>
+    <div style="font-size:11px;color:#777;margin-bottom:6px">이미 입식된 육성계가 성계로 올라오는 시점을 따라 앞으로 성계가 얼마나 될지, 그에 따른 월 병아리 생산능력을 계산했습니다. 참고용 지표이며 입식 예측과는 다릅니다.</div>
+    ${fcTable}
+    ${how}
+
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-top:10px">
+      <div style="font-size:9px;color:#bbb">출처: ${esc(r.source || "")} · 계산 ${esc(r.updated || "")}</div>
+      <a href="${esc(r.source_url || "https://aglook.krei.re.kr/main/uObserveMonth/OVR0000000014")}" target="_blank" rel="noopener"
+         style="font-size:11px;color:${BB_COLOR};border:1px solid ${BB_COLOR};border-radius:6px;padding:4px 9px;text-decoration:none">KREI 월보 ↗</a>
+    </div>`);
 }
 
 function renderFeedPotentialPanel(){
@@ -29386,6 +29571,7 @@ function renderPriceTab(){
   ${renderPoultryPriceLine()}
   ${renderBroilerPriceTodayPanel()}
   ${renderFeedPotentialPanel()}
+  ${renderBroilerBreederPanel()}
   ${renderLayerStatsPanel()}
   ${renderEggSupplyPanel()}`;
 }
@@ -37418,6 +37604,7 @@ fetchBroilerPriceToday();
 // 주간 계란 수급 정보 (GitHub Actions 매주 화요일 업데이트)
 fetchEggReport();
 fetchLayerStats();
+fetchBroilerBreeder();
 fetchFeedProduction();
 fetchJungchuPrice();
 fetchHpaiRisk();

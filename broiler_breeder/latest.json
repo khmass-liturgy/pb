@@ -1,0 +1,489 @@
+{
+ "updated": "2026-10-23 10:14 KST",
+ "source": "KREI 농업관측센터 「축산관측 육계」 월보 2025년 3월호~2026년 10월호",
+ "source_url": "https://aglook.krei.re.kr/main/uObserveMonth/OVR0000000014",
+ "latest_report": "2026-10",
+ "units": {
+  "total": "천 마리",
+  "adult": "천 마리",
+  "placed": "천 마리",
+  "culled": "천 마리",
+  "chick": "만 마리"
+ },
+ "notes": [
+  "종계 = 육용종계 성계+육성계. 성계는 산란이 가능하도록 다 자란 닭, 육성계는 6개월 미만의 산란 불가능한 닭(월보 각주). 육성계 = 종계 전체 − 성계로 계산.",
+  "2026년 종계 수치는 KREI 농업관측센터 추정치이고, 같은 달 값도 다음 호에서 고쳐지는 일이 잦다(예: 2025.5월 종계 전체 885만 → 848만). 표에는 가장 최근 호에 실린 값을 쓴다.",
+  "2025.9·10월 종계 수치는 해당 시점 호에 실린 값이며 이후 개정 여부는 확인하지 못했다(flags: unrevised).",
+  "병아리 입식은 KREI가 추정한 육계 농가 병아리 입식 마릿수(만 마리, 국내 부화+수입 종란·병아리 포함). 월보에 확정치가 없는 달은 전망 범위의 중간값이다(flags: chick_mid).",
+  "2025.5·7·8월 종계 입식은 2026년 호의 전년 대비 증감률로 거꾸로 계산한 값이다(flags: placed_derived).",
+  "2025.11·12월 종계 입식·도태(12월)는 해당 호가 없어 비어 있다. 대한양계협회 종계 DB·생산통계는 회원 전용이라 공개 자료로는 수집하지 못했다."
+ ],
+ "months": [
+  {
+   "ym": "2025-01",
+   "total": 8031,
+   "adult": 4606,
+   "placed": 424,
+   "culled": 366,
+   "chick": 5888,
+   "grower": 3425
+  },
+  {
+   "ym": "2025-02",
+   "total": 7874,
+   "adult": 4598,
+   "placed": 394,
+   "culled": 449,
+   "chick": 6376,
+   "grower": 3276
+  },
+  {
+   "ym": "2025-03",
+   "total": 8168,
+   "adult": 4985,
+   "placed": 593,
+   "culled": 314,
+   "chick": 6477,
+   "grower": 3183
+  },
+  {
+   "ym": "2025-04",
+   "total": 8269,
+   "adult": 5036,
+   "placed": 779,
+   "culled": 330,
+   "chick": 6785,
+   "grower": 3233
+  },
+  {
+   "ym": "2025-05",
+   "total": 8477,
+   "adult": 5172,
+   "placed": 718,
+   "culled": 423,
+   "chick": 6732,
+   "flags": [
+    "placed_derived"
+   ],
+   "grower": 3305
+  },
+  {
+   "ym": "2025-06",
+   "total": 8331,
+   "adult": 5029,
+   "placed": 568,
+   "culled": 627,
+   "chick": 7848,
+   "grower": 3302
+  },
+  {
+   "ym": "2025-07",
+   "total": 8083,
+   "adult": 4606,
+   "placed": 604,
+   "culled": 695,
+   "chick": 6843,
+   "flags": [
+    "placed_derived"
+   ],
+   "grower": 3477
+  },
+  {
+   "ym": "2025-08",
+   "total": 8085,
+   "adult": 4619,
+   "placed": 619,
+   "culled": 474,
+   "chick": 6996,
+   "flags": [
+    "placed_derived"
+   ],
+   "grower": 3466
+  },
+  {
+   "ym": "2025-09",
+   "total": 8222,
+   "adult": 4952,
+   "placed": 480,
+   "culled": 465,
+   "chick": 6793,
+   "flags": [
+    "unrevised"
+   ],
+   "grower": 3270
+  },
+  {
+   "ym": "2025-10",
+   "total": 8276,
+   "adult": 5011,
+   "placed": 795,
+   "culled": 331,
+   "chick": 6432,
+   "flags": [
+    "unrevised"
+   ],
+   "grower": 3265
+  },
+  {
+   "ym": "2025-11",
+   "total": 8327,
+   "adult": 5170,
+   "culled": 500,
+   "chick": 7055,
+   "flags": [
+    "chick_mid"
+   ],
+   "grower": 3157
+  },
+  {
+   "ym": "2025-12",
+   "total": 8135,
+   "adult": 5075,
+   "chick": 6706,
+   "flags": [
+    "chick_mid"
+   ],
+   "grower": 3060
+  },
+  {
+   "ym": "2026-01",
+   "total": 8075,
+   "adult": 4852,
+   "placed": 575,
+   "culled": 607,
+   "chick": 5522,
+   "flags": [
+    "kreI_est"
+   ],
+   "grower": 3223
+  },
+  {
+   "ym": "2026-02",
+   "total": 8071,
+   "adult": 4744,
+   "placed": 452,
+   "culled": 223,
+   "chick": 6487,
+   "flags": [
+    "kreI_est"
+   ],
+   "grower": 3327
+  },
+  {
+   "ym": "2026-03",
+   "total": 8231,
+   "adult": 4923,
+   "placed": 684,
+   "culled": 450,
+   "chick": 6507,
+   "flags": [
+    "kreI_est"
+   ],
+   "grower": 3308
+  },
+  {
+   "ym": "2026-04",
+   "total": 8203,
+   "adult": 4911,
+   "placed": 783,
+   "culled": 475,
+   "chick": 6451,
+   "flags": [
+    "chick_mid",
+    "kreI_est"
+   ],
+   "grower": 3292
+  },
+  {
+   "ym": "2026-05",
+   "total": 8396,
+   "adult": 4979,
+   "placed": 608,
+   "culled": 331,
+   "chick": 6793,
+   "flags": [
+    "chick_mid",
+    "kreI_est"
+   ],
+   "grower": 3417
+  },
+  {
+   "ym": "2026-06",
+   "total": 8445,
+   "adult": 4804,
+   "placed": 730,
+   "culled": 709,
+   "chick": 7988,
+   "flags": [
+    "chick_mid",
+    "kreI_est"
+   ],
+   "grower": 3641
+  },
+  {
+   "ym": "2026-07",
+   "total": 8136,
+   "adult": 4353,
+   "placed": 648,
+   "culled": 869,
+   "chick": 7119,
+   "flags": [
+    "chick_mid",
+    "kreI_est"
+   ],
+   "grower": 3783
+  },
+  {
+   "ym": "2026-08",
+   "total": 8414,
+   "adult": 4578,
+   "placed": 615,
+   "culled": 320,
+   "chick": 6431,
+   "flags": [
+    "chick_mid",
+    "kreI_est",
+    "latest_est"
+   ],
+   "grower": 3836
+  },
+  {
+   "ym": "2026-09",
+   "chick": 7167,
+   "flags": [
+    "chick_mid"
+   ]
+  }
+ ],
+ "prev_year": [
+  {
+   "ym": "2024-01",
+   "total": 7742,
+   "adult": 4477,
+   "chick": 5992
+  },
+  {
+   "ym": "2024-02",
+   "total": 7874,
+   "adult": 4518,
+   "chick": 6581
+  },
+  {
+   "ym": "2024-03",
+   "total": 7879,
+   "adult": 4542,
+   "chick": 6733
+  },
+  {
+   "ym": "2024-04",
+   "total": 8065,
+   "adult": 4695,
+   "chick": 7043
+  },
+  {
+   "ym": "2024-05",
+   "total": 8299,
+   "adult": 4721,
+   "chick": 6549
+  },
+  {
+   "ym": "2024-06",
+   "total": 8153,
+   "adult": 4630,
+   "chick": 7824
+  },
+  {
+   "ym": "2024-07",
+   "total": 7899,
+   "adult": 4313,
+   "chick": 7054
+  },
+  {
+   "ym": "2024-08",
+   "total": 7902,
+   "adult": 4276,
+   "chick": 6010
+  },
+  {
+   "ym": "2024-09",
+   "total": 8091,
+   "adult": 4548,
+   "chick": 7162
+  },
+  {
+   "ym": "2024-10",
+   "total": 8126,
+   "adult": 4658,
+   "chick": 6650
+  },
+  {
+   "ym": "2024-11",
+   "total": 8152,
+   "adult": 4696,
+   "chick": 6615
+  },
+  {
+   "ym": "2024-12",
+   "total": 8068,
+   "adult": 4553,
+   "chick": 5865
+  }
+ ],
+ "kreI_outlook": {
+  "2026-09": [
+   7099,
+   7235
+  ],
+  "2026-10": [
+   6611,
+   6740
+  ]
+ },
+ "last_ym": "2026-08",
+ "adult_forecast": [
+  {
+   "ym": "2026-09",
+   "adult": 4704,
+   "lo": 4539,
+   "hi": 4869,
+   "entering": 783,
+   "entering_ym": "2026-04",
+   "yoy_pct": -5.0
+  },
+  {
+   "ym": "2026-10",
+   "adult": 4713,
+   "lo": 4479,
+   "hi": 4947,
+   "entering": 608,
+   "entering_ym": "2026-05",
+   "yoy_pct": -5.9
+  },
+  {
+   "ym": "2026-11",
+   "adult": 4803,
+   "lo": 4517,
+   "hi": 5089,
+   "entering": 730,
+   "entering_ym": "2026-06",
+   "yoy_pct": -7.1
+  },
+  {
+   "ym": "2026-12",
+   "adult": 4839,
+   "lo": 4509,
+   "hi": 5170,
+   "entering": 648,
+   "entering_ym": "2026-07",
+   "yoy_pct": -4.6
+  },
+  {
+   "ym": "2027-01",
+   "adult": 4853,
+   "lo": 4484,
+   "hi": 5222,
+   "entering": 615,
+   "entering_ym": "2026-08",
+   "yoy_pct": 0.0
+  }
+ ],
+ "chick_potential": [
+  {
+   "ym": "2026-09",
+   "chick": 6849,
+   "lo": 6198,
+   "hi": 7500,
+   "adult_basis": 4578,
+   "ratio": 1.496,
+   "last_year_chick": 6793,
+   "yoy_pct": 0.8,
+   "kreI": [
+    7099,
+    7235
+   ]
+  },
+  {
+   "ym": "2026-10",
+   "chick": 6595,
+   "lo": 5927,
+   "hi": 7264,
+   "adult_basis": 4704,
+   "ratio": 1.402,
+   "last_year_chick": 6432,
+   "yoy_pct": 2.5,
+   "kreI": [
+    6611,
+    6740
+   ]
+  },
+  {
+   "ym": "2026-11",
+   "chick": 6687,
+   "lo": 5970,
+   "hi": 7404,
+   "adult_basis": 4713,
+   "ratio": 1.419,
+   "last_year_chick": 7055,
+   "yoy_pct": -5.2,
+   "kreI": null
+  },
+  {
+   "ym": "2026-12",
+   "chick": 6477,
+   "lo": 5750,
+   "hi": 7203,
+   "adult_basis": 4803,
+   "ratio": 1.348,
+   "last_year_chick": 6706,
+   "yoy_pct": -3.4,
+   "kreI": null
+  },
+  {
+   "ym": "2027-01",
+   "chick": 6326,
+   "lo": 5585,
+   "hi": 7066,
+   "adult_basis": 4839,
+   "ratio": 1.307,
+   "last_year_chick": 5522,
+   "yoy_pct": 14.6,
+   "kreI": null
+  },
+  {
+   "ym": "2027-02",
+   "chick": 6845,
+   "lo": 6011,
+   "hi": 7678,
+   "adult_basis": 4853,
+   "ratio": 1.41,
+   "last_year_chick": 6487,
+   "yoy_pct": 5.5,
+   "kreI": null
+  }
+ ],
+ "model": {
+  "cull_assumed": 480,
+  "cull_months": 12,
+  "L": 5,
+  "a": 0.667,
+  "b": 0.827,
+  "adult_rmse": 129,
+  "adult_sd_delta": 240,
+  "adult_n": 12,
+  "ratio_method": "전체 평균+같은 달 평균(계절 보정)",
+  "ratio_mape": {
+   "all": 7.7,
+   "r12": 7.3,
+   "seas": 7.0
+  },
+  "backtest": {
+   "n": 21,
+   "mape_pct": 7.0,
+   "bias_pct": 4.7,
+   "naive_last_year_mape_pct": 4.5,
+   "naive_n": 21
+  },
+  "grade": "낮음",
+  "grade_why": "같은 달 전년 입식을 그대로 쓴 값보다 오차가 커서 입식 예측으로는 쓰지 말고 성계 기준 생산능력 지표로만 본다."
+ }
+}

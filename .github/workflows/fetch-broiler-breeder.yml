@@ -1,0 +1,55 @@
+name: 육용종계 사육현황·병아리 생산잠재력
+
+# KREI 농업관측센터 「축산관측 육계」 월보는 매월 초(대체로 3~5일)에 올라온다. 새 호가 있으면 종계 사육 동향 쪽을 이미지로 만들어
+# Claude(비전)가 표를 읽고, 읽은 값이 말이 되면 broiler_breeder/data.json 에 합친 뒤 성계 흐름·병아리 생산능력 예측을 다시 계산한다.
+# 새 호가 없으면 내려받기 없이 끝나므로(파일 번호 비교) 3~12일에 매일 확인해도 부담이 없다.
+# 02:20 UTC = 한국시간 11:20
+on:
+  schedule:
+    - cron: "20 2 3-12 * *"
+  workflow_dispatch:
+  push:
+    paths:
+      - "scripts/fetch_broiler_breeder.py"
+      - "broiler_breeder/data.json"
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-broiler-breeder:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: 패키지 설치
+        run: pip install requests pdfplumber
+      - name: 월보 확인·예측
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python scripts/fetch_broiler_breeder.py
+      - name: 결과 커밋
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add broiler_breeder/
+          git diff --staged --quiet && echo "변경 없음" && exit 0
+          git commit -m "🐓 육용종계 사육현황 갱신 ($(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M KST'))"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin ${GITHUB_REF_NAME} && git push && exit 0
+            echo "푸시 재시도 $i"
+            sleep 5
+          done
+          exit 1
+
+      - name: Firebase Storage 업로드 (저장소 비공개 대비)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          pip install -q firebase-admin
+          python scripts/upload_to_storage.py broiler_breeder/latest.json
