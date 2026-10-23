@@ -595,12 +595,12 @@ function ventCtx(){
   if(S.mode==='broiler')return{tin:recTemp(t),tout:S.fx.heat>0?34:19+Math.sin(t/4)*2};
   return{tin:envRec('layer',Math.min(MODES.layer.maxDay,t)).t,tout:S.fx.heat>0?34:19+Math.sin(t/4)*2};
 }
-function ventNeedKg(mode,tin,tout){   // m³/h/kg
-  const b=BIRD[mode],qHeat=b.sens/(RHOCP*Math.max(4,tin-tout));
+function ventNeedKg(mode,tin,tout,kg){   // m³/h/kg — 추운 날은 수분 배출이, 더운 날은 열 배출(닭 발열 − 외피 손실)이 기준
+  const b=BIRD[mode],dT=Math.max(4,tin-tout),qHeat=Math.max(0,b.sens*kg-b.ua*dT)/(RHOCP*dT*kg);
   const dw=Math.max(1,psyW(tin,.65)-psyW(tout,.7)),qMoist=b.lat/(dw*1.17);
   return clamp(Math.max(qHeat,qMoist,.4),.4,VENT_FULL);
 }
-function ventNeedLv(){const x=ventCtx();return clamp(100*ventNeedKg(S.mode,x.tin,x.tout)/VENT_FULL,15,95)}
+function ventNeedLv(){const x=ventCtx();return clamp(100*ventNeedKg(S.mode,x.tin,x.tout,Math.max(.02,S.weight/1000))/VENT_FULL,15,95)}
 function ventHeatWon(days){   // 난방비: 환기·외피로 빠지는 열 − 닭이 내는 열
   const b=BIRD[S.mode],x=ventCtx(),dT=Math.max(0,S.ctrl.temp-x.tout);
   if(dT<=0)return 0;
@@ -1526,7 +1526,7 @@ function vaxLine(d,u){
 // 환기 한 줄: 지금 닭 수·체중에 필요한 환기량과 팬이 내는 양(m³/h), 그리고 판정
 function ventLine(){
   if(S.done)return'';
-  const x=ventCtx(),kg=Math.max(.01,S.weight/1000),need=ventNeedKg(S.mode,x.tin,x.tout),prov=Math.max(.4,VENT_FULL*S.ventLv/100);
+  const x=ventCtx(),kg=Math.max(.01,S.weight/1000),need=ventNeedKg(S.mode,x.tin,x.tout,kg),prov=Math.max(.4,VENT_FULL*S.ventLv/100);
   const lv=ventNeedLv(),st=S.ventLv<lv?['부족','var(--bad)']:S.ventLv<lv+45?['적정','#2E9E4F']:['과다(난방비↑)','#C77700'];
   const N=10000,house=Math.round(need*kg*N/10)*10,fan=Math.round(prov*kg*N/10)*10;   // 폐사와 무관하게 1만수 기준으로 고정 표시(배우기 쉽게)
   const f=n=>n.toLocaleString('ko-KR');
