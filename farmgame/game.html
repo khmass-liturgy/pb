@@ -581,12 +581,39 @@ function addLog(t){S.log.unshift({d:S.day,t});S.log=S.log.slice(0,8)}
 /* ── 사료통·물통·환기: 깔짚처럼 시간이 지나면 줄고, 터치로 채우거나 가동한다 ── */
 const FEED_DROP=55,WATER_DROP=45,VENT_DROP=30;
 function ensureGauges(){if(S.feedLv==null){S.feedLv=100;S.waterLv=100;S.ventLv=60;S.feedCut=false}if(S.ctrl.hum==null)S.ctrl.hum=S.mode==='layer'?60:65;if(S.ctrl.temp==null)S.ctrl.temp=S.mode==='layer'?envRec('layer',Math.min(MODES.layer.maxDay,Math.max(1,S.day+1))).t:33}
+/* ── 환기 열수지 ──
+   필요 환기량 = max(수분 배출 최소환기, 현열 제거 환기). EnergyFlowX(습공기 계산, 2026-10)로 확인한 값:
+   ρ·cp ≈ 0.33 W/(m³/h·K)(계사 공기 1.16 kg/m³ × 1.01 kJ/kg·K), 1,000 m³/h를 -5℃→30℃로 데우면 12.9 kW.
+   습도비(g/kg): 30℃ 65% = 17.5, 25℃ 60% = 12.0, 5℃ 70% = 3.8, -5℃ 70% = 1.7 (아래 psyW는 Magnus식, 0℃ 이상에서 오차 약 1%).
+   닭이 내는 열·수분과 외피 열손실(UA)은 일반적인 교육용 가정값(품종 기준 아님). 팬 최대용량 7 m³/h/kg = 게이지 100. */
+const VENT_FULL=7,RHOCP=.33,HEAT_KWH_WON=90;
+const BIRD={broiler:{sens:7.5,lat:3.7,ua:.15},layer:{sens:5,lat:3,ua:.2}};   // 현열 W/kg, 수분 g/h/kg, 외피 W/K/수
+function psyW(T,rh){const ps=6.112*Math.exp(17.62*T/(243.12+T)),pv=rh*ps;return 622*pv/(1013.25-pv)}
+function ventCtx(){
+  const t=S.day+1;
+  if(S.mode==='broiler')return{tin:recTemp(t),tout:S.fx.heat>0?34:19+Math.sin(t/4)*2};
+  return{tin:envRec('layer',Math.min(MODES.layer.maxDay,t)).t,tout:S.fx.heat>0?34:19+Math.sin(t/4)*2};
+}
+function ventNeedKg(mode,tin,tout){   // m³/h/kg
+  const b=BIRD[mode],qHeat=b.sens/(RHOCP*Math.max(4,tin-tout));
+  const dw=Math.max(1,psyW(tin,.65)-psyW(tout,.7)),qMoist=b.lat/(dw*1.17);
+  return clamp(Math.max(qHeat,qMoist,.4),.4,VENT_FULL);
+}
+function ventNeedLv(){const x=ventCtx();return clamp(100*ventNeedKg(S.mode,x.tin,x.tout)/VENT_FULL,15,95)}
+function ventHeatWon(days){   // 난방비: 환기·외피로 빠지는 열 − 닭이 내는 열
+  const b=BIRD[S.mode],x=ventCtx(),dT=Math.max(0,S.ctrl.temp-x.tout);
+  if(dT<=0)return 0;
+  const kg=S.weight/1000,q=Math.max(.4,VENT_FULL*S.ventLv/100);
+  const w=S.alive*(RHOCP*q*kg*dT+b.ua*dT-b.sens*kg);
+  return Math.max(0,w)/1000*24*days*HEAT_KWH_WON;
+}
 function useGauges(){
   ensureGauges();
   const c=S.ctrl,fc=clamp(S.feedLv/FEED_DROP,0,1),wc=clamp(S.waterLv/WATER_DROP,0,1);
   c.feed=(fc<.85||S.feedCut)?1:2;
   c.water=wc<.85?1:2;
-  c.vent=S.ventLv<34?1:S.ventLv<67?2:3;
+  S.ventNeed=ventNeedLv();
+  c.vent=S.ventLv<S.ventNeed?1:S.ventLv<S.ventNeed+45?2:3;
   if(fc<.85&&!S.feedCut) addLog('사료통이 비었어요! 닭들이 굶었어요. 하루 보내기 전에 급이해 주세요.');
   if(wc<.85) addLog('물통이 비었어요! 닭들이 목말라해요. 급수해 주세요.');
 }
@@ -622,7 +649,7 @@ function stepBroiler(){
   const intake=base*(1.05+d*.017)*useF*(1+(100-S.health)/300);
   const feedKg=S.alive*intake/1000;
   const price=(fx.lock>0?S.basePrice:S.feedPrice)*ff.price;
-  const heatCost=Math.max(0,c.temp-outside)*400, ventCost=0;
+  const heatCost=fx.heat>0?0:ventHeatWon(1), ventCost=0;
   S.tot.feedKg+=feedKg;S.tot.feedCost+=feedKg*price;S.tot.other+=heatCost+ventCost;
   S.money-=feedKg*price+heatCost+ventCost;
   const mort=.0004+(100-S.health)*.00008+(fx.disease>0?fx.sev*.00025:0)+(tdev>5?.002:0);
@@ -668,7 +695,7 @@ function stepLayer(){
   const intake=(growing?10+w*4.2:112)*[.86,1,1.12][c.feed-1];
   const feedKg=S.alive*intake*7/1000;
   const price=(fx.lock>0?S.basePrice:S.feedPrice)*ff.price;
-  const lightCost=c.light*7*100, calCost=c.calcium?14000:0, ventCost=fx.heat>0?0:Math.max(0,c.temp-outsideL)*2800;   // 산란계 난방비(설정 온도가 바깥보다 높을수록)
+  const lightCost=c.light*7*100, calCost=c.calcium?14000:0, ventCost=fx.heat>0?0:ventHeatWon(7);   // 산란계 난방비(설정 온도가 바깥보다 높을수록)
   S.tot.feedKg+=feedKg;S.tot.feedCost+=feedKg*price;S.tot.other+=lightCost+calCost+ventCost;
   S.money-=feedKg*price+lightCost+calCost+ventCost;
   let rate=0;
@@ -1324,7 +1351,7 @@ function needMsgs(){
   if(!S)return m;
   if(S.feedLv<FEED_DROP)m.push('배고파요! 🌾','사료가 없어요…','꼬르륵');
   if(S.waterLv<WATER_DROP)m.push('목말라요! 💧','물 주세요~','물이 없어요');
-  if(S.ventLv<34)m.push('답답해요 🌀','공기가 탁해요','환기해 주세요');
+  if(S.ventLv<ventNeedLv())m.push('답답해요 🌀','공기가 탁해요','환기해 주세요');
   if(S.mode==='layer'){const rec=recLight(Math.max(1,S.day+1));
     if(S.ctrl.light<rec-1)m.push('너무 어두워요 💡','불을 켜 주세요');
     else if(S.ctrl.light>rec+1)m.push('눈부셔서 잠이 안 와요','불이 너무 길어요');}
@@ -1370,7 +1397,7 @@ let fdOpen=false;
 function renderActs(){
   const el=$('#acts');if(!el||!S)return;
   el.hidden=!!S.done;
-  const it=[['feed','🌾','급이',S.feedLv,FEED_DROP],['water','💧','급수',S.waterLv,WATER_DROP],['vent','🌀','환기',S.ventLv,34]];
+  const it=[['feed','🌾','급이',S.feedLv,FEED_DROP],['water','💧','급수',S.waterLv,WATER_DROP],['vent','🌀','환기',S.ventLv,Math.round(S.ventNeed||ventNeedLv())]];
   it.push(['litter','🪵','깔짚',S.litter,45]);
   const FL=FEEDS[S.mode],frec=feedRecIdx(S.mode,S.day+1),fcur=Math.max(0,FL.findIndex(f=>f.id===S.ctrl.fd));
   el.innerHTML=it.map(([k,em,lab,lv,need])=>`<button type="button" class="act${lv<need?' low':''}" data-act="${k}" style="--lv:${Math.round(lv)}%;--gc:${lv>=need?'#BFE8B8':lv>0?'#FFE29A':'#FFB3A6'}" aria-label="${lab}하기 ${won(btnCost(k))}"><span class="r"><span class="em">${em}</span>${lab}</span><small>${won(btnCost(k))}</small></button>`).join('')
