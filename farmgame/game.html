@@ -1790,7 +1790,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S)flush()}
 function autosave(){if(!S)return;LS.set(lsKey('kkokko-autosave'),S);scheduleCloudSave()}
 function pickPreview(id,mode){
   const box=$(id);
-  box.innerHTML=`<div class="hen" style="left:12%;bottom:6%;width:74px;--grow:1">${henSVG(mode)}</div><div class="hen left" style="right:30%;bottom:10%;width:40px;--grow:0">${henSVG(mode)}</div><div class="hen" style="right:8%;bottom:4%;width:36px;--grow:0">${henSVG(mode)}</div>${mode==='layer'?`<img class="egg" alt="" src="${SPR.egg}" style="position:absolute;left:44%;bottom:10%;width:20px;flex:none"><img class="egg" alt="" src="${SPR.egg}" style="position:absolute;left:51%;bottom:8%;width:20px;flex:none">`:''}`;
+  box.innerHTML=`<div class="hen" style="left:12%;bottom:6%;width:74px;--grow:1">${henSVG(mode)}</div><div class="hen left" style="right:30%;bottom:10%;width:40px;--grow:0">${henSVG(mode)}</div><div class="hen" style="right:8%;bottom:4%;width:36px;--grow:0">${henSVG(mode)}</div>${mode==='layer'?`<img class="egg" alt="" src="${SPR.egg}" style="position:absolute;left:44%;bottom:10%;width:20px;height:auto;flex:none"><img class="egg" alt="" src="${SPR.egg}" style="position:absolute;left:51%;bottom:8%;width:20px;height:auto;flex:none">`:''}`;
 }
 pickPreview('#picB','broiler',1);pickPreview('#picL','layer',1);
 
