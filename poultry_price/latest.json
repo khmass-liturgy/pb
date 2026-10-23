@@ -1,13 +1,17 @@
 {
-  "updated": "2026-10-22 11:43 KST",
+  "updated": "2026-10-23 11:47 KST",
   "stale": {},
   "egg": {
     "label": "계란 산지가격",
     "region": "전국",
     "grade": "특란 (XL)",
     "unit": "원/10개",
-    "latest": 1750,
+    "latest": 1766,
     "rows": [
+      {
+        "date": "2026-10-22",
+        "value": 1766
+      },
       {
         "date": "2026-10-21",
         "value": 1750
@@ -75,10 +79,6 @@
       {
         "date": "2026-09-23",
         "value": 2053
-      },
-      {
-        "date": "2026-09-22",
-        "value": 2061
       }
     ]
   },
@@ -87,8 +87,12 @@
     "region": "수도권",
     "grade": "특란 (XL)",
     "unit": "원/10개",
-    "latest": 1709,
+    "latest": 1748,
     "rows": [
+      {
+        "date": "2026-10-22",
+        "value": 1748
+      },
       {
         "date": "2026-10-21",
         "value": 1709
@@ -156,10 +160,6 @@
       {
         "date": "2026-09-23",
         "value": 2054
-      },
-      {
-        "date": "2026-09-22",
-        "value": 2066
       }
     ]
   },
@@ -168,6 +168,10 @@
     "unit": "원/kg",
     "latest": 1500,
     "rows": [
+      {
+        "date": "2026-10-22",
+        "value": 1500
+      },
       {
         "date": "2026-10-21",
         "value": 1500
@@ -235,10 +239,6 @@
       {
         "date": "2026-09-23",
         "value": 1500
-      },
-      {
-        "date": "2026-09-22",
-        "value": 1500
       }
     ]
   },
@@ -249,7 +249,7 @@
         "label": "대",
         "spec": "1.6kg 이상",
         "value": 1500,
-        "date": "2026-10-21"
+        "date": "2026-10-22"
       },
       "medium": {
         "label": "중",
@@ -265,6 +265,12 @@
       }
     },
     "rows": [
+      {
+        "date": "2026-10-22",
+        "large": 1500,
+        "medium": null,
+        "small": null
+      },
       {
         "date": "2026-10-21",
         "large": 1500,
@@ -366,27 +372,21 @@
         "large": 1500,
         "medium": null,
         "small": null
-      },
-      {
-        "date": "2026-09-22",
-        "large": 1500,
-        "medium": null,
-        "small": null
       }
     ]
   },
   "pig": {
     "label": "농가수취 평균",
     "unit": "원/kg",
-    "latest": 6136,
+    "latest": 6104,
     "rows": [
+      {
+        "date": "2026-10-22",
+        "value": 6104
+      },
       {
         "date": "2026-10-21",
         "value": 6136
-      },
-      {
-        "date": "2026-10-20",
-        "value": 6334
       }
     ]
   },
@@ -395,39 +395,45 @@
       "female_calf": {
         "label": "암송아지(6~7개월)",
         "unit": "천원/마리",
-        "value": 4040,
-        "date": "2026-10-15"
+        "value": 3957,
+        "date": "2026-10-21"
       },
       "male_calf": {
         "label": "수송아지(6~7개월)",
         "unit": "천원/마리",
-        "value": 5590,
-        "date": "2026-10-15"
+        "value": 5512,
+        "date": "2026-10-21"
       },
       "farm_receipt_600kg": {
         "label": "농가수취가격(600kg)",
         "unit": "천원/마리",
-        "value": 8392,
-        "date": "2026-10-21"
+        "value": 8358,
+        "date": "2026-10-22"
       }
     },
     "rows": [
       {
-        "date": "2026-10-22",
+        "date": "2026-10-23",
         "female_calf": null,
         "male_calf": null,
         "farm_receipt_600kg": null
       },
       {
-        "date": "2026-10-21",
+        "date": "2026-10-22",
         "female_calf": null,
         "male_calf": null,
+        "farm_receipt_600kg": 8358
+      },
+      {
+        "date": "2026-10-21",
+        "female_calf": 3957,
+        "male_calf": 5512,
         "farm_receipt_600kg": 8392
       },
       {
         "date": "2026-10-20",
-        "female_calf": null,
-        "male_calf": null,
+        "female_calf": 3968,
+        "male_calf": 5572,
         "farm_receipt_600kg": 8468
       },
       {
@@ -525,12 +531,6 @@
         "female_calf": null,
         "male_calf": null,
         "farm_receipt_600kg": 7397
-      },
-      {
-        "date": "2026-09-22",
-        "female_calf": null,
-        "male_calf": null,
-        "farm_receipt_600kg": 7925
       }
     ]
   },
