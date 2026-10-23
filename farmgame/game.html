@@ -190,6 +190,7 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
 .grade{font-family:var(--f-display);font-size:64px;line-height:1;color:var(--coral);text-align:center}
 .rep{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .rep .stat .v{font-size:21px}
+.rep .stat:nth-child(5):nth-last-child(1){grid-column:1/-1}
 .fb{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:14px}
 .toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(30px);background:var(--ink);color:#fff;border-radius:14px;padding:8px 14px;font-size:14px;opacity:0;transition:.3s;z-index:1200;max-width:calc(100% - 32px)}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -383,7 +384,7 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
           <dt>시작</dt><dd>병아리 1,000수 입추</dd>
           <dt>목표</dt><dd>33일 키워 출하 수익 얻기</dd>
           <dt>관리</dt><dd>사료·물·온도·환기·깔짚</dd>
-          <dt>성적표</dt><dd>출하체중·생존율·사료요구율·순이익</dd>
+          <dt>성적표</dt><dd>출하체중·생존율·사료요구율·생산지수·순이익</dd>
         </dl>
         <span class="go">하루씩 키우기 ▶</span>
       </button>
@@ -1675,11 +1676,13 @@ function showReport(){
   let cards,fb=[],score;
   if(!lay){
     const fcr=S.tot.feedKg/Math.max(1,S.alive*S.weight/1000);
-    cards=[['출하체중',(S.weight/1000).toFixed(2)+'kg'],['생존율',pct(surv)],['사료요구율',fcr.toFixed(2)],['순이익',won(profit)]];
+    const pi=surv*100*(S.weight/1000)/(Math.max(1,S.day)*Math.max(.5,fcr))*100;   // 생산지수(PI) = 생존율(%)×출하체중(kg)÷(일령×사료요구율)×100
+    cards=[['출하체중',(S.weight/1000).toFixed(2)+'kg'],['생존율',pct(surv)],['사료요구율',fcr.toFixed(2)],['생산지수',Math.round(pi)],['순이익',won(profit)]];
     score=clamp((S.weight/stdW(33))*35,0,40)+clamp((surv-.9)/.08*25,0,25)+clamp((1.9-fcr)/.4*20,0,20)+clamp(profit/800000*15,0,15);
     fb.push(S.weight>=stdW(33)*.95?'표준 체중에 맞게 잘 키웠어요.':`출하체중이 표준(${(stdW(33)/1000).toFixed(2)}kg)보다 가벼워요. 적정 온도와 충분한 물·사료가 성장의 바탕이에요.`);
     fb.push(surv>=.95?'폐사를 잘 막았어요.':'폐사가 많았어요. 온도 편차, 암모니아, 질병 초기 대응을 점검해요.');
     fb.push(fcr<=1.55?'사료요구율이 좋아요. 사료 1kg으로 고기를 많이 만들었어요.':'사료요구율이 높아요. 스트레스가 크면 같은 사료로 덜 자라요.');
+    fb.push(`생산지수 ${Math.round(pi)} = 생존율 × 출하체중 ÷ (일령 × 사료요구율) × 100. 폐사·성장·사료효율을 한 숫자로 본 값이에요(높을수록 좋음, 보통 300~400대가 좋은 편 · 교육용 참고).`);
   } else {
     const avg=S.tot.layWeeks?S.tot.rateSum/S.tot.layWeeks:0,goodR=S.tot.eggs?S.tot.good/S.tot.eggs:0;
     cards=[['평균 산란율',pct(avg)],['정상란 비율',pct(goodR)],['사료비',won(S.tot.feedCost)],['순이익',won(profit)]];
