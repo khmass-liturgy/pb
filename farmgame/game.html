@@ -1527,9 +1527,9 @@ function ventLine(){
   if(S.done)return'';
   const x=ventCtx(),kg=Math.max(.01,S.weight/1000),need=ventNeedKg(S.mode,x.tin,x.tout),prov=Math.max(.4,VENT_FULL*S.ventLv/100);
   const lv=ventNeedLv(),st=S.ventLv<lv?['부족','var(--bad)']:S.ventLv<lv+45?['적정','#2E9E4F']:['과다(난방비↑)','#C77700'];
-  const house=Math.round(need*kg*S.alive/10)*10,fan=Math.round(prov*kg*S.alive/10)*10;
+  const N=10000,house=Math.round(need*kg*N/10)*10,fan=Math.round(prov*kg*N/10)*10;   // 폐사와 무관하게 1만수 기준으로 고정 표시(배우기 쉽게)
   const f=n=>n.toLocaleString('ko-KR');
-  return `<div class="gline" style="margin-top:2px;flex-wrap:wrap;white-space:normal;row-gap:0"><b class="ttl">🌀 환기</b><span title="수분·암모니아 배출 최소환기와 더위 때 열 제거 환기 중 큰 값">필요 <b class="num">${f(house)}㎥/h</b> (수당 ${(need*kg).toFixed(2)})</span><span class="sep">|</span><span>지금 <b class="num">${f(fan)}㎥/h</b> <b style="color:${st[1]}">${st[0]}</b></span></div>`;
+  return `<div class="gline" style="margin-top:2px;flex-wrap:wrap;white-space:normal;row-gap:0"><b class="ttl">🌀 환기</b><span title="수분·암모니아 배출 최소환기와 더위 때 열 제거 환기 중 큰 값">1만수당 필요 <b class="num">${f(house)}㎥/h</b> (수당 ${(need*kg).toFixed(2)})</span><span class="sep">|</span><span>지금 <b class="num">${f(fan)}㎥/h</b> <b style="color:${st[1]}">${st[0]}</b></span></div>`;
 }
 function renderGuide(){
   const el=$('#guide');if(!el||!S)return;
@@ -1556,7 +1556,7 @@ function renderGuide(){
    ${vaxLine(d,u)}
    <details class="gpts"><summary>✅ ${S.done?'':d+u+' '+g.name+' · '}${g.pts.join(' · ')}</summary><ul class="pts">${g.pts.map(t=>`<li>${t}</li>`).join('')}</ul></details>
    <details><summary>${lay?'주령':'일령'}별 권장표 보기</summary><table class="gt"><thead><tr><th>구간</th><th>온도</th><th>습도</th>${lay?'<th>점등</th>':''}</tr></thead><tbody>${rows}</tbody></table>
-   <p style="margin:6px 0 0;font-size:12px;color:var(--muted)">환기량은 닭 수·체중·바깥 기온으로 계산한 교육용 값이에요(수분 배출 최소환기와 열 제거 환기 중 큰 값). 교육용 참고값이에요. 실제 농장은 품종 관리지침과 사료회사·수의사 기준을 따르세요.${lay?` 점등은 ${d>=18?'주 1시간씩 늘려 16시간까지':d>=7?'육성기에는 10시간 유지':'점점 줄여 10시간까지'}.`:''}</p></details>`;
+   <p style="margin:6px 0 0;font-size:12px;color:var(--muted)">환기량은 1만수 기준으로 보여 주며, 체중·바깥 기온으로 계산한 교육용 값이에요(수분 배출 최소환기와 열 제거 환기 중 큰 값). 교육용 참고값이에요. 실제 농장은 품종 관리지침과 사료회사·수의사 기준을 따르세요.${lay?` 점등은 ${d>=18?'주 1시간씩 늘려 16시간까지':d>=7?'육성기에는 10시간 유지':'점점 줄여 10시간까지'}.`:''}</p></details>`;
 }
 function renderTip(){
   const d=S.day+1,c=S.ctrl;let t='';
