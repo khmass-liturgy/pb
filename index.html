@@ -28754,7 +28754,7 @@ function renderBroilerBreederPanel(){
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">${cards}</div>
 
-    <div style="font-size:12px;font-weight:800;color:#333;margin:2px 0 4px">월별 종계 사육 마릿수 <span style="font-weight:500;color:#999;font-size:10.5px">■ 성계 ■ 육성계 · 점선=성계 예상</span></div>
+    <div style="font-size:12px;font-weight:800;color:#333;margin:2px 0 4px">월별 종계 사육 마릿수 <span style="font-weight:500;color:#999;font-size:10.5px"><span style="color:${BB_COLOR}">■</span> 성계 <span style="color:#CE93D8">■</span> 육성계 · <span style="display:inline-block;width:12px;height:8px;border:1px dashed ${BB_COLOR};background:#E1BEE7;vertical-align:baseline"></span> 성계 예상</span></div>
     ${bbChartSvg(rows, fcA)}
 
     <div style="font-size:12px;font-weight:800;color:#333;margin:14px 0 4px">월별 현황 (2025년 1월~)</div>
