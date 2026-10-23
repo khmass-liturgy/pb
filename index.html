@@ -28181,6 +28181,7 @@ function renderHeaderSolarTerm(now){
 // go: {tab} 일반 탭으로 / {premium:"메뉴key"} 유료서비스의 그 화면으로(승인·로그인 안내는 그 화면이 처리) / {premium:"vaccine", vaccineView:"guide"} 처럼 보기까지 지정.
 const NEW_FEATURE_DAYS = 21;
 const NEW_FEATURES = [
+  { key:"broileroutlook", date:"2026-10-23", label:"육계 월간 전망 — KREI 농업관측센터 가격·도축·입식 전망", where:"시세·통계", go:{ tab:"price" } },
   { key:"broilerbreeder", date:"2026-10-23", label:"육용종계 육성계·성계 사육현황과 초생추 병아리 생산잠재력", where:"시세·통계", go:{ tab:"price" } },
   { key:"farmgame2",      date:"2026-10-21", label:"육계 키우기 · 산란계 키우기 — 게임이 두 카드로 나뉘었어요", where:"유료서비스 · 체험·게임", go:{ premium:"farmgame_broiler" } },
   { key:"avianphys",      date:"2026-10-19", label:"조류생리 아카데미 — 닭 몸속 탐험", where:"유료서비스 · 최꼬 아카데미", go:{ premium:"avianphys" } },
@@ -28607,6 +28608,92 @@ function fpTable(o){
       <tbody>${rows}</tbody>
     </table>
   </details>`;
+}
+
+// ── KREI 농업관측센터 육계 월간 전망 (금일 육계시세 카드 아래) ─────────────────────────────────
+// 「축산관측 육계」 월보의 전망(생계유통가격·도축 마릿수·병아리 입식)만 골라 보여 준다. broiler_breeder/latest.json 의
+// outlook 필드이며 scripts/fetch_broiler_breeder.py 가 새 호가 나올 때마다 갱신한다(월 1회).
+const OL_COLOR = "#E8530A";
+// 기준값 대비 증감(%) — 범위면 「▲4.3~6.3%」, 한 값이면 「▲3.9%」. 상승=빨강, 하락=파랑(한국 시세 관례)
+function olPct(lo, hi, base){
+  if(lo == null || !base) return "";
+  const a = (lo / base - 1) * 100, b = (hi == null ? lo : hi) / base * 100 - 100;
+  const mid = (a + b) / 2, flat = Math.abs(mid) < 0.05;
+  const c = flat ? "#888" : (mid > 0 ? "#D32F2F" : "#1565C0");
+  const f = x => Math.abs(x).toFixed(1), sg = x => (x < 0 ? "-" : "") + Math.abs(x).toFixed(1);
+  const txt = hi == null || Math.abs(a - b) < 0.05 ? f(a) : ((a < 0) === (b < 0) ? f(a) + "~" + f(b) : sg(a) + "~" + sg(b));
+  return `<span style="color:${c};font-weight:700;white-space:nowrap">${flat ? "─" : mid > 0 ? "▲" : "▼"}${txt}%</span>`;
+}
+const olNum = v => v == null ? "-" : Math.round(v).toLocaleString("ko-KR");
+
+// 월별 생계유통가격: 올해(실선, 마지막은 전망 점) · 전년(연한 실선) · 평년(점선)
+function olPriceChart(pm, fcYm, fcVal){
+  const W = 640, H = 170, L = 40, R = 10, T = 12, B = 22;
+  const all = [].concat(pm.this_year, pm.last_year, pm.normal).filter(v => v != null).concat(fcVal ? [fcVal] : []);
+  const lo = Math.floor(Math.min.apply(null, all) / 200) * 200, hi = Math.ceil(Math.max.apply(null, all) / 200) * 200;
+  const x = i => L + (W - L - R) * (i / 11), y = v => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
+  const path = arr => { let d = "", pen = false; arr.forEach((v, i) => { if(v == null){ pen = false; return; } d += (pen ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1); pen = true; }); return d; };
+  let g = "";
+  for(let v = lo; v <= hi; v += 400) g += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#eee"/><text x="${L - 5}" y="${y(v) + 3}" text-anchor="end" font-size="9" fill="#aaa">${v.toLocaleString("ko-KR")}</text>`;
+  for(let i = 0; i < 12; i++) g += `<text x="${x(i)}" y="${H - 6}" text-anchor="middle" font-size="9" fill="#888">${i + 1}월</text>`;
+  g += `<path d="${path(pm.normal)}" fill="none" stroke="#9E9E9E" stroke-width="1.5" stroke-dasharray="4 3"/>`;
+  g += `<path d="${path(pm.last_year)}" fill="none" stroke="#90A4AE" stroke-width="1.8"/>`;
+  g += `<path d="${path(pm.this_year)}" fill="none" stroke="${OL_COLOR}" stroke-width="2.4"/>`;
+  const fi = fcYm ? +fcYm.slice(5) - 1 : -1;
+  if(fi >= 0 && fcVal){
+    let last = -1; pm.this_year.forEach((v, i) => { if(v != null && i < fi) last = i; });
+    if(last >= 0) g += `<line x1="${x(last)}" y1="${y(pm.this_year[last])}" x2="${x(fi)}" y2="${y(fcVal)}" stroke="${OL_COLOR}" stroke-width="2" stroke-dasharray="3 3"/>`;
+    g += `<circle cx="${x(fi)}" cy="${y(fcVal)}" r="5" fill="#fff" stroke="${OL_COLOR}" stroke-width="2.2"><title>${fcYm.slice(0, 4)}.${+fcYm.slice(5)} 전망 ${fcVal.toLocaleString("ko-KR")}원/kg 내외</title></circle>`;
+    g += `<text x="${x(fi)}" y="${y(fcVal) - 9}" text-anchor="middle" font-size="10" font-weight="700" fill="${OL_COLOR}">${fcVal.toLocaleString("ko-KR")}</text>`;
+  }
+  const lg = `<span style="color:${OL_COLOR}">━</span> 올해 (○ 전망) &nbsp;<span style="color:#90A4AE">━</span> 전년 &nbsp;<span style="color:#9E9E9E">┅</span> 평년`;
+  return `<div style="font-size:10.5px;color:#999;margin:2px 0 2px">${lg}</div><svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block" role="img" aria-label="월별 육계 생계유통가격: 올해, 전년, 평년과 이번 달 전망">${g}</svg>`;
+}
+
+function renderBroilerOutlookPanel(){
+  const d = broilerBreederState, o = d.status === "done" && d.data ? d.data.outlook : null;
+  if(!o || (!o.price && !(o.slaughter || []).length && !(o.chick || []).length)) return "";   // 자료가 없으면 카드를 아예 그리지 않는다
+  const issue = String(o.issue || "");
+  const ymTxt = ym => String(+ym.slice(5)) + "월";
+  const tile = (icon, title, big, sub, color) => `
+    <div style="flex:1 1 200px;min-width:190px;border:1px solid #eee;border-radius:10px;padding:10px 12px;border-top:3px solid ${color}">
+      <div style="font-size:11px;color:#777;font-weight:700">${icon} ${title}</div>
+      ${big}
+      <div style="font-size:11px;color:#666;line-height:1.7;margin-top:3px">${sub}</div>
+    </div>`;
+  const p = o.price;
+  let priceTile = "";
+  if(p){
+    const dir = p.direction || (p.prev_value ? (p.value < p.prev_value ? "하락" : p.value > p.prev_value ? "상승" : "보합") : "");
+    const dc = dir === "상승" ? ["#D32F2F", "#FFEBEE"] : dir === "하락" ? ["#1565C0", "#E3F2FD"] : ["#757575", "#F5F5F5"];
+    priceTile = tile("🏷️", `${ymTxt(p.ym)} 생계유통가격 전망 <span style="font-weight:500;color:#aaa">(원/kg)</span>`,
+      `<div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap"><span style="font-size:24px;font-weight:900;font-variant-numeric:tabular-nums;color:#222">${olNum(p.value)}</span><span style="font-size:11px;color:#888">내외</span>${dir ? `<span style="font-size:11px;font-weight:800;color:${dc[0]};background:${dc[1]};border-radius:9px;padding:1px 8px">${dir}</span>` : ""}</div>`,
+      `${p.prev_value ? `전월 ${olNum(p.prev_value)}원 대비 ${olPct(p.value, null, p.prev_value)}<br>` : ""}${p.last_year ? `전년 동월 ${olNum(p.last_year)}원 대비 ${olPct(p.value, null, p.last_year)}<br>` : ""}${p.normal ? `평년 ${olNum(p.normal)}원 대비 ${olPct(p.value, null, p.normal)}` : ""}`, OL_COLOR);
+  }
+  const rangeLine = (r, bold) => `<span style="${bold ? "font-weight:800;color:#222" : ""}">${ymTxt(r.ym)} ${olNum(r.lo)}~${olNum(r.hi)}만</span> ${olPct(r.lo, r.hi, r.last_year)}`;
+  const sl = o.slaughter || [], ch = o.chick || [];
+  const slTile = sl.length ? tile("🔪", "도축 마릿수 전망", `<div style="font-size:20px;font-weight:900;font-variant-numeric:tabular-nums;color:#222;margin-top:2px">${olNum(sl[0].lo)}~${olNum(sl[0].hi)}<span style="font-size:11px;font-weight:600;color:#888"> 만 마리 (${ymTxt(sl[0].ym)})</span></div>`,
+    sl.map((r, i) => `${i === 0 ? "전년 동월 대비 " + olPct(r.lo, r.hi, r.last_year) : rangeLine(r, false) + " <span style='color:#aaa'>전년 대비</span>"}`).join("<br>") + (o.slaughter_per_day ? `<br><span style="color:#999">일평균 약 ${olNum(o.slaughter_per_day)}만 마리</span>` : ""), "#1565C0") : "";
+  const chTile = ch.length ? tile("🐣", "병아리 입식 전망", `<div style="font-size:20px;font-weight:900;font-variant-numeric:tabular-nums;color:#222;margin-top:2px">${olNum(ch[ch.length - 1].lo)}~${olNum(ch[ch.length - 1].hi)}<span style="font-size:11px;font-weight:600;color:#888"> 만 마리 (${ymTxt(ch[ch.length - 1].ym)})</span></div>`,
+    ch.slice().reverse().map((r, i) => `${i === 0 ? "전년 동월 대비 " + olPct(r.lo, r.hi, r.last_year) : rangeLine(r, false) + " <span style='color:#aaa'>전년 대비</span>"}`).join("<br>"), "#00897B") : "";
+
+  const bullets = [].concat(o.headlines || []).map(t => `<li>${esc(t)}</li>`).join("");
+  const why = [p && p.reason, o.chick_note].filter(Boolean).map(t => `<li style="color:#666">${esc(t)}</li>`).join("");
+  const chart = o.price_monthly && p ? olPriceChart(o.price_monthly, p.ym, p.value) : "";
+  return `
+  <div class="card" style="margin-bottom:16px;border-top:6px solid ${OL_COLOR}">
+    <div class="display" style="font-size:15px;margin-bottom:2px">🔭 육계 월간 전망 <span style="font-size:11px;font-weight:600;color:${OL_COLOR};background:#FFF0E6;border-radius:10px;padding:2px 9px;vertical-align:middle">KREI ${esc(issue.slice(0, 4))}년 ${esc(String(+issue.slice(5) || ""))}월호</span></div>
+    <div style="font-size:11px;color:#999;margin-bottom:10px">한국농촌경제연구원 농업관측센터가 매월 초 발표하는 「축산관측 육계」의 전망입니다</div>
+    ${bullets ? `<ul style="margin:0 0 10px 18px;padding:0;font-size:12.5px;font-weight:700;color:#333;line-height:1.7">${bullets}</ul>` : ""}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">${priceTile}${slTile}${chTile}</div>
+    ${why ? `<ul style="margin:0 0 8px 18px;padding:0;font-size:11.5px;line-height:1.7">${why}</ul>` : ""}
+    ${chart}
+    ${p && p.caution ? `<div style="font-size:10.5px;color:#8D6E00;background:#FFF8E1;border-radius:8px;padding:5px 10px;margin-top:6px">ℹ️ ${esc(p.caution)}</div>` : ""}
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-top:8px">
+      <div style="font-size:9px;color:#bbb">출처: KREI 농업관측센터 「축산관측 육계」 · 전망치는 추정이라 실제와 다를 수 있습니다 · 월 1회 갱신</div>
+      <a href="https://aglook.krei.re.kr/main/uObserveMonth/OVR0000000014" target="_blank" rel="noopener" style="font-size:11px;color:${OL_COLOR};border:1px solid ${OL_COLOR};border-radius:6px;padding:4px 9px;text-decoration:none">KREI 월보 ↗</a>
+    </div>
+  </div>`;
 }
 
 // ── 육용종계 사육현황 · 초생추 병아리 생산잠재력 ─────────────────────────────────────────
@@ -29570,6 +29657,7 @@ function renderPriceTab(){
   return `
   ${renderPoultryPriceLine()}
   ${renderBroilerPriceTodayPanel()}
+  ${renderBroilerOutlookPanel()}
   ${renderFeedPotentialPanel()}
   ${renderBroilerBreederPanel()}
   ${renderLayerStatsPanel()}

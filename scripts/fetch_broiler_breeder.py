@@ -62,7 +62,7 @@ def shift(ym: str, k: int) -> str:
 
 
 # ── 새 월보 읽기(KREI) ──────────────────────────────────────────────────────
-PROMPT = """첨부는 한국농촌경제연구원(KREI) 농업관측센터 「축산관측 육계」 월보의 2쪽과 3쪽 이미지다. 표에 인쇄된 숫자를 그대로 읽어 JSON만 출력하라(설명·코드블록 금지).
+PROMPT = """첨부는 한국농촌경제연구원(KREI) 농업관측센터 「축산관측 육계」 월보의 2쪽·3쪽·4쪽 이미지다. 표에 인쇄된 숫자를 그대로 읽어 JSON만 출력하라(설명·코드블록 금지).
 없는 값은 null. 추측하거나 계산해 채우지 말 것. 쪽수 표시(예: 「축산관측 2026년 10월호 육계」)에서 호 정보를 읽어라.
 
 {
@@ -75,7 +75,17 @@ PROMPT = """첨부는 한국농촌경제연구원(KREI) 농업관측센터 「�
  ],
  "chick_placement": [                     // 3쪽 「육계 병아리 입식 마릿수 추정」 표의 올해 행. 단위 만 마리. 범위면 lo~hi
    {"ym":"YYYY-MM","value":null,"lo":7099,"hi":7235}
- ]
+ ],
+ "outlook": {                             // 이번 호의 「전망」. 표에 인쇄된 숫자만, 없으면 null
+   "headlines": ["…","…"],                // 2쪽·4쪽 맨 위 굵은 제목 문장(예: 「10월 육계 도축 마릿수 전년 대비 증가 전망」)
+   "chick": [{"ym":"YYYY-MM","lo":7099,"hi":7235,"last_year":6793,"normal":6865}],     // 3쪽 「육계 병아리 입식 마릿수 추정」 표. 만 마리. lo~hi=올해 전망 범위, last_year=전년 행, normal=평년 행
+   "chick_note": "…",                     // 3쪽 입식 전망 아래 점(•) 문장 한 줄(없으면 null)
+   "slaughter": [{"ym":"YYYY-MM","lo":6914,"hi":7047,"last_year":6628,"normal":6695}], // 4쪽 「육계 도축 마릿수 전망」 표. 만 마리
+   "slaughter_per_day": 285,              // 4쪽 「일평균 도축 마릿수」 만 마리(없으면 null)
+   "price": {"ym":"YYYY-MM","value":1600,"prev_value":1665,"direction":"하락","last_year":1470,"normal":1589,
+             "reason":"4쪽 가격 전망의 점(•) 문장","caution":"* 로 시작하는 주의 문장(없으면 null)"},   // 원/kg. direction=하락|상승|보합. last_year·normal은 아래 월별 표의 같은 달
+   "price_monthly": {"this_year":[12개],"last_year":[12개],"normal":[12개]}      // 4쪽 「육계 생계유통가격 동향」 표(1~12월, 원/kg). 빈 칸은 null
+ }
 }
 """
 
@@ -91,12 +101,12 @@ def _img_b64(pdf_bytes: bytes, page: int, dpi: int = 130) -> str:
 
 def ask_claude(pdf_bytes: bytes, api_key: str) -> dict | None:
     import requests
-    content = [{"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": _img_b64(pdf_bytes, i)}} for i in (1, 2)]
+    content = [{"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": _img_b64(pdf_bytes, i)}} for i in (1, 2, 3)]
     content.append({"type": "text", "text": PROMPT})
     headers = {"x-api-key": api_key, "anthropic-version": "2023-06-01", "content-type": "application/json"}
     for model in (ANTHROPIC_MODEL, ANTHROPIC_MODEL_FALLBACK):
         r = requests.post(ANTHROPIC_URL, headers=headers, timeout=120,
-                          json={"model": model, "max_tokens": 2000, "temperature": 0, "messages": [{"role": "user", "content": content}]})
+                          json={"model": model, "max_tokens": 4000, "temperature": 0, "messages": [{"role": "user", "content": content}]})
         if r.status_code == 200:
             text = "".join(b.get("text", "") for b in r.json().get("content", []))
             m = re.search(r"\{.*\}", text, flags=re.S)
@@ -170,6 +180,56 @@ def plausible(rec: dict, prev: dict | None) -> bool:
     return True
 
 
+def clean_outlook(o: dict | None, issue: str | None) -> dict | None:
+    """읽은 전망을 검사해 쓸 수 있는 것만 남긴다(범위 순서·값의 크기). 하나도 못 쓰면 None."""
+    if not isinstance(o, dict) or not issue:
+        return None
+
+    def rng(rows, lo_min, hi_max):
+        out = []
+        for r in rows or []:
+            try:
+                ym, lo, hi = str(r["ym"]), float(r["lo"]), float(r["hi"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            if not re.fullmatch(r"\d{4}-\d{2}", ym) or not (lo_min <= lo <= hi <= hi_max):
+                continue
+            row = {"ym": ym, "lo": round(lo), "hi": round(hi)}
+            for k in ("last_year", "normal"):
+                v = r.get(k)
+                row[k] = round(v) if isinstance(v, (int, float)) and lo_min * 0.5 <= v <= hi_max * 1.5 else None
+            out.append(row)
+        return out
+
+    res: dict = {"issue": issue}
+    res["headlines"] = [str(x) for x in (o.get("headlines") or []) if isinstance(x, str) and 4 <= len(x) <= 80][:3]
+    res["chick"] = rng(o.get("chick"), 4500, 9500)
+    res["slaughter"] = rng(o.get("slaughter"), 4500, 9500)
+    note = o.get("chick_note")
+    res["chick_note"] = note if isinstance(note, str) and len(note) <= 120 else None
+    spd = o.get("slaughter_per_day")
+    res["slaughter_per_day"] = round(spd) if isinstance(spd, (int, float)) and 150 <= spd <= 450 else None
+    pr = o.get("price")
+    if isinstance(pr, dict) and isinstance(pr.get("value"), (int, float)) and 800 <= pr["value"] <= 4500 and re.fullmatch(r"\d{4}-\d{2}", str(pr.get("ym", ""))):
+        def num(k):
+            v = pr.get(k)
+            return round(v) if isinstance(v, (int, float)) and 800 <= v <= 4500 else None
+        res["price"] = {"ym": pr["ym"], "value": round(pr["value"]), "prev_value": num("prev_value"), "last_year": num("last_year"), "normal": num("normal"),
+                        "direction": pr.get("direction") if pr.get("direction") in ("하락", "상승", "보합") else None,
+                        "reason": pr["reason"] if isinstance(pr.get("reason"), str) and len(pr["reason"]) <= 200 else None,
+                        "caution": pr["caution"] if isinstance(pr.get("caution"), str) and len(pr["caution"]) <= 120 else None}
+    pm = o.get("price_monthly")
+    if isinstance(pm, dict):
+        mm = {}
+        for k in ("this_year", "last_year", "normal"):
+            a = pm.get(k)
+            if isinstance(a, list) and len(a) == 12:
+                mm[k] = [round(v) if isinstance(v, (int, float)) and 800 <= v <= 4500 else None for v in a]
+        if len(mm) == 3:
+            res["price_monthly"] = mm
+    return res if (res["chick"] or res["slaughter"] or res.get("price")) else None
+
+
 def merge_report(data: dict, got: dict) -> int:
     """읽은 값을 data['months'] 에 합친다. 같은 달이면 새 값(더 최근 호)이 이긴다. 합친 달 수를 돌려준다."""
     months = {m["ym"]: m for m in data["months"]}
@@ -219,6 +279,12 @@ def merge_report(data: dict, got: dict) -> int:
     data["months"] = [months[k] for k in sorted(months)]
     if issue:
         data["latest_report"] = issue
+        ol = clean_outlook(got.get("outlook"), issue)
+        if ol:
+            data["outlook"] = ol
+            changed += 1
+        else:
+            print("  전망을 읽지 못했거나 검사를 통과하지 못했습니다 — 이전 전망을 그대로 둡니다.")
     return changed
 
 
@@ -401,7 +467,7 @@ def main() -> int:
         "updated": datetime.now(KST).strftime("%Y-%m-%d %H:%M KST"),
         "source": data["source"], "source_url": data["source_url"], "latest_report": data["latest_report"],
         "units": data["units"], "notes": data["notes"],
-        "months": data["months"], "prev_year": data["prev_year"], "kreI_outlook": data.get("kreI_outlook", {}),
+        "months": data["months"], "prev_year": data["prev_year"], "kreI_outlook": data.get("kreI_outlook", {}), "outlook": data.get("outlook"),
         **fc,
     }
     new = json.dumps(result, ensure_ascii=False, indent=1) + "\n"
