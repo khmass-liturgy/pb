@@ -32268,40 +32268,65 @@ function renderIntakePanel(){
 }
 
 // ── 사양관리 컨설팅 포인트 ───────────────────────────────────────────────────
-// 육종회사 매뉴얼의 "핵심 관리 포인트"를 그대로 옮기지 않고 우리말로 요약 정리.
+// 육종회사 매뉴얼의 "핵심 관리 포인트"를 그대로 옮기지 않고 우리말로 요약 정리. 내용(8개/6개)은 그대로 두고 시기별로 묶어 보기 좋게 배치했다.
 // 육계: Aviagen Key Management Points / 산란계: Hy-Line 육성기 체중관리 포인트
-const BROILER_MGMT_POINTS = [
-  "입식 초기 병아리 품질이 전체 성적을 좌우함 — 부화·운송·농장 도착 과정의 온습도 관리가 핵심",
-  "초기엔 보조 급이·급수기에서 자동 급이·급수기로 전환하는 시점을 신중히 관리",
-  "소화 잘 되는 고영양 초생추 사료(Starter)를 반드시 급여",
-  "상대습도 50% 미만으로 떨어지지 않도록 주의 — 너무 건조하면 오히려 문제",
-  "모이주머니(소낭) 충만도·비담(급이·음수) 행동·7일령 체중으로 육추 상태를 매일 점검",
-  "21일령부터는 개체 체중을 주기적으로 측정해 균일도 확인",
-  "생육 후반기(특히 21일 이후)엔 사육온도를 21°C 이하로 유지하는 것이 증체에 유리",
-  "위생·소독 기준을 철저히 지켜 질병 유입을 최소화",
-];
-const LAYER_MGMT_POINTS = [
-  "6·12·18·24·30주령 체중 목표 달성 여부를 반드시 확인 — 골격·소화기 발달의 핵심 시점",
-  "0~12주는 체중을 표준범위 상단으로 관리 — 골격·소화기관 발달에 유리",
-  "12주 이후엔 체중 급증을 피할 것 — 복부지방 과다 축적 위험",
-  "산란 개시 시점 체중이 표준범위이고 균일도 90% 이상일 때 이후 산란 성적이 가장 좋음",
-  "저체중이거나 균일도가 낮으면 사료 단계 전환을 늦춰 보정",
-  "이행기(육성→산란) 체중 증가가 25%를 넘지 않도록 관리 — 과도한 증체는 대사 문제로 이어짐",
-];
+// 각 항목 = [굵은 한 줄, 자세한 설명]. range = 그 묶음이 특히 중요한 일령(육계)·주령(산란계) 범위, 지금 고른 일령이 범위 안이면 「지금」 표시.
+const MGMT_GROUPS = {
+  broiler: [
+    { k:"start", icon:"🐣", t:"입식 · 육추 초기", sub:"병아리가 도착해서 첫 1주", range:[0, 7], color:"#E65100", pts:[
+      ["입식 초기 병아리 품질이 성적을 좌우해요", "부화·운송·농장 도착 과정의 온습도 관리가 핵심이에요"],
+      ["소화 잘 되는 고영양 초생추 사료(Starter)를 꼭 급여해요", "초기 사료 선택이 이후 성장의 바탕이 돼요"],
+      ["급이·급수기 전환은 신중하게", "보조 급이·급수기에서 자동 급이·급수기로 넘어가는 시점을 잘 살펴요"],
+      ["상대습도가 50% 아래로 떨어지지 않게", "너무 건조하면 오히려 문제가 생겨요"],
+      ["육추 상태는 매일 점검", "모이주머니(소낭) 충만도 · 비담(급이·음수) 행동 · 7일령 체중을 확인해요"]] },
+    { k:"grow", icon:"📈", t:"성장 중·후반", sub:"21일령 이후", range:[21, 33], color:"#1565C0", pts:[
+      ["21일령부터 개체 체중을 주기적으로 재요", "균일도(고르게 자라는지)를 확인해요"],
+      ["사육 온도는 21°C 이하로", "생육 후반(특히 21일 이후)에는 이 온도가 증체에 유리해요"]] },
+    { k:"all", icon:"🛡️", t:"전 기간 공통", sub:"입식부터 출하까지 항상", range:[0, 33], color:"#2E7D32", pts:[
+      ["위생·소독 기준을 철저히", "질병이 들어오는 길을 최소화해요"]] },
+  ],
+  layer: [
+    { k:"rear", icon:"🐥", t:"육성 전반", sub:"0~12주", range:[1, 12], color:"#E65100", pts:[
+      ["체중을 표준 범위의 위쪽으로", "0~12주에 골격·소화기관이 잘 발달해요"]] },
+    { k:"mid", icon:"⚖️", t:"육성 후반", sub:"12~18주", range:[12, 18], color:"#7B1FA2", pts:[
+      ["체중이 갑자기 늘지 않게", "12주 이후 급증하면 복부 지방이 지나치게 쌓일 수 있어요"],
+      ["저체중·균일도가 낮으면 사료 단계 전환을 늦춰 보정", "무리하게 일정만 따라가지 않아요"]] },
+    { k:"lay", icon:"🥚", t:"산란 개시 · 이행기", sub:"18주 전후", range:[17, 24], color:"#C62828", pts:[
+      ["산란 개시 때 체중이 표준 범위이고 균일도가 90% 이상이면 최고", "이때 상태가 이후 산란 성적을 좌우해요"],
+      ["육성→산란 이행기 체중 증가는 25% 이내", "너무 많이 늘면 대사 문제로 이어질 수 있어요"]] },
+    { k:"check", icon:"📏", t:"체중 목표 확인 시점", sub:"6 · 12 · 18 · 24 · 30주령", range:[1, 30], color:"#1565C0", pts:[
+      ["6·12·18·24·30주령에 체중 목표를 꼭 확인", "골격·소화기 발달의 핵심 시점이에요"]] },
+  ],
+};
+const mgmtState = (function(){ let c = {}; try { c = JSON.parse(localStorage.getItem("mgmt_chk_v1") || "{}") || {}; } catch(e){} return { chk:c }; })();
+function mgmtSave(){ try { localStorage.setItem("mgmt_chk_v1", JSON.stringify(mgmtState.chk)); } catch(e){} }
 
 function renderMgmtPointsPanel(){
-  const points = consultState.species==="broiler" ? BROILER_MGMT_POINTS : LAYER_MGMT_POINTS;
-  const source = consultState.species==="broiler"
-    ? "Aviagen Broiler Performance Objectives — Key Management Points"
-    : "Hy-Line International Commercial Layers Management Guide — Growth & Development";
-  return `
-  <div class="card" style="border-top:6px solid #7B1FA2;margin-top:16px">
-    <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:10px">📋 사양관리 컨설팅 포인트</div>
-    ${points.map(p=>`<div style="font-size:11px;color:#333;line-height:1.9;padding-left:14px;position:relative">
-      <span style="position:absolute;left:0;color:#7B1FA2">·</span>${p}
-    </div>`).join("")}
-    <div style="font-size:9px;color:#aaa;margin-top:10px">※ 출처: ${source}</div>
-  </div>`;
+  const sp = consultState.species, groups = MGMT_GROUPS[sp], isB = sp === "broiler";
+  const source = isB ? "Aviagen Broiler Performance Objectives — Key Management Points" : "Hy-Line International Commercial Layers Management Guide — Growth & Development";
+  const age = consultState.age, unit = isB ? "일령" : "주령";
+  const keyOf = (g, i) => sp + ":" + g.k + ":" + i;
+  let total = 0, done = 0;
+  groups.forEach(g => g.pts.forEach((p, i) => { total++; if(mgmtState.chk[keyOf(g, i)]) done++; }));
+  const now = groups.filter(g => age >= g.range[0] && age <= g.range[1]);
+  const pct = total ? Math.round(done / total * 100) : 0;
+  const summary = `<div class="card" style="border-top:6px solid #7B1FA2;margin-top:16px;margin-bottom:12px">
+    <div style="font-size:16px;font-weight:900;color:#333">📋 사양관리 컨설팅 포인트</div>
+    <div style="font-size:12.5px;color:#777;margin-top:2px">${isB ? "육계" : "산란계"} · ${total}가지 핵심 포인트를 시기별로 모아 봤어요</div>
+    <div style="margin-top:10px;background:#F3E5F5;border-radius:12px;padding:10px 12px">
+      <div style="font-size:13px;font-weight:800;color:#6A1B9A">📍 지금 ${age}${unit}에 특히 챙길 것</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${now.length ? now.map(g => `<span style="background:${g.color};color:#fff;border-radius:14px;padding:4px 11px;font-size:13px;font-weight:800">${g.icon} ${g.t}</span>`).join("") : `<span style="font-size:13px;color:#777">이 시기에 따로 강조된 묶음은 없어요. 전 기간 포인트를 확인하세요.</span>`}</div>
+      <div style="font-size:11.5px;color:#8E6BA5;margin-top:6px">위 슬라이더로 ${unit}을 바꾸면 이 표시도 바뀌어요.</div></div>
+    <div style="margin-top:10px"><div style="display:flex;justify-content:space-between;font-size:12.5px;font-weight:800;color:#444"><span>✅ 점검 진행</span><span>${done} / ${total}</span></div>
+      <div style="height:9px;background:#eee;border-radius:6px;overflow:hidden;margin-top:4px"><div style="width:${pct}%;height:100%;background:#7B1FA2"></div></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px"><span style="font-size:11px;color:#999">체크는 이 기기에 저장돼요</span>${done ? `<button type="button" id="mgmt-reset" style="border:1px solid #ddd;background:#fff;color:#777;border-radius:8px;padding:4px 10px;font-size:11.5px;font-weight:700;cursor:pointer">체크 지우기</button>` : ""}</div></div></div>`;
+  const cards = groups.map(g => {
+    const cur = age >= g.range[0] && age <= g.range[1];
+    return `<div class="card" style="border-left:7px solid ${g.color};margin-bottom:10px;${cur ? `box-shadow:0 0 0 2px ${g.color}55;` : ""}">
+      <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:26px;line-height:1">${g.icon}</span><div><div style="font-size:16px;font-weight:900;color:${g.color}">${g.t}</div><div style="font-size:12px;color:#888">${g.sub}</div></div></div>${cur ? `<span style="background:${g.color};color:#fff;border-radius:12px;padding:3px 11px;font-size:12px;font-weight:800">📍 지금</span>` : ""}</div>
+      <div style="margin-top:8px">${g.pts.map((p, i) => { const k = keyOf(g, i), on = !!mgmtState.chk[k]; return `<label style="display:flex;gap:10px;align-items:flex-start;padding:9px 4px;border-top:1px dashed #e5e5e5;cursor:pointer"><input type="checkbox" class="mgmt-chk" data-k="${k}" ${on ? "checked" : ""} style="width:20px;height:20px;flex:none;margin-top:2px;accent-color:${g.color}"><span><span style="display:block;font-size:14.5px;font-weight:800;line-height:1.6;color:${on ? "#999" : "#222"};${on ? "text-decoration:line-through;" : ""}">${p[0]}</span><span style="display:block;font-size:13px;line-height:1.65;color:#666;margin-top:1px">${p[1]}</span></span></label>`; }).join("")}</div></div>`;
+  }).join("");
+  return summary + cards + `<div style="font-size:10px;color:#aaa;margin-bottom:6px">※ 출처: ${source}</div>`;
 }
 
 // ── 내 농장 성적 ↔ 표준성적 비교 ─────────────────────────────────────────────
@@ -37536,6 +37561,8 @@ function attachEvents(){
     render();
     const nb = document.getElementById("consult-subbar"); if(nb) nb.scrollLeft = sl;
   });
+  document.querySelectorAll(".mgmt-chk").forEach(el=>el.onchange=()=>{ mgmtState.chk[el.dataset.k]=el.checked; mgmtSave(); render(); });
+  const mgmtReset = document.getElementById("mgmt-reset"); if(mgmtReset) mgmtReset.onclick = ()=>{ mgmtState.chk = {}; mgmtSave(); render(); };
   document.querySelectorAll(".mk-scope").forEach(b=>b.onclick=()=>{ vendorState.scope = b.dataset.k; render(); });
   document.querySelectorAll(".mk-cat").forEach(b=>b.onclick=()=>{ vendorState.cat = b.dataset.k; render(); });
   document.querySelectorAll(".mk-open").forEach(b=>b.onclick=()=>{ vendorState.open[b.dataset.k] = !vendorState.open[b.dataset.k]; render(); });
