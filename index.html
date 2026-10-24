@@ -10174,9 +10174,8 @@ const HPAI_SUBS = [["news", "📰", "AI 소식"], ["kr", "🗺️", "국내 발�
 let hpaiSub = (function(){ try { return localStorage.getItem("hpai_sub") || "news"; } catch(e){ return "news"; } })();
 function renderHpaiTab(){
   const sub = HPAI_SUBS.some(x => x[0] === hpaiSub) ? hpaiSub : "news";
-  const bar = `<div id="hpai-subbar" style="display:flex;gap:6px;overflow-x:auto;padding:4px 2px 10px;margin:0 -2px 6px;-webkit-overflow-scrolling:touch">${HPAI_SUBS.map(([k, ic, l]) => `<button type="button" class="hpai-sub-btn" data-sub="${k}" style="flex:none;border:2px solid ${sub === k ? "#1a2744" : "#e5e5e5"};background:${sub === k ? "#1a2744" : "#fff"};color:${sub === k ? "#F9C74F" : "#444"};border-radius:18px;padding:8px 14px;font-size:13.5px;font-weight:800;cursor:pointer;white-space:nowrap">${ic} ${l}</button>`).join("")}</div>`;
   const body = sub === "news" ? renderHpaiNewsCard() : sub === "kr" ? renderHpaiKrCard() : sub === "map" ? renderRiskMapCard() + renderFlywayCard() : sub === "stats" ? renderHpaiDataCards() : sub === "symptom" ? renderHpaiSymptomCard() : renderHpaiPreventCard();
-  return bar + body;
+  return body;
 }
 
 function renderBriefingTab(){
@@ -28499,6 +28498,18 @@ function nfGo(key){
   else render();
 }
 
+// 시세,통계 · 사양/복지/HACCP · AI 탭의 하위 메뉴는 고정 머리글(탭 바로 아래)에 둔다 — 스크롤해도, 「새 기능」 띠에 가려지지 않고 항상 보인다.
+function renderHeaderSubBar(embedded){
+  if(embedded) return "";
+  const t = state.tab;
+  let items, cur, cls, id;
+  if(t === "price" || t === "pig" || t === "livestock"){ items = PRICE_SUBS; cur = priceSub; cls = "price-sub-btn"; id = "price-subbar"; }
+  else if(t === "consult"){ items = CONSULT_SUBS; cur = consultState.sub; cls = "consult-sub-btn"; id = "consult-subbar"; }
+  else if(t === "hpai"){ items = HPAI_SUBS; cur = hpaiSub; cls = "hpai-sub-btn"; id = "hpai-subbar"; }
+  else return "";
+  if(!items.some(x => x[0] === cur)) cur = items[0][0];
+  return `<div id="${id}" class="hd-subbar" role="tablist" aria-label="하위 메뉴" style="display:flex;gap:6px;overflow-x:auto;padding:8px 0 4px;-webkit-overflow-scrolling:touch;scrollbar-width:none">${items.map(([k, ic, l]) => `<button type="button" role="tab" aria-selected="${cur === k}" class="${cls}" data-sub="${k}" style="flex:none;border:1.5px solid ${cur === k ? "#F9C74F" : "rgba(255,255,255,.28)"};background:${cur === k ? "#F9C74F" : "rgba(255,255,255,.1)"};color:${cur === k ? "#1a2744" : "#fff"};border-radius:16px;padding:6px 12px;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap">${ic} ${l}</button>`).join("")}</div>`;
+}
 function renderHeader(){
   const now=new Date();
   const embedded=isEmbedded();
@@ -28537,6 +28548,7 @@ function renderHeader(){
     </div>
     <button class="tabs-arrow right" type="button" aria-label="뒤쪽 메뉴 보기" tabindex="-1"><span>›</span></button>
     </div>
+    ${renderHeaderSubBar(embedded)}
     ${renderNewFeatureStrip(embedded)}
   </div></header>`;
 }
@@ -29934,9 +29946,8 @@ const PRICE_SUBS = [["today", "📌", "오늘 시세"], ["outlook", "🔮", "육
 let priceSub = (function(){ try { return localStorage.getItem("price_sub") || "today"; } catch(e){ return "today"; } })();
 function renderPriceTab(){
   const sub = PRICE_SUBS.some(x => x[0] === priceSub) ? priceSub : "today";
-  const bar = `<div id="price-subbar" style="display:flex;gap:6px;overflow-x:auto;padding:4px 2px 10px;margin:0 -2px 6px;-webkit-overflow-scrolling:touch">${PRICE_SUBS.map(([k, ic, l]) => `<button type="button" class="price-sub-btn" data-sub="${k}" style="flex:none;border:2px solid ${sub === k ? "#1a2744" : "#e5e5e5"};background:${sub === k ? "#1a2744" : "#fff"};color:${sub === k ? "#F9C74F" : "#444"};border-radius:18px;padding:8px 14px;font-size:13.5px;font-weight:800;cursor:pointer;white-space:nowrap">${ic} ${l}</button>`).join("")}</div>`;
   const body = sub === "today" ? renderPoultryPriceLine() + renderBroilerPriceTodayPanel() : sub === "outlook" ? renderBroilerOutlookPanel() : sub === "feed" ? renderFeedPotentialPanel() : sub === "breeder" ? renderBroilerBreederPanel() : sub === "layer" ? renderLayerStatsPanel() : renderEggSupplyPanel();
-  return bar + body;
+  return body;
 }
 
 function renderPigTab(){
@@ -33278,7 +33289,6 @@ function renderConsultTab(){
 
   const sub = CONSULT_SUBS.some(x => x[0] === consultState.sub) ? consultState.sub : "std";
   const needCtl = ["std", "intake", "air", "vent", "pi", "mgmt"].includes(sub);
-  const subBar = `<div id="consult-subbar" style="display:flex;gap:6px;overflow-x:auto;padding:4px 2px 10px;margin:0 -2px 6px;-webkit-overflow-scrolling:touch">${CONSULT_SUBS.map(([k, ic, l]) => `<button type="button" class="consult-sub-btn" data-sub="${k}" style="flex:none;border:2px solid ${sub === k ? "#1a2744" : "#e5e5e5"};background:${sub === k ? "#1a2744" : "#fff"};color:${sub === k ? "#F9C74F" : "#444"};border-radius:18px;padding:8px 14px;font-size:13.5px;font-weight:800;cursor:pointer;white-space:nowrap">${ic} ${l}</button>`).join("")}</div>`;
   const body = sub === "std" ? card + renderFarmComparePanel(breed, age) : sub === "intake" ? renderIntakePanel() : sub === "air" ? renderWetBulbPanel() + renderDewPointPanel() : sub === "vent" ? renderVentCalcPanel() : sub === "pi" ? (renderProductionIndexPanel() || `<div class="card" style="text-align:center;color:#999;padding:22px;font-size:13px">생산지수는 육계에서만 계산해요. 위에서 🐔 육계를 선택하세요.</div>`) : sub === "mgmt" ? renderMgmtPointsPanel() : sub === "welfare" ? renderWelfarePanel() : sub === "haccp" ? renderHaccpPanel() : renderMakerPanel();
   const controls = needCtl ? `<div style="display:flex;gap:8px;margin-bottom:10px">${speciesBtns}</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">${breedBtns}</div>
@@ -33291,9 +33301,8 @@ function renderConsultTab(){
   return `
   <div style="margin-bottom:8px">
     <div class="display" style="font-size:16px;margin-bottom:3px">🕊️ 사양/복지/HACCP</div>
-    <div style="font-size:11px;color:#aaa">아래 메뉴를 옆으로 밀어 원하는 항목으로 바로 이동하세요</div>
+    <div style="font-size:11px;color:#aaa">위 하위 메뉴를 옆으로 밀어 원하는 항목으로 바로 이동하세요</div>
   </div>
-  ${subBar}
   ${controls}
   ${body}
   ${foot}`;
