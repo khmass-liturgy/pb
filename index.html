@@ -28447,6 +28447,7 @@ const NEW_FEATURES = [
   { key:"broileroutlook", date:"2026-10-23", label:"육계 월간 전망 — KREI 농업관측센터 가격·도축·입식 전망", where:"시세·통계", go:{ tab:"price" } },
   { key:"broilerbreeder", date:"2026-10-23", label:"육용종계 육성계·성계 사육현황과 초생추 병아리 생산잠재력", where:"시세·통계", go:{ tab:"price" } },
   { key:"farmgame2",      date:"2026-10-21", label:"육계 키우기 · 산란계 키우기 — 게임이 두 카드로 나뉘었어요", where:"유료서비스 · 체험·게임", go:{ premium:"farmgame_broiler" } },
+  { key:"pricesub",       date:"2026-10-25", label:"시세,통계 — 옆으로 밀어 고르는 하위 메뉴(오늘 시세·육계 전망·사료·종계·산란계·계란 수급)", where:"시세,통계", go:{ tab:"price" } },
   { key:"consultsub",     date:"2026-10-25", label:"사양/복지/HACCP — 옆으로 밀어 고르는 하위 메뉴 + 국내외 양계 시설업체 정리", where:"사양/복지/HACCP", go:{ tab:"consult" } },
   { key:"ventclass",      date:"2026-10-24", label:"환기 기초교실 — 정압·음압·입기구·1만수당 환기량 계산", where:"유료서비스 · 최꼬 아카데미", go:{ premium:"ventclass" } },
   { key:"avianphys",      date:"2026-10-19", label:"조류생리 아카데미 — 닭 몸속 탐험", where:"유료서비스 · 최꼬 아카데미", go:{ premium:"avianphys" } },
@@ -29918,15 +29919,14 @@ function renderTaxfreeFuelBlock(){
   </div>`;
 }
 
+// 시세,통계 탭 하위 메뉴(가로 칩). 항목을 더 넣으려면 PRICE_SUBS에 한 줄, renderPriceTab의 body 분기에 한 줄을 추가한다.
+const PRICE_SUBS = [["today", "📌", "오늘 시세"], ["outlook", "🔮", "육계 전망"], ["feed", "🌾", "사료 생산잠재력"], ["breeder", "🐓", "육용종계"], ["layer", "🥚", "산란계 통계"], ["supply", "📋", "계란 수급"]];
+let priceSub = (function(){ try { return localStorage.getItem("price_sub") || "today"; } catch(e){ return "today"; } })();
 function renderPriceTab(){
-  return `
-  ${renderPoultryPriceLine()}
-  ${renderBroilerPriceTodayPanel()}
-  ${renderBroilerOutlookPanel()}
-  ${renderFeedPotentialPanel()}
-  ${renderBroilerBreederPanel()}
-  ${renderLayerStatsPanel()}
-  ${renderEggSupplyPanel()}`;
+  const sub = PRICE_SUBS.some(x => x[0] === priceSub) ? priceSub : "today";
+  const bar = `<div id="price-subbar" style="display:flex;gap:6px;overflow-x:auto;padding:4px 2px 10px;margin:0 -2px 6px;-webkit-overflow-scrolling:touch">${PRICE_SUBS.map(([k, ic, l]) => `<button type="button" class="price-sub-btn" data-sub="${k}" style="flex:none;border:2px solid ${sub === k ? "#1a2744" : "#e5e5e5"};background:${sub === k ? "#1a2744" : "#fff"};color:${sub === k ? "#F9C74F" : "#444"};border-radius:18px;padding:8px 14px;font-size:13.5px;font-weight:800;cursor:pointer;white-space:nowrap">${ic} ${l}</button>`).join("")}</div>`;
+  const body = sub === "today" ? renderPoultryPriceLine() + renderBroilerPriceTodayPanel() : sub === "outlook" ? renderBroilerOutlookPanel() : sub === "feed" ? renderFeedPotentialPanel() : sub === "breeder" ? renderBroilerBreederPanel() : sub === "layer" ? renderLayerStatsPanel() : renderEggSupplyPanel();
+  return bar + body;
 }
 
 function renderPigTab(){
@@ -37555,6 +37555,12 @@ function attachEvents(){
   document.querySelectorAll(".haccp-chk").forEach(el=>el.onchange=()=>{ haccpState.checks[el.dataset.k]=el.checked; haccpSave(); render(); });
 
   // 사양/복지/HACCP 하위 메뉴(가로 칩)와 시설업체 화면
+  document.querySelectorAll(".price-sub-btn").forEach(b=>b.onclick=()=>{
+    const bar = document.getElementById("price-subbar"), sl = bar ? bar.scrollLeft : 0;
+    priceSub = b.dataset.sub; try { localStorage.setItem("price_sub", priceSub); } catch(e){}
+    render();
+    const nb = document.getElementById("price-subbar"); if(nb) nb.scrollLeft = sl;
+  });
   document.querySelectorAll(".consult-sub-btn").forEach(b=>b.onclick=()=>{
     const bar = document.getElementById("consult-subbar"), sl = bar ? bar.scrollLeft : 0;
     consultState.sub = b.dataset.sub; try { localStorage.setItem("consult_sub", consultState.sub); } catch(e){}
