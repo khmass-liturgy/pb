@@ -9995,14 +9995,13 @@ function vcBind(){
   const mSel = $("vc-mode"); if(mSel) mSel.onchange = () => { vcState.pk.mode = mSel.value; vcState.pk.age = Math.min(vcState.pk.age, mSel.value === "layer" ? 40 : 33); if(mSel.value === "layer" && vcState.pk.age < 18) vcState.pk.age = 24; render(); };
 }
 
-function renderHpaiTab(){
-  const newsCard = renderHpaiNewsCard() + renderHpaiKrCard() + renderRiskMapCard() + renderFlywayCard() + renderHpaiSymptomCard() + renderHpaiPreventCard();
+function renderHpaiDataCards(){
   const d = hpaiState;
   const shell = inner => `<div class="card" style="margin-bottom:16px">${inner}</div>`;
   if(d.status === "loading" || d.status === "idle")
-    return newsCard + shell(`<div style="text-align:center;padding:28px;color:#aaa">⏳ 불러오는 중...</div>`);
+    return shell(`<div style="text-align:center;padding:28px;color:#aaa">⏳ 불러오는 중...</div>`);
   if(d.status === "error" || !d.data || !d.data.overall)
-    return newsCard + shell(`<div style="text-align:center;padding:20px;color:#aaa;font-size:12px">
+    return shell(`<div style="text-align:center;padding:20px;color:#aaa;font-size:12px">
       데이터를 불러오지 못했습니다.<br>
       <a href="https://wahis.woah.org/#/event-management" target="_blank" rel="noopener"
          style="color:#C62828;font-size:11px">🌐 WOAH WAHIS 바로가기</a></div>`);
@@ -10115,7 +10114,7 @@ function renderHpaiTab(){
       <td style="padding:5px 6px;text-align:right">${hpaiBadge(c.level)}</td>
     </tr>`).join("");
 
-  return newsCard + `
+  return `
   <div class="card" style="margin-bottom:14px;border-top:6px solid #C62828">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
       <div class="display" style="font-size:16px">🦠 고병원성 AI(HPAI) 발생예측통계 ${hpaiTagline("숫자가 먼저 알려 준다")}</div>
@@ -10168,6 +10167,16 @@ function renderHpaiTab(){
          style="font-size:11px;color:#C62828;border:1px solid #C62828;border-radius:6px;padding:4px 9px;text-decoration:none">WAHIS 원문 ↗</a>
     </div>
   </div>`;
+}
+
+// AI 탭 하위 메뉴(가로 칩). 항목을 더 넣으려면 HPAI_SUBS에 한 줄, renderHpaiTab의 body 분기에 한 줄을 추가한다.
+const HPAI_SUBS = [["news", "📰", "AI 소식"], ["kr", "🗺️", "국내 발생·검출"], ["map", "🧭", "위험·철새 지도"], ["stats", "📊", "발생 통계(WOAH)"], ["symptom", "🩺", "증상"], ["prevent", "🚨", "예방·신고"]];
+let hpaiSub = (function(){ try { return localStorage.getItem("hpai_sub") || "news"; } catch(e){ return "news"; } })();
+function renderHpaiTab(){
+  const sub = HPAI_SUBS.some(x => x[0] === hpaiSub) ? hpaiSub : "news";
+  const bar = `<div id="hpai-subbar" style="display:flex;gap:6px;overflow-x:auto;padding:4px 2px 10px;margin:0 -2px 6px;-webkit-overflow-scrolling:touch">${HPAI_SUBS.map(([k, ic, l]) => `<button type="button" class="hpai-sub-btn" data-sub="${k}" style="flex:none;border:2px solid ${sub === k ? "#1a2744" : "#e5e5e5"};background:${sub === k ? "#1a2744" : "#fff"};color:${sub === k ? "#F9C74F" : "#444"};border-radius:18px;padding:8px 14px;font-size:13.5px;font-weight:800;cursor:pointer;white-space:nowrap">${ic} ${l}</button>`).join("")}</div>`;
+  const body = sub === "news" ? renderHpaiNewsCard() : sub === "kr" ? renderHpaiKrCard() : sub === "map" ? renderRiskMapCard() + renderFlywayCard() : sub === "stats" ? renderHpaiDataCards() : sub === "symptom" ? renderHpaiSymptomCard() : renderHpaiPreventCard();
+  return bar + body;
 }
 
 function renderBriefingTab(){
@@ -28447,6 +28456,7 @@ const NEW_FEATURES = [
   { key:"broileroutlook", date:"2026-10-23", label:"육계 월간 전망 — KREI 농업관측센터 가격·도축·입식 전망", where:"시세·통계", go:{ tab:"price" } },
   { key:"broilerbreeder", date:"2026-10-23", label:"육용종계 육성계·성계 사육현황과 초생추 병아리 생산잠재력", where:"시세·통계", go:{ tab:"price" } },
   { key:"farmgame2",      date:"2026-10-21", label:"육계 키우기 · 산란계 키우기 — 게임이 두 카드로 나뉘었어요", where:"유료서비스 · 체험·게임", go:{ premium:"farmgame_broiler" } },
+  { key:"hpaisub",        date:"2026-10-25", label:"AI 탭 — 옆으로 밀어 고르는 하위 메뉴(AI 소식·국내 발생·위험 지도·발생 통계·증상·예방)", where:"AI", go:{ tab:"hpai" } },
   { key:"pricesub",       date:"2026-10-25", label:"시세,통계 — 옆으로 밀어 고르는 하위 메뉴(오늘 시세·육계 전망·사료·종계·산란계·계란 수급)", where:"시세,통계", go:{ tab:"price" } },
   { key:"consultsub",     date:"2026-10-25", label:"사양/복지/HACCP — 옆으로 밀어 고르는 하위 메뉴 + 국내외 양계 시설업체 정리", where:"사양/복지/HACCP", go:{ tab:"consult" } },
   { key:"ventclass",      date:"2026-10-24", label:"환기 기초교실 — 정압·음압·입기구·1만수당 환기량 계산", where:"유료서비스 · 최꼬 아카데미", go:{ premium:"ventclass" } },
@@ -37555,6 +37565,12 @@ function attachEvents(){
   document.querySelectorAll(".haccp-chk").forEach(el=>el.onchange=()=>{ haccpState.checks[el.dataset.k]=el.checked; haccpSave(); render(); });
 
   // 사양/복지/HACCP 하위 메뉴(가로 칩)와 시설업체 화면
+  document.querySelectorAll(".hpai-sub-btn").forEach(b=>b.onclick=()=>{
+    const bar = document.getElementById("hpai-subbar"), sl = bar ? bar.scrollLeft : 0;
+    hpaiSub = b.dataset.sub; try { localStorage.setItem("hpai_sub", hpaiSub); } catch(e){}
+    render();
+    const nb = document.getElementById("hpai-subbar"); if(nb) nb.scrollLeft = sl;
+  });
   document.querySelectorAll(".price-sub-btn").forEach(b=>b.onclick=()=>{
     const bar = document.getElementById("price-subbar"), sl = bar ? bar.scrollLeft : 0;
     priceSub = b.dataset.sub; try { localStorage.setItem("price_sub", priceSub); } catch(e){}
