@@ -28447,6 +28447,7 @@ const NEW_FEATURES = [
   { key:"broileroutlook", date:"2026-10-23", label:"육계 월간 전망 — KREI 농업관측센터 가격·도축·입식 전망", where:"시세·통계", go:{ tab:"price" } },
   { key:"broilerbreeder", date:"2026-10-23", label:"육용종계 육성계·성계 사육현황과 초생추 병아리 생산잠재력", where:"시세·통계", go:{ tab:"price" } },
   { key:"farmgame2",      date:"2026-10-21", label:"육계 키우기 · 산란계 키우기 — 게임이 두 카드로 나뉘었어요", where:"유료서비스 · 체험·게임", go:{ premium:"farmgame_broiler" } },
+  { key:"consultsub",     date:"2026-10-25", label:"사양/복지/HACCP — 옆으로 밀어 고르는 하위 메뉴 + 국내외 양계 시설업체 정리", where:"사양/복지/HACCP", go:{ tab:"consult" } },
   { key:"ventclass",      date:"2026-10-24", label:"환기 기초교실 — 정압·음압·입기구·1만수당 환기량 계산", where:"유료서비스 · 최꼬 아카데미", go:{ premium:"ventclass" } },
   { key:"avianphys",      date:"2026-10-19", label:"조류생리 아카데미 — 닭 몸속 탐험", where:"유료서비스 · 최꼬 아카데미", go:{ premium:"avianphys" } },
   { key:"coliclass",      date:"2026-10-15", label:"닭 대장균증 잡는 교실 (12차시)", where:"유료서비스 · 최꼬 아카데미", go:{ premium:"coliclass" } },
@@ -31202,7 +31203,8 @@ const CONSULT_BREEDS = {
   },
 };
 
-let consultState = { species:"broiler", breed:"ross308", age:7 };
+let consultState = { species:"broiler", breed:"ross308", age:7, sub:(function(){ try { return localStorage.getItem("consult_sub") || "std"; } catch(e){ return "std"; } })() };
+const CONSULT_SUBS = [["std", "📊", "사양 표준"], ["intake", "🍽️", "섭취량"], ["air", "💨", "습구·이슬점"], ["vent", "🌀", "환기 계산"], ["pi", "📈", "생산지수"], ["mgmt", "📝", "관리 포인트"], ["welfare", "🐾", "동물복지"], ["haccp", "🛡️", "HACCP"], ["maker", "🏭", "시설업체"]];
 
 // ── 육계 생산지수(EPEF, European Production Efficiency Factor) ─────────────
 // 국내외 육계 현장에서 가장 널리 쓰는 종합 성적 지표. 공식:
@@ -33030,6 +33032,77 @@ function renderHaccpPanel(){
   </div>`;
 }
 
+// ── 🏭 양계 시설업체 (사양/복지/HACCP 탭 하위 메뉴) ──────────────────────────────────────────────
+// 업체 정보는 각 업체의 공식 사이트(2026-10-25 확인)에 적힌 내용만 옮겼다. 회사가 스스로 한 주장은 「회사 설명」으로 표시한다.
+// 국내 업체는 양계 전용 케이지·급이기 제조사를 확인하지 못했고, 축산 기자재 쇼핑몰(피그앤포크몰) 쿨링패드 목록의 업체만 「목록 기준」으로 올렸다 — 계사 적용 여부·가격·AS는 업체에 직접 확인해야 한다.
+// 새 업체는 POULTRY_VENDORS에 한 항목 추가하면 카드·비교표에 자동으로 나온다.
+const VENDOR_CATS = [["housing", "🏠", "사육설비"], ["feed", "🌾", "급이·급수"], ["climate", "🌀", "환기·냉방"], ["egg", "🥚", "계란 수집·처리"], ["control", "🖥️", "제어·모니터링"], ["manure", "🧹", "분뇨·세척"]];
+const POULTRY_VENDORS = [
+  { id:"bigdutchman", name:"Big Dutchman", scope:"해외", country:"독일", hq:"독일 페흐타(Vechta)", color:"#1565C0", basis:"공식 사이트", url:"https://www.bigdutchman.com/en/",
+    cats:["housing", "feed", "climate", "control", "manure"],
+    summary:"산란계·육계·종계 설비를 모두 다루는 종합 양계 설비 회사. 1938년 최초의 자동 급이기를 내놓았다고 소개한다(회사 설명).",
+    lines:[["산란계", "에비어리 · 엔리치드 콜로니 · 케이지, 육성(Pullet rearing), 종계 관리"], ["육계", "육계 생산, 육계 종계 관리 (칠면조·오리·양돈 설비도 취급)"], ["환기·기후", "양계 기후제어, 육계 쪽에는 공기 정화도 있음"], ["급이", "사료 저장 · 사료 이송 설비"]],
+    features:["케이지 UniVent: 3~12단 설치, 계란이 벨트로 구를 때 속도를 늦추는 EggSaver, 선택 사양 분변벨트 환기(분변을 말려 암모니아 감소)", "종계 계사용 LED 조명 Aurora 550: 밝기·색·방향 조절, 필요한 곳만 켜서 전력 절감", "세척 로봇 Sharky 430: 계군 반출 후 세척·소독, 에비어리 둥지·급이기 같은 좁은 곳까지 닿는 유연한 세척 암", "AI 기반 가축 모니터링에 대한 논의(만능은 아니라고 설명)"] },
+  { id:"vencomatic", name:"Vencomatic Group", scope:"해외", country:"네덜란드", hq:"네덜란드 에르셀(Eersel)", color:"#2E7D32", basis:"공식 사이트", url:"https://www.vencomaticgroup.com/en",
+    cats:["housing", "feed", "climate", "egg", "control"],
+    summary:"브랜드별로 역할이 나뉜 네덜란드 그룹: Vencomatic·Van Gent(사육설비), Prinzen(계란 수집·처리), Agro Supply(기후제어), Meggsius(정밀 사양).",
+    lines:[["산란계", "둥지·에비어리 시스템(케이지프리 환경 관리), 육성 설비"], ["육계·종계", "육계, 육계 종계, 오리·칠면조 설비, 육계 급이 Vencopan"], ["계란", "계란 이송 · 계란 포장기 · 부화장 계란 입고 자동화"], ["기후", "ECO Base · ECO Zero (기후·배출 저감)"]],
+    features:["Meggsius: 24시간 데이터를 보는 대시보드(Connect)와 자동 계란 선별(Select) 등 정밀 사양 시스템", "Genus Focus: 부화 전 계란에서 비접촉 성 감별(in-ovo sexing)", "Gregg Smart Eggs: 계란이 받는 충격(G-force)을 측정", "온팜 부화 X-Treck, 입추 초기 관리 Perfect Start", "회사 설명: 사육설비·포장기·기후설비가 계란 원가의 평균 약 7%를 차지"] },
+  { id:"ctb", name:"CTB, Inc. (Chore-Time)", scope:"해외", country:"미국", hq:"미국 인디애나 밀퍼드(Milford)", color:"#E65100", basis:"공식 사이트", url:"https://www.ctbinc.com/",
+    cats:["climate", "egg", "control", "manure"],
+    summary:"1952년 설립, 버크셔 해서웨이 계열. 곡물·양계·양돈·계란 분야 시스템을 만들며 여러 브랜드를 묶어 운영한다.",
+    lines:[["Chore-Time", "공기질 · 계란 수집 · 전자제어/소프트웨어 · 환경제어 · 분뇨 처리 · 양계 케어 시스템"], ["FANCOM", "공기질 · 생체정보(biometrics) · 계란 수집 · 전자 급이 · 환경제어 · 분뇨 처리"], ["Agro Logic · Roxell", "전자제어/소프트웨어, 환경제어, (Roxell) 계란 수집"], ["Meyn", "가금 가공·포장 설비"]],
+    features:["연 매출 약 10억 달러, 직원 3,000명 이상, 제조·물류 시설 46곳(회사 설명)", "FANCOM·Agro Logic 등 제어 전문 브랜드를 함께 보유 — 환기·제어에 강점이 있어 보임(사이트의 제품 분류 기준)", "사이트에서 케이지·에비어리·급수 설비는 따로 명시하지 않음"] },
+  { id:"facco", name:"FACCO", scope:"해외", country:"이탈리아", hq:"이탈리아 파도바 주 캄포 산 마르티노", color:"#C62828", basis:"공식 사이트", url:"https://www.facco.net/en/",
+    cats:["housing", "feed", "climate", "egg", "control", "manure"],
+    summary:"계사 건축부터 설비까지 맡는 턴키(일괄) 양계장 프로젝트 제조사. 1957년에 새로운 양계 방식의 씨앗을 뿌렸다고 소개한다(회사 설명).",
+    lines:[["산란계", "C3 · C4 · C5, European Max/Magnum 계사 설비, 육성 P80/P66 Comfort"], ["육계", "다단 육계 Multi Tier B3, 바닥 사육 설비"], ["케이지프리", "Libera 시리즈, 바닥 둥지 Family Nest, 종계 설비"], ["그 밖에", "환기 · 급이/급수 · 분뇨 처리 · 전자제어 · 스마트팜 · 계란 수집"]],
+    features:["계란 수집 시스템 THE NIAGARA를 가장 많이 모방된 제품이라고 소개(회사 주장)", "한 계사에 산란계 100만 수 규모 시설을 지었다고 소개(회사 주장)", "제품 대부분을 그룹 내에서 생산해 품질을 관리한다고 소개(회사 주장)", "프리패브(조립식) 계사 구조물까지 제공"] },
+  { id:"munters", name:"Munters", scope:"해외", country:"스웨덴", hq:"스웨덴 시스타(Kista)", color:"#00838F", basis:"공식 사이트", url:"https://www.munters.com/en/industries/food-and-agriculture/",
+    cats:["climate", "control"],
+    summary:"가금·양돈·낙농용 에너지 효율 기후제어를 전문으로 한다고 소개하는 기후·공기처리 회사.",
+    lines:[["냉방", "증발식 패드 CELdek · GLASdek GX40, 직접 증발 냉각·가습기"], ["공기처리", "제습기, 히터, 열교환기, 증기 가습기"], ["제어", "컨트롤러·자동화 액세서리 AirC Connect"]],
+    features:["사료요구율(FCR)을 높이는 실내 환경 유지를 강조", "동물 건강·복지 개선을 내세움", "이 페이지에서는 제품이 가금·가축 계사 전용인지 따로 구분하지 않음 — 계사 적용 모델은 문의 필요"] },
+  { id:"skov", name:"SKOV", scope:"해외", country:"덴마크", hq:"덴마크(컨트롤러를 덴마크 Glyngøre에서 생산)", color:"#6A1B9A", basis:"공식 사이트", url:"https://www.skov.com/",
+    cats:["climate", "control"],
+    summary:"가금 계사 환기·기후를 올인원으로 제공한다고 소개하는 덴마크 회사.",
+    lines:[["팬", "BlueFan BF 50(터널·콤비터널), BF 55(대형 계사 터널)"], ["난방·냉방", "Spiraflex 핀 튜브(온수 난방), DA 65-600 냉각 유닛"], ["제어", "BlueControl, 실시간 모니터링·조절"], ["기타", "입기구 · 냉방 · 공기 정화 · 공기 여과 분류"]],
+    features:["컨트롤러를 모두 덴마크에서 생산(Made in Denmark)", "고객 사례: 새 제어 기술로 생산지수(PEF) 50점 상승이라는 증언", "서비스 24/7/365, 현장 교육과 SKOV Academy 과정", "프로젝트 단일 창구로 일정·납품 관리"] },
+  // ── 국내: 양돈·축산 기자재 쇼핑몰 쿨링패드 목록 기준 ──
+  ...[["(주)씨아이티시스템", "쿨링패드(시스템 루바 · 윈치커튼)"], ["(주)금보", "쿨링패드"], ["(주)보원이엔지", "쿨링패드"], ["(주)세원", "Cooling Pad"], ["(주)하나시스템", "쿨링패드 시공"], ["(주)바로텍", "MIK 쿨링패드"], ["(주)근옥", "KOC 쿨링 냉방시스템"], ["하이테크창신", "쿨링패드"]].map(([name, prod]) => ({ id:"kr-" + name, name, scope:"국내", country:"한국", hq:"한국", color:"#455A64", basis:"쇼핑몰 목록", url:"https://www.pignporkmall.com/list.php?category=5r05r02", cats:["climate"],
+    summary:"축산 기자재 쇼핑몰 쿨링패드 목록에 올라 있는 국내 업체예요.", lines:[["제품(목록 표기)", prod]],
+    features:["양돈 중심 쇼핑몰의 목록이라 계사 적용 모델·시공 실적은 업체에 직접 확인해야 해요", "홈페이지·연락처는 확인하지 못해 링크는 목록 페이지로 연결해요"] }))
+];
+const vendorState = { scope:"all", cat:"all", open:{} };
+function renderMakerPanel(){
+  const sc = vendorState.scope, ct = vendorState.cat;
+  const chip = (cls, k, label, on, c) => `<button type="button" class="${cls}" data-k="${k}" style="flex:none;border:2px solid ${on ? c : "#e0e0e0"};background:${on ? c : "#fff"};color:${on ? "#fff" : "#555"};border-radius:18px;padding:7px 13px;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap">${label}</button>`;
+  const scopes = [["all", "전체"], ["해외", "🌍 해외"], ["국내", "🇰🇷 국내"]];
+  const list = POULTRY_VENDORS.filter(v => (sc === "all" || v.scope === sc) && (ct === "all" || v.cats.includes(ct)));
+  const head = `<div class="card" style="border-top:6px solid #455A64;margin-bottom:12px">
+    <div class="display" style="font-size:16px;margin-bottom:3px">🏭 국내외 양계 시설업체</div>
+    <div style="font-size:12.5px;color:#666;line-height:1.7">사육설비·급이·환기·계란 처리 업체의 <b>특징을 한눈에</b> 비교해요. 내용은 각 업체 공식 사이트에 적힌 것만 정리했고, 회사가 스스로 한 주장은 「회사 설명」으로 표시했어요.</div>
+    <div style="display:flex;gap:6px;overflow-x:auto;padding:10px 0 4px">${scopes.map(([k, l]) => chip("mk-scope", k, l, sc === k, "#455A64")).join("")}</div>
+    <div style="display:flex;gap:6px;overflow-x:auto;padding:4px 0">${chip("mk-cat", "all", "전체 분야", ct === "all", "#00897B")}${VENDOR_CATS.map(c => chip("mk-cat", c[0], `${c[1]} ${c[2]}`, ct === c[0], "#00897B")).join("")}</div></div>`;
+  const matrix = `<div class="card" style="margin-bottom:12px"><div style="font-size:14.5px;font-weight:900;margin-bottom:6px">📋 한눈에 비교표</div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px;text-align:center;min-width:520px"><thead><tr style="background:#ECEFF1"><th style="padding:6px;text-align:left">업체</th><th>국가</th>${VENDOR_CATS.map(c => `<th>${c[1]}<br>${c[2]}</th>`).join("")}</tr></thead><tbody>${POULTRY_VENDORS.filter(v => sc === "all" || v.scope === sc).map(v => `<tr style="border-top:1px solid #eee"><td style="text-align:left;padding:6px;font-weight:800;color:${v.color}">${esc(v.name)}</td><td>${esc(v.country)}</td>${VENDOR_CATS.map(c => `<td>${v.cats.includes(c[0]) ? `<b style="color:${v.color}">●</b>` : `<span style="color:#ccc">–</span>`}</td>`).join("")}</tr>`).join("")}</tbody></table></div><div style="font-size:11.5px;color:#888;margin-top:5px">● = 공식 사이트(또는 목록)에서 해당 분야 제품이 확인된 경우. 표시가 없어도 취급하지 않는다는 뜻은 아니에요.</div></div>`;
+  const cards = list.map(v => {
+    const open = !!vendorState.open[v.id];
+    const tags = v.cats.map(k => { const c = VENDOR_CATS.find(x => x[0] === k); return `<span style="background:${v.color}18;color:${v.color};border-radius:10px;padding:2px 9px;font-size:12px;font-weight:800">${c[1]} ${c[2]}</span>`; }).join(" ");
+    const basis = `<span style="background:${v.basis === "공식 사이트" ? "#E8F5E9" : "#FFF3E0"};color:${v.basis === "공식 사이트" ? "#2E7D32" : "#E65100"};border-radius:10px;padding:2px 9px;font-size:11.5px;font-weight:800">${v.basis === "공식 사이트" ? "✔ 공식 사이트 확인" : "ⓘ 쇼핑몰 목록 기준"}</span>`;
+    return `<div class="card" style="border-left:7px solid ${v.color};margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:flex-start"><div><div style="font-size:17px;font-weight:900;color:${v.color}">${esc(v.name)}</div><div style="font-size:12.5px;color:#777;margin-top:2px">${v.scope === "해외" ? "🌍" : "🇰🇷"} ${esc(v.hq)}</div></div>${basis}</div>
+      <div style="font-size:13.5px;line-height:1.75;color:#333;margin-top:8px">${esc(v.summary)}</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px">${tags}</div>
+      <button type="button" class="mk-open" data-k="${v.id}" style="margin-top:9px;border:1.5px solid ${v.color};background:#fff;color:${v.color};border-radius:10px;padding:7px 12px;font-size:13px;font-weight:800;cursor:pointer">${open ? "접기 ▲" : "제품·특징 자세히 ▼"}</button>
+      ${open ? `<div style="margin-top:9px"><div style="display:grid;gap:6px">${v.lines.map(l => `<div style="display:flex;gap:8px;font-size:13px;line-height:1.65"><b style="flex:none;min-width:74px;color:${v.color}">${esc(l[0])}</b><span style="color:#333">${esc(l[1])}</span></div>`).join("")}</div>
+        <div style="margin-top:9px;background:${v.color}0f;border-radius:10px;padding:9px 12px"><div style="font-size:13px;font-weight:900;color:${v.color};margin-bottom:4px">✨ 특징</div>${v.features.map(f => `<div style="display:flex;gap:7px;font-size:13px;line-height:1.7;color:#333"><span style="color:${v.color}">●</span><span>${esc(f)}</span></div>`).join("")}</div>
+        <a href="${esc(v.url)}" target="_blank" rel="noopener" style="display:inline-block;margin-top:9px;font-size:13px;font-weight:800;color:#1565C0">🔗 ${v.basis === "공식 사이트" ? "공식 사이트 보기" : "목록 페이지 보기"} ↗</a></div>` : ""}
+    </div>`;
+  }).join("") || `<div class="card" style="text-align:center;color:#999;padding:22px;font-size:13px">조건에 맞는 업체가 없어요. 필터를 바꿔 보세요.</div>`;
+  const foot = `<div style="background:#FFF8E1;border-radius:9px;padding:9px 12px;font-size:11.5px;color:#6b5400;line-height:1.75"><b>유의</b> · 업체 소개는 정보 제공용이며 특정 업체를 추천·보증하지 않아요. 국내 양계 전용 케이지·급이기 제조사는 이번 조사에서 공식 자료로 확인하지 못했고, 국내 업체는 쿨링패드 목록 기준이에요. 가격·시공 실적·AS 범위·국내 대리점은 업체에 직접 확인하세요. 빠진 업체는 알려 주시면 추가해요.</div>`;
+  return head + matrix + cards + foot;
+}
+
 function renderConsultTab(){
   const sp = CONSULT_BREEDS[consultState.species];
   if(consultState.breed && !sp.breeds[consultState.breed]) consultState.breed = Object.keys(sp.breeds)[0];
@@ -33168,32 +33241,27 @@ function renderConsultTab(){
     <div style="font-size:12px;color:#888">${ageLabel}</div>
   </div>`;
 
-  return `
-  <div style="margin-bottom:14px">
-    <div class="display" style="font-size:16px;margin-bottom:3px">🕊️ 사양/복지/HACCP</div>
-    <div style="font-size:11px;color:#aaa">품종·일령(주령)을 선택하면 세계 표준 사양매뉴얼 수치를 바로 보여줍니다</div>
-  </div>
-
-  <div style="display:flex;gap:8px;margin-bottom:10px">${speciesBtns}</div>
+  const sub = CONSULT_SUBS.some(x => x[0] === consultState.sub) ? consultState.sub : "std";
+  const needCtl = ["std", "intake", "air", "vent", "pi", "mgmt"].includes(sub);
+  const subBar = `<div id="consult-subbar" style="display:flex;gap:6px;overflow-x:auto;padding:4px 2px 10px;margin:0 -2px 6px;-webkit-overflow-scrolling:touch">${CONSULT_SUBS.map(([k, ic, l]) => `<button type="button" class="consult-sub-btn" data-sub="${k}" style="flex:none;border:2px solid ${sub === k ? "#1a2744" : "#e5e5e5"};background:${sub === k ? "#1a2744" : "#fff"};color:${sub === k ? "#F9C74F" : "#444"};border-radius:18px;padding:8px 14px;font-size:13.5px;font-weight:800;cursor:pointer;white-space:nowrap">${ic} ${l}</button>`).join("")}</div>`;
+  const body = sub === "std" ? card + renderFarmComparePanel(breed, age) : sub === "intake" ? renderIntakePanel() : sub === "air" ? renderWetBulbPanel() + renderDewPointPanel() : sub === "vent" ? renderVentCalcPanel() : sub === "pi" ? (renderProductionIndexPanel() || `<div class="card" style="text-align:center;color:#999;padding:22px;font-size:13px">생산지수는 육계에서만 계산해요. 위에서 🐔 육계를 선택하세요.</div>`) : sub === "mgmt" ? renderMgmtPointsPanel() : sub === "welfare" ? renderWelfarePanel() : sub === "haccp" ? renderHaccpPanel() : renderMakerPanel();
+  const controls = needCtl ? `<div style="display:flex;gap:8px;margin-bottom:10px">${speciesBtns}</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">${breedBtns}</div>
-
-  ${ageInput}
-  ${card}
-  ${renderFarmComparePanel(breed, age)}
-  ${renderIntakePanel()}
-  ${renderWetBulbPanel()}
-  ${renderDewPointPanel()}
-  ${renderVentCalcPanel()}
-  ${renderProductionIndexPanel()}
-  ${renderMgmtPointsPanel()}
-  ${renderWelfarePanel()}
-  ${renderHaccpPanel()}
-
-  <div style="font-size:10px;color:#aaa;line-height:1.7">
+  ${ageInput}` : "";
+  const foot = needCtl ? `<div style="font-size:10px;color:#aaa;line-height:1.7">
     ※ 출처: ${breed.source}. 사양매뉴얼 표는 국가·환경에 따라 실제 성적과 차이가 날 수 있는 "목표치"이며,
     축약 표에 없는 주령은 인접한 두 시점 사이를 선형보간한 값입니다(표시 시 "보간값"으로 별도 안내).
     실제 현장 컨설팅 시에는 반드시 해당 육종회사의 최신 원문 매뉴얼을 함께 확인하세요.
-  </div>`;
+  </div>` : "";
+  return `
+  <div style="margin-bottom:8px">
+    <div class="display" style="font-size:16px;margin-bottom:3px">🕊️ 사양/복지/HACCP</div>
+    <div style="font-size:11px;color:#aaa">아래 메뉴를 옆으로 밀어 원하는 항목으로 바로 이동하세요</div>
+  </div>
+  ${subBar}
+  ${controls}
+  ${body}
+  ${foot}`;
 }
 
 
@@ -37461,6 +37529,16 @@ function attachEvents(){
   document.querySelectorAll(".haccp-sp").forEach(b=>b.onclick=()=>{ haccpState.sp=b.dataset.sp; haccpSave(); render(); });
   document.querySelectorAll(".haccp-chk").forEach(el=>el.onchange=()=>{ haccpState.checks[el.dataset.k]=el.checked; haccpSave(); render(); });
 
+  // 사양/복지/HACCP 하위 메뉴(가로 칩)와 시설업체 화면
+  document.querySelectorAll(".consult-sub-btn").forEach(b=>b.onclick=()=>{
+    const bar = document.getElementById("consult-subbar"), sl = bar ? bar.scrollLeft : 0;
+    consultState.sub = b.dataset.sub; try { localStorage.setItem("consult_sub", consultState.sub); } catch(e){}
+    render();
+    const nb = document.getElementById("consult-subbar"); if(nb) nb.scrollLeft = sl;
+  });
+  document.querySelectorAll(".mk-scope").forEach(b=>b.onclick=()=>{ vendorState.scope = b.dataset.k; render(); });
+  document.querySelectorAll(".mk-cat").forEach(b=>b.onclick=()=>{ vendorState.cat = b.dataset.k; render(); });
+  document.querySelectorAll(".mk-open").forEach(b=>b.onclick=()=>{ vendorState.open[b.dataset.k] = !vendorState.open[b.dataset.k]; render(); });
   // 육계/산란계 컨설팅: 축종/품종/일령 선택
   document.querySelectorAll(".consult-species-btn").forEach(b=>b.onclick=()=>{
     consultState.species = b.dataset.species;
