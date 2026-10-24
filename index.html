@@ -862,6 +862,19 @@ const PREMIUM_CATEGORY_COLORS = {
 // 불가(div)로, mode:"menu"는 로그인 후 화면이라 item.key가 있는 항목만
 // 버튼(클릭 가능)으로 그린다 — 기존 두 화면(renderPremiumPreview·
 // renderPremiumTab)의 렌더 방식을 그대로 유지하면서 묶음 제목만 추가한다.
+// 유료서비스 메뉴 하위 메뉴: 분류(category)별로 골라 보기 — 머리글의 가로 칩이 이 분류 목록을 쓴다.
+let premiumSub = (function(){ try { return localStorage.getItem("premium_sub") || "all"; } catch(e){ return "all"; } })();
+function premiumMenuItemsFull(){
+  let menuItems = currentPremiumMenuItems();
+  if(isBoardAdmin()){
+    menuItems = menuItems.concat([
+      { key:"members", icon:"👤", title:"회원관리", desc:"이름·전화번호·가입일·만료일을 관리합니다. (관리자 전용)", color:"#37474F", category:"관리자 전용" },
+      { key:"smsadmin", icon:"📋", title:"자동 문자 발송 관리", desc:"발송 주기가 된 신청자를 확인하고 문자 내용을 준비합니다. (관리자 전용)", color:"#0277BD", category:"관리자 전용" },
+    ]);
+  }
+  return menuItems;
+}
+function premiumMenuCats(items){ const c = []; (items || premiumMenuItemsFull()).forEach(it => { const k = it.category || ""; if(k && !c.includes(k)) c.push(k); }); return c; }
 function renderPremiumMenuItems(items, mode){
   let html = "", lastCategory = null;
   // 같은 분류(category)는 저장된 순서가 어긋나 있어도(관리자 편집·새 항목 추가 등) 한 제목 아래로 모은다 —
@@ -7524,25 +7537,25 @@ function renderLifeMiracleCard(){
     </div></div>`;
 }
 
+// 질병 탭 하위 메뉴(고정 머리글의 가로 칩)
+const DZ_SUBS = [["dict", "🔎", "질병 사전"], ["pick", "⭐", "이달의 질병"], ["today", "📋", "오늘 사양 포인트"], ["life", "🥚", "생명탄생의 신비"]];
+let dzSub = (function(){ try { return localStorage.getItem("dz_sub") || "dict"; } catch(e){ return "dict"; } })();
 function renderDiseaseTab(){
   const d = diseaseState;
   const shell = inner => '<div class="card" style="margin-bottom:16px">'+inner+'</div>';
-  // 오늘 기상 기준 사양관리 포인트는 질병 자료 로딩 상태와 무관하게 항상 맨 위에
-  // 둔다 — 질병 위험(호흡기·콕시듐·대장균)이 결국 오늘 사양환경에서 나오기 때문.
-  const head = renderHusbandryPointsCard({title:"📋 오늘의 사양관리 포인트", poultryOnly:true});
-  // 생명탄생의 신비는 양계질병 사전 카드 바로 앞에 둔다(자료가 아직 없을 때도 같은 자리)
-  const life = renderLifeMiracleCard();
+  const sub = DZ_SUBS.some(x => x[0] === dzSub) ? dzSub : "dict";
+  // 오늘 기상 기준 사양관리 포인트·생명탄생의 신비는 질병 자료 로딩 상태와 무관하게 보인다.
+  if(sub === "today") return renderHusbandryPointsCard({title:"📋 오늘의 사양관리 포인트", poultryOnly:true});
+  if(sub === "life") return renderLifeMiracleCard();
   if(d.status === "loading" || d.status === "idle")
-    return head + life + shell('<div style="text-align:center;padding:28px;color:#aaa">⏳ 질병 자료를 불러오는 중...</div>');
+    return shell('<div style="text-align:center;padding:28px;color:#aaa">⏳ 질병 자료를 불러오는 중...</div>');
   if(d.status === "error" || !d.data || !d.data.diseases)
-    return head + life + shell('<div style="text-align:center;padding:20px;color:#aaa;font-size:12px">자료를 불러오지 못했습니다.<br>'
+    return shell('<div style="text-align:center;padding:20px;color:#aaa;font-size:12px">자료를 불러오지 못했습니다.<br>'
       + '<a href="https://www.thepoultrysite.com/publications/diseases-of-poultry" target="_blank" rel="noopener" style="color:#00695C;font-size:11px">🌐 The Poultry Site 원문 바로가기</a></div>');
 
   const data = d.data, q = d.query || "";
-  return head
-    + renderMonthlyPick(data.diseases)
-    + life
-    + '<div class="card" style="margin-bottom:12px;border-top:6px solid #00695C">'
+  if(sub === "pick") return renderMonthlyPick(data.diseases);
+  return '<div class="card" style="margin-bottom:12px;border-top:6px solid #00695C">'
     +   '<div class="display" style="font-size:16px;margin-bottom:4px">🩺 양계질병 사전</div>'
     +   '<div style="font-size:11px;color:#888;margin-bottom:10px">한글 병명으로 검색하세요 — 뉴캐슬병, 콕시듐, 마렉, 감보로, 대장균증 …</div>'
     +   '<div style="display:flex;gap:6px;align-items:center">'
@@ -10178,8 +10191,12 @@ function renderHpaiTab(){
   return body;
 }
 
+// 뉴스 탭 하위 메뉴(고정 머리글의 가로 칩)
+const NEWS_SUBS = [["policy", "🏛️", "농식품부 축산정책"], ["news", "📰", "축산 신문"], ["global", "🌍", "해외 양계질병"], ["econ", "💹", "경제동향"]];
+let newsSub = (function(){ try { return localStorage.getItem("news_sub") || "policy"; } catch(e){ return "policy"; } })();
 function renderBriefingTab(){
-  return renderNoticesSection() + renderPolicySection();
+  const sub = NEWS_SUBS.some(x => x[0] === newsSub) ? newsSub : "policy";
+  return sub === "policy" ? renderPolicySection() : renderNoticesSection(sub === "news" ? ["chuksan", "aflnews", "handon", "dailyvet"] : sub === "global" ? ["global"] : ["econ"]);
 }
 
 // ── 약품조회 및 휴약기간 검색 (QIA 동물용의약품통합정보시스템 실시간 조회) ──
@@ -28329,13 +28346,9 @@ function renderPremiumTab(){
   // 보인다 — PREMIUM_ITEMS 배열 자체에는 안 넣는다(로그인 전 미리보기
   // renderPremiumPreview()도 같은 배열을 쓰는데, 거기서도 안 보여야 하므로).
   if(premiumMenuState.status === "idle") fetchPremiumMenuItems();
-  let menuItems = currentPremiumMenuItems();
-  if(isBoardAdmin()){
-    menuItems = menuItems.concat([
-      { key:"members", icon:"👤", title:"회원관리", desc:"이름·전화번호·가입일·만료일을 관리합니다. (관리자 전용)", color:"#37474F", category:"관리자 전용" },
-      { key:"smsadmin", icon:"📋", title:"자동 문자 발송 관리", desc:"발송 주기가 된 신청자를 확인하고 문자 내용을 준비합니다. (관리자 전용)", color:"#0277BD", category:"관리자 전용" },
-    ]);
-  }
+  const allMenuItems = premiumMenuItemsFull();
+  const cats = premiumMenuCats(allMenuItems);
+  const menuItems = (premiumSub !== "all" && cats.includes(premiumSub)) ? allMenuItems.filter(it => (it.category || "") === premiumSub) : allMenuItems;
   return renderPremiumGateHeader() + logoutBar + `
   <div class="pm-list">
     ${renderPremiumMenuItems(menuItems, "menu")}
@@ -28455,6 +28468,7 @@ const NEW_FEATURES = [
   { key:"broileroutlook", date:"2026-10-23", label:"육계 월간 전망 — KREI 농업관측센터 가격·도축·입식 전망", where:"시세·통계", go:{ tab:"price" } },
   { key:"broilerbreeder", date:"2026-10-23", label:"육용종계 육성계·성계 사육현황과 초생추 병아리 생산잠재력", where:"시세·통계", go:{ tab:"price" } },
   { key:"farmgame2",      date:"2026-10-21", label:"육계 키우기 · 산란계 키우기 — 게임이 두 카드로 나뉘었어요", where:"유료서비스 · 체험·게임", go:{ premium:"farmgame_broiler" } },
+  { key:"allsub",         date:"2026-10-25", label:"날씨·환기·질병·뉴스·유료서비스 탭도 위쪽 하위 메뉴로 바로 이동", where:"전체 탭", go:{ tab:"weather" } },
   { key:"hpaisub",        date:"2026-10-25", label:"AI 탭 — 옆으로 밀어 고르는 하위 메뉴(AI 소식·국내 발생·위험 지도·발생 통계·증상·예방)", where:"AI", go:{ tab:"hpai" } },
   { key:"pricesub",       date:"2026-10-25", label:"시세,통계 — 옆으로 밀어 고르는 하위 메뉴(오늘 시세·육계 전망·사료·종계·산란계·계란 수급)", where:"시세,통계", go:{ tab:"price" } },
   { key:"consultsub",     date:"2026-10-25", label:"사양/복지/HACCP — 옆으로 밀어 고르는 하위 메뉴 + 국내외 양계 시설업체 정리", where:"사양/복지/HACCP", go:{ tab:"consult" } },
@@ -28504,11 +28518,20 @@ function renderHeaderSubBar(embedded){
   const t = state.tab;
   let items, cur, cls, id;
   if(t === "price" || t === "pig" || t === "livestock"){ items = PRICE_SUBS; cur = priceSub; cls = "price-sub-btn"; id = "price-subbar"; }
+  else if(t === "weather"){ items = WX_SUBS; cur = wxSub; cls = "wx-sub-btn"; id = "wx-subbar"; }
+  else if(t === "vent"){ items = VENT_SUBS; cur = ventSub; cls = "vent-sub-btn"; id = "vent-subbar"; }
   else if(t === "consult"){ items = CONSULT_SUBS; cur = consultState.sub; cls = "consult-sub-btn"; id = "consult-subbar"; }
+  else if(t === "disease"){ items = DZ_SUBS; cur = dzSub; cls = "dz-sub-btn"; id = "dz-subbar"; }
   else if(t === "hpai"){ items = HPAI_SUBS; cur = hpaiSub; cls = "hpai-sub-btn"; id = "hpai-subbar"; }
+  else if(t === "briefing"){ items = NEWS_SUBS; cur = newsSub; cls = "news-sub-btn"; id = "news-subbar"; }
+  else if(t === "premium" && premiumState.view === "menu" && premiumState.user && premiumState.status === "done" && isPremiumApproved()){
+    const cats = premiumMenuCats();
+    if(cats.length < 2) return "";
+    items = [["all", "🗂️", "전체"]].concat(cats.map(c => [c, "", c])); cur = premiumSub; cls = "prem-sub-btn"; id = "prem-subbar";
+  }
   else return "";
   if(!items.some(x => x[0] === cur)) cur = items[0][0];
-  return `<div id="${id}" class="hd-subbar" role="tablist" aria-label="하위 메뉴" style="display:flex;gap:6px;overflow-x:auto;padding:8px 0 4px;-webkit-overflow-scrolling:touch;scrollbar-width:none">${items.map(([k, ic, l]) => `<button type="button" role="tab" aria-selected="${cur === k}" class="${cls}" data-sub="${k}" style="flex:none;border:1.5px solid ${cur === k ? "#F9C74F" : "rgba(255,255,255,.28)"};background:${cur === k ? "#F9C74F" : "rgba(255,255,255,.1)"};color:${cur === k ? "#1a2744" : "#fff"};border-radius:16px;padding:6px 12px;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap">${ic} ${l}</button>`).join("")}</div>`;
+  return `<div id="${id}" class="hd-subbar" role="tablist" aria-label="하위 메뉴" style="display:flex;gap:6px;overflow-x:auto;padding:8px 0 4px;-webkit-overflow-scrolling:touch;scrollbar-width:none">${items.map(([k, ic, l]) => `<button type="button" role="tab" aria-selected="${cur === k}" class="${cls}" data-sub="${esc(k)}" style="flex:none;border:1.5px solid ${cur === k ? "#F9C74F" : "rgba(255,255,255,.28)"};background:${cur === k ? "#F9C74F" : "rgba(255,255,255,.1)"};color:${cur === k ? "#1a2744" : "#fff"};border-radius:16px;padding:6px 12px;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap">${ic ? ic + " " : ""}${esc(l)}</button>`).join("")}</div>`;
 }
 function renderHeader(){
   const now=new Date();
@@ -33336,7 +33359,11 @@ function determineHumidityStage(hum){
 }
 
 function st0name(sp, i){ return sp.stages[i] ? sp.stages[i].name : ""; }
+// 환기 탭 하위 메뉴(고정 머리글의 가로 칩)
+const VENT_SUBS = [["rec", "🎯", "오늘 환기 추천"], ["week", "📅", "주간 미리보기"], ["basis", "📖", "근거·원리"]];
+let ventSub = (function(){ try { return localStorage.getItem("vent_sub") || "rec"; } catch(e){ return "rec"; } })();
 function renderVentTab(){
+  if(!VENT_SUBS.some(x => x[0] === ventSub)) ventSub = "rec";
   const speciesInfo = {
     broiler: {label:"육계", icon:"🐔", table:BROILER_TARGET_TEMP, stages:POULTRY_VENT_STAGES, unit:"day"},
     layer:   {label:"산란계", icon:"🥚", table:LAYER_TARGET_TEMP,   stages:POULTRY_VENT_STAGES, unit:"wk"},
@@ -33515,18 +33542,17 @@ function renderVentTab(){
     <div style="font-size:11px;color:#aaa">Aviagen 3단계 체계 + Munters 습도 이중제어 로직 — 오늘 날씨·계사구조·사육단계에 맞는 환기방법 추천${barnNote}</div>
   </div>
 
-  <div style="display:flex;gap:8px;margin-bottom:10px">${speciesBtns}</div>
+  ${ventSub === "basis" ? "" : `<div style="display:flex;gap:8px;margin-bottom:10px">${speciesBtns}</div>
   <div style="display:flex;gap:8px;margin-bottom:12px">${barnBtns}</div>
 
   <div style="margin-bottom:14px">
     <div style="font-size:11px;color:#888;font-weight:600;margin-bottom:6px">사육단계 선택 (${sp.label})</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">${stageBtns}</div>
-  </div>
+  </div>`}
 
-  ${recommendCard}
-  ${weekPreview}
+  ${ventSub === "rec" ? recommendCard : ventSub === "week" ? weekPreview : ""}
 
-  <div style="font-size:10px;color:#aaa;line-height:1.7">
+  <div style="${ventSub === "basis" ? "" : "display:none;"}font-size:12px;color:#666;line-height:1.8;background:#fff;border-radius:12px;padding:12px 14px">
     ※ 온도 기준 3단계 체계는 Aviagen「Environmental Management in the Broiler House」,
     PIC「Wean to Finish Guidelines Appendix A」, 미네소타대 확장연구소(L. Jacobson) 자료를 재구성했습니다.
     습도 기준 판정은 글로벌 계사환경제어 1위 업체 Munters의 상업용 컨트롤러(Rotem Trio)가 쓰는
@@ -33818,9 +33844,28 @@ function wnBind(){
   const rt = document.getElementById("wn-retry"); if(rt) rt.onclick = () => { weatherNewsState.status = "idle"; render(); };
 }
 
+// 날씨 탭 하위 메뉴(고정 머리글의 가로 칩)
+const WX_SUBS = [["week", "📅", "주간 날씨"], ["livestock", "🐔", "축산 날씨"], ["anomaly", "🔮", "이상기온 예측"], ["news", "📰", "날씨 뉴스"], ["solar", "🌾", "24절기"]];
+let wxSub = (function(){ try { return localStorage.getItem("wx_sub") || "week"; } catch(e){ return "week"; } })();
+function renderWeatherSobakCard(){
+  return `<div class="card" style="margin-top:16px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <span style="font-size:32px">🎬</span>
+      <div style="flex:1">
+        <div class="display" style="font-size:15px;color:#FF0000;margin-bottom:4px">소박사 날씨 정보</div>
+        <div style="font-size:12px;color:#888;margin-bottom:10px;line-height:1.6">축산·농업 현장에 맞는 날씨 정보를 제공하는 소박사 유튜브 채널입니다.</div>
+        <a href="https://youtube.com/@drsohtv?si=bbqdyduKggZmVDAB" target="_blank" rel="noopener"
+           style="display:inline-flex;align-items:center;gap:8px;background:#FF0000;color:#fff;font-size:13px;font-weight:700;padding:10px 18px;border-radius:10px;text-decoration:none">
+          ▶ 유튜브 채널 바로가기
+        </a>
+      </div>
+    </div>
+  </div>`;
+}
 function renderWeatherTab(){
   if(weatherNewsState.status === "idle") fetchWeatherNews();
-  return renderSolarTermPanel() + renderWeatherBody();
+  const sub = WX_SUBS.some(x => x[0] === wxSub) ? wxSub : "week";
+  return sub === "solar" ? renderSolarTermPanel() : sub === "anomaly" ? renderAnomalyPanel() : sub === "news" ? renderWeatherNewsCard() + renderWeatherSobakCard() : renderWeatherBody(sub);
 }
 
 // ── 🔮 이상기온 예측 (날씨 탭) ───────────────────────────────────────────────
@@ -34215,7 +34260,7 @@ function wxFeelLevel(v){
   if(v > -20) return {label:"매우 추움", color:"#E65100", bg:"#FFF3E0"};
   return {label:"혹한", color:"#B71C1C", bg:"#FFEBEE"};
 }
-function renderWeatherBody(){
+function renderWeatherBody(sub){
   const today = new Date();
   const dayNames = ["일","월","화","수","목","금","토"];
   const fmtDay = (dateStr)=>{
@@ -34383,6 +34428,7 @@ function renderWeatherBody(){
   const feelDay = wxFeelTemp(todayHigh, twDay), feelNight = wxFeelTemp(todayLow, twNight);
   const feelLv = wxFeelLevel(feelNight != null ? feelNight : feelDay);
 
+  if(sub === "livestock") return renderLivestockWeatherPanel(fc, weatherState.hourly);
   return `
   <div style="margin-bottom:16px">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
@@ -34447,27 +34493,7 @@ function renderWeatherBody(){
     날짜 카드를 누르면 시간대별 날씨
   </div>
 
-  ${hourlyPanel}
-
-  ${renderLivestockWeatherPanel(fc, weatherState.hourly)}
-
-  ${renderAnomalyPanel()}
-
-  ${renderWeatherNewsCard()}
-
-  <div class="card" style="margin-top:16px">
-    <div style="display:flex;align-items:center;gap:12px">
-      <span style="font-size:32px">🎬</span>
-      <div style="flex:1">
-        <div class="display" style="font-size:15px;color:#FF0000;margin-bottom:4px">소박사 날씨 정보</div>
-        <div style="font-size:12px;color:#888;margin-bottom:10px;line-height:1.6">축산·농업 현장에 맞는 날씨 정보를 제공하는 소박사 유튜브 채널입니다.</div>
-        <a href="https://youtube.com/@drsohtv?si=bbqdyduKggZmVDAB" target="_blank" rel="noopener"
-           style="display:inline-flex;align-items:center;gap:8px;background:#FF0000;color:#fff;font-size:13px;font-weight:700;padding:10px 18px;border-radius:10px;text-decoration:none">
-          ▶ 유튜브 채널 바로가기
-        </a>
-      </div>
-    </div>
-  </div>`;
+  ${hourlyPanel}`;
 }
 
 
@@ -34521,8 +34547,9 @@ function renderPolicySection(){
 }
 
 // ── 브리핑: 축산 뉴스 섹션 (축산신문·한돈뉴스) ───────────────────────────────────────────────
-function renderNoticesSection(){
+function renderNoticesSection(only){
   const ns = noticesState;
+  const show = k => !only || only.includes(k);
   const timeLabel = ns.status==="done"
     ? `🟢 ${ns.updatedAt} 조회`
     : ns.status==="loading" ? "⏳ 조회 중..." : "";
@@ -34584,7 +34611,7 @@ function renderNoticesSection(){
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
 
     <!-- 축산신문 -->
-    <div class="card" style="border-top:6px solid #C62828">
+    ${show("chuksan") ? `<div class="card" style="border-top:6px solid #C62828">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div style="display:flex;align-items:center;gap:7px">
           <span style="font-size:20px">📰</span>
@@ -34599,10 +34626,10 @@ function renderNoticesSection(){
         </a>
       </div>
       ${noticeList(ns.chuksan,"#C62828",ns.fallback?.chuksan,loading)}
-    </div>
+    </div>` : ""}
 
     <!-- 농수축산신문 -->
-    <div class="card" style="border-top:6px solid #EF6C00">
+    ${show("aflnews") ? `<div class="card" style="border-top:6px solid #EF6C00">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div style="display:flex;align-items:center;gap:7px">
           <span style="font-size:20px">🌾</span>
@@ -34617,10 +34644,10 @@ function renderNoticesSection(){
         </a>
       </div>
       ${noticeList(ns.aflnews,"#EF6C00",ns.fallback?.aflnews,loading)}
-    </div>
+    </div>` : ""}
 
     <!-- 한돈뉴스 -->
-    <div class="card" style="border-top:6px solid #AD1457">
+    ${show("handon") ? `<div class="card" style="border-top:6px solid #AD1457">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div style="display:flex;align-items:center;gap:7px">
           <span style="font-size:20px">🐷</span>
@@ -34635,10 +34662,10 @@ function renderNoticesSection(){
         </a>
       </div>
       ${noticeList(ns.handon,"#AD1457",ns.fallback?.handon,loading)}
-    </div>
+    </div>` : ""}
 
     <!-- 데일리벳 -->
-    <div class="card" style="border-top:6px solid #5E35B1">
+    ${show("dailyvet") ? `<div class="card" style="border-top:6px solid #5E35B1">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div style="display:flex;align-items:center;gap:7px">
           <span style="font-size:20px">🩺</span>
@@ -34653,10 +34680,10 @@ function renderNoticesSection(){
         </a>
       </div>
       ${noticeList(ns.dailyvet,"#5E35B1",ns.fallback?.dailyvet,loading)}
-    </div>
+    </div>` : ""}
 
     <!-- 해외 양계질병 (조류인플루엔자 등 해외 소식 → 한글 번역) -->
-    <div class="card" style="border-top:6px solid #00695C">
+    ${show("global") ? `<div class="card" style="border-top:6px solid #00695C">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div style="display:flex;align-items:center;gap:7px">
           <span style="font-size:20px">🦠</span>
@@ -34671,10 +34698,10 @@ function renderNoticesSection(){
         </a>
       </div>
       ${noticeListGlobal(ns.global,"#00695C",ns.fallback?.global,loading)}
-    </div>
+    </div>` : ""}
 
     <!-- 경제동향 뉴스 (아시아경제) -->
-    <div class="card" style="border-top:6px solid #0047A0">
+    ${show("econ") ? `<div class="card" style="border-top:6px solid #0047A0">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div style="display:flex;align-items:center;gap:7px">
           <span style="font-size:20px">💹</span>
@@ -34689,7 +34716,7 @@ function renderNoticesSection(){
         </a>
       </div>
       ${noticeList(ns.econ,"#0047A0",ns.fallback?.econ,loading)}
-    </div>
+    </div>` : ""}
 
   </div>
   </div>`;
@@ -37579,6 +37606,15 @@ function attachEvents(){
     hpaiSub = b.dataset.sub; try { localStorage.setItem("hpai_sub", hpaiSub); } catch(e){}
     render();
     const nb = document.getElementById("hpai-subbar"); if(nb) nb.scrollLeft = sl;
+  });
+  // 하위 메뉴 칩 공통 처리: 누르면 값을 저장하고 다시 그리되, 가로 스크롤 위치는 유지한다.
+  [["wx-sub-btn", "wx-subbar", v => { wxSub = v; }, "wx_sub"], ["vent-sub-btn", "vent-subbar", v => { ventSub = v; }, "vent_sub"], ["dz-sub-btn", "dz-subbar", v => { dzSub = v; }, "dz_sub"], ["news-sub-btn", "news-subbar", v => { newsSub = v; }, "news_sub"], ["prem-sub-btn", "prem-subbar", v => { premiumSub = v; }, "premium_sub"]].forEach(([cls, id, set, lsKey]) => {
+    document.querySelectorAll("." + cls).forEach(b => b.onclick = () => {
+      const bar = document.getElementById(id), sl = bar ? bar.scrollLeft : 0;
+      set(b.dataset.sub); try { localStorage.setItem(lsKey, b.dataset.sub); } catch(e){}
+      render();
+      const nb = document.getElementById(id); if(nb) nb.scrollLeft = sl;
+    });
   });
   document.querySelectorAll(".price-sub-btn").forEach(b=>b.onclick=()=>{
     const bar = document.getElementById("price-subbar"), sl = bar ? bar.scrollLeft : 0;
