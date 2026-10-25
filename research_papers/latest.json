@@ -1,54 +1,54 @@
 {
-  "updated": "2026-10-18 08:58 KST",
+  "updated": "2026-10-25 09:16 KST",
   "stale": {},
   "categories": {
     "disease": {
       "label": "질병논문",
       "papers": [
         {
-          "title_en": "H9N2 avian influenza virus in Muscovy ducks: a nationwide epidemiological survey and vaccine efficacy assessment.",
-          "title_ko": "머스코비 오리에서 분리된 H9N2 조류인플루엔자 바이러스: 전국 역학조사 및 백신 효능 평가",
-          "summary_ko": "2022년부터 2024년까지 중국 남부, 북부, 중부, 서남부 지역의 머스코비 오리 농장과 가금 생체시장을 대상으로 전국 단위 역학조사를 실시하여 오리 혈청 1,208건, 구인두/배설강 스왑 및 폐/기관 조직 1,212건, 닭 유래 시료 480건을 수집하였다. 이 중 31주의 H9N2 균주가 분리되었으며, 오리 유래 2주, 닭 유래 29주로 확인되었다. 연구진은 H9N2 안구비강 접종과 대장균 주사를 병행한 새로운 복합감염 챌린지 모델을 구축하여 실제 현장과 유사한 중증 기관 병변 및 폐 병변, 바이러스 함량의 유의한 증가를 재현하였다. 불활화 백신과 생백터 백신 모두 80% 이상의 방어효과를 나타냈으며, 바이러스 배출량과 임상증상을 유의하게 감소시킨 것으로 나타나, 유행주에 맞춘 백신 갱신과 복합감염 상황을 반영한 백신 평가체계 구축의 필요성이 강조되었다.",
-          "journal": "Veterinary research",
-          "pub_date": "2026-Oct",
-          "author": "Cao 외",
-          "url": "https://doi.org/10.1186/s13567-026-01857-0"
+          "title_en": "Risk map for high pathogenicity avian influenza in 2022-2023 winter season in Japan.",
+          "title_ko": "2022-2023년 겨울철 일본의 고병원성 조류인플루엔자 위험지도",
+          "summary_ko": "본 연구는 2022년 10월부터 2023년 4월까지 일본 양계 농장에서 발생한 고병원성 조류인플루엔자(HPAI) 발생과 농장 요인(사육규모, 생산유형, 주변 수역) 및 지역 요인(토지피복, 기상조건, 지형) 간의 연관성을 분석한 전국 단위 횡단연구이다. 도서 산간 지역을 제외한 발생농장 68개소와 비발생농장 5,496개소의 자료를 이용해 공간자기상관을 고려한 확률적 편미분방정식(SPDE) 모형으로 다변량 분석을 수행했다. 10km 격자 단위로 집계한 지역요인 조합을 wAIC로 선정하고 ΔwAIC<2인 59개 모델 중 4개 모델을 스태킹하여 최종 위험지도를 산출했다. 분석 결과 고도가 낮고 산림피복이 적으며 지형습윤지수(TWI)가 높은 지역일수록 HPAI 발생 위험이 높은 것으로 나타났다. 저자들은 이 지역 단위 위험지수가 가금농장과 주변 야생조류가 공유하는 노출 위험을 반영하는 유용한 지표가 될 수 있다고 제안했다.",
+          "journal": "One health (Amsterdam, Netherlands)",
+          "pub_date": "2026-Dec",
+          "author": "Yamaguchi 외",
+          "url": "https://doi.org/10.1016/j.onehlt.2026.101610"
         },
         {
-          "title_en": "Profiling the DuCV-1 Cap-associated host interactome by Co-IP/LC-MS: implications for host-response pathways and viral pathogenesis.",
-          "title_ko": "Co-IP/LC-MS를 이용한 DuCV-1 캡시드 단백질 연관 숙주 상호작용체 분석: 숙주반응 경로 및 바이러스 병인기전에 대한 함의",
-          "summary_ko": "오리써코바이러스 1형(DuCV-1) 감염은 가금의 성장을 저해하는 심각한 면역억제성 질병으로, 본 연구는 캡시드 단백질(Cap)을 발현시킨 HD11 세포에서 면역침강-질량분석법(Co-IP/LC-MS)을 처음으로 적용하여 Cap과 상호작용하는 숙주 단백질 288종을 동정하였다. 단백질-단백질 상호작용 네트워크, 유전자온톨로지(GO), KEGG 경로 분석 결과, Cap 결합 단백질들은 세포골격 재구성, 핵산 번역기구, 세포내이입 수송, 자가포식, 선천면역 신호전달 등 다양한 생물학적 과정에 유의하게 농축되어 있음을 확인하였다. 추가 기능 분석을 통해 이들 단백질이 세포골격 재구성, 단백질 번역, 전사 조절, DNA 손상반응 관련 경로에 주로 관여함을 검증하였다. RB1-inducible coiled-coil 1, Exocyst complex component 1, Tubulin alpha-1A 등 9종의 후보 단백질과 Cap 간의 결합을 추가로 확인함으로써, 본 연구는 DuCV-1의 병인기전에 대한 새로운 분자적 통찰을 제공한다.",
-          "journal": "Poultry science",
+          "title_en": "Clonal, regionally clustered spread-rather than vertical transmission-explains surges in fluoroquinolone‑resistant Campylobacter jejuni in Finnish broilers.",
+          "title_ko": "핀란드 육계에서 플루오로퀴놀론 내성 캄필로박터 제주니 급증의 원인은 수직전파가 아닌 클론성 지역 확산",
+          "summary_ko": "본 연구는 2014년부터 2019년까지 핀란드 종계(145주) 및 육계(188주) 농장에서 수집한 캄필로박터 제주니 분리주 333주를 대상으로 전장유전체 시퀀싱, 항생제 내성 프로파일링, MLST, 코어게놈 MLST, 계통유전체 분석을 수행했다. 플루오로퀴놀론 및 테트라사이클린 내성은 특정 연도에 집중되었으며, 주로 ST-206 클론복합체(CC)와 강하게 연관된 반면 우세 계통인 ST-45 CC는 대부분 감수성을 유지했다. 유전체 클러스터링 분석 결과 지리적으로 인접한 육계농장들 간에 내성 클론이 순환하고 있음이 확인되어 지역 수평전파가 시사되었으며, 종계 유래 내성균주는 드물고 종계에서 육계로의 수직전파를 지지하는 유전체적 증거는 발견되지 않았다. 결론적으로 핀란드 육계산업에서 일시적인 플루오로퀴놀론 및 테트라사이클린 내성균 증가는 종계-육계 간 수직전파가 아니라 성공적인 내성 계통의 클론 확장에 의한 지역 수평전파가 주요 원인이었다. 이는 캄필로박터 내성균주 추적을 위한 유전체 감시 및 분자역학적 접근의 가금산업 방역 프로그램 통합 필요성을 뒷받침한다.",
+          "journal": "Acta veterinaria Scandinavica",
           "pub_date": "2026-Oct",
-          "author": "Lin 외",
-          "url": "https://doi.org/10.1016/j.psj.2026.107946"
+          "author": "Jaakkonen 외",
+          "url": "https://doi.org/10.1186/s13028-026-00887-0"
         },
         {
-          "title_en": "Hypoxia-induced apoptotic pathways and their contribution to fibrosis progression in wooden breast myopathy of fast-growing broilers.",
-          "title_ko": "급속성장 육계의 우드브레스트 근병증에서 저산소증 유발 세포자멸사 경로와 섬유화 진행에 대한 기여",
-          "summary_ko": "본 연구는 Ross 308 수컷 육계 192수를 4개 그룹으로 나누어 42일간 만성 저압성 저산소 환경(모의고도 3,000m, 산소농도 13.0%)에서 범카스파제 억제제 Z-VAD-FMK(2mg/kg, 주 3회)를 투여하거나 투여하지 않은 조건으로 사육하여, 대흉근 내 저산소-세포자멸사-섬유화 축을 규명하였다. 만성 저산소증은 42일째 HIF-1α 단백질을 4.8배 증가시켰고(p<0.001), TUNEL 양성 세포자멸사 지표가 14.3%로 유의하게 상승했으며(p<0.001), Bax/Bcl-2 비율이 대조군 1.0 대비 8.2로 친세포자멸사 방향으로 이동하고 카스파제-9, 카스파제-3, PARP의 활성화가 동반되었다. 동시에 MDA가 4.4배 증가하는 산화스트레스, 염증성 사이토카인(IL-1β, IL-6, IL-8, TNF-α)의 8배 이상 상승, 콜라겐 함량(하이드록시프롤린 7.8µg/mg) 및 섬유화 면적(31.4%) 증가를 포함한 세포외기질 재구성이 관찰되었다. 범카스파제 차단은 HIF-1α 축적에는 영향을 주지 않으면서도 섬유화를 19.8%, 세포자멸사를 6.1%로 유의하게 감소시켜, 카스파제 활성화가 질병 진행의 핵심 신호증폭 지점임을 시사하였으며, HIF-1α, 세포자멸사 지표, 하이드록시프롤린, NF-κB 간에는 강한 양의 상관관계(r=0.78-0.87, 모두 P<0.001)가 확인되었다.",
-          "journal": "Poultry science",
-          "pub_date": "2026-Sep",
-          "author": "Yan 외",
-          "url": "https://doi.org/10.1016/j.psj.2026.107805"
+          "title_en": "Varicella zoster vasculopathy presenting as bilateral subdural haematoma in an infant: case report of a rare case and literature review.",
+          "title_ko": "영아에서 양측 경막하혈종으로 발현한 수두대상포진바이러스 혈관병증: 희귀 증례보고 및 문헌고찰",
+          "summary_ko": "본 증례보고는 수두 감염 후 발생한 희귀한 신경학적 합병증을 경험한 생후 6개월 남아 1례를 다룬 것으로, 가금류 관련 연구는 아니다. 환아는 발열, 전신 수포성 발진을 동반한 수두를 앓은 후 증상 호전에도 불구하고 지속적인 과민반응, 수유량 감소, 간헐적 구토, 발달이정표 퇴행 및 체중감소(50백분위수에서 9백분위수로)를 보였다. 생후 7개월에 시행한 영상검사에서 비우발적 손상에서 흔히 관찰되는 것과 유사한 양측 경막하 삼출이 확인되었고, 천문 초음파 유도 흡인, 양측 천공배액술, 최종적으로 경막하-복강 단락술까지 시행하였다. 경막하액에서 수두대상포진바이러스(VZV) IgG가 양성으로 확인되어 과거 VZV 관련 중추신경계 염증 또는 혈관염으로 진단되었으며, 환아는 추적관찰에서 체중과 발달이 완전히 회복되었다. 저자들은 수두 감염 후 지속되는 신경학적 증상이 있을 경우 두개내 합병증 가능성을 염두에 두고 신속한 평가가 필요함을 강조하였다.",
+          "journal": "Child's nervous system : ChNS : official journal of the International Society for Pediatric Neurosurgery",
+          "pub_date": "2026-Oct",
+          "author": "Mathew 외",
+          "url": "https://doi.org/10.1007/s00381-026-07505-4"
         },
         {
-          "title_en": "Nutritional matrix shifts the temperature-salinity response of biofilm formation by Salmonella Heidelberg and Listeria monocytogenes on stainless steel.",
-          "title_ko": "영양 매트릭스가 스테인리스강 표면에서 살모넬라 Heidelberg와 리스테리아 모노사이토제네스 생물막 형성의 온도-염도 반응에 미치는 영향",
-          "summary_ko": "본 연구는 AISI 304 스테인리스강 표면에서 NaCl 농도(1.09~3.91%)와 온도(6.88~42.12°C) 조건에 따른 살모넬라 Heidelberg와 리스테리아 모노사이토제네스의 생균 생물막 형성을 BHI 배지와 닭고기 육즙 두 가지 매트릭스에서 비교 평가하였다. 중심합성회전설계를 적용하여 병원체-매트릭스 조합별로 22회의 독립적 관찰을 수행하고 2차 다항회귀모델을 적합시켜 분산분석, 적합결여검정, 잔차진단 등으로 평가하였다. 모델 설명력(R²)은 S. Heidelberg의 경우 닭고기 육즙에서 0.767, BHI에서 0.828이었으며, L. monocytogenes는 각각 0.507과 0.718로 나타났다. BHI 기반 모델을 닭고기 육즙에 교차적용한 결과 방향성 편향은 없었으나 예측오차(RMSE)는 S. Heidelberg 0.94, L. monocytogenes 1.10 log CFU/cm²로 상당한 수준이었으며, S. Heidelberg의 경우 매트릭스 간 반응표면 구조에 유의한 차이가 있었다(p=0.0016). 이는 표준화된 배지에서 얻은 모델이 실제 식품 유래 매트릭스에 직접 적용되기 어려움을 보여준다.",
-          "journal": "International journal of food microbiology",
+          "title_en": "Wavelength-Dependent Reduction of Newcastle Disease Virus Infectivity by Femtosecond Laser Irradiation: An In Ovo Proof-of-Concept Study.",
+          "title_ko": "펨토초 레이저 조사에 의한 뉴캐슬병 바이러스 감염력의 파장 의존적 감소: 계란 내 개념증명 연구",
+          "summary_ko": "본 연구는 370~420nm 파장대의 펨토초(fs) 레이저 조사가 뉴캐슬병바이러스(NDV)의 감염력을 비열·비광과민제 방식으로 불활화할 수 있는지를 특정병원체부재(SPF) 발생란을 생물학적 모델로 사용해 평가한 개념증명 연구이다. NDV 현탁액을 370, 385, 400, 420nm 파장에서 100fs 레이저 펄스로 60분간 조사한 후, 처리된 바이러스 시료 100µl를 10⁵, 10⁷, 10⁹ 희석배수로 SPF 발생란에 접종하여 168시간 동안 배아 생존율과 혈구응집(HA) 검사로 감염력을 평가했다. 370nm 조사군에서는 감염력이 99.99% 이상 감소하고 대조군 대비 약 4-log 이상의 감염가 저하가 관찰되었으나 완전한 불활화에는 이르지 못했으며, 385nm와 400nm는 배아 사망에 대한 보호효과가 없었던 반면 420nm는 부분적 보호효과를 보였다. 온도 모니터링 결과 열적 효과는 관찰되지 않아 비열적 불활화 기전임이 확인되었으며, 저자들은 370nm 펨토초 레이저의 강력한 항바이러스 잠재력을 제시하면서도 조사량 최적화, 최소 3회 연속계대를 통한 독립적 검증, 백신 적용 전 항원성·면역원성·방어효능 평가가 추가로 필요하다고 결론지었다.",
+          "journal": "Current microbiology",
           "pub_date": "2026-Oct",
-          "author": "Magrini 외",
-          "url": "https://doi.org/10.1016/j.ijfoodmicro.2026.112120"
+          "author": "El-Gendy 외",
+          "url": "https://doi.org/10.1007/s00284-026-05193-6"
         },
         {
-          "title_en": "The Risk of an H5N1 Influenza Pandemic.",
-          "title_ko": "H5N1 인플루엔자 팬데믹의 위험성",
-          "summary_ko": "지난 110년간 포유류 또는 조류에서 기원하여 인체 간 전파 및 발병 능력을 획득한 4차례의 인플루엔자 A 팬데믹이 있었다. 2021년 이후 고병원성 H5N1 조류인플루엔자는 야생조류를 중심으로 전 세계적으로 확산되는 범유행(panzootic) 양상을 보이며, 사육 가금류로의 반복적인 전파뿐만 아니라 기존에 인플루엔자 감염이 보고되지 않았던 포유류 종을 포함한 다양한 포유류로의 전파를 일으키고 있다. 이는 재조합, 돌연변이, 인체감염 및 전파 적응의 기회를 증가시키고 있으며, 인체 위험성과 영향을 정량화하기는 어려우나 공중보건 당국의 우려가 커지고 있다. 본 논문은 H5N1의 인체 팬데믹 발생 및 확산 위험성과 잠재적 영향을 고찰한다.",
-          "journal": "Annual review of medicine",
+          "title_en": "RPA-CRISPR/Cas12a Assay for ALV-J with Broad-Spectrum Detection and Reduced Residual Amplicon Load.",
+          "title_ko": "광범위 검출과 잔류 증폭산물 감소를 위한 ALV-J RPA-CRISPR/Cas12a 검출법",
+          "summary_ko": "본 연구는 유전적 변이가 빈번하여 임상 검출에 어려움을 주는 조류백혈병바이러스 J아형(ALV-J)을 광범위하게 검출하고 증폭산물 오염을 줄이기 위해 혼합 crRNA 기반 RPA-CRISPR/Cas12a 검출법을 개발한 연구이다. 서열분석을 통해 현재 유행 중인 대부분의 ALV-J 변이주를 포괄할 수 있도록 설계했으며, RPA 혼합물 양과 완충조건 최적화를 통해 원튜브(one-tube) 방식에서 1×10⁰ copies/µL(15µl 반응당 15 copies) 농도에서 9/9 양성반응을 확인했다. 헤파린나트륨을 첨가한 원팟(one-pot) 방식에서는 1×10² copies/µL(1500 copies/반응), 환경 노출이 필요한 측방유동분석(LFA) 방식에서는 RPA 증폭을 제한하고 개선된 Cas12a 단백질을 사용해 1×10¹ copies/µL(150 copies/반응)까지 일관된 양성 검출이 가능했다. 특이도 평가에서 비표적 조류 바이러스와의 교차반응 없이 ALV-J에만 양성 신호를 나타냈고, 임상시료 적용 시 원튜브 방식의 양성검출률은 RT-qPCR과 완전히 일치했다. 본 연구에서 개발된 다중 CRISPR/Cas12a-RPA 검출법은 원리상 광범위한 균주 커버리지, 높은 정확도, 낮은 오염 위험을 갖추어 다양한 현장에서 ALV-J 신속 검출에 실용적인 도구가 될 수 있다.",
+          "journal": "ACS infectious diseases",
           "pub_date": "2026-Oct",
-          "author": "Hartley 외",
-          "url": "https://doi.org/10.1146/annurev-med-042525-092552"
+          "author": "Han 외",
+          "url": "https://doi.org/10.1021/acsinfecdis.6c00419"
         }
       ],
       "translated": true
@@ -57,49 +57,49 @@
       "label": "사양관리기술",
       "papers": [
         {
-          "title_en": "Poultry digital twins must earn their authority: Biological validity, welfare value, and responsible adoption.",
-          "title_ko": "가금 디지털 트윈은 그 권위를 스스로 입증해야 한다: 생물학적 타당성, 복지 가치, 책임 있는 도입",
-          "summary_ko": "이 연구는 가금류 관련 문헌과 방법론적 선행연구를 비판적으로 검토한 서술적 리뷰(narrative review)로, 센싱 성능과 생물학적 타당성, 의사결정 가치를 구분하여 분석했다. 저자는 가금 디지털 트윈을 '변화 모델과 명시적 의사결정·피드백 경로를 갖춘, 특정 물리적 실체나 과정에 대한 지속적이고 동적으로 갱신되는 표현'으로 정의하고, HatchTwin·HenTwin·CluckTwin·EggTwin·FlockTwin·BroilerTwin·ChickenTwin 등 7개 응용 범주로 논의를 구성했다. 그러나 이러한 명칭이 7개의 검증된 시스템을 의미하는 것은 아니며, 맥락 의존적 신호, 불완전한 개체 식별, 상관된 측정치, 제한적인 외부 평가 등이 복지 및 생산 상태 해석을 제약한다고 지적했다. 이를 바탕으로 저자는 생물학적 검증, 전향적 무개입 운용(silent operation), 적절히 설계된 의사결정 시험의 단계적 평가 체계를 제안하며, 동물 기반 복지·생산성·작업부담·비용·의도치 않은 해악 등을 평가 지표로 포함해야 한다고 주장했다. 캐나다 사례를 통해 특정 관할권 내 도입과 거버넌스를 예시로 제시했으나, 제안된 전체 프레임워크의 효과는 아직 검증되지 않았다.",
-          "journal": "Poultry science",
+          "title_en": "Quercetin Alleviates TMT-Induced PANoptosis in Chicken Skeletal Muscle through Modulation of the ROS/mtDNA Axis.",
+          "title_ko": "케르세틴은 ROS/mtDNA 축 조절을 통해 TMT 유발 닭 골격근 PANoptosis를 완화한다",
+          "summary_ko": "본 연구는 환경 유기주석 오염물질인 트리메틸주석(TMT)이 닭 골격근에 미치는 독성 영향과 케르세틴(Que)의 보호 기전을 네트워크 독성학, 분자 도킹, 분자동역학 시뮬레이션 및 생체 내/생체 외 실험을 통합하여 규명하였다. 네트워크 분석 결과 산화적 스트레스 및 세포질 DNA 감지 경로가 관여하는 것으로 나타났으며, 도킹 및 동역학 시뮬레이션에서는 케르세틴이 미토콘드리아 조절 단백질 및 PANoptosis 관련 단백질과 안정적으로 결합함을 확인하였다. 생체 내/외 검증 결과 TMT는 골격근 손상, 활성산소종(ROS) 축적, 미토콘드리아 역동성 불균형, 호흡사슬 기능장애, 미토콘드리아 DNA(mtDNA) 유출 및 PANoptosis 활성화를 유발하였다. 케르세틴 처리는 ROS 생성을 현저히 억제하고 미토콘드리아 항상성을 회복시켰으며 세포질 mtDNA 유출을 감소시키고 PANoptosis 관련 신호전달을 억제하였다. 이를 통해 케르세틴이 유기주석 관련 근육 손상에 대한 사료 첨가제 또는 영양학적 중재 소재로서의 잠재력을 지님을 제시하였다.",
+          "journal": "Journal of agricultural and food chemistry",
           "pub_date": "2026-Oct",
-          "author": "Neethirajan",
-          "url": "https://doi.org/10.1016/j.psj.2026.107957"
+          "author": "Liu 외",
+          "url": "https://doi.org/10.1021/acs.jafc.6c06054"
         },
         {
-          "title_en": "Market-age growth performance following in-ovo interventions in commercial broilers: A meta-analysis.",
-          "title_ko": "상업용 육계에서 난내 주입(in-ovo) 처리 후 출하일령 성장 성적에 관한 메타분석",
-          "summary_ko": "이 메타분석은 상업용 육계의 35일령 및 42일령 체중(BW), 사료요구율(FCR), 가슴육 수율에 대한 난내 주입 처리 효과를 정량적으로 종합하고자 수행되었다. 초기 데이터베이스 검색에서 1,409건의 문헌을 확인했고, 이 중 38편이 선정 기준을 충족하여 분석에 포함되었으며, 무처리군·가짜주입(Control-sham)군을 비교군으로 하여 평가 시기별 무작위효과모형 메타분석을 실시했다. 무처리군 대비 난내 주입군은 35일령 체중(Hedges's g=0.686, P=0.03)과 42일령 체중(g=0.811, P=0.028)이 유의하게 높았고, 35일령 FCR(g=-0.358, P=0.025)과 42일령 FCR(g=-0.565, P<0.001)은 유의하게 개선되었다. 가짜주입군 대비해서는 42일령 체중(g=0.420, P=0.042)과 35일령 FCR(g=-0.274, P=0.036)만 유의한 효과가 나타났으며, 가슴육 수율은 두 비교군 모두에서 유의한 차이가 없었다. 계통과 처리 범주, 주입 시기에 따라 일부 지표에서 유의한 하위군 차이(P=0.006–0.030)가 확인되어, 저자들은 난내 주입이 출하체중 측면에서 잠재적 이점을 가질 수 있으나 상업적 적용을 위해서는 표준화된 실험설계와 독립적 검증이 필요하다고 결론지었다.",
-          "journal": "Poultry science",
+          "title_en": "Discovery of Two 17β-Estradiol Metabolic Microbes and Their Metabolic Enzyme from Cecal Contents of Hy-Line Brown Laying Hens.",
+          "title_ko": "하이라인 브라운 산란계 맹장 내용물에서 17β-에스트라디올 대사 미생물 2종 및 대사 효소 발견",
+          "summary_ko": "본 연구는 산란계 산란율 저하와 밀접히 관련된 생식 호르몬인 17β-에스트라디올(E2)을 대사하는 미생물을 하이라인 브라운 산란계의 맹장 내용물에서 분리·동정하였다. E2를 이용한 점진적 압력 순응을 통해 두 종의 E2 대사 균주(Brevibacillus borstelensis NRRL NRS-818, Acinetobacter radioresistans)를 분리하였으며, E2 첨가 유무에 따른 RNA 시퀀싱 분석을 통해 E2 분해에 관여할 것으로 추정되는 14개의 상향조절 유전자를 확인하였다. 이후 대장균(Escherichia coli) 발현 균주를 구축하여 Brevibacillus borstelensis NRRL NRS-818 유래 3-hydroxyacyl-CoA dehydrogenase/enoyl-CoA hydratase family protein 및 bifunctional precorrin-2 dehydrogenase/sirohydrochlorin ferrochelatase, Acinetobacter radioresistans DSM 6976 유래 enoyl-CoA hydratase/isomerase family protein을 E2 대사 효소로 규명하였다. 본 연구는 산란계 산란율 변화 예측에 활용 가능한 E2 대사 균주를 성공적으로 발굴하였다는 데 의의가 있다.",
+          "journal": "Journal of agricultural and food chemistry",
           "pub_date": "2026-Oct",
-          "author": "Yu 외",
-          "url": "https://doi.org/10.1016/j.psj.2026.107964"
+          "author": "Huang 외",
+          "url": "https://doi.org/10.1021/acs.jafc.6c05649"
         },
         {
-          "title_en": "Biosecurity implementation in indoor and outdoor-access broiler production systems in the Netherlands.",
-          "title_ko": "네덜란드 실내 사육 및 야외 접근 육계 생산 시스템에서의 방역(biosecurity) 이행 실태",
-          "summary_ko": "이 연구는 반복적인 고병원성 조류인플루엔자(HPAI) 발생과 동물복지 중심의 야외 접근 사육 시스템 확대에 따른 노출 위험 차이를 평가하기 위해, 네덜란드의 집약적(실내 전용) 및 조방적(완효성 육계, 지붕형 야외 접근) 육계 농장 78곳(집약적 63곳, 조방적 15곳)을 대상으로 단면 비교 연구를 수행했다. Biocheck.UGent 설문의 조화된 하위 항목을 활용해 방역 수준을 평가했으며, 40개 비교 변수 중 HPAI 유입·전파 경로와 관련성이 높은 28개 변수를 선정하여 분석했다. 생산 시스템 간 차이는 말편자형(horseshoe) 사전분포를 적용한 베이지안 로지스틱 회귀분석으로 평가했다. 분석 결과, 대부분의 방역 조치에서 두 시스템 간 뚜렷한 차이가 없었고 오히려 각 시스템 내 농장 간 변이가 컸으며, 폐사체 보관장 청소, 사육밀도, 병아리 입식 빈도에서 가장 큰 차이가 관찰되었으나 그 통계적 근거는 항목별로 달랐다. 이에 저자들은 시스템 단위의 일괄적 권고보다 농장별 취약점을 겨냥한 맞춤형 방역 계획과 현장 코칭이 더 효과적일 것이라고 제안했다.",
+          "title_en": "An integrated commercial poultry breeding framework for natural mating and animal welfare.",
+          "title_ko": "자연교미 및 동물복지를 위한 통합형 상업용 가금 육종 프레임워크",
+          "summary_ko": "본 총설은 기존의 케이지 집약적 생산 방식에 맞춰 설계된 육종 프로그램이 향후 복지 지향적 가금 생산 시스템을 충분히 지원하지 못한다는 문제의식에서 출발하여, 자연교미 및 방사 사육 환경에 특화된 새로운 상업용 가금 육종 프레임워크를 제안한다. 제안된 시스템은 3D 컴퓨터 비전, RFID, IoT 센서를 활용한 완전 자동화 표현형 측정, 인공수정이 불가능한 조건에서의 유전체 기반 혈통 재구성, 대규모 자유교배 집단에 적합한 유전체 기반 최적선형불편예측(GBLUP), 사전 배정 없는 자연교미, 기후 적응력 강화를 위한 다중오믹스 통합이라는 5가지 핵심 요소로 구성된다. 이러한 요소들은 상호 연계되어 자동 표현형 측정과 유전체 혈통 추적이 고밀도 데이터를 생성하고, 이는 유전체 예측 모델에 반영되며 다중오믹스 접근법이 환경 변동 조건에서 선발 결정을 정교화한다. 저자들은 이 프레임워크가 인공수정 노동력을 제거하고 대규모 자연교배 집단 내 높은 유전적 다양성을 유지할 잠재력을 지니며, 장기적으로 운영비 절감과 환경 적응력 및 동물복지 개선에 기여할 수 있다고 제안한다. 다만 자동화 표현형 측정 인프라에 대한 높은 초기 투자비용과 견고한 유전체 선발 파이프라인 구축이 주요 전환 과제로 지적되었다.",
           "journal": "Poultry science",
           "pub_date": "2026-Oct",
-          "author": "Bakhshi 외",
-          "url": "https://doi.org/10.1016/j.psj.2026.107951"
+          "author": "Hou",
+          "url": "https://doi.org/10.1016/j.psj.2026.107938"
         },
         {
-          "title_en": "Hypoxia-induced apoptotic pathways and their contribution to fibrosis progression in wooden breast myopathy of fast-growing broilers.",
-          "title_ko": "속성 육계의 우드브레스트(Wooden Breast) 근병증에서 저산소증 유발 세포자멸사 경로와 섬유화 진행에 대한 기여",
-          "summary_ko": "이 연구는 만성 근섬유 저산소증과 진행성 섬유화 병변 간의 세포·분자적 연결고리를 규명하기 위해, 수컷 Ross 308 육계 192수를 대상으로 42일간 만성 저압성 저산소 환경(모의 고도 3,000 m, 산소농도 13.0%)에 노출시키고 범카스파제 억제제 Z-VAD-FMK(2 mg/kg, 주 3회) 투여 유무에 따른 4개 군으로 나누어 가슴심근(pectoralis major) 조직을 분석했다. 만성 저산소는 42일째 HIF-1α 단백질을 4.8배 증가시켰고(P<0.001), TUNEL 양성 세포자멸사 지수 14.3%(P<0.001), Bax/Bcl-2 비율 8.2(대조군 1.0) 등 강한 세포자멸사 촉진 변화와 함께 카스파제-9, -3, PARP 활성화를 유발했다. 동시에 산화스트레스(MDA 4.4배 증가, SOD·CAT·GPx·GSH 고갈), NF-κB 매개 염증반응(IL-1β·IL-6·IL-8·TNF-α 모두 8배 이상 증가), 세포외기질 리모델링(하이드록시프롤린 7.8 µg/mg, 섬유화 면적 31.4%, COL1A1·COL3A1·TGF-β1·MMP-2·MMP-9 상향조절)이 관찰되었다. 범카스파제 차단군은 HIF-1α 축적에는 영향을 주지 않으면서도 섬유화(19.8%), 세포자멸사(6.1%), 염증성 사이토카인 및 세포외기질 교체를 유의하게 감소시켰으며, HIF-1α·세포자멸사 지수·하이드록시프롤린·NF-κB 간에 강한 양의 상관관계(r=0.78–0.87, 모두 P<0.001)가 확인되어 저산소증 유발 세포자멸사가 우드브레스트 병인에 기전적으로 관여함을 시사했다.",
-          "journal": "Poultry science",
-          "pub_date": "2026-Sep",
-          "author": "Yan 외",
-          "url": "https://doi.org/10.1016/j.psj.2026.107805"
-        },
-        {
-          "title_en": "Research note: approach rather than avoidance: behavioral responses of broiler chicks repeatedly exposed to an autonomous mobile robot.",
-          "title_ko": "연구노트: 회피가 아닌 접근 반응 - 자율주행 로봇에 반복 노출된 육계 병아리의 행동 반응",
-          "summary_ko": "이 연구는 상업용 육계 사육사에서 운용되는 자율주행 로봇(AviSense, Appelie Robotics)에 반복 노출된 병아리의 행동 반응을 비노출 대조군과 비교 평가했다. 부화 1일령부터 약 500수씩 수용된 7.5×4.5 m 규격 3개 펜(로봇 노출군 1개, 비노출 대조군 2개)에서 상업적 조건으로 사육하며, 노출군은 매시간 10분씩 로봇에 노출시켰고 13~15일령에 개체별 행동검사를 실시해 혼합효과모형으로 분석했다. 로봇과 낯선 농구공이 양 끝에 놓인 양자택일 통로 검사에서 노출군은 중립구역을 더 빨리 떠났고(P=0.013), 로봇 근접구역에 더 빨리 진입했으며(P=0.004) 그 구역에 더 오래 머물렀고(P=0.004), 농구공보다 로봇 근접구역에 더 오래 체류했다(P=0.036). 로봇 없이 실시한 검사에서는 노출군이 개방장에서 더 짧은 이동 잠복기(P=0.002)와 더 많은 강직부동 유도 시도 횟수(P=0.012)를 보였으나, 사회적 재결합 행동은 두 군 간 유사했다. 전체적으로 로봇 반복 노출은 로봇에 특이적인 근접 행동 증가와 독립적인 공포 관련 상황에서의 행동 억제 감소와 연관되어, 공포 기반 회피를 유발했다는 증거는 발견되지 않았으며 저자들은 반복 노출이 친숙화를 촉진해 로봇의 사육환경 통합을 용이하게 할 수 있다고 결론지었다.",
+          "title_en": "Yeast β-glucan-mannan combinations in broiler diets: roles of processing and β-glucan solubility in growth performance, intestinal morphology, and caecal fermentation.",
+          "title_ko": "육계 사료 내 효모 베타글루칸-만난 조합: 가공 방식과 베타글루칸 용해도가 성장 성적, 장 형태 및 맹장 발효에 미치는 영향",
+          "summary_ko": "본 연구는 1일령 수컷 Ross 308 육계 1,008수를 8개 사료 처리군에 배정하여 38일간 사육하였으며(처리군당 7펜, 펜당 18수, 펜을 실험단위로 설정), 조추출물, 분획물, 재조합 효모 다당류 제제가 성장 성적, 장기 무게, 장 형태, 맹장 대사산물 및 미생물 구성에 미치는 영향을 평가하였다. 모든 보충 처리군은 무보충 대조군과 성장 성적에서 유의한 차이를 보이지 않았으나, 조세포벽 제제 대비 베타글루칸 함량이 낮은 불용성 베타글루칸-만난 제제는 맹장 프로피온산 농도(11.78 대 7.23 μmol/g, P=0.005)와 공장 융모고/음와깊이 비율(P<0.05)을 높였으나, 종료기 및 전체 사료요구율을 악화시키고 맹장 상대중량을 감소시켰다(모두 P<0.05). 가용성 제제는 조추출물 대비 이들 지표에서 차이가 없었으나 맹장 부티르산 농도는 불용성 제제보다 높았으며(P=0.002), 베타글루칸 함량이 높을수록 맹장 상대중량이 증가하였다(P<0.05). 가용성 및 불용성 분획을 병합한 경우 비가산적 반응이 관찰되어 단일 분획 제제보다 높은 대사산물 농도를 나타내지 않았으며, 전반적으로 가공 특성, 베타글루칸 수준, 성분 균형에 따라 반응이 달라져 성장 성적보다는 맹장 발효 및 미생물 구성에서 더 뚜렷한 효과가 확인되었다.",
           "journal": "Poultry science",
           "pub_date": "2026-Oct",
-          "author": "Caliva 외",
-          "url": "https://doi.org/10.1016/j.psj.2026.107959"
+          "author": "Gu 외",
+          "url": "https://doi.org/10.1016/j.psj.2026.107975"
+        },
+        {
+          "title_en": "Modulating fatty acid profile of egg yolk: Mechanistic insights into the development of functional eggs.",
+          "title_ko": "난황 지방산 조성 조절: 기능성 계란 개발을 위한 기전적 통찰",
+          "summary_ko": "본 총설은 난황 지방산 조성 변형이 기능성 계란 개발의 주요 전략으로 부상하였음에도 불구하고 영양학적, 생리학적, 분자적, 기술적 요인들이 단편적으로 연구되어 온 한계를 지적하며, 식이 지질 섭취부터 난소 내 침착에 이르는 과정을 장-간-난소 축의 동적 조절을 통한 통합적 생물학적 과정으로 재정의하는 기전적 프레임워크를 제안한다. 장관 지질 소화·흡수, 간 지방산 대사, 지단백질 조립, 내분비 조절, 미토콘드리아 기능, 산화적 항상성, 난소 지질 수송에 관한 현재 지식을 종합하고 영양, 유전, 후성유전, 장내 미생물, 생리 상태 및 환경 요인의 조절적 역할을 비판적으로 평가하였다. 또한 영양유전체학, 다중오믹스, 시스템생물학, 정밀영양, 인공지능 및 디지털 가금 기술의 최신 성과를 통합하여 경험적 식이 조작을 예측 가능한 생물학적 설계로 전환할 수 있는 방안을 제시하였다. 이를 통해 연구 간 합의점과 주요 과학적 논쟁, 숨겨진 생물학적 패턴 및 이질성의 원인을 규명하고 현재 지식의 강점과 한계를 정리하였으며, 미해결 과제와 향후 연구 우선순위를 제안함으로써 영양적 품질, 산란 성적, 생산 효율 및 지속가능성을 동시에 최적화하는 차세대 기능성 계란 개발을 위한 개념적 토대를 마련하였다.",
+          "journal": "Poultry science",
+          "pub_date": "2026-Oct",
+          "author": "Hossain 외",
+          "url": "https://doi.org/10.1016/j.psj.2026.107895"
         }
       ],
       "translated": true
@@ -108,9 +108,27 @@
       "label": "컨설팅도구",
       "papers": [
         {
+          "title_en": "An integrated commercial poultry breeding framework for natural mating and animal welfare.",
+          "title_ko": "자연교배와 동물복지를 위한 통합 상업용 가금 육종 프레임워크",
+          "summary_ko": "본 논문은 케이지 기반 집약적 생산 방식에 맞춰 설계된 기존 육종 프로그램이 향후 복지 지향적 가금 사육 시스템을 충분히 뒷받침하지 못한다는 문제의식에서 출발한 리뷰 논문이다. 저자들은 자연교배 및 방사 사육 환경에 특화된 새로운 상업용 가금 육종 프레임워크를 제안하며, 3D 컴퓨터 비전·RFID·IoT 센서 기반의 완전 자동화 표현형 측정, 유전체 기반 혈통 재구성, 유전체 기반 최량선형불편예측(GBLUP), 사전 배우자 지정 없는 대규모 자연교배, 기후 적응력 강화를 위한 다중오믹스 통합이라는 5개 핵심 요소를 제시한다. 이 프레임워크는 인공수정에 의존하는 기존 케이지 시스템과 달리 인공수정 관련 노동력을 제거하고 순계 및 조부모계 집단의 통합을 가능하게 하는 것을 목표로 한다. 번식 편중에 대한 적극적 유전체 관리가 전제될 경우, 대규모 자연교배 집단 내 높은 유전적 다양성을 유지하면서 장기 운영비 절감과 환경 적응성·복지 개선을 동시에 달성할 잠재력이 있다고 제안한다. 다만 자동화 표현형 측정 인프라에 대한 높은 초기 투자비용과 견고한 유전체 선발 파이프라인 구축이 전환 과정의 주요 과제로 지적된다.",
+          "journal": "Poultry science",
+          "pub_date": "2026-Oct",
+          "author": "Hou",
+          "url": "https://doi.org/10.1016/j.psj.2026.107938"
+        },
+        {
+          "title_en": "A cohort-based population model for the Poultry Red Mite Dermanyssus gallinae (Acari: Dermanyssidae): Application to explore potential pathways for control strategies using Fluralaner as a case study.",
+          "title_ko": "가금 붉은진드기(Dermanyssus gallinae) 개체군에 대한 코호트 기반 모델: Fluralaner를 사례로 한 방제 전략 경로 탐색",
+          "summary_ko": "이 연구는 가금 농장에서 가금 붉은진드기(Dermanyssus gallinae) 감염을 방제하기 위해 산란계 혈장 내 Fluralaner(Exzolt®)의 약동학과 진드기 개체군 동태를 결합한 코호트 기반 모델을 개발하였다. 이 모델을 통해 비용을 고려하면서 다양한 투여 전략을 시뮬레이션할 수 있었다. 분석 결과, 농장별로 맞춤화된 감염 허용 역치와 함께 Fluralaner를 저용량으로 고빈도 투여하는 전략이 비용 효율적인 방제 방안으로 제시되었다. 중등도 감염 수준의 사례 연구에서 이 접근법은 치료 비용을 최대 14~15% 절감하는 효과를 보였다. 연구진은 많은 경우 완전 박멸보다 진드기 개체군을 허용 한계 이하로 유지하는 것이 더 경제적임을 강조한다.",
+          "journal": "PloS one",
+          "pub_date": "2026",
+          "author": "Bettaieb 외",
+          "url": "https://doi.org/10.1371/journal.pone.0357723"
+        },
+        {
           "title_en": "Poultry digital twins must earn their authority: Biological validity, welfare value, and responsible adoption.",
-          "title_ko": "가금류 디지털 트윈은 그 신뢰성을 스스로 입증해야 한다: 생물학적 타당성, 복지 가치, 책임 있는 도입",
-          "summary_ko": "이 논문은 가금류 관련 연구와 방법론 문헌을 분석한 비판적 서술적 고찰(narrative review)이다. 저자는 가금류 디지털 트윈을 특정 물리적 개체나 과정을 지속적으로 동적으로 업데이트하여 표현하고, 변화 모델과 명시적인 의사결정·피드백 경로를 갖춘 시스템으로 정의한다. HatchTwin, HenTwin, CluckTwin, EggTwin, FlockTwin, BroilerTwin 등 7개의 저자 정의 범주로 논의를 구성했으나, 이는 7개의 검증된 시스템이 존재함을 의미하지 않는다. 센싱 성능, 생물학적 타당성, 의사결정 가치를 구분한 근거 지도를 제시하고, 생물학적 검증·전향적 무개입 운영·적절히 설계된 의사결정 시험의 단계적 평가 체계를 제안하며, 캐나다 사례를 통해 특정 관할권 내 도입과 거버넌스를 예시한다.",
+          "title_ko": "가금 디지털트윈은 신뢰를 스스로 입증해야 한다: 생물학적 타당성, 복지 가치, 책임 있는 도입",
+          "summary_ko": "이 비평적 서술형 리뷰는 가금 관련 연구와 방법론 문헌을 검토하여 디지털트윈의 센싱 성능, 생물학적 타당성, 의사결정 가치를 구분하여 분석한다. 저자는 가금 디지털트윈을 특정 물리적 개체나 과정을 지속적으로 동적 업데이트하여 표현하면서 변화 모델과 명시적인 의사결정·피드백 경로를 갖춘 시스템으로 정의한다. HatchTwin, HenTwin, CluckTwin, EggTwin, FlockTwin, BroilerTwin 등 저자가 정의한 7개 범주로 논의를 조직하였으나, 이는 7개의 검증된 시스템이 실제로 존재함을 의미하지는 않는다고 명시한다. 맥락 의존적 신호, 불완전한 개체 식별, 상관된 측정치, 제한적인 외부 검증 등이 복지 및 생산 상태 해석을 제약하는 요인으로 지적되었으며, 저자는 생물학적 검증, 전향적 잠재 운영, 적절히 설계된 의사결정 시험으로 이어지는 단계적 평가 체계를 제안한다. 캐나다 사례를 통해 특정 관할권 하의 도입 및 거버넌스를 예시하며, 전체 프레임워크의 효과성은 추후 평가가 필요하다고 결론짓는다.",
           "journal": "Poultry science",
           "pub_date": "2026-Oct",
           "author": "Neethirajan",
@@ -119,7 +137,7 @@
         {
           "title_en": "Integrating Physiological Biomarkers into Precision Livestock Farming for Laying Hens: Methodological Challenges and Future Research Directions.",
           "title_ko": "산란계 정밀축산을 위한 생리학적 바이오마커 통합: 방법론적 과제와 향후 연구 방향",
-          "summary_ko": "이 서술적 고찰(narrative review)은 산란계 정밀축산(PLF) 모델에서 생리학적 지표를 참조 라벨로 활용하기 위한 방법론적 요건을 검토했다. 혈액 생화학, 코르티코스테론 농도, 호중구 대 림프구 비율(H/L ratio), 체온, 면역·질병 지표와 구조화된 농장 데이터 및 비정형 영상·열화상·음향 데이터를 함께 고려했다. 센서와 생리학적 기준값을 직접 비교한 연구는 단 7건에 불과했으며 대부분 직장 또는 총배설강 체온, 말초 체온, 임상 경과, 질병 결과를 사용했고, 혈액 생화학·H/L ratio·코르티코스테론·면역/병원체 지표를 결합한 복합 라벨을 개발하고 외부 검증한 연구는 없었다. 주요 장벽으로 센서-바이오마커 간 시간 척도 불일치, 샘플링으로 인한 라벨 노이즈, 개체·군집·농장 수준 간 분석 단위의 불일치가 지적되었으며, 향후 개체 식별, 바이오마커별 시간 정렬, 다중모달 복합 라벨링, 독립적인 농장 수준 검증의 필요성을 제안했다.",
+          "summary_ko": "이 서술형 리뷰는 산란계 농장에서 정밀축산(PLF) 시스템을 통해 수집되는 연속적인 환경·생산·위치·영상·음향 데이터가 흔히 독립적으로 측정된 생리학적 상태가 아니라 사람이 부여한 행동 또는 외형 라벨을 기준으로 검증되어 왔다는 문제를 다룬다. 저자들은 혈액 생화학, 코르티코스테론 농도, 호중구 대 림프구 비율, 체온, 면역·질병 지표 등을 구조화된 농장 데이터 및 비구조화된 영상·열화상·음향 데이터와 함께 생리학적 지표를 참조 라벨로 사용하기 위한 방법론적 요건을 검토하였다. 센서-참조 직접 비교 연구는 단 7건에 불과했으며 대부분 직장 또는 총배설강 체온, 말초 체온, 임상 경과, 질병 결과를 지표로 사용하였고, 혈액 생화학·호중구림프구비율·코르티코스테론·면역/병원체 지표를 결합한 복합 라벨을 개발하고 외부 검증한 연구는 확인되지 않았다. 센서와 바이오마커 간 시간 척도 불일치, 채혈로 인한 라벨 잡음, 개체·군집·농장 수준 간 분석 단위 불일치가 주요 장애요인으로 제시되었다. 저자들은 향후 연구에서 개체 식별, 바이오마커별 시간 정렬, 다중 모달 복합 라벨링, 독립적 농장 수준 검증을 포함할 것을 제안하였다.",
           "journal": "Animals : an open access journal from MDPI",
           "pub_date": "2026-Oct",
           "author": "Kim 외",
@@ -127,30 +145,12 @@
         },
         {
           "title_en": "Locomotor Health in Modern Broiler Chickens: Risk Factors, Major Disorders, Assessment Methods, and Implications for Welfare and Production Efficiency.",
-          "title_ko": "현대 육계의 운동기 건강: 위험 요인, 주요 질환, 평가 방법, 그리고 복지와 생산 효율성에 대한 함의",
-          "summary_ko": "이 리뷰 논문은 빠른 성장, 사료 효율 개선, 가슴살 수율 증가를 위한 유전적 선발이 육계 운동기(locomotor system)에 미치는 영향을 복지와 생산 효율성 관점에서 비판적으로 검토했다. 유전형, 성장률, 체중과 체형, 골격 발달, 영양, 활동량, 사육 환경, 일령, 감염 요인 간의 다인자적 상호작용에 초점을 맞추었다. 외반/내반 변형, 경골연골이형성증(tibial dyschondroplasia), 감염성 관절염 및 건초염, 세균성 골연골괴사증을 동반한 골수염(BCO), 골연골증, 구루병, 골절 등 주요 운동기 질환의 생물학적 기전과 복지적 영향을 논의했다. 보행점수(gait scoring), 기립 능력, 눕기까지의 잠복기 검사, 방사선 촬영, 부검, 바이오마커, 적외선 열화상, 힘판 분석, 카메라·센서 기반 모니터링 등 현행 평가 방법을 평가했으며, 운동기 장애는 단순히 빠른 성장 때문이 아니라 증가하는 체중과 골격·근육 조직의 적응 능력 간 조정 부족에서 기인한다고 결론지었다.",
+          "title_ko": "현대 육계의 운동기 건강: 위험요인, 주요 질환, 평가 방법 및 복지·생산효율에 대한 함의",
+          "summary_ko": "이 리뷰 논문은 급속 성장, 사료 효율 개선, 가슴살 수율 증대를 위한 유전적 선발이 육계 생산성을 크게 향상시켰지만 운동기계에 대한 기능적 부담도 증가시켰다는 점을 중심으로 현대 육계의 운동기 건강을 복지 및 생산효율 관점에서 비판적으로 검토한다. 유전형, 성장률, 체중 및 체형, 골격 발달, 영양, 활동량, 사육환경, 일령, 감염 요인 간의 다인자적 상호작용에 초점을 맞추었으며, 외반/내반지 변형, 경골연골이형성증, 감염성 관절염 및 건초염, 세균성 골괴사성 골수염, 골연골증, 구루병, 골절 등 주요 운동기 질환의 생물학적 기전과 복지적 영향을 논의한다. 보행점수평가, 기립능력, 눕기까지의 잠복기 검사, 방사선 검사, 부검, 바이오마커, 적외선 열화상, 힘판 분석, 카메라·센서 기반 모니터링 등 현재 운동기 평가 방법들도 함께 평가하였다. 연구 근거에 따르면 운동기 질환은 급속 성장만의 문제가 아니라 체중 증가와 골격·근육 조직의 적응 능력 간 조율 부족에서 기인하는 것으로 나타났다. 저자들은 균형 잡힌 유전적 선발, 정밀 영양, 활동 촉진 환경, 조기 발견을 위한 정밀축산 기술을 통합한 미래 전략이 생산효율을 유지하면서 육계 복지와 운동기 건강을 개선하고 생산 손실을 줄이는 데 기여할 수 있다고 제안한다.",
           "journal": "Animals : an open access journal from MDPI",
           "pub_date": "2026-Sep",
           "author": "Lisiecka 외",
           "url": "https://doi.org/10.3390/ani16193051"
-        },
-        {
-          "title_en": "Risk-based prioritization of official animal welfare inspections using machine learning.",
-          "title_ko": "머신러닝을 활용한 공식 동물복지 점검의 위험 기반 우선순위화",
-          "summary_ko": "오스트리아에서는 농가 가축의 최소 2%를 위험 기반 무작위 표본으로 선정하여 공식 동물복지 점검을 실시해야 하며, 이 연구는 슈타이어마르크(Styria)주의 19,000여 가축 농가를 대상으로 행정·동물건강 데이터를 활용한 머신러닝 모델을 개발했다. 2019~2023년 농가·연도별로 집계된 2,647건의 점검 결과로 XGBoost 모델을 학습시키고 475건으로 테스트했으며, 농가 정보, 도축·육류검사 자료, 폐사축 처리장 자료, 항생제 처방 자료를 변수로 사용했다. 테스트셋에서 AUC 0.75(95% CI 0.66-0.82), MCC 0.25(95% CI 0.19-0.37), AP 0.19(95% CI 0.11-0.31)의 중간 수준 성능을 보였다. 소 생산에서의 항생제 총 사용량 및 유럽의약품청(EMA) D군 항생제, 농장주 연령 및 거주지-농장 간 거리, 동물건강서비스(TGD) 가입 여부(위반 확률 감소와 연관), 가축두수, 폐사율, 돼지 심낭염 등 육류검사 소견이 주요 예측 변수로 확인되었다.",
-          "journal": "Frontiers in veterinary science",
-          "pub_date": "2026",
-          "author": "Obenaus 외",
-          "url": "https://doi.org/10.3389/fvets.2026.1938469"
-        },
-        {
-          "title_en": "Leakage-safe weekly risk mapping of highly pathogenic avian influenza outbreaks in domestic poultry in Japan using open outbreak, meteorological, and geospatial data.",
-          "title_ko": "일본 내 가금류 고병원성 조류인플루엔자 발생에 대한 데이터 누출 방지 주간 위험지도 작성: 공개 발생·기상·지리공간 데이터 활용",
-          "summary_ko": "이 연구는 일본 전국 가금류의 고병원성 조류인플루엔자(HPAI) 발생에 대해 데이터 누출(leakage)을 방지한 주간 단위 위험지도 작성 프레임워크를 개발했으며, 공개 발생 기록, ERA5-Land 재분석 기상자료, 격자 단위 지리·토지이용 데이터를 사용했다. 분석 단위는 10km 격자-주(週)였으며, 2020년 8월 31일부터 2026년 5월 18일까지 총 1,641,809개의 격자-주 관측치를 구성해 전국 5,491개 격자를 매주 정적·달력·직전 주 정보만으로 순위화했다. 순환식 회계연도 평가에서 평균 사건-격자 위험 백분위수는 예측변수 조합에 따라 0.695~0.713이었고, 49건의 엄격한 최초발생 유사 사건에 대한 평가에서 지리·계절성·직전주 기온을 사용한 기본 Extra Trees 모델은 상위 10%, 20% 격자 내에서 각각 22.4%, 42.9%의 사건 포착률을 보였다. GIS 및 토지이용 정보를 추가한 모델은 포착률을 각각 38.8%, 59.2%로 향상시켰으며(상위 10% 기준 16.3%p 차이, 부트스트랩 95% CI 2.0-30.6), 다만 불일치 검정 결과는 유의하지 않아(p=0.0768) 전반적 성능은 여전히 중간 수준으로 평가되었다.",
-          "journal": "Preventive veterinary medicine",
-          "pub_date": "2026-Sep",
-          "author": "Arakawa",
-          "url": "https://doi.org/10.1016/j.prevetmed.2026.107024"
         }
       ],
       "translated": true
