@@ -28529,7 +28529,7 @@ function nfGo(key){
 
 // 시세,통계 · 사양/복지/HACCP · AI 탭의 하위 메뉴는 고정 머리글(탭 바로 아래)에 둔다 — 스크롤해도, 「새 기능」 띠에 가려지지 않고 항상 보인다.
 function renderHeaderSubBar(embedded){
-  if(embedded) return "";
+  // 다른 화면(farm-pro 가금컨설팅 메뉴)에 끼워 넣어도 하위 메뉴는 그대로 보인다 — 빼는 건 제목 줄뿐.
   const t = state.tab;
   let items, cur, cls, id;
   if(t === "price" || t === "pig" || t === "livestock"){ items = PRICE_SUBS; cur = priceSub; cls = "price-sub-btn"; id = "price-subbar"; }
