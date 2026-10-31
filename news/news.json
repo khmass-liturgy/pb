@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-30 11:24 KST",
+  "updated": "2026-10-31 11:01 KST",
   "channels": {
     "livestock": {
       "label": "축산·농업",
@@ -23,8 +23,15 @@
     },
     "economy": {
       "label": "경제",
-      "items": [],
-      "count": 0
+      "items": [
+        {
+          "title": "일본은행 \"물가 목표 2% 도달\"…기준금리 1.25%로 유지 - 한국경제",
+          "link": "https://news.google.com/rss/articles/CBMiWkFVX3lxTE52aEpQNi1XUXFhU1l4RGJmSDlrbndIdUdjbE9haHgwdzlHM0pWYTBENVJIbGgtNnVZUl9nS0lFN3VhY3BTc1IzeHViV1ZXZXNsbzc2c3JjaC1EZw?oc=5",
+          "date": "10/30 15:13",
+          "source": "한국경제"
+        }
+      ],
+      "count": 1
     },
     "world": {
       "label": "국제",
