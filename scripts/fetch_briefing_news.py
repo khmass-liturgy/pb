@@ -422,10 +422,7 @@ SOURCES = [
     {"id": "mk_econ", "name": "매일경제", "icon": "🗞️", "color": "#00796B",
      "home": "https://www.mk.co.kr/news/economy/",
      "kind": "rss", "urls": ["https://www.mk.co.kr/rss/30100041/"], "naive_kst": True},   # pubDate에 시간대가 없어 KST로 읽는다
-    # 한국은행 금융통화위원회 의사록(금리 결정 배경). 기준금리는 사료 수입·농가 이자 부담과 이어진다.
-    {"id": "bok", "name": "한국은행 금통위", "icon": "🏦", "color": "#37474F",
-     "home": "https://www.bok.or.kr/portal/singl/newsData/list.do?menuNo=200789",
-     "kind": "rss", "urls": ["https://www.bok.or.kr/portal/bbs/B0000245/news.rss?menuNo=200690"]},
+
 
     # ── 해외 양계 매체 (새 소스, 영문 제목 → 한글 번역) ─────────────────────────
     # WATTPoultry·WOAH는 RSS를 직접 받을 수 있다. The Poultry Site·CIDRAP는 RSS가 막혀 있어
