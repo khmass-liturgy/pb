@@ -589,7 +589,7 @@ function newGame(mode){
 function addLog(t){S.log.unshift({d:S.day,t});S.log=S.log.slice(0,8)}
 
 /* ── 사료통·물통·환기: 깔짚처럼 시간이 지나면 줄고, 터치로 채우거나 가동한다 ── */
-const FEED_DROP=55,WATER_DROP=45,VENT_DROP=30;
+const FEED_DROP=55,WATER_DROP=45;   // 환기 게이지는 한 번 보낼 때 1만수당 5,000㎥/h(ventStepLv)씩 준다
 function ensureGauges(){if(S.feedLv==null){S.feedLv=100;S.waterLv=100;S.ventLv=60;S.feedCut=false}if(S.ctrl.hum==null)S.ctrl.hum=S.mode==='layer'?60:65;if(S.ctrl.temp==null)S.ctrl.temp=S.mode==='layer'?envRec('layer',Math.min(MODES.layer.maxDay,Math.max(1,S.day+1))).t:33}
 /* ── 환기량: 한 마리(수) 기준 + 일령(주령)별 증가량 ──
    평소 필요 환기량(m³/h/수) = 1일령(1주령) 기본값 + 하루(한 주)마다 늘어나는 양 × (일령−1), 상한까지.
@@ -620,10 +620,12 @@ const ventFanBird=()=>Math.max(.4,VENT_FULL*S.ventLv/100)*ventKg();   // 지금 
 const man10=q=>{const n=Math.round(q*10000/10)*10;return n>=10000?(n/10000).toFixed(n>=100000?0:1).replace(/\.0$/,'')+'만':n.toLocaleString('ko-KR')};   // 1만수당 ㎥/h 짧게(2.8만)
 function ventNeedLv(){return clamp(100*ventNeedBird()/(VENT_FULL*ventKg()),15,95)}
 /* ── 적정 환기 범위와 과환기 기름값 ──
-   적정 = 필요량 ~ 필요량의 +10%(VENT_OK_MAX). 환기 ＋ 버튼은 누를 때마다 팬을 VENT_UP만큼 올리고(비용), 옆의 − 버튼(무료)으로 줄여 적정을 맞춘다.
+   적정 = 필요량 ~ 필요량의 +10%(VENT_OK_MAX). 환기 ＋ 버튼은 누를 때마다 1만수당 5,000㎥/h(VENT_STEP_Q 0.5㎥/h/수)씩 올리고(비용),
+   옆의 − 버튼(무료)은 같은 양씩 줄여 적정을 맞춘다. 하루(한 주)가 지나면 팬도 같은 양(한 칸)만큼 줄어든다.
    그보다 많으면 과환기 — 필요량을 넘친 공기를 데우느라 드는 난방 연료를 면세 등유 값(사이트 「면세유」 자료, 없으면 기본값)으로 문다.
    등유 1L ≈ 9.6 kWh × 난방기 효율 0.85, 넘친 바람이 닭 주변을 식히는 몫으로 최소 2℃ 차이를 잡는다(교육용 가정). */
-const VENT_OK_MAX=1.10,VENT_SET=1.05,VENT_UP=30,VENT_DOWN=10,KERO_KWH_L=9.6*.85;   // ＋ 30(한 번 보낼 때 줄어드는 만큼), − 10(무료, 과환기에서 내릴 때는 적정에서 멈춤)
+const VENT_OK_MAX=1.10,VENT_SET=1.05,VENT_STEP_Q=.5,KERO_KWH_L=9.6*.85;   // ＋·− 한 번 = 1만수당 5,000㎥/h (− 는 무료, 과환기에서 내릴 때는 적정에서 멈춤)
+const ventStepLv=()=>100*VENT_STEP_Q/(VENT_FULL*ventKg());   // 5,000㎥/h(1만수)가 게이지로 몇 %인지
 let FUEL={won:1380,src:'기본값',date:''};      // 면세 등유 원/L
 function ventJudge(lv,n){return lv<n?1:lv<=n*VENT_OK_MAX?2:3}      // 1 부족 · 2 적정(+10% 이내) · 3 과다
 function ventOverFuel(days){
@@ -651,7 +653,7 @@ function useGauges(){
   if(wc<.85) addLog('물통이 비었어요! 닭들이 목말라해요. 급수해 주세요.');
 }
 function decayGauges(){
-  S.feedLv=Math.max(0,S.feedLv-FEED_DROP);S.waterLv=Math.max(0,S.waterLv-WATER_DROP);S.ventLv=Math.max(0,S.ventLv-VENT_DROP);
+  S.feedLv=Math.max(0,S.feedLv-FEED_DROP);S.waterLv=Math.max(0,S.waterLv-WATER_DROP);S.ventLv=Math.max(0,S.ventLv-ventStepLv());   // 팬도 한 칸(1만수당 5,000㎥/h) 줄어든다
   S.suppOn=false;      // 영양제 효과는 다음 한 번(하루/한 주)만
 }
 
@@ -1471,7 +1473,7 @@ function renderActs(){
   const vn=Math.round(ventNeedBird()*10000/10)*10,vnS=man10(ventNeedBird());   // 1만수당 필요 환기량(㎥/h)
   const vf=Math.round(ventFanBird()*10000/10)*10,vfS=man10(ventFanBird()),vNeedLv=ventNeedLv(),vJ=ventJudge(S.ventLv,vNeedLv);   // 1만수당 지금 팬 환기량
   const vfC=['','#C0392B','#2E7D32','#B36200'][vJ],vfT=['','부족','적정','과다'][vJ];
-  el.innerHTML=it.map(([k,em,lab,lv,need])=>{const v=k==='vent';const btn=`<button type="button" class="act${v?' vent':''}${lv<need?' low':''}" data-act="${k}" style="--lv:${Math.round(lv)}%;--gc:${v&&vJ===3?'#FFC58A':lv>=need?'#BFE8B8':lv>0?'#FFE29A':'#FFB3A6'}${v?`;--nd:${need}%`:''}" aria-label="${lab}하기 ${won(btnCost(k))}${v?`, 1만수당 필요 ${vn.toLocaleString('ko-KR')}㎥/h, 지금 ${vf.toLocaleString('ko-KR')}㎥/h ${vfT}`:''}"${v?` title="1만수당 필요 ${vn.toLocaleString('ko-KR')}㎥/h · 지금 팬 ${vf.toLocaleString('ko-KR')}㎥/h(${vfT}) · 양옆 눈금 = 필요 수준"`:''}><span class="r"><span class="em">${em}</span>${lab}${v?'＋':''}</span>${v?`<span class="nd">필요 ${vnS}</span><span class="fn" style="color:${vfC}">지금 ${vfS}</span>`:''}<small>${won(btnCost(k))}</small></button>`;return v?`<div class="vpair">${btn}<button type="button" class="vminus${vJ===3?' hot':''}" data-act="ventdown" aria-label="환기 줄이기 (무료)" title="환기 줄이기 (무료)">−</button></div>`:btn}).join('')
+  el.innerHTML=it.map(([k,em,lab,lv,need])=>{const v=k==='vent';const btn=`<button type="button" class="act${v?' vent':''}${lv<need?' low':''}" data-act="${k}" style="--lv:${Math.round(lv)}%;--gc:${v&&vJ===3?'#FFC58A':lv>=need?'#BFE8B8':lv>0?'#FFE29A':'#FFB3A6'}${v?`;--nd:${need}%`:''}" aria-label="${lab}하기 ${won(btnCost(k))}${v?`, 1만수당 필요 ${vn.toLocaleString('ko-KR')}㎥/h, 지금 ${vf.toLocaleString('ko-KR')}㎥/h ${vfT}`:''}"${v?` title="1만수당 필요 ${vn.toLocaleString('ko-KR')}㎥/h · 지금 팬 ${vf.toLocaleString('ko-KR')}㎥/h(${vfT}) · ＋ 누를 때마다 +5,000㎥/h · 양옆 눈금 = 필요 수준"`:''}><span class="r"><span class="em">${em}</span>${lab}${v?'＋':''}</span>${v?`<span class="nd">필요 ${vnS}</span><span class="fn" style="color:${vfC}">지금 ${vfS}</span>`:''}<small>${won(btnCost(k))}</small></button>`;return v?`<div class="vpair">${btn}<button type="button" class="vminus${vJ===3?' hot':''}" data-act="ventdown" aria-label="환기 줄이기, 1만수당 5,000㎥/h (무료)" title="환기 −5,000㎥/h (1만수당, 무료)">−</button></div>`:btn}).join('')
     +(S.mode==='layer'?`<button type="button" class="act" data-act="calc" style="--lv:${S.ctrl.calcium?100:0}%" aria-label="칼슘 보충 ${S.ctrl.calcium?'켜짐':'꺼짐'}"><span class="r"><span class="em">🥚</span>칼슘</span><small>${S.ctrl.calcium?'켜짐':'꺼짐'}</small></button>`:'')
     +`<button type="button" class="act sel${fcur!==frec?' low':''}" data-act="feedsel" style="--lv:0%" aria-label="사료 종류 선택, 지금 ${FL[fcur].name}"><span class="r"><span class="em">🥣</span>사료</span><small>${FL[fcur].name.replace(' 사료','')}</small></button>`
     +`<button type="button" class="act" data-act="supp" style="--lv:${S.suppOn?100:0}%;--gc:#CFE8FF" aria-label="영양제 주기 ${won(COSTS[S.mode].supp)}"><span class="r"><span class="em">💊</span>영양제</span><small>${S.suppOn?'급여함':won(COSTS[S.mode].supp)}</small></button>`
@@ -1491,9 +1493,9 @@ function doAct(k){
   ensureGauges();
   if(k==='feedsel'){fdOpen=!fdOpen;renderActs();return}
   if(k==='calc'){S.ctrl.calcium=S.ctrl.calcium?0:1;toast(S.ctrl.calcium?'칼슘 보충을 켰어요 (주 ₩14,000)':'칼슘 보충을 껐어요');render();autosave();return}
-  if(k==='ventdown'){   // 환기 줄이기(무료): 10씩 낮추되, 과환기에서 줄이다 필요량 아래로 떨어질 때는 적정(필요 +5%)에서 멈춘다
+  if(k==='ventdown'){   // 환기 줄이기(무료): 1만수당 5,000㎥/h씩 낮추되, 과환기에서 줄이다 필요량 아래로 떨어질 때는 적정(필요 +5%)에서 멈춘다
     const n=ventNeedLv();if(S.ventLv<=0){toast('환기팬이 이미 꺼져 있어요');return}
-    const over=S.ventLv>n*VENT_OK_MAX;let lv=Math.max(0,S.ventLv-VENT_DOWN);
+    const over=S.ventLv>n*VENT_OK_MAX;let lv=Math.max(0,S.ventLv-ventStepLv());
     if(over&&lv<n)lv=Math.min(S.ventLv,n*VENT_SET);
     S.ventLv=lv;const j=ventJudge(lv,n);
     toast(j===2?'적정 환기예요 👍 (필요량 +10% 이내)':j===3?'아직 과환기예요 — 더 줄여 주세요':'환기가 부족해요 — ＋로 늘려 주세요');
@@ -1507,10 +1509,10 @@ function doAct(k){
   if(k==='litter'){if(S.litter>=98){toast('깔짚이 이미 보송해요');return}S.litter=clamp(S.litter+35,0,100);S.ammonia=clamp(S.ammonia-10,0,60);burst('✨',3);toast('새 깔짚을 깔았어요')}
   else if(k==='feed'){if(S.feedLv>=98){toast('사료통이 이미 가득해요');return}S.feedLv=100;burst('🌾',3);toast('급이했어요')}
   else if(k==='water'){if(S.waterLv>=98){toast('물통이 이미 가득해요');return}S.waterLv=100;burst('💧',3);toast('급수했어요')}
-  else{const n=ventNeedLv();   // 환기 ＋: 팬을 VENT_UP만큼 더 돌린다(누를 때마다 비용). 넘치면 − 로 줄여 적정(필요량 +10% 이내)을 맞춘다
+  else{const n=ventNeedLv();   // 환기 ＋: 팬을 1만수당 5,000㎥/h 더 돌린다(누를 때마다 비용). 넘치면 − 로 줄여 적정(필요량 +10% 이내)을 맞춘다
     if(S.ventLv>=100){toast('환기팬이 최대예요');return}
-    S.ventLv=Math.min(100,S.ventLv+VENT_UP);burst('🌀',3);const j=ventJudge(S.ventLv,n);
-    toast(j===2?'적정 환기예요 👍 (필요량 +10% 이내)':j===3?'과환기예요! 기름값이 늘어요 — − 로 줄여 주세요':'환기를 늘렸어요 · 아직 부족해요')}
+    S.ventLv=Math.min(100,S.ventLv+ventStepLv());burst('🌀',3);const j=ventJudge(S.ventLv,n);
+    toast(j===2?'＋5,000㎥/h · 적정 환기예요 👍':j===3?'＋5,000㎥/h · 과환기예요! − 로 줄여 주세요':'＋5,000㎥/h · 아직 부족해요')}
   S.money-=cost;S.tot.other+=cost;
   render();autosave();
 }
