@@ -240,6 +240,10 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
 .act .r{display:flex;align-items:center;gap:2px;white-space:nowrap}
 .act .em{font-size:14px}
 .act small{font-size:9.5px;color:var(--muted);font-family:inherit}
+.act .nd{font-size:9.5px;color:#0B5E8A;font-family:inherit;white-space:nowrap;letter-spacing:-.2px}
+.act.vent{position:relative}
+.act.vent::before,.act.vent::after{content:'';position:absolute;bottom:var(--nd);width:7px;border-top:2.5px solid #0B5E8A;pointer-events:none}
+.act.vent::before{left:1px}.act.vent::after{right:1px}
 .acts[hidden]{display:none}
 .act:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
 
@@ -1429,7 +1433,8 @@ function renderActs(){
   const it=[['feed','🌾','급이',S.feedLv,FEED_DROP],['water','💧','급수',S.waterLv,WATER_DROP],['vent','🌀','환기',S.ventLv,Math.round(S.ventNeed||ventNeedLv())]];
   it.push(['litter','🪵','깔짚',S.litter,45]);
   const FL=FEEDS[S.mode],frec=feedRecIdx(S.mode,S.day+1),fcur=Math.max(0,FL.findIndex(f=>f.id===S.ctrl.fd));
-  el.innerHTML=it.map(([k,em,lab,lv,need])=>`<button type="button" class="act${lv<need?' low':''}" data-act="${k}" style="--lv:${Math.round(lv)}%;--gc:${lv>=need?'#BFE8B8':lv>0?'#FFE29A':'#FFB3A6'}" aria-label="${lab}하기 ${won(btnCost(k))}"><span class="r"><span class="em">${em}</span>${lab}</span><small>${won(btnCost(k))}</small></button>`).join('')
+  const vn=Math.round(ventNeedBird()*10000/10)*10,vnS=vn>=10000?(vn/10000).toFixed(vn>=100000?0:1).replace(/\.0$/,'')+'만':vn.toLocaleString('ko-KR');   // 1만수당 필요 환기량(㎥/h)
+  el.innerHTML=it.map(([k,em,lab,lv,need])=>{const v=k==='vent';return `<button type="button" class="act${v?' vent':''}${lv<need?' low':''}" data-act="${k}" style="--lv:${Math.round(lv)}%;--gc:${lv>=need?'#BFE8B8':lv>0?'#FFE29A':'#FFB3A6'}${v?`;--nd:${need}%`:''}" aria-label="${lab}하기 ${won(btnCost(k))}${v?`, 1만수당 필요 ${vn.toLocaleString('ko-KR')}㎥/h`:''}"${v?` title="1만수당 필요 환기량 ${vn.toLocaleString('ko-KR')}㎥/h · 양옆 눈금 = 필요 수준"`:''}><span class="r"><span class="em">${em}</span>${lab}</span>${v?`<span class="nd">필요 ${vnS}</span>`:''}<small>${won(btnCost(k))}</small></button>`}).join('')
     +(S.mode==='layer'?`<button type="button" class="act" data-act="calc" style="--lv:${S.ctrl.calcium?100:0}%" aria-label="칼슘 보충 ${S.ctrl.calcium?'켜짐':'꺼짐'}"><span class="r"><span class="em">🥚</span>칼슘</span><small>${S.ctrl.calcium?'켜짐':'꺼짐'}</small></button>`:'')
     +`<button type="button" class="act sel${fcur!==frec?' low':''}" data-act="feedsel" style="--lv:0%" aria-label="사료 종류 선택, 지금 ${FL[fcur].name}"><span class="r"><span class="em">🥣</span>사료</span><small>${FL[fcur].name.replace(' 사료','')}</small></button>`
     +`<button type="button" class="act" data-act="supp" style="--lv:${S.suppOn?100:0}%;--gc:#CFE8FF" aria-label="영양제 주기 ${won(COSTS[S.mode].supp)}"><span class="r"><span class="em">💊</span>영양제</span><small>${S.suppOn?'급여함':won(COSTS[S.mode].supp)}</small></button>`
