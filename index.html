@@ -9621,6 +9621,7 @@ async function farmGameOpenWin(mode){
   try {
     cfg = await Promise.race([ fetchPremiumContentJson("farmgame_config"), new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 10000)) ]);
     try { localStorage.setItem("fg_cfg_v1", JSON.stringify(cfg)); } catch(e){}
+    vcApplyCfg(cfg);
   } catch(e){
     cfg = null;
     // 아직 발행 전이면(not-found) 기본값, 서버가 느리거나 실패하면 마지막으로 받은 설정을 쓴다.
@@ -9723,7 +9724,7 @@ window.farmGameCloud = {
   // 게임 관리 설정(구간별 질병 발생·사양관리 포인트) — 관리자만 쓰고, 회원은 게임 창을 열 때 읽는다.
   async saveConfig(cfg){
     if(!isBoardAdmin()) throw new Error("관리자만 저장할 수 있어요.");
-    try { await writePremiumContentJson("farmgame_config", cfg); }
+    try { await writePremiumContentJson("farmgame_config", cfg); vcApplyCfg(cfg); }
     catch(e){ console.warn("게임 설정 저장 실패:", e); throw new Error(farmGameErrMsg(e)); }
   },
   async list(){ const d = await farmGameCall({}); return Array.isArray(d.saves) ? d.saves : []; },
@@ -9761,25 +9762,36 @@ function coliBind(){
 
 // ── 🌬️ 환기 기초교실 (유료서비스 · 최꼬 아카데미, 정적 교육과정) ─────────────────────────────────────────
 // 계사 환기를 7단계로 배운다: 왜 환기? → 정압·음압·양압 → 자연/강제환기 → 계사 구조 → 입기구 크기와 환기량 → 1만수당 환기량(육계 일령·산란계 주령) → 현장 점검.
-// 계산식은 「닭 키우기」 게임의 2026-10 환기 모델(물리식)과 같다 — 게임은 이제 1수 기준 일령별 증가량(관리자 조정)을 쓴다. 공기 열용량 0.33 W/(m³/h·K)와 습도비는 EnergyFlowX 습공기 계산으로 확인(2026-10).
+// 1만수당 환기량은 「닭 키우기」 게임과 같은 방식: 1수당 = 기본 + 증가량×(일령·주령−1), 상한까지(VC_SCH — 관리자가 게임 「⚙ 관리 → 🌀 환기량」에서 바꾼 farmgame_config.vent를 함께 읽는다),
+// 폭염(바깥 34℃) 때만 열 제거 환기와 비교해 큰 값. 공기 열용량 0.33 W/(m³/h·K)는 EnergyFlowX 습공기 계산으로 확인(2026-10).
 // 닭 발열·수분 발생·외피 열손실·입기구 흐름계수·체중은 교육용 가정값이다(품종 지침이 아님). 실제 팬·입기구 설계는 시공업체·설비 전문가와 정한다.
 const VC_COLOR = "#0277BD";
-const vcState = { tab:"why", press:"neg", inlet:{ q:50000, pa:20, len:60, h:6 }, pk:{ mode:"broiler", age:28, out:15, n:10000, fan:30000 }, chk:{} };
+const vcState = { tab:"why", press:"neg", inlet:{ q:50000, pa:20, len:60, h:6 }, pk:{ mode:"broiler", age:28, hot:false, n:10000, fan:30000 }, chk:{} };
 (function vcLoad(){ try { const j = JSON.parse(localStorage.getItem("vc_v1") || "{}"); if(j.chk && typeof j.chk === "object") vcState.chk = j.chk; } catch(e){} })();
 function vcSave(){ try { localStorage.setItem("vc_v1", JSON.stringify({ chk:vcState.chk })); } catch(e){} }
 
-// ── 계산 (게임과 같은 식) ──
-const VC = { rho:1.2, cd:.65, rhocp:.33, full:7, bird:{ broiler:{ sens:7.5, lat:3.7, ua:.15 }, layer:{ sens:5, lat:3, ua:.2 } } };
-function vcPsyW(T, rh){ const ps = 6.112 * Math.exp(17.62 * T / (243.12 + T)), pv = rh * ps; return 622 * pv / (1013.25 - pv); }
+// ── 계산 (게임과 같은 식: farmgame/game.html VENT_SCH_DEF·ventSchBird·ventHeatBird·LAY_W) ──
+const VC = { rho:1.2, cd:.65, rhocp:.33, hotOut:34, bird:{ broiler:{ sens:7.5, ua:.15 }, layer:{ sens:5, ua:.2 } } };
+const VC_SCH_DEF = { broiler:{ base:.1, inc:.1, max:5 }, layer:{ base:.15, inc:.2, max:4 } };   // m³/h/수 — 기본(1일령·1주령), 증가량(하루·한 주), 상한
+const VC_SCH = { broiler:Object.assign({}, VC_SCH_DEF.broiler), layer:Object.assign({}, VC_SCH_DEF.layer) };
+function vcApplyCfg(cfg){   // 게임 관리 설정(farmgame_config)의 vent 값을 같은 검사로 반영 — 없으면 기본값
+  ["broiler", "layer"].forEach(m => {
+    VC_SCH[m] = Object.assign({}, VC_SCH_DEF[m]);
+    const v = cfg && cfg[m] && cfg[m].vent; if(!v) return;
+    const b = +v.base, i = +v.inc, x = +v.max;
+    if(isFinite(b) && b > 0 && b <= 20 && isFinite(i) && i >= 0 && i <= 5 && isFinite(x) && x >= b && x <= 30) VC_SCH[m] = { base:b, inc:i, max:x };
+  });
+}
+(function(){ try { vcApplyCfg(JSON.parse(localStorage.getItem("fg_cfg_v1") || "null")); } catch(e){} })();
 function vcInterp(tb, x){ if(x <= tb[0][0]) return tb[0][1]; for(let i = 1; i < tb.length; i++){ if(x <= tb[i][0]){ const a = tb[i - 1], b = tb[i]; return a[1] + (b[1] - a[1]) * (x - a[0]) / (b[0] - a[0]); } } return tb[tb.length - 1][1]; }
-function vcKg(mode, t){ return mode === "broiler" ? vcInterp([[1, .042], [7, .19], [14, .48], [21, .95], [28, 1.55], [33, 2.1]], t) : vcInterp([[1, .07], [4, .28], [6, .5], [8, .7], [12, 1], [18, 1.4], [24, 1.55], [40, 1.65]], t); }
+function vcKg(mode, t){ return mode === "broiler" ? vcInterp([[1, .042], [7, .19], [14, .48], [21, .95], [28, 1.55], [33, 2.1]], t) : vcInterp([[1, .07], [4, .28], [6, .45], [10, .85], [14, 1.18], [18, 1.5], [24, 1.85], [30, 1.95], [40, 2]], t); }
 function vcTin(mode, t){ return mode === "broiler" ? 33 - 12 * (t - 1) / 32 : (t <= 1 ? 33 : t <= 4 ? 33 - 3 * (t - 1) : t < 18 ? 22 : 21); }
-function vcNeed(mode, tin, tout, kg){   // → { q: m³/h/kg, by: "moist" | "heat" }
-  const b = VC.bird[mode], dT = Math.max(4, tin - tout);
-  const qHeat = Math.max(0, b.sens * kg - b.ua * dT) / (VC.rhocp * dT * kg);
-  const dw = Math.max(1, vcPsyW(tin, .65) - vcPsyW(tout, .7)), qMoist = b.lat / (dw * 1.17);
-  const q = Math.min(VC.full, Math.max(qHeat, qMoist, .4));
-  return { q, by: qHeat > qMoist ? "heat" : "moist", qHeat, qMoist };
+function vcSchBird(mode, age){ const v = VC_SCH[mode]; return Math.min(v.max, v.base + v.inc * Math.max(0, age - 1)); }   // 일령(주령)별 1수당 환기량
+function vcNeed(mode, age, hot){   // → { q: m³/h/수, sch, heat, by: "sch" | "heat" }
+  const sch = vcSchBird(mode, age);
+  let heat = 0;
+  if(hot){ const b = VC.bird[mode], kg = vcKg(mode, age), dT = Math.max(4, vcTin(mode, age) - VC.hotOut); heat = Math.max(0, b.sens * kg - b.ua * dT) / (VC.rhocp * dT); }
+  return { q:Math.max(sch, heat), sch, heat, by:heat > sch ? "heat" : "sch" };
 }
 const vcFmt = n => Math.round(n).toLocaleString("ko-KR");
 const vcR100 = n => Math.round(n / 100) * 100;
@@ -9890,30 +9902,32 @@ function vcWidgetInlet(){
 
 // ── 1만수당 환기량 ──
 function vcPerOut(){
-  const s = vcState.pk, lay = s.mode === "layer", t = Number(s.age);
-  const kg = vcKg(s.mode, t), tin = vcTin(s.mode, t), nd = vcNeed(s.mode, tin, Number(s.out), kg);
-  const q10 = nd.q * kg * 10000, qn = nd.q * kg * Number(s.n), fan = Number(s.fan);
+  const s = vcState.pk, lay = s.mode === "layer", t = Number(s.age), v = VC_SCH[s.mode], u = lay ? "주령" : "일령";
+  const nd = vcNeed(s.mode, t, s.hot);
+  const q10 = nd.q * 10000, qn = nd.q * Number(s.n), fan = Number(s.fan);
   const fans = Math.max(1, Math.ceil(qn / fan));
   const timer = qn < fan ? `최소환기: 팬 1대를 ${Math.round(qn / fan * 100)}%만 돌려요 — 5분(300초) 주기라면 <b>${Math.round(300 * qn / fan)}초 가동 · ${300 - Math.round(300 * qn / fan)}초 정지</b>.` : `팬 <b>${fans}대</b>가 필요해요(1대 ${vcFmt(fan)}㎥/h 기준).`;
-  const by = nd.by === "heat" ? ["#C62828", "🔥 열 배출이 기준 (더운 날): 닭이 내는 열을 내보내야 해서 환기량이 커져요."] : ["#0277BD", "💧 수분·가스 배출이 기준 (최소환기): 깔짚이 젖지 않고 암모니아가 쌓이지 않을 만큼이면 돼요."];
-  const step = (n, t, v) => `<div style="display:flex;gap:9px;align-items:flex-start;margin:6px 0"><b style="flex:none;width:26px;height:26px;border-radius:50%;background:${VC_COLOR};color:#fff;font-size:13.5px;display:inline-flex;align-items:center;justify-content:center">${n}</b><div style="font-size:15px;line-height:1.65;color:#333">${t} <b style="color:${VC_COLOR}">${v}</b></div></div>`;
-  return `${step(1, `${t}${lay ? "주령" : "일령"} 평균 체중 (교육용 값)`, `${kg.toFixed(2)} kg`)}${step(2, `권장 온도 ${tin.toFixed(0)}℃ · 바깥 ${s.out}℃일 때 1kg당 필요 환기량`, `${nd.q.toFixed(2)} ㎥/h/kg`)}
-    ${step(3, "× 체중 × 1만수", `= ${vcFmt(vcR100(q10))} ㎥/h  (1만수당)`)}${s.n !== 10000 ? step(4, `× ${Number(s.n).toLocaleString("ko-KR")}수로 환산하면`, `${vcFmt(vcR100(qn))} ㎥/h`) : ""}
+  const by = nd.by === "heat" ? ["#C62828", `🔥 폭염(바깥 ${VC.hotOut}℃)이라 열 배출이 기준: 닭이 내는 열을 내보내려면 1수당 ${nd.heat.toFixed(2)}㎥/h가 필요해 일령별 기준(${nd.sch.toFixed(2)})보다 커요.`] : ["#0277BD", s.hot ? `💧 폭염이어도 열 제거 환기(1수당 ${nd.heat.toFixed(2)}㎥/h)보다 일령별 기준이 커서 그대로 써요.` : "💧 평소에는 일령별 1수당 기준이 그대로 필요 환기량이에요(습기·가스를 내보내는 최소환기)."];
+  const step = (n, t, val) => `<div style="display:flex;gap:9px;align-items:flex-start;margin:6px 0"><b style="flex:none;width:26px;height:26px;border-radius:50%;background:${VC_COLOR};color:#fff;font-size:13.5px;display:inline-flex;align-items:center;justify-content:center">${n}</b><div style="font-size:15px;line-height:1.65;color:#333">${t} <b style="color:${VC_COLOR}">${val}</b></div></div>`;
+  return `${step(1, `${t}${u} 1수당 = ${v.base} + ${v.inc} × (${t} − 1)${nd.sch >= v.max ? ` → 상한 ${v.max}` : ""}`, `${nd.sch.toFixed(2)} ㎥/h/수`)}${nd.by === "heat" ? step("🔥", "폭염 열 제거 환기가 더 커서", `${nd.q.toFixed(2)} ㎥/h/수`) : ""}
+    ${step(2, "× 1만수", `= ${vcFmt(vcR100(q10))} ㎥/h  (1만수당)`)}${s.n !== 10000 ? step(3, `× ${Number(s.n).toLocaleString("ko-KR")}수로 환산하면`, `${vcFmt(vcR100(qn))} ㎥/h`) : ""}
     <div style="margin-top:6px;border-left:5px solid ${by[0]};background:${by[0]}12;border-radius:10px;padding:8px 12px;font-size:14.5px;line-height:1.7"><b style="color:${by[0]}">${by[1]}</b></div>
     <div style="margin-top:8px;background:#fff;border:1.5px solid #cfe5f3;border-radius:12px;padding:8px 12px;font-size:15px;line-height:1.7">🌀 ${timer}</div>`;
 }
+function vcSchNote(mode){ const v = VC_SCH[mode], lay = mode === "layer"; return `${lay ? "산란계" : "육계"} 1수당 = 1${lay ? "주령" : "일령"} ${v.base} + ${lay ? "한 주" : "하루"}마다 ${v.inc}, 상한 ${v.max} ㎥/h`; }
 function vcWidgetPer(){
   const s = vcState.pk, lay = s.mode === "layer";
   const sel = (id, opts, cur) => `<select id="${id}" class="vc-in" style="font-size:15px;padding:7px 9px;border-radius:9px;border:1.5px solid #bbb">${opts.map(o => `<option value="${o[0]}"${String(o[0]) === String(cur) ? " selected" : ""}>${o[1]}</option>`).join("")}</select>`;
   return `<div style="background:#F3FAFE;border:2px solid #cfe5f3;border-radius:14px;padding:12px;margin:10px 0"><div style="font-size:15.5px;font-weight:900;color:${VC_COLOR};margin-bottom:6px">🎮 우리 농장 환기량 계산기</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:4px"><span style="font-size:14.5px;font-weight:800">닭 종류</span>${sel("vc-mode", [["broiler", "육계"], ["layer", "산란계"]], s.mode)}<span style="font-size:14.5px;font-weight:800;margin-left:6px">사육 두수</span>${sel("vc-n", [[5000, "5,000수"], [10000, "10,000수 (기준)"], [20000, "20,000수"], [30000, "30,000수"], [50000, "50,000수"]], s.n)}</div>
-    ${vcRange("vc-age", lay ? "주령" : "일령", 1, lay ? 40 : 33, 1, s.age, lay ? "주령" : "일령", "vc-in")}${vcRange("vc-out", "바깥 온도", -10, 35, 1, s.out, "℃", "vc-in")}${vcRange("vc-fan", "팬 1대 풍량(제원표, 해당 정압 기준)", 10000, 50000, 1000, s.fan, "㎥/h", "vc-in")}
+    ${vcRange("vc-age", lay ? "주령" : "일령", 1, lay ? 40 : 33, 1, s.age, lay ? "주령" : "일령", "vc-in")}<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:6px 0"><span style="font-size:14.5px;font-weight:800">날씨</span>${sel("vc-hot", [["0", "평소"], ["1", `폭염 (바깥 ${VC.hotOut}℃)`]], s.hot ? "1" : "0")}</div>${vcRange("vc-fan", "팬 1대 풍량(제원표, 해당 정압 기준)", 10000, 50000, 1000, s.fan, "㎥/h", "vc-in")}
+    <div style="font-size:12.5px;color:#666;margin:2px 0 0">기준값 · ${vcSchNote(s.mode)} — 「닭 키우기」 게임과 같은 값이에요.</div>
     <div id="vc-per-out" style="margin-top:6px">${vcPerOut()}</div></div>`;
 }
 function vcTable(mode){
-  const lay = mode === "layer", ages = lay ? [1, 4, 8, 12, 18, 24, 40] : [1, 7, 14, 21, 28, 33], conds = [[0, "겨울 0℃"], [15, "봄·가을 15℃"], [30, "여름 30℃"]];
-  const rows = ages.map(a => { const kg = vcKg(mode, a), tin = vcTin(mode, a); return `<tr><td style="font-weight:800">${a}${lay ? "주" : "일"}</td><td>${kg.toFixed(2)}kg</td><td>${tin.toFixed(0)}℃</td>${conds.map(c => { const nd = vcNeed(mode, tin, c[0], kg), q = nd.q * kg * 10000; return `<td style="background:${nd.by === "heat" ? "#FFEBEE" : "#E3F2FD"}"><b>${vcFmt(vcR100(q))}</b></td>`; }).join("")}</tr>`; }).join("");
-  return `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:14px;text-align:center;min-width:430px"><thead><tr style="background:#ECEFF1"><th style="padding:6px">${lay ? "주령" : "일령"}</th><th>체중</th><th>권장온도</th>${conds.map(c => `<th>${c[1]}<br><span style="font-weight:600;font-size:12px">㎥/h·1만수</span></th>`).join("")}</tr></thead><tbody>${rows}</tbody></table></div><div style="font-size:12.5px;color:#777;margin-top:4px">파란 칸 = 수분·가스 배출 기준(최소환기), 빨간 칸 = 열 배출 기준(더울 때). 교육용 계산값이에요. 어린 병아리는 체중으로 계산하면 값이 아주 작지만, 실제 육추기에는 온도 유지와 공기 질 때문에 팬 최소 가동 시간을 따로 정해 둬요.</div>`;
+  const lay = mode === "layer", ages = lay ? [1, 4, 8, 12, 18, 24, 40] : [1, 7, 14, 21, 28, 33];
+  const rows = ages.map(a => { const n0 = vcNeed(mode, a, false), n1 = vcNeed(mode, a, true); return `<tr><td style="font-weight:800">${a}${lay ? "주" : "일"}</td><td>${vcKg(mode, a).toFixed(2)}kg</td><td>${n0.q.toFixed(2)}</td><td style="background:#E3F2FD"><b>${vcFmt(vcR100(n0.q * 10000))}</b></td><td style="background:${n1.by === "heat" ? "#FFEBEE" : "#E3F2FD"}"><b>${vcFmt(vcR100(n1.q * 10000))}</b></td></tr>`; }).join("");
+  return `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:14px;text-align:center;min-width:400px"><thead><tr style="background:#ECEFF1"><th style="padding:6px">${lay ? "주령" : "일령"}</th><th>체중</th><th>1수당<br><span style="font-weight:600;font-size:12px">㎥/h</span></th><th>평소<br><span style="font-weight:600;font-size:12px">㎥/h·1만수</span></th><th>폭염 ${VC.hotOut}℃<br><span style="font-weight:600;font-size:12px">㎥/h·1만수</span></th></tr></thead><tbody>${rows}</tbody></table></div><div style="font-size:12.5px;color:#777;margin-top:4px">${vcSchNote(mode)}. 파란 칸 = 일령별 1수 기준, 빨간 칸 = 폭염 때 열 제거 환기가 더 커서 그 값을 쓴 칸. 체중은 폭염 열 계산에만 써요. 교육용 계산값이에요 — 「닭 키우기」 게임과 같은 식이에요.</div>`;
 }
 
 // ── 단계(교과) ──
@@ -9965,12 +9979,12 @@ const VC_LESSONS = [
     quiz:[["환기량을 두 배로 올렸는데 입기구는 그대로라면?", "속도가 빨라져야 하니 정압이 <b>4배</b>로 올라가요(정압은 속도의 제곱에 비례해요). 팬이 힘들어하니 입기구도 함께 넓혀야 해요."], ["입기구를 너무 넓게 열면 어떻게 될까요?", "정압이 낮아져 공기가 천천히 들어오고 멀리 못 가 바닥으로 떨어질 수 있어요. 닭이 찬 공기를 맞을 수 있어요."]],
     sum:"환기량 = 입기구 면적 × 속도 × 계수 — 정압은 속도의 제곱에 비례해 올라가요." },
   { k:"per10k", icon:"📊", t:"6. 1만수당 환기량 (일령·주령별)", color:"#AD1457",
-    intro:"닭 수가 달라도 비교할 수 있게 <b>1만수당 환기량</b>으로 말해요. 기준은 닭의 <b>무게</b>예요. 환기량 = 체중(㎏) × 1㎏당 필요 환기량 × 수. 닭이 클수록, 바깥이 따뜻할수록 환기량이 커져요.",
+    intro:"닭 수가 달라도 비교할 수 있게 <b>1만수당 환기량</b>으로 말해요. 기준은 <b>한 마리</b>예요. 1수당 환기량 = 1일령(1주령) 기본값 + 일령(주령)마다 늘어나는 양 × (일령 − 1), 정한 상한까지. 여기에 마릿수를 곱해요. 폭염 때는 닭의 열을 빼내는 환기량과 비교해 큰 값을 써요.",
     widget:vcWidgetPer,
     after:() => `<div style="font-size:16px;font-weight:900;margin:14px 0 6px">🐥 육계 일령별 (1만수당)</div>${vcTable("broiler")}<div style="font-size:16px;font-weight:900;margin:14px 0 6px">🐔 산란계 주령별 (1만수당)</div>${vcTable("layer")}`,
-    cards:[["🧭", "읽는 법", "표와 계산기는 같은 식이에요", ["<b>추운 날</b>은 습기·가스를 내보낼 만큼만 필요해서 값이 작아요(최소환기)", "<b>더운 날</b>은 닭의 열을 내보내야 해서 값이 커져요(최대환기·터널)", "어린 병아리는 같은 1만수라도 체중이 작아 환기량이 아주 작아요"], ["일령이 올라갈수록 팬을 한 대씩 더 돌리거나 가동 시간을 늘리는 이유예요"]]],
-    quiz:[["육계 7일령과 28일령의 1만수당 환기량이 다른 가장 큰 이유는?", "체중 차이예요. 28일령은 몸집이 훨씬 커서 열·수분·가스를 더 많이 내요."], ["같은 28일령인데 겨울보다 여름 값이 큰 이유는?", "겨울은 습기를 내보내는 것이 기준이지만 여름은 닭의 열을 내보내야 해서 훨씬 많은 공기가 필요해요."]],
-    sum:"1만수당 환기량 = 체중 × 1㎏당 필요량 × 1만 — 일령·바깥 온도에 따라 바뀌어요." },
+    cards:[["🧭", "읽는 법", "표·계산기·「닭 키우기」 게임은 같은 식이에요", ["<b>평소</b>에는 일령(주령)마다 일정하게 늘어나는 1수당 기준값이 필요 환기량이에요(최소환기)", "<b>폭염</b>에는 닭의 열을 내보내야 해서 값이 훨씬 커질 수 있어요(최대환기·터널)", "기본값·증가량·상한은 교육용 값이라 관리자가 게임 관리 창에서 바꾸면 이 표도 함께 바뀌어요"], ["일령이 올라갈수록 팬을 한 대씩 더 돌리거나 가동 시간을 늘리는 이유예요"]]],
+    quiz:[["육계 7일령과 28일령의 1만수당 환기량이 다른 이유는?", "1수당 환기량이 일령마다 늘어나기 때문이에요. 28일령은 몸집이 훨씬 커서 열·수분·가스를 더 많이 내요 — 그만큼 하루하루 증가량이 쌓여요."], ["같은 28일령인데 폭염 때 값이 더 큰 이유는?", "평소에는 습기·가스를 내보내는 일령별 기준이면 되지만, 폭염에는 닭의 열을 내보내야 해서 훨씬 많은 공기가 필요해요."]],
+    sum:"1만수당 환기량 = (기본 + 증가량 × (일령 − 1)) × 1만 — 폭염 때는 열 제거 환기와 비교해 큰 값." },
   { k:"check", icon:"✅", t:"7. 현장 점검과 연습", color:"#455A64",
     intro:"배운 내용을 농장 점검표로 옮겨 보세요. 체크 표시는 이 기기에 저장돼요. 연습은 「닭 키우기」 게임의 <b>환기 게이지</b>에서 할 수 있어요.",
     check:[["정압계로 안팎 정압을 재 보았다(최소환기 때 10~25 Pa 안팎, 설비별 확인)", "p"], ["입기구 열림이 농장 전체에서 고른지 확인했다", "i"], ["배기팬 날개·셔터·벨트를 청소·점검했다", "f"], ["일령별 최소환기 타이머(가동/정지)를 점검했다", "t"], ["쿨링패드에 물이 고르게 흐르고 막힌 곳이 없다", "c"], ["정전 대비(발전기·비상 개방)를 확인했다", "o"], ["온도·습도·암모니아 냄새를 매일 기록한다", "r"]],
@@ -9996,7 +10010,7 @@ function renderVcPanel(){
   const quiz = (S.quiz || []).map((q, i) => `<details style="border:1.5px solid #e5e5e5;border-radius:12px;padding:10px 13px;margin:7px 0;background:#fff"><summary style="cursor:pointer;font-size:15.5px;font-weight:800;color:#333">❓ Q${i + 1}. ${q[0]}</summary><div style="font-size:15px;line-height:1.75;color:#444;margin-top:7px;padding-top:7px;border-top:1px dashed #ddd">${q[1]}</div></details>`).join("");
   const prev = VC_LESSONS[idx - 1], next = VC_LESSONS[idx + 1];
   const pager = `<div style="display:flex;justify-content:space-between;gap:8px;margin-top:14px">${prev ? `<button type="button" class="vc-tab" data-t="${prev.k}" style="border:1px solid #ccc;background:#fff;color:#555;border-radius:12px;padding:13px 16px;font-size:15px;font-weight:800;cursor:pointer">← ${prev.icon} ${prev.t}</button>` : "<span></span>"}${next ? `<button type="button" class="vc-tab" data-t="${next.k}" style="border:none;background:${next.color};color:#fff;border-radius:12px;padding:13px 16px;font-size:15px;font-weight:800;cursor:pointer">${next.icon} ${next.t} →</button>` : `<span style="font-size:15px;color:#2E7D32;font-weight:800;align-self:center">🎉 끝까지 보셨어요!</span>`}</div>`;
-  const foot = `<div style="margin-top:14px;background:#FFF8E1;border-radius:9px;padding:9px 12px;font-size:11.5px;color:#6b5400;line-height:1.75"><b>유의</b> · 교육용 자료예요. 닭의 발열·수분, 입기구 흐름계수(0.65), 체중, 권장 온도는 이해를 돕는 가정값이며 품종 지침이 아니에요. 공기 열용량 등 물리값은 EnergyFlowX 계산으로 확인했어요. 실제 팬·입기구 설계와 정압 기준은 시공업체·설비 전문가·사료회사 지침을 따르세요.</div>`;
+  const foot = `<div style="margin-top:14px;background:#FFF8E1;border-radius:9px;padding:9px 12px;font-size:11.5px;color:#6b5400;line-height:1.75"><b>유의</b> · 교육용 자료예요. 일령별 1수당 환기 기준값, 닭의 발열, 입기구 흐름계수(0.65), 체중, 권장 온도는 이해를 돕는 가정값이며 품종 지침이 아니에요. 공기 열용량 등 물리값은 EnergyFlowX 계산으로 확인했어요. 실제 팬·입기구 설계와 정압 기준은 시공업체·설비 전문가·사료회사 지침을 따르세요.</div>`;
   return `<div class="card" id="vc-root" style="border-top:6px solid ${VC_COLOR}">${head}${nav}${banner}${S.fig ? S.fig() : ""}${steps}${S.widget ? S.widget() : ""}${S.after ? S.after() : ""}
     ${cards ? `<div style="font-size:17px;font-weight:900;color:${C};margin:14px 0 8px">🔎 하나씩 살펴보기</div>${cards}` : ""}${chk}
     <div style="background:${C}12;border:2px solid ${C}55;border-radius:14px;padding:12px 14px;margin:10px 0;font-size:16px;font-weight:800;color:${C};line-height:1.65">📌 한 줄 정리 · ${S.sum}</div>
@@ -10012,7 +10026,16 @@ function vcBind(){
   const upd = (id, valText) => { const v = $(id + "-v"); if(v) v.textContent = valText; };
   [["vc-q", "q"], ["vc-len", "len"], ["vc-h", "h"]].forEach(([id, k]) => { const e = $(id); if(e) e.oninput = () => { vcState.inlet[k] = Number(e.value); upd(id, Number(e.value).toLocaleString("ko-KR")); const o = $("vc-inlet-out"); if(o) o.innerHTML = vcInletOut(); }; });
   const refreshPer = () => { const o = $("vc-per-out"); if(o) o.innerHTML = vcPerOut(); };
-  [["vc-age", "age"], ["vc-out", "out"], ["vc-fan", "fan"]].forEach(([id, k]) => { const e = $(id); if(e) e.oninput = () => { vcState.pk[k] = Number(e.value); upd(id, Number(e.value).toLocaleString("ko-KR")); refreshPer(); }; });
+  [["vc-age", "age"], ["vc-fan", "fan"]].forEach(([id, k]) => { const e = $(id); if(e) e.oninput = () => { vcState.pk[k] = Number(e.value); upd(id, Number(e.value).toLocaleString("ko-KR")); refreshPer(); }; });
+  const hSel = $("vc-hot"); if(hSel) hSel.onchange = () => { vcState.pk.hot = hSel.value === "1"; refreshPer(); };
+  if(!vcState.cfgTried){   // 게임 관리 창에서 바꾼 환기 기준값(farmgame_config.vent)을 한 번 읽어 와 같은 값으로 보여 준다
+    vcState.cfgTried = true;
+    fetchPremiumContentJson("farmgame_config").then(cfg => {
+      try { localStorage.setItem("fg_cfg_v1", JSON.stringify(cfg)); } catch(e){}
+      const before = JSON.stringify(VC_SCH); vcApplyCfg(cfg);
+      if(JSON.stringify(VC_SCH) !== before && state.tab === "premium" && premiumState.view === "ventclass") render();
+    }).catch(e => { if(/not-found|발행된 내용이 없/.test(String((e && (e.code || e.message)) || ""))){ vcApplyCfg(null); } });
+  }
   const nSel = $("vc-n"); if(nSel) nSel.onchange = () => { vcState.pk.n = Number(nSel.value); refreshPer(); };
   const mSel = $("vc-mode"); if(mSel) mSel.onchange = () => { vcState.pk.mode = mSel.value; vcState.pk.age = Math.min(vcState.pk.age, mSel.value === "layer" ? 40 : 33); if(mSel.value === "layer" && vcState.pk.age < 18) vcState.pk.age = 24; render(); };
 }
