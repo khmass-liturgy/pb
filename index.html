@@ -10234,10 +10234,10 @@ function renderHpaiTab(){
 }
 
 // 뉴스 탭 하위 메뉴(고정 머리글의 가로 칩)
-const NEWS_SUBS = [["policy", "🏛️", "농식품부 축산정책"], ["news", "📰", "축산 신문"], ["global", "🌍", "해외 양계질병"], ["econ", "💹", "경제동향"]];
-let newsSub = (function(){ try { return localStorage.getItem("news_sub") || "policy"; } catch(e){ return "policy"; } })();
+const NEWS_SUBS = [["news", "📰", "축산 신문"], ["global", "🌍", "해외 양계질병"], ["econ", "💹", "경제동향"], ["policy", "🏛️", "농식품부 축산정책"]];   // 농식품부 정책뉴스는 경제동향 오른쪽
+let newsSub = (function(){ try { return localStorage.getItem("news_sub") || "news"; } catch(e){ return "news"; } })();
 function renderBriefingTab(){
-  const sub = NEWS_SUBS.some(x => x[0] === newsSub) ? newsSub : "policy";
+  const sub = NEWS_SUBS.some(x => x[0] === newsSub) ? newsSub : "news";
   return sub === "policy" ? renderPolicySection() : renderNoticesSection(sub === "news" ? ["chuksan", "aflnews", "handon", "dailyvet"] : sub === "global" ? ["global"] : ["econ"]);
 }
 
