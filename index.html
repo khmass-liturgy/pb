@@ -34831,7 +34831,7 @@ function renderBizFooterLine(){
   try { b = PREMIUM_BIZ_INFO; } catch(_) { return ""; }
   if(!b) return "";
   const parts = [
-    b.name, b.rep, b.bizNo, b.mailOrderNo, b.address, b.tel,
+    b.name, b.rep, b.bizNo, b.mailOrderNo, b.address,
   ].filter(Boolean);
   if(!parts.length) return "";
   return `<div style="margin-top:10px;padding-top:8px;border-top:1px solid #eee;font-size:10px;color:#ccc;line-height:1.7">${parts.map(esc).join(" · ")}</div>`;
