@@ -109,7 +109,8 @@ def parse_pubdate(s):
 
 
 # ── 파서: RSS 2.0 ────────────────────────────────────────────────────────────
-def parse_rss(xml, limit, strip_source=False):
+def parse_rss(xml, limit, strip_source=False, keep=None, naive_kst=False, drop=None):
+    """keep: 제목에 이 정규식이 들어 있는 글만 남긴다(농업 종합지에서 축산 기사만 고를 때)."""
     items, seen = [], set()
     for m in re.finditer(r"<item>([\s\S]*?)</item>", xml):
         body = m.group(1)
@@ -129,9 +130,16 @@ def parse_rss(xml, limit, strip_source=False):
             if head and len(tail) <= 20:
                 title, source = head.strip(), tail.strip()
 
+        if keep is not None and not keep.search(title):
+            continue
+        if drop is not None and drop.search(title):
+            continue
         seen.add(link)
-        items.append({"title": title, "url": link,
-                      "date": kst_label(parse_pubdate(pick("pubDate"))), "source": source})
+        dt = parse_pubdate(pick("pubDate")) or parse_pubdate(pick("dc:date"))
+        if dt is not None and dt.tzinfo is None:
+            dt = dt.replace(tzinfo=KST if naive_kst else timezone.utc)
+        items.append({"title": title, "url": link, "date": kst_label(dt), "source": source,
+                      "_ts": int(dt.timestamp()) if dt else None})
         if len(items) >= limit:
             break
     return items
@@ -241,6 +249,10 @@ GLOBAL_NEWS_QUERY = POULTRY_DISEASE_QUERIES[0]
 
 def gnews_en(q):
     return "https://news.google.com/rss/search?q=" + quote(q) + "&hl=en-US&gl=US&ceid=US:en"
+
+
+# 축산 관련 제목 판별(농업 종합지 RSS에서 축산 기사만 남길 때)
+LIVESTOCK_RE = r"축산|양계|계란|달걀|닭|가금|육계|산란|종계|오리|돼지|양돈|한우|낙농|젖소|사료|방역|조류인플루엔자|구제역|ASF|살처분|도축|계사|축사|가축|식란|부화"
 
 
 def _translate_google(text, session):
@@ -355,10 +367,55 @@ SOURCES = [
      "kind": "rss",
      "urls": ["https://www.mafra.go.kr/bbs/home/792/rssList.do?row=50"]},
 
+    # ── 국내 축산뉴스 (새 소스) ────────────────────────────────────────────────
+    # 모두 같은 CMS(ndsoft)의 공식 전체기사 RSS다. 축산경제(농협 축산경제신문)는 대부분이
+    # 축산 기사라 그대로 쓰고, 농업 종합지(한국농어민신문·한국농정)는 제목에 축산 관련
+    # 낱말이 든 기사만 남긴다(전체 50건 중 5~8건).
+    {"id": "chukkyung", "name": "축산경제", "icon": "🐄", "color": "#00838F",
+     "home": "https://www.chukkyung.co.kr/news/articleList.html",
+     "kind": "rss", "urls": ["https://www.chukkyung.co.kr/rss/allArticle.xml"], "keep": LIVESTOCK_RE},
+    {"id": "agrinet", "name": "한국농어민신문", "icon": "🌱", "color": "#558B2F",
+     "home": "https://www.agrinet.co.kr/news/articleList.html?sc_section_code=S1N6",
+     "kind": "rss", "urls": ["https://www.agrinet.co.kr/rss/allArticle.xml"], "keep": LIVESTOCK_RE},
+    {"id": "ikpnews", "name": "한국농정", "icon": "📣", "color": "#6D4C41",
+     "home": "https://www.ikpnews.net/news/articleList.html",
+     "kind": "rss", "urls": ["https://www.ikpnews.net/rss/allArticle.xml"], "keep": LIVESTOCK_RE},
+
+    # ── 국내 경제동향 (새 소스) ─────────────────────────────────────────────────
+    # 환율·금리·물가·소비 등 사료값과 소비에 영향을 주는 경제 흐름을 한눈에 보려는 카드.
+    {"id": "yna_econ", "name": "연합뉴스 경제", "icon": "📈", "color": "#1565C0",
+     "home": "https://www.yna.co.kr/economy/all",
+     "kind": "rss", "urls": ["https://www.yna.co.kr/rss/economy.xml"],
+     "drop": r"이 시각 헤드라인|^\[?(포토|사진|영상|부고|인사)"},   # 속보 모음·사진·부고 같은 기사 아닌 항목 제외
+    {"id": "mk_econ", "name": "매일경제", "icon": "🗞️", "color": "#00796B",
+     "home": "https://www.mk.co.kr/news/economy/",
+     "kind": "rss", "urls": ["https://www.mk.co.kr/rss/30100041/"], "naive_kst": True},   # pubDate에 시간대가 없어 KST로 읽는다
+    # 한국은행 금융통화위원회 의사록(금리 결정 배경). 기준금리는 사료 수입·농가 이자 부담과 이어진다.
+    {"id": "bok", "name": "한국은행 금통위", "icon": "🏦", "color": "#37474F",
+     "home": "https://www.bok.or.kr/portal/singl/newsData/list.do?menuNo=200789",
+     "kind": "rss", "urls": ["https://www.bok.or.kr/portal/bbs/B0000245/news.rss?menuNo=200690"]},
+
+    # ── 해외 양계 매체 (새 소스, 영문 제목 → 한글 번역) ─────────────────────────
+    # WATTPoultry·WOAH는 RSS를 직접 받을 수 있다. The Poultry Site·CIDRAP는 RSS가 막혀 있어
+    # 구글 뉴스 검색(site: 한 개 + 기간)으로 받는다 — site:를 여러 개 섞으면 기간 제한이 무시된다.
+    # 구글 뉴스는 사이트 첫 화면(2022년 글 등)도 섞어 주므로 max_age_days로 오래된 글을 거른다.
+    {"id": "wattpoultry", "name": "WATTPoultry", "icon": "📰", "color": "#E65100", "lang": "en",
+     "home": "https://www.wattagnet.com/", "kind": "rss_en", "urls": ["https://www.wattagnet.com/rss"]},
+    {"id": "poultrysite", "name": "The Poultry Site", "icon": "🐔", "color": "#2E7D32", "lang": "en",
+     "home": "https://www.thepoultrysite.com/news",
+     "kind": "rss_en", "max_age_days": 21, "urls": [gnews_en("site:thepoultrysite.com when:14d")]},
+    {"id": "cidrap", "name": "CIDRAP 조류인플루엔자", "icon": "🧪", "color": "#6A1B9A", "lang": "en",
+     "home": "https://www.cidrap.umn.edu/avian-influenza-bird-flu",
+     "kind": "rss_en", "max_age_days": 30, "keep": r"avian|bird flu|H5N1|H5N5|poultry|HPAI|flock|egg",
+     "urls": [gnews_en("site:cidrap.umn.edu H5N1 when:30d")]},
+    {"id": "woah", "name": "WOAH 국제수역사무국", "icon": "🌐", "color": "#0277BD", "lang": "en",
+     "home": "https://www.woah.org/en/what-we-do/animal-health-and-welfare/",
+     "kind": "rss_en", "urls": ["https://www.woah.org/en/feed/"]},
+
     # 해외 양계질병 뉴스: 구글 뉴스(영문) → 제목 한글 번역
     # id는 'global' 그대로 둔다. 화면 상태키·브라우저 캐시(notice_cache)가 이
     # 이름을 쓰고 있어, 바꾸면 배포 직후 캐시가 남은 사용자에게 빈 카드가 뜬다.
-    {"id": "global", "name": "해외 양계질병", "icon": "🦠", "color": "#00695C",
+    {"id": "global", "name": "해외 양계질병", "icon": "🦠", "color": "#00695C", "lang": "en",
      "home": "https://news.google.com/search?q=" + quote(GLOBAL_NEWS_QUERY) + "&hl=en-US&gl=US&ceid=US:en",
      "kind": "rss_en", "urls": [gnews_en(q) for q in POULTRY_DISEASE_QUERIES]},
 ]
@@ -388,9 +445,19 @@ def fetch_source(src, session):
                 print("        ⚠️ <item> 태그 없음 — RSS가 아닌 다른 응답을 받은 것으로 보임")
                 print("        응답 본문 앞부분: %r" % r.text[:500])
 
+            keep = re.compile(src["keep"], re.I) if src.get("keep") else None
+            max_age = src.get("max_age_days")
+            cutoff = int(time.time()) - max_age * 86400 if max_age else None
+
+            def fresh(items):
+                # 날짜를 못 읽은 글(구글 뉴스 섹션 첫 화면 등)과 너무 오래된 글은 뺀다
+                if cutoff is None:
+                    return items
+                return sorted([x for x in items if x.get("_ts") and x["_ts"] >= cutoff], key=lambda x: -x["_ts"])
+
             if src["kind"] == "rss_en":
                 # 영문 제목이라 " - 매체명" 접미사를 항상 출처로 분리(strip_source)한다.
-                got = parse_rss(r.text, PER_SOURCE, strip_source=True)
+                got = fresh(parse_rss(r.text, PER_SOURCE * 4, strip_source=True, keep=keep))[:PER_SOURCE]
                 for it in got:
                     it["titleEn"] = it["title"]
                     ko = translate_en_to_ko(it["title"], session)
@@ -398,11 +465,14 @@ def fetch_source(src, session):
                         it["title"] = ko
                     time.sleep(0.4)  # 무료 번역 엔드포인트 과호출 방지
             else:
-                got = (parse_rss(r.text, PER_SOURCE * 2, src.get("strip_source", False))
+                drop = re.compile(src["drop"]) if src.get("drop") else None
+                got = (fresh(parse_rss(r.text, PER_SOURCE * 4 if keep else PER_SOURCE * 2, src.get("strip_source", False), keep=keep,
+                                       naive_kst=bool(src.get("naive_kst")), drop=drop))
                        if src["kind"] == "rss" else src["parser"](r.text))
             print("        파싱된 항목: %d개" % len(got))
 
             for it in got:
+                it.pop("_ts", None)
                 # 정부 사이트 등 일부 RSS는 <link>가 절대경로가 아닌 경우가 있어 보정
                 if origin and it.get("url") and not it["url"].startswith("http"):
                     it["url"] = origin + ("" if it["url"].startswith("/") else "/") + it["url"]
@@ -439,7 +509,7 @@ def main():
 
         if len(items) >= 2:
             sources[src["id"]] = {"name": src["name"], "icon": src["icon"],
-                                  "color": src["color"], "home": src["home"],
+                                  "color": src["color"], "home": src["home"], "lang": src.get("lang", "ko"),
                                   "items": items, "stale": False}
             for it in items[:3]:
                 print("      · [%s] %s" % (it["date"], it["title"][:44]))
