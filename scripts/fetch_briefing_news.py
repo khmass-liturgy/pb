@@ -536,7 +536,7 @@ def main():
         for sv in json.loads(out_path.read_text(encoding="utf-8")).get("sources", {}).values():
             for it in sv.get("items", []):
                 if it.get("titleEn") and re.search(r"[가-힣]", it.get("title", "")):
-                    TRANSLATION_CACHE.setdefault(it["titleEn"], it["title"])
+                    TRANSLATION_CACHE.setdefault(it["titleEn"], apply_glossary(it["title"]))
     except Exception:
         pass
     print("  번역 캐시 %d건 · Claude 대체 번역 %s\n" % (len(TRANSLATION_CACHE), "사용 가능" if os.environ.get("ANTHROPIC_API_KEY") else "키 없음"))
