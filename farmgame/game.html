@@ -582,29 +582,36 @@ function addLog(t){S.log.unshift({d:S.day,t});S.log=S.log.slice(0,8)}
 /* ── 사료통·물통·환기: 깔짚처럼 시간이 지나면 줄고, 터치로 채우거나 가동한다 ── */
 const FEED_DROP=55,WATER_DROP=45,VENT_DROP=30;
 function ensureGauges(){if(S.feedLv==null){S.feedLv=100;S.waterLv=100;S.ventLv=60;S.feedCut=false}if(S.ctrl.hum==null)S.ctrl.hum=S.mode==='layer'?60:65;if(S.ctrl.temp==null)S.ctrl.temp=S.mode==='layer'?envRec('layer',Math.min(MODES.layer.maxDay,Math.max(1,S.day+1))).t:33}
-/* ── 환기 열수지 ──
-   필요 환기량 = max(수분 배출 최소환기, 현열 제거 환기). EnergyFlowX(습공기 계산, 2026-10)로 확인한 값:
-   ρ·cp ≈ 0.33 W/(m³/h·K)(계사 공기 1.16 kg/m³ × 1.01 kJ/kg·K), 1,000 m³/h를 -5℃→30℃로 데우면 12.9 kW.
-   습도비(g/kg): 30℃ 65% = 17.5, 25℃ 60% = 12.0, 5℃ 70% = 3.8, -5℃ 70% = 1.7 (아래 psyW는 Magnus식, 0℃ 이상에서 오차 약 1%).
-   닭이 내는 열·수분과 외피 열손실(UA)은 일반적인 교육용 가정값(품종 기준 아님). 팬 최대용량 7 m³/h/kg = 게이지 100. */
+/* ── 환기량: 한 마리(수) 기준 + 일령(주령)별 증가량 ──
+   평소 필요 환기량(m³/h/수) = 1일령(1주령) 기본값 + 하루(한 주)마다 늘어나는 양 × (일령−1), 상한까지.
+   기본값·증가량·상한은 관리자가 「⚙ 관리 → 🌀 환기량」에서 바꾼다(cfg[mode].vent = {base,inc,max}).
+   폭염(fx.heat) 때만 현열 제거 환기(닭 발열 − 외피 손실)를 함께 따져 큰 값을 쓴다.
+   ρ·cp ≈ 0.33 W/(m³/h·K)(계사 공기 1.16 kg/m³ × 1.01 kJ/kg·K, EnergyFlowX 확인 2026-10), 1,000 m³/h를 -5℃→30℃로 데우면 12.9 kW.
+   닭이 내는 열과 외피 열손실(UA), 산란계 체중 곡선은 교육용 가정값(품종 기준 아님). 팬 최대용량 7 m³/h/kg = 게이지 100. */
 const VENT_FULL=7,RHOCP=.33,HEAT_KWH_WON=90;
-const BIRD={broiler:{sens:7.5,lat:3.7,ua:.15},layer:{sens:5,lat:3,ua:.2}};   // 현열 W/kg, 수분 g/h/kg, 외피 W/K/수
-function psyW(T,rh){const ps=6.112*Math.exp(17.62*T/(243.12+T)),pv=rh*ps;return 622*pv/(1013.25-pv)}
+const BIRD={broiler:{sens:7.5,ua:.15},layer:{sens:5,ua:.2}};   // 현열 W/kg, 외피 W/K/수
+const VENT_SCH_DEF={broiler:{base:.1,inc:.1,max:5},layer:{base:.15,inc:.2,max:4}};   // m³/h/수 — 기본(1일령·1주령), 증가량(하루·한 주), 상한
+const VENT_SCH={broiler:Object.assign({},VENT_SCH_DEF.broiler),layer:Object.assign({},VENT_SCH_DEF.layer)};
+const LAY_W=[[0,40],[1,70],[4,280],[6,450],[10,850],[14,1180],[18,1500],[24,1850],[30,1950],[40,2000]];   // 산란계 주령별 체중(g, 교육용)
 function ventCtx(){
   const t=S.day+1;
   if(S.mode==='broiler')return{tin:recTemp(t),tout:S.fx.heat>0?34:19+Math.sin(t/4)*2};
   return{tin:envRec('layer',Math.min(MODES.layer.maxDay,t)).t,tout:S.fx.heat>0?34:19+Math.sin(t/4)*2};
 }
-function ventNeedKg(mode,tin,tout,kg){   // m³/h/kg — 추운 날은 수분 배출이, 더운 날은 열 배출(닭 발열 − 외피 손실)이 기준
-  const b=BIRD[mode],dT=Math.max(4,tin-tout),qHeat=Math.max(0,b.sens*kg-b.ua*dT)/(RHOCP*dT*kg);
-  const dw=Math.max(1,psyW(tin,.65)-psyW(tout,.7)),qMoist=b.lat/(dw*1.17);
-  return clamp(Math.max(qHeat,qMoist,.4),.4,VENT_FULL);
+const ventKg=()=>Math.max(.02,(S.mode==='layer'?interp(LAY_W,S.day):S.weight)/1000);
+const ventAge=()=>clamp(S.day+1,1,MODES[S.mode].maxDay);
+function ventSchBird(mode,age){const v=VENT_SCH[mode];return Math.min(v.max,v.base+v.inc*Math.max(0,age-1))}   // 일령(주령)별 1수당 환기량
+function ventHeatBird(mode,tin,tout,kg){const b=BIRD[mode],dT=Math.max(4,tin-tout);return Math.max(0,b.sens*kg-b.ua*dT)/(RHOCP*dT)}   // 더위 때 열 제거 환기, m³/h/수
+function ventNeedBird(){
+  const kg=ventKg();let q=ventSchBird(S.mode,ventAge());
+  if(S.fx&&S.fx.heat>0){const x=ventCtx();q=Math.max(q,ventHeatBird(S.mode,x.tin,x.tout,kg))}
+  return q;
 }
-function ventNeedLv(){const x=ventCtx();return clamp(100*ventNeedKg(S.mode,x.tin,x.tout,Math.max(.02,S.weight/1000))/VENT_FULL,15,95)}
+function ventNeedLv(){return clamp(100*ventNeedBird()/(VENT_FULL*ventKg()),15,95)}
 function ventHeatWon(days){   // 난방비: 환기·외피로 빠지는 열 − 닭이 내는 열
   const b=BIRD[S.mode],x=ventCtx(),dT=Math.max(0,S.ctrl.temp-x.tout);
   if(dT<=0)return 0;
-  const kg=S.weight/1000,q=Math.max(.4,VENT_FULL*S.ventLv/100);
+  const kg=ventKg(),q=Math.max(.4,VENT_FULL*S.ventLv/100);
   const w=S.alive*(RHOCP*q*kg*dT+b.ua*dT-b.sens*kg);
   return Math.max(0,w)/1000*24*days*HEAT_KWH_WON;
 }
@@ -873,6 +880,9 @@ function applyCfg(cfg){
     if(c.feedPrices)Object.keys(FEED_PRICE_DEF[m]).forEach(id=>{const v=+c.feedPrices[id];if(isFinite(v)&&v>=0&&v<=1000000)FEED_PRICE[m][id]=Math.round(v)});
     if(c.costs)['feed','water','vent','litter','supp','rat','cure'].forEach(k=>{const v=+c.costs[k];if(isFinite(v)&&v>=0&&v<=1000000)COSTS[m][k]=Math.round(v)});
     DZ_WEIGHT[m]=isFinite(c.diseaseWeight)?clamp(Math.round(c.diseaseWeight),0,3):1;
+    VENT_SCH[m]=Object.assign({},VENT_SCH_DEF[m]);
+    if(c.vent){const b=+c.vent.base,i=+c.vent.inc,x=+c.vent.max;
+      if(isFinite(b)&&b>0&&b<=20&&isFinite(i)&&i>=0&&i<=5&&isFinite(x)&&x>=b&&x<=30)VENT_SCH[m]={base:b,inc:i,max:x}}
   }
 }
 applyCfg(CFG);
@@ -954,6 +964,12 @@ function openAdmin(){
    <label>발생 빈도 <select id="admW">${[[0,'끄기(질병 없음)'],[1,'보통'],[2,'자주'],[3,'아주 자주']].map(([v,t])=>`<option value="${v}" ${v===w?'selected':''}>${t}</option>`).join('')}</select></label>
    <div id="admDz">${DZ_BUILTIN[m].map((z,i)=>`<div class="dzr"><label><input type="checkbox" data-dz="${i}" ${z.on?'checked':''}> </label><b>${z.icon} ${z.name}</b><button class="btn prev" type="button" data-dzprev="${i}">미리보기</button>
      <input type="number" min="1" max="${max}" data-from="${i}" value="${z.from}"> ~ <input type="number" min="1" max="${max}" data-to="${i}" value="${z.to}"> ${u}</div>`).join('')}</div>
+   <h3>🌀 환기량 (한 마리 기준)</h3>
+   <p class="note">필요 환기량(㎥/h/수) = 1${u} 기본값 + ${m==='layer'?'한 주':'하루'}마다 늘어나는 양 × (${u}−1), 상한까지. 게이지의 「필요」 선과 1만수당 환기량이 이 값으로 계산돼요(폭염 때는 열 제거 환기와 비교해 큰 값).</p>
+   <div class="row2"><label>1${u} 기본 <input type="number" min="0.01" max="20" step="0.01" data-vent="base" value="${VENT_SCH[m].base}" style="width:76px"></label>
+    <label>${m==='layer'?'주당':'일당'} 증가 <input type="number" min="0" max="5" step="0.01" data-vent="inc" value="${VENT_SCH[m].inc}" style="width:76px"></label>
+    <label>상한 <input type="number" min="0.01" max="30" step="0.1" data-vent="max" value="${VENT_SCH[m].max}" style="width:76px"></label></div>
+   <p class="note" id="admVentPrev"></p>
    <h3>💰 버튼 비용 (한 번 누를 때)</h3>
    <p class="note">급이·급수·환기 버튼을 한 번 누를 때 드는 돈(원)이에요. 사료 구입비는 먹은 만큼 따로 계산돼요.</p>
    <div class="row2">${[['water','💧 급수'],['vent','🌀 환기']].concat([['litter','🪵 깔짚'],['supp','💊 영양제'],['rat','🐭 쥐약'],['cure','🩺 닭 치료']]).map(([k,t])=>`<label>${t} <input type="number" min="0" max="1000000" step="500" data-cost="${k}" value="${COSTS[m][k]}" style="width:86px"></label>`).join('')}</div>
@@ -1028,6 +1044,14 @@ function openAdmin(){
     $('#admSt').appendChild(d);
   });
   $('#admSt').addEventListener('click',e=>{const b=e.target.closest('[data-sdel]');if(b)b.closest('.stg').remove()});
+  const admVentRead=()=>{const g=k=>+$(`[data-vent="${k}"]`).value;return {base:g('base'),inc:g('inc'),max:g('max')}};
+  const admVentPrev=()=>{   // 입력한 값으로 몇몇 일령(주령)의 1수당·1만수당 환기량 미리보기
+    const v=admVentRead(),el=$('#admVentPrev');if(!el)return;
+    if(!(v.base>0&&v.inc>=0&&v.max>=v.base)){el.textContent='값을 확인해 주세요(기본 > 0, 증가 ≥ 0, 상한 ≥ 기본).';return}
+    const ages=m==='layer'?[1,6,12,18,30,40]:[1,7,14,21,28,33];
+    el.textContent='미리보기 · '+ages.map(a=>{const q=Math.min(v.max,v.base+v.inc*(a-1));return `${a}${u} ${q.toFixed(2)}(1만수 ${(Math.round(q*1000)*10).toLocaleString('ko-KR')}㎥/h)`}).join(' · ');
+  };
+  document.querySelectorAll('[data-vent]').forEach(x=>x.addEventListener('input',admVentPrev));admVentPrev();
   const collect=()=>{
     const diseases={};
     for(let i=0;i<DZ_BUILTIN[m].length;i++){
@@ -1069,7 +1093,11 @@ function openAdmin(){
     if(!(priceReward>=0&&priceReward<=10000000))throw new Error('시세 퀴즈 보상은 0~10,000,000원 사이로 적어 주세요.');
     const cureBonus=+$('[data-bonus]').value;
     if(!(cureBonus>=0&&cureBonus<=10000000))throw new Error('치료 보너스는 0~10,000,000원 사이로 적어 주세요.');
-    return {diseaseWeight:+$('#admW').value,diseases,stages,custom,costs,feedPrices,cureBonus:Math.round(cureBonus),priceReward:Math.round(priceReward),vaccines,vaccineCost:Math.round(vaccineCost)};
+    const vent=admVentRead();
+    if(!(vent.base>0&&vent.base<=20))throw new Error('환기 기본값은 0.01~20 ㎥/h/수 사이로 적어 주세요.');
+    if(!(vent.inc>=0&&vent.inc<=5))throw new Error('환기 증가량은 0~5 ㎥/h/수 사이로 적어 주세요.');
+    if(!(vent.max>=vent.base&&vent.max<=30))throw new Error('환기 상한은 기본값 이상, 30 ㎥/h/수 이하로 적어 주세요.');
+    return {diseaseWeight:+$('#admW').value,diseases,stages,custom,costs,feedPrices,cureBonus:Math.round(cureBonus),priceReward:Math.round(priceReward),vaccines,vaccineCost:Math.round(vaccineCost),vent};
   };
   const publish=async(section,okMsg)=>{
     gmsg('저장 중…',true);
@@ -1523,14 +1551,15 @@ function vaxLine(d,u){
   if(nx)return `<div class="gwx" style="background:#E8F0FF">💉 다음 백신 · ${nx.day}${u} ${escH(nx.name)} (${nx.day-S.day}${S.mode==='layer'?'주':'일'} 뒤)</div>`;
   return `<div class="gwx" style="background:#E8F0FF">💉 백신 일정을 모두 마쳤어요</div>`;
 }
-// 환기 한 줄: 지금 닭 수·체중에 필요한 환기량과 팬이 내는 양(m³/h), 그리고 판정
+// 환기 한 줄: 1수 기준 일령별 필요 환기량(× 1만수)과 팬이 내는 양(m³/h), 그리고 판정
 function ventLine(){
   if(S.done)return'';
-  const x=ventCtx(),kg=Math.max(.01,S.weight/1000),need=ventNeedKg(S.mode,x.tin,x.tout,kg),prov=Math.max(.4,VENT_FULL*S.ventLv/100);
+  const kg=ventKg(),age=ventAge(),v=VENT_SCH[S.mode],sch=ventSchBird(S.mode,age),need=ventNeedBird(),prov=Math.max(.4,VENT_FULL*S.ventLv/100)*kg;
   const lv=ventNeedLv(),st=S.ventLv<lv?['부족','var(--bad)']:S.ventLv<lv+45?['적정','#2E9E4F']:['과다(난방비↑)','#C77700'];
-  const N=10000,house=Math.round(need*kg*N/10)*10,fan=Math.round(prov*kg*N/10)*10;   // 폐사와 무관하게 1만수 기준으로 고정 표시(배우기 쉽게)
-  const f=n=>n.toLocaleString('ko-KR');
-  return `<div class="gline" style="margin-top:2px;flex-wrap:wrap;white-space:normal;row-gap:0"><b class="ttl">🌀 환기</b><span title="수분·암모니아 배출 최소환기와 더위 때 열 제거 환기 중 큰 값">1만수당 필요 <b class="num">${f(house)}㎥/h</b> (수당 ${(need*kg).toFixed(2)})</span><span class="sep">|</span><span>지금 <b class="num">${f(fan)}㎥/h</b> <b style="color:${st[1]}">${st[0]}</b></span></div>`;
+  const N=10000,house=Math.round(need*N/10)*10,fan=Math.round(prov*N/10)*10;   // 폐사와 무관하게 1만수 기준으로 고정 표시(배우기 쉽게)
+  const f=n=>n.toLocaleString('ko-KR'),u=S.mode==='layer'?'주':'일';
+  const how=`${v.base} + ${v.inc}×(${age}${u}령−1)${sch>=v.max?` → 상한 ${v.max}`:''} ㎥/h${need>sch+1e-9?` · 폭염이라 열 제거 환기 ${need.toFixed(2)} 적용`:''}`;
+  return `<div class="gline" style="margin-top:2px;flex-wrap:wrap;white-space:normal;row-gap:0"><b class="ttl">🌀 환기</b><span title="1수당 ${how}">1만수당 필요 <b class="num">${f(house)}㎥/h</b> (수당 ${need.toFixed(2)})</span><span class="sep">|</span><span>지금 <b class="num">${f(fan)}㎥/h</b> <b style="color:${st[1]}">${st[0]}</b></span><span style="flex-basis:100%;font-size:12px;color:var(--muted)">수당 = ${how}</span></div>`;
 }
 function renderGuide(){
   const el=$('#guide');if(!el||!S)return;
@@ -1549,15 +1578,16 @@ function renderGuide(){
     const tr=a.t===b.t?a.t+'℃':a.t+'→'+b.t+'℃';
     const rh=a.rh[0]+'~'+a.rh[1]+'%';
     const lt=lay?`<td>${a.light===b.light?a.light+'시간':a.light+'→'+b.light+'시간'}</td>`:'';
-    return `<tr class="${d>=x.from&&d<=x.to?'now':''}"><td>${x.from}~${x.to}${lay?'주':'일'}<br><b>${x.name}</b></td><td>${tr}</td><td>${rh}</td>${lt}</tr>`;
+    const va=ventSchBird(S.mode,x.from),vb=ventSchBird(S.mode,x.to),vt=va===vb?va.toFixed(2):va.toFixed(2)+'→'+vb.toFixed(2);
+    return `<tr class="${d>=x.from&&d<=x.to?'now':''}"><td>${x.from}~${x.to}${lay?'주':'일'}<br><b>${x.name}</b></td><td>${tr}</td><td>${rh}</td>${lt}<td>${vt}</td></tr>`;
   }).join('');
   el.innerHTML=`<div class="gline"><b class="ttl">📋 환경</b><span title="권장 온도 ${e.lo}~${e.hi}℃">🌡️ <b class="num">${e.t}℃</b></span><span class="sep">|</span>💧 <b class="num">${e.rh[0]}~${e.rh[1]}%</b>${lay?`<span class="sep">|</span>💡 <b class="num">${e.light}시간</b>`:''}</div>
    ${ventLine()}
    ${wx}
    ${vaxLine(d,u)}
    <details class="gpts"><summary>✅ ${S.done?'':d+u+' '+g.name+' · '}${g.pts.join(' · ')}</summary><ul class="pts">${g.pts.map(t=>`<li>${t}</li>`).join('')}</ul></details>
-   <details><summary>${lay?'주령':'일령'}별 권장표 보기</summary><table class="gt"><thead><tr><th>구간</th><th>온도</th><th>습도</th>${lay?'<th>점등</th>':''}</tr></thead><tbody>${rows}</tbody></table>
-   <p style="margin:6px 0 0;font-size:12px;color:var(--muted)">환기량은 1만수 기준으로 보여 주며, 체중·바깥 기온으로 계산한 교육용 값이에요(수분 배출 최소환기와 열 제거 환기 중 큰 값). 교육용 참고값이에요. 실제 농장은 품종 관리지침과 사료회사·수의사 기준을 따르세요.${lay?` 점등은 ${d>=18?'주 1시간씩 늘려 16시간까지':d>=7?'육성기에는 10시간 유지':'점점 줄여 10시간까지'}.`:''}</p></details>`;
+   <details><summary>${lay?'주령':'일령'}별 권장표 보기</summary><table class="gt"><thead><tr><th>구간</th><th>온도</th><th>습도</th>${lay?'<th>점등</th>':''}<th>환기<br>㎥/h/수</th></tr></thead><tbody>${rows}</tbody></table>
+   <p style="margin:6px 0 0;font-size:12px;color:var(--muted)">환기량은 한 마리 기준 ${lay?'주령':'일령'}별 증가량(기본 ${VENT_SCH[S.mode].base} + ${lay?'주':'일'}마다 ${VENT_SCH[S.mode].inc}, 상한 ${VENT_SCH[S.mode].max} ㎥/h/수)으로 계산해 1만수 기준으로 보여 줘요. 폭염 때는 열 제거 환기와 비교해 큰 값을 써요. 교육용 참고값이에요. 실제 농장은 품종 관리지침과 사료회사·수의사 기준을 따르세요.${lay?` 점등은 ${d>=18?'주 1시간씩 늘려 16시간까지':d>=7?'육성기에는 10시간 유지':'점점 줄여 10시간까지'}.`:''}</p></details>`;
 }
 function renderTip(){
   const d=S.day+1,c=S.ctrl;let t='';
