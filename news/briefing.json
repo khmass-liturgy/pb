@@ -1,8 +1,8 @@
 {
-  "updated": "2026-11-01 14:53 KST",
-  "updatedTs": 1793512424,
-  "ok": 7,
-  "total": 7,
+  "updated": "2026-11-01 16:36 KST",
+  "updatedTs": 1793518582,
+  "ok": 17,
+  "total": 17,
   "order": [
     "chuksan",
     "aflnews",
@@ -10,6 +10,16 @@
     "dailyvet",
     "econ",
     "policy",
+    "chukkyung",
+    "agrinet",
+    "ikpnews",
+    "yna_econ",
+    "mk_econ",
+    "bok",
+    "wattpoultry",
+    "poultrysite",
+    "cidrap",
+    "woah",
     "global"
   ],
   "sources": {
@@ -18,6 +28,7 @@
       "icon": "📰",
       "color": "#C62828",
       "home": "https://www.chuksannews.co.kr/mobile/section_list_all.html?sec_no=84",
+      "lang": "ko",
       "items": [
         {
           "title": "산란계협, “사육면적 확대 따른 농가 부담 완화를”",
@@ -57,35 +68,36 @@
       "icon": "🌾",
       "color": "#EF6C00",
       "home": "https://www.aflnews.co.kr/news/articleList.html?sc_sub_section_code=S2N73&view_type=sm",
+      "lang": "ko",
       "items": [
         {
-          "title": "K-푸드 수출 품목 다변화·유통구조 개편 ‘시급’",
-          "url": "https://www.aflnews.co.kr/news/articleView.html?idxno=330797",
-          "date": "10.30 19:06",
+          "title": "[Issue+] 흔들리는 국제정세, 국제곡물 향방은",
+          "url": "https://www.aflnews.co.kr/news/articleView.html?idxno=330298",
+          "date": "",
           "source": ""
         },
         {
-          "title": "축과원, 돼지 도축로봇 시험 도축…정밀도 높인다",
-          "url": "https://www.aflnews.co.kr/news/articleView.html?idxno=330796",
-          "date": "10.30 18:36",
+          "title": "[Issue+] 월동 앞 둔 양봉농가, 질병과의 사투",
+          "url": "https://www.aflnews.co.kr/news/articleView.html?idxno=330295",
+          "date": "",
           "source": ""
         },
         {
-          "title": "한우협회, 서울시 영유아에 한우 이유식 지원",
-          "url": "https://www.aflnews.co.kr/news/articleView.html?idxno=330795",
-          "date": "10.30 18:35",
+          "title": "[2026 국정감사] 농지 전수조사 '뜨거운 감자'...화훼 피해 평가·온라인도매시장·수입란 난각 '도마위'",
+          "url": "https://www.aflnews.co.kr/news/articleView.html?idxno=330313",
+          "date": "",
           "source": ""
         },
         {
-          "title": "도드람, 디에스피드 정읍공장 가공사료 시설 ‘준공’",
-          "url": "https://www.aflnews.co.kr/news/articleView.html?idxno=330793",
-          "date": "10.30 18:34",
+          "title": "[2026 국정감사] 연근해어선 감척 실효성 제고방안 마련·SH활어유통 특별감사 주문",
+          "url": "https://www.aflnews.co.kr/news/articleView.html?idxno=330300",
+          "date": "",
           "source": ""
         },
         {
-          "title": "“백남기 농민 사망 책임자가 NH저축은행 이사라니”",
-          "url": "https://www.aflnews.co.kr/news/articleView.html?idxno=330747",
-          "date": "10.30 18:30",
+          "title": "[2026 국정감사] 수협 상호금융부실·외국인 선원 인권침해 등 지적",
+          "url": "https://www.aflnews.co.kr/news/articleView.html?idxno=330283",
+          "date": "",
           "source": ""
         }
       ],
@@ -96,6 +108,7 @@
       "icon": "🐷",
       "color": "#AD1457",
       "home": "https://www.pignpork.com/news/articleList.html?sc_section_code=S1N1&view_type=sm",
+      "lang": "ko",
       "items": [
         {
           "title": "충북 한돈인 한자리에… 한돈산업 발전·가축전염병 근절 결의",
@@ -135,6 +148,7 @@
       "icon": "🩺",
       "color": "#5E35B1",
       "home": "https://www.dailyvet.co.kr/category/news/prevention-hygiene",
+      "lang": "ko",
       "items": [
         {
           "title": "[위클리벳 527회] 강아지성병 ‘브루셀라’, 애견미용학원 통해 퍼진다?",
@@ -174,7 +188,20 @@
       "icon": "💹",
       "color": "#0047A0",
       "home": "https://www.asiae.co.kr/list/economy",
+      "lang": "ko",
       "items": [
+        {
+          "title": "김정관, 체코 원전 시공협상 결렬에 \"서운하고 야속해…비상관리체제 가동\"",
+          "url": "https://view.asiae.co.kr/article/2026110116105350957",
+          "date": "11.01 16:11",
+          "source": ""
+        },
+        {
+          "title": "'8조4000억 해킹' 바이낸스, 출금 재개 예정…\"손실 95% 충당\"",
+          "url": "https://view.asiae.co.kr/article/2026110115301975250",
+          "date": "11.01 15:31",
+          "source": ""
+        },
         {
           "title": "\"과자 뜯으면 환급 안 돼\"…日, 면세 방식 오늘부터 바뀐다",
           "url": "https://view.asiae.co.kr/article/2026110114413250348",
@@ -192,18 +219,6 @@
           "url": "https://view.asiae.co.kr/article/2026110113443475429",
           "date": "11.01 13:44",
           "source": ""
-        },
-        {
-          "title": "증시 출렁이자…금감원, 불법 공매도 조사 착수",
-          "url": "https://view.asiae.co.kr/article/2026110113281366593",
-          "date": "11.01 13:28",
-          "source": ""
-        },
-        {
-          "title": "\"출근 안 해도 매달 160만원 꽂힌다\"…30대에 공무원 그만둔 부부의 비결",
-          "url": "https://view.asiae.co.kr/article/2026110113020257780",
-          "date": "11.01 13:03",
-          "source": ""
         }
       ],
       "stale": false
@@ -213,6 +228,7 @@
       "icon": "🏛️",
       "color": "#1B5E20",
       "home": "https://www.mafra.go.kr/home/5109/subview.do",
+      "lang": "ko",
       "items": [
         {
           "title": "따스한 가정의 품으로, 국가봉사동물의 견(犬)생 2막을 지원합니다",
@@ -247,46 +263,467 @@
       ],
       "stale": false
     },
+    "chukkyung": {
+      "name": "축산경제",
+      "icon": "🐄",
+      "color": "#00838F",
+      "home": "https://www.chukkyung.co.kr/news/articleList.html",
+      "lang": "ko",
+      "items": [
+        {
+          "title": "제주산 트리티케일, 한우 사료 가능성 검증",
+          "url": "https://www.chukkyung.co.kr/news/articleView.html?idxno=83557",
+          "date": "10.30 13:29",
+          "source": ""
+        },
+        {
+          "title": "제주양돈농협, 질식 예방물품 공급",
+          "url": "https://www.chukkyung.co.kr/news/articleView.html?idxno=83555",
+          "date": "10.30 13:27",
+          "source": ""
+        },
+        {
+          "title": "[나눔축산운동] 제주양돈농협, 이웃에 돼지고기 전달",
+          "url": "https://www.chukkyung.co.kr/news/articleView.html?idxno=83554",
+          "date": "10.30 13:26",
+          "source": ""
+        },
+        {
+          "title": "서귀포시축협, 한우 71두 전량 낙찰",
+          "url": "https://www.chukkyung.co.kr/news/articleView.html?idxno=83552",
+          "date": "10.30 13:24",
+          "source": ""
+        },
+        {
+          "title": "방역본부, 특수학교 학생 양봉체험행사 개최",
+          "url": "https://www.chukkyung.co.kr/news/articleView.html?idxno=83551",
+          "date": "10.30 13:23",
+          "source": ""
+        }
+      ],
+      "stale": false
+    },
+    "agrinet": {
+      "name": "한국농어민신문",
+      "icon": "🌱",
+      "color": "#558B2F",
+      "home": "https://www.agrinet.co.kr/news/articleList.html?sc_section_code=S1N6",
+      "lang": "ko",
+      "items": [
+        {
+          "title": "11월 1일은 ‘한우의 날’…“새로운 100년 열어갈 것”",
+          "url": "https://www.agrinet.co.kr/news/articleView.html?idxno=408418",
+          "date": "10.30 16:14",
+          "source": ""
+        },
+        {
+          "title": "한우경진대회 유대환 농가 ‘그랜드챔피언’",
+          "url": "https://www.agrinet.co.kr/news/articleView.html?idxno=408417",
+          "date": "10.30 16:13",
+          "source": ""
+        },
+        {
+          "title": "내년 닭고기자조금 27억원 조성 추진",
+          "url": "https://www.agrinet.co.kr/news/articleView.html?idxno=408388",
+          "date": "10.30 14:24",
+          "source": ""
+        },
+        {
+          "title": "“돼지고기 품질 저하 주범…‘잔반 사료’ 급여 전면 금지해야”",
+          "url": "https://www.agrinet.co.kr/news/articleView.html?idxno=408345",
+          "date": "10.30 11:22",
+          "source": ""
+        },
+        {
+          "title": "춘천철원화천양구축산농협, 조사료 공급 체계 구축에 나선다",
+          "url": "https://www.agrinet.co.kr/news/articleView.html?idxno=408375",
+          "date": "10.30 10:00",
+          "source": ""
+        }
+      ],
+      "stale": false
+    },
+    "ikpnews": {
+      "name": "한국농정",
+      "icon": "📣",
+      "color": "#6D4C41",
+      "home": "https://www.ikpnews.net/news/articleList.html",
+      "lang": "ko",
+      "items": [
+        {
+          "title": "‘한우의 날’ 첫 법정기념일…한우산업 새 100년 연다",
+          "url": "http://www.ikpnews.net/news/articleView.html?idxno=71843",
+          "date": "10.30 11:30",
+          "source": ""
+        },
+        {
+          "title": "농협, 중동 바이어 4곳과 한우 수출 협력 넓힌다",
+          "url": "http://www.ikpnews.net/news/articleView.html?idxno=71818",
+          "date": "10.29 18:09",
+          "source": ""
+        },
+        {
+          "title": "방역본부, 특수학교 학생들과 꿀벌 체험행사 열어",
+          "url": "http://www.ikpnews.net/news/articleView.html?idxno=71817",
+          "date": "10.29 18:05",
+          "source": ""
+        },
+        {
+          "title": "논산종계지부, 대한양계협회 정식 가입",
+          "url": "http://www.ikpnews.net/news/articleView.html?idxno=71816",
+          "date": "10.29 18:00",
+          "source": ""
+        },
+        {
+          "title": "농장에서 식탁까지…한우 매력 알린 팸투어 ‘호응’",
+          "url": "http://www.ikpnews.net/news/articleView.html?idxno=71814",
+          "date": "10.29 17:50",
+          "source": ""
+        }
+      ],
+      "stale": false
+    },
+    "yna_econ": {
+      "name": "연합뉴스 경제",
+      "icon": "📈",
+      "color": "#1565C0",
+      "home": "https://www.yna.co.kr/economy/all",
+      "lang": "ko",
+      "items": [
+        {
+          "title": "똑똑해진 아파트, 개인정보 안전할까…건설사 해킹에 보안 우려(종합)",
+          "url": "https://www.yna.co.kr/view/AKR20261031047451003",
+          "date": "11.01 15:57",
+          "source": ""
+        },
+        {
+          "title": "채용혜택 내건 SK하이닉스 AI해커톤, 시스템장애로 예선 중단",
+          "url": "https://www.yna.co.kr/view/AKR20261101025500003",
+          "date": "11.01 13:41",
+          "source": ""
+        },
+        {
+          "title": "LG전자, AI워시콤보 캠페인으로 올해의 브랜드상 수상",
+          "url": "https://www.yna.co.kr/view/AKR20261101023200003",
+          "date": "11.01 12:02",
+          "source": ""
+        },
+        {
+          "title": "청년창업자 누구나 분야 관계없이 특허심사 '1개월 초고속'",
+          "url": "https://www.yna.co.kr/view/AKR20261030078700063",
+          "date": "11.01 12:00",
+          "source": ""
+        },
+        {
+          "title": "수급업자 기술정보 빼돌려 특허출원…한세모빌리티 과징금 4억",
+          "url": "https://www.yna.co.kr/view/AKR20261030185500002",
+          "date": "11.01 12:00",
+          "source": ""
+        }
+      ],
+      "stale": false
+    },
+    "mk_econ": {
+      "name": "매일경제",
+      "icon": "🗞️",
+      "color": "#00796B",
+      "home": "https://www.mk.co.kr/news/economy/",
+      "lang": "ko",
+      "items": [
+        {
+          "title": "“주변에 큰돈 벌었단 얘기 들리는데”…중산층 10명 중 4명 되레 소득 줄어",
+          "url": "https://www.mk.co.kr/news/economy/12192798",
+          "date": "11.01 16:35",
+          "source": ""
+        },
+        {
+          "title": "李대통령, 다문화가정 지원 논란 나흘째 반박…“시정은 차별 아냐”",
+          "url": "https://www.mk.co.kr/news/economy/12192790",
+          "date": "11.01 16:23",
+          "source": ""
+        },
+        {
+          "title": "출근길 15분, 주말엔 정주행 … 투자 지식도 '복리 효과' 있네",
+          "url": "https://www.mk.co.kr/news/economy/12192763",
+          "date": "11.01 16:09",
+          "source": ""
+        },
+        {
+          "title": "“디플레 치유 끝났다”는 日銀…정작 정부가 웃지 못하는 이유 [JAPAN CLOSER]",
+          "url": "https://www.mk.co.kr/news/world/12192724",
+          "date": "11.01 15:39",
+          "source": ""
+        },
+        {
+          "title": "세무조사서 추가로 드러난 소득...10조5000억원 달해",
+          "url": "https://www.mk.co.kr/news/economy/12192696",
+          "date": "11.01 15:05",
+          "source": ""
+        }
+      ],
+      "stale": false
+    },
+    "bok": {
+      "name": "한국은행 금통위",
+      "icon": "🏦",
+      "color": "#37474F",
+      "home": "https://www.bok.or.kr/portal/singl/newsData/list.do?menuNo=200789",
+      "lang": "ko",
+      "items": [
+        {
+          "title": "금융통화위원회 의사록(2026년 제18차)(2026.9.22)",
+          "url": "https://www.bok.or.kr/portal/bbs/B0000245/view.do?nttId=11065473&menuNo=200690",
+          "date": "10.13 16:00",
+          "source": ""
+        },
+        {
+          "title": "금융통화위원회 의사록(2026년 제17차)(2026.9.10)",
+          "url": "https://www.bok.or.kr/portal/bbs/B0000245/view.do?nttId=11064983&menuNo=200690",
+          "date": "09.29 16:00",
+          "source": ""
+        },
+        {
+          "title": "금융통화위원회 의사록(2026년 제16차)(2026.8.27)",
+          "url": "https://www.bok.or.kr/portal/bbs/B0000245/view.do?nttId=11064775&menuNo=200690",
+          "date": "09.15 16:00",
+          "source": ""
+        },
+        {
+          "title": "금융통화위원회 의사록(2026년 제14차)(2026.7.23)",
+          "url": "https://www.bok.or.kr/portal/bbs/B0000245/view.do?nttId=11063632&menuNo=200690",
+          "date": "08.11 16:00",
+          "source": ""
+        },
+        {
+          "title": "금융통화위원회 의사록(2026년 제13차)(2026.7.16)",
+          "url": "https://www.bok.or.kr/portal/bbs/B0000245/view.do?nttId=11063510&menuNo=200690",
+          "date": "08.04 16:00",
+          "source": ""
+        }
+      ],
+      "stale": false
+    },
+    "wattpoultry": {
+      "name": "WATTPoultry",
+      "icon": "📰",
+      "color": "#E65100",
+      "home": "https://www.wattagnet.com/",
+      "lang": "en",
+      "items": [
+        {
+          "title": "2026년 가금류 육류 생산량을 새로운 최고치로 끌어올리는 수요",
+          "url": "https://www.wattagnet.com/broilers-turkeys/article/15834713/status-demand-drives-poultry-meat-production-to-new-highs-in-2026",
+          "date": "10.20 23:00",
+          "source": "",
+          "titleEn": "Demand drives poultry meat production to new highs in 2026"
+        },
+        {
+          "title": "가금류 소비량은 2035년까지 증가할 것으로 예상됩니다.",
+          "url": "https://www.wattagnet.com/egg/article/15834712/forecast-poultry-consumption-set-to-grow-through-2035",
+          "date": "10.20 23:00",
+          "source": "",
+          "titleEn": "Poultry consumption set to grow through 2035"
+        },
+        {
+          "title": "글로벌 가금류 및 계란 교역 변화",
+          "url": "https://www.wattagnet.com/business-markets/international-trade/article/15834711/trade-global-poultry-and-egg-trade-shifts",
+          "date": "10.20 23:00",
+          "source": "",
+          "titleEn": "Global poultry and egg trade shifts"
+        },
+        {
+          "title": "계란에 대한 전 세계의 식욕은 계속 증가하고 있습니다.",
+          "url": "https://www.wattagnet.com/egg/article/15834689/egg-consumption-global-appetite-for-eggs-continues-to-grow",
+          "date": "10.20 23:00",
+          "source": "",
+          "titleEn": "Global appetite for eggs continues to grow"
+        },
+        {
+          "title": "가금류 육류의 통합은 계속됩니다",
+          "url": "https://www.wattagnet.com/broilers-turkeys/article/15834686/meat-production-poultry-meats-consolidation-continues",
+          "date": "10.20 23:00",
+          "source": "",
+          "titleEn": "Poultry meat’s consolidation continues"
+        }
+      ],
+      "stale": false
+    },
+    "poultrysite": {
+      "name": "The Poultry Site",
+      "icon": "🐔",
+      "color": "#2E7D32",
+      "home": "https://www.thepoultrysite.com/news",
+      "lang": "en",
+      "items": [
+        {
+          "title": "미국 닭고기 생산량은 증가하지만 도매 가치는 약세를 유지합니다 - CoBank",
+          "url": "https://news.google.com/rss/articles/CBMiqAFBVV95cUxNQjNWTG45WGlKejB2MXVZRVdweUFfa2p3bkIxc1dGeDVrVkxUU3pnbTI2U0s5SFBNZTluUXdIUXFRX3lCelFjVmRRb0RkSFlNbExEVmp6V1JyYUZObHZmMzcwdWJ3Z3c2ODhGWGpuTWxFMmNIamJFX1ZBUzRnUXdObnZlc29Hc2xIdU9Ebm1mbXM5MEdBNkxMRWdsYUZFVXJ3aGZ0MkRqNEg?oc=5",
+          "date": "10.31 08:08",
+          "source": "The Poultry Site",
+          "titleEn": "US chicken output grows but wholesale values stay weak - CoBank"
+        },
+        {
+          "title": "Vital Farms, Target 매장에서 자유 범위 계란 시범 운영",
+          "url": "https://news.google.com/rss/articles/CBMimwFBVV95cUxQNEN2cTNPczE3Sk1oeVVPMmtMSkh6OXp1eW9jYmkxdWNXZFpLb1Z4Ni14VDFTd3NZWFF1OVVUSTBieEdFY1M4eVZFT0xyLVpERmN2ZjBvSnQ4WTh2Vm4zMDlvUFJCU1A0LUJNT0VDNGtPc2xFeG1JV0RDTlZIR0ZXcGxiY2pYLUc2WFpYRnhVZm9vZjYwVnhGNTNxMA?oc=5",
+          "date": "10.30 16:04",
+          "source": "The Poultry Site",
+          "titleEn": "Vital Farms pilots free-range eggs at Target stores"
+        },
+        {
+          "title": "Digestates는 수입 비료에 대한 EU의 의존도를 줄일 수 있습니다",
+          "url": "https://news.google.com/rss/articles/CBMiogFBVV95cUxOQUNmQUE1b0NJMTdwRkdoM1QtUURja1BiOG9EQWhScHVDX3pCUC1uWERvUEQ2YkNFSXNZemkyVEVLcWxwWS1Lb081TUdWNGZMT0RySFo1RWNrQm9mZUxaaEpBSVVVOXZDbHNGX3A2NVdWX3BHTG9pSVdIWmFSVk82ZFMyMmtEY01jbGMwWm1yQ3JiMUFWOEJEVDktSTI3VEgtTWc?oc=5",
+          "date": "10.28 18:32",
+          "source": "The Poultry Site",
+          "titleEn": "Digestates could cut EU reliance on imported fertilisers"
+        },
+        {
+          "title": "IPEMA–Poultry India는 제18회 Poultry India Expo 2026을 공개하는 커튼 라이저 이벤트를 개최합니다.",
+          "url": "https://news.google.com/rss/articles/CBMi7AFBVV95cUxQOWxmemlQR3NwZElqMDJ2RnhBYUM1WnVrSEV1QkVNZzlqSGlveS1zWlNWNVRWRW04VkI5N2lPYnlHUzZtdDFYX0dTUUZjVUdrNlhiUTJlTnR2LVpLVW5ZdnVFQnd0ZC05WWJUdnctQUJHVVBudTNrMGJCZXVGYlpJZUNIS2cwd2VSam5Va2x4WkYwdURraUZpT1BjUlFCLWg4OEdtY0ItdTVUVmhCWkdqNndGRER6OTVRVEwyd2xTYlZxZkQzdlBDeXRYak1MRGVTd2kzSHZSaGpPTDIwd05SQkh6ZXktVzVLcTl2Mw?oc=5",
+          "date": "10.28 18:32",
+          "source": "The Poultry Site",
+          "titleEn": "IPEMA–Poultry India hosts curtain-raiser event to unveil the 18th Poultry India Expo 2026"
+        },
+        {
+          "title": "살모넬라 대조군 연쇄 강화: 농장에서 포크로의 예방",
+          "url": "https://news.google.com/rss/articles/CBMisAFBVV95cUxQdDhWS28wYTl1cHpRU0FMc0VSLU9sMUFqMUdyTGItclFKTkNSSngzTGRQU3owamVaM19sSjRmeENVTmg4Ynh3QmJNYVJMeEdZb3dpRWNYcGtZWGI4RTFyOVNXSkg2YXFoaVJRWGRoTlh4djIwNTAwTzU4Y1Q5NXktOWFyakZxa0N6V0RsbXowcFZreEEyZlpFRmY2d0ZibWVpaWk3bE5SdldIUHZCQm5SRg?oc=5",
+          "date": "10.27 03:51",
+          "source": "The Poultry Site",
+          "titleEn": "Strengthening the Salmonella control chain: Prevention from farm to fork"
+        }
+      ],
+      "stale": false
+    },
+    "cidrap": {
+      "name": "CIDRAP 조류인플루엔자",
+      "icon": "🧪",
+      "color": "#6A1B9A",
+      "home": "https://www.cidrap.umn.edu/avian-influenza-bird-flu",
+      "lang": "en",
+      "items": [
+        {
+          "title": "중서부, 서부 해안 가금류에서 조류 독감 활동 증가",
+          "url": "https://news.google.com/rss/articles/CBMirwFBVV95cUxOWTNnU3gzdzFfalA3cVRpN053bVZwcHV2Zm9xOEliVFVVMGdldEZLNmNHenFYMVViMXFKT1lKS3ZvSGx6MldUcU5HckNrODJnNUpFWW13TVkxWXNnMmJsQmxvZHlyUkdxNVJ5Ml9VRkVGcnV4NjFqS0hEVFdENW1BdXNydjBWTEN5Qnh4eDhBdEZZM1BvSEVRc2NMY2NFS29zenFPSV9JT2xpNjgyTUJJ?oc=5",
+          "date": "10.29 04:20",
+          "source": "CIDRAP",
+          "titleEn": "Avian flu activity increases in Midwestern, West Coast poultry"
+        },
+        {
+          "title": "빠른 조치: 에볼라 사례 상위 10,000명, 텍사스, 뉴멕시코의 신세계 검문소, 워싱턴 소의 더 많은 조류 독감",
+          "url": "https://news.google.com/rss/articles/CBMiugFBVV95cUxNaWNiMEhJOFE1cXlrYXJteEZPNXJOUEpMaGxiYnc3ZGRUV3ozRjlkVW96SlFYVFVRQXNCYmUydFZHbm5aTC1EOFVkQ1VBcHBSdjZnVGtWTlFtNFZBbmI4NGRZQXpjRGdCVkVmNlZ1NnNfVXZtZ2Q2b0p0cEtoQmU3RUYzcFNZdkEya2JtZkVZZG8xeUFqVDdTTWlaX0pOS0dzckdidTYwYmtSdVdGR3ZhSXN6ODlwWmY3bVE?oc=5",
+          "date": "10.27 21:32",
+          "source": "CIDRAP",
+          "titleEn": "Quick takes: Ebola cases top 10,000; New World screwworm in Texas, New Mexico; more avian flu in Washington cattle"
+        },
+        {
+          "title": "빠른 조치: 미국 조류 독감 케이스, 플로리다의 뎅기열, 마다가스카르의 전염병, 사우디아라비아의 메르스, 더 많은 소아마비 케이스",
+          "url": "https://news.google.com/rss/articles/CBMiwwFBVV95cUxQWUotOGxaSzJ6ajF0bjB5T0p3X2RnMmJMT2hiNnJjbnNaNHhHV0xUcHVMcVdxWHU0VThIOEJhQWJaUHpvb01TWlp1U1VUbmNFVkZWazlmMWxQcmxmYWp0aVNjRURxOTBOdmlPNDJIMXNCRlVIY1dqWEdxR2REQWtKYkJvX1d3WklBQVkxTnNpejdCU3lLMkpTV0RNX2RRVGhjcU5EbDFXZVVUZ2tkNkt2LVlHeG9wTEZVQmlCcFVYMlhXN3c?oc=5",
+          "date": "10.16 16:00",
+          "source": "CIDRAP",
+          "titleEn": "Quick takes: US human avian flu case, dengue in Florida, plague in Madagascar, MERS in Saudi Arabia, more polio cases"
+        },
+        {
+          "title": "그린란드에서는 4마리의 북극곰이 H5N1 조류인플루엔자 항체에 대해 양성 반응을 보입니다.",
+          "url": "https://news.google.com/rss/articles/CBMitgFBVV95cUxOTU5LUF80TFEtRjh2emJmRVAtclJMWU9nbTNWRnpUTHhybkhjM0lQVjAzRGRRUWpkUmdNb2s3THlmWkx6dGVvMGw5TjJTZlJ0Uk5lUC04Zk95Y0dRb2lJVk1rbDhlUS11TjJkelNXcE42UHdHMXZDR0dHdUlrMnEtZlQ5d1ZDclY1aFFmZDVWUm5tdUp1U0tQQnRmYjM3SmpZbjVwbHlXM01PT1dzWWMwZ19pQlVzdw?oc=5",
+          "date": "10.14 16:00",
+          "source": "CIDRAP",
+          "titleEn": "In Greenland, 4 polar bears test positive for H5N1 avian flu antibodies"
+        },
+        {
+          "title": "워싱턴 주, 젖소에서 첫 H5N1 조류 독감 검출 확인",
+          "url": "https://news.google.com/rss/articles/CBMivgFBVV95cUxQNXlaeFQtbGI4TkExUjJkR2xEMFB0Ulo2S1c5dWtUR1BCbUVzN2dXZC0xcnNqbEZEaWNVSUNoaXA1ZXJFN3IxU0ZQT2FibmJqMXdsLUxvUl9SSTk3NVRQZEIzU0dTcEFGaGNndWJHY08yOXI0al9JalBLbXhpRU1RQlpfN3IwYzdGVlVvUGRrdFRBaDNfMjRVUkFDamo3YTMyVzhYNEZOZmtQTVFtZ0g1dTRYVTZFVGpweXg5NzF3?oc=5",
+          "date": "10.13 16:00",
+          "source": "CIDRAP",
+          "titleEn": "Washington state confirms first H5N1 avian flu detection in dairy cattle"
+        }
+      ],
+      "stale": false
+    },
+    "woah": {
+      "name": "WOAH 국제수역사무국",
+      "icon": "🌐",
+      "color": "#0277BD",
+      "home": "https://www.woah.org/en/what-we-do/animal-health-and-welfare/",
+      "lang": "en",
+      "items": [
+        {
+          "title": "샤몬다 바이러스: 동물에 미치는 영향에 대해 우리는 무엇을 알고 있습니까?",
+          "url": "https://www.woah.org/en/shamonda-virus-what-do-we-know-about-its-effects-on-animals/",
+          "date": "10.22 20:57",
+          "source": "",
+          "titleEn": "Shamonda virus: what do we know about its effects on animals?"
+        },
+        {
+          "title": "보고된 벡터 매개 질병 사건이 증가함에 따라 WOA는 더 강력한 감시와 대비를 요구합니다",
+          "url": "https://www.woah.org/en/woah-calls-for-stronger-surveillance-and-preparedness-as-reported-vector-borne-disease-events-are-on-the-rise/",
+          "date": "10.09 22:23",
+          "source": "",
+          "titleEn": "WOAH calls for stronger surveillance and preparedness as reported vector-borne disease events are on the rise"
+        },
+        {
+          "title": "하나의 건강 구현 및 투자 발전: 국가 행동에서 지속 가능한 솔루션으로",
+          "url": "https://www.woah.org/en/advancing-one-health-implementation-and-investment-from-country-action-to-sustainable-solutions/",
+          "date": "10.14 16:19",
+          "source": "",
+          "titleEn": "Advancing One Health implementation and investment: from country action to sustainable solutions"
+        },
+        {
+          "title": "하나의 건강 구현: World One Health Congress의 WOAH",
+          "url": "https://www.woah.org/en/one-health-implementation-woah-at-world-one-health-congress/",
+          "date": "09.04 17:44",
+          "source": "",
+          "titleEn": "One Health implementation: WOAH at World One Health Congress"
+        },
+        {
+          "title": "사람, 동물, 식물, 생태계 – One Health 투자 사례",
+          "url": "https://www.woah.org/en/people-animals-plants-ecosystems-making-the-case-for-investing-in-one-health/",
+          "date": "08.25 22:45",
+          "source": "",
+          "titleEn": "People, animals, plants, ecosystems – making the case for investing in One Health"
+        }
+      ],
+      "stale": false
+    },
     "global": {
       "name": "해외 양계질병",
       "icon": "🦠",
       "color": "#00695C",
       "home": "https://news.google.com/search?q=%22bird%20flu%22%20poultry%20when%3A7d&hl=en-US&gl=US&ceid=US:en",
+      "lang": "en",
       "items": [
         {
-          "title": "네덜란드 정부, 조류인플루엔자 때문에 가금류 실내 사육 명령",
-          "url": "https://news.google.com/rss/articles/CBMiywFBVV95cUxNVUhGUzBXTXZua3oxa1cwWHZCS1BrMFJYQ09aY1hCY1lVRmg5V3paMlY3bE5icVNxNDVXNzgzcDJqVnNJRjRkX01NaXpIRFVIS1pXMHJRSmp4R2lUT1VseGN0RFNoekpIemdUOXRubXFmU05XTTdUal9sSURfOXJrZFFiUzlab1Y2czJad09EY2ZNSGt3YkgxWjBnQmZLNF9Ed1pnY2xRcFQwMmdsWlRHUDhVc3UxU0NMNnRSaHJ1LTc1NGR1dzB1YXJIOA?oc=5",
-          "date": "10.29 02:15",
-          "source": "Reuters",
-          "titleEn": "Dutch government orders poultry to be kept inside due to bird flu"
-        },
-        {
-          "title": "Baxter 카운티 뒷마당 무리에서 조류 독감이 확인되었으며, 이번 시즌 Baxter 카운티에서 처음으로 아칸소 사례가 발생했습니다. 가금류 소유자들에게 양 떼를 관찰할 것을 촉구함",
+          "title": "백스터 카운티 뒷마당 무리에서 조류 독감 확진, 이번 시즌 백스터 카운티에서 첫 번째 아칸소 사례; 가금류 소유자는 양떼를 지켜 보라고 촉구했습니다.",
           "url": "https://news.google.com/rss/articles/CBMijwJBVV95cUxQVmExMFBtU2hLd3V4YWJ3dThZMzdONXZfRlRCa1k2YjNQZjFfeXphcks2d2oyenJVRjlWZC1EOEs5YThVcEVMY1VlQllsNWhuaVVOdmprVjg3Z09vR3hIUE5icDZLdk80LVNxVmZfMEl0TUZ5MVdBVkVIZ3VHM2t4Um1qeTRROTU2Q3g3YmE2NWZsMjREN29Za0N1ZVJMTW9ET3gweU1aM1FLa3Q2WUZmR01fa0pWZXhmMTRveWVEZTNBWFdLRERIMVVFZHFTd3JCUlB1WjlKc0UwbVU0Y09vQ0xHU29GdXJVTVlzaG9kRWFMVFNTWi1RTFZkbWxreGt3QUwwSExWNDVzYWV5d0tj?oc=5",
           "date": "10.29 04:24",
           "source": "White River Now",
           "titleEn": "Bird flu confirmed in Baxter County backyard flock, first Arkansas case this seasonound in Baxter County; poultry owners urged to watch flocks"
         },
         {
-          "title": "조류 독감이 발생한 가운데 미국에서 두 번째로 큰 계란 생산 농장에서 약 100만 마리의 닭이 도살되었습니다.",
-          "url": "https://news.google.com/rss/articles/CBMitwFBVV95cUxNV25oRllFM3ZJeUxJZ1VFVWd4OWVvMF9SWW9kNWt1MHltcUgyUXZJXzg0X21Lc19hLUU3ZE13LVJGZzVBaE43U1o2ZGNFbFFfV2dwdGxIR0xMbGJzek5jRnFnZzVWSEJLdTZrdVVMTzRjR2xyb05qRk9LU3VFYXJHV21ZUU0tTUtTQ1pmMXQzZDBXblJDd0RHUkFEWW5CZklkV1hCODd3eUh5OWVzdzh3U0wySEVaTDg?oc=5",
-          "date": "10.26 00:30",
-          "source": "People.com",
-          "titleEn": "Nearly 1 Million Chickens Slaughtered at Second-Largest Egg-Producing Farm in the U.S. amid Bird Flu Outbreak"
-        },
-        {
-          "title": "새크라멘토 카운티 뒷마당 가금류 두 마리에서 조류인플루엔자 발견",
+          "title": "새크라멘토 카운티 뒷마당 가금류 떼 2마리에서 조류 독감이 검출되었습니다.",
           "url": "https://news.google.com/rss/articles/CBMi5AFBVV95cUxNRUtTN2M3Qm94S0h6Tk5KWXAySVFqak9EdzdPal9Xamw2Vk56LU5VS0czU1dpLUJxSFJDOGFJRXJCT1FPT2FuNnhLNGwwTFFOdE1FUGIzc3o1Q0IxX2I2R1cyVXd5TEpkaTRGZ3BTV1hMMnVyc0xJSlFnQkR2dlZRck5wN0g3ZUpUdzFZZTNGa1VzUE5xSzd3emZNRExVUjRRVkdvVVdHTE9RYUxsX2NUaHM5NkhObTM2VWZOMEhMTXpSMnkybG9mY09lNy1JTzdpR0dxTW1fd214WmVzcnp0dUZlYU0?oc=5",
           "date": "10.30 08:12",
           "source": "ABC10",
           "titleEn": "Bird Flu detected in two Sacramento County backyard poultry flocks"
         },
         {
-          "title": "치킨 텐더: 조류 독감 백신이 공격을 받고 있습니다 - 미국 과학 및 보건 협의회",
+          "title": "네덜란드 정부는 조류 독감으로 인해 가금류를 내부에 보관하도록 명령합니다.",
+          "url": "https://news.google.com/rss/articles/CBMiywFBVV95cUxNVUhGUzBXTXZua3oxa1cwWHZCS1BrMFJYQ09aY1hCY1lVRmg5V3paMlY3bE5icVNxNDVXNzgzcDJqVnNJRjRkX01NaXpIRFVIS1pXMHJRSmp4R2lUT1VseGN0RFNoekpIemdUOXRubXFmU05XTTdUal9sSURfOXJrZFFiUzlab1Y2czJad09EY2ZNSGt3YkgxWjBnQmZLNF9Ed1pnY2xRcFQwMmdsWlRHUDhVc3UxU0NMNnRSaHJ1LTc1NGR1dzB1YXJIOA?oc=5",
+          "date": "10.29 02:15",
+          "source": "Reuters",
+          "titleEn": "Dutch government orders poultry to be kept inside due to bird flu"
+        },
+        {
+          "title": "닭 입찰: 조류인플루엔자 백신 공격 - 미국과학보건위원회",
           "url": "https://news.google.com/rss/articles/CBMikwFBVV95cUxObk5wRXNjSmlaVUk5ei04eGMtOUNVcEE0Skp6MFpEc2d1d2JYaEM5LU14ZzMwQ3VVT1RaY1BscmRoQ1RNNjJTUFFfcXFya3VUMkRBaVlFVTAyaldGZGFJLTdOMjhla00xUmpQUHIwRkxxcXBUMTQycm5iQXNZdGVEVjlnR3RVcElYam40Nlk0cnFiTFU?oc=5",
           "date": "10.29 13:00",
           "source": "",
           "titleEn": "Chicken tenders: bird flu vaccines under attack - American Council on Science and Health"
+        },
+        {
+          "title": "조류 독감 발병으로 미국에서 두 번째로 큰 계란 생산 농장에서 거의 100만 마리의 닭이 도살되었습니다.",
+          "url": "https://news.google.com/rss/articles/CBMitwFBVV95cUxNV25oRllFM3ZJeUxJZ1VFVWd4OWVvMF9SWW9kNWt1MHltcUgyUXZJXzg0X21Lc19hLUU3ZE13LVJGZzVBaE43U1o2ZGNFbFFfV2dwdGxIR0xMbGJzek5jRnFnZzVWSEJLdTZrdVVMTzRjR2xyb05qRk9LU3VFYXJHV21ZUU0tTUtTQ1pmMXQzZDBXblJDd0RHUkFEWW5CZklkV1hCODd3eUh5OWVzdzh3U0wySEVaTDg?oc=5",
+          "date": "10.26 00:30",
+          "source": "People.com",
+          "titleEn": "Nearly 1 Million Chickens Slaughtered at Second-Largest Egg-Producing Farm in the U.S. amid Bird Flu Outbreak"
         }
       ],
       "stale": false
