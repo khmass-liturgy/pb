@@ -241,6 +241,7 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance
 .act .em{font-size:14px}
 .act small{font-size:9.5px;color:var(--muted);font-family:inherit}
 .act .nd{font-size:9.5px;color:#0B5E8A;font-family:inherit;white-space:nowrap;letter-spacing:-.2px}
+.act .fn{font-size:9.5px;font-family:inherit;white-space:nowrap;letter-spacing:-.2px}
 .act.vent{position:relative}
 .act.vent::before,.act.vent::after{content:'';position:absolute;bottom:var(--nd);width:7px;border-top:2.5px solid #0B5E8A;pointer-events:none}
 .act.vent::before{left:1px}.act.vent::after{right:1px}
@@ -611,6 +612,8 @@ function ventNeedBird(){
   if(S.fx&&S.fx.heat>0){const x=ventCtx();q=Math.max(q,ventHeatBird(S.mode,x.tin,x.tout,kg))}
   return q;
 }
+const ventFanBird=()=>Math.max(.4,VENT_FULL*S.ventLv/100)*ventKg();   // 지금 팬이 내는 환기량, m³/h/수
+const man10=q=>{const n=Math.round(q*10000/10)*10;return n>=10000?(n/10000).toFixed(n>=100000?0:1).replace(/\.0$/,'')+'만':n.toLocaleString('ko-KR')};   // 1만수당 ㎥/h 짧게(2.8만)
 function ventNeedLv(){return clamp(100*ventNeedBird()/(VENT_FULL*ventKg()),15,95)}
 function ventHeatWon(days){   // 난방비: 환기·외피로 빠지는 열 − 닭이 내는 열
   const b=BIRD[S.mode],x=ventCtx(),dT=Math.max(0,S.ctrl.temp-x.tout);
@@ -1433,8 +1436,10 @@ function renderActs(){
   const it=[['feed','🌾','급이',S.feedLv,FEED_DROP],['water','💧','급수',S.waterLv,WATER_DROP],['vent','🌀','환기',S.ventLv,Math.round(S.ventNeed||ventNeedLv())]];
   it.push(['litter','🪵','깔짚',S.litter,45]);
   const FL=FEEDS[S.mode],frec=feedRecIdx(S.mode,S.day+1),fcur=Math.max(0,FL.findIndex(f=>f.id===S.ctrl.fd));
-  const vn=Math.round(ventNeedBird()*10000/10)*10,vnS=vn>=10000?(vn/10000).toFixed(vn>=100000?0:1).replace(/\.0$/,'')+'만':vn.toLocaleString('ko-KR');   // 1만수당 필요 환기량(㎥/h)
-  el.innerHTML=it.map(([k,em,lab,lv,need])=>{const v=k==='vent';return `<button type="button" class="act${v?' vent':''}${lv<need?' low':''}" data-act="${k}" style="--lv:${Math.round(lv)}%;--gc:${lv>=need?'#BFE8B8':lv>0?'#FFE29A':'#FFB3A6'}${v?`;--nd:${need}%`:''}" aria-label="${lab}하기 ${won(btnCost(k))}${v?`, 1만수당 필요 ${vn.toLocaleString('ko-KR')}㎥/h`:''}"${v?` title="1만수당 필요 환기량 ${vn.toLocaleString('ko-KR')}㎥/h · 양옆 눈금 = 필요 수준"`:''}><span class="r"><span class="em">${em}</span>${lab}</span>${v?`<span class="nd">필요 ${vnS}</span>`:''}<small>${won(btnCost(k))}</small></button>`}).join('')
+  const vn=Math.round(ventNeedBird()*10000/10)*10,vnS=man10(ventNeedBird());   // 1만수당 필요 환기량(㎥/h)
+  const vf=Math.round(ventFanBird()*10000/10)*10,vfS=man10(ventFanBird()),vNeedLv=Math.round(S.ventNeed||ventNeedLv());   // 1만수당 지금 팬 환기량
+  const vfC=S.ventLv<vNeedLv?'#C0392B':S.ventLv<vNeedLv+45?'#2E7D32':'#B36200',vfT=S.ventLv<vNeedLv?'부족':S.ventLv<vNeedLv+45?'적정':'과다';
+  el.innerHTML=it.map(([k,em,lab,lv,need])=>{const v=k==='vent';return `<button type="button" class="act${v?' vent':''}${lv<need?' low':''}" data-act="${k}" style="--lv:${Math.round(lv)}%;--gc:${lv>=need?'#BFE8B8':lv>0?'#FFE29A':'#FFB3A6'}${v?`;--nd:${need}%`:''}" aria-label="${lab}하기 ${won(btnCost(k))}${v?`, 1만수당 필요 ${vn.toLocaleString('ko-KR')}㎥/h, 지금 ${vf.toLocaleString('ko-KR')}㎥/h ${vfT}`:''}"${v?` title="1만수당 필요 ${vn.toLocaleString('ko-KR')}㎥/h · 지금 팬 ${vf.toLocaleString('ko-KR')}㎥/h(${vfT}) · 양옆 눈금 = 필요 수준"`:''}><span class="r"><span class="em">${em}</span>${lab}</span>${v?`<span class="nd">필요 ${vnS}</span><span class="fn" style="color:${vfC}">지금 ${vfS}</span>`:''}<small>${won(btnCost(k))}</small></button>`}).join('')
     +(S.mode==='layer'?`<button type="button" class="act" data-act="calc" style="--lv:${S.ctrl.calcium?100:0}%" aria-label="칼슘 보충 ${S.ctrl.calcium?'켜짐':'꺼짐'}"><span class="r"><span class="em">🥚</span>칼슘</span><small>${S.ctrl.calcium?'켜짐':'꺼짐'}</small></button>`:'')
     +`<button type="button" class="act sel${fcur!==frec?' low':''}" data-act="feedsel" style="--lv:0%" aria-label="사료 종류 선택, 지금 ${FL[fcur].name}"><span class="r"><span class="em">🥣</span>사료</span><small>${FL[fcur].name.replace(' 사료','')}</small></button>`
     +`<button type="button" class="act" data-act="supp" style="--lv:${S.suppOn?100:0}%;--gc:#CFE8FF" aria-label="영양제 주기 ${won(COSTS[S.mode].supp)}"><span class="r"><span class="em">💊</span>영양제</span><small>${S.suppOn?'급여함':won(COSTS[S.mode].supp)}</small></button>`
@@ -1559,7 +1564,7 @@ function vaxLine(d,u){
 // 환기 한 줄: 1수 기준 일령별 필요 환기량(× 1만수)과 팬이 내는 양(m³/h), 그리고 판정
 function ventLine(){
   if(S.done)return'';
-  const kg=ventKg(),age=ventAge(),v=VENT_SCH[S.mode],sch=ventSchBird(S.mode,age),need=ventNeedBird(),prov=Math.max(.4,VENT_FULL*S.ventLv/100)*kg;
+  const kg=ventKg(),age=ventAge(),v=VENT_SCH[S.mode],sch=ventSchBird(S.mode,age),need=ventNeedBird(),prov=ventFanBird();
   const lv=ventNeedLv(),st=S.ventLv<lv?['부족','var(--bad)']:S.ventLv<lv+45?['적정','#2E9E4F']:['과다(난방비↑)','#C77700'];
   const N=10000,house=Math.round(need*N/10)*10,fan=Math.round(prov*N/10)*10;   // 폐사와 무관하게 1만수 기준으로 고정 표시(배우기 쉽게)
   const f=n=>n.toLocaleString('ko-KR'),u=S.mode==='layer'?'주':'일';
