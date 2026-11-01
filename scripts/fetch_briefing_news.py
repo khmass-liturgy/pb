@@ -12,7 +12,7 @@
 (기존 scripts/fetch_news.py = 뉴스 탭용 news/news.json 과는 별개 파일)
 """
 
-import sys, re, json, time, html as htmlmod
+import os, sys, re, json, time, html as htmlmod
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from urllib.parse import quote
@@ -298,18 +298,50 @@ def _translate_mymemory(text, session):
     return out
 
 
+SUMMARY_MODEL = "claude-haiku-4-5-20251001"
+
+
+def _translate_claude(text, session):
+    """Claude Haiku(ANTHROPIC_API_KEY). 무료 번역이 데이터센터 IP에서 막히는 날의 마지막 보루.
+    키가 없으면 건너뛴다(None). 헤드라인 한 줄만 번역하게 하고 군더더기를 걷어 낸다."""
+    key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+    if not key:
+        return None
+    r = session.post(
+        "https://api.anthropic.com/v1/messages",
+        headers={"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
+        json={"model": SUMMARY_MODEL, "max_tokens": 200,
+              "messages": [{"role": "user", "content":
+                            "다음 양계·축산 뉴스 영문 헤드라인을 자연스러운 한국어 한 줄로 번역해. "
+                            "번역문만 출력하고 따옴표·설명은 붙이지 마.\n\n" + text}]},
+        timeout=30,
+    )
+    if r.status_code != 200:
+        raise Exception("HTTP %d" % r.status_code)
+    out = "".join(b.get("text", "") for b in r.json().get("content", []) if b.get("type") == "text").strip().strip('"“”')
+    return out or None
+
+
 # 위에서부터 차례로 시도한다. 하나가 막혀도 다음 제공자가 받아 번역이 통째로
 # 영어로 남는 일을 막는다.
-TRANSLATORS = [("google", _translate_google), ("mymemory", _translate_mymemory)]
+TRANSLATORS = [("google", _translate_google), ("mymemory", _translate_mymemory), ("claude", _translate_claude)]
+
+# 이미 번역해 둔 제목(원문 → 한글). 이전 수집 결과에서 채운다 — 같은 기사를 다시 번역하지 않아
+# 무료 번역 호출이 줄고, 오늘 번역이 막혀도 어제 번역해 둔 기사는 한글로 남는다.
+TRANSLATION_CACHE = {}
 
 
 def translate_en_to_ko(text, session):
     """영문 제목을 한글로. 모든 제공자가 실패하면 None(호출부가 원문을 그대로 쓴다)."""
+    if text in TRANSLATION_CACHE:
+        return TRANSLATION_CACHE[text]
     for name, fn in TRANSLATORS:
         try:
             ko = fn(text, session)
             if ko:
-                return apply_glossary(ko)
+                ko = apply_glossary(ko)
+                TRANSLATION_CACHE[text] = ko
+                return ko
         except Exception as e:
             print("        번역 실패(%s): %s" % (name, e))
     return None
@@ -501,6 +533,16 @@ def main():
             old = json.loads(out_path.read_text(encoding="utf-8")).get("sources", {})
         except Exception:
             pass
+
+    # 이전 결과에서 번역 캐시를 채운다(영문 원문 titleEn + 한글이 들어 있는 title)
+    try:
+        for sv in json.loads(out_path.read_text(encoding="utf-8")).get("sources", {}).values():
+            for it in sv.get("items", []):
+                if it.get("titleEn") and re.search(r"[가-힣]", it.get("title", "")):
+                    TRANSLATION_CACHE.setdefault(it["titleEn"], it["title"])
+    except Exception:
+        pass
+    print("  번역 캐시 %d건 · Claude 대체 번역 %s\n" % (len(TRANSLATION_CACHE), "사용 가능" if os.environ.get("ANTHROPIC_API_KEY") else "키 없음"))
 
     sources, failed = {}, []
     for src in SOURCES:

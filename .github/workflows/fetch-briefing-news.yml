@@ -30,6 +30,9 @@ jobs:
         run: pip install requests
 
       - name: 뉴스 수집
+        env:
+          # 무료 번역(구글·MyMemory)이 러너 IP에서 막히면 Claude Haiku로 번역한다(없으면 건너뜀)
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python scripts/fetch_briefing_news.py
 
       - name: 결과 커밋
