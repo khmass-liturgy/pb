@@ -5733,7 +5733,7 @@ let coinFetchStatus = "idle"; // idle | loading | done | error
 // 저장소 기준 경로에서 .json을 떼고 영문·숫자 이외를 _로 바꾼 것(market/quotes.json → market_quotes).
 // Storage에 아직 없거나 함수가 실패하면 예전처럼 raw를 시도한다(저장소가 공개인 동안의 안전망).
 const DATA_RAW_PREFIX = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/";
-const DATA_DIRS_RE = /^(poultry_price|broiler_price_today|taxfree_fuel|prices|egg_report|layer_stats|feed_production|jungchu_price|hpai_risk|hpai_kr|poultry_disease|research_papers|market|news|notices|grain_quality|grain_price|import_status|industry_news|animal_drug_news|poultry_disease_brief|price_history|weather_news|farm_density|broiler_breeder|usda_crop_progress)\//;
+const DATA_DIRS_RE = /^(poultry_price|broiler_price_today|taxfree_fuel|prices|egg_report|layer_stats|feed_production|jungchu_price|hpai_risk|hpai_kr|poultry_disease|research_papers|market|news|notices|grain_quality|grain_price|import_status|industry_news|animal_drug_news|poultry_disease_brief|price_history|weather_news|farm_density|broiler_breeder|usda_crop_progress|h5n1_human)\//;
 function dataDatasetOf(url){
   if(typeof url !== "string" || url.indexOf(DATA_RAW_PREFIX) !== 0) return null;
   const rel = url.slice(DATA_RAW_PREFIX.length).split("?")[0];
@@ -10248,12 +10248,127 @@ function renderHpaiDataCards(){
   </div>`;
 }
 
+// ── 사람 H5N1 감염·사망 (WHO 누적 확진 사례, 국가별·연도별) ──────────────────────────────────
+// scripts/fetch_h5n1_human.py 가 WHO/GIP 「Cumulative number of confirmed human cases for avian influenza A(H5N1)」 표(PDF)를
+// 읽어 h5n1_human/latest.json 에 담는다. WHO는 실험실 확진 사례만 집계하며 확진자 수에 사망자가 포함돼 있다.
+const H5N1_HUMAN_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/h5n1_human/latest.json";
+let h5n1HumanState = { status:"idle", data:null, metric:"deaths", range:"all" };
+async function fetchH5n1Human(){
+  if(h5n1HumanState.status === "loading") return;
+  h5n1HumanState.status = "loading";
+  try {
+    const resp = await fetchWithTimeout(H5N1_HUMAN_JSON_URL + "?t=" + Math.floor(Date.now() / 600000), 10000);
+    if(!resp.ok) throw new Error("HTTP " + resp.status);
+    h5n1HumanState.data = await resp.json();
+    h5n1HumanState.status = "done";
+  } catch(e){
+    console.warn("WHO H5N1 사람 감염 자료 로딩 실패:", e);
+    h5n1HumanState.status = "error";
+  }
+  if(state.tab === "hpai") render();
+}
+
+// 연도별 전 세계 확진자(옅은 막대)와 사망자(진한 막대)
+function h5hYearChart(d){
+  const W = 640, H = 190, L = 34, R = 8, T = 14, B = 24, n = d.years.length;
+  const ymax = Math.max.apply(null, d.year_cases), step = ymax > 120 ? 50 : 20, top = Math.ceil(ymax / step) * step;
+  const bw = (W - L - R) / n, y = v => T + (H - T - B) * (1 - v / top);
+  let g = "";
+  for(let v = 0; v <= top; v += step) g += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#eee"/><text x="${L - 5}" y="${y(v) + 3}" text-anchor="end" font-size="9" fill="#aaa">${v}</text>`;
+  d.years.forEach((yr, i) => {
+    const x = L + i * bw, c = d.year_cases[i], k = d.year_deaths[i];
+    g += `<rect x="${x + bw * 0.12}" y="${y(c)}" width="${bw * 0.76}" height="${y(0) - y(c)}" fill="#FFCC80"><title>${yr}년 확진 ${c}명 · 사망 ${k}명</title></rect>`;
+    g += `<rect x="${x + bw * 0.26}" y="${y(k)}" width="${bw * 0.48}" height="${y(0) - y(k)}" fill="#C62828"><title>${yr}년 사망 ${k}명 (확진 ${c}명)</title></rect>`;
+    if(k > 0 && (k >= 40 || yr >= 2024)) g += `<text x="${x + bw / 2}" y="${y(c) - 3}" text-anchor="middle" font-size="9" font-weight="700" fill="#C62828">${k}</text>`;
+    if(i % 2 === 0 || yr >= 2024) g += `<text x="${x + bw / 2}" y="${H - 8}" text-anchor="middle" font-size="9" fill="#888">${String(yr).slice(2)}</text>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block" role="img" aria-label="연도별 H5N1 사람 확진자와 사망자">${g}</svg>`;
+}
+
+function renderHpaiHumanCard(){
+  const st = h5n1HumanState, d = st.data;
+  const shell = inner => `<div class="card" style="margin-bottom:16px;border-top:6px solid #C62828">${inner}</div>`;
+  if(st.status === "loading" || st.status === "idle") return shell(`<div style="text-align:center;padding:20px;color:#aaa">⏳ 불러오는 중...</div>`);
+  if(st.status === "error" || !d || !d.countries)
+    return shell(`<div style="text-align:center;padding:14px;color:#aaa;font-size:12px">WHO 자료를 아직 불러오지 못했습니다<br>
+      <a href="https://www.who.int/teams/global-influenza-programme/avian-influenza" target="_blank" rel="noopener" style="color:#C62828;font-size:11px">🌐 WHO 조류인플루엔자 바로가기</a></div>`);
+
+  const yrs = d.years, ny = yrs.length, last = ny - 1;
+  const idxOf = y => yrs.indexOf(y);
+  const cfr = d.total_cases ? (d.total_deaths / d.total_cases * 100) : 0;
+  const asOf = d.as_of.split("-"), asOfTxt = `${asOf[0]}년 ${+asOf[1]}월 ${+asOf[2]}일`;
+  const yc = y => idxOf(y) >= 0 ? d.year_cases[idxOf(y)] : null, yd = y => idxOf(y) >= 0 ? d.year_deaths[idxOf(y)] : null;
+  const recent = yrs.filter(y => y >= yrs[last] - 2);
+  const recentCountries = d.countries.filter(c => recent.some(y => c.cases[idxOf(y)] > 0)).map(c => c.ko);
+  const lastFull = yrs[last] - 1;       // 마지막 해는 부분 연도(기준일까지)
+  const warn = `
+    <div style="background:#FFEBEE;border:2px solid #E53935;border-radius:12px;padding:12px 14px;margin-bottom:14px">
+      <div style="font-size:15px;font-weight:900;color:#B71C1C;margin-bottom:6px">⚠️ 조류인플루엔자(H5N1)는 사람의 목숨도 앗아갑니다</div>
+      <ul style="margin:0 0 8px 18px;padding:0;font-size:12.5px;line-height:1.8;color:#3E2723">
+        <li>WHO가 확인한 H5N1 사람 감염은 <b>2003년 이후 ${d.total_cases.toLocaleString("ko-KR")}명, 그중 <span style="color:#C62828">${d.total_deaths.toLocaleString("ko-KR")}명이 사망</span></b>했습니다 (치명률 약 <b>${cfr.toFixed(0)}%</b>, ${asOfTxt} 기준 ${d.countries.length}개국).</li>
+        <li>최근 흐름: ${[2020, 2022, 2024].filter(y => yc(y) != null).map(y => `${y}년 ${yc(y)}명`).join(" → ")}${yc(lastFull) != null && lastFull > 2024 ? ` → ${lastFull}년 ${yc(lastFull)}명(사망 ${yd(lastFull)}명)` : ""}${yc(yrs[last]) != null ? ` → ${asOfTxt}까지 올해 ${yc(yrs[last])}명(사망 ${yd(yrs[last])}명)` : ""}.${yc(2024) != null && yc(2022) != null && yc(2024) > yc(2022) ? " 사례가 거의 없던 시기를 지나 다시 늘었습니다." : ""}</li>
+        <li>최근 3년(${recent[0]}~${recent[recent.length - 1]})에도 <b>${recentCountries.length}개국</b>(${esc(recentCountries.join("·"))})에서 감염이 확인됐습니다.</li>
+        <li>사례는 주로 감염된 가금·야생조류나 오염된 환경에 노출된 사람에게서 나옵니다. <b>죽은 닭·오리를 치우는 사람, 계사에 들어가는 사람이 가장 위험</b>합니다.</li>
+      </ul>
+      <div style="font-size:12px;font-weight:800;color:#B71C1C;margin-bottom:3px">지금 해야 할 행동</div>
+      <ul style="margin:0 0 6px 18px;padding:0;font-size:12px;line-height:1.75;color:#3E2723">
+        <li>폐사가 갑자기 늘거나 산란율이 떨어지는 등 AI가 의심되면 <b>맨손으로 만지지 말고</b> 가축방역기관·수의사에 먼저 알립니다.</li>
+        <li>살처분·폐사체 처리·계사 작업 때는 <b>마스크(N95 등)·장갑·보호안경·방역복·장화</b>를 착용하고, 작업 뒤에는 옷을 벗어 따로 두고 샤워합니다.</li>
+        <li>죽은 야생조류는 만지지 않고 신고합니다. 오염된 장화·차량·장비는 농장 밖으로 가져가지 않습니다.</li>
+        <li>가금에 노출된 뒤 <b>발열·기침·인후통·결막염(눈 충혈)</b> 등이 생기면 출근·외출을 멈추고 질병관리청 콜센터(☎1339)나 보건소에 <b>가금 접촉력을 먼저 알린</b> 뒤 진료를 받습니다.</li>
+      </ul>
+      <div style="font-size:10.5px;color:#795548;line-height:1.6">※ WHO는 실험실 확진 사례만 집계하므로 경증·무증상 감염은 빠져 있어 실제 치명률은 위 숫자보다 낮을 수 있습니다. 그래도 확진된 사람의 거의 절반이 숨졌다는 점은 분명한 경고입니다.
+        <a href="#" class="hpai-go-prevent" style="color:#C62828;font-weight:700">→ 예방·신고 안내 보기</a></div>
+    </div>`;
+
+  // 연도별 차트
+  const chart = `<div style="font-size:13px;font-weight:800;color:#333;margin:2px 0 3px">연도별 전 세계 확진자·사망자 <span style="font-size:10.5px;font-weight:500;color:#999"><span style="color:#FFB74D">■</span> 확진자(사망 포함) <span style="color:#C62828">■</span> 사망자 · ${yrs[last]}년은 ${asOfTxt}까지</span></div>${h5hYearChart(d)}`;
+
+  // 국가 × 연도 매트릭스
+  const metric = st.metric === "cases" ? "cases" : "deaths", from = st.range === "recent" ? Math.max(0, ny - 10) : 0;
+  const cols = yrs.slice(from).map((y, k) => from + k);
+  const mx = Math.max.apply(null, d.countries.map(c => Math.max.apply(null, c[metric])));
+  const rgb = metric === "deaths" ? "198,40,40" : "245,124,0";
+  const cell = v => v ? `<td style="padding:3px 2px;text-align:center;font-variant-numeric:tabular-nums;font-weight:${v >= mx * 0.4 ? 800 : 500};color:${v >= mx * 0.5 ? "#fff" : "#4E342E"};background:rgba(${rgb},${(0.12 + 0.88 * Math.sqrt(v / mx)).toFixed(2)})">${v}</td>` : `<td style="padding:3px 2px;text-align:center;color:#ddd">·</td>`;
+  const rows = d.countries.filter(c => cols.some(i => c[metric][i] > 0)).map(c => {
+    const tot = cols.reduce((a, i) => a + c[metric][i], 0);
+    return `<tr style="border-bottom:1px solid #f4f4f4"><td style="padding:3px 8px 3px 4px;white-space:nowrap;font-weight:700;color:#444;position:sticky;left:0;background:#fff">${esc(c.ko)}</td>${cols.map(i => cell(c[metric][i])).join("")}<td style="padding:3px 6px;text-align:right;font-weight:800;border-left:2px solid #eee;font-variant-numeric:tabular-nums">${tot}</td></tr>`;
+  }).join("");
+  const sumRow = (arr) => `<tr style="border-top:2px solid #bbb;background:#FAFAFA"><td style="padding:4px 8px 4px 4px;font-weight:900;position:sticky;left:0;background:#FAFAFA">전 세계</td>${cols.map(i => `<td style="padding:4px 2px;text-align:center;font-weight:800;font-variant-numeric:tabular-nums">${arr[i]}</td>`).join("")}<td style="padding:4px 6px;text-align:right;font-weight:900;border-left:2px solid #eee">${cols.reduce((a, i) => a + arr[i], 0)}</td></tr>`;
+  const btn = (k, v, label, on) => `<button class="h5h-btn" data-k="${k}" data-v="${v}" style="border:2px solid ${on ? "#C62828" : "#e5e5e5"};background:${on ? "#FFEBEE" : "#fff"};color:${on ? "#B71C1C" : "#777"};border-radius:16px;padding:4px 12px;font-size:12px;font-weight:700;cursor:pointer">${label}</button>`;
+  const matrix = `
+    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:16px 0 6px">
+      <span style="font-size:13px;font-weight:800;color:#333;margin-right:4px">국가별·연도별 ${metric === "deaths" ? "사망자" : "확진자"} 수</span>
+      ${btn("metric", "deaths", "☠️ 사망자", metric === "deaths")}${btn("metric", "cases", "🤒 확진자", metric === "cases")}
+      <span style="width:8px"></span>
+      ${btn("range", "all", "전체 " + yrs[0] + "~", st.range !== "recent")}${btn("range", "recent", "최근 10년", st.range === "recent")}
+    </div>
+    <div style="overflow-x:auto;border:1px solid #f0f0f0;border-radius:8px">
+      <table style="border-collapse:collapse;font-size:10.5px;min-width:${cols.length * 27 + 150}px;width:100%">
+        <thead><tr style="background:#FAFAFA"><th style="padding:5px 8px 5px 4px;text-align:left;position:sticky;left:0;background:#FAFAFA;font-size:10px;color:#888">국가</th>${cols.map(i => `<th style="padding:5px 2px;text-align:center;font-size:9.5px;color:#888;font-weight:${yrs[i] >= 2024 ? 800 : 500}">${yrs[i] % 100 < 10 ? "0" : ""}${yrs[i] % 100}</th>`).join("")}<th style="padding:5px 6px;text-align:right;border-left:2px solid #eee;font-size:10px;color:#888">합계</th></tr></thead>
+        <tbody>${rows}${sumRow(metric === "deaths" ? d.year_deaths : d.year_cases)}</tbody>
+      </table>
+    </div>
+    <div style="font-size:10px;color:#aaa;margin-top:4px">열 머리글은 연도 끝 두 자리(예: 24 = 2024년). 색이 진할수록 많음 · 「·」은 0명 · 사망자가 많은 나라 순.</div>`;
+
+  const foot = `
+    <div style="font-size:10.5px;color:#777;line-height:1.7;margin-top:10px">${(d.notes || []).map(t => "· " + esc(t)).join("<br>")}</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-top:8px">
+      <div style="font-size:9px;color:#bbb">출처: ${esc(d.source || "WHO")} · 표 기준일 ${esc(d.as_of)} · 월 1회 안팎 갱신 · 수집 ${esc(d.updated || "")}</div>
+      <a href="${esc(d.page_url || "https://www.who.int/teams/global-influenza-programme/avian-influenza")}" target="_blank" rel="noopener" style="font-size:11px;color:#C62828;border:1px solid #C62828;border-radius:6px;padding:4px 9px;text-decoration:none">WHO 원표 ↗</a>
+    </div>`;
+  return shell(`
+    <div class="display" style="font-size:15px;margin-bottom:2px">👤 사람 H5N1 감염·사망 현황 <span style="font-size:11px;font-weight:600;color:#C62828;background:#FFEBEE;border-radius:10px;padding:2px 9px;vertical-align:middle">WHO 확진 사례</span></div>
+    <div style="font-size:11px;color:#999;margin-bottom:10px">2003년 이후 WHO에 보고된 국가별·연도별 확진자와 사망자</div>
+    ${warn}${chart}${matrix}${foot}`);
+}
+
 // AI 탭 하위 메뉴(가로 칩). 항목을 더 넣으려면 HPAI_SUBS에 한 줄, renderHpaiTab의 body 분기에 한 줄을 추가한다.
-const HPAI_SUBS = [["news", "📰", "AI 소식"], ["kr", "🗺️", "국내 발생·검출"], ["map", "🧭", "위험·철새 지도"], ["stats", "📊", "발생 통계(WOAH)"], ["symptom", "🩺", "증상"], ["prevent", "🚨", "예방·신고"]];
+const HPAI_SUBS = [["news", "📰", "AI 소식"], ["kr", "🗺️", "국내 발생·검출"], ["map", "🧭", "위험·철새 지도"], ["stats", "📊", "발생 통계(WOAH)"], ["human", "👤", "사람 감염(WHO)"], ["symptom", "🩺", "증상"], ["prevent", "🚨", "예방·신고"]];
 let hpaiSub = (function(){ try { return localStorage.getItem("hpai_sub") || "news"; } catch(e){ return "news"; } })();
 function renderHpaiTab(){
   const sub = HPAI_SUBS.some(x => x[0] === hpaiSub) ? hpaiSub : "news";
-  const body = sub === "news" ? renderHpaiNewsCard() : sub === "kr" ? renderHpaiKrCard() : sub === "map" ? renderRiskMapCard() + renderFlywayCard() : sub === "stats" ? renderHpaiDataCards() : sub === "symptom" ? renderHpaiSymptomCard() : renderHpaiPreventCard();
+  const body = sub === "news" ? renderHpaiNewsCard() : sub === "kr" ? renderHpaiKrCard() : sub === "map" ? renderRiskMapCard() + renderFlywayCard() : sub === "stats" ? renderHpaiDataCards() : sub === "human" ? renderHpaiHumanCard() : sub === "symptom" ? renderHpaiSymptomCard() : renderHpaiPreventCard();
   return body;
 }
 
@@ -28666,6 +28781,7 @@ function renderHeaderSolarTerm(now){
 const NEW_FEATURE_DAYS = 21;
 const NEW_FEATURES = [
   { key:"fgventbird",     date:"2026-11-01", label:"닭 키우기 게임 — 환기량을 한 마리 기준·일령별 증가량으로 계산(관리자 조정)", where:"유료서비스 · 체험·게임", go:{ premium:"farmgame_broiler" } },
+  { key:"h5n1human", date:"2026-11-04", label:"사람 H5N1 감염·사망 현황 — WHO 국가별·연도별 + AI 위험 경고", where:"AI 탭 · 사람 감염(WHO)", go:{ tab:"hpai" } },
   { key:"usdacrop", date:"2026-11-04", label:"미국 작황·토양수분(USDA 주간) — 사료곡물 원료 품질평가", where:"유료서비스 · 사료곡물 원료 품질평가", go:{ premium:"feedgrain" } },
   { key:"broileroutlook", date:"2026-10-23", label:"육계 월간 전망 — KREI 농업관측센터 가격·도축·입식 전망", where:"시세·통계", go:{ tab:"price" } },
   { key:"broilerbreeder", date:"2026-10-23", label:"육용종계 육성계·성계 사육현황과 초생추 병아리 생산잠재력", where:"시세·통계", go:{ tab:"price" } },
@@ -37837,6 +37953,9 @@ function attachEvents(){
     render();
     const nb = document.getElementById("hpai-subbar"); if(nb) nb.scrollLeft = sl;
   });
+  // 사람 H5N1 카드: 사망자/확진자·기간 전환, 「예방·신고」로 이동
+  document.querySelectorAll(".h5h-btn").forEach(b => b.onclick = () => { h5n1HumanState[b.dataset.k] = b.dataset.v; render(); });
+  document.querySelectorAll(".hpai-go-prevent").forEach(a => a.onclick = e => { e.preventDefault(); hpaiSub = "prevent"; try { localStorage.setItem("hpai_sub", hpaiSub); } catch(_){} render(); window.scrollTo(0, 0); });
   // 하위 메뉴 칩 공통 처리: 누르면 값을 저장하고 다시 그리되, 가로 스크롤 위치는 유지한다.
   [["wx-sub-btn", "wx-subbar", v => { wxSub = v; }, "wx_sub"], ["vent-sub-btn", "vent-subbar", v => { ventSub = v; }, "vent_sub"], ["dz-sub-btn", "dz-subbar", v => { dzSub = v; }, "dz_sub"], ["news-sub-btn", "news-subbar", v => { newsSub = v; }, "news_sub"], ["prem-sub-btn", "prem-subbar", v => { premiumSub = v; }, "premium_sub"]].forEach(([cls, id, set, lsKey]) => {
     document.querySelectorAll("." + cls).forEach(b => b.onclick = () => {
@@ -38360,6 +38479,7 @@ fetchBroilerPriceToday();
 fetchEggReport();
 fetchLayerStats();
 fetchBroilerBreeder();
+fetchH5n1Human();
 fetchFeedProduction();
 fetchJungchuPrice();
 fetchHpaiRisk();

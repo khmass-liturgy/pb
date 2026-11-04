@@ -1,0 +1,51 @@
+name: WHO H5N1 사람 감염 누적표 수집
+
+# WHO가 월 1회 안팎으로 「H5N1 사람 확진 사례 누적표」(국가별·연도별 확진자·사망자)를 새로 올린다. 게시 주소에 날짜가 들어가 고정 주소가 없어,
+# WHO 서태평양지역사무소 주간 속보가 링크한 최신 표 페이지를 찾아 PDF를 읽는다(scripts/fetch_h5n1_human.py).
+# 새 표가 없으면(페이지 주소 비교) 아무 것도 하지 않는다. 월요일 01:30 UTC = 한국시간 10:30.
+on:
+  schedule:
+    - cron: "30 1 * * 1"
+  workflow_dispatch:
+  push:
+    paths:
+      - "scripts/fetch_h5n1_human.py"
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-h5n1-human:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: 패키지 설치
+        run: pip install requests pdfplumber
+      - name: WHO 누적표 수집
+        run: python scripts/fetch_h5n1_human.py
+      - name: 결과 커밋
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add h5n1_human/
+          git diff --staged --quiet && echo "변경 없음" && exit 0
+          git commit -m "👤 WHO H5N1 사람 감염 누적표 갱신 ($(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M KST'))"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin ${GITHUB_REF_NAME} && git push && exit 0
+            echo "푸시 재시도 $i"
+            sleep 5
+          done
+          exit 1
+
+      - name: Firebase Storage 업로드 (저장소 비공개 대비)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          pip install -q firebase-admin
+          python scripts/upload_to_storage.py h5n1_human/
