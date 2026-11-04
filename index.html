@@ -5733,7 +5733,7 @@ let coinFetchStatus = "idle"; // idle | loading | done | error
 // 저장소 기준 경로에서 .json을 떼고 영문·숫자 이외를 _로 바꾼 것(market/quotes.json → market_quotes).
 // Storage에 아직 없거나 함수가 실패하면 예전처럼 raw를 시도한다(저장소가 공개인 동안의 안전망).
 const DATA_RAW_PREFIX = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/";
-const DATA_DIRS_RE = /^(poultry_price|broiler_price_today|taxfree_fuel|prices|egg_report|layer_stats|feed_production|jungchu_price|hpai_risk|hpai_kr|poultry_disease|research_papers|market|news|notices|grain_quality|grain_price|import_status|industry_news|animal_drug_news|poultry_disease_brief|price_history|weather_news|farm_density|broiler_breeder)\//;
+const DATA_DIRS_RE = /^(poultry_price|broiler_price_today|taxfree_fuel|prices|egg_report|layer_stats|feed_production|jungchu_price|hpai_risk|hpai_kr|poultry_disease|research_papers|market|news|notices|grain_quality|grain_price|import_status|industry_news|animal_drug_news|poultry_disease_brief|price_history|weather_news|farm_density|broiler_breeder|usda_crop_progress)\//;
 function dataDatasetOf(url){
   if(typeof url !== "string" || url.indexOf(DATA_RAW_PREFIX) !== 0) return null;
   const rel = url.slice(DATA_RAW_PREFIX.length).split("?")[0];
@@ -14444,6 +14444,132 @@ function renderFeedGrainMethod(){
   </div>`;
 }
 
+// ── 미국 작황·토양수분 (USDA NASS 주간 작황 보고서) ─────────────────────────────────────────
+// scripts/fetch_usda_crop_progress.py 가 매주 usda_crop_progress/latest.json 에 담는다(NASS Crop Progress 텍스트판).
+// 토양수분(표토·심토), 옥수수·대두 등의 수확·성숙 진도, 작황 등급(생육기)의 전국 합계와 주요 주만 보여 준다.
+// 보고서에 인쇄된 값 그대로이며 이 화면에서 새로 계산하는 것은 합(적정+과습)과 평년 대비 차이뿐이다.
+const USDA_CROP_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/usda_crop_progress/latest.json";
+let usdaCropState = { status:"idle", data:null };
+async function fetchUsdaCrop(){
+  if(usdaCropState.status === "loading") return;
+  usdaCropState.status = "loading";
+  try {
+    const resp = await fetchWithTimeout(USDA_CROP_JSON_URL + "?t=" + Math.floor(Date.now() / 600000), 12000);
+    if(!resp.ok) throw new Error("HTTP " + resp.status);
+    usdaCropState.data = await resp.json();
+    usdaCropState.status = "done";
+  } catch(e){
+    console.warn("USDA 작황 로딩 실패:", e);
+    usdaCropState.status = "error";
+  }
+  if(state.tab === "premium" && premiumState.view === "feedgrain") render();
+}
+const US_SOIL = [["vs", "매우 건조", "#B71C1C"], ["s", "건조", "#EF9A9A"], ["a", "적정", "#43A047"], ["sur", "과습", "#1E88E5"]];
+const US_COND = [["vp", "매우 나쁨", "#B71C1C"], ["p", "나쁨", "#EF9A9A"], ["f", "보통", "#FFE082"], ["g", "좋음", "#81C784"], ["e", "매우 좋음", "#2E7D32"]];
+const usStack = (cats, v, h) => `<div style="display:flex;height:${h || 18}px;border-radius:5px;overflow:hidden;background:#eee">${cats.map(c => { const n = v ? v[c[0]] : 0; return n ? `<div title="${c[1]} ${n}%" style="width:${n}%;background:${c[2]};color:${c[0] === "s" || c[0] === "f" || c[0] === "p" ? "#444" : "#fff"};font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;white-space:nowrap">${n >= 7 ? n : ""}</div>` : ""; }).join("")}</div>`;
+const usLegend = cats => `<div style="display:flex;gap:10px;flex-wrap:wrap;font-size:10.5px;color:#777;margin:3px 0 8px">${cats.map(c => `<span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${c[2]};vertical-align:baseline"></span> ${c[1]}</span>`).join("")}</div>`;
+const usArrow = d => d == null ? "" : `<span style="color:${d > 0 ? "#2E7D32" : d < 0 ? "#C62828" : "#888"};font-weight:700;white-space:nowrap">${d > 0 ? "▲" : d < 0 ? "▼" : "─"}${Math.abs(d)}%p</span>`;
+const usDate = iso => { const p = iso.split("-"); return `${+p[1]}월 ${+p[2]}일`; };
+
+// 주별 흐름 꺾은선: series = [{label,color,key}]
+function usLines(hist, series, yMax){
+  const W = 640, H = 150, L = 34, R = 8, T = 10, B = 22, n = hist.length;
+  if(n < 2) return "";
+  const x = i => L + (W - L - R) * (i / (n - 1)), y = v => T + (H - T - B) * (1 - v / yMax);
+  let g = "";
+  [0, 25, 50, 75, 100].filter(v => v <= yMax).forEach(v => { g += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#eee"/><text x="${L - 5}" y="${y(v) + 3}" text-anchor="end" font-size="9" fill="#aaa">${v}</text>`; });
+  hist.forEach((h, i) => { if(i % 2 === n % 2 || n < 7) g += `<text x="${x(i)}" y="${H - 6}" text-anchor="middle" font-size="9" fill="#888">${+h.week_ending.slice(5, 7)}/${+h.week_ending.slice(8)}</text>`; });
+  series.forEach(s => {
+    let d = "", pen = false, last = null;
+    hist.forEach((h, i) => { const v = h[s.key]; if(v == null){ pen = false; return; } d += (pen ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1); pen = true; last = [i, v]; });
+    if(!d) return;
+    g += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2.2"/>`;
+    if(last){ g += `<circle cx="${x(last[0])}" cy="${y(last[1])}" r="3.5" fill="${s.color}"/>`; s.last = last[1]; }
+  });
+  const lg = series.map(s => `<span style="color:${s.color}">━</span> ${s.label}${s.last != null ? ` <b style="color:#333">${s.last}</b>` : ""}`).join(" &nbsp;");
+  return `<div style="font-size:10.5px;color:#777;margin:2px 0">${lg}</div><svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block" role="img" aria-label="${esc(series.map(s => s.label).join(", "))} 주별 추이">${g}</svg>`;
+}
+
+function renderFeedGrainUsda(){
+  const d = usdaCropState;
+  if(d.status === "loading" || d.status === "idle") return `<div style="text-align:center;padding:20px;color:#aaa">⏳ 불러오는 중...</div>`;
+  const r = d.data;
+  if(d.status === "error" || !r || !r.soil)
+    return `<div style="text-align:center;padding:14px;color:#aaa;font-size:12px">USDA 작황 자료를 아직 불러오지 못했습니다 — 매주 화요일 아침 갱신<br>
+      <a href="${esc(r && r.ag_insights_url || "https://aginsights.nass.usda.gov/")}" target="_blank" rel="noopener" style="color:#F57F17;font-size:11px">🌽 USDA NASS Ag Insights 바로가기</a></div>`;
+  const sec = (title, sub, inner) => `<div style="margin-bottom:18px"><div style="font-size:13px;font-weight:800;color:#333">${title}${sub ? ` <span style="font-size:10.5px;font-weight:500;color:#999">${sub}</span>` : ""}</div>${inner}</div>`;
+
+  // ① 토양수분
+  const soilRow = (label, e) => {
+    if(!e) return "";
+    const n = e.now, pw = e.prev_week, py = e.prev_year;
+    return `<div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:4px;margin-bottom:3px">
+        <span style="font-size:12px;font-weight:700;color:#444">${label} <span style="font-weight:500;color:#aaa;font-size:10.5px">${e.states}개 주</span></span>
+        <span style="font-size:11.5px;color:#555">적정 <b style="font-size:15px;color:#2E7D32">${n.a}%</b>${pw ? ` · 전주 ${pw.a}% ${usArrow(n.a - pw.a)}` : ""}${py ? ` · 전년 ${py.a}% ${usArrow(n.a - py.a)}` : ""} · 건조(매우 건조+건조) <b>${n.vs + n.s}%</b></span>
+      </div>${usStack(US_SOIL, n)}</div>`;
+  };
+  const soil = r.soil.topsoil || r.soil.subsoil ? sec("💧 토양수분 (전국)", `${usDate(r.week_ending)} 끝나는 주 · 작물 면적 가중`, `${usLegend(US_SOIL)}${soilRow("표토", r.soil.topsoil)}${soilRow("심토", r.soil.subsoil)}
+    <div style="font-size:10.5px;color:#999">「적정」은 NASS Ag Insights의 「PCT ADEQUATE」와 같은 값입니다. 적정+과습 = 표토 ${r.soil.topsoil ? r.soil.topsoil.now.a + r.soil.topsoil.now.sur : "-"}%.</div>`) : "";
+
+  // ② 주요 주 표토 수분
+  const bs = r.soil.by_state || {}, names = r.state_names || {};
+  const stKeys = Object.keys(bs).filter(k => bs[k].topsoil);
+  const states = stKeys.length ? sec("🗺️ 주요 산지 표토 수분", "옥수수·대두 벨트와 주요 주", `${usLegend(US_SOIL)}<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:6px 18px">${stKeys.map(k => {
+    const t = bs[k].topsoil, dry = t.vs + t.s;
+    return `<div><div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:2px"><span style="font-weight:700;color:#444">${esc(names[k] || k)}</span><span style="color:${dry >= 45 ? "#C62828" : "#777"};font-weight:${dry >= 45 ? 800 : 500}">건조 ${dry}% · 적정 ${t.a}%${t.sur ? " · 과습 " + t.sur + "%" : ""}</span></div>${usStack(US_SOIL, t, 11)}</div>`;
+  }).join("")}</div>`) : "";
+
+  // ③ 작물 진도
+  const prog = (r.progress || []).filter(p => ["corn", "soy", "winter_wheat", "sorghum"].indexOf(p.crop) >= 0);
+  const pbar = p => {
+    const dv = p.avg5 == null ? null : p.this_week - p.avg5;
+    const mark = (v, color, t) => v == null ? "" : `<div title="${t} ${v}%" style="position:absolute;left:calc(${v}% - 1px);top:-2px;bottom:-2px;width:2px;background:${color}"></div>`;
+    return `<div style="margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;font-size:11.5px;margin-bottom:2px"><span style="font-weight:700;color:#444">${esc(p.crop_ko)} ${esc(p.stage_ko)} <span style="font-weight:500;color:#aaa;font-size:10.5px">${p.states}개 주</span></span>
+        <span style="color:#555"><b style="font-size:14px;color:#222">${p.this_week}%</b>${p.prev_week != null ? ` · 전주 ${p.prev_week}%` : ""}${p.last_year != null ? ` · 작년 ${p.last_year}%` : ""}${p.avg5 != null ? ` · 평년 ${p.avg5}% ${usArrow(dv)}` : ""}</span></div>
+      <div style="position:relative;height:10px;background:#eee;border-radius:5px"><div style="width:${p.this_week}%;height:100%;background:#F57F17;border-radius:5px"></div>${mark(p.avg5, "#37474F", "평년")}${mark(p.last_year, "#1E88E5", "작년")}</div></div>`;
+  };
+  const progress = prog.length ? sec("🚜 작물 진도", "빨간 막대 = 올해 · 검은 눈금 = 5년 평균 · 파란 눈금 = 작년", prog.map(pbar).join("")) : "";
+
+  // ④ 작황 등급
+  const cond = r.condition || [];
+  const condSec = cond.length ? sec("🌱 작황 등급", `${usDate(r.week_ending)} 끝나는 주`, `${usLegend(US_COND)}${cond.map(c => {
+    const ge = c.now.g + c.now.e, pg = c.prev_week ? c.prev_week.g + c.prev_week.e : null, yg = c.prev_year ? c.prev_year.g + c.prev_year.e : null;
+    return `<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;font-size:11.5px;margin-bottom:2px"><span style="font-weight:700;color:#444">${esc(c.label)} <span style="font-weight:500;color:#aaa;font-size:10.5px">${c.states}개 주</span></span>
+      <span style="color:#555">좋음+매우 좋음 <b style="font-size:14px;color:#2E7D32">${ge}%</b>${pg != null ? ` · 전주 ${pg}% ${usArrow(ge - pg)}` : ""}${yg != null ? ` · 전년 ${yg}% ${usArrow(ge - yg)}` : ""}</span></div>${usStack(US_COND, c.now)}</div>`;
+  }).join("")}`) : "";
+
+  // ⑤ 주별 흐름
+  const hist = r.history || [];
+  const flow = hist.length >= 2 ? sec("📈 최근 주별 흐름", `${hist.length}주`, `
+    <div style="margin-bottom:8px">${usLines(hist, [{ label:"표토 적정 %", color:"#43A047", key:"topsoil_a" }, { label:"심토 적정 %", color:"#8D6E63", key:"subsoil_a" }, { label:"옥수수 좋음+매우좋음 %", color:"#F57F17", key:"corn_ge" }], 100)}</div>
+    ${usLines(hist, [{ label:"옥수수 수확 %", color:"#F9A825", key:"corn_harvested" }, { label:"대두 수확 %", color:"#6D4C41", key:"soy_harvested" }, { label:"겨울밀 파종 %", color:"#1E88E5", key:"winter_wheat_planted" }], 100)}`) : "";
+
+  // 한 줄 읽기(보고서 값에서 계산한 차이만)
+  const notes = [];
+  prog.filter(p => p.stage === "Harvested" && p.avg5 != null && (p.crop === "corn" || p.crop === "soy")).forEach(p => {
+    const dv = p.this_week - p.avg5;
+    notes.push(`${p.crop_ko} 수확 ${p.this_week}% — 평년보다 ${dv === 0 ? "같은 속도" : Math.abs(dv) + "%p " + (dv > 0 ? "빠름" : "느림")}`);
+  });
+  const ts = r.soil.topsoil;
+  if(ts) notes.push(`표토 건조(매우 건조+건조) ${ts.now.vs + ts.now.s}%${ts.prev_week ? ` — 전주 ${ts.prev_week.vs + ts.prev_week.s}%` : ""}`);
+  const read = notes.length ? `<div style="background:#FFF8E1;border-radius:10px;padding:9px 12px;margin-bottom:16px;font-size:12px;line-height:1.8;color:#5D4037"><b>이번 주 한눈에</b><br>${notes.map(t => "· " + esc(t)).join("<br>")}</div>` : "";
+
+  return `
+    <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      <span style="font-size:11px;background:#FFF3E0;color:#E65100;border-radius:10px;padding:2px 9px;font-weight:700">${r.week_ending.slice(0, 4)}년 ${r.week_no}주차 · ${usDate(r.week_ending)} 끝나는 주</span>
+      <span style="font-size:10.5px;color:#aaa">USDA NASS ${usDate(r.released)} 발표 · 매주 갱신</span>
+    </div>
+    ${read}${soil}${states}${progress}${condSec}${flow}
+    <div style="font-size:11px;color:#8D6E00;background:#FFF8E1;border-radius:8px;padding:7px 11px;line-height:1.7;margin-bottom:10px">ℹ️ 수확이 늦어지고 가을 비가 많으면 곡물 수분이 높아 건조비·곰팡이 위험이 커질 수 있고, 생육기 토양 건조·작황 등급 하락은 수량과 아플라톡신 위험 신호로 읽습니다. 이 화면은 미국 전체 기준의 참고 지표이며 로트 품질을 뜻하지 않습니다.</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
+      <div style="font-size:9px;color:#bbb">출처: ${esc(r.source || "USDA NASS Crop Progress")} · 계산 ${esc(r.updated || "")}</div>
+      <span style="display:flex;gap:6px"><a href="${esc(r.ag_insights_url || "https://aginsights.nass.usda.gov/")}" target="_blank" rel="noopener" style="font-size:11px;color:#F57F17;border:1px solid #F57F17;border-radius:6px;padding:4px 9px;text-decoration:none">NASS Ag Insights ↗</a>
+      <a href="${esc(r.report_url || r.source_url)}" target="_blank" rel="noopener" style="font-size:11px;color:#F57F17;border:1px solid #F57F17;border-radius:6px;padding:4px 9px;text-decoration:none">보고서 원문 ↗</a></span>
+    </div>`;
+}
+
 function renderFeedGrainPanel(){
   const st = feedGrainState;
   const head = `
@@ -14454,9 +14580,9 @@ function renderFeedGrainPanel(){
     </div>
     <button id="feedgrain-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button>
   </div>`;
-  const subs = [["flow", "🌍 세계 품질 흐름"], ["quality", "🧪 영양·물리 비교"], ["region", "🏛️ 산지별 기관 자료"], ["method", "📖 평가 방법·한계"]];
+  const subs = [["flow", "🌍 세계 품질 흐름"], ["usda", "🇺🇸 미국 작황·토양수분"], ["quality", "🧪 영양·물리 비교"], ["region", "🏛️ 산지별 기관 자료"], ["method", "📖 평가 방법·한계"]];
   const bar = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">${subs.map(t => `<button class="fg-sub" data-sub="${t[0]}" style="border:2px solid ${st.sub===t[0]?"#F57F17":"#eee"};background:${st.sub===t[0]?"#F57F17":"#fff"};color:${st.sub===t[0]?"#fff":"#444"};border-radius:10px;padding:8px 12px;font-size:12.5px;font-weight:700;cursor:pointer">${t[1]}</button>`).join("")}</div>`;
-  const body = st.sub === "region" ? renderFeedGrainRegion() : st.sub === "method" ? renderFeedGrainMethod() : st.sub === "quality" ? renderFeedGrainQuality() : renderFeedGrainFlow();
+  const body = st.sub === "usda" ? renderFeedGrainUsda() : st.sub === "region" ? renderFeedGrainRegion() : st.sub === "method" ? renderFeedGrainMethod() : st.sub === "quality" ? renderFeedGrainQuality() : renderFeedGrainFlow();
   return head + bar + `<div class="card" style="padding:16px;border-top:6px solid #F57F17">${body}</div>`;
 }
 
@@ -28299,6 +28425,7 @@ function renderPremiumTab(){
   // 사료곡물 원료 품질평가 화면 — 정적 상수와 농장 입력으로만 계산하므로 Storage fetch가 필요 없다.
   if(premiumState.view === "feedgrain"){
     if(grainQState.status === "idle") fetchGrainQuality();
+    if(usdaCropState.status === "idle") fetchUsdaCrop();
     return renderPremiumGateHeader() + logoutBar + renderFeedGrainPanel();
   }
   // 사료곡물 가격동향·전망 — grain_price/latest.json(매일 자동 갱신)을 읽는다
@@ -28539,6 +28666,7 @@ function renderHeaderSolarTerm(now){
 const NEW_FEATURE_DAYS = 21;
 const NEW_FEATURES = [
   { key:"fgventbird",     date:"2026-11-01", label:"닭 키우기 게임 — 환기량을 한 마리 기준·일령별 증가량으로 계산(관리자 조정)", where:"유료서비스 · 체험·게임", go:{ premium:"farmgame_broiler" } },
+  { key:"usdacrop", date:"2026-11-04", label:"미국 작황·토양수분(USDA 주간) — 사료곡물 원료 품질평가", where:"유료서비스 · 사료곡물 원료 품질평가", go:{ premium:"feedgrain" } },
   { key:"broileroutlook", date:"2026-10-23", label:"육계 월간 전망 — KREI 농업관측센터 가격·도축·입식 전망", where:"시세·통계", go:{ tab:"price" } },
   { key:"broilerbreeder", date:"2026-10-23", label:"육용종계 육성계·성계 사육현황과 초생추 병아리 생산잠재력", where:"시세·통계", go:{ tab:"price" } },
   { key:"farmgame2",      date:"2026-10-21", label:"육계 키우기 · 산란계 키우기 — 게임이 두 카드로 나뉘었어요", where:"유료서비스 · 체험·게임", go:{ premium:"farmgame_broiler" } },

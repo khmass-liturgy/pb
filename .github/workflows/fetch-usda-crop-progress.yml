@@ -1,0 +1,51 @@
+name: USDA 주간 작황 보고서 수집
+
+# NASS 「Crop Progress」는 매주 월요일 오후 4시(미 동부)에 나오고(휴일 다음엔 화요일) Cornell ESMIS가 텍스트로 올린다.
+# 23:00 UTC 월·화 = 한국시간 화·수 08:00 — 월요일 발표가 모두 반영된 뒤이며, 화요일 발표 주에도 다음 날 아침에 잡힌다.
+# 새 보고서가 없으면(주소 비교) 내려받지 않고 끝난다.
+on:
+  schedule:
+    - cron: "0 23 * * 1,2"
+  workflow_dispatch:
+  push:
+    paths:
+      - "scripts/fetch_usda_crop_progress.py"
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-usda-crop-progress:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: 패키지 설치
+        run: pip install requests
+      - name: 작황 보고서 수집
+        run: python scripts/fetch_usda_crop_progress.py
+      - name: 결과 커밋
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add usda_crop_progress/
+          git diff --staged --quiet && echo "변경 없음" && exit 0
+          git commit -m "🌽 USDA 주간 작황 갱신 ($(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M KST'))"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin ${GITHUB_REF_NAME} && git push && exit 0
+            echo "푸시 재시도 $i"
+            sleep 5
+          done
+          exit 1
+
+      - name: Firebase Storage 업로드 (저장소 비공개 대비)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          pip install -q firebase-admin
+          python scripts/upload_to_storage.py usda_crop_progress/
