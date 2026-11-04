@@ -1,10 +1,17 @@
 {
-  "updated": "2026-11-03 12:50 KST",
+  "updated": "2026-11-04 11:54 KST",
   "channels": {
     "livestock": {
       "label": "축산·농업",
-      "items": [],
-      "count": 0
+      "items": [
+        {
+          "title": "[경북제일신문] - 경북제일신문",
+          "link": "https://news.google.com/rss/articles/CBMif0FVX3lxTE5fVm9sdFBuX2dTTUtqNF9ZeW1VbWN2c1VfRmg5dE5pQXlYR1hVenlDZGhDRV9VNHRnLS16a3Rxb001azFsNF9HckhvcUtoRm1fWVJzSUU1RVJmaGVqTkx0MXhZMGlnNVI1ck5pbHJSa0N3ZWxYMkptRzE3dzJCeVE?oc=5",
+          "date": "10/31 09:36",
+          "source": "경북제일신문"
+        }
+      ],
+      "count": 1
     },
     "vet": {
       "label": "수의·방역",
@@ -28,8 +35,21 @@
     },
     "world": {
       "label": "국제",
-      "items": [],
-      "count": 0
+      "items": [
+        {
+          "title": "APEC에서 만나는 미·중·러 지도자들... 제2의 얄타 회담 될까? - 조선일보",
+          "link": "https://news.google.com/rss/articles/CBMigwFBVV95cUxPYXdwU1NsSlZUdjJlLVo1eG5RYXZPMEJ3TF84VnhqaXFaY0RwZTMwaUlJWVJRVzE2UVBTNHQybE9NWE9lTzZWeVRWdjRqZTh6RWRERnl0Nl95a2NzclE0X25NNm5KVVdNckxhLWJKTUl6NG9laGdKX3lYR0dJX0hqMkpjSQ?oc=5",
+          "date": "11/03 17:32",
+          "source": "조선일보"
+        },
+        {
+          "title": "한국 올해 누적 수출 9300억달러···중국 매체, 자국 시장 역할 부각 - 인천투데이",
+          "link": "https://news.google.com/rss/articles/CBMicEFVX3lxTE9hdFZiNnFqWnVTSGZSczFTbHc3eXBHdkVmV182UDN0a3E5Z3FUWjI5bW5DckhLeVJROXR6M1pkY05HYWxQU0l2TU1VQ0diRTJST09IV2JtVEx2V0ZvVThXZEVONFNpdjJvWExIbzlGS0o?oc=5",
+          "date": "11/03 14:24",
+          "source": "인천투데이"
+        }
+      ],
+      "count": 2
     }
   }
 }
