@@ -164,7 +164,11 @@ items (article body via `fetch_industry_news.decode_google_url`/`article_text`, 
 sido/sgg/date/count and a row is dropped unless its 시군 name appears in the source text. Processed sources are remembered in `quick_seen`;
 same farm = same sido + 시군 stem + 확진일 ±2 days (press release beats news). When the official table later contains the farm (±3 days)
 it leaves `quick`. index.html appends `quick` rows to the 26/27 live farms (`L.quick`, `quick:true`) with a 「📰 보도 기준」 badge/link and a
-list in `renderHpaiKrLiveStrip`; the SMS digest (`digest_hpai_kr`) and its preview include them marked (보도).
+list in `renderHpaiKrLiveStrip`; the SMS digest (`digest_hpai_kr`) and its preview include them marked (보도). Wild-bird detections work the same way: a second Google News query (`WILD_NEWS_URL`, 7 days, extraction only) and the same
+Claude call now return `{"farms":[…],"wild":[…]}`; `clean_wild`/`same_wild` (시군 + 확진일 or 채취일 ±3 days; a longer 혈청형 such as H5→H5N1
+replaces the old one) fill `quick_wild`, which leaves when the official `wild` table has it; index.html appends it to `L.wild` (teal 「📰 보도 기준」
+badge, 🦆 lines in the strip). Wild mammals (e.g. the 2026-11-02 서산 삵 H5N1) are excluded by the prompt. Seeded 2026-11-05 after cross-checking
+reports: 순천만 (채취 10.12, 확인 10.20, H5 — N형 미발표) and 김포 하성면 전류리 (채취 10.19, H5N1 확진 10.26).
 
 `farm_density/sigun.json` — 가금 시·군별 사육 농가·마릿수(가축위생방역지원본부 「전국 시군별 ○○ 사육규모 현황」, data.go.kr 파일데이터 CSV, 연 1회 갱신, **일반 산란계 표는 이 시리즈에 없음**). `scripts/fetch_farm_density.py`를 수동 실행해 만든다(워크플로 없음 — data.go.kr이 해외 IP를 막는지 확인 안 됨). index.html의 HPAI ZERO FARM 「과거 대조」가 거리 규칙의 효과를 농장 밀도로 보정할 때 읽는다(밀도 = 반경 20km 상업 사육 마릿수, 토종닭·백세미 제외).
 `fetchPortalNews` (AI 관련 소식 「새 소식 추가」 search and the 질병 탭 「최신 연구되는 질병」) reads Google/Bing News search RSS through the Cloud Function `fetchRssItems` (server-side fetch, host allowlist news.google.com/www.bing.com, no login needed) because the public RSS→JSON service (rss2json) is now behind a Cloudflare challenge and the CORS proxies mostly time out; without the function it falls back to the proxies (only Bing via cors.lol works reliably) — deploy with `firebase deploy --only functions:fetchRssItems --project chicken-dx`. Other browser-side RSS panels that still use `RSS2JSON` fall back to their committed JSON.
