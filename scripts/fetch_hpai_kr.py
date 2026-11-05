@@ -72,7 +72,8 @@ def _get(url: str, binary: bool = False):
         try:
             resp = requests.get(candidate, headers=headers, timeout=30)
             if not resp.ok:
-                print(f"  HTTP {resp.status_code}: {name}")
+                why = re.sub(r"\s+", " ", resp.text[:160]) if name == "국내 중계 서버" else ""
+                print(f"  HTTP {resp.status_code}: {name} {why}".rstrip())   # 중계 서버는 거부·실패 이유를 JSON으로 돌려준다
                 continue
             if binary:
                 if resp.content.startswith(OLE2_MAGIC):
