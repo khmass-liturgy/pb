@@ -1,293 +1,293 @@
 {
-  "updated": "2026-10-25 14:50 KST",
-  "period": "2026 2/4",
-  "period_code": "202602",
-  "prev_period": "2026 1/4",
+  "updated": "2026-11-05 16:42 KST",
+  "period": "2026 3/4",
+  "period_code": "202603",
+  "prev_period": "2026 2/4",
   "source": "축산물품질평가원 축산유통 통계누리",
   "table": "닭 시도 용도별(산란계,육용계) 사육규모별 가구수 및 마리수",
   "url": "https://mtrace.go.kr/stats/stp/dtl/stl/xtlStatsList.do",
   "layer": {
-    "farms": 1022,
-    "birds": 78985355,
-    "prev_farms": 1001,
-    "prev_birds": 77747119,
-    "farms_pct": 2.1,
-    "birds_pct": 1.6,
-    "per_farm": 77285
+    "farms": 1083,
+    "birds": 86544196,
+    "prev_farms": 1022,
+    "prev_birds": 78985355,
+    "farms_pct": 6.0,
+    "birds_pct": 9.6,
+    "per_farm": 79912
   },
   "broiler": {
-    "farms": 1800,
-    "birds": 110898477,
-    "prev_farms": 1519,
-    "prev_birds": 96463442,
-    "farms_pct": 18.5,
-    "birds_pct": 15.0,
-    "per_farm": 61610
+    "farms": 1523,
+    "birds": 90139451,
+    "prev_farms": 1800,
+    "prev_birds": 110898477,
+    "farms_pct": -15.4,
+    "birds_pct": -18.7,
+    "per_farm": 59185
   },
   "regions": [
     {
-      "name": "전북",
-      "layer": {
-        "farms": 54,
-        "birds": 3307361,
-        "prev_farms": 73,
-        "prev_birds": 4712779,
-        "farms_pct": -26.0,
-        "birds_pct": -29.8,
-        "per_farm": 61247
-      },
-      "broiler": {
-        "farms": 470,
-        "birds": 33332940,
-        "prev_farms": 402,
-        "prev_birds": 29039954,
-        "farms_pct": 16.9,
-        "birds_pct": 14.8,
-        "per_farm": 70921
-      },
-      "layer_share": 4.2,
-      "broiler_share": 30.1
-    },
-    {
       "name": "경기",
       "layer": {
-        "farms": 212,
-        "birds": 19228319,
-        "prev_farms": 193,
-        "prev_birds": 17719209,
-        "farms_pct": 9.8,
+        "farms": 227,
+        "birds": 20854606,
+        "prev_farms": 212,
+        "prev_birds": 19228319,
+        "farms_pct": 7.1,
         "birds_pct": 8.5,
-        "per_farm": 90700
+        "per_farm": 91871
       },
       "broiler": {
-        "farms": 259,
-        "birds": 12688260,
-        "prev_farms": 215,
-        "prev_birds": 11028888,
-        "farms_pct": 20.5,
-        "birds_pct": 15.0,
-        "per_farm": 48989
+        "farms": 239,
+        "birds": 11115870,
+        "prev_farms": 259,
+        "prev_birds": 12688260,
+        "farms_pct": -7.7,
+        "birds_pct": -12.4,
+        "per_farm": 46510
       },
-      "layer_share": 24.3,
-      "broiler_share": 11.4
+      "layer_share": 24.1,
+      "broiler_share": 12.3
+    },
+    {
+      "name": "전북",
+      "layer": {
+        "farms": 80,
+        "birds": 5118404,
+        "prev_farms": 54,
+        "prev_birds": 3307361,
+        "farms_pct": 48.1,
+        "birds_pct": 54.8,
+        "per_farm": 63980
+      },
+      "broiler": {
+        "farms": 388,
+        "birds": 26252475,
+        "prev_farms": 470,
+        "prev_birds": 33332940,
+        "farms_pct": -17.4,
+        "birds_pct": -21.2,
+        "per_farm": 67661
+      },
+      "layer_share": 5.9,
+      "broiler_share": 29.1
     },
     {
       "name": "충남",
       "layer": {
-        "farms": 167,
-        "birds": 11337546,
-        "prev_farms": 160,
-        "prev_birds": 10817883,
-        "farms_pct": 4.4,
-        "birds_pct": 4.8,
-        "per_farm": 67889
+        "farms": 174,
+        "birds": 12777832,
+        "prev_farms": 167,
+        "prev_birds": 11337546,
+        "farms_pct": 4.2,
+        "birds_pct": 12.7,
+        "per_farm": 73436
       },
       "broiler": {
-        "farms": 308,
-        "birds": 16541490,
-        "prev_farms": 238,
-        "prev_birds": 13754030,
-        "farms_pct": 29.4,
-        "birds_pct": 20.3,
-        "per_farm": 53706
+        "farms": 262,
+        "birds": 14083140,
+        "prev_farms": 308,
+        "prev_birds": 16541490,
+        "farms_pct": -14.9,
+        "birds_pct": -14.9,
+        "per_farm": 53752
       },
-      "layer_share": 14.4,
-      "broiler_share": 14.9
-    },
-    {
-      "name": "전남",
-      "layer": {
-        "farms": 78,
-        "birds": 5770429,
-        "prev_farms": 77,
-        "prev_birds": 5241655,
-        "farms_pct": 1.3,
-        "birds_pct": 10.1,
-        "per_farm": 73980
-      },
-      "broiler": {
-        "farms": 265,
-        "birds": 20526986,
-        "prev_farms": 251,
-        "prev_birds": 18864824,
-        "farms_pct": 5.6,
-        "birds_pct": 8.8,
-        "per_farm": 77460
-      },
-      "layer_share": 7.3,
-      "broiler_share": 18.5
+      "layer_share": 14.8,
+      "broiler_share": 15.6
     },
     {
       "name": "경북",
       "layer": {
-        "farms": 158,
-        "birds": 15674990,
-        "prev_farms": 159,
-        "prev_birds": 15532131,
-        "farms_pct": -0.6,
-        "birds_pct": 0.9,
-        "per_farm": 99209
+        "farms": 167,
+        "birds": 17597154,
+        "prev_farms": 158,
+        "prev_birds": 15674990,
+        "farms_pct": 5.7,
+        "birds_pct": 12.3,
+        "per_farm": 105372
       },
       "broiler": {
-        "farms": 172,
-        "birds": 10582874,
-        "prev_farms": 144,
-        "prev_birds": 9035755,
-        "farms_pct": 19.4,
-        "birds_pct": 17.1,
-        "per_farm": 61528
+        "farms": 144,
+        "birds": 8136141,
+        "prev_farms": 172,
+        "prev_birds": 10582874,
+        "farms_pct": -16.3,
+        "birds_pct": -23.1,
+        "per_farm": 56501
       },
-      "layer_share": 19.8,
-      "broiler_share": 9.5
+      "layer_share": 20.3,
+      "broiler_share": 9.0
+    },
+    {
+      "name": "전남광주",
+      "layer": {
+        "farms": 78,
+        "birds": 5550713,
+        "prev_farms": null,
+        "prev_birds": null,
+        "farms_pct": null,
+        "birds_pct": null,
+        "per_farm": 71163
+      },
+      "broiler": {
+        "farms": 232,
+        "birds": 17748906,
+        "prev_farms": null,
+        "prev_birds": null,
+        "farms_pct": null,
+        "birds_pct": null,
+        "per_farm": 76504
+      },
+      "layer_share": 6.4,
+      "broiler_share": 19.7
     },
     {
       "name": "충북",
       "layer": {
-        "farms": 119,
-        "birds": 6225953,
-        "prev_farms": 111,
-        "prev_birds": 5681833,
-        "farms_pct": 7.2,
-        "birds_pct": 9.6,
-        "per_farm": 52319
+        "farms": 124,
+        "birds": 7109268,
+        "prev_farms": 119,
+        "prev_birds": 6225953,
+        "farms_pct": 4.2,
+        "birds_pct": 14.2,
+        "per_farm": 57333
       },
       "broiler": {
-        "farms": 130,
-        "birds": 7488220,
-        "prev_farms": 102,
-        "prev_birds": 6065721,
-        "farms_pct": 27.5,
-        "birds_pct": 23.5,
-        "per_farm": 57602
+        "farms": 101,
+        "birds": 5719046,
+        "prev_farms": 130,
+        "prev_birds": 7488220,
+        "farms_pct": -22.3,
+        "birds_pct": -23.6,
+        "per_farm": 56624
       },
-      "layer_share": 7.9,
-      "broiler_share": 6.8
+      "layer_share": 8.2,
+      "broiler_share": 6.3
     },
     {
       "name": "경남",
       "layer": {
-        "farms": 95,
-        "birds": 7610028,
-        "prev_farms": 93,
-        "prev_birds": 8459544,
-        "farms_pct": 2.2,
-        "birds_pct": -10.0,
-        "per_farm": 80106
+        "farms": 94,
+        "birds": 8054346,
+        "prev_farms": 95,
+        "prev_birds": 7610028,
+        "farms_pct": -1.1,
+        "birds_pct": 5.8,
+        "per_farm": 85685
       },
       "broiler": {
-        "farms": 83,
-        "birds": 4442057,
-        "prev_farms": 64,
-        "prev_birds": 3605490,
-        "farms_pct": 29.7,
-        "birds_pct": 23.2,
-        "per_farm": 53519
+        "farms": 60,
+        "birds": 3053213,
+        "prev_farms": 83,
+        "prev_birds": 4442057,
+        "farms_pct": -27.7,
+        "birds_pct": -31.3,
+        "per_farm": 50887
       },
-      "layer_share": 9.6,
-      "broiler_share": 4.0
+      "layer_share": 9.3,
+      "broiler_share": 3.4
     },
     {
       "name": "강원",
       "layer": {
-        "farms": 62,
-        "birds": 4205313,
-        "prev_farms": 60,
-        "prev_birds": 4153914,
-        "farms_pct": 3.3,
-        "birds_pct": 1.2,
-        "per_farm": 67828
+        "farms": 65,
+        "birds": 4040928,
+        "prev_farms": 62,
+        "prev_birds": 4205313,
+        "farms_pct": 4.8,
+        "birds_pct": -3.9,
+        "per_farm": 62168
       },
       "broiler": {
-        "farms": 70,
-        "birds": 3483920,
-        "prev_farms": 64,
-        "prev_birds": 3487880,
-        "farms_pct": 9.4,
-        "birds_pct": -0.1,
-        "per_farm": 49770
+        "farms": 59,
+        "birds": 2740040,
+        "prev_farms": 70,
+        "prev_birds": 3483920,
+        "farms_pct": -15.7,
+        "birds_pct": -21.4,
+        "per_farm": 46441
       },
-      "layer_share": 5.3,
-      "broiler_share": 3.1
+      "layer_share": 4.7,
+      "broiler_share": 3.0
     },
     {
       "name": "세종",
       "layer": {
-        "farms": 19,
-        "birds": 2394161,
-        "prev_farms": 17,
-        "prev_birds": 2375513,
-        "farms_pct": 11.8,
-        "birds_pct": 0.8,
-        "per_farm": 126008
+        "farms": 18,
+        "birds": 2300969,
+        "prev_farms": 19,
+        "prev_birds": 2394161,
+        "farms_pct": -5.3,
+        "birds_pct": -3.9,
+        "per_farm": 127832
       },
       "broiler": {
-        "farms": 5,
-        "birds": 252400,
-        "prev_farms": 4,
-        "prev_birds": 201600,
-        "farms_pct": 25.0,
-        "birds_pct": 25.2,
-        "per_farm": 50480
+        "farms": 4,
+        "birds": 230900,
+        "prev_farms": 5,
+        "prev_birds": 252400,
+        "farms_pct": -20.0,
+        "birds_pct": -8.5,
+        "per_farm": 57725
       },
-      "layer_share": 3.0,
-      "broiler_share": 0.2
+      "layer_share": 2.7,
+      "broiler_share": 0.3
     },
     {
       "name": "대구",
       "layer": {
-        "farms": 6,
-        "birds": 1293700,
+        "farms": 8,
+        "birds": 1319200,
         "prev_farms": 6,
-        "prev_birds": 1244200,
-        "farms_pct": 0.0,
-        "birds_pct": 4.0,
-        "per_farm": 215617
+        "prev_birds": 1293700,
+        "farms_pct": 33.3,
+        "birds_pct": 2.0,
+        "per_farm": 164900
       },
       "broiler": {
-        "farms": 9,
-        "birds": 426100,
+        "farms": 6,
+        "birds": 302600,
         "prev_farms": 9,
-        "prev_birds": 513900,
-        "farms_pct": 0.0,
-        "birds_pct": -17.1,
-        "per_farm": 47344
+        "prev_birds": 426100,
+        "farms_pct": -33.3,
+        "birds_pct": -29.0,
+        "per_farm": 50433
       },
-      "layer_share": 1.6,
-      "broiler_share": 0.4
+      "layer_share": 1.5,
+      "broiler_share": 0.3
     },
     {
       "name": "인천",
       "layer": {
         "farms": 9,
-        "birds": 317722,
+        "birds": 306220,
         "prev_farms": 9,
-        "prev_birds": 322315,
+        "prev_birds": 317722,
         "farms_pct": 0.0,
-        "birds_pct": -1.4,
-        "per_farm": 35302
+        "birds_pct": -3.6,
+        "per_farm": 34024
       },
       "broiler": {
-        "farms": 8,
-        "birds": 549000,
-        "prev_farms": 4,
-        "prev_birds": 169000,
-        "farms_pct": 100.0,
-        "birds_pct": 224.9,
-        "per_farm": 68625
+        "farms": 3,
+        "birds": 117000,
+        "prev_farms": 8,
+        "prev_birds": 549000,
+        "farms_pct": -62.5,
+        "birds_pct": -78.7,
+        "per_farm": 39000
       },
       "layer_share": 0.4,
-      "broiler_share": 0.5
+      "broiler_share": 0.1
     },
     {
       "name": "울산",
       "layer": {
-        "farms": 10,
-        "birds": 361625,
+        "farms": 9,
+        "birds": 360970,
         "prev_farms": 10,
-        "prev_birds": 382600,
-        "farms_pct": 0.0,
-        "birds_pct": -5.5,
-        "per_farm": 36162
+        "prev_birds": 361625,
+        "farms_pct": -10.0,
+        "birds_pct": -0.2,
+        "per_farm": 40108
       },
       "broiler": {
         "farms": null,
@@ -298,54 +298,8 @@
         "birds_pct": null,
         "per_farm": null
       },
-      "layer_share": 0.5,
+      "layer_share": 0.4,
       "broiler_share": null
-    },
-    {
-      "name": "광주",
-      "layer": {
-        "farms": 3,
-        "birds": 83500,
-        "prev_farms": 3,
-        "prev_birds": 83500,
-        "farms_pct": 0.0,
-        "birds_pct": 0.0,
-        "per_farm": 27833
-      },
-      "broiler": {
-        "farms": 1,
-        "birds": 20000,
-        "prev_farms": 1,
-        "prev_birds": 42600,
-        "farms_pct": 0.0,
-        "birds_pct": -53.1,
-        "per_farm": 20000
-      },
-      "layer_share": 0.1,
-      "broiler_share": 0.0
-    },
-    {
-      "name": "부산",
-      "layer": {
-        "farms": null,
-        "birds": null,
-        "prev_farms": null,
-        "prev_birds": null,
-        "farms_pct": null,
-        "birds_pct": null,
-        "per_farm": null
-      },
-      "broiler": {
-        "farms": 2,
-        "birds": 44500,
-        "prev_farms": null,
-        "prev_birds": null,
-        "farms_pct": null,
-        "birds_pct": null,
-        "per_farm": 22250
-      },
-      "layer_share": null,
-      "broiler_share": 0.0
     }
   ],
   "stale": false
