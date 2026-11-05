@@ -15,6 +15,14 @@ Google 뉴스 RSS에서 최근 사흘의 "가금농장 고병원성 AI" 보도 �
 
 부분 실패는 이전 JSON을 지우지 않는다: 농식품부 표를 못 읽어도 news만 갱신하고, news를 못 받아도
 표 데이터는 갱신한다. 둘 다 못 받으면 비정상 종료한다.
+
+── 빠른 집계(quick) ──
+「발생·검출 현황」 표는 며칠~몇 주 늦게 올라온다(26/27 시즌 첫 발생 연천 산란계 11.4 확진도 표에 없음).
+그래서 발생 당일 나오는 ① 농식품부 가축전염병 보도자료 게시판(bbs/FMD-AI2/393, 중수본 「…고병원성 조류인플루엔자
+발생에 따라 방역관리 강화」 — 중계 서버 허용 목록에 393을 넣어야 열림) 과 ② 최근 사흘 「가금농장 고병원성 AI 확진」
+보도 본문을 Claude(ANTHROPIC_API_KEY)에게 주고 확진 농장(시도·시군·축종·마릿수·확진일·혈청형)만 JSON으로 뽑아
+`quick`에 쌓는다. 같은 농장(시도·시군·확진일 ±2일)이 농식품부 표에 들어오면 quick에서 뺀다. 화면은 「보도 기준」으로 따로 표시.
+API 키가 없으면 quick은 이전 값 그대로 둔다.
 """
 
 from __future__ import annotations
@@ -226,6 +234,190 @@ def fetch_news() -> list[dict]:
     return items
 
 
+# ── 빠른 집계: 보도자료·보도 본문 → 확진 농장 ─────────────────────────────
+PRESS_LIST_URL = f"{BASE}/bbs/FMD-AI2/393/artclList.do"
+PRESS_POST_RE = re.compile(r'href="(/bbs/FMD-AI2/393/(\d+)/artclView\.do[^"]*)"[^>]*>([\s\S]*?)</a>')
+AI_MODEL = "claude-haiku-4-5-20251001"
+ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
+SIDO = {"서울", "부산", "대구", "인천", "광주", "대전", "울산", "세종", "경기", "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주"}
+SIDO_LONG = {"서울특별시": "서울", "부산광역시": "부산", "대구광역시": "대구", "인천광역시": "인천", "광주광역시": "광주", "대전광역시": "대전",
+             "울산광역시": "울산", "세종특별자치시": "세종", "경기도": "경기", "강원도": "강원", "강원특별자치도": "강원", "충청북도": "충북",
+             "충청남도": "충남", "전라북도": "전북", "전북특별자치도": "전북", "전라남도": "전남", "경상북도": "경북", "경상남도": "경남",
+             "제주도": "제주", "제주특별자치도": "제주"}
+SP_OK = {"닭", "오리", "메추리", "기타"}
+EXTRACT_PROMPT = """다음은 국내 고병원성 조류인플루엔자(AI) 관련 {kind}입니다(게재 {pub}).
+이 글에서 **국내 가금농장에서 고병원성 AI가 확진된 농장**만 골라 JSON 배열로 출력하세요. 다른 글은 쓰지 마세요.
+[{{"conf":"YYYY-MM-DD","sido":"경기","sgg":"연천군","sp":"닭","breed":"산란계","cnt":12345,"sero":"H5N1","kind":"신고","nth":1}}]
+규칙:
+- 확진(고병원성으로 확인)된 농장만. '의심', '검사 중', '저병원성', 야생조류 검출, 해외 발생, 과거 시즌 사례, 방역 대책 설명은 빼세요.
+- conf: 고병원성 확진일. 글에 '4일'처럼 일만 있으면 게재 연·월을 쓰고, 확진일이 없으면 게재일.
+- sido: 서울·부산·대구·인천·광주·대전·울산·세종·경기·강원·충북·충남·전북·전남·경북·경남·제주 중 하나(짧은 이름).
+- sgg: 시·군·구 이름 그대로(예: 연천군, 천안시 동남구는 천안시). 모르면 그 농장은 빼세요.
+- sp: 닭·오리·메추리·기타 중 하나. breed: 산란계·육계·종계·토종닭·육용오리·종오리·메추리 등 글에 나온 대로.
+- cnt: 그 농장 사육 마릿수(정수, '약 1만2천 마리'는 12000). 없으면 null. sero: H5N1 등, 없으면 "". kind: 신고/예찰, 없으면 "".
+- nth: '올겨울 N번째', '이번 동절기 N번째'가 있으면 N, 없으면 null.
+- 글에 없는 내용은 지어내지 마세요. 해당 농장이 없으면 [] 만 출력하세요.
+
+제목: {title}
+
+본문:
+{text}"""
+
+
+def season_start(today: datetime) -> str:
+    return f"{today.year if today.month >= 9 else today.year - 1}-09-01"
+
+
+def _sgg_key(s: str) -> str:
+    s = re.sub(r"\s+", "", s or "")
+    return re.sub(r"(시|군|구)$", "", s) if len(s) > 2 else s
+
+
+def same_farm(a: dict, b: dict, days: int = 2) -> bool:
+    if a.get("sido") != b.get("sido") or _sgg_key(a.get("sgg")) != _sgg_key(b.get("sgg")):
+        return False
+    try:
+        da, db = datetime.strptime(a["conf"], "%Y-%m-%d"), datetime.strptime(b["conf"], "%Y-%m-%d")
+    except (KeyError, ValueError):
+        return False
+    return abs((da - db).days) <= days and (not a.get("breed") or not b.get("breed") or a["breed"] == b["breed"]
+                                            or a.get("sp") == b.get("sp"))
+
+
+def ai_extract(title: str, text: str, kind: str, pub: datetime, api_key: str) -> list[dict] | None:
+    prompt = EXTRACT_PROMPT.format(kind=kind, pub=pub.strftime("%Y-%m-%d"), title=title, text=text[:6000])
+    resp = requests.post(ANTHROPIC_URL, headers={"x-api-key": api_key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
+                         json={"model": AI_MODEL, "max_tokens": 800, "messages": [{"role": "user", "content": prompt}]}, timeout=60)
+    if not resp.ok:
+        print(f"  Anthropic 응답 {resp.status_code}: {resp.text[:160]}")
+        return None                     # 다음 실행 때 다시 시도
+    out = "".join(b.get("text", "") for b in resp.json().get("content", []) if b.get("type") == "text")
+    m = re.search(r"\[[\s\S]*\]", out)
+    try:
+        rows = json.loads(m.group(0)) if m else []
+    except json.JSONDecodeError:
+        return []
+    return [r for r in rows if isinstance(r, dict)]
+
+
+def clean_quick(r: dict, pub: datetime, start: str) -> dict | None:
+    """AI가 뽑은 한 줄을 검사해 지도에 넣을 모양으로 — 이상하면 버린다."""
+    sido = SIDO_LONG.get(str(r.get("sido", "")).strip(), str(r.get("sido", "")).strip())
+    sgg = re.sub(r"\s+", "", str(r.get("sgg", "")))
+    sgg = re.sub(r"^(.+?[시군])(?:.+구)$", r"\1", sgg)          # 천안시동남구 → 천안시
+    conf = str(r.get("conf", ""))
+    if sido not in SIDO or not re.fullmatch(r"[가-힣]{1,6}[시군구]?", sgg or "") or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", conf):
+        return None
+    try:
+        cd = datetime.strptime(conf, "%Y-%m-%d").replace(tzinfo=KST)
+    except ValueError:
+        return None
+    if conf < start or cd > pub + timedelta(days=1) or cd < pub - timedelta(days=14):
+        return None
+    sp = str(r.get("sp", "")).strip()
+    cnt = r.get("cnt")
+    cnt = int(cnt) if isinstance(cnt, (int, float)) and 0 < cnt < 5_000_000 else 0
+    sero = str(r.get("sero") or "").strip().upper()
+    nth = r.get("nth")
+    return {"kind": str(r.get("kind") or "").strip()[:4], "rep": "", "sido": sido, "sgg": sgg,
+            "sp": sp if sp in SP_OK else "기타", "breed": str(r.get("breed") or sp or "").strip()[:10],
+            "cnt": cnt, "sero": sero if re.fullmatch(r"H\d{1,2}(N\d{1,2})?", sero) else "", "conf": conf,
+            "nth": int(nth) if isinstance(nth, int) and 0 < nth < 1000 else None}
+
+
+def press_candidates() -> list[dict]:
+    """농식품부 가축전염병 보도자료 게시판 — 중계 서버가 393 경로를 허용해야 열린다(안 열리면 빈 목록)."""
+    html = _get(PRESS_LIST_URL)
+    if not html:
+        print("::notice::농식품부 보도자료 게시판(393)을 열지 못함 — 중계 서버 허용 목록에 FMD-AI2/393 추가 필요")
+        return []
+    out = []
+    for href, art_id, inner in PRESS_POST_RE.findall(html):
+        title = re.sub(r"<[^>]+>|\s+", " ", inner).strip()
+        if "조류인플루엔자" in title and re.search(r"발생|확진|확인", title) and not re.search(r"의심|저병원성", title):
+            out.append({"id": "p" + art_id, "title": title, "url": urljoin(BASE, href), "kind": "농식품부 보도자료"})
+    return out[:6]
+
+
+def press_text(url: str) -> str:
+    html = _get(url) or ""
+    html = re.sub(r"<(script|style)[\s\S]*?</\1>", " ", html, flags=re.I)
+    t = re.sub(r"<[^>]+>", " ", html)
+    t = re.sub(r"&nbsp;|&#160;", " ", t)
+    t = re.sub(r"\s+", " ", t)
+    i = t.find("조류인플루엔자")
+    return t[max(0, i - 600): i + 5000] if i >= 0 else ""
+
+
+def news_text(item: dict) -> str:
+    try:
+        import fetch_industry_news as fin       # Google 뉴스 링크 풀기·본문 추출 재사용
+        url = fin.decode_google_url(item.get("link", ""))
+        return fin.article_text(url) if url else ""
+    except Exception as exc:
+        print(f"  본문 못 읽음: {type(exc).__name__}")
+        return ""
+
+
+def update_quick(out: dict, prev: dict) -> None:
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+    now = datetime.now(KST)
+    start = season_start(now)
+    quick = [q for q in prev.get("quick", []) if q.get("conf", "") >= start]
+    seen = list(prev.get("quick_seen", []))
+    if not api_key:
+        print("::notice::ANTHROPIC_API_KEY 없음 — 빠른 집계(quick)는 이전 값 유지")
+    else:
+        cands = []
+        try:
+            cands += press_candidates()
+        except Exception as exc:
+            print(f"::notice::보도자료 게시판 실패 — {exc}")
+        for n in out.get("news", []):
+            key = "n" + re.sub(r"\W", "", n.get("title", ""))[:40]
+            cands.append({"id": key, "title": n.get("title", ""), "news": n, "kind": "언론 보도", "url": ""})
+        for c in cands:
+            if c["id"] in seen:
+                continue
+            if c.get("news"):
+                pub = now
+                try:
+                    from email.utils import parsedate_to_datetime
+                    pub = parsedate_to_datetime(c["news"].get("date", "")).astimezone(KST)
+                except Exception:
+                    pass
+                text, link, src = news_text(c["news"]) or c["title"], c["news"].get("link", ""), c["news"].get("source") or "언론"
+            else:
+                pub, text, link, src = now, press_text(c["url"]), c["url"], "농식품부 보도자료"
+            if not text:
+                continue
+            rows = ai_extract(c["title"], text, c["kind"], pub, api_key)
+            if rows is None:
+                continue
+            seen.append(c["id"])
+            for r in rows:
+                q = clean_quick(r, pub, start)
+                if not q or _sgg_key(q["sgg"]) not in re.sub(r"\s+", "", c["title"] + text):   # 글에 없는 지명은 버린다(지어낸 값 방지)
+                    continue
+                q.update({"src": src, "title": c["title"][:80], "link": link, "found": now.strftime("%Y-%m-%d %H:%M")})
+                old = next((x for x in quick if same_farm(x, q)), None)
+                if old:      # 같은 농장 — 빈칸만 채우고, 보도자료가 언론 보도보다 우선
+                    for k in ("cnt", "sero", "kind", "nth"):
+                        if not old.get(k) and q.get(k):
+                            old[k] = q[k]
+                    if src == "농식품부 보도자료" and old.get("src") != src:
+                        old.update({"src": src, "title": q["title"], "link": link})
+                else:
+                    quick.append(q)
+                    print(f"  빠른 집계 추가: {q['conf']} {q['sido']} {q['sgg']} {q['breed']} {q['cnt']}수 ({src})")
+        seen = seen[-300:]
+    # 농식품부 표에 들어온 농장은 빼고(표가 공식), 시즌이 바뀌면 지운다
+    table = [f for f in out.get("farms", []) if f.get("conf", "") >= start]
+    quick = [q for q in quick if not any(same_farm(q, f, 3) for f in table)]
+    quick.sort(key=lambda q: q["conf"])
+    out["quick"], out["quick_seen"] = quick, seen
+
+
 def main() -> int:
     prev = {}
     if OUT_PATH.exists():
@@ -252,6 +444,11 @@ def main() -> int:
     if len(errors) == 2:
         print("둘 다 실패:", errors)
         return 1
+    try:
+        update_quick(out, prev)
+        print(f"빠른 집계(보도 기준) {len(out.get('quick', []))}건")
+    except Exception as exc:
+        print(f"::warning::빠른 집계 실패, 이전 값 유지 — {exc}")
     out["checked"] = datetime.now(KST).strftime("%Y-%m-%d %H:%M KST")
     new_text = json.dumps(out, ensure_ascii=False, indent=1)
     # 내용이 같으면 확인 시각만 바뀌므로 파일을 다시 쓰지 않는다(매번 커밋되는 것 방지)

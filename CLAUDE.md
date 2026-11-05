@@ -138,7 +138,7 @@ Each data domain has this shape:
 | 금일 육계시세(대한양계협회 poultry.or.kr) | `scripts/fetch_broiler_price_today.py` | `broiler_price_today/latest.json` | fetch-broiler-price-today.yml | daily 15:30 (once; was 4×/day until 2026-10) |
 | 기술탐구 논문(PubMed → Claude API 번역·요약, 유료서비스 전용) | `scripts/fetch_research_papers.py` | `research_papers/latest.json` | fetch-research-papers.yml | weekly Sun 07:10 |
 | 배합사료 생산실적(농식품부 월별 .xls → 육계·산란계 생산잠재력 마릿수 추정) | `scripts/fetch_feed_production.py` | `feed_production/latest.json` | fetch-feed-production.yml | daily 10:30 (commits only when a new month is posted, ~20th) |
-| 국내 고병원성 AI 가금농장 발생·야생조류 검출(농식품부 「발생·검출 현황」 .hwp 표 + Google 뉴스 RSS 최근 3일 보도) | `scripts/fetch_hpai_kr.py` | `hpai_kr/latest.json` | fetch-hpai-kr.yml | daily 09:30·18:30 (commits only when the table or news changed) |
+| 국내 고병원성 AI 가금농장 발생·야생조류 검출(농식품부 「발생·검출 현황」 .hwp 표 + Google 뉴스 RSS 최근 3일 보도) | `scripts/fetch_hpai_kr.py` | `hpai_kr/latest.json` | fetch-hpai-kr.yml | daily 08:40·12:40·17:40·21:40 (commits only when the table, news or quick list changed) |
 | 사료곡물 가격동향·전망(CBOT 옥수수·대두박·대두·밀 + 환율·달러지수·유가·운임 + grain_quality 기상 → 6요인 가중점수 1·3개월 전망, 유료서비스 전용 카드) | `scripts/fetch_grain_price.py` | `grain_price/latest.json` | fetch-grain-price.yml | Tue–Sat 08:00 (US close; commits only when numbers changed) |
 | 양계 업계 소식(Google 뉴스 국내판에서 계란·조류인플루엔자·AI·육계·방역·양계 질병 키워드 24개 검색, 최근 14일 누적, 유료서비스 「양계 업계관련 핵심키워드 검색소식」 카드; 원문 주소는 Google 뉴스 링크를 batchexecute로 풀고, 본문 요약은 Claude Haiku(ANTHROPIC_API_KEY, 없으면 본문 앞부분 발췌)) | `scripts/fetch_industry_news.py` | `industry_news/latest.json` | fetch-industry-news.yml | daily 07:30 |
 | 동물약품 주간 소식(Google 뉴스 국내판·해외판에서 동물용의약품 신제품·백신·항생제·허가·제약업계 소식 후보를 모아 Claude Haiku가 가금 현장에 중요한 3~5건을 고르고 요약·번역, 유료서비스 「동물약품 주간 소식」 카드; 최근 12주 보관, 키가 없으면 키워드 점수·본문 발췌) | `scripts/fetch_animal_drug_news.py` | `animal_drug_news/latest.json` | fetch-animal-drug-news.yml | weekly Fri 07:00 |
@@ -156,6 +156,15 @@ updated server.js deployed or the workflow fails. The board is updated only now 
 3.22), so the JSON also carries recent news headlines. index.html's 발생지도 merges rows confirmed on/after
 2026-09-01 (`HPAI_KR_NEW_SEASON`) from that JSON on top of the built-in 25/26 season data (`HPAI_KR_FARMS`/`HPAI_KR_WILD`)
 and draws them in purple/teal.
+Because the 「발생·검출 현황」 table lags days to weeks (26/27 season's first case, 연천 산란계 2026-11-04, was missing), the script also keeps a
+**quick list** (`quick` in the JSON, `update_quick`): candidates from MAFRA's 가축전염병 보도자료 board `bbs/FMD-AI2/393` (same-day 중수본
+press releases — **the relay's `MAFRA_ALLOWED_PATH` must add `FMD-AI2\/393`** or the board is skipped with a notice) and the recent news
+items (article body via `fetch_industry_news.decode_google_url`/`article_text`, needs `trafilatura`) go to Claude Haiku (`ai_extract`,
+`ANTHROPIC_API_KEY`; without it `quick` is kept as is), which returns only **confirmed poultry-farm** cases as JSON; `clean_quick` validates
+sido/sgg/date/count and a row is dropped unless its 시군 name appears in the source text. Processed sources are remembered in `quick_seen`;
+same farm = same sido + 시군 stem + 확진일 ±2 days (press release beats news). When the official table later contains the farm (±3 days)
+it leaves `quick`. index.html appends `quick` rows to the 26/27 live farms (`L.quick`, `quick:true`) with a 「📰 보도 기준」 badge/link and a
+list in `renderHpaiKrLiveStrip`; the SMS digest (`digest_hpai_kr`) and its preview include them marked (보도).
 
 `farm_density/sigun.json` — 가금 시·군별 사육 농가·마릿수(가축위생방역지원본부 「전국 시군별 ○○ 사육규모 현황」, data.go.kr 파일데이터 CSV, 연 1회 갱신, **일반 산란계 표는 이 시리즈에 없음**). `scripts/fetch_farm_density.py`를 수동 실행해 만든다(워크플로 없음 — data.go.kr이 해외 IP를 막는지 확인 안 됨). index.html의 HPAI ZERO FARM 「과거 대조」가 거리 규칙의 효과를 농장 밀도로 보정할 때 읽는다(밀도 = 반경 20km 상업 사육 마릿수, 토종닭·백세미 제외).
 `fetchPortalNews` (AI 관련 소식 「새 소식 추가」 search and the 질병 탭 「최신 연구되는 질병」) reads Google/Bing News search RSS through the Cloud Function `fetchRssItems` (server-side fetch, host allowlist news.google.com/www.bing.com, no login needed) because the public RSS→JSON service (rss2json) is now behind a Cloudflare challenge and the CORS proxies mostly time out; without the function it falls back to the proxies (only Bing via cors.lol works reliably) — deploy with `firebase deploy --only functions:fetchRssItems --project chicken-dx`. Other browser-side RSS panels that still use `RSS2JSON` fall back to their committed JSON.
