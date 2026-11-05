@@ -234,7 +234,29 @@ def fetch_news() -> list[dict]:
     return items
 
 
-# ── 빠른 집계: 보도자료·보도 본문 → 확진 농장 ─────────────────────────────
+# 야생조류 검출은 가금농장보다 보도가 뜸해 7일치를 본다(빠른 집계에만 쓰고 화면 뉴스 목록에는 넣지 않음)
+WILD_NEWS_URL = ("https://news.google.com/rss/search?q=" +
+                 quote("야생조류 고병원성 AI 검출 when:7d") + "&hl=ko&gl=KR&ceid=KR:ko")
+
+
+def fetch_wild_news() -> list[dict]:
+    resp = requests.get(WILD_NEWS_URL, headers=HEADERS, timeout=30)
+    resp.raise_for_status()
+    items, seen = [], set()
+    for it in ET.fromstring(resp.content).iter("item"):
+        title = (it.findtext("title") or "").strip()
+        key = re.sub(r"\s*-\s*[^-]+$", "", title)[:30]
+        if not title or key in seen or "야생" not in title or not re.search(r"검출|확진|확인", title):
+            continue
+        seen.add(key)
+        items.append({"title": title, "link": it.findtext("link") or "", "date": it.findtext("pubDate") or "",
+                      "source": (it.findtext("source") or "").strip()})
+        if len(items) >= 8:
+            break
+    return items
+
+
+# ── 빠른 집계: 보도자료·보도 본문 → 확진 농장·야생조류 검출 ────────────────
 PRESS_LIST_URL = f"{BASE}/bbs/FMD-AI2/393/artclList.do"
 PRESS_POST_RE = re.compile(r'href="(/bbs/FMD-AI2/393/(\d+)/artclView\.do[^"]*)"[^>]*>([\s\S]*?)</a>')
 AI_MODEL = "claude-haiku-4-5-20251001"
@@ -246,10 +268,13 @@ SIDO_LONG = {"서울특별시": "서울", "부산광역시": "부산", "대구�
              "제주도": "제주", "제주특별자치도": "제주"}
 SP_OK = {"닭", "오리", "메추리", "기타"}
 EXTRACT_PROMPT = """다음은 국내 고병원성 조류인플루엔자(AI) 관련 {kind}입니다(게재 {pub}).
-이 글에서 **국내 가금농장에서 고병원성 AI가 확진된 농장**만 골라 JSON 배열로 출력하세요. 다른 글은 쓰지 마세요.
-[{{"conf":"YYYY-MM-DD","rep":"YYYY-MM-DD","sido":"경기","sgg":"연천군","sp":"닭","breed":"산란계","cnt":12345,"approx":false,"sero":"H5N1","kind":"신고","nth":1}}]
+이 글에서 **국내 가금농장 고병원성 AI 확진**(farms)과 **국내 야생조류 고병원성 AI 검출 확진**(wild)만 골라 JSON 객체 하나로 출력하세요. 다른 글은 쓰지 마세요.
+{{"farms":[{{"conf":"YYYY-MM-DD","rep":"YYYY-MM-DD","sido":"경기","sgg":"연천군","sp":"닭","breed":"산란계","cnt":12345,"approx":false,"sero":"H5N1","kind":"신고","nth":1}}],
+ "wild":[{{"date":"YYYY-MM-DD","conf":"YYYY-MM-DD","sido":"전남","sgg":"순천시","spot":"순천만","sero":"H5N1","sample":"분변"}}]}}
 규칙:
-- 확진(고병원성으로 확인)된 농장만. '의심', '검사 중', '저병원성', 야생조류 검출, 해외 발생, 과거 시즌 사례, 방역 대책 설명은 빼세요.
+- 고병원성으로 확진(최종 확인)된 것만. '의심', 'H5형 항원 검출·고병원성 여부 검사 중', '저병원성', 해외 발생, 과거 시즌 사례, 방역 대책 설명은 빼세요.
+- wild: 야생조류(철새·텃새의 분변·폐사체·포획 개체)만. 삵 같은 야생포유류, 가금농장은 wild에 넣지 마세요.
+  date = 시료 채취(폐사체 발견)일, 없으면 "". conf = 고병원성 최종 확인일. spot = 검출 지점(예: 순천만, 한강 하류 하성면 전류리), sample = 분변/폐사체/포획 중 하나.
 - conf: 고병원성 확진일. 글에 '4일'처럼 일만 있으면 게재 연·월을 쓰고, 확진일이 없으면 게재일.
 - sido: 서울·부산·대구·인천·광주·대전·울산·세종·경기·강원·충북·충남·전북·전남·경북·경남·제주 중 하나(짧은 이름).
 - sgg: 시·군·구 이름 그대로(예: 연천군, 천안시 동남구는 천안시). 모르면 그 농장은 빼세요.
@@ -257,7 +282,7 @@ EXTRACT_PROMPT = """다음은 국내 고병원성 조류인플루엔자(AI) 관�
 - rep: 농장이 신고한 날(예: '전날(3일) 신고'), 없으면 "". 
 - cnt: 그 농장 사육 마릿수(정수, '약 1만2천 마리'는 12000). 없으면 null. approx: '약', '~여 마리'처럼 대략값이면 true. sero: H5N1 등, 없으면 "". kind: 신고/예찰, 없으면 "".
 - nth: '올겨울 N번째', '이번 동절기 N번째'가 있으면 N, 없으면 null.
-- 글에 없는 내용은 지어내지 마세요. 해당 농장이 없으면 [] 만 출력하세요.
+- 글에 없는 내용은 지어내지 마세요. 해당하는 것이 없으면 {{"farms":[],"wild":[]}} 만 출력하세요.
 
 제목: {title}
 
@@ -285,7 +310,7 @@ def same_farm(a: dict, b: dict, days: int = 2) -> bool:
                                             or a.get("sp") == b.get("sp"))
 
 
-def ai_extract(title: str, text: str, kind: str, pub: datetime, api_key: str) -> list[dict] | None:
+def ai_extract(title: str, text: str, kind: str, pub: datetime, api_key: str) -> dict | None:
     prompt = EXTRACT_PROMPT.format(kind=kind, pub=pub.strftime("%Y-%m-%d"), title=title, text=text[:6000])
     resp = requests.post(ANTHROPIC_URL, headers={"x-api-key": api_key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
                          json={"model": AI_MODEL, "max_tokens": 800, "messages": [{"role": "user", "content": prompt}]}, timeout=60)
@@ -293,12 +318,15 @@ def ai_extract(title: str, text: str, kind: str, pub: datetime, api_key: str) ->
         print(f"  Anthropic 응답 {resp.status_code}: {resp.text[:160]}")
         return None                     # 다음 실행 때 다시 시도
     out = "".join(b.get("text", "") for b in resp.json().get("content", []) if b.get("type") == "text")
-    m = re.search(r"\[[\s\S]*\]", out)
+    m = re.search(r"\{[\s\S]*\}|\[[\s\S]*\]", out)
     try:
-        rows = json.loads(m.group(0)) if m else []
+        got = json.loads(m.group(0)) if m else {}
     except json.JSONDecodeError:
-        return []
-    return [r for r in rows if isinstance(r, dict)]
+        got = {}
+    if isinstance(got, list):          # 예전 형식(농장 배열)
+        got = {"farms": got}
+    ok = lambda v: [r for r in v if isinstance(r, dict)] if isinstance(v, list) else []
+    return {"farms": ok(got.get("farms")), "wild": ok(got.get("wild"))}
 
 
 def clean_quick(r: dict, pub: datetime, start: str) -> dict | None:
@@ -326,6 +354,40 @@ def clean_quick(r: dict, pub: datetime, start: str) -> dict | None:
             "sp": sp if sp in SP_OK else "기타", "breed": str(r.get("breed") or sp or "").strip()[:10],
             "cnt": cnt, "sero": sero if re.fullmatch(r"H\d{1,2}(N\d{1,2})?", sero) else "", "conf": conf,
             "nth": int(nth) if isinstance(nth, int) and 0 < nth < 1000 else None}
+
+
+def clean_wild(r: dict, pub: datetime, start: str) -> dict | None:
+    """야생조류 검출 한 줄 검사 — 이상하면 버린다."""
+    sido = SIDO_LONG.get(str(r.get("sido", "")).strip(), str(r.get("sido", "")).strip())
+    sgg = re.sub(r"\s+", "", str(r.get("sgg", "")))
+    sgg = re.sub(r"^(.+?[시군])(?:.+구)$", r"\1", sgg)
+    conf, date = str(r.get("conf", "")), str(r.get("date") or "")
+    if sido not in SIDO or not re.fullmatch(r"[가-힣]{1,6}[시군구]?", sgg or "") or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", conf):
+        return None
+    try:
+        cd = datetime.strptime(conf, "%Y-%m-%d").replace(tzinfo=KST)
+    except ValueError:
+        return None
+    if conf < start or cd > pub + timedelta(days=1) or cd < pub - timedelta(days=21):
+        return None
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date) or date > conf:
+        date = ""
+    sero = str(r.get("sero") or "").strip().upper()
+    sample = str(r.get("sample") or "").strip()
+    return {"date": date, "sido": sido, "sgg": sgg, "spot": str(r.get("spot") or "").strip()[:30],
+            "sero": sero if re.fullmatch(r"H\d{1,2}(N\d{1,2})?", sero) else "", "conf": conf,
+            "sample": sample if sample in ("분변", "폐사체", "포획") else ""}
+
+
+def same_wild(a: dict, b: dict, days: int = 3) -> bool:
+    if a.get("sido") != b.get("sido") or _sgg_key(a.get("sgg")) != _sgg_key(b.get("sgg")):
+        return False
+    def near(x, y):
+        try:
+            return abs((datetime.strptime(x, "%Y-%m-%d") - datetime.strptime(y, "%Y-%m-%d")).days) <= days
+        except (TypeError, ValueError):
+            return False
+    return near(a.get("conf"), b.get("conf")) or (bool(a.get("date")) and near(a.get("date"), b.get("date")))
 
 
 def press_candidates() -> list[dict]:
@@ -367,6 +429,7 @@ def update_quick(out: dict, prev: dict) -> None:
     now = datetime.now(KST)
     start = season_start(now)
     quick = [q for q in prev.get("quick", []) if q.get("conf", "") >= start]
+    qwild = [q for q in prev.get("quick_wild", []) if q.get("conf", "") >= start]
     seen = list(prev.get("quick_seen", []))
     if not api_key:
         print("::notice::ANTHROPIC_API_KEY 없음 — 빠른 집계(quick)는 이전 값 유지")
@@ -376,9 +439,15 @@ def update_quick(out: dict, prev: dict) -> None:
             cands += press_candidates()
         except Exception as exc:
             print(f"::notice::보도자료 게시판 실패 — {exc}")
-        for n in out.get("news", []):
+        wild_news = []
+        try:
+            wild_news = fetch_wild_news()
+        except Exception as exc:
+            print(f"::notice::야생조류 보도 검색 실패 — {exc}")
+        for n in out.get("news", []) + wild_news:
             key = "n" + re.sub(r"\W", "", n.get("title", ""))[:40]
-            cands.append({"id": key, "title": n.get("title", ""), "news": n, "kind": "언론 보도", "url": ""})
+            if not any(c["id"] == key for c in cands):
+                cands.append({"id": key, "title": n.get("title", ""), "news": n, "kind": "언론 보도", "url": ""})
         for c in cands:
             if c["id"] in seen:
                 continue
@@ -394,11 +463,27 @@ def update_quick(out: dict, prev: dict) -> None:
                 pub, text, link, src = now, press_text(c["url"]), c["url"], "농식품부 보도자료"
             if not text:
                 continue
-            rows = ai_extract(c["title"], text, c["kind"], pub, api_key)
-            if rows is None:
+            got = ai_extract(c["title"], text, c["kind"], pub, api_key)
+            if got is None:
                 continue
             seen.append(c["id"])
-            for r in rows:
+            flat = re.sub(r"\s+", "", c["title"] + text)
+            for r in got["wild"]:
+                w = clean_wild(r, pub, start)
+                if not w or _sgg_key(w["sgg"]) not in flat:
+                    continue
+                w.update({"src": src, "title": c["title"][:80], "link": link, "found": now.strftime("%Y-%m-%d %H:%M")})
+                old = next((x for x in qwild if same_wild(x, w)), None)
+                if old:
+                    for k in ("date", "sero", "spot", "sample"):
+                        if not old.get(k) and w.get(k):
+                            old[k] = w[k]
+                    if w["sero"] and old.get("sero") and len(w["sero"]) > len(old["sero"]):   # H5 → H5N1처럼 더 자세해지면 바꾼다
+                        old["sero"] = w["sero"]
+                else:
+                    qwild.append(w)
+                    print(f"  빠른 집계(야생조류) 추가: {w['conf']} {w['sido']} {w['sgg']} {w['spot']} {w['sero']} ({src})")
+            for r in got["farms"]:
                 q = clean_quick(r, pub, start)
                 if not q or _sgg_key(q["sgg"]) not in re.sub(r"\s+", "", c["title"] + text):   # 글에 없는 지명은 버린다(지어낸 값 방지)
                     continue
@@ -418,7 +503,10 @@ def update_quick(out: dict, prev: dict) -> None:
     table = [f for f in out.get("farms", []) if f.get("conf", "") >= start]
     quick = [q for q in quick if not any(same_farm(q, f, 3) for f in table)]
     quick.sort(key=lambda q: q["conf"])
-    out["quick"], out["quick_seen"] = quick, seen
+    twild = [w for w in out.get("wild", []) if w.get("conf", "") >= start]
+    qwild = [q for q in qwild if not any(same_wild(q, w) for w in twild)]
+    qwild.sort(key=lambda q: q["conf"])
+    out["quick"], out["quick_wild"], out["quick_seen"] = quick, qwild, seen
 
 
 def main() -> int:
@@ -449,7 +537,7 @@ def main() -> int:
         return 1
     try:
         update_quick(out, prev)
-        print(f"빠른 집계(보도 기준) {len(out.get('quick', []))}건")
+        print(f"빠른 집계(보도 기준) 가금농장 {len(out.get('quick', []))}건 · 야생조류 {len(out.get('quick_wild', []))}건")
     except Exception as exc:
         print(f"::warning::빠른 집계 실패, 이전 값 유지 — {exc}")
     out["checked"] = datetime.now(KST).strftime("%Y-%m-%d %H:%M KST")
