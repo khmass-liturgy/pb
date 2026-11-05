@@ -247,14 +247,15 @@ SIDO_LONG = {"서울특별시": "서울", "부산광역시": "부산", "대구�
 SP_OK = {"닭", "오리", "메추리", "기타"}
 EXTRACT_PROMPT = """다음은 국내 고병원성 조류인플루엔자(AI) 관련 {kind}입니다(게재 {pub}).
 이 글에서 **국내 가금농장에서 고병원성 AI가 확진된 농장**만 골라 JSON 배열로 출력하세요. 다른 글은 쓰지 마세요.
-[{{"conf":"YYYY-MM-DD","sido":"경기","sgg":"연천군","sp":"닭","breed":"산란계","cnt":12345,"sero":"H5N1","kind":"신고","nth":1}}]
+[{{"conf":"YYYY-MM-DD","rep":"YYYY-MM-DD","sido":"경기","sgg":"연천군","sp":"닭","breed":"산란계","cnt":12345,"approx":false,"sero":"H5N1","kind":"신고","nth":1}}]
 규칙:
 - 확진(고병원성으로 확인)된 농장만. '의심', '검사 중', '저병원성', 야생조류 검출, 해외 발생, 과거 시즌 사례, 방역 대책 설명은 빼세요.
 - conf: 고병원성 확진일. 글에 '4일'처럼 일만 있으면 게재 연·월을 쓰고, 확진일이 없으면 게재일.
 - sido: 서울·부산·대구·인천·광주·대전·울산·세종·경기·강원·충북·충남·전북·전남·경북·경남·제주 중 하나(짧은 이름).
 - sgg: 시·군·구 이름 그대로(예: 연천군, 천안시 동남구는 천안시). 모르면 그 농장은 빼세요.
 - sp: 닭·오리·메추리·기타 중 하나. breed: 산란계·육계·종계·토종닭·육용오리·종오리·메추리 등 글에 나온 대로.
-- cnt: 그 농장 사육 마릿수(정수, '약 1만2천 마리'는 12000). 없으면 null. sero: H5N1 등, 없으면 "". kind: 신고/예찰, 없으면 "".
+- rep: 농장이 신고한 날(예: '전날(3일) 신고'), 없으면 "". 
+- cnt: 그 농장 사육 마릿수(정수, '약 1만2천 마리'는 12000). 없으면 null. approx: '약', '~여 마리'처럼 대략값이면 true. sero: H5N1 등, 없으면 "". kind: 신고/예찰, 없으면 "".
 - nth: '올겨울 N번째', '이번 동절기 N번째'가 있으면 N, 없으면 null.
 - 글에 없는 내용은 지어내지 마세요. 해당 농장이 없으면 [] 만 출력하세요.
 
@@ -319,7 +320,9 @@ def clean_quick(r: dict, pub: datetime, start: str) -> dict | None:
     cnt = int(cnt) if isinstance(cnt, (int, float)) and 0 < cnt < 5_000_000 else 0
     sero = str(r.get("sero") or "").strip().upper()
     nth = r.get("nth")
-    return {"kind": str(r.get("kind") or "").strip()[:4], "rep": "", "sido": sido, "sgg": sgg,
+    rp = str(r.get("rep") or "")
+    rp = rp if re.fullmatch(r"\d{4}-\d{2}-\d{2}", rp) and rp <= conf else ""
+    return {"kind": str(r.get("kind") or "").strip()[:4], "rep": rp, "approx": bool(r.get("approx")) and cnt > 0, "sido": sido, "sgg": sgg,
             "sp": sp if sp in SP_OK else "기타", "breed": str(r.get("breed") or sp or "").strip()[:10],
             "cnt": cnt, "sero": sero if re.fullmatch(r"H\d{1,2}(N\d{1,2})?", sero) else "", "conf": conf,
             "nth": int(nth) if isinstance(nth, int) and 0 < nth < 1000 else None}
@@ -402,7 +405,7 @@ def update_quick(out: dict, prev: dict) -> None:
                 q.update({"src": src, "title": c["title"][:80], "link": link, "found": now.strftime("%Y-%m-%d %H:%M")})
                 old = next((x for x in quick if same_farm(x, q)), None)
                 if old:      # 같은 농장 — 빈칸만 채우고, 보도자료가 언론 보도보다 우선
-                    for k in ("cnt", "sero", "kind", "nth"):
+                    for k in ("cnt", "sero", "kind", "nth", "rep", "approx"):
                         if not old.get(k) and q.get(k):
                             old[k] = q[k]
                     if src == "농식품부 보도자료" and old.get("src") != src:
