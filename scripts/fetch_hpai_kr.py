@@ -124,21 +124,56 @@ def _num(s: str) -> int:
     return int(re.sub(r"[^\d]", "", s) or 0)
 
 
+DATE_RE = re.compile(r"^[(（]?[‘’']?(\d{2}\.)?\d{1,2}\.\d{1,2}\.?[)）]?$")
+SERO_RE = re.compile(r"^H\d{1,2}(N\d{1,2})?", re.I)
+SAMPLE_OK = ("분변", "폐사체", "페사체", "포획", "생포", "포획개체")
+
+
 def _date(s: str, ref: datetime) -> str:
-    """'’25.9.12' · '10.21' · '(‘26.1.2)' → YYYY-MM-DD. 연도 표기가 없으면 기준일보다 뒤 달은 작년."""
-    s = re.sub(r"[‘’'()\s]", "", s).strip(".")
+    """'’25.9.12' · '10.21' · '(‘26.1.2)' → YYYY-MM-DD. 연도 표기가 없으면 기준일보다 뒤 달은 작년. 날짜가 아니면 ""."""
+    s = re.sub(r"[‘’'()（）\s]", "", s).strip(".")
     parts = [p for p in s.split(".") if p]
-    if len(parts) == 3:
-        y, m, d = 2000 + int(parts[0]), int(parts[1]), int(parts[2])
-    else:
-        m, d = int(parts[0]), int(parts[1])
-        y = ref.year if m <= ref.month else ref.year - 1
-    return f"{y:04d}-{m:02d}-{d:02d}"
+    try:
+        if len(parts) == 3:
+            y, m, d = 2000 + int(parts[0]), int(parts[1]), int(parts[2])
+        elif len(parts) == 2:
+            m, d = int(parts[0]), int(parts[1])
+            y = ref.year if m <= ref.month else ref.year - 1
+        else:
+            return ""
+        return datetime(y, m, d).strftime("%Y-%m-%d")
+    except ValueError:
+        return ""
+
+
+def _is_date(t: str) -> bool:
+    return bool(DATE_RE.match(t.replace(" ", "")))
+
+
+def _rows(lines: list[str], start: int, is_start) -> list[list[str]]:
+    """표 본문을 행 단위로 — 행 시작(연번+…)부터 다음 행 시작 전까지. 빈 칸이 있어도 열이 밀리지 않게 칸 내용으로 읽는다."""
+    rows, cur, i = [], None, start
+    while i < len(lines):
+        t = lines[i]
+        if is_start(i):
+            if cur:
+                rows.append(cur)
+            cur = [t]
+        elif cur is not None:
+            if t == "연번" or len(cur) >= 16:      # 다음 표 머리말이거나 행이 비정상적으로 길면 표 끝
+                break
+            cur.append(t)
+        else:
+            break
+        i += 1
+    if cur:
+        rows.append(cur)
+    return rows
 
 
 def parse_tables(lines: list[str], ref: datetime) -> tuple[list[dict], list[dict]]:
-    """(가금농장 목록, 야생조류 목록)."""
-    # 가금농장 표 머리말 마지막 칸 '확진일', 야생조류 표 마지막 칸 '시료'
+    """(가금농장 목록, 야생조류 목록). 열 순서 대신 칸 내용(날짜·시도·혈청형·숫자)으로 읽어,
+    'H5'(N형 검사 중)처럼 칸이 비거나 줄어든 행도 밀리지 않게 한다."""
     farms: list[dict] = []
     wild: list[dict] = []
     try:
@@ -146,24 +181,39 @@ def parse_tables(lines: list[str], ref: datetime) -> tuple[list[dict], list[dict
         fi = next(i for i in range(fi, len(lines)) if lines[i] == "확진일") + 1
     except StopIteration:
         raise RuntimeError("가금농장 표 머리말을 찾지 못함(양식 변경?)")
-    i = fi
-    while i + 10 < len(lines) and lines[i].isdigit() and lines[i + 1] in ("신고", "예찰"):
-        r = lines[i:i + 11]
-        farms.append({"n": int(r[0]), "kind": r[1], "rep": _date(r[2], ref), "sido": r[3], "sgg": r[4],
-                      "sp": r[5], "breed": r[6], "cnt": _num(r[7]), "sero": r[9], "conf": _date(r[10], ref)})
-        i += 11
+    fstart = lambda i: lines[i].isdigit() and i + 1 < len(lines) and lines[i + 1] in ("신고", "예찰")
+    for r in _rows(lines, fi, fstart):
+        rest = r[2:]
+        dates = [k for k, t in enumerate(rest) if _is_date(t)]
+        sk = next((k for k, t in enumerate(rest) if SERO_RE.match(t)), None)
+        if not dates or len(rest) < dates[0] + 5:
+            raise RuntimeError(f"가금농장 행을 읽지 못함: {r}")
+        d0 = dates[0]
+        sido, sgg, sp, breed = rest[d0 + 1], rest[d0 + 2], rest[d0 + 3], rest[d0 + 4]
+        cnt_tok = next((t for t in rest[d0 + 5:(sk if sk is not None else len(rest))] if re.fullmatch(r"[\d,]+", t)), "0")
+        conf_k = next((k for k in dates if k > d0 and (sk is None or k > sk)), None)
+        farms.append({"n": int(r[0]), "kind": r[1], "rep": _date(rest[d0], ref), "sido": sido, "sgg": sgg,
+                      "sp": sp, "breed": breed, "cnt": _num(cnt_tok), "sero": rest[sk] if sk is not None else "",
+                      "conf": _date(rest[conf_k], ref) if conf_k is not None else _date(rest[d0], ref)})
     try:
         wi = next(i for i, t in enumerate(lines) if t == "연번" and "도래지" in " ".join(lines[i:i + 8]))
         wi = next(i for i in range(wi, len(lines)) if lines[i] == "시료") + 1
     except StopIteration:
         wi = None
     if wi is not None:
-        j = wi
-        while j + 9 < len(lines) and lines[j].isdigit():
-            r = lines[j:j + 10]
-            wild.append({"n": int(r[0]), "date": _date(r[1], ref), "sido": r[2], "sgg": r[3], "spot": r[4],
-                         "sero": r[5], "conf": _date(r[6], ref), "sample": r[9].replace("페사체", "폐사체")})
-            j += 10
+        wstart = lambda i: lines[i].isdigit() and i + 1 < len(lines) and _is_date(lines[i + 1])
+        for r in _rows(lines, wi, wstart):
+            rest = r[1:]
+            sk = next((k for k, t in enumerate(rest) if SERO_RE.match(t)), None)
+            if len(rest) < 4:
+                raise RuntimeError(f"야생조류 행을 읽지 못함: {r}")
+            conf_k = next((k for k, t in enumerate(rest) if k > (sk if sk is not None else 3) and _is_date(t)), None)
+            sample = next((t for t in reversed(rest) if t in SAMPLE_OK), rest[-1])
+            wild.append({"n": int(r[0]), "date": _date(rest[0], ref), "sido": rest[1], "sgg": rest[2],
+                         "spot": rest[3] if (sk is None or sk > 3) else "",
+                         "sero": rest[sk] if sk is not None else "",
+                         "conf": _date(rest[conf_k], ref) if conf_k is not None else _date(rest[0], ref),
+                         "sample": sample.replace("페사체", "폐사체")})
     return farms, wild
 
 
@@ -198,7 +248,14 @@ def fetch_table_data() -> dict:
     if not content:
         raise RuntimeError("첨부 .hwp를 받지 못함")
     lines = hwp_text(content)
-    farms, wild = parse_tables(lines, post["ref"])
+    try:
+        farms, wild = parse_tables(lines, post["ref"])
+    except Exception:
+        print("::group::표 글자(진단용, 앞 260줄)")
+        for k, t in enumerate(lines[:260]):
+            print(f"{k:3d} {t}")
+        print("::endgroup::")
+        raise
     # 표 위 "총 N건" 과 읽은 행 수가 맞는지 확인(양식이 달라져 일부만 읽었는지 감지)
     tot = [int(x) for x in re.findall(r"총\s*(\d+)\s*건", " ".join(lines[:80]))]
     if tot and farms and tot[0] != len(farms):
@@ -396,11 +453,16 @@ def press_candidates() -> list[dict]:
     if not html:
         print("::notice::농식품부 보도자료 게시판(393)을 열지 못함 — 중계 서버 허용 목록에 FMD-AI2/393 추가 필요")
         return []
-    out = []
+    out, ids = [], set()
     for href, art_id, inner in PRESS_POST_RE.findall(html):
         title = re.sub(r"<[^>]+>|\s+", " ", inner).strip()
-        if "조류인플루엔자" in title and re.search(r"발생|확진|확인", title) and not re.search(r"의심|저병원성", title):
-            out.append({"id": "p" + art_id, "title": title, "url": urljoin(BASE, href), "kind": "농식품부 보도자료"})
+        if art_id in ids:
+            continue
+        if "조류인플루엔자" in title and re.search(r"발생|확진|확인|검출", title) and not re.search(r"의심|저병원성", title):
+            ids.add(art_id)
+            out.append({"id": "p" + art_id, "title": title, "url": urljoin(BASE, href), "kind": "농식품부 보도자료", "n": int(art_id)})
+    out.sort(key=lambda c: -c["n"])          # 글 번호가 클수록 최신 — 고정 공지·옛 글이 먼저 나와도 최신 6건만
+    print(f"  보도자료 게시판 후보 {len(out)}건 (최신 {out[0]['n'] if out else '-'})")
     return out[:6]
 
 
