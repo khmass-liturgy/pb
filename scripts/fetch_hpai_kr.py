@@ -262,6 +262,8 @@ def fetch_table_data() -> dict:
         raise RuntimeError(f"가금농장 건수 불일치: 문서 {tot[0]}건, 읽은 행 {len(farms)}건")
     if not farms:
         raise RuntimeError("가금농장 행을 읽지 못함")
+    for row in farms + wild:            # 「전남광주」 같은 통합 시·도 이름 → 지도의 시·도
+        row["sido"] = norm_sido(row["sido"], row["sgg"])
     return {"as_of": post["ref"].strftime("%Y-%m-%d %H:%M KST"), "title": post["title"], "url": post["url"],
             "farms": farms, "wild": wild}
 
@@ -324,6 +326,24 @@ SIDO_LONG = {"서울특별시": "서울", "부산광역시": "부산", "대구�
              "충청남도": "충남", "전라북도": "전북", "전북특별자치도": "전북", "전라남도": "전남", "경상북도": "경북", "경상남도": "경남",
              "제주도": "제주", "제주특별자치도": "제주"}
 SP_OK = {"닭", "오리", "메추리", "기타"}
+# 통합 시·도 이름(농식품부 26/27 표의 「전남광주」 등) → 지도에 쓰는 옛 시·도. 광역시 쪽 구·군이면 광역시로.
+MERGED_SIDO = {
+    "전남광주": ("광주", "전남", {"동구", "서구", "남구", "북구", "광산구", "광산"}),
+    "광주전남": ("광주", "전남", {"동구", "서구", "남구", "북구", "광산구", "광산"}),
+    "대구경북": ("대구", "경북", {"중구", "동구", "서구", "남구", "북구", "수성구", "수성", "달서구", "달서", "달성군", "달성", "군위군", "군위"}),
+    "경북대구": ("대구", "경북", {"중구", "동구", "서구", "남구", "북구", "수성구", "수성", "달서구", "달서", "달성군", "달성", "군위군", "군위"}),
+    "대전충남": ("대전", "충남", {"동구", "중구", "서구", "유성구", "유성", "대덕구", "대덕"}),
+    "충남대전": ("대전", "충남", {"동구", "중구", "서구", "유성구", "유성", "대덕구", "대덕"}),
+}
+
+
+def norm_sido(sido: str, sgg: str = "") -> str:
+    s = re.sub(r"\s+", "", str(sido or ""))
+    s = re.sub(r"(특별자치도|특별자치시|특별시|광역시|통합특별시|특별도)$", "", s) if s not in SIDO_LONG else SIDO_LONG[s]
+    if s in MERGED_SIDO:
+        metro, prov, gu = MERGED_SIDO[s]
+        return metro if re.sub(r"\s+", "", sgg or "") in gu else prov
+    return SIDO_LONG.get(s, s)
 EXTRACT_PROMPT = """다음은 국내 고병원성 조류인플루엔자(AI) 관련 {kind}입니다(게재 {pub}).
 이 글에서 **국내 가금농장 고병원성 AI 확진**(farms)과 **국내 야생조류 고병원성 AI 검출 확진**(wild)만 골라 JSON 객체 하나로 출력하세요. 다른 글은 쓰지 마세요.
 {{"farms":[{{"conf":"YYYY-MM-DD","rep":"YYYY-MM-DD","sido":"경기","sgg":"연천군","sp":"닭","breed":"산란계","cnt":12345,"approx":false,"sero":"H5N1","kind":"신고","nth":1}}],
@@ -388,9 +408,9 @@ def ai_extract(title: str, text: str, kind: str, pub: datetime, api_key: str) ->
 
 def clean_quick(r: dict, pub: datetime, start: str) -> dict | None:
     """AI가 뽑은 한 줄을 검사해 지도에 넣을 모양으로 — 이상하면 버린다."""
-    sido = SIDO_LONG.get(str(r.get("sido", "")).strip(), str(r.get("sido", "")).strip())
     sgg = re.sub(r"\s+", "", str(r.get("sgg", "")))
     sgg = re.sub(r"^(.+?[시군])(?:.+구)$", r"\1", sgg)          # 천안시동남구 → 천안시
+    sido = norm_sido(r.get("sido", ""), sgg)
     conf = str(r.get("conf", ""))
     if sido not in SIDO or not re.fullmatch(r"[가-힣]{1,6}[시군구]?", sgg or "") or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", conf):
         return None
@@ -415,9 +435,9 @@ def clean_quick(r: dict, pub: datetime, start: str) -> dict | None:
 
 def clean_wild(r: dict, pub: datetime, start: str) -> dict | None:
     """야생조류 검출 한 줄 검사 — 이상하면 버린다."""
-    sido = SIDO_LONG.get(str(r.get("sido", "")).strip(), str(r.get("sido", "")).strip())
     sgg = re.sub(r"\s+", "", str(r.get("sgg", "")))
     sgg = re.sub(r"^(.+?[시군])(?:.+구)$", r"\1", sgg)
+    sido = norm_sido(r.get("sido", ""), sgg)
     conf, date = str(r.get("conf", "")), str(r.get("date") or "")
     if sido not in SIDO or not re.fullmatch(r"[가-힣]{1,6}[시군구]?", sgg or "") or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", conf):
         return None
@@ -462,7 +482,10 @@ def press_candidates() -> list[dict]:
             ids.add(art_id)
             out.append({"id": "p" + art_id, "title": title, "url": urljoin(BASE, href), "kind": "농식품부 보도자료", "n": int(art_id)})
     out.sort(key=lambda c: -c["n"])          # 글 번호가 클수록 최신 — 고정 공지·옛 글이 먼저 나와도 최신 6건만
-    print(f"  보도자료 게시판 후보 {len(out)}건 (최신 {out[0]['n'] if out else '-'})")
+    allids = sorted({int(a) for _, a, _ in PRESS_POST_RE.findall(html)}, reverse=True)
+    print(f"  보도자료 게시판 후보 {len(out)}건 (최신 {out[0]['n'] if out else '-'}) · 목록 글 {len(allids)}개 {allids[:5]}")
+    for c in out[:3]:
+        print(f"    {c['n']} {c['title'][:60]}")
     return out[:6]
 
 
