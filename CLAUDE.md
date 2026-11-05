@@ -157,8 +157,8 @@ updated server.js deployed or the workflow fails. The board is updated only now 
 2026-09-01 (`HPAI_KR_NEW_SEASON`) from that JSON on top of the built-in 25/26 season data (`HPAI_KR_FARMS`/`HPAI_KR_WILD`)
 and draws them in purple/teal.
 Because the 「발생·검출 현황」 table lags days to weeks (26/27 season's first case, 연천 산란계 2026-11-04, was missing), the script also keeps a
-**quick list** (`quick` in the JSON, `update_quick`): candidates from MAFRA's 가축전염병 보도자료 board `bbs/FMD-AI2/393` (same-day 중수본
-press releases — **the relay's `MAFRA_ALLOWED_PATH` must add `FMD-AI2\/393`** or the board is skipped with a notice) and the recent news
+**quick list** (`quick` in the JSON, `update_quick`): candidates from MAFRA's press-release boards `PRESS_BOARDS` (`bbs/home/792` main 보도자료 + `bbs/FMD-AI2/393`; same-day 중수본
+press releases — **the relay's `MAFRA_ALLOWED_PATH` must include both** or a board is skipped with a notice) and the recent news
 items (article body via `fetch_industry_news.decode_google_url`/`article_text`, needs `trafilatura`) go to Claude Haiku (`ai_extract`,
 `ANTHROPIC_API_KEY`; without it `quick` is kept as is), which returns only **confirmed poultry-farm** cases as JSON; `clean_quick` validates
 sido/sgg/date/count and a row is dropped unless its 시군 name appears in the source text. Processed sources are remembered in `quick_seen`;
@@ -170,7 +170,7 @@ replaces the old one) fill `quick_wild`, which leaves when the official `wild` t
 badge, 🦆 lines in the strip). Wild mammals (e.g. the 2026-11-02 서산 삵 H5N1) are excluded by the prompt. Seeded 2026-11-05 after cross-checking
 reports: 순천만 (채취 10.12, 확인 10.20, H5 — N형 미발표) and 김포 하성면 전류리 (채취 10.19, H5N1 확진 10.26).
 2026-11-05: the relay now allows `FMD-AI2/393` (farm-pro c7e4817, VM updated), but that board's list page only shows 25/26-season posts
-(newest id 578066), so it currently adds nothing — the 26/27 press releases live on a board whose number is not known yet. The same day the
+(newest id 578066); the 26/27 press releases are on MAFRA's main 보도자료 board **`bbs/home/792`** (e.g. 순천만 첫 검출 = 579504), so `PRESS_BOARDS` reads both and keeps only 조류인플루엔자 titles — the relay must allow `home\/792` too (farm-pro allowlist + VM). The same day the
 official table moved to the 26/27 season ('26.11.4 17시 기준: 연천 1건, 야생조류 순천만·김포·용인 청미천 3건) and broke the old fixed-column
 parser on 'H5'-only/empty cells, so `parse_tables` now reads rows **by cell content** (dates, 시도, `H5…` 혈청형, numbers; `_rows` splits at the
 next 연번 start) and dumps the table text to the log on failure. The new table also writes merged regions such as **「전남광주」**: `norm_sido(시도, 시군)`
