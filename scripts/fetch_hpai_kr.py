@@ -316,8 +316,11 @@ def fetch_wild_news() -> list[dict]:
 
 
 # ── 빠른 집계: 보도자료·보도 본문 → 확진 농장·야생조류 검출 ────────────────
-PRESS_LIST_URL = f"{BASE}/bbs/FMD-AI2/393/artclList.do"
-PRESS_POST_RE = re.compile(r'href="(/bbs/FMD-AI2/393/(\d+)/artclView\.do[^"]*)"[^>]*>([\s\S]*?)</a>')
+# 보도자료 게시판: 26/27 시즌부터 AI 발생 보도자료는 농식품부 본 보도자료 게시판(bbs/home/792 — 예: 순천만 첫 검출 579504)에 올라오고,
+# 가축전염병 게시판(bbs/FMD-AI2/393)에는 25/26 시즌 글까지만 있다. 둘 다 보고 제목에 「조류인플루엔자」가 든 글만 고른다.
+# 중계 서버(farm-pro sms-relay) MAFRA_ALLOWED_PATH에 home\/792 와 FMD-AI2\/393 이 있어야 열린다.
+PRESS_BOARDS = ["home/792", "FMD-AI2/393"]
+PRESS_POST_RE = re.compile(r'href="(/bbs/(home/792|FMD-AI2/393)/(\d+)/artclView\.do[^"]*)"[^>]*>([\s\S]*?)</a>')
 AI_MODEL = "claude-haiku-4-5-20251001"
 ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
 SIDO = {"서울", "부산", "대구", "인천", "광주", "대전", "울산", "세종", "경기", "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주"}
@@ -468,22 +471,25 @@ def same_wild(a: dict, b: dict, days: int = 3) -> bool:
 
 
 def press_candidates() -> list[dict]:
-    """농식품부 가축전염병 보도자료 게시판 — 중계 서버가 393 경로를 허용해야 열린다(안 열리면 빈 목록)."""
-    html = _get(PRESS_LIST_URL)
-    if not html:
-        print("::notice::농식품부 보도자료 게시판(393)을 열지 못함 — 중계 서버 허용 목록에 FMD-AI2/393 추가 필요")
-        return []
+    """농식품부 보도자료 게시판들 — 중계 서버가 그 경로를 허용해야 열린다(안 열리면 그 게시판은 건너뜀)."""
     out, ids = [], set()
-    for href, art_id, inner in PRESS_POST_RE.findall(html):
-        title = re.sub(r"<[^>]+>|\s+", " ", inner).strip()
-        if art_id in ids:
+    for board in PRESS_BOARDS:
+        html = _get(f"{BASE}/bbs/{board}/artclList.do")
+        if not html:
+            print(f"::notice::농식품부 보도자료 게시판({board})을 열지 못함 — 중계 서버 허용 목록에 {board} 추가 필요")
             continue
-        if "조류인플루엔자" in title and re.search(r"발생|확진|확인|검출", title) and not re.search(r"의심|저병원성", title):
-            ids.add(art_id)
-            out.append({"id": "p" + art_id, "title": title, "url": urljoin(BASE, href), "kind": "농식품부 보도자료", "n": int(art_id)})
-    out.sort(key=lambda c: -c["n"])          # 글 번호가 클수록 최신 — 고정 공지·옛 글이 먼저 나와도 최신 6건만
-    allids = sorted({int(a) for _, a, _ in PRESS_POST_RE.findall(html)}, reverse=True)
-    print(f"  보도자료 게시판 후보 {len(out)}건 (최신 {out[0]['n'] if out else '-'}) · 목록 글 {len(allids)}개 {allids[:5]}")
+        found = PRESS_POST_RE.findall(html)
+        n0 = len(out)
+        for href, _b, art_id, inner in found:
+            title = re.sub(r"<[^>]+>|\s+", " ", inner).strip()
+            if art_id in ids:
+                continue
+            if "조류인플루엔자" in title and re.search(r"발생|확진|확인|검출", title) and not re.search(r"의심|저병원성", title):
+                ids.add(art_id)
+                out.append({"id": "p" + art_id, "title": title, "url": urljoin(BASE, href), "kind": "농식품부 보도자료", "n": int(art_id)})
+        allids = sorted({int(a) for _, _, a, _ in found}, reverse=True)
+        print(f"  보도자료 게시판 {board}: 목록 글 {len(allids)}개(최신 {allids[0] if allids else '-'}) · AI 글 {len(out) - n0}건")
+    out.sort(key=lambda c: -c["n"])          # 글 번호가 클수록 최신
     for c in out[:3]:
         print(f"    {c['n']} {c['title'][:60]}")
     return out[:6]
