@@ -294,6 +294,34 @@ def fetch_news() -> list[dict]:
     return items
 
 
+# 빠른 집계용 보도 검색 — 화면 뉴스 목록(8건)은 한 발생 기사로 꽉 차기 쉬워(예: 장흥 기사 8건에 여주가 밀림),
+# 추출용으로는 검색어 몇 개를 더 돌려 최대 25건을 모은다(같은 제목은 한 번만).
+QUICK_NEWS_QUERIES = ["고병원성 AI 가금농장 확진 when:3d", "AI 항원 검출 농장 when:3d", "조류인플루엔자 산란계 OR 육계 OR 오리 OR 메추리 확진 when:2d"]
+
+
+def fetch_quick_news(limit: int = 25) -> list[dict]:
+    items, seen = [], set()
+    for q in QUICK_NEWS_QUERIES:
+        try:
+            resp = requests.get("https://news.google.com/rss/search?q=" + quote(q) + "&hl=ko&gl=KR&ceid=KR:ko", headers=HEADERS, timeout=30)
+            resp.raise_for_status()
+            root = ET.fromstring(resp.content)
+        except Exception as exc:
+            print(f"  보도 검색 실패({q}): {type(exc).__name__}")
+            continue
+        for it in root.iter("item"):
+            title = (it.findtext("title") or "").strip()
+            key = re.sub(r"\s*-\s*[^-]+$", "", title)[:30]
+            if not title or key in seen or not NEWS_KEEP.search(title) or (not re.search(r"확진|검출", title) and NEWS_PREVENT.search(title)):
+                continue
+            seen.add(key)
+            items.append({"title": title, "link": it.findtext("link") or "", "date": it.findtext("pubDate") or "",
+                          "source": (it.findtext("source") or "").strip()})
+            if len(items) >= limit:
+                return items
+    return items
+
+
 # 야생조류 검출은 가금농장보다 보도가 뜸해 7일치를 본다(빠른 집계에만 쓰고 화면 뉴스 목록에는 넣지 않음)
 WILD_NEWS_URL = ("https://news.google.com/rss/search?q=" +
                  quote("야생조류 고병원성 AI 검출 when:7d") + "&hl=ko&gl=KR&ceid=KR:ko")
@@ -350,10 +378,12 @@ def norm_sido(sido: str, sgg: str = "") -> str:
     return SIDO_LONG.get(s, s)
 EXTRACT_PROMPT = """다음은 국내 고병원성 조류인플루엔자(AI) 관련 {kind}입니다(게재 {pub}).
 이 글에서 **국내 가금농장 고병원성 AI 확진**(farms)과 **국내 야생조류 고병원성 AI 검출 확진**(wild)만 골라 JSON 객체 하나로 출력하세요. 다른 글은 쓰지 마세요.
-{{"farms":[{{"conf":"YYYY-MM-DD","rep":"YYYY-MM-DD","sido":"경기","sgg":"연천군","sp":"닭","breed":"산란계","cnt":12345,"approx":false,"sero":"H5N1","kind":"신고","nth":1}}],
+{{"farms":[{{"status":"확진","conf":"YYYY-MM-DD","rep":"YYYY-MM-DD","sido":"경기","sgg":"연천군","sp":"닭","breed":"산란계","cnt":12345,"approx":false,"sero":"H5N1","kind":"신고","nth":1}}],
  "wild":[{{"date":"YYYY-MM-DD","conf":"YYYY-MM-DD","sido":"전남","sgg":"순천시","spot":"순천만","sero":"H5N1","sample":"분변"}}]}}
 규칙:
-- 고병원성으로 확진(최종 확인)된 것만. '의심', 'H5형 항원 검출·고병원성 여부 검사 중', '저병원성', 해외 발생, 과거 시즌 사례, 방역 대책 설명은 빼세요.
+- farms: 고병원성으로 확진된 농장은 status "확진". 가금농장에서 'H5형 AI 항원이 검출돼 고병원성 여부를 검사 중'인 농장은 status "검사중"으로 넣고 conf에는 항원 검출일을 쓰세요.
+  항원 검출 전 '의심 신고'만 있는 경우, '저병원성' 판정, 해외 발생, 과거 시즌 사례, 방역 대책 설명은 빼세요.
+- wild: 고병원성으로 최종 확인된 것만('검사 중'은 빼세요).
 - wild: 야생조류(철새·텃새의 분변·폐사체·포획 개체)만. 삵 같은 야생포유류, 가금농장은 wild에 넣지 마세요.
   date = 시료 채취(폐사체 발견)일, 없으면 "". conf = 고병원성 최종 확인일. spot = 검출 지점(예: 순천만, 한강 하류 하성면 전류리), sample = 분변/폐사체/포획 중 하나.
 - conf: 고병원성 확진일. 글에 '4일'처럼 일만 있으면 게재 연·월을 쓰고, 확진일이 없으면 게재일.
@@ -434,7 +464,8 @@ def clean_quick(r: dict, pub: datetime, start: str) -> dict | None:
     return {"kind": str(r.get("kind") or "").strip()[:4], "rep": rp, "approx": bool(r.get("approx")) and cnt > 0, "sido": sido, "sgg": sgg,
             "sp": sp if sp in SP_OK else "기타", "breed": str(r.get("breed") or sp or "").strip()[:10],
             "cnt": cnt, "sero": sero if re.fullmatch(r"H\d{1,2}(N\d{1,2})?", sero) else "", "conf": conf,
-            "nth": int(nth) if isinstance(nth, int) and 0 < nth < 1000 else None}
+            "nth": int(nth) if isinstance(nth, int) and 0 < nth < 1000 else None,
+            "pending": str(r.get("status") or "확진").strip() in ("검사중", "검사 중", "의심", "항원검출")}
 
 
 def clean_wild(r: dict, pub: datetime, start: str) -> dict | None:
@@ -468,7 +499,15 @@ def same_wild(a: dict, b: dict, days: int = 3) -> bool:
             return abs((datetime.strptime(x, "%Y-%m-%d") - datetime.strptime(y, "%Y-%m-%d")).days) <= days
         except (TypeError, ValueError):
             return False
-    return near(a.get("conf"), b.get("conf")) or (bool(a.get("date")) and near(a.get("date"), b.get("date")))
+    def between(x, lo, hi):      # 보도 확인일이 공식 표의 채취일~확인일(+3일) 사이면 같은 검출(예: 순천만 보도 10.20, 표 채취 10.12·확인 10.26)
+        try:
+            d, l, h = (datetime.strptime(v, "%Y-%m-%d") for v in (x, lo, hi))
+            return l <= d <= h + timedelta(days=days)
+        except (TypeError, ValueError):
+            return False
+    return (near(a.get("conf"), b.get("conf")) or (bool(a.get("date")) and near(a.get("date"), b.get("date")))
+            or between(a.get("conf"), b.get("date") or b.get("conf"), b.get("conf"))
+            or between(b.get("conf"), a.get("date") or a.get("conf"), a.get("conf")))
 
 
 def press_candidates() -> list[dict]:
@@ -536,7 +575,13 @@ def update_quick(out: dict, prev: dict) -> None:
             wild_news = fetch_wild_news()
         except Exception as exc:
             print(f"::notice::야생조류 보도 검색 실패 — {exc}")
-        for n in out.get("news", []) + wild_news:
+        quick_news = []
+        try:
+            quick_news = fetch_quick_news()
+        except Exception as exc:
+            print(f"::notice::빠른 집계 보도 검색 실패 — {exc}")
+        print(f"  빠른 집계 후보: 보도 {len(quick_news)}건 + 야생조류 보도 {len(wild_news)}건")
+        for n in out.get("news", []) + quick_news + wild_news:
             key = "n" + re.sub(r"\W", "", n.get("title", ""))[:40]
             if not any(c["id"] == key for c in cands):
                 cands.append({"id": key, "title": n.get("title", ""), "news": n, "kind": "언론 보도", "url": ""})
@@ -582,18 +627,27 @@ def update_quick(out: dict, prev: dict) -> None:
                 q.update({"src": src, "title": c["title"][:80], "link": link, "found": now.strftime("%Y-%m-%d %H:%M")})
                 old = next((x for x in quick if same_farm(x, q)), None)
                 if old:      # 같은 농장 — 빈칸만 채우고, 보도자료가 언론 보도보다 우선
+                    if old.get("pending") and not q["pending"]:      # 검사 중 → 확진으로 바뀜
+                        old.update({"pending": False, "conf": q["conf"]})
+                        if q["sero"]:
+                            old["sero"] = q["sero"]
+                        print(f"  빠른 집계 확진 전환: {old['sido']} {old['sgg']} {old['breed']}")
                     for k in ("cnt", "sero", "kind", "nth", "rep", "approx"):
                         if not old.get(k) and q.get(k):
                             old[k] = q[k]
+                    if q["sero"] and old.get("sero") and len(q["sero"]) > len(old["sero"]):
+                        old["sero"] = q["sero"]
                     if src == "농식품부 보도자료" and old.get("src") != src:
                         old.update({"src": src, "title": q["title"], "link": link})
                 else:
                     quick.append(q)
-                    print(f"  빠른 집계 추가: {q['conf']} {q['sido']} {q['sgg']} {q['breed']} {q['cnt']}수 ({src})")
+                    print(f"  빠른 집계 추가{'(검사 중)' if q['pending'] else ''}: {q['conf']} {q['sido']} {q['sgg']} {q['breed']} {q['cnt']}수 ({src})")
         seen = seen[-300:]
     # 농식품부 표에 들어온 농장은 빼고(표가 공식), 시즌이 바뀌면 지운다
     table = [f for f in out.get("farms", []) if f.get("conf", "") >= start]
     quick = [q for q in quick if not any(same_farm(q, f, 3) for f in table)]
+    stale = (now - timedelta(days=7)).strftime("%Y-%m-%d")
+    quick = [q for q in quick if not (q.get("pending") and q["conf"] < stale)]     # 7일 넘게 확진 소식 없는 '검사 중'은 내린다
     quick.sort(key=lambda q: q["conf"])
     twild = [w for w in out.get("wild", []) if w.get("conf", "") >= start]
     qwild = [q for q in qwild if not any(same_wild(q, w) for w in twild)]
