@@ -118,7 +118,7 @@ def _short(s, n=60):
 
 def digest_hpai_kr():
     d = fetch_repo_json("hpai_kr/latest.json") or {}
-    farms = [f for f in d.get("farms", []) + [dict(q, quick=True) for q in d.get("quick", [])]
+    farms = [f for f in d.get("farms", []) + [dict(q, quick=True) for q in d.get("quick", []) if not q.get("pending")]
              if f.get("conf", "") >= "2026-09-01"]   # quick = 표 반영 전 보도 기준 확진
     wild = [w for w in d.get("wild", []) + d.get("quick_wild", []) if w.get("conf", "") >= "2026-09-01"]
     lines = ["[🦠 국내 AI 발생현황]", f"26/27 시즌(9월~) 가금농장 {len(farms)}건 · 야생조류 {len(wild)}건"]

@@ -3494,7 +3494,7 @@ async function buildSmsDigestTextAsync(menuKey){
     }
     if(menuKey === "hpai_kr"){
       const d = (await getJson("hpai_kr/latest.json")) || {};
-      const farms = (d.farms||[]).concat((d.quick||[]).map(q => Object.assign({}, q, { quick:true }))).filter(f => (f.conf||"") >= "2026-09-01");
+      const farms = (d.farms||[]).concat((d.quick||[]).filter(q => !q.pending).map(q => Object.assign({}, q, { quick:true }))).filter(f => (f.conf||"") >= "2026-09-01");
       const wild = (d.wild||[]).concat(d.quick_wild||[]).filter(w => (w.conf||"") >= "2026-09-01");
       const lines = ["[🦠 국내 AI 발생현황]", `26/27 시즌(9월~) 가금농장 ${farms.length}건 · 야생조류 ${wild.length}건`];
       farms.sort((a,b)=>a.conf<b.conf?-1:1).slice(-4).forEach(f => lines.push(`- ${f.conf.slice(5).replace(/^0/,"").replace("-0","-").replace("-",".")} ${f.sido} ${f.sgg} ${f.breed||""}${f.cnt ? " " + num(f.cnt) + "수" : ""}${f.quick ? "(보도)" : ""}`));
@@ -8174,7 +8174,9 @@ async function fetchHpaiKrLive(){
     const d = await r.json();
     L.farms = (d.farms || []).filter(f => f.conf >= HPAI_KR_NEW_SEASON).map(f => Object.assign({}, f, { ns:true }));
     // 빠른 집계: 농식품부 표에 아직 없는 확진 농장(보도자료·언론 보도에서 뽑은 것) — 「보도 기준」으로 따로 표시
-    L.quick = (d.quick || []).filter(f => f.conf >= HPAI_KR_NEW_SEASON && f.sido && f.sgg).map(f => Object.assign({}, f, { ns:true, quick:true, cnt:+f.cnt || 0 }));
+    const q0 = (d.quick || []).filter(f => f.conf >= HPAI_KR_NEW_SEASON && f.sido && f.sgg).map(f => Object.assign({}, f, { ns:true, quick:true, cnt:+f.cnt || 0 }));
+    L.quick = q0.filter(f => !f.pending);            // 확진만 지도·건수에
+    L.pending = q0.filter(f => f.pending);           // H5 항원 검출·고병원성 검사 중 — 안내 줄에만
     L.farms = L.farms.concat(L.quick);
     L.quickWild = (d.quick_wild || []).filter(w => w.conf >= HPAI_KR_NEW_SEASON && w.sido && w.sgg).map(w => Object.assign({}, w, { ns:true, quick:true }));
     L.wild = (d.wild || []).filter(w => w.conf >= HPAI_KR_NEW_SEASON).map(w => Object.assign({}, w, { ns:true })).concat(L.quickWild || []);
@@ -8252,17 +8254,18 @@ function renderHpaiKrDetail(){
 // 카드 제목 오른쪽에 붙이는 한 줄 문구(알약 모양)
 function hpaiTagline(text){ return `<span style="font-size:11.5px;font-weight:700;color:#C62828;background:#FFEBEE;border-radius:12px;padding:2px 9px;margin-left:4px;white-space:nowrap">${esc(text)}</span>`; }
 function renderHpaiKrLiveStrip(){
-  const L = hpaiKrState.live, nf = L.farms.length, nw = L.wild.length, nq = (L.quick || []).length, qw = (L.wild || []).filter(w => w.quick), nqw = qw.length;
+  const L = hpaiKrState.live, nf = L.farms.length, nw = L.wild.length, nq = (L.quick || []).length, pend = L.pending || [], qw = (L.wild || []).filter(w => w.quick), nqw = qw.length;
   const asOf = L.asOf ? L.asOf.slice(0, 10) : "";
   let head;
   if(L.status === "loading" || L.status === "idle") head = `<span style="color:#888">26/27 시즌 자료를 불러오는 중...</span>`;
   else if(L.status === "error") head = `<span style="color:#888">26/27 시즌 자료를 불러오지 못했습니다. 지도는 25/26 시즌 자료만 표시합니다.</span>`;
   else head = `🆕 <b style="color:${HK_NEW}">26/27 시즌(2026.9~)</b> 가금농장 <b style="color:${HK_NEW}">${nf}건</b>${nq ? `<span style="color:#7B5E99;font-weight:400">(📰 보도 기준 ${nq}건 포함)</span>` : ""} · 야생조류 <b style="color:${HK_NEW_WILD}">${nw}건</b>${nqw ? `<span style="color:#00695C;font-weight:400">(📰 보도 기준 ${nqw}건 포함)</span>` : ""}` + (asOf ? ` <span style="color:#999;font-weight:400">· 농식품부 표 ${esc(asOf)} 기준${L.stale ? "(최근 갱신 실패, 이전 값)" : ""}</span>` : "");
   const wildList = nqw ? `<ul style="margin:2px 0 0;padding-left:16px;font-size:11.5px;color:#00695C">${qw.slice().sort((a, b) => a.conf < b.conf ? 1 : -1).slice(0, 6).map(w => `<li style="margin:2px 0">🦆 <b>${hkFmt(w.conf)}</b> ${esc(w.sido)} ${esc(w.sgg)} ${esc(w.spot || "")}${w.sample ? ` · ${esc(w.sample)}` : ""}${w.sero ? ` · ${esc(w.sero)}` : ""}${w.date ? ` · ${hkFmt(w.date)} 채취` : ""} <a href="${esc(w.link || "#")}" target="_blank" rel="noopener" style="color:#00897B">${esc(w.src || "보도")}</a></li>`).join("")}</ul>` : "";
+  const pendList = pend.length ? `<div style="margin-top:6px;background:#FFF8E1;border-radius:8px;padding:6px 9px;font-size:11.5px;color:#7a5a00">🔬 <b>고병원성 검사 중 ${pend.length}건</b> (H5형 항원 검출 — 확진되면 위 건수에 들어가요)<ul style="margin:2px 0 0;padding-left:16px">${pend.slice().sort((a, b) => a.conf < b.conf ? 1 : -1).map(f => `<li style="margin:2px 0"><b>${hkFmt(f.conf)}</b> ${esc(f.sido)} ${esc(f.sgg)} ${esc(f.breed || f.sp)}${f.cnt ? ` ${f.approx ? "약 " : ""}${f.cnt.toLocaleString()}수` : ""}${f.sero ? ` · ${esc(f.sero)}` : ""} <a href="${esc(f.link || "#")}" target="_blank" rel="noopener" style="color:#8a6d00">${esc(f.src || "보도")}</a></li>`).join("")}</ul></div>` : "";
   const quickList = (nq || nqw) ? `<div style="font-size:11px;color:#7B5E99;margin-top:6px">📰 <b>보도 기준 빠른 집계</b> — 농식품부 「발생·검출 현황」 표에 오르기 전 확진 보도에서 모은 농장·야생조류 검출이에요. 표에 들어오면 자동으로 공식 자료로 바뀝니다.</div><ul style="margin:2px 0 0;padding-left:16px;font-size:11.5px">${(L.quick || []).slice().sort((a, b) => a.conf < b.conf ? 1 : -1).slice(0, 6).map(f => `<li style="margin:2px 0"><b>${hkFmt(f.conf)}</b> ${esc(f.sido)} ${esc(f.sgg)} ${esc(f.breed || f.sp)}${f.cnt ? ` ${f.approx ? "약 " : ""}${f.cnt.toLocaleString()}수` : ""}${f.sero ? ` · ${esc(f.sero)}` : ""}${f.rep ? ` · ${hkFmt(f.rep)} 신고` : ""}${f.nth ? ` · 올겨울 ${f.nth}번째` : ""} <a href="${esc(f.link || "#")}" target="_blank" rel="noopener" style="color:#8E24AA">${esc(f.src || "보도")}</a></li>`).join("")}</ul>${wildList}` : "";
   const news = (L.news || []).slice(0, 4).map(n => `<li style="margin:2px 0"><a href="${esc(n.link)}" target="_blank" rel="noopener" style="color:#444;text-decoration:none">${esc(n.title)}</a></li>`).join("");
   return `<div style="margin:12px 0 0;background:#F6EEFB;border-radius:10px;padding:9px 12px;font-size:12px;color:#4A148C;line-height:1.6">${head}
-    ${quickList}
+    ${quickList}${pendList}
     ${nf + nw === 0 && L.status === "done" ? `<div style="font-size:11px;color:#7B5E99;margin-top:2px">아직 새 시즌 발생·검출이 자료에 올라오지 않았습니다. 하루 네 번(08:40·12:40·17:40·21:40) 자동으로 확인하며, 발생하면 보라색으로 지도에 나타납니다.</div>` : ""}
     ${news ? `<div style="font-size:11px;color:#7B5E99;margin-top:6px">📰 최근 3일 관련 보도 (농식품부 표 갱신 전에도 확인)</div><ul style="margin:2px 0 0;padding-left:16px;font-size:11.5px">${news}</ul>` : ""}</div>`;
 }

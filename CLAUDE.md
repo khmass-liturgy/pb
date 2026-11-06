@@ -175,6 +175,11 @@ official table moved to the 26/27 season ('26.11.4 17시 기준: 연천 1건, �
 parser on 'H5'-only/empty cells, so `parse_tables` now reads rows **by cell content** (dates, 시도, `H5…` 혈청형, numbers; `_rows` splits at the
 next 연번 start) and dumps the table text to the log on failure. The new table also writes merged regions such as **「전남광주」**: `norm_sido(시도, 시군)`
 maps them back to the map's 시·도 (광역시 구·군 → 광주/대구/대전, otherwise 전남/경북/충남), applied to table rows and quick extractions.
+2026-11-06 (여주 추가 발생 누락): the 8-item `news` list filled up with one event (장흥), so extraction now also runs on `fetch_quick_news()`
+(`QUICK_NEWS_QUERIES`, up to 25 titles incl. 「AI 항원 검출」, extraction only). Farms reported as **H5 항원 검출·고병원성 검사 중** are kept with
+`status:"검사중"` → `pending:true`: index.html shows them only in a 🔬 「고병원성 검사 중」 box (`L.pending`, not in the map/counts/SMS), a later
+확진 article flips the same farm to confirmed (`conf`/혈청형 updated), and pending rows older than 7 days are dropped. `same_wild` also matches
+when a report's 확인일 falls between the table's 채취일 and 확인일(+3d) (순천만 10.20 vs table 10.12→10.26).
 
 `farm_density/sigun.json` — 가금 시·군별 사육 농가·마릿수(가축위생방역지원본부 「전국 시군별 ○○ 사육규모 현황」, data.go.kr 파일데이터 CSV, 연 1회 갱신, **일반 산란계 표는 이 시리즈에 없음**). `scripts/fetch_farm_density.py`를 수동 실행해 만든다(워크플로 없음 — data.go.kr이 해외 IP를 막는지 확인 안 됨). index.html의 HPAI ZERO FARM 「과거 대조」가 거리 규칙의 효과를 농장 밀도로 보정할 때 읽는다(밀도 = 반경 20km 상업 사육 마릿수, 토종닭·백세미 제외).
 `fetchPortalNews` (AI 관련 소식 「새 소식 추가」 search and the 질병 탭 「최신 연구되는 질병」) reads Google/Bing News search RSS through the Cloud Function `fetchRssItems` (server-side fetch, host allowlist news.google.com/www.bing.com, no login needed) because the public RSS→JSON service (rss2json) is now behind a Cloudflare challenge and the CORS proxies mostly time out; without the function it falls back to the proxies (only Bing via cors.lol works reliably) — deploy with `firebase deploy --only functions:fetchRssItems --project chicken-dx`. Other browser-side RSS panels that still use `RSS2JSON` fall back to their committed JSON.
