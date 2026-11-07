@@ -8255,20 +8255,25 @@ function renderHpaiKrDetail(){
 // 카드 제목 오른쪽에 붙이는 한 줄 문구(알약 모양)
 function hpaiTagline(text){ return `<span style="font-size:11.5px;font-weight:700;color:#C62828;background:#FFEBEE;border-radius:12px;padding:2px 9px;margin-left:4px;white-space:nowrap">${esc(text)}</span>`; }
 function renderHpaiKrLiveStrip(){
-  const L = hpaiKrState.live, nf = L.farms.length, nw = L.wild.length, nq = (L.quick || []).length, pend = L.pending || [], qw = (L.wild || []).filter(w => w.quick), nqw = qw.length;
+  const L = hpaiKrState.live, nf = L.farms.length, nw = L.wild.length;
   const asOf = L.asOf ? L.asOf.slice(0, 10) : "";
-  let head;
-  if(L.status === "loading" || L.status === "idle") head = `<span style="color:#888">26/27 시즌 자료를 불러오는 중...</span>`;
-  else if(L.status === "error") head = `<span style="color:#888">26/27 시즌 자료를 불러오지 못했습니다. 지도는 25/26 시즌 자료만 표시합니다.</span>`;
-  else head = `🆕 <b style="color:${HK_NEW}">26/27 시즌(2026.9~)</b> 가금농장 <b style="color:${HK_NEW}">${nf}건</b>${nq || pend.length ? `<span style="color:#7B5E99;font-weight:400">(${[nq ? `📰 보도 기준 ${nq}건` : "", pend.length ? `🔬 고병원성 검사 중 ${pend.length}건` : ""].filter(Boolean).join(" · ")} 포함)</span>` : ""} · 야생조류 <b style="color:${HK_NEW_WILD}">${nw}건</b>${nqw ? `<span style="color:#00695C;font-weight:400">(📰 보도 기준 ${nqw}건 포함)</span>` : ""}` + (asOf ? ` <span style="color:#999;font-weight:400">· 농식품부 표 ${esc(asOf)} 기준${L.stale ? "(최근 갱신 실패, 이전 값)" : ""}</span>` : "");
-  const wildList = nqw ? `<ul style="margin:2px 0 0;padding-left:16px;font-size:11.5px;color:#00695C">${qw.slice().sort((a, b) => a.conf < b.conf ? 1 : -1).slice(0, 6).map(w => `<li style="margin:2px 0">🦆 <b>${hkFmt(w.conf)}</b> ${esc(w.sido)} ${esc(w.sgg)} ${esc(w.spot || "")}${w.sample ? ` · ${esc(w.sample)}` : ""}${w.sero ? ` · ${esc(w.sero)}` : ""}${w.date ? ` · ${hkFmt(w.date)} 채취` : ""} <a href="${esc(w.link || "#")}" target="_blank" rel="noopener" style="color:#00897B">${esc(w.src || "보도")}</a></li>`).join("")}</ul>` : "";
-  const pendList = pend.length ? `<div style="margin-top:6px;background:#FFF8E1;border-radius:8px;padding:6px 9px;font-size:11.5px;color:#7a5a00">🔬 <b>고병원성 검사 중 ${pend.length}건</b> (H5형 항원 검출 — 위 건수에 함께 넣었고, 확진되면 「검사 중」 표시가 빠져요)<ul style="margin:2px 0 0;padding-left:16px">${pend.slice().sort((a, b) => a.conf < b.conf ? 1 : -1).map(f => `<li style="margin:2px 0"><b>${hkFmt(f.conf)}</b> ${esc(f.sido)} ${esc(f.sgg)} ${esc(f.breed || f.sp)}${f.cnt ? ` ${f.approx ? "약 " : ""}${f.cnt.toLocaleString()}수` : ""}${f.sero ? ` · ${esc(f.sero)}` : ""} <a href="${esc(f.link || "#")}" target="_blank" rel="noopener" style="color:#8a6d00">${esc(f.src || "보도")}</a></li>`).join("")}</ul></div>` : "";
-  const quickList = (nq || nqw) ? `<div style="font-size:11px;color:#7B5E99;margin-top:6px">📰 <b>보도 기준 빠른 집계</b> — 농식품부 「발생·검출 현황」 표에 오르기 전 확진 보도에서 모은 농장·야생조류 검출이에요. 표에 들어오면 자동으로 공식 자료로 바뀝니다.</div><ul style="margin:2px 0 0;padding-left:16px;font-size:11.5px">${(L.quick || []).slice().sort((a, b) => a.conf < b.conf ? 1 : -1).slice(0, 6).map(f => `<li style="margin:2px 0"><b>${hkFmt(f.conf)}</b> ${esc(f.sido)} ${esc(f.sgg)} ${esc(f.breed || f.sp)}${f.cnt ? ` ${f.approx ? "약 " : ""}${f.cnt.toLocaleString()}수` : ""}${f.sero ? ` · ${esc(f.sero)}` : ""}${f.rep ? ` · ${hkFmt(f.rep)} 신고` : ""}${f.nth ? ` · 올겨울 ${f.nth}번째` : ""} <a href="${esc(f.link || "#")}" target="_blank" rel="noopener" style="color:#8E24AA">${esc(f.src || "보도")}</a></li>`).join("")}</ul>${wildList}` : "";
-  const news = (L.news || []).slice(0, 4).map(n => `<li style="margin:2px 0"><a href="${esc(n.link)}" target="_blank" rel="noopener" style="color:#444;text-decoration:none">${esc(n.title)}</a></li>`).join("");
-  return `<div style="margin:12px 0 0;background:#F6EEFB;border-radius:10px;padding:9px 12px;font-size:12px;color:#4A148C;line-height:1.6">${head}
-    ${quickList}${pendList}
-    ${nf + nw === 0 && L.status === "done" ? `<div style="font-size:11px;color:#7B5E99;margin-top:2px">아직 새 시즌 발생·검출이 자료에 올라오지 않았습니다. 하루 네 번(08:40·12:40·17:40·21:40) 자동으로 확인하며, 발생하면 보라색으로 지도에 나타납니다.</div>` : ""}
-    ${news ? `<div style="font-size:11px;color:#7B5E99;margin-top:6px">📰 최근 3일 관련 보도 (농식품부 표 갱신 전에도 확인)</div><ul style="margin:2px 0 0;padding-left:16px;font-size:11.5px">${news}</ul>` : ""}</div>`;
+  const wrap = inner => `<div style="margin:12px 0 0;background:#F6EEFB;border-radius:10px;padding:9px 12px;font-size:12px;color:#4A148C;line-height:1.6">${inner}</div>`;
+  if(L.status === "loading" || L.status === "idle") return wrap(`<span style="color:#888">26/27 시즌 자료를 불러오는 중...</span>`);
+  if(L.status === "error") return wrap(`<span style="color:#888">26/27 시즌 자료를 불러오지 못했습니다. 지도는 25/26 시즌 자료만 표시합니다.</span>`);
+  // 한 줄 요약 — 시군은 「시·군」을 떼고, 마릿수는 만 단위로
+  const sg = x => { const t = String(x || ""); return t.length > 2 ? t.replace(/(시|군)$/, "") : t; };
+  const man = n => n >= 10000 ? (n / 10000).toFixed(n >= 100000 ? 0 : 1).replace(/\.0$/, "") + "만수" : n ? n.toLocaleString() + "수" : "";
+  const tag = (t, fg, bg, link) => { const b = `<span style="font-size:10.5px;font-weight:800;color:${fg};background:${bg};border-radius:6px;padding:0 6px;white-space:nowrap">${t}</span>`; return link ? `<a href="${esc(link)}" target="_blank" rel="noopener" style="text-decoration:none">${b}</a>` : b; };
+  const kind = f => f.pending ? tag("검사 중", "#7a5a00", "#FFE9A8", f.link) : f.quick ? tag("보도", "#6A1B9A", "#EAD7F5", f.link) : tag("공식", "#1B5E20", "#D7EFD9");
+  const farms = L.farms.slice().sort((a, b) => a.conf < b.conf ? 1 : a.conf > b.conf ? -1 : 0);
+  const rows = farms.slice(0, 8).map(f => `<div style="display:flex;gap:6px;align-items:baseline;margin:2px 0"><b style="min-width:34px;color:#4A148C">${hkFmt(f.conf)}</b><span style="flex:1;min-width:0;color:#333">${esc(f.sido)} ${esc(sg(f.sgg))} ${esc(f.breed || f.sp)} <span style="color:#666">${man(+f.cnt || 0)}${f.sero ? " · " + esc(f.sero) : ""}</span></span>${kind(f)}</div>`).join("");
+  const wild = L.wild.slice().sort((a, b) => a.conf < b.conf ? 1 : -1).map(w => `${hkFmt(w.conf)} ${esc(sg(w.sgg))}${w.quick ? "<sup style=\"color:#6A1B9A\">보도</sup>" : ""}`).join(" · ");
+  const head = `🆕 <b>26/27 시즌</b> 가금농장 <b style="color:${HK_NEW};font-size:14px">${nf}건</b> · 야생조류 <b style="color:${HK_NEW_WILD};font-size:14px">${nw}건</b>`;
+  const body = nf + nw === 0
+    ? `<div style="font-size:11px;color:#7B5E99;margin-top:2px">아직 새 시즌 발생·검출이 없습니다. 하루 네 번 자동으로 확인합니다.</div>`
+    : `${rows ? `<div style="margin-top:6px">${rows}</div>` : ""}${wild ? `<div style="margin-top:4px;color:#00695C">🦆 야생조류 ${wild}</div>` : ""}`;
+  const legend = `<div style="font-size:10.5px;color:#8a7a9a;margin-top:6px">공식 = 농식품부 표${asOf ? `(${hkFmt(asOf)} 기준)` : ""} · 보도 = 표 반영 전 보도자료·기사 · 검사 중 = H5형 항원 검출, 확진 전${L.stale ? " · 표 갱신 실패(이전 값)" : ""}</div>`;
+  return wrap(head + body + legend);
 }
 function renderHpaiKrCard(){
   const st = hpaiKrState, color = "#C62828";
