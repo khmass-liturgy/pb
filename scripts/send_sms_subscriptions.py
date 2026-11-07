@@ -118,14 +118,14 @@ def _short(s, n=60):
 
 def digest_hpai_kr():
     d = fetch_repo_json("hpai_kr/latest.json") or {}
-    farms = [f for f in d.get("farms", []) + [dict(q, quick=True) for q in d.get("quick", []) if not q.get("pending")]
+    farms = [f for f in d.get("farms", []) + [dict(q, quick=True) for q in d.get("quick", [])]
              if f.get("conf", "") >= "2026-09-01"]   # quick = 표 반영 전 보도 기준 확진
     wild = [w for w in d.get("wild", []) + d.get("quick_wild", []) if w.get("conf", "") >= "2026-09-01"]
     lines = ["[🦠 국내 AI 발생현황]", f"26/27 시즌(9월~) 가금농장 {len(farms)}건 · 야생조류 {len(wild)}건"]
     for f in sorted(farms, key=lambda x: x["conf"])[-4:]:
         cnt = f" {f['cnt']:,}수" if f.get("cnt") else ""
         lines.append(f"- {f['conf'][5:].lstrip('0').replace('-0', '-').replace('-', '.')} {f['sido']} {f['sgg']} {f.get('breed','')}{cnt}"
-                     + ("(보도)" if f.get("quick") else ""))
+                     + ("(검사 중)" if f.get("pending") else "(보도)" if f.get("quick") else ""))
     for n in (d.get("news") or [])[:2]:
         lines.append("· " + _short(n.get("title"), 50))
     if d.get("as_of"):

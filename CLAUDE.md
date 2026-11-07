@@ -177,7 +177,7 @@ next 연번 start) and dumps the table text to the log on failure. The new table
 maps them back to the map's 시·도 (광역시 구·군 → 광주/대구/대전, otherwise 전남/경북/충남), applied to table rows and quick extractions.
 2026-11-06 (여주 추가 발생 누락): the 8-item `news` list filled up with one event (장흥), so extraction now also runs on `fetch_quick_news()`
 (`QUICK_NEWS_QUERIES`, up to 25 titles incl. 「AI 항원 검출」, extraction only). Farms reported as **H5 항원 검출·고병원성 검사 중** are kept with
-`status:"검사중"` → `pending:true`: index.html shows them only in a 🔬 「고병원성 검사 중」 box (`L.pending`, not in the map/counts/SMS), a later
+`status:"검사중"` → `pending:true`: index.html counts them with the farms (owner's request 2026-11-07: `L.farms` includes `L.pending`; header/KPI say 「검사 중 N 포함」, map dot is pale with a dashed border when a 시군 has only pending rows, detail rows carry a 🔬 검사 중 badge, SMS lines end in (검사 중)) and lists them in a 🔬 「고병원성 검사 중」 box, a later
 확진 article flips the same farm to confirmed (`conf`/혈청형 updated), and pending rows older than 7 days are dropped. `same_wild` also matches
 when a report's 확인일 falls between the table's 채취일 and 확인일(+3d) (순천만 10.20 vs table 10.12→10.26). Manual runs of fetch-hpai-kr.yml take an optional `urls` input
 (→ env `QUICK_EXTRA_URLS`, space-separated article or Google News links): each is always (re)read and extracted, for reports the searches missed.
