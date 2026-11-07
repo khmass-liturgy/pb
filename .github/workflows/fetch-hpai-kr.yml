@@ -10,6 +10,11 @@ on:
     - cron: "40 8 * * *"
     - cron: "40 12 * * *"
   workflow_dispatch:
+    inputs:
+      urls:
+        description: "검색에 안 걸린 발생 기사 주소(여러 개는 띄어쓰기로) — 빠른 집계에 바로 읽힘"
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -38,6 +43,7 @@ jobs:
           SMS_RELAY_URL: ${{ secrets.SMS_RELAY_URL }}
           SMS_RELAY_SECRET: ${{ secrets.SMS_RELAY_SECRET }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          QUICK_EXTRA_URLS: ${{ github.event.inputs.urls }}
         run: python scripts/fetch_hpai_kr.py
 
       - name: 결과 커밋

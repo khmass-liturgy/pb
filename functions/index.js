@@ -430,7 +430,8 @@ exports.generateAiDraft = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds:
   if (text.length > 500) throw new HttpsError("invalid-argument", `${kind.label}이 너무 깁니다(500자 이내).`);
 
   const userContent = (context && kind.contextLabel ? `${kind.contextLabel}: ${context}\n` : "") + `${kind.label}: ${text}`;
-  const response = await callClaude({ system: kind.system, messages: [{ role: "user", content: userContent }] });
+  // AI 초안은 관리자가 고쳐 쓰는 초안이라 Opus 대신 Sonnet 5.5로(비용 절감, 2026-11) — 다른 기능은 callClaude 기본값 그대로
+  const response = await callClaude({ model: "claude-sonnet-5-5", system: kind.system, messages: [{ role: "user", content: userContent }] });
   const draft = responseText(response);
   if (!draft) throw new HttpsError("internal", "AI 초안이 비어 있습니다. 다시 시도해 주세요.");
   return { text: draft, model: response.model };

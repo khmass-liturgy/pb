@@ -50,7 +50,7 @@ Two pieces are **not** static, both Firebase, both under the 유료서비스 tab
   and stores the admin's pick as each disease's `image`. Self-check items 21–26 (벼슬·정강이·
   깃털·활력·임상증상·분변상태) have no hotspot on the anatomy picture (`sign:true` in `BODY_PARTS`) and ship
   a default disease list in `SELF_CHECK_SEED` that shows until an admin publishes it.
-  These need the Firebase secret `ANTHROPIC_API_KEY` (a separate key from the GitHub Actions secret
+  `generateAiDraft` runs on **Sonnet 5.5** (`claude-sonnet-5-5`, lowered from the `callClaude` default Opus 5 in 2026-11 to cut cost; the other AI functions keep the default). These need the Firebase secret `ANTHROPIC_API_KEY` (a separate key from the GitHub Actions secret
   of the same name used by `fetch_research_papers.py`; set with
   `firebase functions:secrets:set ANTHROPIC_API_KEY --project chicken-dx`).
   It also holds `sendDirectSms` — the 📤 바로 보내기 button on the 점등/환우 program SMS boxes (index.html
@@ -179,7 +179,8 @@ maps them back to the map's 시·도 (광역시 구·군 → 광주/대구/대�
 (`QUICK_NEWS_QUERIES`, up to 25 titles incl. 「AI 항원 검출」, extraction only). Farms reported as **H5 항원 검출·고병원성 검사 중** are kept with
 `status:"검사중"` → `pending:true`: index.html shows them only in a 🔬 「고병원성 검사 중」 box (`L.pending`, not in the map/counts/SMS), a later
 확진 article flips the same farm to confirmed (`conf`/혈청형 updated), and pending rows older than 7 days are dropped. `same_wild` also matches
-when a report's 확인일 falls between the table's 채취일 and 확인일(+3d) (순천만 10.20 vs table 10.12→10.26).
+when a report's 확인일 falls between the table's 채취일 and 확인일(+3d) (순천만 10.20 vs table 10.12→10.26). Manual runs of fetch-hpai-kr.yml take an optional `urls` input
+(→ env `QUICK_EXTRA_URLS`, space-separated article or Google News links): each is always (re)read and extracted, for reports the searches missed.
 
 `farm_density/sigun.json` — 가금 시·군별 사육 농가·마릿수(가축위생방역지원본부 「전국 시군별 ○○ 사육규모 현황」, data.go.kr 파일데이터 CSV, 연 1회 갱신, **일반 산란계 표는 이 시리즈에 없음**). `scripts/fetch_farm_density.py`를 수동 실행해 만든다(워크플로 없음 — data.go.kr이 해외 IP를 막는지 확인 안 됨). index.html의 HPAI ZERO FARM 「과거 대조」가 거리 규칙의 효과를 농장 밀도로 보정할 때 읽는다(밀도 = 반경 20km 상업 사육 마릿수, 토종닭·백세미 제외).
 `fetchPortalNews` (AI 관련 소식 「새 소식 추가」 search and the 질병 탭 「최신 연구되는 질병」) reads Google/Bing News search RSS through the Cloud Function `fetchRssItems` (server-side fetch, host allowlist news.google.com/www.bing.com, no login needed) because the public RSS→JSON service (rss2json) is now behind a Cloudflare challenge and the CORS proxies mostly time out; without the function it falls back to the proxies (only Bing via cors.lol works reliably) — deploy with `firebase deploy --only functions:fetchRssItems --project chicken-dx`. Other browser-side RSS panels that still use `RSS2JSON` fall back to their committed JSON.
