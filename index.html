@@ -3494,10 +3494,10 @@ async function buildSmsDigestTextAsync(menuKey){
     }
     if(menuKey === "hpai_kr"){
       const d = (await getJson("hpai_kr/latest.json")) || {};
-      const farms = (d.farms||[]).concat((d.quick||[]).filter(q => !q.pending).map(q => Object.assign({}, q, { quick:true }))).filter(f => (f.conf||"") >= "2026-09-01");
+      const farms = (d.farms||[]).concat((d.quick||[]).map(q => Object.assign({}, q, { quick:true }))).filter(f => (f.conf||"") >= "2026-09-01");
       const wild = (d.wild||[]).concat(d.quick_wild||[]).filter(w => (w.conf||"") >= "2026-09-01");
       const lines = ["[🦠 국내 AI 발생현황]", `26/27 시즌(9월~) 가금농장 ${farms.length}건 · 야생조류 ${wild.length}건`];
-      farms.sort((a,b)=>a.conf<b.conf?-1:1).slice(-4).forEach(f => lines.push(`- ${f.conf.slice(5).replace(/^0/,"").replace("-0","-").replace("-",".")} ${f.sido} ${f.sgg} ${f.breed||""}${f.cnt ? " " + num(f.cnt) + "수" : ""}${f.quick ? "(보도)" : ""}`));
+      farms.sort((a,b)=>a.conf<b.conf?-1:1).slice(-4).forEach(f => lines.push(`- ${f.conf.slice(5).replace(/^0/,"").replace("-0","-").replace("-",".")} ${f.sido} ${f.sgg} ${f.breed||""}${f.cnt ? " " + num(f.cnt) + "수" : ""}${f.pending ? "(검사 중)" : f.quick ? "(보도)" : ""}`));
       (d.news||[]).slice(0,2).forEach(n => lines.push("· " + short(n.title, 50)));
       if(d.as_of) lines.push(`(농식품부 자료 ${d.as_of.slice(0,10)} 기준)`);
       if(!farms.length && !wild.length && !(d.news||[]).length) lines.push("지금까지 새 시즌 발생이 자료에 없습니다.");
@@ -8175,9 +8175,9 @@ async function fetchHpaiKrLive(){
     L.farms = (d.farms || []).filter(f => f.conf >= HPAI_KR_NEW_SEASON).map(f => Object.assign({}, f, { ns:true }));
     // 빠른 집계: 농식품부 표에 아직 없는 확진 농장(보도자료·언론 보도에서 뽑은 것) — 「보도 기준」으로 따로 표시
     const q0 = (d.quick || []).filter(f => f.conf >= HPAI_KR_NEW_SEASON && f.sido && f.sgg).map(f => Object.assign({}, f, { ns:true, quick:true, cnt:+f.cnt || 0 }));
-    L.quick = q0.filter(f => !f.pending);            // 확진만 지도·건수에
-    L.pending = q0.filter(f => f.pending);           // H5 항원 검출·고병원성 검사 중 — 안내 줄에만
-    L.farms = L.farms.concat(L.quick);
+    L.quick = q0.filter(f => !f.pending);            // 보도 기준 확진
+    L.pending = q0.filter(f => f.pending);           // H5 항원 검출·고병원성 검사 중 — 건수·지도에 함께(점선 점, 🔬 표시)
+    L.farms = L.farms.concat(L.quick, L.pending);
     L.quickWild = (d.quick_wild || []).filter(w => w.conf >= HPAI_KR_NEW_SEASON && w.sido && w.sgg).map(w => Object.assign({}, w, { ns:true, quick:true }));
     L.wild = (d.wild || []).filter(w => w.conf >= HPAI_KR_NEW_SEASON).map(w => Object.assign({}, w, { ns:true })).concat(L.quickWild || []);
     L.news = d.news || []; L.asOf = d.as_of || ""; L.title = d.title || ""; L.url = d.url || ""; L.stale = !!d.table_stale; L.checked = d.checked || "";
@@ -8227,7 +8227,8 @@ function renderHpaiKrMap(){
     const p0 = HPAI_KR_MAP.pts[k]; if(!p0) return "";
     const p = isNew ? [p0[0] + 8, p0[1] + 8] : p0;
     const n = grp[gk].length, r = 6.5 + 3.2 * Math.sqrt(n), sel = st.sel && st.sel.type === "sgg" && st.sel.key === k;
-    return `<g class="hk-dot" data-key="${esc(k)}" style="cursor:pointer"><circle cx="${p[0]}" cy="${p[1]}" r="${r.toFixed(1)}" fill="${isNew ? HK_NEW : "#C62828"}" fill-opacity="0.92" stroke="${sel ? "#1a2744" : "#fff"}" stroke-width="${sel ? 3 : 2}"/>${n > 1 ? `<text x="${p[0]}" y="${p[1] + 4.5}" font-size="13" fill="#fff" text-anchor="middle" style="pointer-events:none;font-weight:800">${n}</text>` : ""}</g>`;
+    const onlyPend = grp[gk].every(f => f.pending);   // 검사 중만 있는 시군은 옅은 점 + 점선 테두리
+    return `<g class="hk-dot" data-key="${esc(k)}" style="cursor:pointer"><circle cx="${p[0]}" cy="${p[1]}" r="${r.toFixed(1)}" fill="${isNew ? HK_NEW : "#C62828"}" fill-opacity="${onlyPend ? 0.45 : 0.92}" stroke="${sel ? "#1a2744" : onlyPend ? HK_NEW : "#fff"}" stroke-width="${sel ? 3 : 2}"${onlyPend ? ' stroke-dasharray="3 2"' : ""}/>${n > 1 ? `<text x="${p[0]}" y="${p[1] + 4.5}" font-size="13" fill="#fff" text-anchor="middle" style="pointer-events:none;font-weight:800">${n}</text>` : ""}</g>`;
   }).join("");
   const wgrp = {};
   wild.forEach(w => { const k = w.sido + "|" + w.sgg + (w.ns ? "#n" : ""); (wgrp[k] = wgrp[k] || []).push(w); });
@@ -8244,7 +8245,7 @@ function renderHpaiKrDetail(){
   const st = hpaiKrState, sel = st.sel;
   if(!sel) return `<div style="font-size:11.5px;color:#999;text-align:center;padding:10px">지도의 시·도 또는 점을 누르면 해당 지역 발생 내역이 아래에 나옵니다.</div>`;
   let title, rows;
-  const fRow = f => `<tr style="border-top:1px solid #f1f1f1"><td style="padding:5px 4px;color:${f.ns ? HK_NEW : "#888"};font-weight:${f.ns ? 800 : 400}">${hkFmt(f.conf)}${f.ns ? " 🆕" : ""}</td><td style="padding:5px 4px;font-weight:700">${esc(f.sido)} ${esc(f.sgg)}</td><td style="padding:5px 4px">${esc(f.breed)}${f.sp === "오리" ? "" : ""}</td><td style="padding:5px 4px;text-align:right">${f.cnt ? (f.approx ? "약 " : "") + f.cnt.toLocaleString() + "수" : "—"}</td><td style="padding:5px 4px;color:#555">${esc(f.sero)}${f.quick ? ` <a href="${esc(f.link || "#")}" target="_blank" rel="noopener" title="${esc((f.src || "보도") + " · " + (f.title || ""))}" style="font-size:10px;font-weight:800;color:#fff;background:#8E24AA;border-radius:6px;padding:1px 5px;text-decoration:none;white-space:nowrap">📰 보도 기준</a>` : ""}</td></tr>`;
+  const fRow = f => `<tr style="border-top:1px solid #f1f1f1"><td style="padding:5px 4px;color:${f.ns ? HK_NEW : "#888"};font-weight:${f.ns ? 800 : 400}">${hkFmt(f.conf)}${f.ns ? " 🆕" : ""}</td><td style="padding:5px 4px;font-weight:700">${esc(f.sido)} ${esc(f.sgg)}</td><td style="padding:5px 4px">${esc(f.breed)}${f.sp === "오리" ? "" : ""}</td><td style="padding:5px 4px;text-align:right">${f.cnt ? (f.approx ? "약 " : "") + f.cnt.toLocaleString() + "수" : "—"}</td><td style="padding:5px 4px;color:#555">${esc(f.sero)}${f.quick ? ` <a href="${esc(f.link || "#")}" target="_blank" rel="noopener" title="${esc((f.src || "보도") + " · " + (f.title || ""))}" style="font-size:10px;font-weight:800;color:#fff;background:${f.pending ? "#B8860B" : "#8E24AA"};border-radius:6px;padding:1px 5px;text-decoration:none;white-space:nowrap">${f.pending ? "🔬 검사 중" : "📰 보도 기준"}</a>` : ""}</td></tr>`;
   if(sel.type === "sido"){ const l = hkFarms().filter(f => f.sido === sel.key); const w = hkWild().filter(x => x.sido === sel.key);
     title = `${sel.key} — 가금농장 ${l.length}건 (${l.reduce((a, f) => a + f.cnt, 0).toLocaleString()}수)${w.length ? ` · 야생조류 검출 ${w.length}건` : ""}`; rows = l.map(fRow).join(""); }
   else if(sel.type === "sgg"){ const l = hkFarms().filter(f => f.sido + "|" + f.sgg === sel.key); title = `${sel.key.replace("|", " ")} — 가금농장 ${l.length}건`; rows = l.map(fRow).join(""); }
@@ -8259,9 +8260,9 @@ function renderHpaiKrLiveStrip(){
   let head;
   if(L.status === "loading" || L.status === "idle") head = `<span style="color:#888">26/27 시즌 자료를 불러오는 중...</span>`;
   else if(L.status === "error") head = `<span style="color:#888">26/27 시즌 자료를 불러오지 못했습니다. 지도는 25/26 시즌 자료만 표시합니다.</span>`;
-  else head = `🆕 <b style="color:${HK_NEW}">26/27 시즌(2026.9~)</b> 가금농장 <b style="color:${HK_NEW}">${nf}건</b>${nq ? `<span style="color:#7B5E99;font-weight:400">(📰 보도 기준 ${nq}건 포함)</span>` : ""} · 야생조류 <b style="color:${HK_NEW_WILD}">${nw}건</b>${nqw ? `<span style="color:#00695C;font-weight:400">(📰 보도 기준 ${nqw}건 포함)</span>` : ""}` + (asOf ? ` <span style="color:#999;font-weight:400">· 농식품부 표 ${esc(asOf)} 기준${L.stale ? "(최근 갱신 실패, 이전 값)" : ""}</span>` : "");
+  else head = `🆕 <b style="color:${HK_NEW}">26/27 시즌(2026.9~)</b> 가금농장 <b style="color:${HK_NEW}">${nf}건</b>${nq || pend.length ? `<span style="color:#7B5E99;font-weight:400">(${[nq ? `📰 보도 기준 ${nq}건` : "", pend.length ? `🔬 고병원성 검사 중 ${pend.length}건` : ""].filter(Boolean).join(" · ")} 포함)</span>` : ""} · 야생조류 <b style="color:${HK_NEW_WILD}">${nw}건</b>${nqw ? `<span style="color:#00695C;font-weight:400">(📰 보도 기준 ${nqw}건 포함)</span>` : ""}` + (asOf ? ` <span style="color:#999;font-weight:400">· 농식품부 표 ${esc(asOf)} 기준${L.stale ? "(최근 갱신 실패, 이전 값)" : ""}</span>` : "");
   const wildList = nqw ? `<ul style="margin:2px 0 0;padding-left:16px;font-size:11.5px;color:#00695C">${qw.slice().sort((a, b) => a.conf < b.conf ? 1 : -1).slice(0, 6).map(w => `<li style="margin:2px 0">🦆 <b>${hkFmt(w.conf)}</b> ${esc(w.sido)} ${esc(w.sgg)} ${esc(w.spot || "")}${w.sample ? ` · ${esc(w.sample)}` : ""}${w.sero ? ` · ${esc(w.sero)}` : ""}${w.date ? ` · ${hkFmt(w.date)} 채취` : ""} <a href="${esc(w.link || "#")}" target="_blank" rel="noopener" style="color:#00897B">${esc(w.src || "보도")}</a></li>`).join("")}</ul>` : "";
-  const pendList = pend.length ? `<div style="margin-top:6px;background:#FFF8E1;border-radius:8px;padding:6px 9px;font-size:11.5px;color:#7a5a00">🔬 <b>고병원성 검사 중 ${pend.length}건</b> (H5형 항원 검출 — 확진되면 위 건수에 들어가요)<ul style="margin:2px 0 0;padding-left:16px">${pend.slice().sort((a, b) => a.conf < b.conf ? 1 : -1).map(f => `<li style="margin:2px 0"><b>${hkFmt(f.conf)}</b> ${esc(f.sido)} ${esc(f.sgg)} ${esc(f.breed || f.sp)}${f.cnt ? ` ${f.approx ? "약 " : ""}${f.cnt.toLocaleString()}수` : ""}${f.sero ? ` · ${esc(f.sero)}` : ""} <a href="${esc(f.link || "#")}" target="_blank" rel="noopener" style="color:#8a6d00">${esc(f.src || "보도")}</a></li>`).join("")}</ul></div>` : "";
+  const pendList = pend.length ? `<div style="margin-top:6px;background:#FFF8E1;border-radius:8px;padding:6px 9px;font-size:11.5px;color:#7a5a00">🔬 <b>고병원성 검사 중 ${pend.length}건</b> (H5형 항원 검출 — 위 건수에 함께 넣었고, 확진되면 「검사 중」 표시가 빠져요)<ul style="margin:2px 0 0;padding-left:16px">${pend.slice().sort((a, b) => a.conf < b.conf ? 1 : -1).map(f => `<li style="margin:2px 0"><b>${hkFmt(f.conf)}</b> ${esc(f.sido)} ${esc(f.sgg)} ${esc(f.breed || f.sp)}${f.cnt ? ` ${f.approx ? "약 " : ""}${f.cnt.toLocaleString()}수` : ""}${f.sero ? ` · ${esc(f.sero)}` : ""} <a href="${esc(f.link || "#")}" target="_blank" rel="noopener" style="color:#8a6d00">${esc(f.src || "보도")}</a></li>`).join("")}</ul></div>` : "";
   const quickList = (nq || nqw) ? `<div style="font-size:11px;color:#7B5E99;margin-top:6px">📰 <b>보도 기준 빠른 집계</b> — 농식품부 「발생·검출 현황」 표에 오르기 전 확진 보도에서 모은 농장·야생조류 검출이에요. 표에 들어오면 자동으로 공식 자료로 바뀝니다.</div><ul style="margin:2px 0 0;padding-left:16px;font-size:11.5px">${(L.quick || []).slice().sort((a, b) => a.conf < b.conf ? 1 : -1).slice(0, 6).map(f => `<li style="margin:2px 0"><b>${hkFmt(f.conf)}</b> ${esc(f.sido)} ${esc(f.sgg)} ${esc(f.breed || f.sp)}${f.cnt ? ` ${f.approx ? "약 " : ""}${f.cnt.toLocaleString()}수` : ""}${f.sero ? ` · ${esc(f.sero)}` : ""}${f.rep ? ` · ${hkFmt(f.rep)} 신고` : ""}${f.nth ? ` · 올겨울 ${f.nth}번째` : ""} <a href="${esc(f.link || "#")}" target="_blank" rel="noopener" style="color:#8E24AA">${esc(f.src || "보도")}</a></li>`).join("")}</ul>${wildList}` : "";
   const news = (L.news || []).slice(0, 4).map(n => `<li style="margin:2px 0"><a href="${esc(n.link)}" target="_blank" rel="noopener" style="color:#444;text-decoration:none">${esc(n.title)}</a></li>`).join("");
   return `<div style="margin:12px 0 0;background:#F6EEFB;border-radius:10px;padding:9px 12px;font-size:12px;color:#4A148C;line-height:1.6">${head}
@@ -8298,7 +8299,7 @@ function renderHpaiKrCard(){
   const kpi = (v, t, c) => `<div style="flex:1 1 90px;background:#fff;border:1px solid #f0f0f0;border-radius:10px;padding:8px 6px;text-align:center"><div style="font-size:19px;font-weight:900;color:${c}">${v}</div><div style="font-size:10.5px;color:#777;margin-top:1px">${t}</div></div>`;
   const body = `
     ${renderHpaiKrLiveStrip()}
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin:12px 0 8px">${kpi(farms.length + "건", "가금농장 발생", "#C62828")}${kpi(wild.length + "건", "야생조류 검출", "#1976D2")}${kpi((tot / 10000).toFixed(0) + "만수", "발생농장 사육수수", "#6D4C41")}${kpi(new Set(farms.map(f => f.sido + f.sgg)).size + "곳", "발생 시·군", "#2E7D32")}</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin:12px 0 8px">${kpi(farms.length + "건", "가금농장 발생" + (farms.some(f => f.pending) ? ` (검사 중 ${farms.filter(f => f.pending).length} 포함)` : ""), "#C62828")}${kpi(wild.length + "건", "야생조류 검출", "#1976D2")}${kpi((tot / 10000).toFixed(0) + "만수", "발생농장 사육수수", "#6D4C41")}${kpi(new Set(farms.map(f => f.sido + f.sgg)).size + "곳", "발생 시·군", "#2E7D32")}</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">${HPAI_KR_PERIODS.map(perBtn).join("")}</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">${layerBtn("farm", "🐔 가금농장")}${layerBtn("wild", "🦆 야생조류")}${layerBtn("both", "함께 보기")}</div>
     <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start">
