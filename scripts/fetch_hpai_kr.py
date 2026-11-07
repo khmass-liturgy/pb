@@ -548,7 +548,8 @@ def press_text(url: str) -> str:
 def news_text(item: dict) -> str:
     try:
         import fetch_industry_news as fin       # Google 뉴스 링크 풀기·본문 추출 재사용
-        url = fin.decode_google_url(item.get("link", ""))
+        link = item.get("link", "")
+        url = fin.decode_google_url(link) if "news.google.com" in link else link
         return fin.article_text(url) if url else ""
     except Exception as exc:
         print(f"  본문 못 읽음: {type(exc).__name__}")
@@ -580,7 +581,13 @@ def update_quick(out: dict, prev: dict) -> None:
             quick_news = fetch_quick_news()
         except Exception as exc:
             print(f"::notice::빠른 집계 보도 검색 실패 — {exc}")
-        print(f"  빠른 집계 후보: 보도 {len(quick_news)}건 + 야생조류 보도 {len(wild_news)}건")
+        # 직접 넣은 기사 주소(수동 실행 입력 urls → QUICK_EXTRA_URLS) — 검색에 안 걸린 발생 보도를 바로 읽힌다
+        extra = [u for u in re.split(r"[\s,]+", os.environ.get("QUICK_EXTRA_URLS", "")) if u.startswith("http")]
+        for u in extra:
+            key = "u" + re.sub(r"\W", "", u)[-40:]
+            seen = [x for x in seen if x != key]          # 직접 넣은 주소는 늘 다시 읽는다
+            cands.append({"id": key, "title": "", "news": {"link": u, "date": "", "source": "제보 기사"}, "kind": "언론 보도", "url": ""})
+        print(f"  빠른 집계 후보: 보도 {len(quick_news)}건 + 야생조류 보도 {len(wild_news)}건 + 직접 넣은 기사 {len(extra)}건")
         for n in out.get("news", []) + quick_news + wild_news:
             key = "n" + re.sub(r"\W", "", n.get("title", ""))[:40]
             if not any(c["id"] == key for c in cands):
@@ -596,6 +603,9 @@ def update_quick(out: dict, prev: dict) -> None:
                 except Exception:
                     pass
                 text, link, src = news_text(c["news"]) or c["title"], c["news"].get("link", ""), c["news"].get("source") or "언론"
+                if not c["title"] and text:          # 직접 넣은 기사: 본문 첫 줄을 제목 대신
+                    c["title"] = text.strip().split("\n")[0][:80]
+                    print(f"  직접 넣은 기사: {c['title'][:60]} (본문 {len(text)}자)")
             else:
                 pub, text, link, src = now, press_text(c["url"]), c["url"], "농식품부 보도자료"
             if not text:
