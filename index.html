@@ -8267,11 +8267,13 @@ function renderHpaiKrLiveStrip(){
   const kind = f => f.pending ? tag("검사 중", "#7a5a00", "#FFE9A8", f.link) : f.quick ? tag("보도", "#6A1B9A", "#EAD7F5", f.link) : tag("공식", "#1B5E20", "#D7EFD9");
   const farms = L.farms.slice().sort((a, b) => a.conf < b.conf ? 1 : a.conf > b.conf ? -1 : 0);
   const rows = farms.slice(0, 8).map(f => `<div style="display:flex;gap:6px;align-items:baseline;margin:2px 0"><b style="min-width:34px;color:#4A148C">${hkFmt(f.conf)}</b><span style="flex:1;min-width:0;color:#333">${esc(f.sido)} ${esc(sg(f.sgg))} ${esc(f.breed || f.sp)} <span style="color:#666">${man(+f.cnt || 0)}${f.sero ? " · " + esc(f.sero) : ""}</span></span>${kind(f)}</div>`).join("");
-  const wild = L.wild.slice().sort((a, b) => a.conf < b.conf ? 1 : -1).map(w => `${hkFmt(w.conf)} ${esc(sg(w.sgg))}${w.quick ? "<sup style=\"color:#6A1B9A\">보도</sup>" : ""}`).join(" · ");
+  // 야생조류도 가금농장처럼 한 줄씩: 확인일 · 시도 시군 지점 · 시료·혈청형 + 꼬리표
+  const wkind = w => w.quick ? tag("보도", "#6A1B9A", "#EAD7F5", w.link) : tag("공식", "#1B5E20", "#D7EFD9");
+  const wild = L.wild.slice().sort((a, b) => a.conf < b.conf ? 1 : a.conf > b.conf ? -1 : 0).slice(0, 8).map(w => `<div style="display:flex;gap:6px;align-items:baseline;margin:2px 0"><b style="min-width:34px;color:#00695C">${hkFmt(w.conf)}</b><span style="flex:1;min-width:0;color:#333">${esc(w.sido)} ${esc(sg(w.sgg))}${w.spot ? ` <span style="color:#555">${esc(w.spot)}</span>` : ""} <span style="color:#666">${[w.sample, w.sero].filter(Boolean).map(esc).join(" · ")}</span></span>${wkind(w)}</div>`).join("");
   const head = `🆕 <b>26/27 시즌</b> 가금농장 <b style="color:${HK_NEW};font-size:14px">${nf}건</b> · 야생조류 <b style="color:${HK_NEW_WILD};font-size:14px">${nw}건</b>`;
   const body = nf + nw === 0
     ? `<div style="font-size:11px;color:#7B5E99;margin-top:2px">아직 새 시즌 발생·검출이 없습니다. 하루 네 번 자동으로 확인합니다.</div>`
-    : `${rows ? `<div style="margin-top:6px">${rows}</div>` : ""}${wild ? `<div style="margin-top:4px;color:#00695C">🦆 야생조류 ${wild}</div>` : ""}`;
+    : `${rows ? `<div style="margin-top:6px"><div style="font-size:11px;font-weight:800;color:#6A1B9A">🐔 가금농장</div>${rows}</div>` : ""}${wild ? `<div style="margin-top:6px"><div style="font-size:11px;font-weight:800;color:#00695C">🦆 야생조류</div>${wild}</div>` : ""}`;
   const legend = `<div style="font-size:10.5px;color:#8a7a9a;margin-top:6px">공식 = 농식품부 표${asOf ? `(${hkFmt(asOf)} 기준)` : ""} · 보도 = 표 반영 전 보도자료·기사 · 검사 중 = H5형 항원 검출, 확진 전${L.stale ? " · 표 갱신 실패(이전 값)" : ""}</div>`;
   return wrap(head + body + legend);
 }
