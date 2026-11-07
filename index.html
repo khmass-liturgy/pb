@@ -5214,13 +5214,147 @@ async function fetchDiseases(){
     const resp = await fetchWithTimeout(DISEASE_JSON_URL + "?t=" + Date.now(), 12000);
     if(!resp.ok) throw new Error("HTTP " + resp.status);
     diseaseState.data   = await resp.json();
+    diseaseState.base   = null;
+    dzMergeCustom();                    // 관리자가 추가한 질병(이미 받아 두었으면)도 함께
     buildDiseaseSearch(diseaseState.data);
     diseaseState.status = "done";
+    if(!dzCustom.loaded) loadDiseaseCustom();
   } catch(e) {
     console.warn("양계질병 자료 로딩 실패:", e);
     diseaseState.status = "error";
   }
   if(state.tab === "disease") render();
+}
+
+// ── 양계질병 사전: 관리자가 추가하는 질병 ──────────────────────────────────────
+// 기본 54종은 The Poultry Site 번역본(poultry_disease/diseases.json, 수집 스크립트가 덮어씀)이라 손대지 않고,
+// 관리자가 추가한 질병은 Firebase public_content/disease_custom/latest.json {items:[…]}에 따로 둔다(누구나 읽기, 관리자만 쓰기).
+// 「🤖 AI로 기본정보 채우기」는 generateAiDraft(kind "disease", functions/index.js DISEASE_SYSTEM_PROMPT)로 개요·원인·증상·
+// 부검소견·진단·예방 줄을 채운다 — 약품·용량은 쓰지 않고, 수의사 검토 완료 체크 전에는 「AI 초안」으로 표시한다.
+const dzCustom = { items: [], loaded: false, form: null, msg: "", busy: false };
+function dzCustomToEntry(c){
+  return { slug: c.slug, url: "", title_ko: c.title_ko, title_en: c.title_en || "", aliases: c.aliases || [],
+           paras_ko: c.paras_ko || [], paras_en: [], images: [], custom: true, ai: !!c.ai, reviewed: !!c.reviewed, updated: c.updated || "" };
+}
+function dzMergeCustom(){
+  const data = diseaseState.data;
+  if(!data || !Array.isArray(data.diseases)) return;
+  if(!diseaseState.base) diseaseState.base = data.diseases.filter(d => !d.custom);
+  data.diseases = diseaseState.base.concat(dzCustom.items.map(dzCustomToEntry));
+  data.count = data.diseases.length;
+  buildDiseaseSearch(data);
+}
+async function loadDiseaseCustom(){
+  if(dzCustom.loading) return;
+  dzCustom.loading = true;
+  if(firebaseReady){
+    try {
+      const j = await fetchPublicContentJson("disease_custom");
+      dzCustom.items = (j && Array.isArray(j.items)) ? j.items : [];
+    } catch(e){ /* 아직 하나도 추가하지 않았으면 not-found — 기본 54종만 */ }
+  }
+  dzCustom.loaded = true; dzCustom.loading = false;
+  dzMergeCustom();
+  if(state.tab === "disease") render();
+}
+async function saveDiseaseCustom(items){
+  await writePublicContentJson("disease_custom", { updated: new Date().toISOString(), items });
+  dzCustom.items = items;
+  dzMergeCustom();
+}
+// AI 초안(「항목: 내용」 줄)을 폼 값으로 나눈다 — 병명·영문명·다른 이름은 칸으로, 나머지는 본문 줄로.
+function dzParseAiDraft(text, form){
+  const body = [];
+  String(text || "").split(/\r?\n/).map(t => t.trim()).filter(Boolean).forEach(line => {
+    const m = line.match(/^([^:：]{1,12})\s*[:：]\s*(.*)$/);
+    const k = m ? m[1].trim() : "", v = m ? m[2].trim() : "";
+    if(k === "병명"){ if(!form.ko && v && v !== "확인 필요") form.ko = v; return; }
+    if(k === "영문명"){ if(!form.en && v) form.en = v; return; }
+    if(k === "다른 이름"){ if(!form.al && v) form.al = v; return; }
+    body.push(line);
+  });
+  form.body = body.join("\n");
+}
+function renderDzForm(){
+  const f = dzCustom.form; if(!f) return "";
+  const inp = (id, v, ph) => `<input id="${id}" value="${esc(v || "")}" placeholder="${esc(ph)}" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #ccc;border-radius:7px;font-size:13px;margin-top:3px" />`;
+  const lab = t => `<div style="font-size:11.5px;font-weight:700;color:#00695C;margin-top:9px">${t}</div>`;
+  return `<div class="card" id="dz-form" style="margin-bottom:12px;border:2px solid #00695C">
+    <div style="font-size:14px;font-weight:800;color:#004D40">${f.slug ? "✏️ 추가한 질병 고치기" : "➕ 새 질병 추가"}</div>
+    ${lab("병명(한글) *")}${inp("dzf-ko", f.ko, "예: 조류메타뉴모바이러스 감염증")}
+    ${lab("영문명")}${inp("dzf-en", f.en, "예: Avian metapneumovirus infection")}
+    ${lab("다른 이름 (쉼표로)")}${inp("dzf-al", f.al, "예: aMPV, 부어오른 머리 증후군")}
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px">
+      <button id="dzf-ai" ${dzCustom.busy ? "disabled" : ""} style="border:0;border-radius:8px;background:#00695C;color:#fff;font-weight:800;padding:9px 14px;font-size:13px;cursor:pointer">🤖 AI로 기본정보 채우기</button>
+      <span style="font-size:11px;color:#888">병명만 넣고 누르세요 · 약품명·용량은 쓰지 않아요 · 수의사 검토 후 공개</span>
+    </div>
+    ${lab("본문 — 한 줄에 한 항목(「항목: 내용」)")}
+    <textarea id="dzf-body" rows="12" placeholder="개요: …&#10;원인: …&#10;임상증상: …&#10;부검소견: …&#10;진단·감별: …&#10;예방·관리: …" style="width:100%;box-sizing:border-box;padding:9px 10px;border:1px solid #ccc;border-radius:7px;font-size:12.5px;line-height:1.7;margin-top:3px">${esc(f.body || "")}</textarea>
+    <label style="display:flex;gap:6px;align-items:center;font-size:12.5px;margin-top:8px"><input type="checkbox" id="dzf-rev" ${f.reviewed ? "checked" : ""}> 수의사 검토 완료${f.ai && !f.reviewed ? ` <span style="font-size:11px;color:#B8860B">(체크 전에는 「AI 초안」으로 표시돼요)</span>` : ""}</label>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px">
+      <button id="dzf-save" ${dzCustom.busy ? "disabled" : ""} style="border:0;border-radius:8px;background:#1a2744;color:#F9C74F;font-weight:800;padding:9px 16px;font-size:13px;cursor:pointer">저장 · 공개</button>
+      <button id="dzf-cancel" style="border:1px solid #ccc;border-radius:8px;background:#fff;color:#666;padding:9px 14px;font-size:13px;cursor:pointer">취소</button>
+      <span id="dzf-msg" style="font-size:12px;color:${/실패|입력|있습니다/.test(dzCustom.msg) ? "#C62828" : "#00695C"}">${esc(dzCustom.msg || "")}</span>
+    </div></div>`;
+}
+function dzFormRead(){
+  const f = dzCustom.form; if(!f) return;
+  const v = id => { const e = document.getElementById(id); return e ? e.value : undefined; };
+  ["ko","en","al","body"].forEach(k => { const x = v(k === "body" ? "dzf-body" : "dzf-" + k); if(x !== undefined) f[k] = x.trim(); });
+  const rv = document.getElementById("dzf-rev"); if(rv) f.reviewed = rv.checked;
+}
+function attachDzCustomEvents(){
+  const add = document.getElementById("dz-add");
+  if(add) add.onclick = () => { dzCustom.form = { slug: null, ko: "", en: "", al: "", body: "", reviewed: false, ai: false }; dzCustom.msg = ""; render();
+    const e = document.getElementById("dzf-ko"); if(e){ e.focus(); e.scrollIntoView({ block:"center" }); } };
+  document.querySelectorAll(".dz-cedit").forEach(b => b.onclick = ev => {
+    ev.stopPropagation();
+    const c = dzCustom.items.find(x => x.slug === b.dataset.slug); if(!c) return;
+    dzCustom.form = { slug: c.slug, ko: c.title_ko, en: c.title_en || "", al: (c.aliases || []).join(", "), body: (c.paras_ko || []).join("\n"), reviewed: !!c.reviewed, ai: !!c.ai };
+    dzCustom.msg = ""; render();
+    const e = document.getElementById("dz-form"); if(e) e.scrollIntoView({ block:"start" });
+  });
+  document.querySelectorAll(".dz-cdel").forEach(b => b.onclick = async ev => {
+    ev.stopPropagation();
+    const c = dzCustom.items.find(x => x.slug === b.dataset.slug); if(!c) return;
+    if(!confirm(`「${c.title_ko}」을(를) 질병 사전에서 지울까요?`)) return;
+    try { await saveDiseaseCustom(dzCustom.items.filter(x => x.slug !== c.slug)); diseaseState.openSlug = null; render(); }
+    catch(e){ alert("삭제 실패: " + (e.message || e)); }
+  });
+  const cancel = document.getElementById("dzf-cancel");
+  if(cancel) cancel.onclick = () => { dzCustom.form = null; dzCustom.msg = ""; render(); };
+  const ai = document.getElementById("dzf-ai");
+  if(ai) ai.onclick = async () => {
+    dzFormRead(); const f = dzCustom.form;
+    if(!f.ko && !f.en){ dzCustom.msg = "병명을 먼저 입력하세요"; render(); return; }
+    dzCustom.busy = true; dzCustom.msg = "AI가 기본정보를 정리하는 중… (10~30초)"; render();
+    const r = await generateAiDraft("disease", f.ko || f.en, [f.en && f.ko ? "영문명: " + f.en : "", f.al ? "다른 이름: " + f.al : ""].filter(Boolean).join(" / "));
+    dzCustom.busy = false;
+    if(r.ok){ dzParseAiDraft(r.text, f); f.ai = true; f.reviewed = false; dzCustom.msg = "AI 초안을 채웠어요 — 내용을 꼭 검토·수정한 뒤 저장하세요"; }
+    else dzCustom.msg = "AI 초안 실패: " + r.error;
+    render();
+  };
+  const save = document.getElementById("dzf-save");
+  if(save) save.onclick = async () => {
+    dzFormRead(); const f = dzCustom.form;
+    if(!isBoardAdmin()){ dzCustom.msg = "관리자만 저장할 수 있습니다"; render(); return; }
+    if(!f.ko){ dzCustom.msg = "병명(한글)을 입력하세요"; render(); return; }
+    const lines = f.body.split(/\n/).map(t => t.trim()).filter(Boolean);
+    if(!lines.length){ dzCustom.msg = "본문을 입력하거나 AI로 채우세요"; render(); return; }
+    const norm = t => String(t || "").replace(/\s+/g, "").toLowerCase();
+    const dup = (diseaseState.data ? diseaseState.data.diseases : []).find(d => d.slug !== f.slug && [d.title_ko].concat(d.aliases || []).some(n => norm(n) === norm(f.ko)));
+    if(dup){ dzCustom.msg = `같은 이름의 질병이 이미 있습니다(「${dup.title_ko}」)`; render(); return; }
+    const item = { slug: f.slug || ("c" + Date.now().toString(36)), title_ko: f.ko, title_en: f.en,
+      aliases: f.al.split(/[,，]/).map(t => t.trim()).filter(Boolean).slice(0, 8), paras_ko: lines.slice(0, 20),
+      ai: !!f.ai, reviewed: !!f.reviewed, updated: new Date().toISOString().slice(0, 10),
+      by: (premiumState.user && premiumState.user.email) || "" };
+    dzCustom.busy = true; dzCustom.msg = "저장 중…"; render();
+    try {
+      await saveDiseaseCustom(dzCustom.items.filter(x => x.slug !== item.slug).concat([item]));
+      dzCustom.form = null; dzCustom.msg = ""; diseaseState.query = item.title_ko; diseaseState.openSlug = item.slug;
+    } catch(e){ dzCustom.msg = "저장 실패: " + (e.message || e); }
+    dzCustom.busy = false; render();
+  };
 }
 
 let hpaiState = { status: "idle", data: null }; // idle|loading|done|error
@@ -6857,7 +6991,20 @@ function renderDiseaseResults(){
         + (showEn?esc(p):hlDisease(p,q)) + '</p></div>';
     }).join("");
 
-    const body = open
+    const customBar = x.custom
+      ? '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px">'
+        + (x.ai && !x.reviewed ? '<span style="font-size:11px;font-weight:800;color:#7a5a00;background:#FFE9A8;border-radius:6px;padding:2px 8px">🤖 AI 초안 · 수의사 검토 전</span>' : '<span style="font-size:11px;font-weight:800;color:#1B5E20;background:#D7EFD9;border-radius:6px;padding:2px 8px">✔ 수의사 검토</span>')
+        + '<span style="font-size:11px;color:#888">관리자 추가 · '+esc(x.updated||"")+'</span>'
+        + googleImageBtn(x)
+        + (isBoardAdmin() ? '<button class="dz-cedit" data-slug="'+esc(x.slug)+'" style="font-size:11px;border:1px solid #00695C;border-radius:6px;padding:3px 9px;background:#fff;color:#00695C">✏️ 고치기</button><button class="dz-cdel" data-slug="'+esc(x.slug)+'" style="font-size:11px;border:1px solid #C62828;border-radius:6px;padding:3px 9px;background:#fff;color:#C62828">🗑 지우기</button>' : '')
+        + '</div>'
+      : '';
+    const body = open && x.custom
+      ? '<div style="padding:10px 0 4px;border-top:1px dashed #e5e5e5;margin-top:8px">' + customBar
+        + (x.paras_ko||[]).map(p => { const m = p.match(/^([^:：]{1,12})\s*[:：]\s*(.*)$/);
+            return '<div style="font-size:12.5px;line-height:1.75;color:#333;margin:0 0 7px">' + (m ? '<b style="color:#00695C">'+hlDisease(m[1],q)+'</b> · '+hlDisease(m[2],q) : hlDisease(p,q)) + '</div>'; }).join("")
+        + '</div>'
+      : open
       ? '<div style="padding:10px 0 4px;border-top:1px dashed #e5e5e5;margin-top:8px">'
         + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'
         +   '<button class="dz-lang" data-slug="'+esc(x.slug)+'" style="font-size:11px;border:1px solid #00695C;border-radius:6px;padding:3px 9px;background:'
@@ -6879,7 +7026,7 @@ function renderDiseaseResults(){
       +   thumb
       +   '<div style="flex:1;min-width:0">'
       +     '<div style="font-size:13.5px;font-weight:700;color:#1a1a1a;line-height:1.4">'+hlDisease(x.title_ko||x.title_en, q)+'</div>'
-      +     '<div style="font-size:10px;color:#aaa;margin-top:2px">'+esc(x.title_en)+'</div>'
+      +     '<div style="font-size:10px;color:#aaa;margin-top:2px">'+esc(x.title_en)+(x.custom ? ' <span style="color:#00695C;font-weight:700">· 추가'+(x.ai && !x.reviewed ? '(AI 초안)' : '')+'</span>' : '')+'</div>'
       +     ((x.aliases&&x.aliases.length)?'<div style="font-size:10px;color:#00695C;margin-top:3px">'+x.aliases.map(a=>hlDisease(a,q)).join(" · ")+'</div>':"")
       +     (!open?'<div style="font-size:11px;color:#777;margin-top:5px;line-height:1.6">'+hlDisease(diseaseSnippet(x,q), q)+'…</div>':"")
       +   '</div>'
@@ -7594,10 +7741,14 @@ function renderDiseaseTab(){
     +   '<div style="display:flex;gap:6px;align-items:center">'
     +     '<input id="dz-search" type="search" value="'+esc(q)+'" placeholder="예: 뉴캐슬병 / 호흡기 / 설사" style="flex:1;min-width:0;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px" />'
     +     '<button id="dz-clear" style="border:1px solid #ddd;border-radius:8px;background:#fff;padding:9px 11px;font-size:12px;color:#666">지우기</button>'
-    +   '</div></div>'
+    +   '</div>'
+    +   (isBoardAdmin() && !dzCustom.form ? '<button id="dz-add" style="margin-top:9px;border:1.5px dashed #00695C;border-radius:8px;background:#F1F8F6;color:#00695C;font-weight:800;padding:8px 12px;font-size:12.5px;cursor:pointer;width:100%">➕ 새 질병 추가 (🤖 AI로 기본정보 채우기)</button>' : '')
+    + '</div>'
+    + (isBoardAdmin() ? renderDzForm() : '')
     + '<div id="dz-results">' + renderDiseaseResults() + '</div>'
     + '<div class="card" style="margin-top:4px"><div style="font-size:11px;color:#777;line-height:1.7">'
-    +   '<b>'+esc(data.note||"")+'</b><br>출처: '+esc(data.source||"")+' · '+data.count+'종 · 수집 '+esc(data.updated||"")
+    +   '<b>'+esc(data.note||"")+'</b><br>출처: '+esc(data.source||"")+' · '+(data.count - dzCustom.items.length)+'종 · 수집 '+esc(data.updated||"")
+    +   (dzCustom.items.length ? ' · <b style="color:#00695C">관리자 추가 '+dzCustom.items.length+'종</b>(수의사 검토 표시 확인)' : '')
     +   ' <a href="'+esc(data.url||"")+'" target="_blank" rel="noopener" style="color:#00695C;margin-left:4px">원문 ↗</a>'
     + '</div></div>';
 }
@@ -35124,6 +35275,7 @@ function updateDiseaseResults(){
 
 // 결과 카드 안의 이벤트 (결과를 다시 그릴 때마다 새로 걸어줘야 한다)
 function attachDiseaseResultEvents(){
+  attachDzCustomEvents();
   const sa = document.getElementById("dz-showall");
   if(sa) sa.onclick = () => {
     diseaseState.showAll = !diseaseState.showAll;

@@ -366,6 +366,30 @@ const DRUG_SYSTEM_PROMPT = `당신은 현장 양계 전문 수의사가 운영�
 사용요령 3|휴약기간(닭 7일)을 지킨 뒤 출하합니다
 금기·병용: 산란기 산란계에는 사용하지 않습니다.`;
 
+// 「양계질병 사전」 관리 화면 — 관리자가 새 질병을 추가할 때 병명만 주면 사전 항목의 기본 정보 초안을 쓴다.
+// 진단·처방 근거가 아니라 교육용 요약이므로 약품명·용량은 쓰지 않고, 확실하지 않은 내용은 「확인 필요」로 남긴다.
+const DISEASE_SYSTEM_PROMPT = `당신은 현장 양계 전문 수의사가 운영하는 농장동물 컨설팅 서비스의 「양계질병 사전」 항목 초안을 씁니다. 병명(한글 또는 영문)과, 있으면 참고 정보를 받으면 닭·오리 등 가금 질병의 기본 정보를 한국어로 정리합니다. 수의사가 검토한 뒤 공개하는 초안입니다.
+
+출력 형식(아래 줄만 이 순서로 쓰고, 다른 설명·인사말·마크다운·번호는 쓰지 않습니다)
+병명: 표준 한글 병명
+영문명: 표준 영문 병명
+다른 이름: 흔히 쓰는 다른 이름·약칭을 쉼표로(없으면 이 줄을 쓰지 않음)
+개요: 어떤 병인지 1~2문장
+원인: 원인체(바이러스·세균·원충·기생충·영양·환경 등)와 주요 아형·혈청형
+감수성·발생: 걸리는 축종·일령, 잘 생기는 시기·조건
+전파: 주요 전파 경로
+임상증상: 현장에서 보이는 주요 증상을 쉼표로
+부검소견: 대표적인 육안 병변을 쉼표로
+진단·감별: 확진 방법(검사 종류)과 비슷해 헷갈리는 질병
+예방·관리: 차단방역·사양관리·백신 유무 등 예방과 관리의 요점
+법정 관리: 국내 가축전염병예방법상 지정 여부(확실할 때만, 모르면 이 줄을 쓰지 않음)
+
+지켜야 할 것
+- 약품명·성분명·용량·투여 일수·휴약기간은 쓰지 않습니다. 치료가 필요하면 "수의사 진단 후 처방에 따름"이라고만 씁니다.
+- 확실하지 않은 수치·사실은 지어내지 말고 "확인 필요"라고 씁니다.
+- 가금 질병이 아니거나 모르는 이름이면 "병명: 확인 필요"와 "개요: 가금 질병 사전에서 확인되지 않는 이름입니다" 두 줄만 씁니다.
+- 각 줄은 짧고 쉬운 현장 용어로, 존댓말이나 명사형으로 씁니다(한 줄 150자 이내).`;
+
 // contextLabel: 함께 넘기는 참고 정보의 이름(없으면 안 붙인다). contextMax: 그 길이 한도.
 const AI_DRAFT_KINDS = {
   faq:  { system: FAQ_SYSTEM_PROMPT,  label: "질문",    contextLabel: "",               contextMax: 0 },
@@ -373,6 +397,7 @@ const AI_DRAFT_KINDS = {
   deck: { system: DECK_SYSTEM_PROMPT, label: "덱 제목", contextLabel: "이 덱의 카드 앞면", contextMax: 1500 },
   treatment: { system: TREATMENT_SYSTEM_PROMPT, label: "상황 제목", contextLabel: "축종·참고", contextMax: 300 },
   drug: { system: DRUG_SYSTEM_PROMPT, label: "약품명", contextLabel: "참고", contextMax: 6500 },
+  disease: { system: DISEASE_SYSTEM_PROMPT, label: "병명", contextLabel: "참고", contextMax: 400 },
 };
 
 // Claude 호출 공통부. 안전 분류기가 거절하면 서버가 권장 모델로 자동 재시도하고
@@ -423,7 +448,7 @@ exports.generateAiDraft = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds:
   assertAdmin(request);
   const data = request.data || {};
   const kind = AI_DRAFT_KINDS[data.kind];
-  if (!kind) throw new HttpsError("invalid-argument", "kind는 faq, card, deck, treatment, drug 중 하나여야 합니다.");
+  if (!kind) throw new HttpsError("invalid-argument", "kind는 faq, card, deck, treatment, drug, disease 중 하나여야 합니다.");
   const text = String(data.text || "").trim();
   const context = String(data.context || "").trim().slice(0, kind.contextMax);
   if (!text) throw new HttpsError("invalid-argument", `${kind.label}을 입력하세요.`);
