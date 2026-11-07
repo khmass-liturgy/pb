@@ -1,5 +1,5 @@
 {
- "updated": "2026-11-05 10:27 KST",
+ "updated": "2026-11-07 09:53 KST",
  "groups": [
   "오늘 날씨",
   "폭염·한파",
@@ -10,15 +10,375 @@
  ],
  "items": [
   {
-   "title": "오늘 날씨, 서울·경기 5~10mm·부산·경남 최대 40mm 비…낮 12~20도",
-   "source": "톱스타뉴스",
-   "link": "https://news.google.com/rss/articles/CBMickFVX3lxTE5OREx4Y2JDcmkxZW1WMmZUelg0UUdHNGxWOUhmTXhRUVhQdFhPNnhDRWFYX3ptRV9GeER5VjNnc0psZUpYRW9BaVU5ekxBckVyVC12UHF0MkgtQk5QSXNYOWN6VU5WS05oWW9WeVR3c0MzZw?oc=5",
-   "ts": "2026-11-05 10:12",
+   "title": "대구·경북 강풍·한파특보 해제…울릉도·독도 강풍주의보 풀려",
+   "source": "뉴스1",
+   "link": "https://news.google.com/rss/articles/CBMiX0FVX3lxTE1BcUM2ZjhhazlETUtOMmtPZjY3dGNPZE0wR0RrQ2ZrZ3NIX244QVJkSjk2MENOOWg5d29LMjJsNGJ2eGZxWkpVanNoVVZmTVhWYlM2S3ZGVEM2SVQ3N1g0?oc=5",
+   "ts": "2026-11-07 09:44",
+   "tags": [
+    "폭염·한파",
+    "눈·바람·먼지"
+   ],
+   "url": "https://www.news1.kr/local/daegu-gyeongbuk/6346318"
+  },
+  {
+   "title": "전국 한파주의보 해제…경기·강원 등 5개 도 오전 9시부터",
+   "source": "이데일리",
+   "link": "https://news.google.com/rss/articles/CBMigAFBVV95cUxQYlZsMDNRemRoTWtBRUZSRk5wcFBqMHZBeUdnSnFhNTBGQ1hZcFg5bWpQZW5TSS1aLW1KLXBKNEhJS01YemFDNjlGN2cwZ0VSZ0pDdEdQVVl6NHdOMHk0Nm9oeWY1bVJaSDBoRGdfdXhKeF9LZkFfMXpwMnJWQ0pYYw?oc=5",
+   "ts": "2026-11-07 09:27",
+   "tags": [
+    "폭염·한파",
+    "기상 전망"
+   ],
+   "url": "https://www.edaily.co.kr/News/Read?newsId=02204166645643424&mediaCodeNo=257",
+   "summary": "전국에 발효 중이던 한파주의보가 7일 오전 9시를 기해 모두 해제됐다. 경기·강원·충북·전남·경북·경남 등 6개 도의 일부 지역에서 전날 밤 발효된 한파주의보가 12시간 만에 해제된 것이다. 한편 울릉도·독도에는 강풍주의보가, 동해와 남해 일부 먼바다와 제주도 남쪽 해상에는 풍랑주의보가 유지된다.",
+   "summary_ai": true
+  },
+  {
+   "title": "[날씨] '입동 추위'...서울 올가을 최저, 첫 얼음 관측",
+   "source": "YTN",
+   "link": "https://news.google.com/rss/articles/CBMiXkFVX3lxTE5QR25nTHotTGdYUFYzbUQ5REFDbjRIWUZxVGQtdmdtcnZKeXZIS0R4Q0NqZlVSX1NUSmw0c3VHMy05QTNDcWlHYzRxdS1RUVd6dzN4LUcyRjNsY1lEVHc?oc=5",
+   "ts": "2026-11-07 09:18",
+   "tags": [
+    "폭염·한파",
+    "오늘 날씨"
+   ],
+   "url": "https://www.ytn.co.kr/_ln/0108_202611070918493100",
+   "summary": "절기 '입동'인 오늘 초겨울 추위가 찾아왔다. 서울 아침 기온이 0.4도까지 내려가 올가을 최저를 기록했으며, 올해 첫 얼음도 관측됐다. 강원 설악산은 영하 9도까지 떨어졌고 전국 곳곳에 한파주의보가 내려진 상태다.",
+   "summary_ai": true
+  },
+  {
+   "title": "[내일날씨] 전국 흐리고 중부지방 비…강원 산지 1㎝ 안팎 눈",
+   "source": "연합뉴스",
+   "link": "https://news.google.com/rss/articles/CBMiW0FVX3lxTE45WmpfZG5kR3dYaHJXWjVZaU1fRUZmS3cySlBNTTBGUmt4cHlQYThDZEhldGs5X2xVR1NqbHk0NzVVLXBwQTZWMzdMSm1pdlFNSjhOU1BSVHN1WUnSAWBBVV95cUxQWVNiNDlLYTZ3d0I4N1dBMk52V3Uzak1wbVJ6NXJtQ3doV1pJemZHR18tYnd2d3Y5U0tMREU1NklhaTlmSGp2Vzh5d1p2Z2dkWnBkZFJLbWYxZDdaVC1XRy0?oc=5",
+   "ts": "2026-11-07 09:00",
    "tags": [
     "오늘 날씨"
    ],
-   "url": "https://www.topstarnews.net/news/articleView.html?idxno=16268819",
-   "summary": "5일 전국 대부분 지역에 비가 내리며, 서울·경기는 5~10mm, 부산·울산·경남은 최대 40mm의 강수량이 예상된다. 낮 기온은 12~20도이며, 6일부터 찬 공기가 남하하면서 기온이 5~8도 떨어져 추워지겠다. 강풍과 높은 물결에 주의가 필요하다.",
+   "url": "https://www.yna.co.kr/view/AKR20261107007600004",
+   "summary": "8일 전국이 흐리고 중부지방을 중심으로 가끔 비가 내리겠다. 강원 산지에는 1㎝ 안팎의 눈이 쌓일 것으로 예상된다. 아침 최저기온 -1∼7도, 낮 최고기온 7∼15도로 낮과 밤의 기온차가 10∼15도로 크겠으니 건강 관리에 유의해야 한다.",
+   "summary_ai": true
+  },
+  {
+   "title": "[오늘날씨] 한파특보에 아침기온 최대 10도 뚝…일요일 중부 비·강원산지 눈",
+   "source": "공감신문",
+   "link": "https://news.google.com/rss/articles/CBMiaEFVX3lxTFBUelNCY1U1NW1IUTFhS28yb1VwbVpvMFpDdjNMTmVFcWRfelQzNEtSa2k0SWpTWHlRa0xjdzF3WGR3RWJoT0JlU0drbUJHd2dmRzE1TnJkek8wbDlhTG5BNFgxSWNPblZK?oc=5",
+   "ts": "2026-11-07 08:17",
+   "tags": [
+    "폭염·한파",
+    "오늘 날씨"
+   ],
+   "url": "https://www.gokorea.kr/news/articleView.html?idxno=884516",
+   "summary": "전국 대부분 지역의 아침 기온이 전날보다 5~10도 떨어지며 한파특보가 발효 중이다. 토요일 낮 최고기온은 8~13도, 일요일 아침 최저기온은 영하 1도에서 영상 7도로 예보됐으며, 주말 동안 일교차가 10~15도로 벌어질 것으로 예상된다. 일요일에는 중부지방 중심으로 비가 내리고 강원 산지에는 1㎝ 안팎의 눈이 쌓이겠다.",
+   "summary_ai": true
+  },
+  {
+   "title": "[오늘 날씨] 절기상 입동(立冬) 초겨울 추위-강풍에 서울 아침 체감온도 영하 5도⋯전국 대부분 초속 15m 강풍",
+   "source": "이코노뉴스",
+   "link": "https://news.google.com/rss/articles/CBMib0FVX3lxTFBiYzdod3V1WXRoTnRaZThtNlJrUk9HdkJORHNVLUdlOXFyQUR6SXhrM29la3ZZRGx3eVhXbFdqTklJbGlaTU4xY29IRTZESWZZUk9YN0NuUEtldnpiRFk4bFNQcXJPbFpwWHVTOGFPUQ?oc=5",
+   "ts": "2026-11-07 08:05",
+   "tags": [
+    "폭염·한파",
+    "눈·바람·먼지",
+    "오늘 날씨"
+   ],
+   "url": "https://www.econonews.co.kr/news/articleView.html?idxno=446847",
+   "summary": "입동인 7일 북서쪽 찬 공기의 영향으로 전국이 초겨울 추위를 보이겠다. 아침 최저 영하 6~5도, 낮 최고 8~14도이며, 서울 아침 체감온도는 영하 5도 안팎으로 내려가겠다. 전국 대부분 지역에서 초속 15m 안팎의 강풍이 불고, 중부지방과 전북동부, 경상권 내륙을 중심으로 서리와 얼음이 내리겠다.",
+   "summary_ai": true
+  },
+  {
+   "title": "[오늘 날씨] 북서풍 영향 전국 낮최고 8도~13도, 강원영동·수도권 건조 특보 발효",
+   "source": "더쎈뉴스",
+   "link": "https://news.google.com/rss/articles/CBMiZ0FVX3lxTE5MSDBUbjlseDRVOGZmMWh4bnJndlNzY0VCaTU0M0FidTFLRHhOQWJ4T2NCaW56TnFKS2RKMWlyQkhQVVVSVk80bElmZzRaY2dTMGtTZ1NmU0FxU1FTYzRCbTdPQkpLeU0?oc=5",
+   "ts": "2026-11-07 07:59",
+   "tags": [
+    "눈·바람·먼지",
+    "오늘 날씨"
+   ],
+   "url": "http://www.mhns.co.kr/news/articleView.html?idxno=768052",
+   "summary": "7일 북서풍의 영향으로 전국 낮최고기온이 8도~13도를 기록했으며, 강원북부동해안과 수도권에 건조특보가 발효됐다. 낮과 밤의 기온차가 10도~15도로 크고 순간풍속 55km/h 내외의 강풍이 불어 산불 위험이 높다. 8일은 중부지방 중심으로 비가 내리고 강원산지에 1cm 안팎의 눈이 내릴 전망이다.",
+   "summary_ai": true
+  },
+  {
+   "title": "[전국 지역별 오늘의 날씨 및 주말날씨]기온 낮아 춥겠음, 강원영동 대기 건조, 내일 중부지방 중심 가끔 비!",
+   "source": "이코노미톡뉴스",
+   "link": "https://news.google.com/rss/articles/CBMibEFVX3lxTE1RMGY0SXl4RFRCWTVlaTlFQW5TUHJ2VWhkX0VxYlpMaG9SU190SEZ6a0wwU1VXOWRvZVdlczJqOGJEbHJIaEs1bVJuWGZYSld4dE5PV3JDZXEtaDZUVjk0bkctbW5PVWxzSmR1Uw?oc=5",
+   "ts": "2026-11-07 07:41",
+   "tags": [
+    "오늘 날씨"
+   ],
+   "url": "http://www.economytalk.kr/news/articleView.html?idxno=425149",
+   "summary": "7일 전국은 맑겠으나 기온이 평년보다 낮아 춥겠고, 강원영동 지역의 대기가 건조하겠다. 8일 중부지방을 중심으로 비가 내리겠으며, 강원산지에는 1cm 안팎의 적설이 예상된다. 9일까지 기온은 평년보다 낮을 것으로 예보된다.",
+   "summary_ai": true
+  },
+  {
+   "title": "오늘 날씨 11월 7일 체감 영하권 출근길, 뭐 입어야 해? : 날씨",
+   "source": "재경일보",
+   "link": "https://news.google.com/rss/articles/CBMiS0FVX3lxTE1SVEJjWXVmWDRoMThRQTdkRUg0X0NzYmVnR3FYeXhtbEhoLUU4bi1jVGZHUTE5ejlZaFRPakFMRW1DSHdFTVB3cVNpaw?oc=5",
+   "ts": "2026-11-07 07:30",
+   "tags": [
+    "폭염·한파",
+    "오늘 날씨"
+   ],
+   "url": "https://news.jkn.co.kr/post/1075897",
+   "summary": "7일 서울 아침 기온이 영하 0.5도까지 내려가고 초속 5.9m의 강한 바람이 불어 체감온도는 영하 4.5도 안팎이다. 낮 최고기온은 7도이지만 찬 바람이 종일 이어지고 저녁에 기온이 다시 떨어져 출근길과 퇴근길 추위가 매서울 것으로 예상된다. 전국은 맑으나 중부지방 중심으로 아침 기온이 영하권인 가운데, 내일은 이슬비가 내릴 것으로 보인다.",
+   "summary_ai": true
+  },
+  {
+   "title": "[오늘날씨] 전국 맑지만 한파 기승…낮 최고 8~13도, 강풍·건조 주의",
+   "source": "톱스타뉴스",
+   "link": "https://news.google.com/rss/articles/CBMickFVX3lxTE1hS3ZpOU1TaUJwTXRockZmcU9pREMwdEJrUV94aF8xRHZobm5yTjhES1ZiLUk3Vmx2TG9OeFZoWGFESUlfUVUzZncxQXZGSUZfblZlUV9fRUNINGJwXzRVWnJaaFVtRzdxSGRGUnV5Uk5LUQ?oc=5",
+   "ts": "2026-11-07 06:56",
+   "tags": [
+    "폭염·한파",
+    "눈·바람·먼지",
+    "오늘 날씨"
+   ],
+   "url": "https://www.topstarnews.net/news/articleView.html?idxno=16270433",
+   "summary": "11월 7일 전국은 맑지만 북서쪽에서 내려온 찬 공기의 영향으로 한파가 기승을 부리겠다. 낮 최고기온은 8~13도로 평년보다 크게 낮으며, 아침기온은 전날보다 5~10도 떨어지겠다. 동쪽지역과 전남에는 한파특보, 강원북부동해안에는 건조특보가 발효되며, 동쪽지역과 제주도에는 순간풍속 최대 70km/h 안팎의 강한 바람이 예상되므로 주의가 필요하다.",
+   "summary_ai": true
+  },
+  {
+   "title": "[미래 직업 칼럼] 농업기상캐스터",
+   "source": "강건문화뉴스",
+   "link": "https://news.google.com/rss/articles/CBMiPkFVX3lxTE5NRHk2UVRnUVF5bHEzdF9ZaUdUdVdaRXlzWWwtbXhTdW1SUEJIdDBQV2libzJqdUJvaVhLcWNB?oc=5",
+   "ts": "2026-11-07 06:35",
+   "tags": [
+    "농업·축산 기상"
+   ],
+   "url": "http://www.gcn.news/42951",
+   "summary": "농업기상캐스터는 농업의 생육단계와 작업 일정에 맞게 기상정보를 해석하여 농업인에게 전달하는 직업이다. 기온, 강수량, 습도 등의 정보를 작물 관리와 농작업에 필요한 구체적인 판단 자료로 제공하며, 봄부터 겨울까지 계절별로 파종, 수확, 시설 관리 등 현장의 실제 필요에 맞는 안내를 한다.",
+   "summary_ai": true
+  },
+  {
+   "title": "오늘(토요일) 같은 날씨는 20년 만... 내일 날씨도 장난 아니다",
+   "source": "위키트리",
+   "link": "https://news.google.com/rss/articles/CBMiVkFVX3lxTE5kYmtYTEItRy03dlA1VzdEcnd0cDNka05tTjlQVE1feVFCamV6X09mcHNrTjFuU3Y5NUlMSFVSRHZrNXNiNGdtOGpjMmlKX1VCR1lIWlJB?oc=5",
+   "ts": "2026-11-07 06:21",
+   "tags": [
+    "오늘 날씨"
+   ],
+   "url": "https://www.wikitree.co.kr/articles/1172599",
+   "summary": "입동을 맞아 전국에 초겨울 추위가 찾아왔다. 토요일 서울의 아침 최저기온은 영하 1도로 입동에 영하로 내려가는 것은 2006년 이후 20년 만이며, 전국 아침 최저기온은 영하 6도~영상 5도, 낮 최고기온은 8~14도로 예보된다. 강원과 경북, 경남 일부 지역에 한파주의보가 발효 중이고, 오전까지 강풍특보 지역에는 순간풍속 시속 70㎞ 이상의 바람이 불겠다.",
+   "summary_ai": true
+  },
+  {
+   "title": "[오늘 날씨] 전국 맑고 쌀쌀…찬바람에 기온 '뚝' - 머니투데이",
+   "source": "머니투데이",
+   "link": "https://news.google.com/rss/articles/CBMia0FVX3lxTFBONXkyMmFpYjdmbWhpSVQ5Vnl4ZEpTTnVoWDJNamlKcWxvVXloMWF3ZmtaUW5tV2tKcVlXby04aGlISC1iNVk3UU84YlprNjJ2c3I5RDlYTGYxMXBjVHRCXzIyS0VBQWE5TXVN0gFwQVVfeXFMTkJBTURVWVNLUC1sX29uczBaU3FwR203Vm5QcnAzbGlwUHcwaXZkamJnU05HTmN3RkYxeUczcjRGSUJHRlpRUU5VN3RaYUM1LWlReHhTY3ZMS2QwNmhBMnhvVzM1c1pmWXpmSmlYOUJ3Yg?oc=5",
+   "ts": "2026-11-07 06:19",
+   "tags": [
+    "오늘 날씨"
+   ],
+   "url": "https://www.mt.co.kr/society/2026/11/06/2026110517200232882",
+   "summary": "6일 찬바람이 불며 초겨울 날씨가 찾아온다. 북서쪽에서 찬 공기가 남하해 전국 기온이 크게 떨어지며, 아침 최저기온 1~12도, 낮 최고기온 9~16도를 오르내리겠다. 전국이 대체로 맑으나 새벽에 일부 지역에 한때 비가 내리고, 순간풍속 초속 15m 안팎의 강한 바람이 불 전망이다.",
+   "summary_ai": true
+  },
+  {
+   "title": "[오늘 날씨] 경기도 주요지역 날씨 11월 8일(일) ‥ 오후부터 비, 경기북동부 눈 가능성",
+   "source": "분당신문",
+   "link": "https://news.google.com/rss/articles/CBMiS0FVX3lxTE9NVC1FTlVmTXBNVVZobWVSV2dYMC1iT1RMVTlMRE5XOEVEeWZZRTdRVW05Rzl4WnYwSDhoQldDQjNObU12ei1jNE85MA?oc=5",
+   "ts": "2026-11-07 05:50",
+   "tags": [
+    "오늘 날씨"
+   ],
+   "url": "https://www.bundangnews.co.kr/59010",
+   "summary": "11월 8일 경기도는 오후부터 비가 내리고, 경기북동부에서는 눈이 내릴 가능성이 있다.",
+   "summary_ai": true
+  },
+  {
+   "title": "[오늘 날씨] 수도권, 오전 최저기온 -1도…이른 겨울 오나",
+   "source": "동행미디어 시대",
+   "link": "https://news.google.com/rss/articles/CBMiXkFVX3lxTE9LQnRpQU1LR25mSXJLa0hROWxBOG9CUjVFbjE0all3bzRxMV9xclB3c3pIVnY0emNzN1dTeUFyelVtT3pFS3UtOGllMVgzdHRKNHN4NDF6VzRmWjZqRkE?oc=5",
+   "ts": "2026-11-07 04:42",
+   "tags": [
+    "오늘 날씨"
+   ],
+   "url": "https://www.sidae.com/article/2026110613485979131",
+   "summary": "7일 전국은 대체로 맑지만 울릉도·독도에 5㎜ 미만 비가 예보된다. 전국 최저기온은 -6~5도, 최고기온은 8~14도로 일교차가 크며, 특히 수도권 오전 최저기온이 -1도까지 떨어질 것으로 예상돼 따뜻한 옷차림이 필요하다. 미세먼지 농도는 전 권역이 '좋음'이다.",
+   "summary_ai": true
+  },
+  {
+   "title": "기상청, 12월 엘니뇨 최성기…겨울 평년 기온 높고 강수량 늘어",
+   "source": "교통뉴스",
+   "link": "https://news.google.com/rss/articles/CBMibEFVX3lxTE9pWmNsSUNuV0hEekpNajhiam9Mc0ZENWxDS216aEJsT0ZoNTZqaXVSWXd4SUNvT0plcXF5cWxacXBVODdEUHNOTU5ucnFhWFFaR0lKdWt2R2ZzTHBJVXJFX1VuZVhGQmhPREN4Qg?oc=5",
+   "ts": "2026-11-07 04:00",
+   "tags": [
+    "기상 전망",
+    "오늘 날씨"
+   ],
+   "url": "https://www.cartvnews.com/news/articleView.html?idxno=702775",
+   "summary": "기상청이 올해 10월 엘니뇨 감시구역의 해수면 온도 편차가 +2.6℃로 1950년 이후 최고 수치를 기록했다고 발표했다. 12월에 엘니뇨가 최성기를 맞을 것으로 예상되며, 이에 따라 11월과 12월 기온은 평년보다 높고 강수량도 대체로 많을 것으로 전망된다. 다만 다양한 기후요인의 영향으로 한파 등 급격한 날씨 변화도 가능하다.",
+   "summary_ai": true
+  },
+  {
+   "title": "〔오늘의 북한 날씨〕전국 대체로 맑음·북부 일부 지역 센바람",
+   "source": "SPN 서울평양뉴스",
+   "link": "https://news.google.com/rss/articles/CBMia0FVX3lxTE1mdnNiYjNjX2hfVkhXZGE1VzlPSXo5QzMyZ2hjTDczMm1icnpidllTMVRGNWxwdjVfcElCb2k1TmlQb3VlVS1MakNDU2xmSWxKcGV6cnNaQ01YanYtaUc4UnF1cEd1bHZjd0pV?oc=5",
+   "ts": "2026-11-07 00:00",
+   "tags": [
+    "오늘 날씨"
+   ],
+   "url": "https://www.spnews.co.kr/news/articleView.html?idxno=112360",
+   "summary": "북한 지역은 7일 대륙고기압의 영향으로 전국이 대체로 맑겠으나 함남·북도와 양강도, 나선시 일부 지역에 센바람이 불 예정이다. 아침 최저기온은 백두산 영하 22도, 낮 최고기온은 안변 13도를 기록할 것으로 예보되며, 평양은 아침 영하 2도, 낮 7도이다. 강원도와 함경북도 해상에 풍랑경보 및 주의보가 발령됐다.",
+   "summary_ai": true
+  },
+  {
+   "title": "秘晨社区帖子 - 모두 굿모닝입니다 날씨가 쌀쌀하네요.. 오늘하루도 우리 힘내보아요 🥶 - 徐道镇",
+   "source": "Weverse",
+   "link": "https://news.google.com/rss/articles/CBMiYkFVX3lxTE1qbmpmVkhtTnFkVU80ZXRGVlJ1M18tVkFndkpaTTl0UUpNb25DX1Y3Y2JmdzRXS2U0SGtGRG10RlVZSmtXTEo1dzBvcFlYM244clpjTXg5d2hxa3VBRXZsbHZ3?oc=5",
+   "ts": "2026-11-06 23:09",
+   "tags": [
+    "오늘 날씨"
+   ],
+   "url": "https://weverse.io/bdawn/artist/4-243391389?hl=zh-cn",
+   "summary": "",
+   "summary_ai": false
+  },
+  {
+   "title": "기상청 \"역대 가장 강한 엘니뇨 온다…올겨울 포근하고 강수량 많을 듯\"",
+   "source": "프리진경제",
+   "link": "https://news.google.com/rss/articles/CBMibEFVX3lxTFBHcVd6eDNwRWNfbjhVd2pJVlM4QlVYLUtCQ20yUE42TEFjSm1HUEFVNjlYQTNMVll5VmM3bmE0N3pBc0h5eTItUTVYMUZSbkZndVRvV3UyVmJTR3JqanloV0VRdkJnQXFLQXRUaw?oc=5",
+   "ts": "2026-11-06 22:39",
+   "tags": [
+    "기상 전망"
+   ],
+   "url": "https://www.freezine.co.kr/news/articleView.html?idxno=18385",
+   "summary": "기상청은 5월부터 발생한 엘니뇨가 1950년 이후 가장 강할 것으로 전망했다. 올겨울 기온은 평년보다 높고 강수량은 평년보다 많을 것으로 예상되며, 12월에 정점을 맞을 것으로 예측된다. 다만 다양한 기후요인의 영향으로 한파 등 급격한 날씨 변화도 대비할 필요가 있다.",
+   "summary_ai": true
+  },
+  {
+   "title": "[농림축산식품부] ‘농업e지’ 앱으로 기상재해 자동 알림… 벼·콩 등 44개 품목 대상",
+   "source": "커넥트이천",
+   "link": "https://news.google.com/rss/articles/CBMiXkFVX3lxTE9PSDNEZXR5RWxpT0ZLOHVSZmU1bU4zVUl3YTRMQmJEQ3lvMVZXZHBuM1lieG5TYmdTX0Y1MlRINmo2OUNMTkNNQXNVaG9pMnNkWnJ1dGgxcW5XeXBSaWc?oc=5",
+   "ts": "2026-11-06 22:28",
+   "tags": [
+    "농업·축산 기상"
+   ],
+   "url": "https://www.connecticheon.com/ko-kr/articles/3257",
+   "summary": "농림축산식품부가 11월 5일부터 '농업e지' 모바일 앱의 농업기상재해 조기경보 알림 서비스를 운영한다. 벼·콩·과수·채소 등 44개 품목을 대상으로 동해·저온해·가뭄해 등 15종 재해 위험을 농장별·작물별로 자동 알림한다. 농업경영체 등록 농가는 본인 인증으로 이용 가능하며, 당일 날씨와 향후 3일간 기상예보, 재해 시 대응 지침을 제공받을 수 있다.",
+   "summary_ai": true
+  },
+  {
+   "title": "횡성군, 겨울철 폭설 대비 고립 예상 지역 현장점검 실시",
+   "source": "웹이코노미",
+   "link": "https://news.google.com/rss/articles/CBMickFVX3lxTE1wdXczdjBnQUd6QUM1UjI5TFM1UXZveGVEZzRGZXRRaEplUW5VdzFfX0NHWTFZWWpNSUxXUHNaWGpwZG5xbXMwdTlEcF83anhnYnhDUWZxX0hjOVN0Q1V6WGx5ajhxWjUxMS16dnYwM0RJdw?oc=5",
+   "ts": "2026-11-06 19:14",
+   "tags": [
+    "눈·바람·먼지"
+   ],
+   "url": "https://www.webeconomy.co.kr/news/articleView.html?idxno=2365190",
+   "summary": "횡성군이 겨울철 폭설에 대비해 국사봉 일원 고립 예상 지역을 점검했다. 해당 지역의 3가구 8명 주민을 위해 비상 연락망 확보, 대설특보 시 안전 확인, 제설함 및 제설제 사전 준비 등 상시 관리 체계를 운영할 계획이다. 아울러 정전·통신 두절 등 비상상황에 대비한 대체 연락 체계, 임시 대피장소, 비상물자 확보 방안도 보완할 예정이다.",
+   "summary_ai": true
+  },
+  {
+   "title": "일교차 최대 15도…제주 비·남해안 강풍, 태풍 ‘두쥐안’은 일본 향한다",
+   "source": "쿠키뉴스",
+   "link": "https://news.google.com/rss/articles/CBMiY0FVX3lxTFBsLTJQT0J4NXdVaU5IOVRTWmJhcFZsRFlNT18ybFU1bnc4T0h3b0FqNUkxM2QwUWRFS0VIUjVKUk9sQjNJSUx4U1MwOXVKT3RLVkxBczdCdmVHTmNMZHc4WmRLZw?oc=5",
+   "ts": "2026-11-06 17:49",
+   "tags": [
+    "호우·태풍",
+    "눈·바람·먼지",
+    "오늘 날씨"
+   ],
+   "url": "https://www.kukinews.com/article/view/kuk202609170021"
+  },
+  {
+   "title": "[날씨] 주말 쌀쌀하고 큰 일교차…전국 곳곳 '강풍' / JTBC News épicerie (i8MqxDBOOZ)",
+   "source": "Unisba Media",
+   "link": "https://news.google.com/rss/articles/CBMihwFBVV95cUxNVHBnaUs3aGNMWVR6VkhBLUJYQ1M3eGlPQUR6em93V0JyT2ctWXVjeUtfVVZLZnlfLUhoWVhCejNBel9qaG1CTTNyRmw5WkZEZmhtdlBkVmVFTkI5R2JJWm15MVNuVWloV2RmbWNpeDBNYzc5akFrMHI5YWNFVUl3czZsZHdOUGM?oc=5",
+   "ts": "2026-11-06 15:49",
+   "tags": [
+    "눈·바람·먼지",
+    "오늘 날씨"
+   ],
+   "url": "https://media.unisba.ac.id/c765f9d0/3f10df03VCAoIhR-QAkDPTs/?share=telegram&nb=1"
+  },
+  {
+   "title": "'횡성 국사봉 폭설 고립 막는다'…주민 안전대책 점검",
+   "source": "뉴시스",
+   "link": "https://news.google.com/rss/articles/CBMieEFVX3lxTE1yTnRFdGVwdWVLa0ZjeWx3RDc5MnllZGJDWklhNlJOWW80d0VFX2lwMm1fb3dCRHcwNmRBUjJsTS1BYmU4N3ZMTTdycjFFQW9rS0FPaWhjeEFLN05sZFQ1bVJ2eWQySGdmUjU3TlFmOVNPMld4X1N3a9IBeEFVX3lxTE1yTnRFdGVwdWVLa0ZjeWx3RDc5MnllZGJDWklhNlJOWW80d0VFX2lwMm1fb3dCRHcwNmRBUjJsTS1BYmU4N3ZMTTdycjFFQW9rS0FPaWhjeEFLN05sZFQ1bVJ2eWQySGdmUjU3TlFmOVNPMld4X1N3aw?oc=5",
+   "ts": "2026-11-06 15:10",
+   "tags": [
+    "눈·바람·먼지"
+   ],
+   "url": "https://mobile.newsis.com/view_amp.html?ar_id=NISX20261106_0003857892",
+   "summary": "강원 횡성군이 국사봉 일원의 폭설 고립 우려 지역에 대한 안전대책을 점검했다. 해당 지역에 거주하는 3가구 8명을 보호하기 위해 제설함 설치, 제설제 비축, 비상연락망 확보 등을 추진하며, 자율방재단과 협력해 현장 중심의 대응체계를 강화할 계획이다.",
+   "summary_ai": true
+  },
+  {
+   "title": "\"이상기후 끄떡없다\"…정읍시, 농작물재해보험료 최대 90% 통 큰 지원",
+   "source": "더펜뉴스",
+   "link": "https://news.google.com/rss/articles/CBMiY0FVX3lxTE94YkFvbXhpdEdFTUZ3Yk5LRE5QSXhxSUluNTBxRXFKMHhVdGhSZG5uVXZCU3FzaDY1UktXS1ZxMnV3a1k0clZyU3hvenFSQ1Jsc0pvUjR0Tl9wSmtiMTRqcWZWTQ?oc=5",
+   "ts": "2026-11-06 14:57",
+   "tags": [
+    "농업·축산 기상",
+    "기상 전망"
+   ],
+   "url": "https://www.thepennews.net/news/article.html?no=47041",
+   "summary": "정읍시가 이상기후로 인한 농가 피해를 보호하기 위해 포도·복숭아·보리·밀 재배 농가를 대상으로 농작물재해보험료의 최대 90%를 지원한다. 과수는 이달 27일까지, 보리와 밀은 내달 4일까지 지역 농협에서 신청할 수 있으며, 농가는 전체 보험료의 10%만 납부하면 된다.",
+   "summary_ai": true
+  },
+  {
+   "title": "관측 사상 최강 엘니뇨 발생…기상청 \"올겨울 동안 지속\"",
+   "source": "미디어데일",
+   "link": "https://news.google.com/rss/articles/CBMia0FVX3lxTE1tYU42NFJLRFNSX0NPWFJBMXd0OG10a2twbW13NFBqa1FlVGxPNEQ5UkRGWVYzRXBydVVRa0ZuVE9nZG95N3U5bU1sSnVTdTVwQmNDbUR6QVV3T2ZiVjlERkJJdEpoMlBMVE5B?oc=5",
+   "ts": "2026-11-06 12:03",
+   "tags": [
+    "기상 전망"
+   ],
+   "url": "http://www.mediadale.com/news/articleView.html?idxno=295449",
+   "summary": "올해 5월 시작된 엘니뇨가 1950년 이후 관측된 것 중 가장 강한 수준으로 발달했다. 기상청은 이 엘니뇨가 올겨울 동안 지속되며 12월에 최성기를 맞을 것으로 전망했으며, 11~12월 기온은 평년보다 높고 강수량은 많겠으나 한파 등 급변 날씨에도 대비할 필요가 있다고 당부했다.",
+   "summary_ai": true
+  },
+  {
+   "title": "올겨울 역대 '최강' 엘니뇨 온다…기온 높고 비·눈 늘어날 듯",
+   "source": "데일리굿뉴스",
+   "link": "https://news.google.com/rss/articles/CBMicEFVX3lxTE16bzZfdTZPUmh0cnVBUF9velRMc1dqOGlUZ1F6UEZ2MlBrbTRVS0tLMHdZdGN6RFVPSXE2ZmNnUHRtOWJFRlhqejZCR3VGVHJYczFKQW9wSmtGalVIdGo5ck9pc2JWQm01T2oySUhEaFHSAXBBVV95cUxNem82X3U2T1JodHJ1QVBfb3pUTHNXajhpVGdRelBGdjJQa200VUtLSzB3WXRjekRVT0lxNmZjZ1B0bTliRUZYano2Qkd1RlRyWHMxSkFvcEprRmpVSHRqOXJPaXNiVkJtNU9qMklIRGhR?oc=5",
+   "ts": "2026-11-06 11:49",
+   "tags": [
+    "기상 전망",
+    "오늘 날씨"
+   ],
+   "url": "https://www.goodnews1.com/news/articleViewAmp.html?idxno=465944",
+   "summary": "올겨울 1950년 이후 가장 강한 수준의 엘니뇨가 예상된다. 열대 태평양 해수면 온도 편차가 2.4도로 역대 최고치를 기록했으며, 12월 최성기를 맞을 전망이다. 엘니뇨 영향으로 국내 기온이 평년보다 높고 강수량도 늘어날 가능성이 크다.",
+   "summary_ai": true
+  },
+  {
+   "title": "[기상 브리핑] 전국 낮 8~16도 쌀쌀…강풍·풍랑 주의, 미세먼지 좋음·자외선 보통",
+   "source": "센머니",
+   "link": "https://news.google.com/rss/articles/CBMibEFVX3lxTE1INDJ6NHhPNFp1ZmY4QndZMURrcFQ4NlhXMFQxODNZcDlQSVFrN0toX1NKWHRBLU9WelV4Q3RYWmJiR0RPWU8wS3BFS1VMaXVzWG1SeldrejZuNDFFRlVtd2hXOGRieDVCUEk2Rw?oc=5",
+   "ts": "2026-11-06 10:46",
+   "tags": [
+    "눈·바람·먼지"
+   ],
+   "url": "https://www.senmoney.co.kr/news/articleView.html?idxno=38424",
+   "summary": "11월 6일 전국은 맑지만 북서쪽 찬 공기의 영향으로 낮 기온이 8~16도에 머물고 강풍이 불어 체감온도가 낮겠다. 인천 영종, 강원북부산지, 일부 전남 해안에 강풍특보가 내려졌으며, 해상도 거칠어 서해와 남해, 동해 먼바다의 물결이 1.5~4.0m로 예상된다. 추위는 계속되며 모레에는 수도권과 강원도, 충청 북부에 비가 오고 강원 높은 산지에는 눈이 약간 내릴 수 있다.",
+   "summary_ai": true
+  },
+  {
+   "title": "속초시, 대설·한파 대비 농업시설 집중점검…비닐하우스·축사 겨울철 재해 예방 강화",
+   "source": "한국미디어창업뉴스",
+   "link": "https://news.google.com/rss/articles/CBMicEFVX3lxTE9hWnlRZXlQT29PX2ZFYVRROUdoNERxYWNoN2R4OVJZdkxpUTJhRHRDbGp2ZDRUSndJaHd0eTZSYXJPdGVRcnpJYlJ6NEFlVlBMLU1fU3h3VEFjNDlLbXVIY3pmRWRYaC1IV2NiY3lCZGPSAXBBVV95cUxPYVp5UWV5UE9vT19mRWFUUTlHaDREcWFjaDdkeDlSWXZMaVEyYUR0Q2xqdmQ0VEp3SWh3dHk2UmFyT3RlUXJ6SWJSejRBZVZQTC1NX1N4d1RBYzQ5S211SGN6ZkVkWGgtSFdjYmN5QmRj?oc=5",
+   "ts": "2026-11-06 10:23",
+   "tags": [
+    "농업·축산 기상",
+    "폭염·한파",
+    "눈·바람·먼지"
+   ],
+   "url": "http://www.kmedia-news.com/news/articleViewAmp.html?idxno=12953",
+   "summary": "속초시가 2027년 3월까지 대설·한파 대비 농업재해 대책상황실을 운영한다. 비닐하우스 355동과 축사 11동을 대상으로 12월부터 매월 정기점검을 실시하며, 기상특보 발생 시 신속한 상황 전파와 응급복구 지원에 나설 계획이다. 폭설 시 농로 제설 지원과 난방기 순회수리 등으로 농업시설 붕괴와 냉해 피해를 최소화할 방침이다.",
+   "summary_ai": true
+  },
+  {
+   "title": "스마트폰 하나로 지키는 내 농장… 농업e지. 기상재해 조기경보 매일 아침 안방 배달",
+   "source": "뉴스N연합",
+   "link": "https://news.google.com/rss/articles/CBMiSkFVX3lxTE1RX2VDa0dVTXVhTUZpckhlZklablVzcHNBQ0dkMFJjRWRTR1RvdzRHQnVSOHZNV3Zob0U3ZGYtNlhLWlNRTDdOaGdR?oc=5",
+   "ts": "2026-11-06 10:07",
+   "tags": [
+    "농업·축산 기상"
+   ],
+   "url": "https://newsyonhap.com/news/135515",
+   "summary": "농림축산식품부가 '농업e지' 모바일 앱을 통해 농업기상재해 조기경보 알림서비스를 정식 개시했다. 이 서비스는 농촌진흥청과 기상청의 데이터를 바탕으로 개별 농지의 지형과 기후 특성을 분석해 매일 아침 스마트폰으로 맞춤형 날씨 정보와 재해 대응 매뉴얼을 제공한다. 사과·배·벼·고추 등 44개 품목, 163만 농가를 대상으로 서리·한파·폭우·가뭄 등 15가지 재해 위험을 감시한다.",
    "summary_ai": true
   },
   {
@@ -35,42 +395,6 @@
    "summary_ai": true
   },
   {
-   "title": "[날씨] 6일 오늘보다 4도 뚝…청주 등 충북 10~12도",
-   "source": "중부매일",
-   "link": "https://news.google.com/rss/articles/CBMiakFVX3lxTE5UMHBfMVljajJ4cDc3dGlod0x0NXh1dkw5Ym9zemhLNGJMcHZNb1liQm9EbG1aN0RLb3FBNzk1SUJwcEgxWkloendNTF81Vm1vcFo2UXJaOXBXMXUtUl8yd0FUaWJkbk95NVHSAW5BVV95cUxOTm1nSnlSdGZTMXZ5R3hKa2R0YnEzUjZ4TjZIZHdfQWtWUVZGTUhuTWo5OGNnM2tVNHk2UG8yZDJhcDczLUFlZjI4NUpZZDFLTWZWc0g4TGVvYnpaUlYwaVhKYTVnLWxQTzNrOVAxZw?oc=5",
-   "ts": "2026-11-05 09:35",
-   "tags": [
-    "오늘 날씨"
-   ],
-   "url": "https://www.jbnews.com/news/articleView.html?idxno=1515168",
-   "summary": "6일 대전·세종의 낮 기온이 11도로 오늘보다 4도 낮아진다. 충북은 아침 4~5도, 낮 10~12도로 예보되며, 새벽까지 비가 내린 후 순간풍속 시속 55km의 강풍이 불 전망이다. 7일에는 중부지방 아침 기온이 영하권으로 내려가면서 서리가 내릴 것으로 예상된다.",
-   "summary_ai": true
-  },
-  {
-   "title": "[오늘날씨] 전국 적시는 가을비, 남해안과 제주 중심 돌풍 및 천둥번개 주의",
-   "source": "nbn 시사경제",
-   "link": "https://news.google.com/rss/articles/CBMiakFVX3lxTE5MV25Yc0ZyU0xzTF9PZThXX1NPaXRkc1JGdXA5M0d4Q3NIX25YNUlPb2MxM09laTBjUmJ2aFktbFVyNjBSTFZBRWlwOV9aSFZqcmIyb1RmNTRyaFJ6bi01aWR3QzktcTNzRFE?oc=5",
-   "ts": "2026-11-05 09:19",
-   "tags": [
-    "오늘 날씨"
-   ],
-   "url": "https://www.nbnbiz.co.kr/news/articleView.html?idxno=46891",
-   "summary": "오늘 전국이 하루 종일 가을비에 적신다. 지역별로 5~40mm 정도 내리며, 남해안과 제주는 아침까지 천둥번개를 동반한 강한 비가 예상된다. 제주 전역에는 시속 70km 이상의 강풍이 불 것으로 보여 주의가 필요하다.",
-   "summary_ai": true
-  },
-  {
-   "title": "[오늘 날씨] 전국 대체로 흐리고 비",
-   "source": "뉴스포스트",
-   "link": "https://news.google.com/rss/articles/CBMiaEFVX3lxTE5tbnFPQVNxeF9jLU9Qalp0UUlBMUlFTGNXSzl5c09Fb1B3a2o3Mm9RRnZpZUloYzZlNWFyMU5kdTZvdVNYZjdGcnJNZWExUV9QWEVrOFdfdzdxM1VKclpnN2VwZGxNTHlJ?oc=5",
-   "ts": "2026-11-05 09:18",
-   "tags": [
-    "오늘 날씨"
-   ],
-   "url": "http://www.newspost.kr/news/articleView.html?idxno=227069",
-   "summary": "5일 전국이 대체로 흐리고 비가 내린다. 아침 최저 기온은 6~15도, 낮 최고 기온은 13~19도이며, 지역별로 5~40mm의 강수가 예상된다. 미세먼지 농도는 전 권역에서 '좋음'에서 '보통' 수준이다.",
-   "summary_ai": true
-  },
-  {
    "title": "5일 전국 대부분 비, 오후부터 차차 그쳐…제주 호우·강풍특보",
    "source": "파이낸셜뉴스",
    "link": "https://news.google.com/rss/articles/CBMiWkFVX3lxTE1CMDZuNUgwUEVIbjhVeGl0Tk1xNnF1VjhpODFIMmdKR00yOE9sVnJxa29kellGalB5RTBUZS1fRTFkNnJqX21TOHVDV1RNejAxNFAwN0JqUU5Fdw?oc=5",
@@ -81,123 +405,6 @@
    ],
    "url": "https://www.fnnews.com/news/202611050901537970",
    "summary": "5일 전국 대부분 지역에 비가 내리다가 오후부터 그칠 전망이다. 제주 일부에는 100㎜를 넘는 호우가 내려 호우·강풍특보가 발효 중이며, 부산·울산·경남에는 최대 40㎜의 비가 예상된다. 비가 그친 후 기온이 급락해 7일 아침 일부 지역은 영하 4도까지 내려갈 것으로 예측된다.",
-   "summary_ai": true
-  },
-  {
-   "title": "[날씨]비 지나간 자리 찬바람…주말 아침 영하권 추위",
-   "source": "남도일보",
-   "link": "https://news.google.com/rss/articles/CBMibEFVX3lxTFB3blhlUTBReTd5SmV1WjdWOW1ZQ2R1bEQ0amMxLUI5TG9xaXF2SnZ6bnY0RGg2LXVXdUJpMVVHTFNEdEgzQUd4T1pOWW0zX21ncXY5VzFUZVpoOW01ZU5NdTFkdEVYMkhxUlUwZNIBcEFVX3lxTE12dmxjTHhkb1pWY2x2SGVIQXUzRmZiMUxvSEpuRWFPU3pwcDE3UmNDLUMtb1o3S3czSllhX3RSUlJ2YTBjdXNjNzd5bFVYbnZuVmJSX3BLLXVXdWVFRTVCaWVTZk1kQ0VlR05Sa2tDZ04?oc=5",
-   "ts": "2026-11-05 08:56",
-   "tags": [
-    "폭염·한파",
-    "기상 전망",
-    "오늘 날씨"
-   ],
-   "url": "https://www.namdonews.com/news/articleView.html?idxno=928242",
-   "summary": "전국에 내린 비가 지난 뒤 북서쪽 찬 공기가 유입되면서 주말 추위가 심해질 전망이다. 6일 아침 최저기온은 1~11도, 7일에는 중부지방과 전북 동부, 경상권 내륙에서 영하권까지 내려가 서리가 내릴 것으로 예상된다. 강한 바람으로 체감온도가 더 낮아질 수 있어 농작물 냉해와 해상 안전에 주의가 필요하다.",
-   "summary_ai": true
-  },
-  {
-   "title": "[31호 태풍 인파 경로 등 전국 오늘의 날씨 및 주말날씨]오늘 전국 비, 내일과 모레 기온 낮아 춥겠음, 강풍/풍랑 유의!",
-   "source": "이코노미톡뉴스",
-   "link": "https://news.google.com/rss/articles/CBMibEFVX3lxTE94VXNBZm12VnJYN0pXaTVpNWdCWmcyLVoxdjkyMDYyLXFjLU5CVjk1RU9XZE1OSmd5UnIwVS1lMXRGUFRGX1dpSGFZNXBNQTBjdng3VFhoRGN0dHRTUk9WOHhmUFFUVUpTUFlOeQ?oc=5",
-   "ts": "2026-11-05 08:55",
-   "tags": [
-    "호우·태풍",
-    "눈·바람·먼지",
-    "오늘 날씨"
-   ],
-   "url": "http://www.economytalk.kr/news/articleView.html?idxno=425110",
-   "summary": "31호 태풍 인파가 일본 해상을 따라 북상 중이며, 5일 전국에 비가 내리겠다. 6일과 7일은 북서쪽 찬 공기가 남하하면서 기온이 평년보다 크게 낮아져 춥겠고, 강풍과 풍랑이 예상되니 유의해야 한다.",
-   "summary_ai": true
-  },
-  {
-   "title": "\"우산에 두꺼운 외투까지\"…전국, 오늘 비바람 이후 본격 추위 [날씨]",
-   "source": "조세일보",
-   "link": "https://news.google.com/rss/articles/CBMidEFVX3lxTE16Sk0xUzdESFBUODM1Q1M5eXd2YkRzdzdHcjJfR0c2VnJMcXZUX1ZPTDlFcHdVMk5Pd21HVzFOcGNVT3ZlYzVKUENHNXFlNThkOEQyTmFyZFpqQWxSYzdnUHBObEVmQmd2OHB2YWt4TmdNNEln?oc=5",
-   "ts": "2026-11-05 08:35",
-   "tags": [
-    "폭염·한파",
-    "오늘 날씨"
-   ],
-   "url": "https://m.joseilbo.com/news/view.htm?newsid=578951&class2=&class=5",
-   "summary": "5일 전국에 비가 내리며 남부지방과 제주도 중심으로 강한 바람이 예상된다. 6일부터는 북서쪽 찬 공기 유입으로 기온이 크게 떨어지고 강풍이 불어 체감 추위가 심해질 전망이다. 제주도는 순간풍속이 시속 70㎞ 이상에 달할 것으로 예상된다.",
-   "summary_ai": true
-  },
-  {
-   "title": "[오늘날씨] 전국 흐리고 곳곳 비…낮 최고 20도",
-   "source": "신아일보",
-   "link": "https://news.google.com/rss/articles/CBMicEFVX3lxTFBnYnF5TWJOVUZrZ0dtZ1I3Z3h2QzRHQ0FKbVF6UnFGd0pWcDJRZ0NtNE56dWRleHNZQmRXUVBwVXZfTE5LWFJiVkk5dXdZT0VEUEV6NWZGWXZ5Nk9MTUlhYjVVM2FHSFRnNEtwUnROMGk?oc=5",
-   "ts": "2026-11-05 08:20",
-   "tags": [
-    "오늘 날씨"
-   ],
-   "url": "https://www.shinailbo.co.kr/news/articleView.html?idxno=5079950",
-   "summary": "5일 전국은 흐린 날씨로 곡곳에 비가 내리겠으며, 낮 최고기온은 12~20도로 예상된다. 비는 오후에 대부분 그치나 늦은 밤부터 6일 사이 수도권과 강원 내륙·산지, 충청권 북부에 한때 비가 내리겠다. 미세먼지 농도는 전국에서 '좋음'~'보통' 수준이다.",
-   "summary_ai": true
-  },
-  {
-   "title": "[오늘날씨] 오늘은 비, 내일은 강풍…전국 공항 비정상 운항 가능성",
-   "source": "공감신문",
-   "link": "https://news.google.com/rss/articles/CBMiaEFVX3lxTE8zSzRNMExjTF9hUEtxZC16Rk40RDFjWFN0ZDBMQ1cxdkl0OHdmSlJ3cjJSeW11Zmg5WHZMNzhCQVlzbWU0SlBKVDA0YUIzUWF2M3lZTXNLWFpDUGtraDI3TkRvbDFHZ1gt?oc=5",
-   "ts": "2026-11-05 08:20",
-   "tags": [
-    "눈·바람·먼지",
-    "오늘 날씨"
-   ],
-   "url": "https://www.gokorea.kr/news/articleView.html?idxno=884130",
-   "summary": "5일 전국 공항에는 비가 내리고, 6일에는 인천·김포공항에 최대순간풍속 25~30노트의 강풍과 급변풍이 예보됐다. 제주공항에는 이미 강풍경보와 급변풍경보가 발령됐으며, 남부지방에는 강수량 5~40㎜가 예상된다. 항공기상청은 낮은 구름과 강풍으로 전국 공항에서 비정상 운항이 생길 수 있다고 밝혔다.",
-   "summary_ai": true
-  },
-  {
-   "title": "제주도, 겨울철 대설·한파 총력 대응…재해우려지역 253곳 집중관리",
-   "source": "제주뉴스",
-   "link": "https://news.google.com/rss/articles/CBMibkFVX3lxTE5iMlkxc0FlaHktLTNrUnNnWUpUNnRjcGw4NjN6ZU9BdDJ6TmJ0aHBzbmNTMW9iLUZlWVJQSU10RHpZdG9UWEMyOXFiQ19XT1c5ektsQXZvYlFCcHFYWndDRWdleW5mckJIS3ZvR29n0gFuQVVfeXFMTmIyWTFzQWVoeS0tM2tSc2dZSlQ2dGNwbDg2M3plT0F0MnpOYnRocHNuY1Mxb2ItRmVZUlBJTXREell0b1RYQzI5cWJDX1dPVzl6S2xBdm9iUUJwcVhad0NFZ2V5bmZyQkhLdm9Hb2c?oc=5",
-   "ts": "2026-11-05 08:10",
-   "tags": [
-    "폭염·한파",
-    "눈·바람·먼지"
-   ],
-   "url": "http://www.jejunews.biz/news/articleViewAmp.html?idxno=107037",
-   "summary": "제주도는 11월 15일부터 내년 3월 15일까지 겨울철 대설·한파 대응으로 재해우려지역 253곳을 집중관리한다. 제설차량 58대와 제설제 1만3669톤을 확보하고, 12월까지 AI 스마트 제설 플랫폼을 구축해 운영한다. 제주공항 체류객 긴급수송과 한파 취약계층 보호도 강화할 계획이다.",
-   "summary_ai": true
-  },
-  {
-   "title": "[날씨] 출근길 전국 비…비 그치고 찬바람",
-   "source": "연합뉴스",
-   "link": "https://news.google.com/rss/articles/CBMiYEFVX3lxTFBxeGZzMG02UVZIRXRMZVgwYk1oQVFQY1FSVXFRWENoVlFfRjNqbERPUW1COHcyUWQ3aC1ORlBTeWFKb1JILXpGWTNMVTlwSFZoNkdFajR0aVF1VEVlZFhSMdIBYEFVX3lxTFBxeGZzMG02UVZIRXRMZVgwYk1oQVFQY1FSVXFRWENoVlFfRjNqbERPUW1COHcyUWQ3aC1ORlBTeWFKb1JILXpGWTNMVTlwSFZoNkdFajR0aVF1VEVlZFhSMQ?oc=5",
-   "ts": "2026-11-05 08:07",
-   "tags": [
-    "오늘 날씨"
-   ],
-   "url": "https://www.yna.co.kr/amp/view/MYH20261105004700038",
-   "summary": "5일 출근길 전국 대부분 지역에 비가 내리고 있으며, 오후부터 서쪽 지역부터 그친다. 제주도는 저녁까지 비가 이어지고 남해안과 제주에는 돌풍과 벼락을 동반한 강한 비바람이 예상된다. 비가 그친 후 북서쪽에서 찬바람이 강하게 불어 토요일부터 영하권의 추위가 나타날 전망이다.",
-   "summary_ai": true
-  },
-  {
-   "title": "[오늘날씨] \"추위는 덜한데 비가\"⋯전국 빗방울 떨어지고 제주도는 천둥·번개도",
-   "source": "아이뉴스24",
-   "link": "https://news.google.com/rss/articles/CBMiS0FVX3lxTFBhRGpUcU5ZVC1CQjNYTnl5bkpHXy10WXBJOWhnNGE2ZDg2NU5VMFdJdVhiWHU3U2pmNkprQm01Ti12b3Y0OTVsN0otRQ?oc=5",
-   "ts": "2026-11-05 08:05",
-   "tags": [
-    "폭염·한파",
-    "오늘 날씨"
-   ],
-   "url": "http://www.inews24.com/view/2022798",
-   "summary": "5일 전국이 흐린 가운데 대부분 지역에 빗방울이 떨어지겠다. 남해안과 제주도를 중심으로 오전까지 돌풍과 함께 천둥·번개가 칠 수 있으니 주의가 필요하다. 낮 기온은 최저 6~15도, 최고 13~19도로 평년과 비슷하거나 조금 낮겠다.",
-   "summary_ai": true
-  },
-  {
-   "title": "[기상청 전국 오늘날씨] 오후까지 비…그친 뒤 찬 북서풍에 '초겨울' 진입",
-   "source": "핀포인트뉴스",
-   "link": "https://news.google.com/rss/articles/CBMic0FVX3lxTFBOSmdUS0FkTTRDUjNjaXZpYXY0TmxRLUtRM3hPbTVLUDItVmZGamx5WUpWLTR5UGNZem5WUTdnMGhSWTZrZmRHVGJ2Wlc2V09vellQZkxrNVhCdjF3REY5NnlEQzBibnVzaWpQMGtrMFVmODTSAXdBVV95cUxQRGhISFVHclltQVd3TWZCWjR1R3ZiT2ZLM08wYUhoNGtMYmh3Tl9kdUxfcDgycExtODJ6aVd2UUtFblB3QmRtT29QOHIzVmRadFdyUldnYVVHMTF3TnBoczV0YzNYRG9BZFY4TW5QYURleG5BU3FYRQ?oc=5",
-   "ts": "2026-11-05 08:01",
-   "tags": [
-    "기상 전망",
-    "오늘 날씨"
-   ],
-   "url": "https://www.pinpointnews.co.kr/news/articleView.html?idxno=501390",
-   "summary": "5일 오후까지 전국에 비가 내리며, 제주 서귀포에는 100㎜ 이상의 강한 비가 내렸다. 비가 그친 후 찬 북서풍이 불어 6일 아침 기온이 5~8도 낮아지고, 7일 입동을 기점으로 중부지방은 영하권까지 떨어져 초겨울 날씨에 접어들겠다.",
    "summary_ai": true
   },
   {
@@ -213,18 +420,6 @@
    "summary_ai": true
   },
   {
-   "title": "[오늘 날씨] 전국 대부분 비…경남·제주 10~40mm 강수, 내일부터 기온 크게 떨어져",
-   "source": "더쎈뉴스",
-   "link": "https://news.google.com/rss/articles/CBMiaEFVX3lxTFA1YVg0ekFOMkxHeWpSTS1UQzRSNmJEazR4bnU4aGNNdzNuUlZTWV82RUVIQm11S0Q2UEwtMnE3VnJwRUVpaWpreGh4M0s0NFRDYlRPbVdpSnVlRHhzNTEtRUt6NjBhLUdG?oc=5",
-   "ts": "2026-11-05 07:56",
-   "tags": [
-    "오늘 날씨"
-   ],
-   "url": "https://www.mhns.co.kr/news/articleView.html?idxno=767608",
-   "summary": "오늘 전국 대부분 지역에 5~40mm의 비가 내리며, 경남과 제주는 10~40mm의 강수량이 예상된다. 내일부터 북서쪽 찬 공기 남하로 기온이 평년보다 크게 떨어지고, 전국적으로 순간풍속 55km/h 내외의 강풍이 불어 체감온도가 낮아질 것으로 보인다. 남해안과 제주도 해상에는 풍랑특보가 예보되었으며, 해상 안전에 주의가 필요하다.",
-   "summary_ai": true
-  },
-  {
    "title": "[2026년 태풍 경로: 31호 인파] 5일 15시 일본 도쿄 남남동쪽 650km 부근 해상 접근",
    "source": "한국강사신문",
    "link": "https://news.google.com/rss/articles/CBMicEFVX3lxTE9JdzNsYkdJX2VlUDdIOEtLNE1lQkU3RHpZeVlrdmhPbm9rQnh2bF82RVNfR3EwQU8wdF9lTnY3cGxUZEFMT0RqSTNMMVBTYVU2NS15NEVTQ04xYmEtNHI5SmlWNS1lbWdIeEphc0JFNjQ?oc=5",
@@ -234,31 +429,6 @@
    ],
    "url": "https://www.lecturernews.com/news/articleView.html?idxno=213227",
    "summary": "제31호 태풍 '인파'는 5일 15시 일본 도쿄 남남동쪽 650km 부근 해상에 접근할 것으로 예상되며, 중심기압 975hPa, 최대풍속 초속 32m/s이다. 태풍 인파는 36시간 이내에 온대저기압으로 변질될 것으로 예상된다.",
-   "summary_ai": true
-  },
-  {
-   "title": "[오늘의 날씨] 추위 부르는 가을비…쌀쌀한 날씨",
-   "source": "로컬투데이",
-   "link": "https://news.google.com/rss/articles/CBMicEFVX3lxTE9xQ09XUnBQY241UTI2MFU5Z3JabEc2cDlRTUF4VktWS0ljbzdtNk0yWUpubTdLNG5pMnNldFlLeXNRcUhUNkswYXMzRGREZVVvVGJXMEQ5blZoZVNnei1SZHZ1eVJ0MktRSlFyTzVDeEs?oc=5",
-   "ts": "2026-11-05 07:44",
-   "tags": [
-    "폭염·한파",
-    "오늘 날씨"
-   ],
-   "url": "https://www.localtoday.co.kr/news/articleView.html?idxno=417051",
-   "summary": "5일 대전·세종·충남 지역은 남해상 저기압의 영향으로 곳곳에 비가 내리겠다. 비가 그친 뒤 낮 기온은 14~17도, 밤부터는 찬 공기가 더해져 체감온도가 떨어질 예정이다. 6일에는 서해중부먼바다를 중심으로 초속 7~15m의 강풍이 불고 물결이 1.5~3.5m로 매우 높게 일겠다.",
-   "summary_ai": true
-  },
-  {
-   "title": "오늘 전국 곳곳 비 쏟아진다…그런데 비 그친 뒤 날씨가 심상찮다",
-   "source": "위키트리",
-   "link": "https://news.google.com/rss/articles/CBMiVkFVX3lxTE1wa2lzWHZjb21pTHJSbVNYaWZyS1ZfZFpRdm1yNDVXWG5USnhtallhSmRPaXdVWUo4NUFhcWk1a3o3TE44N2NoSktZdzFmQVZYZUZXWURn?oc=5",
-   "ts": "2026-11-05 07:40",
-   "tags": [
-    "오늘 날씨"
-   ],
-   "url": "https://www.wikitree.co.kr/articles/1171940",
-   "summary": "5일 전국에 비가 내리고, 비가 그친 후 북서쪽에서 찬 공기가 남하하면서 기온이 크게 떨어진다. 특히 7일(입동)에는 전국 내륙을 중심으로 아침 기온이 영하권까지 내려가는 본격적인 초겨울 추위가 찾아오며, 6일부터 강풍이 불 것으로 예상된다.",
    "summary_ai": true
   },
   {
@@ -272,189 +442,6 @@
    ],
    "url": "https://www.callnews.co.kr/news/articleView.html?idxno=60336",
    "summary": "제주는 5일 저녁까지 비가 내리고 산지에 초속 25m 이상의 강풍이 불어 강풍·풍랑특보 가능성이 높다. 산지·중산간 최대 60㎜의 비가 예상되며, 6일부터는 기온이 5도 이상 급락해 낮 기온이 16~19도에 머물 것으로 전망된다.",
-   "summary_ai": true
-  },
-  {
-   "title": "전국 가을비…그친 뒤엔 주말 입동 추위[오늘날씨]",
-   "source": "이데일리",
-   "link": "https://news.google.com/rss/articles/CBMigAFBVV95cUxPR014TGFkY1p3Ty1aWUd2Tk1lY295dTB6Z1pRaG1ZdTRuU0REa0YzUG9KaktFdlZUYkZqSjJqVGoycmptTHZhT2xxQjdUY2RvM0tESHRtd3RjR21pTUVuVERXVjZtQkhpemFvVi0tY2c2TnlwSnJXUkVIMVFzdkp4TA?oc=5",
-   "ts": "2026-11-05 05:00",
-   "tags": [
-    "폭염·한파",
-    "오늘 날씨"
-   ],
-   "url": "https://www.edaily.co.kr/News/Read?newsId=01679366645642768&mediaCodeNo=257",
-   "summary": "5일 전국 대부분 지역에 비가 내렸다가 오후에 그친다. 제주도는 저녁까지 이어지는 곳이 있으며, 광주·전남·부산·울산·경남에는 10~40㎜의 강수가 예상된다. 6일부터 7일까지 찬 공기가 내려와 기온이 급락하고, 특히 7일 아침에는 전국 내륙의 기온이 영하권으로 내려가 결빙 현상이 나타날 수 있다.",
-   "summary_ai": true
-  },
-  {
-   "title": "제주, 비 내리고 최대 초속 25m 강풍…6일부터 '쌀쌀'",
-   "source": "뉴시스",
-   "link": "https://news.google.com/rss/articles/CBMieEFVX3lxTE51bjRzdUdENktsQmlET3BkN0lHRmhyN1VMM3k2VkxaZVVyUjhOTGxrWldHTE4ybWYzZ1hMNHNJNDYwNU9mS19MVFdlWEZoaTVRNUl1cG1NVXA2V3Fnc0Z3Q1FOQXVxTk5Od3Y1QUNES09reHhQSU9hdNIBeEFVX3lxTE51bjRzdUdENktsQmlET3BkN0lHRmhyN1VMM3k2VkxaZVVyUjhOTGxrWldHTE4ybWYzZ1hMNHNJNDYwNU9mS19MVFdlWEZoaTVRNUl1cG1NVXA2V3Fnc0Z3Q1FOQXVxTk5Od3Y1QUNES09reHhQSU9hdA?oc=5",
-   "ts": "2026-11-05 05:00",
-   "tags": [
-    "호우·태풍",
-    "눈·바람·먼지"
-   ],
-   "url": "https://mobile.newsis.com/view_amp.html?ar_id=NISX20261104_0003855037",
-   "summary": "제주는 저기압의 영향으로 저녁까지 비가 내리며, 산지·중산간에 20~60㎜, 그 밖의 지역에 10~40㎜의 강수량이 예상된다. 새벽부터 오전에는 초속 20m 이상의 강풍과 천둥·번개가 동반되고 강풍특보가 발표될 가능성이 높다. 6일부터는 기온이 급락해 낮 기온이 평년보다 5도가량 낮아질 전망이다.",
-   "summary_ai": true
-  },
-  {
-   "title": "[날씨] 내일 전국 가을비‥모레부터 '초겨울 추위'",
-   "source": "MBC 뉴스",
-   "link": "https://news.google.com/rss/articles/CBMieEFVX3lxTE5HWWxrZlk1U0xxMzltLURMdVd5Y2JrLW5pYlU5V25TaFhVd202cWhpa3kyOXhBd1hObWpsR0RSU25yby1GbUJreUpNOHVzUkJmQ1RhWlFZTUFpTDZUVTZmR1NlV3QyVlFJV3RfaHVyUm5xWjNvU2ZJetIBeEFVX3lxTE5HWWxrZlk1U0xxMzltLURMdVd5Y2JrLW5pYlU5V25TaFhVd202cWhpa3kyOXhBd1hObWpsR0RSU25yby1GbUJreUpNOHVzUkJmQ1RhWlFZTUFpTDZUVTZmR1NlV3QyVlFJV3RfaHVyUm5xWjNvU2ZJeg?oc=5",
-   "ts": "2026-11-04 23:42",
-   "tags": [
-    "폭염·한파",
-    "오늘 날씨"
-   ],
-   "url": "https://imnews.imbc.com/replay/2026/nwdesk/article/6863255_37005.html",
-   "summary": "오늘 전국 낮 기온은 15~20도로 가을 날씨를 보였으나, 내일은 제주와 남부지방에 강한 비가 내리겠습니다. 모레부터 북서쪽 찬 공기가 유입되면서 초겨울 추위가 찾아와, 토요일 아침 서울의 기온이 영하권으로 떨어질 것으로 예상됩니다.",
-   "summary_ai": true
-  },
-  {
-   "title": "제주, 5일 저녁까지 비...강풍·풍랑 주의",
-   "source": "제주도민일보",
-   "link": "https://news.google.com/rss/articles/CBMib0FVX3lxTE5GbUZ1OHdzMVJJLWZqanpTUVljTElBcEZQOTgtYUhMcm1fZTdjcDlaVWt1ZjdfTmlRYU1mZGNRTEIxZkJxSkVvUmQ2dHRNdFRvb1FPZmtpMzNIbTNkZGRqa2FUdGpnVlpFbzE3Q01lNA?oc=5",
-   "ts": "2026-11-04 17:11",
-   "tags": [
-    "눈·바람·먼지"
-   ],
-   "url": "https://www.jejudomin.co.kr/news/articleView.html?idxno=401994",
-   "summary": "제주지역은 5일 저녁까지 비가 내리며 새벽부터 강한 바람이 불겠다. 최저기온 17~18℃, 최고기온 21~22℃이고 예상 강수량은 10~60mm다. 강풍과 풍랑 특보 발표 가능성이 있어 주의가 필요하다.",
-   "summary_ai": true
-  },
-  {
-   "title": "경기도 겨울철 대설·한파 대비 축사시설 안전점검",
-   "source": "뉴스클레임",
-   "link": "https://news.google.com/rss/articles/CBMidEFVX3lxTE1PRXozNnQzb1M2V0pRRTU1NGVCakQ0YS1tQ1ZodUI1RU1VNVRXb3Y4Z0xCZFdUUUhFWkw5ZDVvRnBha0drN294ME9uXzIyODFqZlR1Z2ppWmZYMDFGRTVYVW5LWVYwYWRESnJyUVM2dS1lM3Zl0gF0QVVfeXFMTU9FejM2dDNvUzZXSlFFNTU0ZUJqRDRhLW1DVmh1QjVFTVU1VFdvdjhnTEJkV1RRSEVaTDlkNW9GcGFrR2s3b3gwT25fMjI4MWpmVHVnamlaZlgwMUZFNVhVbktZVjBhZERKcnJRUzZ1LWUzdmU?oc=5",
-   "ts": "2026-11-04 13:38",
-   "tags": [
-    "농업·축산 기상",
-    "폭염·한파",
-    "눈·바람·먼지"
-   ],
-   "url": "https://www.newsclaim.co.kr/news/articleViewAmp.html?idxno=3081362",
-   "summary": "경기도는 겨울철 대설·한파에 대비해 축사시설 안전점검을 강화하고 있습니다. 노후 축사의 구조물 보강, 급수시설 동파 방지, 차광막 철거 등을 중점 점검하며, 축종별 사양관리 요령 안내 및 전기시설 관리를 권고하고 있습니다.",
-   "summary_ai": true
-  },
-  {
-   "title": "태풍 인파, 도쿄 남쪽 해상…48시간 내 온대저기압 전망",
-   "source": "비건뉴스",
-   "link": "https://news.google.com/rss/articles/CBMiZkFVX3lxTE1aZC1UcDB5cTlFNVJmZkFybWNFeF90WERRMUNwRmtBRXJTcEZ6U3phVHNvZmUxVlR1UDFTajNhcVdLNU5XU080bEdWUkE4ZVZiUEh4XzZ0ckZrNHJMeHJvNnIyU0ZBQQ?oc=5",
-   "ts": "2026-11-04 13:37",
-   "tags": [
-    "호우·태풍",
-    "기상 전망"
-   ],
-   "url": "https://www.vegannews.co.kr/news/article.html?no=400378",
-   "summary": "제31호 태풍 인파가 일본 도쿄 남쪽 해상에서 북상 중이며, 기상청은 48시간 내 온대저기압으로 변질될 것으로 전망했다. 4일 오전 9시 기준 중심은 도쿄 남쪽 약 1280km 해상에 위치했고, 중심기압은 975hPa, 최대풍속은 초속 32m이다. 현재 예상 경로에는 한반도 상륙 구간이 없으나 진로와 강도는 변할 수 있다.",
-   "summary_ai": true
-  },
-  {
-   "title": "올해 지구기온 \"역대 최고 기록\" 경신할 듯...확률 67%·2027년은 96%",
-   "source": "넷제로뉴스",
-   "link": "https://news.google.com/rss/articles/CBMiakFVX3lxTFAxOUZZcWV2WDRCNk1iWUhpYXpuN1V2TzlzSjR1U0hVWU5iNUVrNTJKUUt6T2hVS2hlYThpUDBNNzlibmZsUXVBUEVKTV9xOVpPWmlCVFROdDJhelU0N2xtWmR0VjFjeklHWVE?oc=5",
-   "ts": "2026-11-04 12:52",
-   "tags": [
-    "기상 전망",
-    "오늘 날씨"
-   ],
-   "url": "http://www.netzeronews.kr/news/articleView.html?idxno=6614",
-   "summary": "2026년 지구 평균기온이 산업화 이전보다 약 1.52℃ 높아져 2024년 최고기록을 경신할 확률이 67%로 예측됐다. 초강력 엘니뇨의 영향이 본격화되는 2027년에는 기온이 1.74℃ 상승하고 최고기록 경신 확률이 96%에 이를 것으로 전망됐다. 7~9월 지구 표면 22%에서 역대 최고기온이 기록되며 서유럽과 열대 태평양 일대에서 고온이 집중됐다.",
-   "summary_ai": true
-  },
-  {
-   "title": "대설·한파 오기 전에… 속초시, 농업시설 겨울 대비 나선다",
-   "source": "웹이코노미",
-   "link": "https://news.google.com/rss/articles/CBMickFVX3lxTE9HbXBTWXQ1bzItVmdJdDFPOFA4VlBmOHJxV3BYbWpkYmVmLXRpYWpOVGQ2ZThNNmZQSG1Zbkw3OXd0QTBkNmhKRndNV2RQQmxnd1l0MEFBVV9LUzZQaEhkd0szUnl1SHJPOGdZdjlBVENJdw?oc=5",
-   "ts": "2026-11-04 10:42",
-   "tags": [
-    "농업·축산 기상",
-    "폭염·한파",
-    "눈·바람·먼지"
-   ],
-   "url": "https://www.webeconomy.co.kr/news/articleView.html?idxno=2360706",
-   "summary": "속초시는 겨울철 농업재해 예방을 위해 내년 3월까지 농업재해 대책상황실을 운영하며 기상정보 전달과 응급 복구 지원에 나선다. 비닐하우스와 축사 등 주요 농업시설을 대상으로 정기 점검을 진행하고 노후 시설 붕괴, 화재, 동파 위험을 점검한다.",
-   "summary_ai": true
-  },
-  {
-   "title": "기상청 \"내일 전국 비, 오늘 오전까지 짙은 안개\"…7일 아침 -4~5℃",
-   "source": "한국사회복지저널",
-   "link": "https://news.google.com/rss/articles/CBMia0FVX3lxTE5oY0pBV285YXpSNzdxM19DVlZ1dTZBemQzOThlcmVxQVRST2ZXRjRHcWRhdGl6MGEtbFRXRDFEcVMwSGxRblBsei1PTkFjQ055bDdRMXZQV2xFMk9BNS10RFlVY1QwZ1NBM0U4?oc=5",
-   "ts": "2026-11-04 08:24",
-   "tags": [
-    "눈·바람·먼지"
-   ],
-   "url": "http://www.ksw-news.com/news/articleView.html?idxno=3056166",
-   "summary": "오늘 오전까지 강원내륙과 충청권을 중심으로 가시거리 200m 미만의 짙은 안개가 끼겠다. 내일부터 전국에 비가 내리며, 제주도산지는 강풍특보가 발표될 가능성이 있다. 7일 아침 최저기온은 -4~5℃로 크게 떨어져 내륙을 중심으로 영하권의 얼음이 얼 수 있다.",
-   "summary_ai": true
-  },
-  {
-   "title": "[오늘 날씨 ] 일교차 큰 가을 날씨…내륙 중심 짙은 안개",
-   "source": "서울뉴스통신",
-   "link": "https://news.google.com/rss/articles/CBMia0FVX3lxTE50RnNBNU9RMWNmQ3ZxZmRSVi1USXFqX19aRU0wM1NLMUFXZDhRS3RlYTlRYjBpT3hqMkd6Q2dzU2Z1OFdFeUh4djhITktsQTZBbmFOdzZHVi1CVmtIai1SN0N4WnZuNUhoaUNN?oc=5",
-   "ts": "2026-11-04 08:14",
-   "tags": [
-    "눈·바람·먼지",
-    "오늘 날씨"
-   ],
-   "url": "http://www.snakorea.com/news/articleView.html?idxno=1061369",
-   "summary": "오늘 전국 구름 많은 가을 날씨로 아침 최저기온 3~11도, 낮 최고기온 15~19도가 예상된다. 중부 내륙을 중심으로 일교차 15도 안팎으로 매우 크겠으며, 오전에는 경기남동부와 강원·충청·전북·경북 내륙을 중심으로 가시거리 200m 미만의 짙은 안개가 끼겠다. 제주도는 밤부터 흐려져 비가 내리고 산지에는 20~60mm의 강수가 예상되며, 강원 산지에는 서리와 얼음이 내리는 곳이 있겠다.",
-   "summary_ai": true
-  },
-  {
-   "title": "‘슈퍼 엘니뇨’에 볼리비아 국가비상사태…가뭄·홍수 동시 위협, 세계 기후위기 경고",
-   "source": "폴리스TV",
-   "link": "https://news.google.com/rss/articles/CBMia0FVX3lxTE5oS0RTVnU1dVB1bmtZdEczYzFIZ2NzWTdveWt2ZUdvZERhX2VUUlVRYjlmTlhBOHpkUVpORXN3ZHN4X3BZMEFSYjZaZVhiU3h5THFDZHVlRVFXS292OGVQbnZZbVk0Vjl6cDdn?oc=5",
-   "ts": "2026-11-03 21:18",
-   "tags": [
-    "농업·축산 기상",
-    "기상 전망"
-   ],
-   "url": "http://www.policetv.co.kr/news/articleView.html?idxno=67099",
-   "summary": "강력한 엘니뇨 현상으로 볼리비아가 국가비상사태를 선포했다. 볼리비아 6개 주 7만8217가구가 가뭄 피해를 입었고 농경지 6만㏊ 이상에서 작물 손실이 발생했다. 세계기상기구는 이번 엘니뇨가 2027년 2월까지 지속될 가능성이 거의 100%에 이른다고 전망했다.",
-   "summary_ai": true
-  },
-  {
-   "title": "\"황사 뒤 기온 10도 뚝\"… 대관령 첫얼음 얼었다",
-   "source": "파인드비",
-   "link": "https://news.google.com/rss/articles/CBMiZkFVX3lxTE84Zk5SNXROd1FmTVJVMVVLR1l5RWh6RkNKS24yekpndmxDZFlQNV9nVnd4b01YejR6Vlo1U0JLVzFYdzdQYXZ5QUEtWjBFUXU2NF9KNWRNQmZYeEVZOUdoTVNhZkNSZw?oc=5",
-   "ts": "2026-11-03 17:33",
-   "tags": [
-    "농업·축산 기상",
-    "눈·바람·먼지",
-    "오늘 날씨"
-   ],
-   "url": "http://www.findb.co.kr/news/articleView.html?idxno=2481",
-   "summary": "6년 만의 11월 황사 이후 하루 만에 기온이 10도 안팎 떨어지며 전국에 첫얼음이 얼었다. 3일 아침 대관령은 영하 3.2도, 서울은 3도까지 내려가 올가을 가장 낮은 기온을 기록했다. 북극 온난화로 약해진 제트기류와 라니냐 현상이 겹치면서 기온 변동 폭이 커지고 있으며, 갑작스러운 추위로 농작물 서리 피해가 우려되고 있다.",
-   "summary_ai": true
-  },
-  {
-   "title": "제주 농업 플랫폼 ‘제주DA’ 고도화…농민수당 신청부터 병해충 예보까지 한곳에서",
-   "source": "한국영농신문",
-   "link": "https://news.google.com/rss/articles/CBMibkFVX3lxTE8tdS05NUIxTjRCdXBPUG95UGJwS1JnTENxbXV0QXNsV2ZIeWN4cGYtYkRaVTJNY05zNFRKSTJ5NlRJM0xzV1Jld2dTZzNaY2dKd2FDWFZwejdBaHcyU04xdUlRSUFtQVFDRmN1MFNR?oc=5",
-   "ts": "2026-11-02 22:08",
-   "tags": [
-    "농업·축산 기상",
-    "오늘 날씨"
-   ],
-   "url": "https://www.youngnong.co.kr/news/articleView.html?idxno=71406",
-   "summary": "제주도가 농업 디지털플랫폼 '제주DA'를 고도화해 농민수당 신청, 교육 이력 관리, 병해충 예보를 한곳에서 처리할 수 있도록 개선했다. 해충 식별 대상을 9종에서 12종으로, 병해충 예보 대상을 12종에서 16종으로 확대하고 토양수분·서리·감귤 재배정보를 연계해 농경지 관리를 강화했다. 10월 중 사업을 마무리하고 영농현장에 안정적으로 활용할 방침이다.",
-   "summary_ai": true
-  },
-  {
-   "title": "[오늘의 날씨] 전남광주(2일, 월) 비 그치고 차차 맑아져…내일 아침 4도까지 '뚝'",
-   "source": "전남매거진",
-   "link": "https://news.google.com/rss/articles/CBMiZkFVX3lxTE9hOVB6bjc1bVVab1ZrSGx5Q01RNTAwTmZudmN6OGNYclVaYi16N01BZ1FqdGhGYXlJVlV2SG1aWkVnSm9nU0k5TTl0V1pQTmdNeHl2UlR0emdZWHAxMGVwV3JWRUJ0QdIBZkFVX3lxTE9hOVB6bjc1bVVab1ZrSGx5Q01RNTAwTmZudmN6OGNYclVaYi16N01BZ1FqdGhGYXlJVlV2SG1aWkVnSm9nU0k5TTl0V1pQTmdNeHl2UlR0emdZWHAxMGVwV3JWRUJ0QQ?oc=5",
-   "ts": "2026-11-02 13:33",
-   "tags": [
-    "기상 전망",
-    "오늘 날씨"
-   ],
-   "url": "http://www.tjne.kr/news/articleViewAmp.html?idxno=65981",
-   "summary": "11월 2일 전남광주는 오전부터 차차 맑아지겠으며 낮 최고기온은 16~19도로 예상된다. 3일에는 북서쪽 찬 공기의 영향으로 아침 기온이 4도까지 떨어지고, 주말에는 기온이 더욱 낮아져 1~5도가 될 전망이다.",
    "summary_ai": true
   }
  ]
