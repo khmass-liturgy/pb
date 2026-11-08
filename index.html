@@ -89,6 +89,13 @@
   .lc-b ul { list-style: none; padding: 0 !important; margin: 6px 0 !important; }
   .lc-b ul > li { position: relative; background: #f5f7f9; border-radius: 10px; padding: 8px 11px 8px 27px; margin: 6px 0; font-size: 14px; line-height: 1.75; }
   .lc-b ul > li::before { content: ""; position: absolute; left: 11px; top: 16px; width: 7px; height: 7px; border-radius: 50%; background: var(--lc, #00897B); }
+  details.lc-card > summary.lc-h { list-style: none; cursor: pointer; margin-bottom: 0; -webkit-tap-highlight-color: transparent; }
+  details.lc-card > summary.lc-h::-webkit-details-marker { display: none; }
+  details.lc-card > summary .lc-t { flex: 1; }
+  details.lc-card > summary .lc-ar { flex: none; width: 26px; height: 26px; border-radius: 13px; background: #f1f3f5; color: #666; font-size: 13px; display: flex; align-items: center; justify-content: center; transition: transform .15s; }
+  details.lc-card[open] > summary .lc-ar { transform: rotate(180deg); }
+  details.lc-card[open] > summary.lc-h { margin-bottom: 8px; }
+  details.lc-card:not([open]) { padding-bottom: 12px; }
   .lc-rows { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
   .lc-row { border-left: 4px solid var(--lc, #00897B); border-radius: 10px; padding: 8px 11px; background: #f5f7f9; }
   .lc-rt { font-size: 14.5px; font-weight: 900; color: #222; line-height: 1.5; }
@@ -9411,12 +9418,18 @@ function lcCard(icon, title, color, body){
   const ic = icon === "" || icon == null ? "" : /^\d+$/.test(String(icon)) ? `<span class="lc-n">${icon}</span>` : `<span class="lc-i">${icon}</span>`;
   return `<section class="lc-card" style="--lc:${color}">${title ? `<div class="lc-h">${ic}<span>${title}</span></div>` : ""}<div class="lc-b">${body}</div></section>`;
 }
+// 눌러서 펼치는 카드(IB 강의 소제목) — 제목 줄(summary)만 보이다가 누르면 본문이 열린다. data-fold 키로 열림 상태를 기억한다.
+function lcFold(icon, title, color, body, open, key){
+  const ic = icon === "" || icon == null ? "" : /^\d+$/.test(String(icon)) ? `<span class="lc-n">${icon}</span>` : `<span class="lc-i">${icon}</span>`;
+  return `<details class="lc-card" style="--lc:${color}"${open ? " open" : ""}${key ? ` data-fold="${esc(key)}"` : ""}><summary class="lc-h">${ic}<span class="lc-t">${title}</span><span class="lc-ar">▼</span></summary><div class="lc-b">${body}</div></details>`;
+}
 function lcRows(head, rows, color){
   return `<div class="lc-rows"${color ? ` style="--lc:${color}"` : ""}>${rows.map(r => `<div class="lc-row"><div class="lc-rt">${r[0]}</div>${r.slice(1).map((c, k) => String(c).trim() ? `<div class="lc-kv">${head && head[k + 1] ? `<span class="lc-k">${head[k + 1]}</span>` : ""}${c}</div>` : "").join("")}</div>`).join("")}</div>`;
 }
 // IB 강의 본문(기본 내용·관리자 편집본 모두)을 보기 전용 카드로 바꾼다 — 소제목(13.5px 굵은 줄 또는 h2~h5)마다 카드 1장,
 // 입력칸이 없는 표는 줄마다 카드(lcRows). 편집 화면에는 쓰지 않는다(원본 HTML은 그대로 저장된다).
-function ibCardify(html){
+const ibFoldOpen = {};   // "단계-강-항목#카드번호" → 펼침 여부(다시 그려도 유지, 기본은 첫 카드만 펼침)
+function ibCardify(html, key){
   if(!html) return html;
   const doc = new DOMParser().parseFromString(`<div id="ib-s">${html}</div>`, "text/html"), root = doc.getElementById("ib-s");
   root.querySelectorAll("table").forEach(tb => {
@@ -9439,10 +9452,15 @@ function ibCardify(html){
     if(!cur){ cur = { title: "", els: [] }; groups.push(cur); }
     cur.els.push(n.nodeType === 3 ? `<p>${esc(n.nodeValue)}</p>` : n.outerHTML);
   });
-  return groups.map(g => {
-    const m = g.title.match(/^(\d+)\.\s*(.*)$/);
-    return lcCard(m ? m[1] : "", m ? m[2] : g.title, "var(--ibc)", g.els.join(""));
-  }).join("");
+  let first = true;
+  const cards = groups.map((g, i) => {
+    if(!g.title) return lcCard("", "", "var(--ibc)", g.els.join(""));
+    const m = g.title.match(/^(\d+)\.\s*(.*)$/), fk = `${key || ""}#${i}`;
+    const open = fk in ibFoldOpen ? ibFoldOpen[fk] : first; first = false;
+    return lcFold(m ? m[1] : "", m ? m[2] : g.title, "var(--ibc)", g.els.join(""), open, fk);
+  });
+  const n = groups.filter(g => g.title).length;
+  return (n > 1 ? `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin:2px 0 -4px"><span style="font-size:12px;color:#888">👆 소제목을 누르면 펼쳐져요</span><button type="button" id="ib-fold-all" style="border:1px solid #ddd;background:#fff;color:#555;border-radius:14px;padding:4px 11px;font-size:12px;font-weight:700;cursor:pointer">모두 펼치기</button></div>` : "") + cards.join("");
 }
 // ── 쉬운 요약 공통 조각: 큰 글씨 카드·점 목록·번호 단계 (IB·대장균증·AI 교실의 「쉬운 요약」이 같이 쓴다) ──
 function easyCard(icon, title, color, body){
@@ -26396,7 +26414,7 @@ function renderIbTeamPanel(){
     ? (st.htmlMode
       ? `<textarea id="ib-editor-src" style="width:100%;min-height:420px;padding:8px;border:1.5px solid #B8860B;border-radius:8px;font-size:11.5px;font-family:monospace;line-height:1.5">${esc(draft)}</textarea>`
       : `<div id="ib-editor" contenteditable="true" style="outline:none;border:1.5px dashed #B8860B;border-radius:8px;padding:8px 9px;min-height:200px;background:#FFFDF7">${draft}</div>`)
-    : (html ? ibCardify(html) : `<div style="text-align:center;padding:26px 0;color:#aaa;font-size:12.5px">아직 작성된 내용이 없습니다.${admin ? "<br>「✏️ 이 항목 수정」으로 내용을 써 넣으세요." : ""}</div>`);
+    : (html ? ibCardify(html, key) : `<div style="text-align:center;padding:26px 0;color:#aaa;font-size:12.5px">아직 작성된 내용이 없습니다.${admin ? "<br>「✏️ 이 항목 수정」으로 내용을 써 넣으세요." : ""}</div>`);
   const body = `<div style="border-top:1px solid ${IB_COLOR}22;padding:12px 0 0">
     <div style="font-size:11px;color:#999">${stage.no}단계 · 제${lec.no}강${lec.ready ? "" : ` <span style="color:#E65100;font-weight:700">· 비공개(관리자만 보임)</span>`}</div>
     <div class="display" style="font-size:17px;color:#222;margin:2px 0 4px">${esc(lec.title || "(제목 없음)")}</div>
@@ -26422,6 +26440,12 @@ function ibBind(){
   // 점검표 체크 상태는 보는 사람 기기에만 저장(편집본에는 남기지 않는다)
   let saved = {}; try { saved = JSON.parse(localStorage.getItem("ib_check_v1") || "{}") || {}; } catch(_) {}
   if(!$("ib-editor")) ibLossBind();
+  const folds = [...document.querySelectorAll("#ib-sec-body details[data-fold]")];
+  const allBtn = $("ib-fold-all");
+  const syncAll = () => { if(allBtn) allBtn.textContent = folds.every(d => d.open) ? "모두 접기" : "모두 펼치기"; };
+  folds.forEach(d => d.addEventListener("toggle", () => { ibFoldOpen[d.dataset.fold] = d.open; syncAll(); }));
+  if(allBtn) allBtn.onclick = () => { const open = !folds.every(d => d.open); folds.forEach(d => { d.open = open; ibFoldOpen[d.dataset.fold] = open; }); syncAll(); };
+  syncAll();
   if(!$("ib-editor")) document.querySelectorAll("#ib-sec-body [data-ib-check]").forEach(c => {
     c.checked = !!saved[c.dataset.ibCheck];
     c.onchange = () => { try { const m = JSON.parse(localStorage.getItem("ib_check_v1") || "{}") || {}; if(c.checked) m[c.dataset.ibCheck] = 1; else delete m[c.dataset.ibCheck]; localStorage.setItem("ib_check_v1", JSON.stringify(m)); } catch(_) {} };
