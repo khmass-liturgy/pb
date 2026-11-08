@@ -79,6 +79,12 @@
   .tabs-arrow.right { right: 0; justify-content: flex-end; padding-right: 3px; background: linear-gradient(270deg, rgba(44,62,107,0.98) 55%, rgba(44,62,107,0)); }
   .tabs-wrap.can-left .tabs-arrow.left, .tabs-wrap.can-right .tabs-arrow.right { opacity: 1; pointer-events: auto; }
   header.embedded .tabs-arrow { top: 8px; }
+  /* 하위 메뉴 칩 줄(renderHeaderSubBar)도 넘치면 같은 ‹ › 화살표로 넘긴다(setupSubArrows). */
+  .subbar-wrap { position: relative; }
+  .subbar-wrap .hd-subbar::-webkit-scrollbar { display: none; }
+  .subbar-wrap .tabs-arrow, header.embedded .subbar-wrap .tabs-arrow { top: 8px; bottom: 4px; width: 44px; }
+  .subbar-wrap .tabs-arrow span { width: 28px; height: 28px; font-size: 21px; }
+  .subbar-wrap.can-left .tabs-arrow.left, .subbar-wrap.can-right .tabs-arrow.right { opacity: 1; pointer-events: auto; }
   /* iframe으로 다른 화면 안에 들어가 있을 때는 제목 줄(.header-top)을 빼고 탭만 남긴다.
      제목 줄이 없으면 탭이 위 모서리에 딱 붙으므로 그만큼 여백을 대신 준다. */
   header.embedded .tabs { padding-top: 8px; }
@@ -29018,7 +29024,7 @@ function renderHeaderSubBar(embedded){
   }
   else return "";
   if(!items.some(x => x[0] === cur)) cur = items[0][0];
-  return `<div id="${id}" class="hd-subbar" role="tablist" aria-label="하위 메뉴" style="display:flex;gap:6px;overflow-x:auto;padding:8px 0 4px;-webkit-overflow-scrolling:touch;scrollbar-width:none">${items.map(([k, ic, l]) => `<button type="button" role="tab" aria-selected="${cur === k}" class="${cls}" data-sub="${esc(k)}" style="flex:none;border:1.5px solid ${cur === k ? "#F9C74F" : "rgba(255,255,255,.28)"};background:${cur === k ? "#F9C74F" : "rgba(255,255,255,.1)"};color:${cur === k ? "#1a2744" : "#fff"};border-radius:16px;padding:6px 12px;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap">${ic ? ic + " " : ""}${esc(l)}</button>`).join("")}</div>`;
+  return `<div class="subbar-wrap"><button class="tabs-arrow left" type="button" aria-label="앞쪽 하위 메뉴 보기" tabindex="-1"><span>‹</span></button><div id="${id}" class="hd-subbar" role="tablist" aria-label="하위 메뉴" style="display:flex;gap:6px;overflow-x:auto;padding:8px 0 4px;-webkit-overflow-scrolling:touch;scrollbar-width:none">${items.map(([k, ic, l]) => `<button type="button" role="tab" aria-selected="${cur === k}" class="${cls}" data-sub="${esc(k)}" style="flex:none;border:1.5px solid ${cur === k ? "#F9C74F" : "rgba(255,255,255,.28)"};background:${cur === k ? "#F9C74F" : "rgba(255,255,255,.1)"};color:${cur === k ? "#1a2744" : "#fff"};border-radius:16px;padding:6px 12px;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap">${ic ? ic + " " : ""}${esc(l)}</button>`).join("")}</div><button class="tabs-arrow right" type="button" aria-label="뒤쪽 하위 메뉴 보기" tabindex="-1"><span>›</span></button></div>`;
 }
 function renderHeader(){
   const now=new Date();
@@ -35841,10 +35847,45 @@ function setupTabArrows(){
   updateTabArrows();
 }
 window.addEventListener("resize", updateTabArrows);
+// 하위 메뉴 칩 줄: 메뉴 바와 같은 화살표. 다시 그려도 가로 위치를 기억하고(subScrollMemo),
+// 선택된 칩이 화살표 밑이나 화면 밖에 있으면 보이는 곳까지 당긴다.
+const subScrollMemo = {};
+function updateSubArrows(){
+  const wrap = document.querySelector(".subbar-wrap");
+  const bar = wrap && wrap.querySelector(".hd-subbar");
+  if(!bar) return;
+  const max = bar.scrollWidth - bar.clientWidth;
+  wrap.classList.toggle("can-left", bar.scrollLeft > 2);
+  wrap.classList.toggle("can-right", bar.scrollLeft < max - 2);
+}
+function setupSubArrows(){
+  const wrap = document.querySelector(".subbar-wrap");
+  const bar = wrap && wrap.querySelector(".hd-subbar");
+  if(!bar) return;
+  const key = bar.id;
+  bar.scrollLeft = subScrollMemo[key] || 0;
+  const active = bar.querySelector('[aria-selected="true"]');
+  if(active){
+    const pad = 36;
+    const br = bar.getBoundingClientRect(), ar = active.getBoundingClientRect();
+    if(ar.left < br.left + pad) bar.scrollLeft -= (br.left + pad - ar.left);
+    else if(ar.right > br.right - pad) bar.scrollLeft += (ar.right - (br.right - pad));
+  }
+  subScrollMemo[key] = bar.scrollLeft;
+  bar.onscroll = () => { subScrollMemo[key] = bar.scrollLeft; updateSubArrows(); };
+  wrap.querySelectorAll(".tabs-arrow").forEach(btn => btn.onclick = () => {
+    const dir = btn.classList.contains("left") ? -1 : 1;
+    bar.scrollBy({ left: dir * Math.max(100, bar.clientWidth * 0.7), behavior: "smooth" });
+    setTimeout(updateSubArrows, 450);
+  });
+  updateSubArrows();
+}
+window.addEventListener("resize", updateSubArrows);
 
 function attachEvents(){
   document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
   setupTabArrows();
+  setupSubArrows();
   pfBind();                                  // 육계·계란 시세예측(탭·차트·시나리오·업로드·관리자)
   tradeBind();                               // 계육·계란·종란 수출입 동향
   wnBind();                                  // 오늘의 날씨 뉴스
