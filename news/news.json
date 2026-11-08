@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-07 11:31 KST",
+  "updated": "2026-11-08 11:03 KST",
   "channels": {
     "livestock": {
       "label": "축산·농업",
@@ -13,8 +13,15 @@
     },
     "disease": {
       "label": "가축질병",
-      "items": [],
-      "count": 0
+      "items": [
+        {
+          "title": "가축전염병 보상금 최대 90%로…첫 신고 농가는 100%까지 - 뉴시스",
+          "link": "https://news.google.com/rss/articles/CBMiYEFVX3lxTFBRdUlCbE1vb2NUZFFLMm5tWFBvQkdDUURvNzMtTkphRTFSdkN5S0pOUzZUNlg2YmxjRlZpaHM3R3RCeTRpOV84QV9WTDMzaWRVYkZXVjIzVDF1T1JFY3cxUdIBeEFVX3lxTFBZMUVodDlKdVBHTUlEdTRnSGczdEFLUU83bEVkbVJJYjdZMm5ZNGhGUDFjMGN3dEIzVC1NclJZS0UteGxuUmhXLVlJbGRMRDNrdVRvUjF5UVB2YldsTmhzZk4wb1FuNFdRaEZTSU5iTkxQV09NR3JIMQ?oc=5",
+          "date": "11/03 11:17",
+          "source": "뉴시스"
+        }
+      ],
+      "count": 1
     },
     "feed": {
       "label": "사료·약품",
@@ -23,27 +30,13 @@
     },
     "economy": {
       "label": "경제",
-      "items": [
-        {
-          "title": "\"치킨값 오를 때 서울 아파트는?…인플레이션은 늘 폭력적\" - 뉴시스",
-          "link": "https://news.google.com/rss/articles/CBMiYEFVX3lxTE5jYWh0bXVQY3pTcWY1N3VtWFRQLWx5cm5BOGwwRnEtbnVIVG95MzhNem5NWXJldnBjeGVxdE1TbkRCZzhaSVU2UXdsQ3VEN1VfNkMzTFlrYUl0cUJkcFZsS9IBeEFVX3lxTE1ZajJMQTI4UWxQMVQxdGJ3N3dnSVlQX0dHX2pCNFBVT2tlSUg3YU9UWjU1NURhRnVwamNrSXR6WTJHSmRsV29FT1c4Szg2X3c3ZktQdVZSempOUlV4V3lGc1BneHktZTVFenJXV0VVZW5sNkM5Tkw2MA?oc=5",
-          "date": "11/06 00:20",
-          "source": "뉴시스"
-        }
-      ],
-      "count": 1
+      "items": [],
+      "count": 0
     },
     "world": {
       "label": "국제",
-      "items": [
-        {
-          "title": "중국 \"중간 선거 이후에도 미국과 협력\"…남아프리카공화국 \"세계 관계의 새로운 시대\" - 프리진경제",
-          "link": "https://news.google.com/rss/articles/CBMibEFVX3lxTE1PM0lORXU3REFvRnZsclBtYk9FdnJELWhwbWwzbnZSZXFWYUZ4d2M0VEtud0FocGRWenJINm8weDlQa0ZOQ0ppRm0xWU13d24xSks1OFhWSE9WTEJBQk5BbGZhTGx5NFZEUkJmcA?oc=5",
-          "date": "11/04 18:17",
-          "source": "프리진경제"
-        }
-      ],
-      "count": 1
+      "items": [],
+      "count": 0
     }
   }
 }
