@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-07 11:58 KST",
+  "updated": "2026-11-08 11:37 KST",
   "window_days": 180,
   "source": "WOAH WAHIS (세계동물보건기구 공식 신고)",
   "url": "https://wahis.woah.org/#/event-management",
@@ -13,11 +13,11 @@
   },
   "regions": [
     {
-      "countries": 29,
-      "total": 120,
+      "countries": 28,
+      "total": 119,
       "poultry": 42,
-      "wild": 78,
-      "ongoing": 25,
+      "wild": 77,
+      "ongoing": 24,
       "name": "Europe",
       "top": [
         "Germany",
@@ -75,6 +75,17 @@
         "Australia",
         "Heard and McDonald Islands"
       ]
+    },
+    {
+      "countries": 1,
+      "total": 1,
+      "poultry": 0,
+      "wild": 1,
+      "ongoing": 1,
+      "name": "Middle East",
+      "top": [
+        "Cyprus"
+      ]
     }
   ],
   "flyway": {
@@ -97,7 +108,7 @@
         "latest": "2026-09-15",
         "first": "2022-01-06",
         "total": 7,
-        "days_since": 53,
+        "days_since": 54,
         "level": "ongoing"
       },
       {
@@ -111,7 +122,7 @@
         "latest": "2026-10-04",
         "first": "2025-12-09",
         "total": 6,
-        "days_since": 34,
+        "days_since": 35,
         "level": "recent"
       },
       {
@@ -125,7 +136,7 @@
         "latest": "2026-05-27",
         "first": "2025-10-15",
         "total": 4,
-        "days_since": 164,
+        "days_since": 165,
         "level": "quiet"
       },
       {
@@ -139,7 +150,7 @@
         "latest": "2026-11-05",
         "first": "2022-02-07",
         "total": 4,
-        "days_since": 2,
+        "days_since": 3,
         "level": "ongoing"
       },
       {
@@ -153,7 +164,7 @@
         "latest": "2026-10-06",
         "first": "2026-04-22",
         "total": 2,
-        "days_since": 32,
+        "days_since": 33,
         "level": "recent"
       },
       {
@@ -167,7 +178,7 @@
         "latest": "2026-10-27",
         "first": "2025-07-10",
         "total": 2,
-        "days_since": 11,
+        "days_since": 12,
         "level": "ongoing"
       },
       {
@@ -181,7 +192,7 @@
         "latest": "2026-07-03",
         "first": "2025-09-12",
         "total": 2,
-        "days_since": 127,
+        "days_since": 128,
         "level": "quiet"
       },
       {
@@ -195,7 +206,7 @@
         "latest": "2026-10-02",
         "first": "2026-06-15",
         "total": 1,
-        "days_since": 36,
+        "days_since": 37,
         "level": "recent"
       },
       {
@@ -209,7 +220,7 @@
         "latest": "2026-10-10",
         "first": "2026-05-07",
         "total": 1,
-        "days_since": 28,
+        "days_since": 29,
         "level": "ongoing"
       },
       {
@@ -223,7 +234,7 @@
         "latest": "2026-07-13",
         "first": "2025-02-03",
         "total": 1,
-        "days_since": 117,
+        "days_since": 118,
         "level": "ongoing"
       },
       {
@@ -237,7 +248,7 @@
         "latest": "2026-07-02",
         "first": "2025-12-21",
         "total": 1,
-        "days_since": 128,
+        "days_since": 129,
         "level": "quiet"
       }
     ]
@@ -253,7 +264,7 @@
     "latest": "2026-07-03",
     "first": "2025-09-12",
     "total": 2,
-    "days_since": 127,
+    "days_since": 128,
     "level": "quiet"
   },
   "countries": [
@@ -268,7 +279,7 @@
       "latest": "2026-11-05",
       "first": "2024-10-31",
       "total": 36,
-      "days_since": 2,
+      "days_since": 3,
       "level": "ongoing"
     },
     {
@@ -282,7 +293,7 @@
       "latest": "2026-09-25",
       "first": "2025-09-16",
       "total": 28,
-      "days_since": 43,
+      "days_since": 44,
       "level": "recent"
     },
     {
@@ -296,7 +307,7 @@
       "latest": "2026-10-05",
       "first": "2026-03-04",
       "total": 13,
-      "days_since": 33,
+      "days_since": 34,
       "level": "ongoing"
     },
     {
@@ -310,7 +321,7 @@
       "latest": "2026-09-15",
       "first": "2022-01-06",
       "total": 7,
-      "days_since": 53,
+      "days_since": 54,
       "level": "ongoing"
     },
     {
@@ -324,7 +335,7 @@
       "latest": "2026-10-04",
       "first": "2025-12-09",
       "total": 6,
-      "days_since": 34,
+      "days_since": 35,
       "level": "recent"
     },
     {
@@ -338,7 +349,7 @@
       "latest": "2026-05-14",
       "first": "2026-01-05",
       "total": 5,
-      "days_since": 177,
+      "days_since": 178,
       "level": "quiet"
     },
     {
@@ -352,7 +363,7 @@
       "latest": "2026-10-28",
       "first": "2022-04-06",
       "total": 4,
-      "days_since": 10,
+      "days_since": 11,
       "level": "ongoing"
     },
     {
@@ -366,7 +377,7 @@
       "latest": "2026-10-30",
       "first": "2025-09-29",
       "total": 4,
-      "days_since": 8,
+      "days_since": 9,
       "level": "ongoing"
     },
     {
@@ -380,7 +391,7 @@
       "latest": "2026-08-05",
       "first": "2026-02-26",
       "total": 4,
-      "days_since": 94,
+      "days_since": 95,
       "level": "ongoing"
     },
     {
@@ -394,7 +405,7 @@
       "latest": "2026-05-27",
       "first": "2025-10-15",
       "total": 4,
-      "days_since": 164,
+      "days_since": 165,
       "level": "quiet"
     },
     {
@@ -408,7 +419,7 @@
       "latest": "2026-11-05",
       "first": "2022-02-07",
       "total": 4,
-      "days_since": 2,
+      "days_since": 3,
       "level": "ongoing"
     },
     {
@@ -422,7 +433,7 @@
       "latest": "2026-10-12",
       "first": "2025-02-26",
       "total": 3,
-      "days_since": 26,
+      "days_since": 27,
       "level": "recent"
     },
     {
@@ -436,7 +447,7 @@
       "latest": "2026-10-13",
       "first": "2025-07-16",
       "total": 3,
-      "days_since": 25,
+      "days_since": 26,
       "level": "ongoing"
     },
     {
@@ -450,7 +461,7 @@
       "latest": "2026-10-05",
       "first": "2026-06-03",
       "total": 3,
-      "days_since": 33,
+      "days_since": 34,
       "level": "recent"
     },
     {
@@ -464,7 +475,7 @@
       "latest": "2026-09-11",
       "first": "2025-09-09",
       "total": 3,
-      "days_since": 57,
+      "days_since": 58,
       "level": "recent"
     },
     {
@@ -478,7 +489,7 @@
       "latest": "2026-09-23",
       "first": "2023-03-07",
       "total": 3,
-      "days_since": 45,
+      "days_since": 46,
       "level": "ongoing"
     },
     {
@@ -492,7 +503,7 @@
       "latest": "2026-10-26",
       "first": "2026-02-02",
       "total": 3,
-      "days_since": 12,
+      "days_since": 13,
       "level": "ongoing"
     },
     {
@@ -506,7 +517,7 @@
       "latest": "2026-10-01",
       "first": "2026-03-03",
       "total": 3,
-      "days_since": 37,
+      "days_since": 38,
       "level": "recent"
     },
     {
@@ -520,7 +531,7 @@
       "latest": "2026-10-14",
       "first": "2025-09-26",
       "total": 3,
-      "days_since": 24,
+      "days_since": 25,
       "level": "recent"
     },
     {
@@ -534,7 +545,7 @@
       "latest": "2026-10-09",
       "first": "2026-02-09",
       "total": 2,
-      "days_since": 29,
+      "days_since": 30,
       "level": "ongoing"
     },
     {
@@ -548,7 +559,7 @@
       "latest": "2026-09-15",
       "first": "2025-09-23",
       "total": 2,
-      "days_since": 53,
+      "days_since": 54,
       "level": "recent"
     },
     {
@@ -562,7 +573,7 @@
       "latest": "2026-10-06",
       "first": "2026-04-22",
       "total": 2,
-      "days_since": 32,
+      "days_since": 33,
       "level": "recent"
     },
     {
@@ -576,7 +587,7 @@
       "latest": "2026-10-27",
       "first": "2025-07-10",
       "total": 2,
-      "days_since": 11,
+      "days_since": 12,
       "level": "ongoing"
     },
     {
@@ -590,7 +601,7 @@
       "latest": "2026-07-13",
       "first": "2025-05-08",
       "total": 2,
-      "days_since": 117,
+      "days_since": 118,
       "level": "quiet"
     },
     {
@@ -604,7 +615,7 @@
       "latest": "2026-08-30",
       "first": "2025-10-15",
       "total": 2,
-      "days_since": 69,
+      "days_since": 70,
       "level": "recent"
     },
     {
@@ -618,7 +629,7 @@
       "latest": "2026-06-12",
       "first": "2025-09-29",
       "total": 2,
-      "days_since": 148,
+      "days_since": 149,
       "level": "ongoing"
     },
     {
@@ -632,7 +643,7 @@
       "latest": "2026-07-03",
       "first": "2025-09-12",
       "total": 2,
-      "days_since": 127,
+      "days_since": 128,
       "level": "quiet"
     },
     {
@@ -646,7 +657,7 @@
       "latest": "2026-10-28",
       "first": "2025-10-12",
       "total": 2,
-      "days_since": 10,
+      "days_since": 11,
       "level": "ongoing"
     },
     {
@@ -660,7 +671,7 @@
       "latest": "2026-10-27",
       "first": "2026-03-02",
       "total": 2,
-      "days_since": 11,
+      "days_since": 12,
       "level": "recent"
     },
     {
@@ -674,7 +685,7 @@
       "latest": "2026-10-28",
       "first": "2025-10-06",
       "total": 2,
-      "days_since": 10,
+      "days_since": 11,
       "level": "ongoing"
     },
     {
@@ -688,7 +699,7 @@
       "latest": "2026-08-25",
       "first": "2025-07-03",
       "total": 2,
-      "days_since": 74,
+      "days_since": 75,
       "level": "ongoing"
     },
     {
@@ -702,7 +713,7 @@
       "latest": "2026-10-23",
       "first": "2026-01-16",
       "total": 2,
-      "days_since": 15,
+      "days_since": 16,
       "level": "ongoing"
     },
     {
@@ -716,7 +727,7 @@
       "latest": "2026-10-29",
       "first": "2023-03-05",
       "total": 2,
-      "days_since": 9,
+      "days_since": 10,
       "level": "ongoing"
     },
     {
@@ -730,7 +741,7 @@
       "latest": "2026-10-20",
       "first": "2026-01-23",
       "total": 2,
-      "days_since": 18,
+      "days_since": 19,
       "level": "ongoing"
     },
     {
@@ -744,7 +755,7 @@
       "latest": "2026-10-28",
       "first": "2025-05-01",
       "total": 2,
-      "days_since": 10,
+      "days_since": 11,
       "level": "ongoing"
     },
     {
@@ -758,7 +769,7 @@
       "latest": "2026-09-01",
       "first": "2026-01-23",
       "total": 2,
-      "days_since": 67,
+      "days_since": 68,
       "level": "ongoing"
     },
     {
@@ -772,7 +783,7 @@
       "latest": "2026-10-20",
       "first": "2026-10-09",
       "total": 1,
-      "days_since": 18,
+      "days_since": 19,
       "level": "ongoing"
     },
     {
@@ -786,7 +797,7 @@
       "latest": "2026-10-02",
       "first": "2026-06-15",
       "total": 1,
-      "days_since": 36,
+      "days_since": 37,
       "level": "recent"
     },
     {
@@ -800,7 +811,7 @@
       "latest": "2026-07-03",
       "first": "2026-06-12",
       "total": 1,
-      "days_since": 127,
+      "days_since": 128,
       "level": "quiet"
     },
     {
@@ -814,7 +825,7 @@
       "latest": "2026-10-07",
       "first": "2025-12-08",
       "total": 1,
-      "days_since": 31,
+      "days_since": 32,
       "level": "ongoing"
     },
     {
@@ -828,7 +839,7 @@
       "latest": "2026-10-26",
       "first": "2025-10-07",
       "total": 1,
-      "days_since": 12,
+      "days_since": 13,
       "level": "ongoing"
     },
     {
@@ -842,7 +853,7 @@
       "latest": "2026-10-10",
       "first": "2026-05-07",
       "total": 1,
-      "days_since": 28,
+      "days_since": 29,
       "level": "ongoing"
     },
     {
@@ -856,7 +867,7 @@
       "latest": "2026-08-19",
       "first": "2026-06-12",
       "total": 1,
-      "days_since": 80,
+      "days_since": 81,
       "level": "recent"
     },
     {
@@ -870,13 +881,13 @@
       "latest": "2026-08-11",
       "first": "2026-06-18",
       "total": 1,
-      "days_since": 88,
+      "days_since": 89,
       "level": "recent"
     },
     {
       "name": "Cyprus",
       "iso": "CYP",
-      "region": "Europe",
+      "region": "Middle East",
       "eaaf": false,
       "poultry": 0,
       "wild": 1,
@@ -884,7 +895,7 @@
       "latest": "2026-10-06",
       "first": "2026-09-23",
       "total": 1,
-      "days_since": 32,
+      "days_since": 33,
       "level": "ongoing"
     },
     {
@@ -898,7 +909,7 @@
       "latest": "2026-07-23",
       "first": "2026-07-09",
       "total": 1,
-      "days_since": 107,
+      "days_since": 108,
       "level": "quiet"
     },
     {
@@ -912,7 +923,7 @@
       "latest": "2026-07-28",
       "first": "2024-10-24",
       "total": 1,
-      "days_since": 102,
+      "days_since": 103,
       "level": "ongoing"
     },
     {
@@ -926,7 +937,7 @@
       "latest": "2026-06-10",
       "first": "2026-04-03",
       "total": 1,
-      "days_since": 150,
+      "days_since": 151,
       "level": "quiet"
     },
     {
@@ -940,7 +951,7 @@
       "latest": "2026-06-29",
       "first": "2026-01-03",
       "total": 1,
-      "days_since": 131,
+      "days_since": 132,
       "level": "quiet"
     },
     {
@@ -954,7 +965,7 @@
       "latest": "2026-07-13",
       "first": "2025-02-03",
       "total": 1,
-      "days_since": 117,
+      "days_since": 118,
       "level": "ongoing"
     },
     {
@@ -968,7 +979,7 @@
       "latest": "2026-10-20",
       "first": "2025-02-17",
       "total": 1,
-      "days_since": 18,
+      "days_since": 19,
       "level": "ongoing"
     },
     {
@@ -982,7 +993,7 @@
       "latest": "2026-06-16",
       "first": "2025-11-09",
       "total": 1,
-      "days_since": 144,
+      "days_since": 145,
       "level": "quiet"
     },
     {
@@ -996,7 +1007,7 @@
       "latest": "2026-06-03",
       "first": "2025-02-03",
       "total": 1,
-      "days_since": 157,
+      "days_since": 158,
       "level": "quiet"
     },
     {
@@ -1010,7 +1021,7 @@
       "latest": "2026-07-01",
       "first": "2025-10-21",
       "total": 1,
-      "days_since": 129,
+      "days_since": 130,
       "level": "quiet"
     },
     {
@@ -1024,7 +1035,7 @@
       "latest": "2026-10-09",
       "first": "2025-12-10",
       "total": 1,
-      "days_since": 29,
+      "days_since": 30,
       "level": "ongoing"
     },
     {
@@ -1038,7 +1049,7 @@
       "latest": "2026-09-22",
       "first": "2020-12-17",
       "total": 1,
-      "days_since": 46,
+      "days_since": 47,
       "level": "ongoing"
     },
     {
@@ -1052,7 +1063,7 @@
       "latest": "2026-05-19",
       "first": "2026-03-26",
       "total": 1,
-      "days_since": 172,
+      "days_since": 173,
       "level": "quiet"
     },
     {
@@ -1066,7 +1077,7 @@
       "latest": "2026-10-24",
       "first": "2026-10-03",
       "total": 1,
-      "days_since": 14,
+      "days_since": 15,
       "level": "ongoing"
     },
     {
@@ -1080,7 +1091,7 @@
       "latest": "2026-06-01",
       "first": "2025-10-27",
       "total": 1,
-      "days_since": 159,
+      "days_since": 160,
       "level": "quiet"
     },
     {
@@ -1094,7 +1105,7 @@
       "latest": "2026-08-27",
       "first": "2025-02-05",
       "total": 1,
-      "days_since": 72,
+      "days_since": 73,
       "level": "recent"
     },
     {
@@ -1108,7 +1119,7 @@
       "latest": "2026-10-22",
       "first": "2026-09-09",
       "total": 1,
-      "days_since": 16,
+      "days_since": 17,
       "level": "ongoing"
     },
     {
@@ -1122,7 +1133,7 @@
       "latest": "2026-07-19",
       "first": "2026-07-01",
       "total": 1,
-      "days_since": 111,
+      "days_since": 112,
       "level": "ongoing"
     },
     {
@@ -1136,7 +1147,7 @@
       "latest": "2026-10-02",
       "first": "2026-09-04",
       "total": 1,
-      "days_since": 36,
+      "days_since": 37,
       "level": "recent"
     },
     {
@@ -1150,7 +1161,7 @@
       "latest": "2026-07-02",
       "first": "2025-12-21",
       "total": 1,
-      "days_since": 128,
+      "days_since": 129,
       "level": "quiet"
     }
   ],
