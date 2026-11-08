@@ -79,6 +79,21 @@
   .tabs-arrow.right { right: 0; justify-content: flex-end; padding-right: 3px; background: linear-gradient(270deg, rgba(44,62,107,0.98) 55%, rgba(44,62,107,0)); }
   .tabs-wrap.can-left .tabs-arrow.left, .tabs-wrap.can-right .tabs-arrow.right { opacity: 1; pointer-events: auto; }
   header.embedded .tabs-arrow { top: 8px; }
+  /* 교실 강의 카드(lcCard/lcRows/ibCardify — IB·대장균증 교실): 소제목마다 카드 1장, 표는 줄마다 카드 */
+  .lc-card { background: #fff; border: 1px solid #e6eaee; border-top: 4px solid var(--lc, #00897B); border-radius: 14px; padding: 12px 14px; margin: 12px 0; box-shadow: 0 1px 5px rgba(0,0,0,.05); }
+  .lc-h { display: flex; align-items: center; gap: 9px; font-size: 15.5px; font-weight: 900; color: var(--lc, #00897B); margin-bottom: 8px; line-height: 1.4; }
+  .lc-i { flex: none; font-size: 22px; line-height: 1; }
+  .lc-n { flex: none; min-width: 28px; height: 28px; border-radius: 14px; background: var(--lc, #00897B); color: #fff; font-size: 14px; display: flex; align-items: center; justify-content: center; padding: 0 6px; box-sizing: border-box; }
+  .lc-b { font-size: 14px; line-height: 1.8; color: #2b2b2b; }
+  .lc-b p { font-size: 14px !important; line-height: 1.8 !important; margin: 0 0 8px !important; }
+  .lc-b ul { list-style: none; padding: 0 !important; margin: 6px 0 !important; }
+  .lc-b ul > li { position: relative; background: #f5f7f9; border-radius: 10px; padding: 8px 11px 8px 27px; margin: 6px 0; font-size: 14px; line-height: 1.75; }
+  .lc-b ul > li::before { content: ""; position: absolute; left: 11px; top: 16px; width: 7px; height: 7px; border-radius: 50%; background: var(--lc, #00897B); }
+  .lc-rows { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
+  .lc-row { border-left: 4px solid var(--lc, #00897B); border-radius: 10px; padding: 8px 11px; background: #f5f7f9; }
+  .lc-rt { font-size: 14.5px; font-weight: 900; color: #222; line-height: 1.5; }
+  .lc-kv { font-size: 13.5px; line-height: 1.65; color: #333; margin-top: 3px; }
+  .lc-k { display: inline-block; font-size: 11.5px; font-weight: 800; color: var(--lc, #00897B); background: #eef2f4; border-radius: 6px; padding: 1px 7px; margin-right: 6px; }
   /* 하위 메뉴 칩 줄(renderHeaderSubBar)도 넘치면 같은 ‹ › 화살표로 넘긴다(setupSubArrows). */
   .subbar-wrap { position: relative; }
   .subbar-wrap .hd-subbar::-webkit-scrollbar { display: none; }
@@ -804,7 +819,7 @@ let premiumState = {
 // 배열 순서가 곧 화면에 보이는 순서이므로, 같은 category끼리는 붙여서 둔다.
 const PREMIUM_ITEMS = [
   { key:"ibteam", icon:"🧬", title:"IB 닭기침 잡는 교실 — 전염성기관지염(IB) 차단 8단계 코스", desc:"IB가 어떤 병인지부터 들어오는 길·우리나라 발생·확인 방법·백신·우리 농장 적용·예방 시스템까지 단계별로 배웁니다. 육계/산란계 비교, 현장 사례, 농장 점검표를 함께 드려요.", color:"#C62828", category:"최꼬 아카데미" },
-  { key:"coliclass", icon:"🧫", title:"닭 대장균증 잡는 교실 — 발견부터 재발 방지까지 12차시", desc:"육계·산란계를 나누어 대장균증을 쉽게 배웁니다. 기초 → 현장 판단 → 치료·재발 방지 → 백신·새 제품 따져보기, 그림과 사례, 우리 농장 대응계획서까지.", color:"#00897B", category:"최꼬 아카데미" },
+  { key:"coliclass", icon:"🧫", title:"닭 대장균증 잡는 교실 — 발견부터 재발 방지까지 10차시", desc:"육계·산란계를 나누어 대장균증을 쉽게 배웁니다. 기초 → 현장 판단 → 치료·재발 방지·백신, 그림과 사례를 카드로 한눈에.", color:"#00897B", category:"최꼬 아카데미" },
   { key:"ventclass", icon:"🌬️", title:"환기 기초교실 — 정압·음압·입기구·1만수당 환기량", desc:"계사 환기를 7단계로 배웁니다. 정압·음압·양압, 자연·강제환기, 계사 구조, 입기구 크기로 환기량 계산, 육계 일령별·산란계 주령별 1만수당 환기량을 그림과 계산기로 쉽게 익혀요.", color:"#0277BD", category:"최꼬 아카데미" },
   { key:"avianphys", icon:"🫀", title:"조류생리 아카데미 — 닭 몸속 탐험", desc:"닭의 장기 10개 계통(소화·호흡·순환·배설·생식·신경·호르몬·면역·뼈근육)이 하는 일을 쉬운 비유와 그림으로 배우고, 농장에서 보는 문제와 연결해 봅니다.", color:"#AD1457", category:"최꼬 아카데미" },
   { key:"hpaizero", icon:"🦠", title:"AI 막는 농장 지킴이 교실 — HPAI ZERO FARM", desc:"조류인플루엔자(AI)가 우리 농장에 들어오지 못하게 오늘 할 일, 우리 농장 위험도, 농장 보고서, 매일 방역 점검표, 6단계 방역 수칙 만들기를 쉽게 알려 드립니다.", color:"#00695C", category:"최꼬 아카데미" },
@@ -953,7 +968,9 @@ const PREMIUM_MENU_NEW_SEED_KEYS = ["ibteam", "hpaizero", "farmgame_broiler", "f
 // 분류 이름이 바뀐 경우(관리자가 예전에 저장한 메뉴에 옛 이름이 남아 있어도 새 이름으로 묶는다)
 const PREMIUM_MENU_CATEGORY_RENAME = { "백신관리": "백신·약품관리", "AI공동연구팀": "최꼬 아카데미", "인공지능 공동연구팀": "최꼬 아카데미" };
 // 관리자가 예전에 저장한 메뉴에 옛 제목이 남아 있어도 새 아카데미 제목으로 보이게 한다.
-const PREMIUM_MENU_FORCE_TITLE = { seasonal:"계절별 사양관리,질병,투약(관리) 패키지", ibteam:"IB 닭기침 잡는 교실 — 전염성기관지염(IB) 차단 8단계 코스", hpaizero:"AI 막는 농장 지킴이 교실 — HPAI ZERO FARM" };
+const PREMIUM_MENU_FORCE_TITLE = { coliclass:"닭 대장균증 잡는 교실 — 발견부터 재발 방지까지 10차시", seasonal:"계절별 사양관리,질병,투약(관리) 패키지", ibteam:"IB 닭기침 잡는 교실 — 전염성기관지염(IB) 차단 8단계 코스", hpaizero:"AI 막는 농장 지킴이 교실 — HPAI ZERO FARM" };
+// 코드에서 설명을 바꾼 메뉴 — 관리자가 예전에 저장한 메뉴의 옛 설명 대신 보인다.
+const PREMIUM_MENU_FORCE_DESC = { coliclass:"육계·산란계를 나누어 대장균증을 쉽게 배웁니다. 기초 → 현장 판단 → 치료·재발 방지·백신, 그림과 사례를 카드로 한눈에." };
 const PREMIUM_MENU_FORCE_CATEGORY = { grainprice:"시세 예측·분석", priceforecast:"시세 예측·분석" };
 // 삭제된 메뉴 — 관리자가 예전에 저장한 메뉴에 남아 있어도 보이지 않게 한다.
 const PREMIUM_MENU_REMOVED_KEYS = ["finder", "farmgame"];
@@ -961,7 +978,8 @@ function currentPremiumMenuItems(){
   const items = premiumMenuState.data && premiumMenuState.data.items;
   if(!(Array.isArray(items) && items.length)) return PREMIUM_ITEMS;
   const out = items.filter(it => !PREMIUM_MENU_REMOVED_KEYS.includes(it.key)).map(it => PREMIUM_MENU_FORCE_CATEGORY[it.key] ? Object.assign({}, it, {category:PREMIUM_MENU_FORCE_CATEGORY[it.key]}) : (PREMIUM_MENU_CATEGORY_RENAME[it.category] ? Object.assign({}, it, {category:PREMIUM_MENU_CATEGORY_RENAME[it.category]}) : it))
-    .map(it => PREMIUM_MENU_FORCE_TITLE[it.key] ? Object.assign({}, it, {title:PREMIUM_MENU_FORCE_TITLE[it.key]}) : it);
+    .map(it => PREMIUM_MENU_FORCE_TITLE[it.key] ? Object.assign({}, it, {title:PREMIUM_MENU_FORCE_TITLE[it.key]}) : it)
+    .map(it => PREMIUM_MENU_FORCE_DESC[it.key] ? Object.assign({}, it, {desc:PREMIUM_MENU_FORCE_DESC[it.key]}) : it);
   PREMIUM_MENU_NEW_SEED_KEYS.forEach(k => {
     if(out.some(it => it.key === k)) return;
     const seedIdx = PREMIUM_ITEMS.findIndex(it => it.key === k);
@@ -9066,20 +9084,19 @@ function drugUseBind(){
   };
 }
 
-// ── 🧫 닭 대장균증 잡는 교실 — 발견부터 재발 방지까지 12차시 (유료서비스 · 최꼬 아카데미, 정적 교육과정) ─────────────────────
-// 기초 이해 → 육계·산란계별 현장 판단 → 치료·재발 방지 → 최신 연구 읽기. 회당 60분(쉬운 설명 15 → 사진·기록 읽기 15 → 사례 토론 20 → 농장 적용 10).
+// ── 🧫 닭 대장균증 잡는 교실 — 발견부터 재발 방지까지 10차시 (유료서비스 · 최꼬 아카데미, 정적 교육과정) ─────────────────────
+// 기초 이해 → 육계·산란계별 현장 판단 → 치료·재발 방지·백신. 회당 60분(쉬운 설명 15 → 사진·기록 읽기 15 → 사례 토론 20 → 농장 적용 10).
 // 내용은 소유자가 정리한 교육과정(2026-10-15 기준 자료)을 농장에서 읽기 쉽게 옮긴 것이다. 사례 4개는 수업용 가상 사례이며 실제 농장 기록이 아니다.
 // 약 이름·용량은 다루지 않는다 — 치료는 검사와 수의사 판단, 제품 허가사항·휴약기간 확인이 먼저다.
 const COLI_COLOR = "#00897B";
 const COLI_PHASES = [
   { k:"p1", t:"기초 이해", sub:"1~3차시", from:1, to:3, color:"#2E7D32", icon:"🌱", d:"대장균이 무엇이고 어떻게 병이 되는지, 먼저 알아채는 법" },
   { k:"p2", t:"현장 판단", sub:"4~6차시", from:4, to:6, color:"#1565C0", icon:"🔎", d:"육계·산란계별 양상, 부검 사진, 수의사 진단과 검사 결과 읽기" },
-  { k:"p3", t:"치료·재발 방지", sub:"7~9차시", from:7, to:9, color:"#EF6C00", icon:"🛠️", d:"치료는 어떻게 정하고, 안 들으면 무엇을 보고, 다음엔 무엇을 바꿀까" },
-  { k:"p4", t:"백신·새 제품·우리 농장 계획", sub:"10~12차시", from:10, to:12, color:"#6A1B9A", icon:"🛡️", d:"백신은 어디까지 믿을지, 새 제품은 무엇을 물어볼지, 우리 농장 대응계획" },
+  { k:"p3", t:"치료·재발 방지·백신", sub:"7~10차시", from:7, to:10, color:"#EF6C00", icon:"🛠️", d:"치료는 어떻게 정하고, 안 들으면 무엇을 보고, 다음엔 무엇을 바꿀까 — 백신은 어디까지 믿을까" },
 ];
-const coliState = { tab:"easy", lesson:0, done:{}, plan:{ type:"broiler", f:{} }, msg:"" };
-(function coliLoad(){ try { const j = JSON.parse(localStorage.getItem("coli_v1") || "{}"); if(j.done && typeof j.done === "object") coliState.done = j.done; if(j.plan && typeof j.plan === "object") coliState.plan = Object.assign(coliState.plan, j.plan); } catch(e){} })();
-function coliSave(){ try { localStorage.setItem("coli_v1", JSON.stringify({ done:coliState.done, plan:coliState.plan })); } catch(e){} }
+const coliState = { tab:"easy", lesson:0, done:{} };
+(function coliLoad(){ try { const j = JSON.parse(localStorage.getItem("coli_v1") || "{}"); if(j.done && typeof j.done === "object") coliState.done = j.done; } catch(e){} })();
+function coliSave(){ try { localStorage.setItem("coli_v1", JSON.stringify({ done:coliState.done })); } catch(e){} }
 
 // ── 그림(SVG 모식도) — 이해를 돕는 단순 그림이며 실제 해부·수치와 다를 수 있다 ──
 // 폰에서도 글씨가 읽히도록 그림을 최소 너비(680px)로 그리고, 화면이 좁으면 좌우로 밀어 보게 한다.
@@ -9166,13 +9183,8 @@ function coliSvgTreat(){
   return `<svg viewBox="0 0 660 150" width="100%" style="max-width:900px" role="img" aria-label="치료 6단계: 상황 파악, 수의사 진단, 치료 선택, 전달 확인, 반응 평가, 종료와 출하 관리">${steps.map((s, i) => `<g transform="translate(${8 + i * 108} 12)"><rect width="98" height="104" rx="14" fill="${s[3]}1c" stroke="${s[3]}" stroke-width="2.5"/><circle cx="49" cy="26" r="15" fill="${s[3]}"/><text x="49" y="31" text-anchor="middle" font-size="15" font-weight="900" fill="#fff">${s[0]}</text><text x="49" y="62" text-anchor="middle" font-size="24">${s[2]}</text><text x="49" y="90" text-anchor="middle" font-size="12.5" font-weight="900" fill="#222">${s[1]}</text></g>${i < 5 ? `<text x="${8 + i * 108 + 103}" y="70" text-anchor="middle" font-size="16" fill="#78909C">›</text>` : ""}`).join("")}
     <text x="330" y="140" text-anchor="middle" font-size="11.5" fill="#00695C" font-weight="800">“맞는 약을 고르고 → 닭에게 실제로 전달되는지 확인하고 → 계속 감염되는 원인을 함께 줄인다”</text></svg>`;
 }
-function coliSvgEvidence(){
-  const lv = [["🧫", "시험관", "세균에 직접 뿌려 본 결과", "#B0BEC5", 560], ["🐤", "실험닭 감염실험", "일부러 감염시킨 소수의 닭", "#90CAF9", 440], ["🏭", "농장 시험·현장 조사", "실제 농장 조건", "#A5D6A7", 320]];
-  return `<svg viewBox="0 0 620 220" width="100%" style="max-width:900px" role="img" aria-label="시험관, 실험닭, 농장 시험 순으로 현장에 가까워지는 근거 사다리 그림">${lv.map((l, i) => `<rect x="${(620 - l[4]) / 2}" y="${10 + i * 62}" width="${l[4]}" height="52" rx="12" fill="${l[3]}55" stroke="${l[3]}" stroke-width="2"/><text x="310" y="${34 + i * 62}" text-anchor="middle" font-size="14" font-weight="900" fill="#222">${l[0]} ${l[1]}</text><text x="310" y="${50 + i * 62}" text-anchor="middle" font-size="11.5" fill="#555">${l[2]}</text>`).join("")}
-    <text x="310" y="212" text-anchor="middle" font-size="11.5" fill="#6A1B9A" font-weight="800">아래로 갈수록 우리 농장과 가깝습니다. “효과 있다”는 말은 어느 칸에서 나온 말인지부터 확인!</text></svg>`;
-}
 
-// ── 12차시 ──
+// ── 10차시 ──
 const COLI_LESSONS = [
   { no:1, t:"대장균과 대장균증", q:"원래 있던 균이 언제 병을 만드나?", fig:"three",
     easy:`<p>대장균은 닭 장과 농장 어디에나 있는 균이에요. 문제는 <b>병을 잘 일으키는 균</b>이 있거나 <b>닭이 약해져서</b> 균이 몸속으로 들어갈 때입니다. 그래서 균만 보지 말고 <b>들어온 길과 닭이 약해진 이유</b>를 같이 봅니다.</p>
@@ -9218,14 +9230,6 @@ const COLI_LESSONS = [
     easy:`<p>대장균은 <b>종류가 아주 많아서</b> 백신을 맞아도 모두 막지는 못해요. ‘맞혔다’와 ‘실제로 막았다’는 다르니, <b>접종 기록과 그 뒤 결과</b>를 함께 보세요.</p>`,
     broiler:"짧은 사육기간, 종계·부화장과의 연계", layer:"육성기 예방 계획, 장기 사육 중 방어 평가",
     practice:"‘접종했다’와 ‘효과를 봤다’를 구분해 말해 본다." },
-  { no:11, t:"새 제품·새 방법, 믿어도 될까?", q:"광고나 새 소식을 들으면 무엇을 물어볼까?", fig:"evidence",
-    easy:`<p>‘효과가 좋다’는 말은 <b>어디서, 어떤 닭에게 해 봤는지</b>에 따라 무게가 달라요. 시험관에서 좋았다고 우리 농장에서도 같지는 않습니다. ‘새 제품 따져보기’ 탭의 다섯 질문을 해 보세요.</p>`,
-    broiler:"어떤 제품이든 육계에서 해 본 결과인지 확인", layer:"어떤 제품이든 산란계에서 해 본 결과인지 확인",
-    practice:"새 제품 설명을 들을 때 물어볼 다섯 질문을 말해 본다.", go:"research" },
-  { no:12, t:"우리 농장 대응 계획", q:"다음 발생 때 누구에게 무엇을 알리고 무엇을 바꿀까?", fig:"planflow",
-    easy:`<p>마지막 시간의 결과물은 <b>‘우리 농장 대장균증 대응계획서 1장’</b>이에요. ‘대응계획서’ 탭에서 직접 적고 인쇄·복사할 수 있어요.</p>`,
-    broiler:"초기 폐사부터 출하 성적까지 연결합니다.", layer:"폐사부터 상품란 생산·반복 발생까지 연결합니다.",
-    practice:"우리 농장 대응계획서 1장을 써 본다(무엇을 보고, 누구에게 알리고, 무엇을 바꿀지).", go:"plan" },
 ];
 function coliSvgRecheck(){
   const it = [["1", "진단이 맞았나?", "오진·다른 병", "🩺", "#546E7A"], ["2", "약을 먹었나?", "섭취·투약기", "💧", "#00897B"], ["3", "균에 듣나?", "내성·감수성", "🧫", "#1565C0"], ["4", "다른 병이 겹쳤나?", "동반 질병", "🦠", "#6A1B9A"], ["5", "감염원이 남았나?", "지속 노출", "🏠", "#EF6C00"], ["6", "병변이 심한가?", "만성 난관·복막", "🥚", "#C62828"]];
@@ -9249,11 +9253,6 @@ function coliSvgVaccine(){
     <text x="494" y="116" text-anchor="middle" font-size="22" font-weight="900" fill="#C62828">≠</text>
     <g transform="translate(360 124)"><rect width="268" height="56" rx="12" fill="#E8F5E9" stroke="#43A047" stroke-width="2"/><text x="134" y="26" text-anchor="middle" font-size="14" font-weight="900" fill="#2E7D32">실제로 예방됐다</text><text x="134" y="44" text-anchor="middle" font-size="11.5" fill="#558B2F">(결과: 폐사·병변·성적 비교)</text></g></svg>`;
 }
-function coliSvgPlanFlow(){
-  const f = [["🗒️", "매일 기록", "#546E7A"], ["⚠️", "이상 발견", "#EF6C00"], ["📞", "수의사 연락", "#1565C0"], ["🧪", "검사·치료", "#6A1B9A"], ["🛠️", "재발 방지", "#2E7D32"], ["📊", "효과 확인", "#00897B"]];
-  return `<svg viewBox="0 0 660 130" width="100%" style="max-width:900px" role="img" aria-label="대응계획 흐름: 매일 기록, 이상 발견, 수의사 연락, 검사와 치료, 재발 방지, 효과 확인">${f.map((x, i) => `<g transform="translate(${8 + i * 108} 12)"><rect width="98" height="86" rx="14" fill="${x[2]}1c" stroke="${x[2]}" stroke-width="2.5"/><text x="49" y="38" text-anchor="middle" font-size="26">${x[0]}</text><text x="49" y="66" text-anchor="middle" font-size="12.5" font-weight="900" fill="#222">${x[1]}</text></g>${i < 5 ? `<text x="${8 + i * 108 + 103}" y="60" text-anchor="middle" font-size="16" fill="#78909C">›</text>` : ""}`).join("")}
-    <text x="330" y="122" text-anchor="middle" font-size="11.5" fill="#00695C" font-weight="800">이 흐름에서 ‘누가 무엇을 하는지’를 1장에 적으면 대응계획서가 됩니다</text></svg>`;
-}
 function coliFigFor(k){
   return k === "three" ? coliFig(coliSvgThree(), "대장균증은 세 가지가 겹칠 때 생기는 문제로 이해하면 쉬워요.")
     : k === "routes" ? coliFig(coliSvgRoutes(), "균의 오염원과 몸속으로 들어가는 길을 한눈에 — 우리 농장 버전으로 그려 보세요.")
@@ -9262,18 +9261,14 @@ function coliFigFor(k){
     : k === "body" ? coliFig(coliSvgBody(), "번호는 병변을 먼저 살펴볼 곳입니다(육계·산란계마다 다름).")
     : k === "detect" ? coliFig(coliSvgDetect(), "‘검출’과 ‘진단’은 다릅니다.")
     : k === "treat" ? coliFig(coliSvgTreat(), "치료는 약 선택 하나가 아니라 여섯 단계의 흐름입니다.")
-    : k === "evidence" ? coliFig(coliSvgEvidence(), "근거의 단계를 먼저 확인하세요.")
     : k === "recheck" ? coliFig(coliSvgRecheck(), "약을 바꾸기 전에 다시 점검할 순서입니다.")
     : k === "plan3" ? coliFig(coliSvgPlan3(), "개선안은 ‘누가·언제까지·어떻게 확인’이 있어야 합니다.")
-    : k === "vaccine" ? coliFig(coliSvgVaccine(), "접종 여부와 실제 예방 효과는 다른 질문입니다.")
-    : k === "planflow" ? coliFig(coliSvgPlanFlow(), "대응계획서 1장에 담을 흐름입니다.") : "";
+    : k === "vaccine" ? coliFig(coliSvgVaccine(), "접종 여부와 실제 예방 효과는 다른 질문입니다.") : "";
 }
 
 // ── 대장균증 교실: 화면 ──
-const COLI_TABS = [["easy", "🌱 쉬운 요약"], ["home", "📚 12차시 교육과정"], ["compare", "🐔 육계·산란계 비교"], ["cases", "🧪 사례 풀이"], ["treat", "💊 치료 6단계"], ["research", "🧐 새 제품 따져보기"], ["plan", "📝 대응계획서"]];
-function coliTable(head, rows, minW){
-  return `<div style="overflow-x:auto;margin:8px 0"><table style="width:100%;border-collapse:collapse;font-size:12.3px;min-width:${minW || 480}px"><thead><tr style="background:#E0F2F1">${head.map(h => `<th style="padding:7px 9px;text-align:left;border-bottom:2px solid #80CBC4;color:#00695C">${h}</th>`).join("")}</tr></thead><tbody>${rows.map((r, i) => `<tr style="background:${i % 2 ? "#fafafa" : "#fff"}">${r.map((c, k) => `<td style="padding:7px 9px;border-bottom:1px solid #eee;vertical-align:top;line-height:1.65${k === 0 ? ";font-weight:800" : ""}">${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
-}
+const COLI_TABS = [["easy", "🌱 쉬운 요약"], ["home", "📚 10차시 교육과정"], ["compare", "🐔 육계·산란계 비교"], ["cases", "🧪 사례 풀이"], ["treat", "💊 치료 6단계"]];
+function coliTable(head, rows){ return lcRows(head, rows, COLI_COLOR); }   // 표 대신 줄마다 카드(좁은 화면에서도 옆으로 밀 필요 없음)
 function coliBox(title, body, c){ c = c || COLI_COLOR; return `<div style="border-left:4px solid ${c};background:${c}0f;border-radius:9px;padding:9px 12px;margin:10px 0"><div style="font-size:12.8px;font-weight:900;color:${c};margin-bottom:3px">${title}</div><div style="font-size:12.6px;color:#333;line-height:1.75">${body}</div></div>`; }
 function coliLinks(list){ return false && list && list.length ? `<div style="font-size:11.5px;color:#777;margin-top:6px">📎 근거: ${list.map(l => `<a href="${esc(l[1])}" target="_blank" rel="noopener" style="color:#1565C0">${esc(l[0])}</a>`).join(" · ")}</div>` : ""; }
 function coliPhaseOf(no){ return COLI_PHASES.find(p => no >= p.from && no <= p.to); }
@@ -9334,8 +9329,6 @@ const COLI_DEEP = {
   8: { field:["약을 바꾸기 전에 ‘진단·섭취·내성·다른 병·감염원·병변’ 여섯 가지를 순서대로 점검한다", "점검 결과를 날짜와 함께 적고, 악화되면 바로 수의사에게 알린다"], myth:[["효과가 없으면 약을 계속 바꾼다", "바꾸기 전에 여섯 가지부터 점검하세요."]] },
   9: { fig2:"clean", field:["개선안마다 ‘담당자·기한·확인 방법’을 적는다", "입식 전 청소 순서(제거→세척→건조→소독→건조→점검)를 사진으로 남긴다"], myth:[["소독약을 더 세게 쓰면 된다", "제품 사용법을 지키고, 먼저 씻고 말리는 순서가 중요해요."]] },
   10: { field:["접종 기록(날짜·방법·로트·담당자)을 한곳에 모은다", "접종 뒤 폐사·병변·성적을 같은 양식으로 기록해 효과를 확인한다"], myth:[["백신을 맞혔으니 안 걸린다", "균 종류가 많아 접종과 예방은 별개예요."]] },
-  11: { field:["제품 설명을 들을 때 다섯 질문을 메모한다", "도입 전에 수의사와 상의하고 국내 허가·공급 여부를 확인한다"], myth:[["광고에서 좋다고 했으니 바로 쓴다", "어디서 해 본 결과인지에 따라 믿을 정도가 달라요."]] },
-  12: { field:["대응계획서를 사무실과 계사 입구에 붙인다", "담당 수의사 연락처(야간·휴일 포함)를 적어 두고, 6개월마다 다시 읽는다"], myth:[["계획서는 서류일 뿐이다", "‘누가 무엇을 한다’가 적혀 있으면 첫 대응이 빨라져요."]] }
 };
 function coliFig2For(k){
   return k === "floor" ? coliFig(coliSvgFloor(), "")
@@ -9348,14 +9341,14 @@ function coliFig2For(k){
 }
 
 function renderColiHome(){
-  const done = COLI_LESSONS.filter(l => coliState.done[l.no]).length, pct = Math.round(done / 12 * 100);
-  const goals = ["대장균이 있는 것과 대장균증이 생긴 것을 구분한다", "육계·산란계에서 먼저 볼 증상과 기록을 고른다", "수의사에게 필요한 정보를 전하고 검사 결과를 이해한다", "치료와 환경 개선을 함께 하고 효과를 확인한다", "새 제품·새 방법이 우리 농장에 맞는지 따져 본다"];
+  const done = COLI_LESSONS.filter(l => coliState.done[l.no]).length, pct = Math.round(done / COLI_LESSONS.length * 100);
+  const goals = ["대장균이 있는 것과 대장균증이 생긴 것을 구분한다", "육계·산란계에서 먼저 볼 증상과 기록을 고른다", "수의사에게 필요한 정보를 전하고 검사 결과를 이해한다", "치료와 환경 개선을 함께 하고 효과를 확인한다", "백신을 맞혀도 병이 날 수 있는 이유를 알고 기록으로 확인한다"];
   return `
     <div style="background:linear-gradient(135deg,${COLI_COLOR},#004D40);color:#fff;border-radius:14px;padding:14px 16px">
-      <div style="font-size:11px;opacity:.85;letter-spacing:.05em">최꼬 아카데미 · 12차시 (회당 60분)</div>
+      <div style="font-size:11px;opacity:.85;letter-spacing:.05em">최꼬 아카데미 · 10차시 (회당 60분)</div>
       <div style="font-size:19px;font-weight:900;margin:3px 0 4px;line-height:1.35">“대장균을 안다”에서 “우리 농장의 문제를 설명하고 대응한다”까지</div>
-      <div style="font-size:12.5px;opacity:.95;line-height:1.7">육계·산란계를 나누어, 발견부터 치료·재발 방지·새 제품 따져보기까지 한 걸음씩 배웁니다.</div>
-      <div style="display:flex;align-items:center;gap:10px;margin-top:10px"><div style="flex:1;background:rgba(255,255,255,.25);border-radius:6px;height:9px;overflow:hidden"><div style="width:${pct}%;background:#FFD54F;height:100%"></div></div><b style="font-size:13px">${done}/12 차시 완료</b></div>
+      <div style="font-size:12.5px;opacity:.95;line-height:1.7">육계·산란계를 나누어, 발견부터 치료·재발 방지·백신까지 한 걸음씩 배웁니다.</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:10px"><div style="flex:1;background:rgba(255,255,255,.25);border-radius:6px;height:9px;overflow:hidden"><div style="width:${pct}%;background:#FFD54F;height:100%"></div></div><b style="font-size:13px">${done}/${COLI_LESSONS.length} 차시 완료</b></div>
     </div>
     ${coliFig(coliSvgThree(), "첫 시간의 핵심 그림 — 균 + 통로 + 방어 약화")}
     <div style="font-size:14px;font-weight:900;color:${COLI_COLOR};margin:12px 0 4px">🎯 이 교실에서 챙겨 갈 것</div>
@@ -9369,21 +9362,16 @@ function renderColiLesson(no){
   const l = COLI_LESSONS.find(x => x.no === no); if(!l) return renderColiHome();
   const ph = coliPhaseOf(no), prev = COLI_LESSONS.find(x => x.no === no - 1), next = COLI_LESSONS.find(x => x.no === no + 1), done = !!coliState.done[no];
   return `
-    <button type="button" id="coli-home" style="border:none;background:none;color:#888;font-size:12.5px;cursor:pointer;padding:0 0 6px;font-family:inherit">← 12차시 목록</button>
-    <div style="background:${ph.color};color:#fff;border-radius:13px;padding:12px 15px"><div style="font-size:11.5px;opacity:.9">${ph.icon} ${ph.t} · ${no}차시 / 12</div><div style="font-size:20px;font-weight:900;margin:2px 0">${l.t}</div><div style="font-size:13px;background:rgba(255,255,255,.18);border-radius:9px;padding:6px 10px;margin-top:6px">❓ 핵심 질문 · ${l.q}</div></div>
-    <div style="font-size:13px;font-weight:900;color:${ph.color};margin:12px 0 2px">① 쉬운 설명</div>
-    <div style="font-size:13px;line-height:1.8;color:#333">${l.easy}</div>
-    ${l.fig ? `<div style="font-size:13px;font-weight:900;color:${ph.color};margin:10px 0 0">② 그림으로 보기</div>${coliFigFor(l.fig)}` : ""}
-    ${COLI_DEEP[no] && COLI_DEEP[no].fig2 ? coliFig2For(COLI_DEEP[no].fig2) : ""}
-    ${l.table ? coliTable(["현장 표현", "실제로 배우는 내용", "농장에서 연결할 질문"], l.table, 520) : ""}
-    ${COLI_DEEP[no] ? `<div style="font-size:13px;font-weight:900;color:#2E7D32;margin:12px 0 4px">🌾 현장에서는 이렇게 (오늘 바로 해볼 것)</div><div style="display:flex;flex-direction:column;gap:6px">${COLI_DEEP[no].field.map(f => `<div style="display:flex;gap:9px;align-items:flex-start;background:#F1F8F4;border:1px solid #C8E6C9;border-radius:10px;padding:8px 11px"><span style="font-size:17px;line-height:1.2">☐</span><span style="font-size:13px;line-height:1.7;color:#2b3a2b">${f}</span></div>`).join("")}</div>
-    <div style="font-size:13px;font-weight:900;color:#C62828;margin:12px 0 4px">🙅 이런 오해, 많이 해요</div><div style="display:flex;flex-direction:column;gap:6px">${COLI_DEEP[no].myth.map(m => `<div style="border:1px solid #F5C6C6;border-radius:10px;overflow:hidden"><div style="background:#FFEBEE;padding:6px 11px;font-size:12.8px;font-weight:800;color:#B71C1C">❌ ${m[0]}</div><div style="padding:6px 11px;font-size:12.8px;line-height:1.7;color:#333">⭕ ${m[1]}</div></div>`).join("")}</div>` : ""}
-    <div style="font-size:13px;font-weight:900;color:${ph.color};margin:10px 0 4px">③ 육계와 산란계는 이렇게 달라요</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px"><div style="border:2px solid #EF6C00;background:#FFF3E0;border-radius:11px;padding:9px 12px"><div style="font-size:13px;font-weight:900;color:#E65100">🐥 육계</div><div style="font-size:12.6px;line-height:1.7;color:#333;margin-top:2px">${l.broiler}</div></div><div style="border:2px solid #1565C0;background:#E3F2FD;border-radius:11px;padding:9px 12px"><div style="font-size:13px;font-weight:900;color:#1565C0">🥚 산란계</div><div style="font-size:12.6px;line-height:1.7;color:#333;margin-top:2px">${l.layer}</div></div></div>
-    ${l.note ? coliBox("📌 꼭 기억하기", l.note, "#E65100") : ""}
-    <div style="font-size:13px;font-weight:900;color:${ph.color};margin:12px 0 4px">④ 우리 농장에서는</div>
-    <div style="border:2px dashed ${ph.color};border-radius:11px;padding:10px 13px;background:${ph.color}0d;font-size:13px;line-height:1.7"><b>✍️ 오늘 해 볼 것</b> — ${l.practice}</div>
-    ${l.go ? `<button type="button" class="coli-tab" data-t="${l.go}" style="margin-top:8px;border:1px solid ${COLI_COLOR};background:#fff;color:${COLI_COLOR};border-radius:9px;padding:8px 14px;font-size:12.5px;font-weight:800;cursor:pointer">${l.go === "plan" ? "📝 대응계획서 쓰러 가기" : "🧐 새 제품 따져보기 탭으로"}</button>` : ""}
+    <button type="button" id="coli-home" style="border:none;background:none;color:#888;font-size:12.5px;cursor:pointer;padding:0 0 6px;font-family:inherit">← 10차시 목록</button>
+    <div style="background:${ph.color};color:#fff;border-radius:13px;padding:12px 15px"><div style="font-size:11.5px;opacity:.9">${ph.icon} ${ph.t} · ${no}차시 / ${COLI_LESSONS.length}</div><div style="font-size:20px;font-weight:900;margin:2px 0">${l.t}</div><div style="font-size:13px;background:rgba(255,255,255,.18);border-radius:9px;padding:6px 10px;margin-top:6px">❓ 핵심 질문 · ${l.q}</div></div>
+    ${lcCard("📖", "쉬운 설명", ph.color, l.easy)}
+    ${l.fig || (COLI_DEEP[no] && COLI_DEEP[no].fig2) ? lcCard("🖼️", "그림으로 보기", ph.color, (l.fig ? coliFigFor(l.fig) : "") + (COLI_DEEP[no] && COLI_DEEP[no].fig2 ? coliFig2For(COLI_DEEP[no].fig2) : "")) : ""}
+    ${l.table ? lcCard("📋", "현장 표현 ↔ 배우는 내용", ph.color, coliTable(["현장 표현", "실제로 배우는 내용", "농장에서 연결할 질문"], l.table)) : ""}
+    ${COLI_DEEP[no] ? lcCard("🌾", "오늘 바로 해볼 것", "#2E7D32", `<div style="display:flex;flex-direction:column;gap:6px">${COLI_DEEP[no].field.map(f => `<div style="display:flex;gap:9px;align-items:flex-start;background:#F1F8F4;border-radius:10px;padding:8px 11px"><span style="font-size:17px;line-height:1.3">☐</span><span>${f}</span></div>`).join("")}</div>`)
+      + lcCard("🙅", "이런 오해, 많이 해요", "#C62828", `<div style="display:flex;flex-direction:column;gap:7px">${COLI_DEEP[no].myth.map(m => `<div style="border:1px solid #F5C6C6;border-radius:10px;overflow:hidden"><div style="background:#FFEBEE;padding:7px 11px;font-weight:800;color:#B71C1C">❌ ${m[0]}</div><div style="padding:7px 11px">⭕ ${m[1]}</div></div>`).join("")}</div>`) : ""}
+    ${lcCard("🐔", "육계와 산란계는 이렇게 달라요", ph.color, `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px"><div style="border:2px solid #EF6C00;background:#FFF3E0;border-radius:11px;padding:9px 12px"><div style="font-weight:900;color:#E65100">🐥 육계</div><div>${l.broiler}</div></div><div style="border:2px solid #1565C0;background:#E3F2FD;border-radius:11px;padding:9px 12px"><div style="font-weight:900;color:#1565C0">🥚 산란계</div><div>${l.layer}</div></div></div>`)}
+    ${l.note ? lcCard("📌", "꼭 기억하기", "#E65100", l.note) : ""}
+    ${lcCard("✍️", "우리 농장에서 해 볼 것", ph.color, l.practice)}
     ${coliLinks(l.src)}
     <label style="display:flex;gap:8px;align-items:center;margin-top:14px;font-size:14px;font-weight:900;color:${done ? "#2E7D32" : "#444"};cursor:pointer"><input type="checkbox" id="coli-done" data-no="${no}" ${done ? "checked" : ""} style="width:20px;height:20px"> 이 차시를 마쳤어요</label>
     <div style="display:flex;justify-content:space-between;gap:8px;margin-top:12px">${prev ? `<button type="button" class="coli-open" data-no="${prev.no}" style="border:1px solid #ccc;background:#fff;color:#555;border-radius:9px;padding:9px 14px;font-size:12.5px;font-weight:700;cursor:pointer">← ${prev.no}차시 ${prev.t}</button>` : "<span></span>"}${next ? `<button type="button" class="coli-open" data-no="${next.no}" style="border:none;background:${ph.color};color:#fff;border-radius:9px;padding:9px 14px;font-size:12.5px;font-weight:800;cursor:pointer">${next.no}차시 ${next.t} →</button>` : `<span style="font-size:12.5px;color:#2E7D32;font-weight:800">🎓 마지막 차시예요</span>`}</div>`;
@@ -9418,35 +9406,43 @@ function renderColiTreat(){
     ${coliBox("약 선택은 수의사와", "약은 <b>담당 수의사와 제품 허가사항</b>을 확인해 정하고, 환경·관리 개선도 함께 합니다. 휴약기간은 제품마다 달라서 육계는 도축, 산란계는 계란 조건을 각각 확인하세요.", "#C62828")}
     <div style="font-size:12px;color:#777;margin-top:6px">💡 이 사이트의 「약품별 사용요령 카드」·「약품조회 및 휴약기간 검색」에서 제품별 휴약기간(공식 설명서)을 확인할 수 있어요.</div>`;
 }
-function renderColiResearch(){
-  const qs = [["📍", "어디서 해 봤나요?", "시험관인지, 실험닭인지, 실제 농장인지 물어보세요."], ["🐔", "어떤 닭에게요?", "육계인지 산란계인지, 일령이 우리 농장과 비슷한지 확인하세요."], ["📊", "무엇이 좋아졌나요?", "균 수·병변·폐사·성적 중 어떤 것인지 물어보세요."], ["⚖️", "얼마나 확실한가요?", "여러 농장에서 비교해 봤는지, 우연은 아닌지 물어보세요."], ["🏠", "우리 농장에도 되나요?", "국내 허가·공급과 비용을 수의사와 상의하세요."]];
-  return `<div style="font-size:15px;font-weight:900;color:${COLI_COLOR}">🧐 새 제품·새 방법은 이렇게 물어보세요</div>
-    ${coliFig(coliSvgEvidence(), "‘어디서 해 봤는지’에 따라 믿을 수 있는 정도가 달라요.")}
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:7px">${qs.map((q, i) => `<div style="border:2px solid #CE93D8;background:#F3E5F5;border-radius:11px;padding:9px 11px"><div style="font-size:20px">${q[0]}</div><div style="font-size:13px;font-weight:900;color:#6A1B9A">${i + 1}. ${q[1]}</div><div style="font-size:12px;color:#444;line-height:1.6;margin-top:2px">${q[2]}</div></div>`).join("")}</div>
-    ${coliBox("유산균·유기산·식물성 제품도 같아요", "장 속 균이나 성장이 좋아졌다는 말을 <b>대장균증이 낫는다는 말로 받아들이지 마세요.</b> 도입 전에 담당 수의사와 먼저 상의하세요.", "#6A1B9A")}`;
+// ── 교실 강의 카드 공통 조각 (IB·대장균증 강의 화면): 소제목 = 카드 1장, 표 = 줄마다 카드 ──
+function lcCard(icon, title, color, body){
+  const ic = icon === "" || icon == null ? "" : /^\d+$/.test(String(icon)) ? `<span class="lc-n">${icon}</span>` : `<span class="lc-i">${icon}</span>`;
+  return `<section class="lc-card" style="--lc:${color}">${title ? `<div class="lc-h">${ic}<span>${title}</span></div>` : ""}<div class="lc-b">${body}</div></section>`;
 }
-const COLI_PLAN_ROWS = [
-  ["daily", "매일 확인할 기록", "동·일령별 폐사, 음수·사료, 활력", "동·주령별 폐사, 음수·사료, 산란율·상품란 수"],
-  ["info", "이상 발생 시 전달할 정보", "입추일·공급원, 발생 위치, 최근 환경 변화·투약", "도입·산란 이력, 발생 위치, 최근 생산 변화·투약"],
-  ["lab", "수의사 진단 준비", "담당 전문 수의사 연락처, 전달할 기록·사진 (진단이 어려우면 수의사가 실험실 진단을 연결)", "담당 전문 수의사 연락처, 전달할 기록·사진 (진단이 어려우면 수의사가 실험실 진단을 연결)"],
-  ["tx", "치료·출하 확인", "투약 기록과 도축 전 휴약기간", "산란 중 사용 가능 여부와 계란 출하 조건"],
-  ["prev", "재발 방지 행동", "다음 입추 전 개선 3가지", "사육 중 개선 3가지와 계군 교체 시 개선사항"],
-  ["eval", "개선 효과 확인", "다음 계군의 초기 폐사·출하 성적 비교", "이후 폐사·상품란 생산·반복 발생 비교"],
-];
-function coliPlanText(){
-  const t = coliState.plan.type, f = coliState.plan.f;
-  return `[우리 농장 대장균증 대응계획서 — ${t === "broiler" ? "육계" : "산란계"}]\n` + COLI_PLAN_ROWS.map(r => `■ ${r[1]}\n  (가이드: ${t === "broiler" ? r[2] : r[3]})\n  → ${(f[r[0]] || "").trim() || "(미작성)"}`).join("\n") + `\n\n※ 경보 기준은 모든 농장에 같은 폐사율을 쓰지 않고, 우리 농장의 평소 수준과 일령·주령별 변화를 바탕으로 수의사와 정한다. 폐사 두수와 함께 사육수 대비 비율, 발생 위치를 기록한다.\n※ 교육용 양식이며 치료·투약은 수의사 판단과 제품 허가사항에 따른다.`;
+function lcRows(head, rows, color){
+  return `<div class="lc-rows"${color ? ` style="--lc:${color}"` : ""}>${rows.map(r => `<div class="lc-row"><div class="lc-rt">${r[0]}</div>${r.slice(1).map((c, k) => String(c).trim() ? `<div class="lc-kv">${head && head[k + 1] ? `<span class="lc-k">${head[k + 1]}</span>` : ""}${c}</div>` : "").join("")}</div>`).join("")}</div>`;
 }
-function renderColiPlan(){
-  const t = coliState.plan.type, f = coliState.plan.f;
-  const ta = "width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #cdd;border-radius:8px;font-size:13px;font-family:inherit;line-height:1.6;resize:vertical";
-  return `<div style="font-size:15px;font-weight:900;color:${COLI_COLOR}">📝 우리 농장 대장균증 대응계획서 (1장)</div>
-    <div style="font-size:12.5px;color:#555;line-height:1.7;margin:3px 0 8px">마지막 수업의 결과물이에요. 칸을 채우면 이 기기에 자동 저장되고, 복사·인쇄할 수 있어요. 가이드 문구를 참고해 <b>우리 농장 말로</b> 적으세요.</div>
-    <div style="display:flex;gap:6px;margin-bottom:8px"><button type="button" class="coli-ptype" data-t="broiler" style="flex:1;border:2px solid #EF6C00;background:${t === "broiler" ? "#EF6C00" : "#fff"};color:${t === "broiler" ? "#fff" : "#EF6C00"};border-radius:10px;padding:9px;font-size:13.5px;font-weight:900;cursor:pointer">🐥 육계 농장</button><button type="button" class="coli-ptype" data-t="layer" style="flex:1;border:2px solid #1565C0;background:${t === "layer" ? "#1565C0" : "#fff"};color:${t === "layer" ? "#fff" : "#1565C0"};border-radius:10px;padding:9px;font-size:13.5px;font-weight:900;cursor:pointer">🥚 산란계 농장</button></div>
-    ${COLI_PLAN_ROWS.map((r, i) => `<div style="border:1px solid #dde7e5;border-radius:11px;padding:9px 12px;margin:7px 0;background:#fff"><div style="display:flex;gap:8px;align-items:center"><span style="flex:none;width:24px;height:24px;border-radius:50%;background:${COLI_COLOR};color:#fff;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center">${i + 1}</span><b style="font-size:13.5px;color:#1b2a28">${r[1]}</b></div><div style="font-size:11.8px;color:#78909C;margin:3px 0 4px">가이드 · ${t === "broiler" ? r[2] : r[3]}</div><textarea class="coli-pf" data-k="${r[0]}" rows="2" placeholder="우리 농장은…" style="${ta}">${esc(f[r[0]] || "")}</textarea></div>`).join("")}
-    ${coliBox("경보 기준은 우리 농장 평소 수준으로", "모든 농장에 같은 폐사율을 적용하지 말고, <b>우리 농장의 평소 수준과 일령·주령별 변화</b>를 바탕으로 수의사와 정합니다. 폐사 두수뿐 아니라 사육수 대비 비율과 발생 위치를 함께 기록하세요.", "#E65100")}
-    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button type="button" id="coli-pcopy" style="border:none;background:${COLI_COLOR};color:#fff;border-radius:9px;padding:10px 18px;font-size:13.5px;font-weight:900;cursor:pointer">📋 계획서 복사</button><button type="button" id="coli-pprint" style="border:1px solid ${COLI_COLOR};background:#fff;color:${COLI_COLOR};border-radius:9px;padding:10px 18px;font-size:13.5px;font-weight:900;cursor:pointer">🖨 인쇄</button><button type="button" id="coli-pclear" style="border:1px solid #ddd;background:#fff;color:#777;border-radius:9px;padding:10px 14px;font-size:12.5px;font-weight:700;cursor:pointer">지우기</button><span id="coli-pmsg" style="font-size:12px;color:#2E7D32;font-weight:700">${esc(coliState.msg)}</span></div>
-    <div style="font-size:12px;color:#555;line-height:1.75;margin-top:10px;background:#f6faf9;border-radius:10px;padding:9px 12px"><b>평가는 이렇게</b> — 용어 암기가 아니라 <b>행동</b>으로 봅니다. 사례를 보고 “무엇을 관찰했고, 무엇을 의심하며, 무엇을 확인한 뒤 행동할지” 설명하고, <b>담당자·완료일·확인 방법</b>이 있는 개선계획을 제출하면 과정을 마친 것으로 봅니다.</div>`;
+// IB 강의 본문(기본 내용·관리자 편집본 모두)을 보기 전용 카드로 바꾼다 — 소제목(13.5px 굵은 줄 또는 h2~h5)마다 카드 1장,
+// 입력칸이 없는 표는 줄마다 카드(lcRows). 편집 화면에는 쓰지 않는다(원본 HTML은 그대로 저장된다).
+function ibCardify(html){
+  if(!html) return html;
+  const doc = new DOMParser().parseFromString(`<div id="ib-s">${html}</div>`, "text/html"), root = doc.getElementById("ib-s");
+  root.querySelectorAll("table").forEach(tb => {
+    if(tb.querySelector("input,textarea,select")) return;
+    const trs = [...tb.querySelectorAll("tr")]; if(!trs.length) return;
+    let head = null;
+    const th = tb.querySelector("thead tr") || (trs[0].querySelector("td") ? null : trs[0]);
+    if(th) head = [...th.children].map(c => c.innerHTML);
+    const rows = trs.filter(r => r !== th && r.children.length).map(r => [...r.children].map(c => c.innerHTML));
+    if(!rows.length) return;
+    const box = doc.createElement("div"); box.innerHTML = lcRows(head, rows);
+    const wrap = tb.parentElement && tb.parentElement !== root && tb.parentElement.children.length === 1 && /overflow/.test(tb.parentElement.getAttribute("style") || "") ? tb.parentElement : tb;
+    wrap.replaceWith(box.firstElementChild);
+  });
+  const isHead = el => el.nodeType === 1 && (ibIsHead(el) || /^H[2-5]$/.test(el.tagName));
+  const groups = []; let cur = null;
+  [...root.childNodes].forEach(n => {
+    if(n.nodeType === 3 && !n.nodeValue.trim()) return;
+    if(isHead(n)){ cur = { title: n.textContent.replace(/\s+/g, " ").trim(), els: [] }; groups.push(cur); return; }
+    if(!cur){ cur = { title: "", els: [] }; groups.push(cur); }
+    cur.els.push(n.nodeType === 3 ? `<p>${esc(n.nodeValue)}</p>` : n.outerHTML);
+  });
+  return groups.map(g => {
+    const m = g.title.match(/^(\d+)\.\s*(.*)$/);
+    return lcCard(m ? m[1] : "", m ? m[2] : g.title, "var(--ibc)", g.els.join(""));
+  }).join("");
 }
 // ── 쉬운 요약 공통 조각: 큰 글씨 카드·점 목록·번호 단계 (IB·대장균증·AI 교실의 「쉬운 요약」이 같이 쓴다) ──
 function easyCard(icon, title, color, body){
@@ -9508,8 +9504,7 @@ function renderColiEasy(){
         easyStep("1", "청소 순서 지키기", "제거 → 세척 → 건조 → 소독 → 건조 → 점검", "#2E7D32")
         + easyStep("2", "물·환기·깔짚 관리", "급수라인 누수, 젖은 깔짚, 먼지 쌓이는 곳부터", "#2E7D32")
         + easyStep("3", "누가·언제까지·어떻게 확인", "개선할 일마다 담당자와 기한을 적어 두세요", "#2E7D32"))
-    + easyBtn('class="coli-tab" data-t="plan"', C, "📝 우리 농장 대응계획서 쓰기 →")
-    + easyBtn('class="coli-tab" data-t="home"', "#455A64", "📚 12차시로 자세히 배우기 →");
+    + easyBtn('class="coli-tab" data-t="home"', C, "📚 10차시로 자세히 배우기 →");
 }
 
 // ── 🫀 조류생리 아카데미 — 닭 몸속 탐험 (유료서비스 · 최꼬 아카데미, 정적 교육과정) ─────────────────────────
@@ -9947,9 +9942,9 @@ window.farmGameCloud = {
 
 function renderColiPanel(){
   const t = COLI_TABS.some(x => x[0] === coliState.tab) ? coliState.tab : "easy";
-  const head = `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:8px"><div><div class="display" style="font-size:16px;margin-bottom:2px">🧫 닭 대장균증 잡는 교실 — 발견부터 재발 방지까지</div><div style="font-size:11.5px;color:#777">육계·산란계 12차시 교육과정 · 최꼬 아카데미</div></div><button id="coli-back" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button></div>`;
+  const head = `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:8px"><div><div class="display" style="font-size:16px;margin-bottom:2px">🧫 닭 대장균증 잡는 교실 — 발견부터 재발 방지까지</div><div style="font-size:11.5px;color:#777">육계·산란계 10차시 교육과정 · 최꼬 아카데미</div></div><button id="coli-back" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button></div>`;
   const nav = `<div style="display:flex;gap:5px;flex-wrap:wrap;margin:4px 0 12px">${COLI_TABS.map(([k, l]) => `<button type="button" class="coli-tab" data-t="${k}" style="border:1px solid ${k === t ? COLI_COLOR : "#ddd"};background:${k === t ? COLI_COLOR : "#fff"};color:${k === t ? "#fff" : "#555"};border-radius:16px;padding:7px 12px;font-size:12.5px;font-weight:700;cursor:pointer">${l}</button>`).join("")}</div>`;
-  const body = t === "easy" ? renderColiEasy() : t === "compare" ? renderColiCompare() : t === "cases" ? renderColiCases() : t === "treat" ? renderColiTreat() : t === "research" ? renderColiResearch() : t === "plan" ? renderColiPlan() : (coliState.lesson ? renderColiLesson(coliState.lesson) : renderColiHome());
+  const body = t === "easy" ? renderColiEasy() : t === "compare" ? renderColiCompare() : t === "cases" ? renderColiCases() : t === "treat" ? renderColiTreat() : (coliState.lesson ? renderColiLesson(coliState.lesson) : renderColiHome());
   const foot = `<div style="margin-top:14px;background:#FFF8E1;border-radius:8px;padding:9px 11px;font-size:10.6px;color:#6b5400;line-height:1.75"><b>유의</b> · 교육용 자료이며 개별 농장의 진단·처방을 대신하지 않습니다. 병 진단·치료·약 선택·휴약기간은 담당 수의사와 제품 허가사항에 따르세요. 그림은 이해를 돕는 모식도입니다.</div>`;
   return `<div class="card" id="coli-root" style="border-top:6px solid ${COLI_COLOR}">${head}${nav}${body}${foot}</div>`;
 }
@@ -9958,15 +9953,10 @@ function coliBind(){
   const $ = id => document.getElementById(id);
   const top = () => { const r = $("coli-root"); if(r) r.scrollIntoView({ behavior:"smooth", block:"start" }); };
   const back = $("coli-back"); if(back) back.onclick = () => { premiumState.view = "menu"; render(); };
-  document.querySelectorAll(".coli-tab").forEach(b => b.onclick = () => { coliState.tab = b.dataset.t; coliState.lesson = 0; coliState.msg = ""; render(); top(); });
+  document.querySelectorAll(".coli-tab").forEach(b => b.onclick = () => { coliState.tab = b.dataset.t; coliState.lesson = 0; render(); top(); });
   document.querySelectorAll(".coli-open").forEach(b => b.onclick = () => { coliState.tab = "home"; coliState.lesson = Number(b.dataset.no); render(); top(); });
   const home = $("coli-home"); if(home) home.onclick = () => { coliState.lesson = 0; render(); top(); };
   const dn = $("coli-done"); if(dn) dn.onchange = () => { coliState.done[dn.dataset.no] = dn.checked; coliSave(); render(); };
-  document.querySelectorAll(".coli-ptype").forEach(b => b.onclick = () => { coliState.plan.type = b.dataset.t; coliSave(); render(); });
-  document.querySelectorAll(".coli-pf").forEach(e => e.oninput = () => { coliState.plan.f[e.dataset.k] = e.value; coliSave(); });
-  const copy = $("coli-pcopy"); if(copy) copy.onclick = async () => { try { await navigator.clipboard.writeText(coliPlanText()); coliState.msg = "복사했어요"; } catch(e){ coliState.msg = "복사하지 못했어요 — 인쇄를 이용하세요"; } const m = $("coli-pmsg"); if(m) m.textContent = coliState.msg; };
-  const pr = $("coli-pprint"); if(pr) pr.onclick = () => { const w = window.open("", "_blank"); if(!w){ coliState.msg = "팝업이 막혔어요 — 복사해서 쓰세요"; const m = $("coli-pmsg"); if(m) m.textContent = coliState.msg; return; } w.document.write("<!doctype html><meta charset=utf-8><title>대장균증 대응계획서</title><pre style=\"font:14px/1.8 'Malgun Gothic',sans-serif;white-space:pre-wrap;margin:20px\">" + esc(coliPlanText()) + "</pre>"); w.document.close(); w.focus(); w.print(); };
-  const clr = $("coli-pclear"); if(clr) clr.onclick = () => { if(!confirm("대응계획서에 적은 내용을 모두 지울까요?")) return; coliState.plan.f = {}; coliSave(); render(); };
 }
 
 // ── 🌬️ 환기 기초교실 (유료서비스 · 최꼬 아카데미, 정적 교육과정) ─────────────────────────────────────────
@@ -26406,13 +26396,13 @@ function renderIbTeamPanel(){
     ? (st.htmlMode
       ? `<textarea id="ib-editor-src" style="width:100%;min-height:420px;padding:8px;border:1.5px solid #B8860B;border-radius:8px;font-size:11.5px;font-family:monospace;line-height:1.5">${esc(draft)}</textarea>`
       : `<div id="ib-editor" contenteditable="true" style="outline:none;border:1.5px dashed #B8860B;border-radius:8px;padding:8px 9px;min-height:200px;background:#FFFDF7">${draft}</div>`)
-    : (html ? html : `<div style="text-align:center;padding:26px 0;color:#aaa;font-size:12.5px">아직 작성된 내용이 없습니다.${admin ? "<br>「✏️ 이 항목 수정」으로 내용을 써 넣으세요." : ""}</div>`);
-  const body = `<div style="border:1px solid ${IB_COLOR}22;border-radius:12px;padding:12px 13px;background:#fff">
+    : (html ? ibCardify(html) : `<div style="text-align:center;padding:26px 0;color:#aaa;font-size:12.5px">아직 작성된 내용이 없습니다.${admin ? "<br>「✏️ 이 항목 수정」으로 내용을 써 넣으세요." : ""}</div>`);
+  const body = `<div style="border-top:1px solid ${IB_COLOR}22;padding:12px 0 0">
     <div style="font-size:11px;color:#999">${stage.no}단계 · 제${lec.no}강${lec.ready ? "" : ` <span style="color:#E65100;font-weight:700">· 비공개(관리자만 보임)</span>`}</div>
     <div class="display" style="font-size:17px;color:#222;margin:2px 0 4px">${esc(lec.title || "(제목 없음)")}</div>
     ${legend}${editing ? "" : nav}
     <div style="font-size:14.5px;font-weight:800;color:${IB_COLOR};margin:4px 0 6px">${IB_CIRCLED[sec]} ${secTitle}</div>
-    ${tools}<div id="ib-sec-body">${content}</div>${pager}</div>
+    ${tools}<div id="ib-sec-body" style="--ibc:${IB_COLOR}">${content}</div>${pager}</div>
     <style>#ib-sec-body h4{font-size:13.5px;font-weight:800;color:#222;margin:14px 0 4px}#ib-sec-body p{font-size:12.8px;color:#333;line-height:1.85;margin:4px 0 8px}</style>`;
   return `<div class="card" id="ib-root" style="border-top:6px solid ${IB_COLOR}">${head}${adminBox}${road}${toc}${body}${foot}</div>`;
 }
@@ -28967,7 +28957,7 @@ const NEW_FEATURES = [
   { key:"consultsub",     date:"2026-10-25", label:"사양/복지/HACCP — 옆으로 밀어 고르는 하위 메뉴 + 국내외 양계 시설업체 정리", where:"사양/복지/HACCP", go:{ tab:"consult" } },
   { key:"ventclass",      date:"2026-10-24", label:"환기 기초교실 — 정압·음압·입기구·1만수당 환기량 계산", where:"유료서비스 · 최꼬 아카데미", go:{ premium:"ventclass" } },
   { key:"avianphys",      date:"2026-10-19", label:"조류생리 아카데미 — 닭 몸속 탐험", where:"유료서비스 · 최꼬 아카데미", go:{ premium:"avianphys" } },
-  { key:"coliclass",      date:"2026-10-15", label:"닭 대장균증 잡는 교실 (12차시)", where:"유료서비스 · 최꼬 아카데미", go:{ premium:"coliclass" } },
+  { key:"coliclass",      date:"2026-10-15", label:"닭 대장균증 잡는 교실 (10차시)", where:"유료서비스 · 최꼬 아카데미", go:{ premium:"coliclass" } },
   { key:"drugusage",      date:"2026-10-14", label:"약품별 사용요령 카드", where:"유료서비스 · 약품·투약·소독", go:{ premium:"drugusage" } },
   { key:"hpaizero",       date:"2026-10-14", label:"AI 막는 농장 지킴이 교실 (HPAI ZERO FARM)", where:"유료서비스 · 최꼬 아카데미", go:{ premium:"hpaizero" } },
   { key:"ib-lec2",        date:"2026-10-13", label:"IB 닭기침 잡는 교실 제2강 · 제1강 현장 보강", where:"유료서비스 · 최꼬 아카데미", go:{ premium:"ibteam" } },
