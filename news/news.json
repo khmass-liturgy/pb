@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-08 11:03 KST",
+  "updated": "2026-11-09 11:22 KST",
   "channels": {
     "livestock": {
       "label": "축산·농업",
@@ -13,15 +13,8 @@
     },
     "disease": {
       "label": "가축질병",
-      "items": [
-        {
-          "title": "가축전염병 보상금 최대 90%로…첫 신고 농가는 100%까지 - 뉴시스",
-          "link": "https://news.google.com/rss/articles/CBMiYEFVX3lxTFBRdUlCbE1vb2NUZFFLMm5tWFBvQkdDUURvNzMtTkphRTFSdkN5S0pOUzZUNlg2YmxjRlZpaHM3R3RCeTRpOV84QV9WTDMzaWRVYkZXVjIzVDF1T1JFY3cxUdIBeEFVX3lxTFBZMUVodDlKdVBHTUlEdTRnSGczdEFLUU83bEVkbVJJYjdZMm5ZNGhGUDFjMGN3dEIzVC1NclJZS0UteGxuUmhXLVlJbGRMRDNrdVRvUjF5UVB2YldsTmhzZk4wb1FuNFdRaEZTSU5iTkxQV09NR3JIMQ?oc=5",
-          "date": "11/03 11:17",
-          "source": "뉴시스"
-        }
-      ],
-      "count": 1
+      "items": [],
+      "count": 0
     },
     "feed": {
       "label": "사료·약품",
@@ -35,8 +28,15 @@
     },
     "world": {
       "label": "국제",
-      "items": [],
-      "count": 0
+      "items": [
+        {
+          "title": "중국국제수입박람회, 세계와 개방의 성과 공유 - 国际在线",
+          "link": "https://news.google.com/rss/articles/CBMiY0FVX3lxTFBmRzdqVlFqNXhoMU52NE9OSUx4RnBzR1hjZDhYLXRrc1ptSjNsUXY2QTlmX3JHeXpiUlpmM2IyZzJtaWVZRDkyNm5jUlYwNU5FWTVYOXpRaXA1Uk1LcHRBVVYzYw?oc=5",
+          "date": "11/07 21:34",
+          "source": "国际在线"
+        }
+      ],
+      "count": 1
     }
   }
 }
