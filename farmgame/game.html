@@ -1365,7 +1365,7 @@ function animFlock(dt){
   const speed=(reduce?.00002:.00009)*(S.health<50?.5:1)*(m==='hot'?.5:1)*(S.rat?2.4:1);
   // 병아리끼리 겹치지 않게 서로 밀어낸다(같은 곳으로 모이거나 도망칠 때도 간격 유지)
   {
-    const g3=G3.on&&G3.L,Hh=g3?G3.L.ZZ/.15/1.6:scene.clientHeight,Wk=g3?G3.L.ZX/.41:W,minD=g3?1.12*(.62+.56*t):size*.92;
+    const g3=G3.on&&G3.L,Hh=g3?G3.L.ZZ/.15/1.6:scene.clientHeight,Wk=g3?G3.L.ZX/.41:W,minD=g3?g3Girth(t):size*.92;
     for(let pass=0;pass<2;pass++)for(let i=0;i<sprites.length;i++)for(let j=i+1;j<sprites.length;j++){
       const a=sprites[i],b=sprites[j];
       let dx=(a.x-b.x)*Wk,dy=(a.y-b.y)*Hh*1.6;       // 세로는 원근 때문에 더 민감하게(3D는 바닥 좌표 그대로)
@@ -2118,12 +2118,7 @@ function g3Build(){
   rat.visible=false;
   const bait=G3.bait=new T.Group();sc.add(bait);
   mesh(new T.BoxGeometry(.5,.22,.36),lam('#C62828'),0,.11,0,bait);mesh(new T.BoxGeometry(.3,.02,.2),lam('#FFF8EC'),0,.23,0,bait);bait.visible=false;
-  // 닭 한 마리를 이루는 공용 모양·재질
-  G3.geo={body:new T.SphereGeometry(.5,18,14),head:new T.SphereGeometry(.3,16,12),beak:new T.ConeGeometry(.09,.24,10),eye:new T.SphereGeometry(.045,8,8),
-    comb:new T.SphereGeometry(.09,8,8),wing:new T.SphereGeometry(.3,12,10),leg:new T.CylinderGeometry(.035,.035,.34,6),foot:new T.BoxGeometry(.2,.03,.16),
-    tail:new T.ConeGeometry(.22,.5,10),shadow:new T.CircleGeometry(.55,20),ice:new T.BoxGeometry(.34,.14,.3)};
-  G3.mat={body:lam('#FFD84D'),wing:lam('#FFC22E'),beak:lam('#F39A2B'),eye:lam('#2A2540'),comb:lam('#E53935'),leg:lam('#F39A2B'),
-    shadow:new T.MeshBasicMaterial({color:'#000',transparent:true,opacity:.2,depthWrite:false}),ice:lam('#7EC8F2'),pale:lam('#D8D2C4')};
+  g3BirdKit();
   // 끌어서 돌려 보기(좌우), 마우스는 위아래도
   let drag=null;
   cv.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,az:G3.az,el:G3.el,touch:e.pointerType==='touch'};try{cv.setPointerCapture(e.pointerId)}catch(_){}});
@@ -2207,29 +2202,130 @@ function g3Room(L){             // 계사 건물과 설비 — 화면 모양(L)�
   mesh(new T.BoxGeometry(nx.length*1.05+.2,.1,1),beamM,(nx[0]+nx[nx.length-1])/2,.25,back+.65,nestG);
   tray.visible=nestG.visible=false;
 }
-function g3Hen(){
-  const T=THREE,g=G3.geo,m=G3.mat,o=new T.Group();
+/* ── 3D 닭 모델 ──
+   병아리(솜털·큰 머리)와 자란 닭(물방울 모양 몸통, 굽은 목, 부채 꼬리깃, 접은 날개와 칼깃, 톱니 볏·육수·귓불, 발가락 3+1)을
+   기본 도형을 눌러 빚어 만든다. 깃털은 비늘무늬 질감, 병아리는 솜털 질감. 실제 품종을 정밀하게 본뜬 것은 아니다(교육용 그림). */
+function g3Deform(geo,fn){     // 꼭짓점을 옮겨 모양을 빚고, 이음매가 보이지 않게 같은 자리의 법선을 평균한다
+  const p=geo.attributes.position;
+  for(let i=0;i<p.count;i++){const v=fn(p.getX(i),p.getY(i),p.getZ(i));p.setXYZ(i,v[0],v[1],v[2])}
+  p.needsUpdate=true;geo.computeVertexNormals();
+  const n=geo.attributes.normal,map={};
+  for(let i=0;i<p.count;i++){const k=Math.round(p.getX(i)*500)+'_'+Math.round(p.getY(i)*500)+'_'+Math.round(p.getZ(i)*500);(map[k]=map[k]||[]).push(i)}
+  for(const k in map){const a=map[k];if(a.length<2)continue;let x=0,y=0,z=0;a.forEach(i=>{x+=n.getX(i);y+=n.getY(i);z+=n.getZ(i)});const l=Math.hypot(x,y,z)||1;a.forEach(i=>n.setXYZ(i,x/l,y/l,z/l))}
+  n.needsUpdate=true;return geo;
+}
+function g3Merge(items){       // 같은 재질의 작은 조각들을 한 덩어리로 합친다(그리는 횟수를 줄여 휴대폰에서도 가볍게) — [모양,x,y,z,rx,ry,rz,배율]
+  const T=THREE,pos=[],nor=[],uv=[],idx=[],m=new T.Matrix4(),q=new T.Quaternion(),e=new T.Euler(),nm=new T.Matrix3(),v=new T.Vector3();let off=0;
+  items.forEach(([g,x,y,z,rx,ry,rz,sc])=>{
+    const k=Array.isArray(sc)?sc:[sc==null?1:sc,sc==null?1:sc,sc==null?1:sc];
+    m.compose(new T.Vector3(x||0,y||0,z||0),q.setFromEuler(e.set(rx||0,ry||0,rz||0)),new T.Vector3(k[0],k[1],k[2]));nm.getNormalMatrix(m);
+    const p=g.attributes.position,n=g.attributes.normal,u=g.attributes.uv;
+    for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i).applyMatrix4(m);pos.push(v.x,v.y,v.z);v.fromBufferAttribute(n,i).applyMatrix3(nm).normalize();nor.push(v.x,v.y,v.z);uv.push(u?u.getX(i):0,u?u.getY(i):0)}
+    if(g.index)for(let i=0;i<g.index.count;i++)idx.push(g.index.getX(i)+off);else for(let i=0;i<p.count;i++)idx.push(i+off);
+    off+=p.count;
+  });
+  const out=new T.BufferGeometry();
+  out.setAttribute('position',new T.Float32BufferAttribute(pos,3));out.setAttribute('normal',new T.Float32BufferAttribute(nor,3));out.setAttribute('uv',new T.Float32BufferAttribute(uv,2));out.setIndex(idx);
+  return out;
+}
+function g3BirdKit(){          // 닭이 함께 쓰는 모양·재질(한 번만 만든다)
+  const T=THREE,up=x=>Math.max(0,x);
+  const std=(c,o)=>new T.MeshStandardMaterial(Object.assign({color:c,roughness:.92,metalness:0},o||{}));
+  // 깃털 비늘무늬(밝은 바탕에 옅은 반달 줄) · 솜털(자잘한 얼룩)
+  const feather=g3CanvasTex(256,256,(g,w,h)=>{g.fillStyle='#fff';g.fillRect(0,0,w,h);
+    for(let r=0;r<13;r++)for(let c=-1;c<9;c++){const x=c*32+(r%2?16:0),y=r*20;const gr=g.createRadialGradient(x+16,y+2,2,x+16,y+2,22);gr.addColorStop(0,'rgba(0,0,0,0)');gr.addColorStop(.8,'rgba(0,0,0,.05)');gr.addColorStop(1,'rgba(0,0,0,.2)');
+      g.fillStyle=gr;g.beginPath();g.arc(x+16,y+2,21,0,Math.PI);g.fill();g.strokeStyle='rgba(60,30,10,.22)';g.lineWidth=1.2;g.beginPath();g.arc(x+16,y+2,21,.15,Math.PI-.15);g.stroke();
+      g.strokeStyle='rgba(60,30,10,.1)';g.beginPath();g.moveTo(x+16,y+2);g.lineTo(x+16,y+22);g.stroke()}},5,3);
+  const fluff=g3CanvasTex(128,128,(g,w,h)=>{g.fillStyle='#fff';g.fillRect(0,0,w,h);for(let i=0;i<700;i++){g.strokeStyle=`rgba(${Math.random()<.5?'255,255,255':'120,80,0'},${.05+Math.random()*.12})`;g.lineWidth=1;const x=Math.random()*w,y=Math.random()*h;g.beginPath();g.moveTo(x,y);g.lineTo(x+(Math.random()-.5)*7,y+3+Math.random()*6);g.stroke()}},3,2);
+  const M=G3.mat={feather,fluff,body:std('#FFD84D',{map:fluff}),wing:std('#FFC22E',{map:fluff}),tail:std('#FFC22E',{map:feather}),hackle:std('#FFD84D',{map:feather}),
+    pale:std('#D9D4C8',{map:feather}),skin:std('#D92B2B',{roughness:.7}),lobe:std('#F4EDE4',{roughness:.7}),beak:std('#F2A93B',{roughness:.6}),leg:std('#F2B02E',{roughness:.75}),
+    eye:new T.MeshBasicMaterial({color:'#1B1830'}),iris:std('#E0862A',{roughness:.5}),ice:std('#7EC8F2',{roughness:.5}),
+    shadow:new T.MeshBasicMaterial({color:'#000',transparent:true,opacity:.22,depthWrite:false})};
+  void M;
+  const G=G3.geo={};
+  // 자란 닭 몸통: 앞가슴은 둥글고 낮게, 등은 꼬리 쪽으로 올라가며 좁아진다
+  G.body=g3Deform(new T.SphereGeometry(.5,26,18),(x,y,z)=>{const b=up(-x/.5),f=up(x/.5);
+    return [x*1.32+.02,(y<0?y*.86:y*(1-.12*f))+.2*Math.pow(b,1.6)-.07*f,z*(.96-.3*Math.pow(b,1.5)-.06*f)]});
+  G.thigh=g3Deform(new T.SphereGeometry(.2,12,10),(x,y,z)=>[x*.9,y*1.25-(y<0?0:.0),z*.8]);
+  G.neck=g3Deform(new T.CylinderGeometry(.115,.25,.56,14,4),(x,y,z)=>{const k=(y+.28)/.56;return [x+.2*k*k,y,z*(1-.12*k)]});   // 위로 갈수록 앞으로 굽는다
+  G.head=g3Deform(new T.SphereGeometry(.175,18,14),(x,y,z)=>[x*1.18+(x>0?.02:0),y*(x>0?.92:1),z*.92]);
+  G.beakU=g3Deform(new T.ConeGeometry(.075,.24,10,3),(x,y,z)=>{const k=(y+.12)/.24;return [(x>0?x*.45:x)+.05*k*k,y,z*.85]});    // 윗부리: 끝이 살짝 굽는다
+  G.beakL=new T.ConeGeometry(.055,.17,8);
+  G.eye=new T.SphereGeometry(.038,10,8);G.iris=new T.SphereGeometry(.052,10,8);
+  G.combPt=new T.ConeGeometry(.055,.16,8);G.combBase=g3Deform(new T.SphereGeometry(.1,10,8),(x,y,z)=>[x*1.9,y*.7,z*.35]);
+  G.wattle=g3Deform(new T.SphereGeometry(.07,10,8),(x,y,z)=>[x*.8,y*1.6-(y<0?.02:0),z*.45]);
+  G.lobe=g3Deform(new T.SphereGeometry(.05,8,8),(x,y,z)=>[x,y*1.3,z*.4]);
+  // 날개: 어깨는 둥글고 뒤로 갈수록 가늘어지며 끝이 아래로
+  G.wing=g3Deform(new T.SphereGeometry(.34,18,12),(x,y,z)=>{const b=up(-x/.34);return [x*1.38-.05,y*(.9-.5*b)-.1*b*b,z*.3]});
+  G.primary=g3Deform(new T.SphereGeometry(.2,10,6),(x,y,z)=>[x*1.5,y*.3,z*.12]);
+  G.tailF=g3Deform(new T.SphereGeometry(.25,10,8),(x,y,z)=>[x*.42,y*1.25+.28,z*.1]);        // 꼬리깃 한 장(아래가 뿌리)
+  G.shank=new T.CylinderGeometry(.028,.034,.4,7);
+  G.toe=new T.CylinderGeometry(.012,.026,.2,6);G.toe.translate(0,.1,0);G.toe.rotateZ(-Math.PI/2);    // +X로 뻗는 발가락
+  G.shadow=new T.CircleGeometry(.62,22);G.ice=new T.BoxGeometry(.3,.12,.26);
+  // 병아리: 솜털 공 두 개
+  G.cBody=g3Deform(new T.SphereGeometry(.4,20,14),(x,y,z)=>[x*1.08,y*(y<0?.9:1),z]);
+  G.cHead=new T.SphereGeometry(.27,18,14);G.cWing=g3Deform(new T.SphereGeometry(.2,12,8),(x,y,z)=>[x*1.2,y*.75,z*.3]);
+  G.cBeak=new T.ConeGeometry(.06,.14,8);G.cShank=new T.CylinderGeometry(.024,.028,.22,6);
+  // 합친 덩어리: 발(정강이+발가락 3+1), 꼬리깃 두 겹, 칼깃, 볏, 육수, 눈·홍채·귓불
+  const foot=(shank,sy,len,sc)=>g3Merge([[shank,.02*sc,sy,0],[G.toe,0,-len,0,0,0,0,sc],[G.toe,0,-len,0,0,.5,0,sc],[G.toe,0,-len,0,0,-.5,0,sc],[G.toe,0,-len,0,0,Math.PI,0,sc*.6]]);
+  G.footA=foot(G.shank,-.3,.5,1);G.footC=foot(G.cShank,-.13,.24,.75);
+  const fan=[-.75,-.4,-.05,.3,.62],tf=odd=>g3Merge([].concat(...fan.map((a,i)=>i%2===odd?[.05,-.05].map(z=>[G.tailF,0,0,z*(1.6-i*.2),z*3,0,.95+a*.62,1-.1*Math.abs(i-2)]):[])));
+  G.tailA=tf(0);G.tailB=tf(1);
+  G.prim=sd=>g3Merge([0,1,2].map(k=>[G.primary,-.5-k*.06,-.13-k*.045,sd*.02,0,0,.1+k*.1]));G.primL=G.prim(1);G.primR=G.prim(-1);
+  G.combAll=g3Merge([[G.combBase,0,0,0]].concat([[.17,.1,-.5],[.09,.15,-.2],[0,.17,0],[-.09,.15,.2],[-.17,.1,.5]].map(([x,y,r])=>[G.combPt,x,y*.6,0,0,0,r,[1,y/.13,.5]])));
+  G.wattles=g3Merge([[G.wattle,0,0,.045],[G.wattle,0,0,-.045]]);
+  G.eyesA=g3Merge([.14,-.14].map(z=>[G.eye,.345,.6,z*1.04]));G.irisA=g3Merge([.14,-.14].map(z=>[G.iris,.33,.6,z*.93]));G.lobesA=g3Merge([.14,-.14].map(z=>[G.lobe,.2,.48,z*1.12]));
+  G.eyesC=g3Merge([.19,-.19].map(z=>[G.eye,.29,.27,z,0,0,0,1.25]));
+}
+function g3Bird(kind){         // kind: 'c' 병아리, 'a' 자란 닭 — 움직일 마디를 담은 묶음을 돌려준다
+  const T=THREE,g=G3.geo,m=G3.mat,o=new T.Group(),b={o,parts:[]};
   const add=(geo,mat,x,y,z,p)=>{const k=new T.Mesh(geo,mat);k.position.set(x,y,z);(p||o).add(k);return k};
-  const h={o};
-  h.shadow=add(g.shadow,m.shadow,0,.02,0);h.shadow.rotation.x=-Math.PI/2;
-  h.up=new T.Group();o.add(h.up);                                   // 몸 전체(앉기·들썩임)
-  h.body=add(g.body,m.body,0,.62,0,h.up);h.body.scale.set(1.12,.95,.92);
-  h.tail=add(g.tail,m.wing,-.56,.86,0,h.up);h.tail.rotation.z=.9;
-  h.wl=add(g.wing,m.wing,-.04,.66,.4,h.up);h.wl.scale.set(1.15,.8,.32);
-  h.wr=add(g.wing,m.wing,-.04,.66,-.4,h.up);h.wr.scale.set(1.15,.8,.32);
-  h.neck=new T.Group();h.neck.position.set(.34,.84,0);h.up.add(h.neck);   // 머리(쪼기)
-  h.head=add(g.head,m.body,.14,.26,0,h.neck);
-  h.beak=add(g.beak,m.beak,.46,.24,0,h.neck);h.beak.rotation.z=-Math.PI/2;
-  add(g.eye,m.eye,.3,.34,.2,h.neck);add(g.eye,m.eye,.3,.34,-.2,h.neck);
-  h.comb=new T.Group();h.comb.position.set(.14,.54,0);h.neck.add(h.comb);
-  [-.1,0,.1].forEach((x,i)=>add(g.comb,m.comb,x,i===1?.04:0,0,h.comb));
-  h.wattle=add(g.comb,m.comb,.36,.08,0,h.neck);h.wattle.scale.set(.8,1.3,.8);
-  h.ice=add(g.ice,m.ice,.12,.6,0,h.neck);h.ice.visible=false;
-  h.l1=new T.Group();h.l1.position.set(.02,.34,.17);o.add(h.l1);add(g.leg,m.leg,0,-.17,0,h.l1);add(g.foot,m.leg,.05,-.33,0,h.l1);
-  h.l2=new T.Group();h.l2.position.set(.02,.34,-.17);o.add(h.l2);add(g.leg,m.leg,0,-.17,0,h.l2);add(g.foot,m.leg,.05,-.33,0,h.l2);
-  h.ry=Math.random()*6.28;h.ph=Math.random()*6.28;h.px=null;h.pz=null;
+  if(kind==='c'){
+    b.hip=.34;b.top=1.18;b.sitDy=-.2;
+    b.up=new T.Group();b.up.position.y=b.hip;o.add(b.up);
+    b.body=add(g.cBody,m.body,0,.16,0,b.up);
+    b.wl=add(g.cWing,m.wing,-.06,.2,.39,b.up);b.wr=add(g.cWing,m.wing,-.06,.2,-.39,b.up);
+    add(g.cWing,m.wing,-.42,.24,0,b.up).scale.set(.5,.7,1.3);                 // 꽁지 솜털
+    b.neck=new T.Group();b.neck.position.set(.2,.36,0);b.up.add(b.neck);
+    b.head=add(g.cHead,m.body,.1,.2,0,b.neck);
+    b.beak=add(g.cBeak,m.beak,.39,.17,0,b.neck);b.beak.rotation.z=-Math.PI/2;
+    b.jaw=new T.Group();b.jaw.position.set(.3,.13,0);b.neck.add(b.jaw);const j=add(g.cBeak,m.beak,.07,0,0,b.jaw);j.rotation.z=-Math.PI/2;j.scale.setScalar(.75);
+    add(g.eyesC,m.eye,0,0,0,b.neck);
+    b.ice=add(g.ice,m.ice,.08,.5,0,b.neck);
+    [.13,-.13].forEach((z,i)=>{const l=new T.Group();l.position.set(.02,b.hip-.06,z);o.add(l);add(g.footC,m.leg,0,0,0,l);b[i?'l2':'l1']=l});
+    b.parts=[b.body,b.head];
+  } else {
+    b.hip=.5;b.top=1.82;b.sitDy=-.34;
+    b.up=new T.Group();b.up.position.y=b.hip;o.add(b.up);                    // 엉덩이를 축으로 숙이고 앉는다
+    b.body=add(g.body,m.body,0,.36,0,b.up);
+    b.wl=new T.Group();b.wl.position.set(.12,.5,.45);b.up.add(b.wl);b.wr=new T.Group();b.wr.position.set(.12,.5,-.45);b.up.add(b.wr);
+    add(g.wing,m.wing,-.2,-.1,0,b.wl);add(g.primL,m.tail,0,0,0,b.wl);add(g.wing,m.wing,-.2,-.1,0,b.wr);add(g.primR,m.tail,0,0,0,b.wr);
+    b.tail=new T.Group();b.tail.position.set(-.6,.62,0);b.up.add(b.tail);add(g.tailA,m.tail,0,0,0,b.tail);add(g.tailB,m.wing,0,0,0,b.tail);
+    b.neck=new T.Group();b.neck.position.set(.44,.46,0);b.up.add(b.neck);   // 목 뿌리가 축
+    b.neckM=add(g.neck,m.hackle,0,.22,0,b.neck);
+    b.head=add(g.head,m.hackle,.27,.55,0,b.neck);
+    b.beak=add(g.beakU,m.beak,.52,.55,0,b.neck);b.beak.rotation.z=-Math.PI/2-.12;
+    b.jaw=new T.Group();b.jaw.position.set(.4,.5,0);b.neck.add(b.jaw);add(g.beakL,m.beak,.09,-.005,0,b.jaw).rotation.z=-Math.PI/2;
+    add(g.irisA,m.iris,0,0,0,b.neck);add(g.eyesA,m.eye,0,0,0,b.neck);add(g.lobesA,m.lobe,0,0,0,b.neck);
+    b.comb=add(g.combAll,m.skin,.27,.7,0,b.neck);
+    b.wattles=add(g.wattles,m.skin,.4,.42,0,b.neck);
+    b.ice=add(g.ice,m.ice,.25,.82,0,b.neck);
+    [.17,-.17].forEach((z,i)=>{const l=new T.Group();l.position.set(-.02,b.hip,z);o.add(l);add(g.thigh,m.body,0,-.02,0,l);add(g.footA,m.leg,0,0,0,l);b[i?'l2':'l1']=l});
+    b.parts=[b.body,b.neckM,b.head];
+  }
+  b.ice.visible=false;
+  return b;
+}
+function g3Hen(){
+  const T=THREE,o=new T.Group(),h={o};
+  h.shadow=new T.Mesh(G3.geo.shadow,G3.mat.shadow);h.shadow.position.y=.02;h.shadow.rotation.x=-Math.PI/2;o.add(h.shadow);
+  h.c=g3Bird('c');h.a=g3Bird('a');o.add(h.c.o);o.add(h.a.o);
+  h.ry=Math.random()*6.28;h.ph=Math.random()*6.28;h.px=null;h.pz=null;h.look=0;
   G3.sc.add(o);return h;
 }
+const G3_TEEN=.3;               // 이때부터 자란 닭 모양(볏·꼬리깃은 그 뒤로 계속 자란다)
+function g3Scale(t){return t<G3_TEEN?.6+.95*t:.52+.58*t}                 // 모델 배율
+function g3Girth(t){return (t<G3_TEEN?.92:1.3)*g3Scale(t)}               // 서로 떨어져 있을 거리(몸길이쯤)
 function g3Fit(){               // 화면 비율·오른쪽 버튼 줄에 맞춰 카메라 거리와 중심을 정한다
   const W=scene.clientWidth,H=scene.clientHeight,rc=scene.querySelector('.rcol'),L=G3.L;
   const usable=L.p?W*.8:Math.max(W*.7,rc&&rc.offsetWidth?rc.offsetLeft-4:W);
@@ -2272,7 +2368,10 @@ function g3Sync(){              // 게임 상태(깔짚·사료·물·등·날�
   G3.skyC.set(sky);
   G3.sunO.visible=!/wx-(storm|rain|snow|fog|cloudy)/.test(wc);G3.sunM.color.set(hot?'#FF6B4A':'#FFD54A');
   // 닭 색(병아리 노랑 → 육계 흰색 / 산란계 갈색)과 볏
-  G3.mat.body.color.set(col.b);G3.mat.wing.color.set(col.w);
+  const M=G3.mat,teen=t>=G3_TEEN,legC=mixHex('#F39A2B',lay?'#E3B446':'#F0C22E',t);
+  M.body.color.set(col.b);M.wing.color.set(col.w);M.leg.color.set(legC);M.beak.color.set(mixHex('#F2A93B',lay?'#D9A650':'#EBC56A',t));
+  M.hackle.color.set(lay?mixHex(col.b,'#E2A259',.45*t):col.b);M.tail.color.set(lay?mixHex(col.w,'#F1E2CC',.4*t):col.w);
+  M.body.map=M.wing.map=teen?M.feather:M.fluff;
   G3.tray.visible=G3.nestG.visible=lay&&S.day>=18&&S.rate>0;
   // 계란
   const n=G3.tray.visible?Math.round(S.rate*12):0,br=Math.round(n*(S.brokenR||0)*4);
@@ -2286,7 +2385,7 @@ function g3Frame(dt){            // 매 프레임: 닭·쥐·팬을 움직이고
   if(!G3.on||!S||!G3.room)return;
   const T=THREE,L=G3.L,kx=L.ZX/.41,kz=L.ZZ/.15,t=growthT(),col=colors(S.mode,t),m=mood(),night=scene.classList.contains('night');
   G3.t+=dt;
-  const now=G3.t/1000,sizeK=.62+.56*t;
+  const now=G3.t/1000,sizeK=g3Scale(t),teen=t>=G3_TEEN,cg=.01+col.comb,lay=S.mode==='layer';
   // 밤 연출·더위에 따라 조명
   const dim=night?.22:1;
   G3.hemi.intensity+=(1.85*dim-G3.hemi.intensity)*.15;G3.sun.intensity+=(1.45*dim-G3.sun.intensity)*.15;
@@ -2310,23 +2409,32 @@ function g3Frame(dt){            // 매 프레임: 닭·쥐·팬을 움직이고
     if(h.px!=null){const dx=x-h.px,dz=z-h.pz;if(Math.hypot(dx,dz)>.0015){const ta=Math.atan2(-dz,dx);let d=ta-h.ry;d=Math.atan2(Math.sin(d),Math.cos(d));h.ry+=d*.18}}
     h.px=x;h.pz=z;
     h.o.position.set(x,0,z);h.o.rotation.y=h.ry;h.o.scale.setScalar(sizeK);
-    const sit=night||sick,ph=now*(S.rat?20:11)+h.ph;
-    h.up.position.y+=((sit?-.2:0)+(walking?Math.abs(Math.sin(ph))*.05:Math.sin(now*2+h.ph)*.012)-h.up.position.y)*.25;
-    h.l1.rotation.z=walking?Math.sin(ph)*.7:0;h.l2.rotation.z=walking?-Math.sin(ph)*.7:0;
-    h.l1.visible=h.l2.visible=!sit;
+    const b=teen?h.a:h.c;h.a.o.visible=teen;h.c.o.visible=!teen;
+    const sit=night||sick,peck=s.mode==='peck'&&!sit,hot=m==='hot'&&!sit,ph=now*(S.rat?19:10)+h.ph,sw=walking?Math.sin(ph):0;
+    const lerp=(o,k,v,r)=>{o[k]+=(v-o[k])*(r||.25)};
+    // 몸: 걸으면 들썩이고 좌우로 뒤뚱, 쪼면 엉덩이를 축으로 숙이고, 밤·아플 때는 앉는다
+    lerp(b.up.position,'y',b.hip+(sit?b.sitDy:0)+(walking?Math.abs(sw)*.035:Math.sin(now*2+h.ph)*.008));
+    lerp(b.up.rotation,'z',peck?-.5-Math.sin(now*9+h.ph)*.12:sick?-.1:0,.2);
+    b.up.rotation.x=sw*.07;
+    b.l1.rotation.z=sw*.65;b.l2.rotation.z=-sw*.65;b.l1.visible=b.l2.visible=!sit;
+    // 목·머리: 걸을 때 앞뒤로 까딱, 쪼기, 두리번, 아프면 숙임, 밤에는 움츠림
     let nz=0;
-    if(sick)nz=-.5;else if(night)nz=-.35;
-    else if(s.mode==='peck')nz=-.75-Math.sin(now*9+h.ph)*.45;
-    else if(m==='hot')nz=.12+Math.sin(now*8+h.ph)*.06;
-    h.neck.rotation.z+=(nz-h.neck.rotation.z)*.3;
-    h.up.rotation.z=sick?-.12:0;
-    if(m==='cold'&&!sit)h.o.position.x+=Math.sin(now*40+h.ph)*.012;
-    const wingK=m==='hot'&&!sit?.5+Math.abs(Math.sin(now*6+h.ph))*.25:.32;h.wl.scale.z=h.wr.scale.z=wingK;
-    h.comb.scale.setScalar(.01+col.comb);h.wattle.scale.set(.8*(.01+col.comb),1.3*(.01+col.comb),.8*(.01+col.comb));
-    h.tail.scale.setScalar(.35+.65*t);h.head.scale.setScalar(1.18-.2*t);
-    h.ice.visible=sick;h.body.material=sick?G3.mat.pale:G3.mat.body;h.head.material=sick?G3.mat.pale:G3.mat.body;
+    if(sick)nz=-.55;else if(night)nz=.3;else if(peck)nz=-1.05-Math.sin(now*9+h.ph)*.3;else if(hot)nz=.1;else if(walking)nz=Math.sin(ph*2)*.09;
+    lerp(b.neck.rotation,'z',nz,.3);
+    h.look+=((walking||peck||sit?0:Math.sin(now*.8+h.ph*3)*.55)-h.look)*.06;b.neck.rotation.y=h.look;
+    if(b.jaw)lerp(b.jaw.rotation,'z',hot?-.32-Math.sin(now*9+h.ph)*.1:0,.3);          // 더우면 부리를 벌리고 헐떡인다
+    // 날개: 더우면 몸에서 벌린다
+    const wo=hot?.38+Math.sin(now*5+h.ph)*.06:0;
+    if(teen){lerp(b.wl.rotation,'x',wo);lerp(b.wr.rotation,'x',-wo);b.tail.scale.setScalar((.3+.7*t)*(lay?1:.62));
+      if(!lay){b.body.scale.set(1.03,1.07,1.2);b.wl.position.z=.54;b.wr.position.z=-.54}else{b.body.scale.set(1,1,1);b.wl.position.z=.45;b.wr.position.z=-.45}b.tail.rotation.z=(walking?Math.sin(ph*2)*.04:0)+(sit?-.25:0);
+      b.comb.scale.setScalar(cg);b.wattles.scale.setScalar(cg)}
+    else{b.wl.position.z=.39+wo*.2;b.wr.position.z=-.39-wo*.2}
+    if(m==='cold'&&!sit)h.o.position.x+=Math.sin(now*40+h.ph)*.01;
+    b.ice.visible=sick;
+    if(b.sick!==sick){b.sick=sick;b.parts.forEach(q=>{q.userData.m=q.userData.m||q.material;q.material=sick?G3.mat.pale:q.userData.m})}
+    h.shadow.scale.setScalar(teen?1.05:.7);
     // 말풍선 자리(머리 위)를 화면 좌표로
-    v.set(x,sizeK*(sit?1.25:1.5),z).project(G3.cam);
+    v.set(x,sizeK*(b.top+(sit?b.sitDy:0)+.12),z).project(G3.cam);
     const el=s.el,px=(v.x*.5+.5)*W,py=(-v.y*.5+.5)*H;
     el.style.width='10px';el.style.height='0px';el.style.left=(px-5)+'px';el.style.top=py+'px';el.style.zIndex=Math.round(100+z*5);
   }
