@@ -1,26 +1,26 @@
 {
- "updated": "2026-11-04 10:35 KST",
+ "updated": "2026-11-10 13:28 KST",
  "source": "USDA NASS 「Crop Progress」 (ESMIS 텍스트판)",
  "source_url": "https://usda.library.cornell.edu/concern/publications/8336h188j",
- "report_url": "https://usda.library.cornell.edu/sites/default/release-files/796135/prog4426.txt",
+ "report_url": "https://usda.library.cornell.edu/sites/default/release-files/796141/prog4526.txt",
  "ag_insights_url": "https://aginsights.nass.usda.gov/",
- "released": "2026-11-02",
- "week_ending": "2026-11-01",
- "week_no": 44,
+ "released": "2026-11-09",
+ "week_ending": "2026-11-08",
+ "week_no": 45,
  "soil": {
   "topsoil": {
    "states": 48,
    "now": {
+    "vs": 11,
+    "s": 23,
+    "a": 58,
+    "sur": 8
+   },
+   "prev_week": {
     "vs": 13,
     "s": 25,
     "a": 56,
     "sur": 6
-   },
-   "prev_week": {
-    "vs": 12,
-    "s": 26,
-    "a": 57,
-    "sur": 5
    },
    "prev_year": null
   },
@@ -28,185 +28,185 @@
    "Iowa": {
     "topsoil": {
      "vs": 0,
-     "s": 4,
-     "a": 80,
-     "sur": 16
+     "s": 2,
+     "a": 71,
+     "sur": 27
     },
     "subsoil": {
      "vs": 0,
-     "s": 6,
-     "a": 82,
-     "sur": 12
+     "s": 5,
+     "a": 77,
+     "sur": 18
     }
    },
    "Illinois": {
     "topsoil": {
-     "vs": 17,
-     "s": 32,
-     "a": 48,
-     "sur": 3
+     "vs": 14,
+     "s": 30,
+     "a": 51,
+     "sur": 5
     },
     "subsoil": {
      "vs": 17,
      "s": 32,
-     "a": 49,
-     "sur": 2
+     "a": 47,
+     "sur": 4
     }
    },
    "Nebraska": {
     "topsoil": {
-     "vs": 8,
-     "s": 16,
-     "a": 69,
-     "sur": 7
+     "vs": 6,
+     "s": 13,
+     "a": 66,
+     "sur": 15
     },
     "subsoil": {
-     "vs": 12,
-     "s": 20,
-     "a": 64,
-     "sur": 4
+     "vs": 10,
+     "s": 17,
+     "a": 65,
+     "sur": 8
     }
    },
    "Minnesota": {
     "topsoil": {
-     "vs": 3,
-     "s": 18,
-     "a": 69,
-     "sur": 10
+     "vs": 2,
+     "s": 12,
+     "a": 70,
+     "sur": 16
     },
     "subsoil": {
-     "vs": 5,
-     "s": 22,
-     "a": 69,
-     "sur": 4
+     "vs": 3,
+     "s": 16,
+     "a": 74,
+     "sur": 7
     }
    },
    "Indiana": {
     "topsoil": {
-     "vs": 13,
-     "s": 35,
-     "a": 50,
-     "sur": 2
+     "vs": 14,
+     "s": 32,
+     "a": 51,
+     "sur": 3
     },
     "subsoil": {
      "vs": 15,
-     "s": 31,
-     "a": 52,
+     "s": 32,
+     "a": 51,
      "sur": 2
     }
    },
    "Ohio": {
     "topsoil": {
      "vs": 2,
-     "s": 22,
-     "a": 76,
-     "sur": 0
+     "s": 14,
+     "a": 78,
+     "sur": 6
     },
     "subsoil": {
      "vs": 1,
-     "s": 12,
-     "a": 86,
-     "sur": 1
+     "s": 6,
+     "a": 89,
+     "sur": 4
     }
    },
    "Missouri": {
     "topsoil": {
-     "vs": 18,
-     "s": 28,
-     "a": 50,
-     "sur": 4
+     "vs": 14,
+     "s": 23,
+     "a": 56,
+     "sur": 7
     },
     "subsoil": {
-     "vs": 15,
-     "s": 29,
-     "a": 53,
-     "sur": 3
+     "vs": 12,
+     "s": 27,
+     "a": 56,
+     "sur": 5
     }
    },
    "Kansas": {
     "topsoil": {
-     "vs": 5,
-     "s": 15,
+     "vs": 4,
+     "s": 14,
      "a": 71,
-     "sur": 9
+     "sur": 11
     },
     "subsoil": {
-     "vs": 8,
-     "s": 20,
-     "a": 65,
-     "sur": 7
+     "vs": 6,
+     "s": 18,
+     "a": 68,
+     "sur": 8
     }
    },
    "South Dakota": {
     "topsoil": {
-     "vs": 9,
-     "s": 29,
-     "a": 55,
-     "sur": 7
+     "vs": 10,
+     "s": 24,
+     "a": 56,
+     "sur": 10
     },
     "subsoil": {
-     "vs": 16,
-     "s": 40,
-     "a": 41,
-     "sur": 3
+     "vs": 15,
+     "s": 31,
+     "a": 50,
+     "sur": 4
     }
    },
    "North Dakota": {
     "topsoil": {
-     "vs": 9,
-     "s": 29,
-     "a": 58,
+     "vs": 7,
+     "s": 28,
+     "a": 61,
      "sur": 4
     },
     "subsoil": {
-     "vs": 13,
-     "s": 31,
-     "a": 54,
-     "sur": 2
+     "vs": 12,
+     "s": 32,
+     "a": 53,
+     "sur": 3
     }
    },
    "Texas": {
     "topsoil": {
      "vs": 10,
-     "s": 30,
-     "a": 49,
-     "sur": 11
+     "s": 31,
+     "a": 52,
+     "sur": 7
     },
     "subsoil": {
      "vs": 16,
-     "s": 30,
+     "s": 31,
      "a": 49,
-     "sur": 5
+     "sur": 4
     }
    },
    "Wisconsin": {
     "topsoil": {
-     "vs": 4,
-     "s": 21,
-     "a": 70,
-     "sur": 5
+     "vs": 2,
+     "s": 17,
+     "a": 73,
+     "sur": 8
     },
     "subsoil": {
-     "vs": 8,
-     "s": 21,
-     "a": 68,
-     "sur": 3
+     "vs": 6,
+     "s": 20,
+     "a": 70,
+     "sur": 4
     }
    }
   },
   "subsoil": {
    "states": 48,
    "now": {
+    "vs": 14,
+    "s": 25,
+    "a": 56,
+    "sur": 5
+   },
+   "prev_week": {
     "vs": 15,
     "s": 27,
     "a": 54,
     "sur": 4
-   },
-   "prev_week": {
-    "vs": 15,
-    "s": 28,
-    "a": 54,
-    "sur": 3
    },
    "prev_year": null
   }
@@ -219,88 +219,58 @@
    "stage": "Harvested",
    "stage_ko": "수확",
    "states": 18,
-   "this_week": 74,
-   "prev_week": 60,
+   "this_week": 81,
+   "prev_week": 74,
    "last_year": null,
-   "avg5": 77,
+   "avg5": 86,
    "by_state": {
     "Iowa": {
-     "this_week": 66,
-     "avg5": 79
+     "this_week": 72,
+     "avg5": 89
     },
     "Illinois": {
-     "this_week": 86,
-     "avg5": 83
+     "this_week": 93,
+     "avg5": 91
     },
     "Nebraska": {
-     "this_week": 66,
-     "avg5": 75
+     "this_week": 74,
+     "avg5": 84
     },
     "Minnesota": {
-     "this_week": 82,
-     "avg5": 85
+     "this_week": 88,
+     "avg5": 93
     },
     "Indiana": {
-     "this_week": 75,
-     "avg5": 71
+     "this_week": 87,
+     "avg5": 82
     },
     "Ohio": {
-     "this_week": 53,
-     "avg5": 60
-    },
-    "Missouri": {
-     "this_week": 86,
-     "avg5": 85
-    },
-    "Kansas": {
-     "this_week": 86,
-     "avg5": 87
-    },
-    "South Dakota": {
-     "this_week": 63,
+     "this_week": 69,
      "avg5": 75
     },
-    "North Dakota": {
-     "this_week": 76,
-     "avg5": 69
-    },
-    "Texas": {
-     "this_week": 97,
-     "avg5": 96
-    },
-    "Wisconsin": {
-     "this_week": 61,
-     "avg5": 57
-    }
-   }
-  },
-  {
-   "key": "sorghum_mature",
-   "crop": "sorghum",
-   "crop_ko": "수수",
-   "stage": "Mature",
-   "stage_ko": "성숙",
-   "states": 6,
-   "this_week": 96,
-   "prev_week": 93,
-   "last_year": null,
-   "avg5": 100,
-   "by_state": {
-    "Nebraska": {
-     "this_week": 94,
-     "avg5": 99
+    "Missouri": {
+     "this_week": 89,
+     "avg5": 89
     },
     "Kansas": {
-     "this_week": 92,
-     "avg5": 98
+     "this_week": 88,
+     "avg5": 92
     },
     "South Dakota": {
-     "this_week": 99,
-     "avg5": 100
+     "this_week": 68,
+     "avg5": 85
+    },
+    "North Dakota": {
+     "this_week": 85,
+     "avg5": 80
     },
     "Texas": {
-     "this_week": 100,
-     "avg5": 100
+     "this_week": 99,
+     "avg5": 98
+    },
+    "Wisconsin": {
+     "this_week": 72,
+     "avg5": 71
     }
    }
   },
@@ -311,26 +281,26 @@
    "stage": "Harvested",
    "stage_ko": "수확",
    "states": 6,
-   "this_week": 64,
-   "prev_week": 56,
+   "this_week": 70,
+   "prev_week": 64,
    "last_year": null,
-   "avg5": 78,
+   "avg5": 85,
    "by_state": {
     "Nebraska": {
-     "this_week": 42,
-     "avg5": 71
-    },
-    "Kansas": {
-     "this_week": 49,
-     "avg5": 70
-    },
-    "South Dakota": {
-     "this_week": 63,
+     "this_week": 54,
      "avg5": 79
     },
+    "Kansas": {
+     "this_week": 57,
+     "avg5": 80
+    },
+    "South Dakota": {
+     "this_week": 68,
+     "avg5": 86
+    },
     "Texas": {
-     "this_week": 97,
-     "avg5": 98
+     "this_week": 99,
+     "avg5": 99
     }
    }
   },
@@ -341,54 +311,54 @@
    "stage": "Harvested",
    "stage_ko": "수확",
    "states": 18,
-   "this_week": 88,
-   "prev_week": 79,
+   "this_week": 92,
+   "prev_week": 88,
    "last_year": null,
-   "avg5": 84,
+   "avg5": 91,
    "by_state": {
     "Iowa": {
-     "this_week": 90,
-     "avg5": 90
+     "this_week": 93,
+     "avg5": 95
     },
     "Illinois": {
-     "this_week": 91,
-     "avg5": 85
-    },
-    "Nebraska": {
-     "this_week": 84,
-     "avg5": 88
-    },
-    "Minnesota": {
-     "this_week": 97,
-     "avg5": 98
-    },
-    "Indiana": {
-     "this_week": 87,
-     "avg5": 81
-    },
-    "Ohio": {
-     "this_week": 83,
-     "avg5": 83
-    },
-    "Missouri": {
-     "this_week": 79,
-     "avg5": 73
-    },
-    "Kansas": {
-     "this_week": 72,
-     "avg5": 78
-    },
-    "South Dakota": {
-     "this_week": 94,
+     "this_week": 96,
      "avg5": 92
     },
-    "North Dakota": {
+    "Nebraska": {
+     "this_week": 90,
+     "avg5": 93
+    },
+    "Minnesota": {
+     "this_week": 100,
+     "avg5": 99
+    },
+    "Indiana": {
+     "this_week": 93,
+     "avg5": 89
+    },
+    "Ohio": {
+     "this_week": 92,
+     "avg5": 90
+    },
+    "Missouri": {
+     "this_week": 84,
+     "avg5": 82
+    },
+    "Kansas": {
+     "this_week": 78,
+     "avg5": 86
+    },
+    "South Dakota": {
      "this_week": 96,
-     "avg5": 91
+     "avg5": 96
+    },
+    "North Dakota": {
+     "this_week": 98,
+     "avg5": 95
     },
     "Wisconsin": {
-     "this_week": 94,
-     "avg5": 84
+     "this_week": 97,
+     "avg5": 91
     }
    }
   },
@@ -399,42 +369,42 @@
    "stage": "Planted",
    "stage_ko": "파종",
    "states": 18,
-   "this_week": 83,
-   "prev_week": 76,
+   "this_week": 89,
+   "prev_week": 83,
    "last_year": null,
-   "avg5": 84,
+   "avg5": 90,
    "by_state": {
     "Illinois": {
-     "this_week": 84,
-     "avg5": 81
+     "this_week": 93,
+     "avg5": 89
     },
     "Nebraska": {
-     "this_week": 98,
-     "avg5": 94
+     "this_week": 99,
+     "avg5": 95
     },
     "Indiana": {
-     "this_week": 78,
-     "avg5": 77
-    },
-    "Ohio": {
      "this_week": 88,
-     "avg5": 86
-    },
-    "Missouri": {
-     "this_week": 74,
-     "avg5": 68
-    },
-    "Kansas": {
-     "this_week": 86,
      "avg5": 87
     },
+    "Ohio": {
+     "this_week": 94,
+     "avg5": 93
+    },
+    "Missouri": {
+     "this_week": 81,
+     "avg5": 80
+    },
+    "Kansas": {
+     "this_week": 92,
+     "avg5": 93
+    },
     "South Dakota": {
-     "this_week": 97,
-     "avg5": 96
+     "this_week": 98,
+     "avg5": 98
     },
     "Texas": {
-     "this_week": 77,
-     "avg5": 75
+     "this_week": 82,
+     "avg5": 82
     }
    }
   },
@@ -445,42 +415,42 @@
    "stage": "Emerged",
    "stage_ko": "출현",
    "states": 18,
-   "this_week": 65,
-   "prev_week": 53,
+   "this_week": 76,
+   "prev_week": 65,
    "last_year": null,
-   "avg5": 65,
+   "avg5": 74,
    "by_state": {
     "Illinois": {
-     "this_week": 57,
-     "avg5": 54
+     "this_week": 71,
+     "avg5": 67
     },
     "Nebraska": {
-     "this_week": 89,
-     "avg5": 85
+     "this_week": 96,
+     "avg5": 89
     },
     "Indiana": {
-     "this_week": 42,
-     "avg5": 50
-    },
-    "Ohio": {
-     "this_week": 68,
+     "this_week": 60,
      "avg5": 64
     },
+    "Ohio": {
+     "this_week": 78,
+     "avg5": 78
+    },
     "Missouri": {
-     "this_week": 50,
-     "avg5": 42
+     "this_week": 63,
+     "avg5": 57
     },
     "Kansas": {
-     "this_week": 66,
-     "avg5": 68
+     "this_week": 78,
+     "avg5": 78
     },
     "South Dakota": {
-     "this_week": 85,
-     "avg5": 77
+     "this_week": 91,
+     "avg5": 83
     },
     "Texas": {
-     "this_week": 63,
-     "avg5": 53
+     "this_week": 71,
+     "avg5": 63
     }
    }
   }
@@ -491,70 +461,76 @@
    "label": "겨울밀",
    "states": 18,
    "now": {
+    "vp": 4,
+    "p": 12,
+    "f": 35,
+    "g": 41,
+    "e": 8
+   },
+   "prev_week": {
     "vp": 5,
     "p": 13,
     "f": 38,
     "g": 38,
     "e": 6
    },
-   "prev_week": null,
    "prev_year": null,
    "by_state": {
     "Illinois": {
      "vp": 3,
      "p": 5,
-     "f": 34,
-     "g": 47,
-     "e": 11
+     "f": 30,
+     "g": 53,
+     "e": 9
     },
     "Nebraska": {
-     "vp": 9,
-     "p": 5,
+     "vp": 8,
+     "p": 6,
      "f": 19,
-     "g": 63,
-     "e": 4
+     "g": 62,
+     "e": 5
     },
     "Indiana": {
-     "vp": 2,
+     "vp": 3,
      "p": 5,
-     "f": 25,
-     "g": 58,
-     "e": 10
+     "f": 28,
+     "g": 55,
+     "e": 9
     },
     "Ohio": {
      "vp": 1,
-     "p": 2,
-     "f": 29,
+     "p": 3,
+     "f": 21,
      "g": 56,
-     "e": 12
+     "e": 19
     },
     "Missouri": {
      "vp": 0,
-     "p": 1,
-     "f": 26,
+     "p": 2,
+     "f": 25,
      "g": 60,
      "e": 13
     },
     "Kansas": {
-     "vp": 6,
-     "p": 14,
+     "vp": 5,
+     "p": 11,
      "f": 33,
-     "g": 42,
-     "e": 5
+     "g": 40,
+     "e": 11
     },
     "South Dakota": {
-     "vp": 7,
-     "p": 12,
-     "f": 45,
-     "g": 34,
-     "e": 2
+     "vp": 6,
+     "p": 10,
+     "f": 40,
+     "g": 40,
+     "e": 4
     },
     "Texas": {
-     "vp": 9,
-     "p": 25,
+     "vp": 5,
+     "p": 20,
      "f": 33,
-     "g": 27,
-     "e": 6
+     "g": 33,
+     "e": 9
     }
    }
   }
@@ -750,6 +726,23 @@
    "soy_harvested_avg5": 84,
    "winter_wheat_planted": 83,
    "winter_wheat_planted_avg5": 84
+  },
+  {
+   "week_ending": "2026-11-08",
+   "week_no": 45,
+   "topsoil_a": 58,
+   "topsoil_a_sur": 66,
+   "topsoil_dry": 34,
+   "subsoil_a": 56,
+   "subsoil_a_sur": 61,
+   "subsoil_dry": 39,
+   "winter_wheat_ge": 49,
+   "corn_harvested": 81,
+   "corn_harvested_avg5": 86,
+   "soy_harvested": 92,
+   "soy_harvested_avg5": 91,
+   "winter_wheat_planted": 89,
+   "winter_wheat_planted_avg5": 90
   }
  ]
 }
