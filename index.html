@@ -839,7 +839,7 @@ const PREMIUM_ITEMS = [
   { key:"disinfect", icon:"🧴", title:"질병별 소독제 선택과 소독요령", desc:"질병을 고르면 그에 맞는 소독제 선택 기준과 소독요령을 단계별로 안내합니다.", color:"#00695C", category:"약품·투약·소독" },
   { key:"newproducts", icon:"🆕", title:"신제품 소식", desc:"항생제·영양제·백신·기타로 나눠 새로 나온 제품 정보를 카드 학습 형태로 보여드립니다.", color:"#C2185B", category:"약품·투약·소독" },
   { key:"drugnews", icon:"💊", title:"동물약품 주간 소식", desc:"국내외 동물용의약품 신제품·백신·항생제·허가·제약업계 동향 중 중요한 소식 3~5건을 매주 금요일 아침 7시에 골라 카드로 보여드립니다. 국내외 전문 사이트 모음도 함께 봅니다.", color:"#AD1457", category:"약품·투약·소독" },
-  { key:"vaccine", icon:"🛡️", title:"백신관리 프로그램", desc:"육계·산란계 일령별 백신 접종 프로그램을 관리자가 만들어 단계별로 보여드립니다.", color:"#3949AB", category:"백신·약품관리" },
+  { key:"vaccine", icon:"🛡️", title:"백신관리 프로그램", desc:"육계·산란계·삼계·토종닭·종계 일령별 백신 접종 프로그램을 관리자가 만들어 단계별로 보여드립니다.", color:"#3949AB", category:"백신·약품관리" },
   { key:"supplement", icon:"🌿", title:"영양제 종류별 사용요령", desc:"영양제·전해질·대사촉진제·간기능개선제·면역증강제·기타로 나눠 각 제제의 기능과 적응증, 쓰는 요령과 주의점을 한눈에 정리했습니다.", color:"#2E7D32", category:"백신·약품관리" },
   { key:"ventfinder", icon:"💨", title:"내 농장에 맞는 환기량 찾기", desc:"오늘 날씨·계사 조건을 넣으면 최소환기량(습도 조절)과 최대환기량(터널·냉각)을 계산해 드립니다.", color:"#0288D1", category:"사양관리" },
   { key:"lightguide", icon:"💡", title:"점등 프로그램(산란계·육계, 육종회사별)", desc:"로만·하이라인·이사 공식 가이드의 점등 원칙과 입식일·지역별 자연 일장을 겹쳐, 계절에 맞는 점등시간과 조기 성성숙·산란 지연 위험을 보여드립니다.", color:"#F9A825", category:"사양관리" },
@@ -977,7 +977,7 @@ const PREMIUM_MENU_CATEGORY_RENAME = { "백신관리": "백신·약품관리", "
 // 관리자가 예전에 저장한 메뉴에 옛 제목이 남아 있어도 새 아카데미 제목으로 보이게 한다.
 const PREMIUM_MENU_FORCE_TITLE = { coliclass:"닭 대장균증 잡는 교실 — 발견부터 재발 방지까지 10차시", seasonal:"계절별 사양관리,질병,투약(관리) 패키지", ibteam:"IB 닭기침 잡는 교실 — 전염성기관지염(IB) 차단 8단계 코스", hpaizero:"AI 막는 농장 지킴이 교실 — HPAI ZERO FARM" };
 // 코드에서 설명을 바꾼 메뉴 — 관리자가 예전에 저장한 메뉴의 옛 설명 대신 보인다.
-const PREMIUM_MENU_FORCE_DESC = { coliclass:"육계·산란계를 나누어 대장균증을 쉽게 배웁니다. 기초 → 현장 판단 → 치료·재발 방지·백신, 그림과 사례를 카드로 한눈에." };
+const PREMIUM_MENU_FORCE_DESC = { vaccine:"육계·산란계·삼계·토종닭·종계 일령별 백신 접종 프로그램을 관리자가 만들어 단계별로 보여드립니다.", coliclass:"육계·산란계를 나누어 대장균증을 쉽게 배웁니다. 기초 → 현장 판단 → 치료·재발 방지·백신, 그림과 사례를 카드로 한눈에." };
 const PREMIUM_MENU_FORCE_CATEGORY = { grainprice:"시세 예측·분석", priceforecast:"시세 예측·분석" };
 // 삭제된 메뉴 — 관리자가 예전에 저장한 메뉴에 남아 있어도 보이지 않게 한다.
 const PREMIUM_MENU_REMOVED_KEYS = ["finder", "farmgame"];
@@ -2231,7 +2231,7 @@ async function publishVaccinePrograms(programs){
     const body = {
       updated: new Date().toISOString().slice(0,16).replace("T"," ") + " UTC",
       by: PICK_BY,
-      note: "백신관리 프로그램(육계·산란계) — 화면에서 저장하면 이 파일이 갱신되고 승인된 회원 모두에게 같은 내용이 보입니다.",
+      note: "백신관리 프로그램(육계·산란계·삼계·토종닭·종계) — 화면에서 저장하면 이 파일이 갱신되고 승인된 회원 모두에게 같은 내용이 보입니다.",
       programs: programs,
     };
     await writePremiumContentJson("vaccine_programs", body);
@@ -2247,7 +2247,7 @@ function renderVaccinePanel(){
   <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
     <div>
       <div class="display" style="font-size:16px;margin-bottom:3px">🛡️ 백신관리 프로그램</div>
-      <div style="font-size:11px;color:#aaa">육계·산란계 일령별 백신 접종 프로그램을 단계별로 보여드립니다</div>
+      <div style="font-size:11px;color:#aaa">육계·산란계·삼계·토종닭·종계 일령별 백신 접종 프로그램을 단계별로 보여드립니다</div>
     </div>
     <button id="vaccine-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button>
   </div>`;
@@ -2261,17 +2261,17 @@ function renderVaccinePanel(){
   }
 
   const admin = isBoardAdmin();
-  const speciesBtns = ["broiler","layer"].map(k => {
-    const t = TREATMENT_SPECIES_THEME[k], on = vaccineTabState.species===k;
+  const speciesBtns = VACCINE_SPECIES.map(k => {
+    const t = VACCINE_SPECIES_THEME[k], on = vaccineTabState.species===k, n = vaccineProgramsFor(k).length;
     return `
     <button class="vaccine-species-btn" data-species="${k}"
-      style="flex:1;border:2px solid ${on?t.color:"#eee"};background:${on?t.color:"#fff"};color:${on?"#fff":"#333"};border-radius:10px;padding:10px 6px;font-size:13px;font-weight:700;cursor:pointer">${t.label}</button>`;
+      style="border:2px solid ${on?t.color:"#eee"};background:${on?t.color:"#fff"};color:${on?"#fff":"#333"};border-radius:10px;padding:10px 6px;font-size:13px;font-weight:700;cursor:pointer">${t.label}${n ? ` <span style="font-size:11px;opacity:.8">${n}</span>` : ""}</button>`;
   }).join("");
 
   const list = vaccineProgramsFor(vaccineTabState.species);
   const cards = list.length ? list.map((p, ci) => {
     const open = vaccineTabState.openKey === p.key;
-    const sp = TREATMENT_SPECIES_THEME[p.species] || TREATMENT_SPECIES_THEME[vaccineTabState.species] || TREATMENT_SPECIES_THEME.broiler;
+    const sp = VACCINE_SPECIES_THEME[p.species] || VACCINE_SPECIES_THEME[vaccineTabState.species] || VACCINE_SPECIES_THEME.broiler;
     const vc = pkgColorOf(p, ci).color;
     const th = `padding:10px 12px;text-align:left;font-size:13px;color:${vc};font-weight:700`;
     return pkgCardHtml({
@@ -2308,7 +2308,7 @@ function renderVaccinePanel(){
     ${vaccinePkgState.msg?`<span style="font-size:11px;margin-left:8px;color:${/실패|오류|않|없/.test(vaccinePkgState.msg)?"#C62828":"#2E7D32"}">${esc(vaccinePkgState.msg)}</span>`:""}
     ${vaccineTabState.adminOpen ? `
     <div style="margin-top:9px;background:#FCFBF6;border:1px solid #EFE8D0;border-radius:9px;padding:10px">
-      <div style="font-size:11px;font-weight:700;color:#7A5C00;margin-bottom:8px">${editing?"프로그램 수정: "+esc(editing.title):"새 프로그램 추가"} (${vaccineTabState.species==="broiler"?"육계":"산란계"})</div>
+      <div style="font-size:11px;font-weight:700;color:#7A5C00;margin-bottom:8px">${editing?"프로그램 수정: "+esc(editing.title):"새 프로그램 추가"} (${vaccineSpeciesName(vaccineTabState.species)})</div>
       ${pkgColorPickerHtml("vp-color", vaccineTabState.formKey||"new", editing?editing.color:"")}
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
         <input id="vp-title" type="text" placeholder="프로그램 이름 (예: 육계 표준 백신 프로그램)" value="${esc(vaccineTabState.draftTitle)}"
@@ -2380,7 +2380,7 @@ function renderVaccinePanel(){
   </div>`;
 
   return head + viewBar + `
-  <div style="display:flex;gap:8px;margin-bottom:14px">${speciesBtns}</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:6px;margin-bottom:14px">${speciesBtns}</div>
   ${cards}
   ${adminBox}
   <div style="font-size:9px;color:#aaa;line-height:1.6;margin-top:6px">
@@ -11879,6 +11879,14 @@ const TREATMENT_SPECIES_THEME = {
   broiler: { label:"🐔 육계",   color:"#D84315", tint:"#FFF3EE", chipBg:"#FFE0D3" },
   layer:   { label:"🥚 산란계", color:"#00796B", tint:"#EEF8F6", chipBg:"#D2EEE9" },
 };
+// 백신관리 프로그램 카테고리(축종) — 육계·산란계 + 삼계·토종닭·종계. 저장값은 프로그램의 species 키.
+const VACCINE_SPECIES = ["broiler", "layer", "samgye", "native", "breeder"];
+const VACCINE_SPECIES_THEME = Object.assign({}, TREATMENT_SPECIES_THEME, {
+  samgye:  { label:"🍲 삼계",   color:"#6D4C41", tint:"#F7F1EE", chipBg:"#EADFD9" },
+  native:  { label:"🐓 토종닭", color:"#AD1457", tint:"#FCEFF4", chipBg:"#F8D7E4" },
+  breeder: { label:"🐣 종계",   color:"#3949AB", tint:"#EFF1FA", chipBg:"#D9DDF3" },
+});
+function vaccineSpeciesName(k){ const t = VACCINE_SPECIES_THEME[k]; return t ? t.label.replace(/^\S+\s/, "") : "육계"; }
 const TREATMENT_ICON_CHOICES = ["🫁","🦠","🥚","⚠️","🌡️","🧫","🦵","💉","🪱","💊","🐔","🩺","🧪","💧","🔥","❄️","🍽️","😮‍💨","🩸","🧬","🛡️","📋"];
 const TREATMENT_SITUATION_THEMES = [
   { re:/호흡|기침|콧물|CRD|IB|ND|ILT|코라이자|마이코|천식|가래|재채기/i, icon:"🫁", name:"호흡기", color:"#1565C0" },
