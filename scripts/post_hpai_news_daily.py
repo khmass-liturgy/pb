@@ -9,6 +9,9 @@ AI관련정보 탭의 「AI 관련 소식」 목록은 관리자가 화면에서
 · 중복 제거: ① 이미 올라간 소식(제목·원문 주소) ② 예전에 자동으로 올렸다가 지워진 기사(`auto.seen`) ③ 제목이 거의 같은 다른 매체 기사(단어 유사도)
 · 하루 1건: 오늘 이미 자동 등록했으면 건너뛴다(FORCE=1이면 다시 실행)
 · 요약: 원문을 읽어 Claude(ANTHROPIC_API_KEY)가 2~3문장으로 줄이고, 키가 없으면 본문 앞부분을 쓴다
+· 한 번만 다른 검색어로: 수동 실행 입력 `keyword`(환경변수 ONCE_KEYWORD, 예: 「인천 강화 조류인플루엔자」) — 검색어의 지명 등
+  (「조류인플루엔자」·「AI」를 뺀 낱말)이 모두 제목에 든 기사만 1건 올린다. 자동 등록이 꺼져 있거나 오늘 이미 올렸어도 실행하고,
+  저장된 검색어·오늘 등록 표시는 바꾸지 않는다
 · 켜고 끄기: 화면의 관리 상자에서 「자동 등록」을 끄면 `auto.enabled=false`가 저장되어 이 스크립트가 아무것도 하지 않는다
 
 모든 시각은 KST. 실패하면 기존 소식은 손대지 않는다.
@@ -124,16 +127,20 @@ def main() -> int:
     items = data.get("items") if isinstance(data.get("items"), list) else []
     auto = dict(data.get("auto") or {})
     today = datetime.now(KST).strftime("%Y-%m-%d")
-    keyword = auto.get("keyword") or KEYWORD
+    once = os.environ.get("ONCE_KEYWORD", "").strip()
+    keyword = once or auto.get("keyword") or KEYWORD
+    must = [w for w in once.split() if KEYWORD not in w and w.upper() != "AI"]
 
-    if auto.get("enabled") is False:
+    if auto.get("enabled") is False and not once:
         print("자동 등록이 꺼져 있어 건너뜁니다(화면의 관리 상자에서 켤 수 있습니다)")
         return 0
-    if auto.get("lastPostDate") == today and os.environ.get("FORCE") != "1":
+    if auto.get("lastPostDate") == today and os.environ.get("FORCE") != "1" and not once:
         print("오늘은 이미 자동 등록했습니다:", auto.get("lastTitle"))
         return 0
 
     cands = search(keyword)
+    if must:
+        cands = [c for c in cands if all(w in c["title"] for w in must)]
     print(f"'{keyword}' 최근 {LOOKBACK_DAYS}일 후보 {len(cands)}건")
     seen = set(auto.get("seen") or [])
     posted = None
@@ -171,14 +178,19 @@ def main() -> int:
 
     if not posted:
         print("올릴 새 기사가 없습니다(모두 중복이거나 후보 없음)")
+        if once:
+            return 1
         auto.update({"lastRun": today, "lastStatus": "새 기사 없음"})
         data["auto"] = auto
         data["items"] = items
         blob.upload_from_string(json.dumps(data, ensure_ascii=False, indent=1), content_type="application/json")
         return 0
 
-    auto.update({"enabled": True, "keyword": keyword, "lastRun": today, "lastPostDate": today, "lastTitle": posted["title"],
-                 "lastStatus": "등록 완료", "seen": sorted(seen)[-SEEN_KEEP:]})
+    if once:
+        auto["seen"] = sorted(seen)[-SEEN_KEEP:]
+    else:
+        auto.update({"enabled": True, "keyword": keyword, "lastRun": today, "lastPostDate": today, "lastTitle": posted["title"],
+                     "lastStatus": "등록 완료", "seen": sorted(seen)[-SEEN_KEEP:]})
     data["items"] = [posted] + items
     data["auto"] = auto
     data["updated"] = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M") + " UTC"

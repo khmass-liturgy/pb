@@ -11,6 +11,10 @@ on:
         description: "오늘 이미 자동 등록했어도 다시 실행(1)"
         required: false
         default: ""
+      keyword:
+        description: "이번 한 번만 이 검색어로 1건 등록(예: 인천 강화 조류인플루엔자) — 지명이 제목에 든 기사만"
+        required: false
+        default: ""
 
 concurrency:
   group: post-hpai-news-daily
@@ -41,4 +45,5 @@ jobs:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           FORCE: ${{ github.event.inputs.force }}
+          ONCE_KEYWORD: ${{ github.event.inputs.keyword }}
         run: python scripts/post_hpai_news_daily.py
