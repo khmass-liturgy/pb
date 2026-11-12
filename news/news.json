@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-11 11:31 KST",
+  "updated": "2026-11-12 12:36 KST",
   "channels": {
     "livestock": {
       "label": "축산·농업",
@@ -8,15 +8,8 @@
     },
     "vet": {
       "label": "수의·방역",
-      "items": [
-        {
-          "title": "충남 수의사 250여 명 한자리…공직 수의사 처우 개선·가축방역 지원 한목소리 - 농수축산신문",
-          "link": "https://news.google.com/rss/articles/CBMibEFVX3lxTE5CLWNMRGVZa012SV9pV2lEY1FvQXU1al95clY5bFZOelZobHRkVWR1Wl9WSVlrNmdDU01XU0tnSzhHSjFQOU5lOE1JR3JHU1NVOU5nemptOUlidXhuelA3REtmZ0ZpREplRXpNSg?oc=5",
-          "date": "11/09 13:32",
-          "source": "농수축산신문"
-        }
-      ],
-      "count": 1
+      "items": [],
+      "count": 0
     },
     "disease": {
       "label": "가축질병",
@@ -25,8 +18,15 @@
     },
     "feed": {
       "label": "사료·약품",
-      "items": [],
-      "count": 0
+      "items": [
+        {
+          "title": "농식품부산물 TMR 사료로 사료비 30% 절감 - 농축유통신문",
+          "link": "https://news.google.com/rss/articles/CBMiakFVX3lxTE52Q3ViN2JPb2xjWkZjaWo5bDFUai1nRG1FSndEbFQxSE5kM1JlNmZpX3Zrbi1naTZrQ3U0T3JTT2kxZU5GT2VsQVhvcU9ZVXFWYWZrRzh3SDNnWjEzNHJQY21DNndSNkRsLVE?oc=5",
+          "date": "11/11 13:20",
+          "source": "농축유통신문"
+        }
+      ],
+      "count": 1
     },
     "economy": {
       "label": "경제",
