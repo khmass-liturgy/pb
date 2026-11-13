@@ -5,3 +5,11 @@ node_modules/
 firebase-debug.log
 firebase-debug.*.log
 .runtimeconfig.json
+
+# graphify (code graph for token saving) - do not commit cache/internal state
+graphify-out/cache/
+graphify-out/.graphify_*
+
+# graphify code graph: do not commit cache/internal state
+graphify-out/cache/
+graphify-out/.graphify_*
