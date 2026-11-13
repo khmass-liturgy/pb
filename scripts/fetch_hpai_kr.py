@@ -275,6 +275,13 @@ def fetch_table_data() -> dict:
     if not farms:
         raise RuntimeError("가금농장 행을 읽지 못함")
     for row in farms + wild:            # 「전남광주」 같은 통합 시·도 이름 → 지도의 시·도
+        raw = re.sub(r"\s+", "", row["sido"] or "")
+        if raw in MERGED_SIDO and re.sub(r"(광역시|시)$", "", row["sgg"] or "") == MERGED_SIDO[raw][0]:
+            # 시군구 칸에 「광주」처럼 광역시 이름만, 구는 도래지 칸에 적힌 행('26.11.7 표 야생조류 6번: 광주 / 광산구)
+            row["sido"] = MERGED_SIDO[raw][0]
+            if row.get("spot") in MERGED_SIDO[raw][2]:
+                row["sgg"] = row["spot"]
+            continue
         row["sido"] = norm_sido(row["sido"], row["sgg"])
         # 시군구 칸에 「광주」처럼 광역시 이름만, 구는 도래지 칸에 적힌 행('26.11.7 표 야생조류 6번: 전남 / 광주 / 광산구)
         # → 광주 / 광산구. 경기 광주시는 시·도가 경기라 건드리지 않는다.
