@@ -4885,11 +4885,11 @@ const DAILYVET_HOME = "https://www.dailyvet.co.kr/category/news/prevention-hygie
 // ── 공용 CORS 프록시 풀 ─────────────────────────────────────────────────────
 // 무료 프록시는 각각 분당/초당 호출 제한이 있음 (AllOrigins 20/분, CodeTabs 5/초 등).
 // 매 호출마다 시작 프록시를 회전시켜 한 곳에 부하가 몰리지 않게 분산한다.
+// corsproxy.io는 2026년부터 API 키가 없으면 401을 돌려줘 목록에서 뺐다(날씨·뉴스 등 모든 프록시 경로 공통).
 const CORS_PROXIES = [
   (u)=>"https://api.codetabs.com/v1/proxy/?quest="+encodeURIComponent(u),
   (u)=>"https://api.allorigins.win/raw?url="+encodeURIComponent(u),
   (u)=>"https://api.cors.lol/?url="+encodeURIComponent(u),
-  (u)=>"https://corsproxy.io/?url="+encodeURIComponent(u),
 ];
 let _proxyCursor = 0;
 function proxyRoutes(targetUrl, includeDirect){
@@ -6181,9 +6181,9 @@ async function fetchWeather(lat, lng, name){
       return res.data && res.data.json;
     };
     const routes = [
-      ["직접", ()=>viaUrl(fcstUrl, 10000)],
+      ["직접", ()=>viaUrl(fcstUrl, 15000)],
       ["서버", viaFn],
-    ].concat(proxyRoutes(fcstUrl).slice(0,2).map((p,i)=>["프록시"+(i+1), ()=>viaUrl(p, 12000)]));
+    ].concat(proxyRoutes(fcstUrl).map((p,i)=>["프록시"+(i+1), ()=>viaUrl(p, 13000)]));
     for(let ri=0; ri<routes.length && !fcstData; ri++){
       try {
         const j = await routes[ri][1]();
