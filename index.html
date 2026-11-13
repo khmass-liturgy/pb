@@ -27641,6 +27641,26 @@ function smRefCard(r){
     </div></details>`;
 }
 // 공통 섹션 — kind별 그림·요약·근거
+// GI-19(QX) 하위형 — 가장 중요한 계통이라 따로 자세히. 두 연구팀의 분류 방식을 나란히(논문마다 이름 체계가 달라 합치지 않는다).
+function smIbGi19(C){
+  const rootX = 44, rootY = 150, tipX = 150;
+  let s = `<circle cx="20" cy="${rootY}" r="8" fill="${C}"/>` + gmT(20, rootY - 14, "GI-19", { s:12.5, w:900, c:C }) + gmT(20, rootY + 26, "(QX)", { s:11, w:700, c:"#777" });
+  s += `<line x1="28" y1="${rootY}" x2="${rootX}" y2="${rootY}" stroke="${C}" stroke-width="4" stroke-linecap="round"/>`;
+  const groups = [
+    { label:"건국대(2021) 분류", y0:16, items:[["KM91-like",0],["K40/09-like",0],["QX-like Ⅰ·Ⅱ",0],["QX-like Ⅲ·Ⅳ (요즘 과반)",1]] },
+    { label:"검역본부(2025) 분류", y0:172, items:[["K-IIa·b·c",0],["K-IId (가장 흔함)",1],["K-IIe (신규·재조합)",1]] },
+  ];
+  groups.forEach(g => {
+    s += gmBox(tipX - 6, g.y0, 152, 18, C + "14", null, 9) + gmT(tipX, g.y0 + 13, g.label, { a:"start", s:11.5, w:800, c:C });
+    g.items.forEach((it, i) => {
+      const yy = g.y0 + 34 + i * 26, hot = it[1], col = hot ? C : "#90A4AE";
+      s += `<path d="M${rootX} ${rootY} C ${rootX + 34} ${rootY}, ${tipX - 42} ${yy}, ${tipX} ${yy}" fill="none" stroke="${col}" stroke-width="${hot ? 3.2 : 2}"/>`
+        + `<circle cx="${tipX}" cy="${yy}" r="${hot ? 6.5 : 5}" fill="${hot ? C : "#fff"}" stroke="${C}" stroke-width="2"/>`
+        + gmT(tipX + 10, yy + 4, it[0], { a:"start", s:13.5, w:hot ? 900 : 700, c:hot ? "#222" : "#555" });
+    });
+  });
+  return gmSvg(300, s, "GI-19(QX) 하위형 — 두 연구팀 분류");
+}
 function smSection(kind){
   const C = kind === "ai" ? "#6A1B9A" : kind === "ec" ? "#00695C" : IB_COLOR;
   const refs = SM_REFS[kind] || [];
@@ -27654,6 +27674,9 @@ function smSection(kind){
       { t:"GI-16 · GVI-1", sub:"드물게 보고" },
       { t:"GX-1 (신규, 2026)", sub:"10번째 유전형 제안", hot:true },
     ], "뿌리에서 가지처럼 갈라져요");
+    fig += `<div style="font-size:16.5px;font-weight:900;color:${C};margin:14px 0 2px">⭐ 가장 중요 — GI-19(QX) 안의 하위형</div><div style="font-size:14px;color:#555;line-height:1.7;margin-bottom:4px">국내 IB의 중심이라 가장 자세히 봐요. 연구팀마다 이름 붙이는 방식이 달라 <b>두 분류</b>를 나란히 뒀어요(서로 같은 형끼리 짝지은 게 아니에요).</div>`;
+    fig += gmFig(smIbGi19(C), "요즘은 QX-like Ⅲ·Ⅳ가 절반을 넘고(건국대 2021), 검역본부 분류로는 K-IId가 가장 흔하며 새 K-IIe는 재조합이에요(검역본부 2025).");
+    fig += `<div style="background:${C}0d;border:1.5px solid ${C}44;border-radius:12px;padding:11px 13px;margin:8px 0;font-size:14.5px;line-height:1.75;color:#333"><b style="color:${C}">한눈에</b><br>· <b>QX-like Ⅲ·Ⅳ</b>(건국대) = 요즘 가장 많이 보이는 하위형, 2001~2020년에 적어도 네 번 외부 유입<br>· <b>K-IId</b>(검역본부) = 2003~2024 분리주 중 가장 흔함 · 새 <b>K-IIe</b>는 여러 형이 섞인 재조합<br>· 재조합형 <b>rGI-19 Ⅰ~Ⅲ</b>도 따로 보고 — 기관지엔 더 잘, 콩팥엔 덜 (검역본부 2021)</div>`;
     fig += gmFig(smRecomb("GI-19 (QX)", "#C62828", "GI-15", "#1565C0", "재조합형"), "서로 다른 형이 한 닭에 같이 감염되면 섞인 재조합형이 생겨요(백신과 덜 맞을 수 있음).");
   } else if(kind === "ai"){
     head = ["🧬 우리나라 AI(H5) 바이러스 족보", "최근 논문으로 본 유전형·재조합"];
