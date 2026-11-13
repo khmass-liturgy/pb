@@ -45,8 +45,8 @@ LIST_URL = "https://aglook.krei.re.kr/main/uObserveMonth/OVR0000000014"
 DOWNLOAD = "https://aglook.krei.re.kr/main/uObserveMonth/OVR0000000014/download/{id}/ORGTEXT_FILE"
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36"}
 ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
-ANTHROPIC_MODEL = "claude-sonnet-5"
-ANTHROPIC_MODEL_FALLBACK = "claude-3-5-sonnet-20241022"
+ANTHROPIC_MODEL = "claude-sonnet-5-5"
+ANTHROPIC_MODEL_FALLBACK = "claude-opus-5-5"
 
 DEFAULT_CULL = 450          # 도태 자료가 6개월도 안 쌓였을 때만 쓰는 값(천 마리/월)
 Z80 = 1.28                  # 80% 구간
@@ -106,7 +106,7 @@ def ask_claude(pdf_bytes: bytes, api_key: str) -> dict | None:
     headers = {"x-api-key": api_key, "anthropic-version": "2023-06-01", "content-type": "application/json"}
     for model in (ANTHROPIC_MODEL, ANTHROPIC_MODEL_FALLBACK):
         r = requests.post(ANTHROPIC_URL, headers=headers, timeout=120,
-                          json={"model": model, "max_tokens": 4000, "temperature": 0, "messages": [{"role": "user", "content": content}]})
+                          json={"model": model, "max_tokens": 4000, "messages": [{"role": "user", "content": content}]})
         if r.status_code == 200:
             text = "".join(b.get("text", "") for b in r.json().get("content", []))
             m = re.search(r"\{.*\}", text, flags=re.S)
