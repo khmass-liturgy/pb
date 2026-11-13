@@ -1,8 +1,8 @@
 {
- "updated": "2026-10-23 11:04 KST",
+ "updated": "2026-11-13 09:12 KST",
  "source": "KREI 농업관측센터 「축산관측 육계」 월보 2025년 3월호~2026년 10월호",
  "source_url": "https://aglook.krei.re.kr/main/uObserveMonth/OVR0000000014",
- "latest_report": "2026-10",
+ "latest_report": "2026-11",
  "units": {
   "total": "천 마리",
   "adult": "천 마리",
@@ -235,8 +235,8 @@
   },
   {
    "ym": "2026-08",
-   "total": 8414,
-   "adult": 4578,
+   "total": 8412,
+   "adult": 4589,
    "placed": 615,
    "culled": 320,
    "chick": 6431,
@@ -245,11 +245,31 @@
     "kreI_est",
     "latest_est"
    ],
-   "grower": 3836
+   "grower": 3823
   },
   {
    "ym": "2026-09",
    "chick": 7167,
+   "flags": [
+    "chick_mid",
+    "kreI_est"
+   ],
+   "total": 8431,
+   "adult": 4820,
+   "placed": 593,
+   "culled": 377,
+   "grower": 3611
+  },
+  {
+   "ym": "2026-10",
+   "chick": 6855,
+   "flags": [
+    "chick_mid"
+   ]
+  },
+  {
+   "ym": "2026-11",
+   "chick": 7500,
    "flags": [
     "chick_mid"
    ]
@@ -340,54 +360,55 @@
   ]
  },
  "outlook": {
-  "issue": "2026-10",
+  "issue": "2026-11",
   "headlines": [
-   "10월 육계 도축 마릿수 전년 대비 증가 전망",
-   "10월 육계 생계유통가격 전월 대비 하락 전망"
+   "9월 말 기준 종계 성계 사육 마릿수 전년 대비 증가 추정",
+   "10월 육계 도축 마릿수 전년 대비 증가",
+   "11월 육계 도축 마릿수 전년 대비 증가"
   ],
   "chick": [
    {
-    "ym": "2026-09",
-    "lo": 7099,
-    "hi": 7235,
-    "last_year": 6793,
-    "normal": 6865
-   },
-   {
     "ym": "2026-10",
-    "lo": 6611,
-    "hi": 6740,
+    "lo": 6791,
+    "hi": 6919,
     "last_year": 6432,
     "normal": 6740
-   }
-  ],
-  "chick_note": "종계 성계 생산성 회복 및 작업일수 증가로 병아리 입식 증가",
-  "slaughter": [
-   {
-    "ym": "2026-10",
-    "lo": 6914,
-    "hi": 7047,
-    "last_year": 6628,
-    "normal": 6695
    },
    {
     "ym": "2026-11",
-    "lo": 6485,
-    "hi": 6612,
-    "last_year": 6317,
-    "normal": 6625
+    "lo": 7429,
+    "hi": 7572,
+    "last_year": 7188,
+    "normal": 6826
    }
   ],
-  "slaughter_per_day": 285,
+  "slaughter": [
+   {
+    "ym": "2026-11",
+    "lo": 6670,
+    "hi": 6796,
+    "last_year": 6317,
+    "normal": 6625
+   },
+   {
+    "ym": "2026-12",
+    "lo": 7228,
+    "hi": 7367,
+    "last_year": 6965,
+    "normal": 6670
+   }
+  ],
+  "chick_note": "종계 성계 생산성 개선 및 작업일수 증가로 병아리 입식 증가",
+  "slaughter_per_day": 293,
   "price": {
-   "ym": "2026-10",
-   "value": 1600,
-   "prev_value": 1665,
+   "ym": "2026-11",
+   "value": 1500,
+   "prev_value": 1524,
+   "last_year": 1617,
+   "normal": 1466,
    "direction": "하락",
-   "last_year": 1470,
-   "normal": 1589,
-   "reason": "일평균 도축 마릿수 감소로 생계유통가격 전년 대비 상승하나, 종계·육계 생산성 회복으로 전월 대비는 하락",
-   "caution": "10월 기상 여건에 따라 가격 변동 가능"
+   "reason": "부분육 재고량 부족하나, 도축 마릿수 증가로 생계유통가격 하락",
+   "caution": "* 11월 기상 여건에 따라 가격 변동 가능"
   },
   "price_monthly": {
    "this_year": [
@@ -400,7 +421,7 @@
     1841,
     2184,
     1665,
-    null,
+    1524,
     null,
     null
    ],
@@ -432,92 +453,66 @@
     1466,
     1686
    ]
-  },
-  "recent": {
-   "slaughter": {
-    "ym": "2026-09",
-    "value": 6433,
-    "yoy_pct": -5.7
-   },
-   "price": {
-    "ym": "2026-09",
-    "value": 1665,
-    "yoy_pct": 2.3
-   }
   }
  },
- "last_ym": "2026-08",
+ "last_ym": "2026-09",
  "adult_forecast": [
   {
-   "ym": "2026-09",
-   "adult": 4704,
-   "lo": 4539,
-   "hi": 4869,
-   "entering": 783,
-   "entering_ym": "2026-04",
-   "yoy_pct": -5.0
-  },
-  {
    "ym": "2026-10",
-   "adult": 4713,
-   "lo": 4479,
-   "hi": 4947,
+   "adult": 4839,
+   "lo": 4679,
+   "hi": 4998,
    "entering": 608,
    "entering_ym": "2026-05",
-   "yoy_pct": -5.9
+   "yoy_pct": -3.4
   },
   {
    "ym": "2026-11",
-   "adult": 4803,
-   "lo": 4517,
-   "hi": 5089,
+   "adult": 4940,
+   "lo": 4715,
+   "hi": 5165,
    "entering": 730,
    "entering_ym": "2026-06",
-   "yoy_pct": -7.1
+   "yoy_pct": -4.4
   },
   {
    "ym": "2026-12",
-   "adult": 4839,
-   "lo": 4509,
-   "hi": 5170,
+   "adult": 4986,
+   "lo": 4710,
+   "hi": 5261,
    "entering": 648,
    "entering_ym": "2026-07",
-   "yoy_pct": -4.6
+   "yoy_pct": -1.8
   },
   {
    "ym": "2027-01",
-   "adult": 4853,
-   "lo": 4484,
-   "hi": 5222,
+   "adult": 5009,
+   "lo": 4691,
+   "hi": 5327,
    "entering": 615,
    "entering_ym": "2026-08",
-   "yoy_pct": 0.0
+   "yoy_pct": 3.2
+  },
+  {
+   "ym": "2027-02",
+   "adult": 5018,
+   "lo": 4662,
+   "hi": 5373,
+   "entering": 593,
+   "entering_ym": "2026-09",
+   "yoy_pct": 5.8
   }
  ],
  "chick_potential": [
   {
-   "ym": "2026-09",
-   "chick": 6849,
-   "lo": 6198,
-   "hi": 7500,
-   "adult_basis": 4578,
-   "ratio": 1.496,
-   "last_year_chick": 6793,
-   "yoy_pct": 0.8,
-   "kreI": [
-    7099,
-    7235
-   ]
-  },
-  {
    "ym": "2026-10",
-   "chick": 6595,
-   "lo": 5927,
-   "hi": 7264,
-   "adult_basis": 4704,
+   "chick": 6758,
+   "lo": 6122,
+   "hi": 7394,
+   "adult_basis": 4820,
    "ratio": 1.402,
    "last_year_chick": 6432,
-   "yoy_pct": 2.5,
+   "yoy_pct": 5.1,
    "kreI": [
     6611,
     6740
@@ -525,70 +520,81 @@
   },
   {
    "ym": "2026-11",
-   "chick": 6687,
-   "lo": 5970,
-   "hi": 7404,
-   "adult_basis": 4713,
+   "chick": 6865,
+   "lo": 6181,
+   "hi": 7550,
+   "adult_basis": 4839,
    "ratio": 1.419,
    "last_year_chick": 7055,
-   "yoy_pct": -5.2,
+   "yoy_pct": -2.7,
    "kreI": null
   },
   {
    "ym": "2026-12",
-   "chick": 6477,
-   "lo": 5750,
-   "hi": 7203,
-   "adult_basis": 4803,
+   "chick": 6661,
+   "lo": 5964,
+   "hi": 7357,
+   "adult_basis": 4940,
    "ratio": 1.348,
    "last_year_chick": 6706,
-   "yoy_pct": -3.4,
+   "yoy_pct": -0.7,
    "kreI": null
   },
   {
    "ym": "2027-01",
-   "chick": 6326,
-   "lo": 5585,
-   "hi": 7066,
-   "adult_basis": 4839,
+   "chick": 6517,
+   "lo": 5806,
+   "hi": 7228,
+   "adult_basis": 4986,
    "ratio": 1.307,
    "last_year_chick": 5522,
-   "yoy_pct": 14.6,
+   "yoy_pct": 18.0,
    "kreI": null
   },
   {
    "ym": "2027-02",
-   "chick": 6845,
-   "lo": 6011,
-   "hi": 7678,
-   "adult_basis": 4853,
+   "chick": 7065,
+   "lo": 6262,
+   "hi": 7867,
+   "adult_basis": 5009,
    "ratio": 1.41,
    "last_year_chick": 6487,
-   "yoy_pct": 5.5,
+   "yoy_pct": 8.9,
+   "kreI": null
+  },
+  {
+   "ym": "2027-03",
+   "chick": 7143,
+   "lo": 6301,
+   "hi": 7985,
+   "adult_basis": 5018,
+   "ratio": 1.424,
+   "last_year_chick": 6507,
+   "yoy_pct": 9.8,
    "kreI": null
   }
  ],
  "model": {
-  "cull_assumed": 480,
+  "cull_assumed": 471,
   "cull_months": 12,
   "L": 5,
-  "a": 0.667,
-  "b": 0.827,
-  "adult_rmse": 129,
-  "adult_sd_delta": 240,
-  "adult_n": 12,
+  "a": 0.678,
+  "b": 0.835,
+  "adult_rmse": 124,
+  "adult_sd_delta": 243,
+  "adult_n": 13,
   "ratio_method": "전체 평균+같은 달 평균(계절 보정)",
   "ratio_mape": {
-   "all": 7.7,
-   "r12": 7.3,
-   "seas": 7.0
+   "all": 7.4,
+   "r12": 7.0,
+   "seas": 6.7
   },
   "backtest": {
-   "n": 21,
-   "mape_pct": 7.0,
-   "bias_pct": 4.7,
-   "naive_last_year_mape_pct": 4.5,
-   "naive_n": 21
+   "n": 22,
+   "mape_pct": 6.7,
+   "bias_pct": 4.4,
+   "naive_last_year_mape_pct": 4.6,
+   "naive_n": 22
   },
   "grade": "낮음",
   "grade_why": "같은 달 전년 입식을 그대로 쓴 값보다 오차가 커서 입식 예측으로는 쓰지 말고 성계 기준 생산능력 지표로만 본다."
