@@ -1,7 +1,7 @@
 {
- "as_of": "2026-11-04 17:00 KST",
- "title": "고병원성 조류인플루엔자 발생·검출 현황('26.11.4. 17시 기준)  새글",
- "url": "https://www.mafra.go.kr/bbs/FMD-AI2/851/582150/artclView.do",
+ "as_of": "2026-11-07 17:00 KST",
+ "title": "고병원성 조류인플루엔자 발생·검출 현황('26.11.7. 17시 기준)  새글",
+ "url": "https://www.mafra.go.kr/bbs/FMD-AI2/851/582193/artclView.do",
  "farms": [
   {
    "n": 1,
@@ -14,6 +14,30 @@
    "cnt": 90986,
    "sero": "H5N9",
    "conf": "2026-11-04"
+  },
+  {
+   "n": 2,
+   "kind": "신고",
+   "rep": "2026-11-05",
+   "sido": "전남",
+   "sgg": "장흥군",
+   "sp": "오리",
+   "breed": "육용오리",
+   "cnt": 22000,
+   "sero": "H5N9",
+   "conf": "2026-11-06"
+  },
+  {
+   "n": 3,
+   "kind": "신고",
+   "rep": "2026-11-06",
+   "sido": "경기",
+   "sgg": "여주시",
+   "sp": "닭",
+   "breed": "산란계",
+   "cnt": 260000,
+   "sero": "H5N1",
+   "conf": "2026-11-07"
   }
  ],
  "wild": [
@@ -46,13 +70,43 @@
    "sero": "H5N1",
    "conf": "2026-10-30",
    "sample": "분변"
+  },
+  {
+   "n": 4,
+   "date": "2026-10-30",
+   "sido": "경기",
+   "sgg": "김포",
+   "spot": "한강 하류",
+   "sero": "H5N1",
+   "conf": "2026-11-05",
+   "sample": "폐사체"
+  },
+  {
+   "n": 5,
+   "date": "2026-11-02",
+   "sido": "강원",
+   "sgg": "홍천",
+   "spot": "양덕원천",
+   "sero": "H5N9",
+   "conf": "2026-11-06",
+   "sample": "분변"
+  },
+  {
+   "n": 6,
+   "date": "2026-11-03",
+   "sido": "전남",
+   "sgg": "광주",
+   "spot": "광산구",
+   "sero": "H5N9",
+   "conf": "2026-11-06",
+   "sample": "포획"
   }
  ],
- "table_stale": true,
+ "table_stale": false,
  "news": [
   {
    "title": "진천·파주에서도 고병원성AI 확진…”방역강화” - 뉴스웍스",
-   "link": "https://news.google.com/rss/articles/CBMic0FVX3lxTE5XTmZjX3RkaGtDbWR3Rmlaa3RXdTlUM3d4ZzA4eUZKN3NqZm85VWVfLWtSeHZZVjZCeU9RMUI0ZkxCT0RoZGVQUy11Wm5ZbTN3bVRIQXVJQlQwUWxaaHV5ZS1NZV9tS25sak4wYllrQ3VBMVHSAXNBVV95cUxOV05mY190ZGhrQ21kd0ZpWmt0V3U5VDN3eGcwOHlGSjdzamZvOVVlXy1rUnh2WVY2QnlPUTFCNGZMQk9EaGRlUFMtdVpuWW0zd21USEF1SUJUMFFsWmh1eWUtTWVfbUtubGpOMGJZa0N1QTFR?oc=5",
+   "link": "https://news.google.com/rss/articles/CBMib0FVX3lxTE55MGk1bFFHWkJaaEEzQmhkQWVneHJHNUoyX3FJNGlieTNzMTZEdkhGV1JOVnZNemVkMGRGcng3ZGVWZnNTYUZ5emRpOWU5OVNpVkdYa1FUa25LSlViYm1qLXFJbE02VGx1X0x0VUdKQdIBc0FVX3lxTE5XTmZjX3RkaGtDbWR3Rmlaa3RXdTlUM3d4ZzA4eUZKN3NqZm85VWVfLWtSeHZZVjZCeU9RMUI0ZkxCT0RoZGVQUy11Wm5ZbTN3bVRIQXVJQlQwUWxaaHV5ZS1NZV9tS25sak4wYllrQ3VBMVE?oc=5",
    "date": "Fri, 13 Nov 2026 11:08:24 GMT",
    "source": "뉴스웍스"
   },
@@ -99,43 +153,8 @@
    "source": "파이낸셜뉴스"
   }
  ],
- "checked": "2026-11-13 22:27 KST",
+ "checked": "2026-11-13 22:29 KST",
  "quick": [
-  {
-   "kind": "신고",
-   "rep": "2026-11-05",
-   "approx": true,
-   "sido": "전남",
-   "sgg": "장흥군",
-   "sp": "오리",
-   "breed": "육용오리",
-   "cnt": 22000,
-   "sero": "H5N9",
-   "conf": "2026-11-06",
-   "nth": 2,
-   "src": "농식품부 보도자료",
-   "title": "전남광주 장흥 육용오리 농장 고병원성 조류인플루엔자 확진에 따라 방역관리 강화  새글",
-   "link": "https://www.mafra.go.kr/bbs/FMD-AI2/393/582190/artclView.do",
-   "found": "2026-11-06 20:27"
-  },
-  {
-   "kind": "신고",
-   "rep": "2026-11-06",
-   "approx": true,
-   "sido": "경기",
-   "sgg": "여주시",
-   "sp": "닭",
-   "breed": "산란계",
-   "cnt": 260000,
-   "sero": "H5N1",
-   "conf": "2026-11-07",
-   "nth": 3,
-   "pending": false,
-   "src": "농식품부 보도자료",
-   "title": "경기 여주 산란계 농장 고병원성 조류인플루엔자 확진에 따라 방역 강화  새글",
-   "link": "https://www.mafra.go.kr/bbs/home/792/582196/artclView.do",
-   "found": "2026-11-07 01:13"
-  },
   {
    "kind": "",
    "rep": "",
@@ -367,19 +386,6 @@
    "title": "충남 서산시, 간월호 야생조류 AI 검출…확산 방지 총력 - 뉴스홈(newshome)",
    "link": "https://news.google.com/rss/articles/CBMibkFVX3lxTE9vYVpycVUyZGJvQUJMakpyejctZGlqdlNrZjdzempGc2dmUlRaTFRwLXZBUkY2MHlaWFZKYzQyanFvb3FsSUtWWm9aaVJaTkRRS3VrbEtJMVpqVE43eG01N1piSDExS1FuOEd1SjRn?oc=5",
    "found": "2026-11-11 12:00"
-  },
-  {
-   "date": "2026-11-05",
-   "sido": "경기",
-   "sgg": "김포시",
-   "spot": "사우동",
-   "sero": "",
-   "conf": "2026-11-05",
-   "sample": "폐사체",
-   "src": "매일신문",
-   "title": "닭 26만 마리 농장서 AI 확진…11월에만 벌써 세 번째 - 매일신문",
-   "link": "https://news.google.com/rss/articles/CBMiYkFVX3lxTFBlSVVyeHhHeFNqOGRWTzZKU1NFaDk0NF9Bb2ZmaDVRcWFoSHNSRWtfOVlNc3o3d0JEeERjS0E0NTVHT3hPMHRrY1RiUmh3MWU3VUJHRGdCZ0d0T3JKS3JJUjNB?oc=5",
-   "found": "2026-11-08 00:05"
   },
   {
    "date": "",
