@@ -8395,6 +8395,10 @@ async function fetchHpaiKrLive(){
     L.farms = L.farms.concat(L.quick, L.pending);
     L.quickWild = (d.quick_wild || []).filter(w => w.conf >= HPAI_KR_NEW_SEASON && w.sido && w.sgg).map(w => Object.assign({}, w, { ns:true, quick:true }));
     L.wild = (d.wild || []).filter(w => w.conf >= HPAI_KR_NEW_SEASON).map(w => Object.assign({}, w, { ns:true })).concat(L.quickWild || []);
+    // 지도 번호(발생 순서): 확진일 순, 같은 날이면 공식 표 행(연번 순)이 먼저 — 보도 기준 행은 그 뒤
+    const seqSort = (a, b) => (a.conf < b.conf ? -1 : a.conf > b.conf ? 1 : 0) || ((a.quick ? 1 : 0) - (b.quick ? 1 : 0)) || ((a.n || 0) - (b.n || 0));
+    L.farms.slice().sort(seqSort).forEach((f, i) => { f.seq = i + 1; });
+    L.wild.slice().sort(seqSort).forEach((w, i) => { w.seq = i + 1; });
     L.news = d.news || []; L.asOf = d.as_of || ""; L.title = d.title || ""; L.url = d.url || ""; L.stale = !!d.table_stale; L.checked = d.checked || "";
     L.status = "done";
   } catch(e){ console.warn("국내 AI 발생현황 로딩 실패:", e); L.status = "error"; }
@@ -8415,6 +8419,13 @@ function hkFarms(){ return hkAllFarms().filter(f => hkInPeriod(f.conf, hpaiKrSta
 function hkWild(){ return hkAllWild().filter(w => hkInPeriod(w.conf, hpaiKrState.period)); }
 const HK_NEW = "#6A1B9A", HK_NEW_WILD = "#00897B";   // 26/27 시즌 표시 색(25/26 시즌은 빨강·파랑)
 function hkFmt(d){ return `${hkMonth(d)}.${Number(d.slice(8, 10))}`; }
+// 발생 순서 번호 — 25/26 시즌은 농식품부 표의 연번(n), 26/27 시즌은 fetchHpaiKrLive가 매긴 seq(보도 기준 포함)
+function hkSeq(x){ return x.seq || x.n || 0; }
+// 지도 점 옆 번호표: 같은 시군에 여러 건이면 「4,7,12」처럼 순서대로
+function hkNumLabel(list, x, y, color){
+  const t = list.map(hkSeq).filter(Boolean).sort((a, b) => a - b).join(",");
+  return t ? `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" font-size="11" fill="${color}" stroke="#fff" stroke-width="3" stroke-linejoin="round" paint-order="stroke" style="pointer-events:none;font-weight:800">${t}</text>` : "";
+}
 function hkCount(list, key){ const m = {}; list.forEach(x => { const k = typeof key === "function" ? key(x) : x[key]; m[k] = (m[k] || 0) + 1; }); return m; }
 function hkProvFill(n){ return n <= 0 ? "#F1F3F4" : n <= 2 ? "#FFF3E0" : n <= 5 ? "#FFE0B2" : n <= 9 ? "#FFCC80" : "#FFAB91"; }
 function renderHpaiKrMap(){
@@ -8443,7 +8454,7 @@ function renderHpaiKrMap(){
     const p = isNew ? [p0[0] + 8, p0[1] + 8] : p0;
     const n = grp[gk].length, r = 6.5 + 3.2 * Math.sqrt(n), sel = st.sel && st.sel.type === "sgg" && st.sel.key === k;
     const onlyPend = grp[gk].every(f => f.pending);   // 검사 중만 있는 시군은 옅은 점 + 점선 테두리
-    return `<g class="hk-dot" data-key="${esc(k)}" style="cursor:pointer"><circle cx="${p[0]}" cy="${p[1]}" r="${r.toFixed(1)}" fill="${isNew ? HK_NEW : "#C62828"}" fill-opacity="${onlyPend ? 0.45 : 0.92}" stroke="${sel ? "#1a2744" : onlyPend ? HK_NEW : "#fff"}" stroke-width="${sel ? 3 : 2}"${onlyPend ? ' stroke-dasharray="3 2"' : ""}/>${n > 1 ? `<text x="${p[0]}" y="${p[1] + 4.5}" font-size="13" fill="#fff" text-anchor="middle" style="pointer-events:none;font-weight:800">${n}</text>` : ""}</g>`;
+    return `<g class="hk-dot" data-key="${esc(k)}" style="cursor:pointer"><circle cx="${p[0]}" cy="${p[1]}" r="${r.toFixed(1)}" fill="${isNew ? HK_NEW : "#C62828"}" fill-opacity="${onlyPend ? 0.45 : 0.92}" stroke="${sel ? "#1a2744" : onlyPend ? HK_NEW : "#fff"}" stroke-width="${sel ? 3 : 2}"${onlyPend ? ' stroke-dasharray="3 2"' : ""}/>${n > 1 ? `<text x="${p[0]}" y="${p[1] + 4.5}" font-size="13" fill="#fff" text-anchor="middle" style="pointer-events:none;font-weight:800">${n}</text>` : ""}${isNew || st.period !== "all" ? hkNumLabel(grp[gk], p[0] + r + 1.5, p[1] + 4, isNew ? HK_NEW : "#B71C1C") : ""}</g>`;
   }).join("");
   const wgrp = {};
   wild.forEach(w => { const k = w.sido + "|" + w.sgg + (w.ns ? "#n" : ""); (wgrp[k] = wgrp[k] || []).push(w); });
@@ -8452,7 +8463,7 @@ function renderHpaiKrMap(){
     const p = HPAI_KR_MAP.pts[k]; if(!p) return "";
     const n = wgrp[gk].length, r = 6 + 2 * Math.sqrt(n), off = (showF ? 9 : 0) + (wNew ? 8 : 0), sel = st.sel && st.sel.type === "wsgg" && st.sel.key === k;
     const x = p[0] + off, y = p[1] - off;
-    return `<g class="hk-wdot" data-key="${esc(k)}" style="cursor:pointer"><polygon points="${x},${(y - r).toFixed(1)} ${(x + r).toFixed(1)},${y} ${x},${(y + r).toFixed(1)} ${(x - r).toFixed(1)},${y}" fill="${wNew ? HK_NEW_WILD : "#1565C0"}" fill-opacity="0.95" stroke="${sel ? "#1a2744" : "#fff"}" stroke-width="${sel ? 2.6 : 1.6}"/></g>`;
+    return `<g class="hk-wdot" data-key="${esc(k)}" style="cursor:pointer"><polygon points="${x},${(y - r).toFixed(1)} ${(x + r).toFixed(1)},${y} ${x},${(y + r).toFixed(1)} ${(x - r).toFixed(1)},${y}" fill="${wNew ? HK_NEW_WILD : "#1565C0"}" fill-opacity="0.95" stroke="${sel ? "#1a2744" : "#fff"}" stroke-width="${sel ? 2.6 : 1.6}"/>${wNew || st.period !== "all" ? hkNumLabel(wgrp[gk], x + r + 1.5, y + 4, wNew ? "#00695C" : "#0D47A1") : ""}</g>`;
   }).join("");
   return `<svg viewBox="10 0 370 560" style="color-scheme:only light;background:#fff;border-radius:12px;width:100%;max-width:460px;height:auto;display:block;margin:0 auto" role="img" aria-label="우리나라 지도에 표시한 가금농장 고병원성 AI 발생과 야생조류 검출 위치">${paths}${wdots}${dots}${labels}</svg>`;
 }
@@ -8460,11 +8471,11 @@ function renderHpaiKrDetail(){
   const st = hpaiKrState, sel = st.sel;
   if(!sel) return `<div style="font-size:11.5px;color:#999;text-align:center;padding:10px">지도의 시·도 또는 점을 누르면 해당 지역 발생 내역이 아래에 나옵니다.</div>`;
   let title, rows;
-  const fRow = f => `<tr style="border-top:1px solid #f1f1f1"><td style="padding:5px 4px;color:${f.ns ? HK_NEW : "#888"};font-weight:${f.ns ? 800 : 400}">${hkFmt(f.conf)}${f.ns ? " 🆕" : ""}</td><td style="padding:5px 4px;font-weight:700">${esc(f.sido)} ${esc(f.sgg)}</td><td style="padding:5px 4px">${esc(f.breed)}${f.sp === "오리" ? "" : ""}</td><td style="padding:5px 4px;text-align:right">${f.cnt ? (f.approx ? "약 " : "") + f.cnt.toLocaleString() + "수" : "—"}</td><td style="padding:5px 4px;color:#555">${esc(f.sero)}${f.quick ? ` <a href="${esc(f.link || "#")}" target="_blank" rel="noopener" title="${esc((f.src || "보도") + " · " + (f.title || ""))}" style="font-size:10px;font-weight:800;color:#fff;background:${f.pending ? "#B8860B" : "#8E24AA"};border-radius:6px;padding:1px 5px;text-decoration:none;white-space:nowrap">${f.pending ? "🔬 검사 중" : "📰 보도 기준"}</a>` : ""}</td></tr>`;
+  const fRow = f => `<tr style="border-top:1px solid #f1f1f1"><td style="padding:5px 4px;color:${f.ns ? HK_NEW : "#888"};font-weight:${f.ns ? 800 : 400}"><b>${hkSeq(f)}</b> · ${hkFmt(f.conf)}${f.ns ? " 🆕" : ""}</td><td style="padding:5px 4px;font-weight:700">${esc(f.sido)} ${esc(f.sgg)}</td><td style="padding:5px 4px">${esc(f.breed)}${f.sp === "오리" ? "" : ""}</td><td style="padding:5px 4px;text-align:right">${f.cnt ? (f.approx ? "약 " : "") + f.cnt.toLocaleString() + "수" : "—"}</td><td style="padding:5px 4px;color:#555">${esc(f.sero)}${f.quick ? ` <a href="${esc(f.link || "#")}" target="_blank" rel="noopener" title="${esc((f.src || "보도") + " · " + (f.title || ""))}" style="font-size:10px;font-weight:800;color:#fff;background:${f.pending ? "#B8860B" : "#8E24AA"};border-radius:6px;padding:1px 5px;text-decoration:none;white-space:nowrap">${f.pending ? "🔬 검사 중" : "📰 보도 기준"}</a>` : ""}</td></tr>`;
   if(sel.type === "sido"){ const l = hkFarms().filter(f => f.sido === sel.key); const w = hkWild().filter(x => x.sido === sel.key);
     title = `${sel.key} — 가금농장 ${l.length}건 (${l.reduce((a, f) => a + f.cnt, 0).toLocaleString()}수)${w.length ? ` · 야생조류 검출 ${w.length}건` : ""}`; rows = l.map(fRow).join(""); }
   else if(sel.type === "sgg"){ const l = hkFarms().filter(f => f.sido + "|" + f.sgg === sel.key); title = `${sel.key.replace("|", " ")} — 가금농장 ${l.length}건`; rows = l.map(fRow).join(""); }
-  else { const l = hkWild().filter(w => w.sido + "|" + w.sgg === sel.key); title = `${sel.key.replace("|", " ")} — 야생조류 검출 ${l.length}건`; rows = l.map(w => `<tr style="border-top:1px solid #f1f1f1"><td style="padding:5px 4px;color:#888">${hkFmt(w.conf)}</td><td style="padding:5px 4px;font-weight:700">${esc(w.spot)}</td><td style="padding:5px 4px">${esc(w.sample)}</td><td style="padding:5px 4px;color:#555">${esc(w.sero)}${w.quick ? ` <a href="${esc(w.link || "#")}" target="_blank" rel="noopener" title="${esc((w.src || "보도") + " · " + (w.title || ""))}" style="font-size:10px;font-weight:800;color:#fff;background:#00897B;border-radius:6px;padding:1px 5px;text-decoration:none;white-space:nowrap">📰 보도 기준</a>` : ""}</td></tr>`).join(""); }
+  else { const l = hkWild().filter(w => w.sido + "|" + w.sgg === sel.key); title = `${sel.key.replace("|", " ")} — 야생조류 검출 ${l.length}건`; rows = l.map(w => `<tr style="border-top:1px solid #f1f1f1"><td style="padding:5px 4px;color:#888"><b>${hkSeq(w)}</b> · ${hkFmt(w.conf)}</td><td style="padding:5px 4px;font-weight:700">${esc(w.spot)}</td><td style="padding:5px 4px">${esc(w.sample)}</td><td style="padding:5px 4px;color:#555">${esc(w.sero)}${w.quick ? ` <a href="${esc(w.link || "#")}" target="_blank" rel="noopener" title="${esc((w.src || "보도") + " · " + (w.title || ""))}" style="font-size:10px;font-weight:800;color:#fff;background:#00897B;border-radius:6px;padding:1px 5px;text-decoration:none;white-space:nowrap">📰 보도 기준</a>` : ""}</td></tr>`).join(""); }
   return `<div style="background:#F7F9FC;border-radius:10px;padding:10px 12px"><div style="font-size:12.5px;font-weight:800;color:#1a2744;margin-bottom:6px">${esc(title)} <button id="hk-clear" style="margin-left:6px;font-size:10px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#888;padding:1px 8px;cursor:pointer">닫기</button></div>${rows ? `<table style="width:100%;border-collapse:collapse;font-size:11.5px"><tbody>${rows}</tbody></table>` : `<div style="font-size:11.5px;color:#aaa">선택한 기간에 해당 내역이 없습니다.</div>`}</div>`;
 }
 // 카드 제목 오른쪽에 붙이는 한 줄 문구(알약 모양)
@@ -8481,10 +8492,11 @@ function renderHpaiKrLiveStrip(){
   const tag = (t, fg, bg, link) => { const b = `<span style="font-size:10.5px;font-weight:800;color:${fg};background:${bg};border-radius:6px;padding:0 6px;white-space:nowrap">${t}</span>`; return link ? `<a href="${esc(link)}" target="_blank" rel="noopener" style="text-decoration:none">${b}</a>` : b; };
   const kind = f => f.pending ? tag("검사 중", "#7a5a00", "#FFE9A8", f.link) : f.quick ? tag("보도", "#6A1B9A", "#EAD7F5", f.link) : tag("공식", "#1B5E20", "#D7EFD9");
   const farms = L.farms.slice().sort((a, b) => a.conf < b.conf ? 1 : a.conf > b.conf ? -1 : 0);
-  const rows = farms.slice(0, 8).map(f => `<div style="display:flex;gap:6px;align-items:baseline;margin:2px 0"><b style="min-width:34px;color:#4A148C">${hkFmt(f.conf)}</b><span style="flex:1;min-width:0;color:#333">${esc(f.sido)} ${esc(sg(f.sgg))} ${esc(f.breed || f.sp)} <span style="color:#666">${man(+f.cnt || 0)}${f.sero ? " · " + esc(f.sero) : ""}</span></span>${kind(f)}</div>`).join("");
+  const num = (x, c) => `<b style="flex:none;min-width:20px;height:18px;border-radius:9px;background:${c};color:#fff;font-size:11px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px;align-self:center">${hkSeq(x)}</b>`;
+  const rows = farms.slice(0, 8).map(f => `<div style="display:flex;gap:6px;align-items:baseline;margin:2px 0">${num(f, HK_NEW)}<b style="min-width:34px;color:#4A148C">${hkFmt(f.conf)}</b><span style="flex:1;min-width:0;color:#333">${esc(f.sido)} ${esc(sg(f.sgg))} ${esc(f.breed || f.sp)} <span style="color:#666">${man(+f.cnt || 0)}${f.sero ? " · " + esc(f.sero) : ""}</span></span>${kind(f)}</div>`).join("");
   // 야생조류도 가금농장처럼 한 줄씩: 확인일 · 시도 시군 지점 · 시료·혈청형 + 꼬리표
   const wkind = w => w.quick ? tag("보도", "#6A1B9A", "#EAD7F5", w.link) : tag("공식", "#1B5E20", "#D7EFD9");
-  const wild = L.wild.slice().sort((a, b) => a.conf < b.conf ? 1 : a.conf > b.conf ? -1 : 0).slice(0, 8).map(w => `<div style="display:flex;gap:6px;align-items:baseline;margin:2px 0"><b style="min-width:34px;color:#00695C">${hkFmt(w.conf)}</b><span style="flex:1;min-width:0;color:#333">${esc(w.sido)} ${esc(sg(w.sgg))}${w.spot ? ` <span style="color:#555">${esc(w.spot)}</span>` : ""} <span style="color:#666">${[w.sample, w.sero].filter(Boolean).map(esc).join(" · ")}</span></span>${wkind(w)}</div>`).join("");
+  const wild = L.wild.slice().sort((a, b) => a.conf < b.conf ? 1 : a.conf > b.conf ? -1 : 0).slice(0, 8).map(w => `<div style="display:flex;gap:6px;align-items:baseline;margin:2px 0">${num(w, HK_NEW_WILD)}<b style="min-width:34px;color:#00695C">${hkFmt(w.conf)}</b><span style="flex:1;min-width:0;color:#333">${esc(w.sido)} ${esc(sg(w.sgg))}${w.spot ? ` <span style="color:#555">${esc(w.spot)}</span>` : ""} <span style="color:#666">${[w.sample, w.sero].filter(Boolean).map(esc).join(" · ")}</span></span>${wkind(w)}</div>`).join("");
   const head = `🆕 <b>26/27 시즌</b> 가금농장 <b style="color:${HK_NEW};font-size:14px">${nf}건</b> · 야생조류 <b style="color:${HK_NEW_WILD};font-size:14px">${nw}건</b>`;
   const body = nf + nw === 0
     ? `<div style="font-size:11px;color:#7B5E99;margin-top:2px">아직 새 시즌 발생·검출이 없습니다. 하루 네 번 자동으로 확인합니다.</div>`
@@ -8517,7 +8529,7 @@ function renderHpaiKrCard(){
   const sggCnt = new Set(all.map(f => f.sido + "|" + f.sgg)).size;
   const layerBtn = (k, t) => `<button class="hk-layer" data-k="${k}" style="border:1.5px solid ${st.layer === k ? "#C62828" : "#ddd"};background:${st.layer === k ? "#C62828" : "#fff"};color:${st.layer === k ? "#fff" : "#555"};border-radius:16px;padding:5px 12px;font-size:11.5px;font-weight:700;cursor:pointer">${t}</button>`;
   const perBtn = p => `<button class="hk-period" data-k="${p[0]}" style="border:1.5px solid ${st.period === p[0] ? "#1a2744" : "#ddd"};background:${st.period === p[0] ? "#1a2744" : "#fff"};color:${st.period === p[0] ? "#fff" : "#555"};border-radius:16px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer">${p[1]}</button>`;
-  const legend = `<div style="display:flex;gap:10px;flex-wrap:wrap;font-size:10.5px;color:#666;justify-content:center;margin-top:4px"><span><b style="color:#C62828">●</b> 가금농장 25/26</span><span><b style="color:${HK_NEW}">●</b> 가금농장 <b>26.9~</b></span><span><b style="color:#1565C0">◆</b> 야생조류 25/26</span><span><b style="color:${HK_NEW_WILD}">◆</b> 야생조류 <b>26.9~</b></span><span>시·도 색: <i style="background:#FFF3E0;padding:0 6px;border:1px solid #eee">1~2</i> <i style="background:#FFE0B2;padding:0 6px">3~5</i> <i style="background:#FFCC80;padding:0 6px">6~9</i> <i style="background:#FFAB91;padding:0 6px">10+</i></span></div>`;
+  const legend = `<div style="display:flex;gap:10px;flex-wrap:wrap;font-size:10.5px;color:#666;justify-content:center;margin-top:4px"><span><b style="color:#C62828">●</b> 가금농장 25/26</span><span><b style="color:${HK_NEW}">●</b> 가금농장 <b>26.9~</b></span><span><b style="color:#1565C0">◆</b> 야생조류 25/26</span><span><b style="color:${HK_NEW_WILD}">◆</b> 야생조류 <b>26.9~</b></span><span>시·도 색: <i style="background:#FFF3E0;padding:0 6px;border:1px solid #eee">1~2</i> <i style="background:#FFE0B2;padding:0 6px">3~5</i> <i style="background:#FFCC80;padding:0 6px">6~9</i> <i style="background:#FFAB91;padding:0 6px">10+</i></span><span>점 옆 숫자 = 시즌별 발생 순서(확진일 순 · 「전체」에서는 26/27 시즌만, 25/26 번호는 그 시즌을 고르면 보여요)</span></div>`;
   const kpi = (v, t, c) => `<div style="flex:1 1 90px;background:#fff;border:1px solid #f0f0f0;border-radius:10px;padding:8px 6px;text-align:center"><div style="font-size:19px;font-weight:900;color:${c}">${v}</div><div style="font-size:10.5px;color:#777;margin-top:1px">${t}</div></div>`;
   const body = `
     ${renderHpaiKrLiveStrip()}
