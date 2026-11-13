@@ -249,17 +249,22 @@ def fetch_table_data() -> dict:
     if not content:
         raise RuntimeError("첨부 .hwp를 받지 못함")
     lines = hwp_text(content)
-    try:
-        farms, wild = parse_tables(lines, post["ref"])
-    except Exception:
+
+    def dump():
         print("::group::표 글자(진단용, 앞 260줄)")
         for k, t in enumerate(lines[:260]):
             print(f"{k:3d} {t}")
         print("::endgroup::")
+    try:
+        farms, wild = parse_tables(lines, post["ref"])
+    except Exception:
+        dump()
         raise
     # 표 위 "총 N건" 과 읽은 행 수가 맞는지 확인(양식이 달라져 일부만 읽었는지 감지)
     tot = [int(x) for x in re.findall(r"총\s*(\d+)\s*건", " ".join(lines[:80]))]
     if tot and farms and tot[0] != len(farms):
+        dump()
+        print("읽은 가금농장 행:", json.dumps(farms, ensure_ascii=False))
         raise RuntimeError(f"가금농장 건수 불일치: 문서 {tot[0]}건, 읽은 행 {len(farms)}건")
     if not farms:
         raise RuntimeError("가금농장 행을 읽지 못함")
