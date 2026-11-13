@@ -1,6 +1,88 @@
 {
- "updated": "2026-11-06 11:12 KST",
+ "updated": "2026-11-13 11:31 KST",
  "weeks": [
+  {
+   "week": "2026-11-13",
+   "items": [
+    {
+     "region": "국내",
+     "category": "신제품·백신",
+     "source": "데일리벳",
+     "date": "2026-11-06",
+     "url": "https://www.dailyvet.co.kr/news/industry/303219",
+     "titleOrig": "베링거 BVD 생독백신 ‘보벨라’ 국내 품목허가 획득..2027년 출시",
+     "title": "베링거 BVD 생독백신 '보벨라' 국내 품목허가 획득",
+     "summary": [
+      "베링거의 BVD 생독백신 '보벨라'가 국내 품목허가를 획득했다.",
+      "해당 제품은 2027년에 국내 출시될 예정이다."
+     ],
+     "point": "",
+     "ai": true
+    },
+    {
+     "region": "해외",
+     "category": "연구개발",
+     "source": "WAFB",
+     "date": "2026-11-13",
+     "url": "https://www.wafb.com/2026/11/12/lsu-gets-nearly-2-million-usda-grant-develop-bird-flu-vaccine-poultry/",
+     "titleOrig": "LSU gets nearly $2 million USDA grant to develop bird flu vaccine for poultry",
+     "title": "LSU, USDA 지원으로 가금류 조류인플루엔자 백신 개발 착수",
+     "summary": [
+      "LSU 연구팀이 미국 농무부로부터 약 200만 달러 지원금을 받아 3년간 닭의 조류인플루엔자 백신을 개발할 예정이다.",
+      "백신은 점막 부위에 투여하는 점막 백신으로, 난황 주입과 음수 방식 두 가지 방법으로 접종할 계획이다.",
+      "2022년 이후 미국에서 조류인플루엔자로 1억 6,800만 마리 이상의 가금류가 폐사했으며, 현재 미국에서 광범위한 사용이 승인된 가금류 백신은 없다."
+     ],
+     "point": "현장 적용 시 음수를 통한 대량 투여가 가능한 백신 개발로, 향후 조류인플루엔자 확산 시 대규모 예방 전략 수립이 가능할 수 있으니 개발 결과를 주시할 필요가 있다.",
+     "ai": true
+    },
+    {
+     "region": "해외",
+     "category": "연구개발",
+     "source": "Bioengineer.org",
+     "date": "2026-11-12",
+     "url": "https://bioengineer.org/targeted-nutritional-strategies-mitigate-necrotic-enteritis-in-poultry-without-antibiotics/",
+     "titleOrig": "Targeted Nutritional Strategies Mitigate Necrotic Enteritis in Poultry Without Antibiotics",
+     "title": "항생제 없이 영양 전략으로 가금 괴사성 장염 제어",
+     "summary": [
+      "클로스트리디움 퍼프린젠스로 인한 괴사성 장염은 연간 60억 달러의 경제적 손실을 초래하며, 단일 사료첨가제로는 완전히 대체할 수 없어 통합된 영양 전략이 필요하다.",
+      "프로바이오틱스, 프리바이오틱스, 신바이오틱스 등 여러 영양 중재가 장내 미생물 균형 회복과 상피 장벽 강화를 통해 항생제 수준의 성능을 제공한다.",
+      "효소 보충제는 사료의 항영양 인자를 제거하고 소화 효율을 높여 병원균 증식을 억제하는 데 기여한다."
+     ],
+     "point": "항생제 사용 제한 속에서 프로바이오틱스, 프리바이오틱스, 신바이오틱스, 효소 보충제를 조합한 맞춤형 영양 전략으로 괴사성 장염을 예방하는 방안을 검토할 필요가 있다.",
+     "ai": true
+    },
+    {
+     "region": "해외",
+     "category": "인허가·정책",
+     "source": "www.marketscreener.com",
+     "date": "2026-11-11",
+     "url": "https://www.marketscreener.com/news/eco-animal-health-seeks-eu-marketing-authorization-for-poultry-vaccine-ce785edbdd88f027",
+     "titleOrig": "Eco Animal Health Seeks EU Marketing Authorization for Poultry Vaccine",
+     "title": "Eco Animal Health, 가금용 백신의 EU 판매허가 추진",
+     "summary": [
+      "Eco Animal Health가 가금용 백신에 대한 EU 판매허가를 신청하고 있다."
+     ],
+     "point": "",
+     "ai": true
+    },
+    {
+     "region": "해외",
+     "category": "인허가·정책",
+     "source": "European Medicines Agency (EMA)",
+     "date": "2026-11-06",
+     "url": "https://www.ema.europa.eu/en/news/meeting-highlights-committee-veterinary-medicinal-products-cvmp-3-5-november-2026",
+     "titleOrig": "Meeting highlights from the Committee for Veterinary Medicinal Products (CVMP) 3-5 November 2026",
+     "title": "유럽의약청 수의약품위원회, 11월 회의 결과 발표",
+     "summary": [
+      "말의 대사증후군 치료제 Scovella(velagliflozin)가 EU 2019/6 규정 이후 첫 제한적 시장 승인 프레임워크 대상 제품으로 승인되었다.",
+      "조류인플루엔자 백신 Vaxxinact H5와 Vaxxitek HVT+IBD+H5의 특수상황 승인 유효기간이 각각 1년 연장되었다.",
+      "개의 혼합 기생충 감염 치료제 Credelio Quattro(lotilaner/moxidectin/pyrantel/praziquantel) 등 여러 수의약품이 신규 또는 변경 승인을 받았다."
+     ],
+     "point": "",
+     "ai": true
+    }
+   ]
+  },
   {
    "week": "2026-11-06",
    "items": [
