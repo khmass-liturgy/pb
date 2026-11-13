@@ -32210,9 +32210,9 @@ function openTHIInfoModal(){
       <div style="background:#f7f7f7;border-radius:10px;padding:10px 12px;margin-bottom:16px">
         <div style="font-size:11px;font-weight:700;color:#555;margin-bottom:4px">📐 계산식</div>
         <div style="font-family:monospace;font-size:11px;color:#333;line-height:1.6">
-          THI = T − (0.55 − 0.55 × RH/100) × (T − 58)
+          THI = (1.8×T + 32) − (0.55 − 0.0055×RH) × (1.8×T − 26)
         </div>
-        <div style="font-size:10px;color:#888;margin-top:4px">T: 건구온도(°F) · RH: 상대습도(%)</div>
+        <div style="font-size:10px;color:#888;margin-top:4px">T: 건구온도(°C) · RH: 상대습도(%) — 지수값은 기존 화씨식과 같아요(단위만 섭씨로 표기)</div>
       </div>
 
       <!-- 단계별 기준 -->
@@ -32382,9 +32382,9 @@ const POULTRY_VENT_STAGES = [
     method:"타이머로 팬을 짧게 반복 가동. 측벽 상단·천장 인렛으로 소량만 유입시켜 병아리에 직접 바람이 닿지 않게 한다.",
     purpose:"온도 조절이 아니라 습도·암모니아 등 유해가스 제거가 목적. 육추 초기 전 기간 필수이며 이 이하로 낮추면 안 된다.",
     checks:[
-      "정압 0.05~0.08 inch WC(약 12~20Pa) 유지",
-      "인렛 속도 800~1,000 FPM",
-      "외기온 20~40°F(−7~4°C) 구간 0.2 CFM/수, 40~60°F(4~16°C) 구간 0.3 CFM/수",
+      "정압 약 12~20Pa 유지 (무창 음압 계사 기준)",
+      "입기구(인렛) 공기 속도 약 4~5m/s — 들어온 공기가 천장을 타고 멀리 퍼지도록",
+      "겨울 최소환기량(참고): 바깥 약 −7~4°C는 1수당 0.3㎥/h, 약 4~16°C는 0.5㎥/h — 일령·계사에 맞게 조정",
     ],
   },
   {
