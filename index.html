@@ -32379,7 +32379,7 @@ const POULTRY_VENT_STAGES = [
   {
     id:"minimum", name:"최소환기", nameEn:"Minimum Ventilation", icon:"🌬️", color:"#1565C0",
     when:"계사 내부온도가 목표(사육)온도 이하이거나 근접 — 사실상 상시 가동되는 기본 단계",
-    method:"타이머로 팬을 짧게 반복 가동. 측벬 상단·천장 인렛으로 소량만 유입시켜 병아리에 직접 바람이 닿지 않게 한다.",
+    method:"타이머로 팬을 짧게 반복 가동. 측벽 상단·천장 인렛으로 소량만 유입시켜 병아리에 직접 바람이 닿지 않게 한다.",
     purpose:"온도 조절이 아니라 습도·암모니아 등 유해가스 제거가 목적. 육추 초기 전 기간 필수이며 이 이하로 낮추면 안 된다.",
     checks:[
       "정압 0.05~0.08 inch WC(약 12~20Pa) 유지",
@@ -35307,8 +35307,15 @@ function renderVentTab(){
   const diff = todayHigh != null ? todayHigh - targetT : null;
   const tempStageIdx = diff != null ? determineVentStage(diff) : null;
   const humStageIdx  = determineHumidityStage(todayHum);
-  // Munters Rotem Trio 이중제어 로직: 온도요구·습도요구 중 더 큰 쪽을 따른다
-  const recIdxBase = tempStageIdx != null ? Math.max(tempStageIdx, humStageIdx) : null;
+  // Munters Rotem Trio 이중제어 로직: 온도요구·습도요구 중 더 큰 쪽을 따른다.
+  // 단, 추운 날(최소환기 구간)에는 습도가 높아도 터널·냉방 단계로 올리지 않는다 — 겨울·육추 초기에
+  // 습도만 높다고 터널환기(찬바람)를 틀면 병아리가 위험하다. 추울 땐 "최소환기량을 늘리고 난방"으로 습기를 뺀다.
+  const humStage = tempStageIdx == null ? humStageIdx
+    : tempStageIdx === 0 ? 0
+    : Math.min(humStageIdx, tempStageIdx + 1);
+  const recIdxBase = tempStageIdx != null ? Math.max(tempStageIdx, humStage) : null;
+  // 춥지만 습도만 높은 날 — 단계는 최소환기 그대로 두고 별도 안내만 띄운다.
+  const coldHumid = tempStageIdx === 0 && todayHum != null && todayHum > VENT_HUMIDITY_THRESHOLD;
   // 이상고온(오늘 평균기온이 평년보다 상위 약 10% 이상 높음)이면 위 판정에서 한 단계 올린다(최고 단계는 그대로).
   // 평년 비교가 아직 끝나지 않았으면 올리지 않는다.
   const anomJ = recIdxBase != null ? anomTodayJudge(today) : null;
@@ -35317,9 +35324,9 @@ function renderVentTab(){
   // 이상저온이면 한 단계 내린다 — 다만 습도 기준(humStageIdx) 아래로는 내리지 않는다(환기를 줄이면 계사 습도가 올라가므로).
   const anomCold = !anomHot && anomIsCold(anomJ), anomColdByZ = !!(anomJ && anomJ.z <= -ANOM_Z), anomColdByProb = !!(anomJ && anomJ.pCold >= ANOM_HOT_PROB);
   const anomColdWhy = anomCold ? [anomColdByZ ? `평년보다 ${anomJ.diff.toFixed(1)}°C` : "", anomColdByProb ? `앙상블 예보 이상저온 가능성 ${Math.round(anomJ.pCold * 100)}%` : ""].filter(Boolean).join(", ") : "";
-  const recIdx = recIdxBase == null ? null : anomHot ? Math.min(sp.stages.length - 1, recIdxBase + 1) : anomCold ? Math.max(humStageIdx, recIdxBase - 1, 0) : recIdxBase;
+  const recIdx = recIdxBase == null ? null : anomHot ? Math.min(sp.stages.length - 1, recIdxBase + 1) : anomCold ? Math.max(humStage, recIdxBase - 1, 0) : recIdxBase;
   const anomRaised = recIdxBase != null && recIdx > recIdxBase, anomLowered = recIdxBase != null && recIdx < recIdxBase;
-  const humDrivenUp = tempStageIdx != null && humStageIdx > tempStageIdx;
+  const humDrivenUp = tempStageIdx != null && humStage > tempStageIdx;
   // PIC 규칙: 외기온이 이미 목표온도를 넘어선 상태에서 습도까지 높으면
   // 환기를 더 늘려도 습도가 안 떨어진다(밖 공기 자체가 덥고 습하므로) — 별도 경고
   const humVentIneffective = todayHum != null && todayHum > VENT_HUMIDITY_THRESHOLD
@@ -35388,6 +35395,11 @@ function renderVentTab(){
 
       <div style="margin:-2px 0 12px">${anomTodayLine(today, true)}${anomRaised ? `<div style="font-size:11.5px;color:#B71C1C;background:#FFEBEE;border-radius:8px;padding:7px 10px;margin-top:6px;line-height:1.65">🌡️ <b>이상고온(${anomWhy})</b>이라 환기 단계를 <b>${sp.stages[recIdxBase].name}</b>에서 <b>${st0name(sp, recIdx)}</b>로 한 단계 올렸습니다. 외기가 평소보다 훨씬 더워 같은 단계로는 열 배출이 모자랄 수 있습니다.</div>` : (anomHot && recIdxBase != null ? `<div style="font-size:11.5px;color:#B71C1C;background:#FFEBEE;border-radius:8px;padding:7px 10px;margin-top:6px;line-height:1.65">🌡️ 이상고온이지만 이미 <b>가장 높은 환기 단계</b>입니다. 환기량을 최대로 유지하고 냉각·급수·밀도를 점검하세요.</div>` : "")}${anomLowered ? `<div style="font-size:11.5px;color:#0D47A1;background:#E3F2FD;border-radius:8px;padding:7px 10px;margin-top:6px;line-height:1.65">❄️ <b>이상저온(${anomColdWhy})</b>이라 환기 단계를 <b>${sp.stages[recIdxBase].name}</b>에서 <b>${st0name(sp, recIdx)}</b>로 한 단계 낮췄습니다. 외기가 평소보다 훨씬 차서 같은 단계로는 열이 너무 빠져 보온이 어려울 수 있습니다.</div>` : (anomCold && recIdxBase != null ? `<div style="font-size:11.5px;color:#0D47A1;background:#E3F2FD;border-radius:8px;padding:7px 10px;margin-top:6px;line-height:1.65">❄️ 이상저온이지만 ${recIdxBase === 0 ? "이미 <b>가장 낮은 환기 단계</b>(최소환기)입니다" : "<b>습도 기준</b> 때문에 더 낮출 수 없습니다"}. 최소환기량은 유지하면서 보온·급수라인 동결을 점검하세요.</div>` : "")}</div>
 
+      ${coldHumid ? `
+      <div style="background:#E1F5FE;border-left:6px solid #0288D1;border-radius:8px;padding:11px 13px;margin-bottom:10px">
+        <div style="font-size:12px;font-weight:700;color:#01579B;margin-bottom:4px">💧 춥지만 습도가 높아요 (${todayHum}%)</div>
+        <div style="font-size:11.5px;color:#333;line-height:1.75">오늘은 바깥이 목표온도보다 낮아 <b>최소환기</b> 단계예요. 습도가 높다고 <b>터널·냉방으로 바꾸지 마세요</b> — 찬바람이 병아리에 직접 닿으면 위험합니다. 대신 <b>최소환기량(팬 가동 시간·정압)을 조금 늘리고 난방을 함께</b> 해서 습기를 빼내고, 찬 공기가 닭에 바로 닿지 않게 인렛(입기구)을 조절하세요.</div>
+      </div>` : ""}
       ${humDrivenUp || humVentIneffective ? `
       <div style="background:#E3F2FD;border-left:6px solid #0288D1;border-radius:8px;padding:11px 13px;margin-bottom:10px">
         <div style="font-size:12px;font-weight:700;color:#01579B;margin-bottom:4px">💧 습도 기준 판정 (Munters 이중제어 로직)</div>
@@ -35444,13 +35456,14 @@ function renderVentTab(){
         const dfi = hi!=null ? hi - targetT : null;
         const tsi = dfi!=null ? determineVentStage(dfi) : null;
         const hsi = determineHumidityStage(dh);
-        let si = tsi!=null ? Math.max(tsi, hsi) : null;
+        const hstage = tsi==null ? hsi : tsi===0 ? 0 : Math.min(hsi, tsi+1);   // 추운 날은 습도로 단계 안 올림
+        let si = tsi!=null ? Math.max(tsi, hstage) : null;
         const hotUp = si!=null && anomIsHot(anomTodayJudge(d)) && si < sp.stages.length-1;   // 그날이 이상고온이면(예보 평균기온 평년 대비 또는 앙상블 확률 40%↑ — 오늘 추천과 같은 기준) 한 단계 상향
         if(hotUp) si += 1;
-        const jd = anomTodayJudge(d), coldDown = !hotUp && si!=null && !anomIsHot(jd) && anomIsCold(jd) && si > 0 && si - 1 >= hsi;   // 이상저온이면 한 단계 하향(습도 기준 아래로는 내리지 않음)
+        const jd = anomTodayJudge(d), coldDown = !hotUp && si!=null && !anomIsHot(jd) && anomIsCold(jd) && si > 0 && si - 1 >= hstage;   // 이상저온이면 한 단계 하향(습도 기준 아래로는 내리지 않음)
         if(coldDown) si -= 1;
         const stg = si!=null ? sp.stages[si] : null;
-        const humUp = tsi!=null && hsi>tsi;
+        const humUp = tsi!=null && hstage>tsi;
         return `<div style="flex:1;min-width:58px;text-align:center;background:${stg?stg.color+"14":"#f5f5f5"};border-radius:8px;padding:7px 3px">
           <div style="font-size:9px;color:#888;font-weight:600">${i===0?"오늘":dn[dd.getDay()]+" "+(dd.getMonth()+1)+"/"+dd.getDate()}</div>
           <div style="font-size:14px;font-weight:800;margin:3px 0;color:#333">${hi!=null?hi+"°":"-"}</div>
