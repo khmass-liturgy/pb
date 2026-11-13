@@ -666,7 +666,8 @@ def update_quick(out: dict, prev: dict) -> None:
         seen = seen[-300:]
     # 농식품부 표에 들어온 농장은 빼고(표가 공식), 시즌이 바뀌면 지운다
     table = [f for f in out.get("farms", []) if f.get("conf", "") >= start]
-    quick = [q for q in quick if not any(same_farm(q, f, 3) for f in table)]
+    # 마릿수·혈청형이 없는 후속 보도(「장흥서 확진…입식 기간 단축」 등)는 공식 표의 같은 시군 발생과 7일 안이면 같은 건으로 본다
+    quick = [q for q in quick if not any(same_farm(q, f, 7 if not (q.get("cnt") or q.get("sero")) else 3) for f in table)]
     stale = (now - timedelta(days=7)).strftime("%Y-%m-%d")
     quick = [q for q in quick if not (q.get("pending") and q["conf"] < stale)]     # 7일 넘게 확진 소식 없는 '검사 중'은 내린다
     quick.sort(key=lambda q: q["conf"])
