@@ -249,18 +249,29 @@ def fetch_table_data() -> dict:
     if not content:
         raise RuntimeError("첨부 .hwp를 받지 못함")
     lines = hwp_text(content)
-    try:
-        farms, wild = parse_tables(lines, post["ref"])
-    except Exception:
+
+    def dump():
         print("::group::표 글자(진단용, 앞 260줄)")
         for k, t in enumerate(lines[:260]):
             print(f"{k:3d} {t}")
         print("::endgroup::")
+    try:
+        farms, wild = parse_tables(lines, post["ref"])
+    except Exception:
+        dump()
         raise
     # 표 위 "총 N건" 과 읽은 행 수가 맞는지 확인(양식이 달라져 일부만 읽었는지 감지)
     tot = [int(x) for x in re.findall(r"총\s*(\d+)\s*건", " ".join(lines[:80]))]
+    # 농식품부 문서 머리말 숫자가 표보다 늦게 고쳐지는 일이 있다('26.11.7 표: 「총 2건」인데 연번 1~3).
+    # 연번이 1부터 끊김 없이 이어지고 머리말보다 많이 읽었으면 표 행을 믿는다(덜 읽은 경우만 거부).
+    seq_ok = [f["n"] for f in farms] == list(range(1, len(farms) + 1))
     if tot and farms and tot[0] != len(farms):
-        raise RuntimeError(f"가금농장 건수 불일치: 문서 {tot[0]}건, 읽은 행 {len(farms)}건")
+        if seq_ok and len(farms) > tot[0]:
+            print(f"::notice::표 머리말은 총 {tot[0]}건이지만 연번 1~{len(farms)} 행이 모두 있어 행 기준으로 반영")
+        else:
+            dump()
+            print("읽은 가금농장 행:", json.dumps(farms, ensure_ascii=False))
+            raise RuntimeError(f"가금농장 건수 불일치: 문서 {tot[0]}건, 읽은 행 {len(farms)}건")
     if not farms:
         raise RuntimeError("가금농장 행을 읽지 못함")
     for row in farms + wild:            # 「전남광주」 같은 통합 시·도 이름 → 지도의 시·도
@@ -655,7 +666,8 @@ def update_quick(out: dict, prev: dict) -> None:
         seen = seen[-300:]
     # 농식품부 표에 들어온 농장은 빼고(표가 공식), 시즌이 바뀌면 지운다
     table = [f for f in out.get("farms", []) if f.get("conf", "") >= start]
-    quick = [q for q in quick if not any(same_farm(q, f, 3) for f in table)]
+    # 마릿수·혈청형이 없는 후속 보도(「장흥서 확진…입식 기간 단축」 등)는 공식 표의 같은 시군 발생과 7일 안이면 같은 건으로 본다
+    quick = [q for q in quick if not any(same_farm(q, f, 7 if not (q.get("cnt") or q.get("sero")) else 3) for f in table)]
     stale = (now - timedelta(days=7)).strftime("%Y-%m-%d")
     quick = [q for q in quick if not (q.get("pending") and q["conf"] < stale)]     # 7일 넘게 확진 소식 없는 '검사 중'은 내린다
     quick.sort(key=lambda q: q["conf"])
