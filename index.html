@@ -828,6 +828,7 @@ const PREMIUM_ITEMS = [
   { key:"ibteam", icon:"🧬", title:"IB 닭기침 잡는 교실 — 전염성기관지염(IB) 차단 8단계 코스", desc:"IB가 어떤 병인지부터 들어오는 길·우리나라 발생·확인 방법·백신·우리 농장 적용·예방 시스템까지 단계별로 배웁니다. 육계/산란계 비교, 현장 사례, 농장 점검표를 함께 드려요.", color:"#C62828", category:"최꼬 아카데미" },
   { key:"coliclass", icon:"🧫", title:"닭 대장균증 잡는 교실 — 발견부터 재발 방지까지 10차시", desc:"육계·산란계를 나누어 대장균증을 쉽게 배웁니다. 기초 → 현장 판단 → 치료·재발 방지·백신, 그림과 사례를 카드로 한눈에.", color:"#00897B", category:"최꼬 아카데미" },
   { key:"ventclass", icon:"🌬️", title:"환기 기초교실 — 정압·음압·입기구·1만수당 환기량", desc:"계사 환기를 7단계로 배웁니다. 정압·음압·양압, 자연·강제환기, 계사 구조, 입기구 크기로 환기량 계산, 육계 일령별·산란계 주령별 1만수당 환기량을 그림과 계산기로 쉽게 익혀요.", color:"#0277BD", category:"최꼬 아카데미" },
+  { key:"germclass", icon:"🔬", title:"세균·바이러스 기초교실 — 항생제·백신·소독제까지", desc:"닭·돼지·소 농장주를 위한 기초교실. 보이지 않는 세균·바이러스, 세균을 상대하는 항생제, 몸의 방어 연습 백신, 농장 환경을 지키는 소독제를 4편 38강 그림으로 쉽게 배우고, 종합편 농장 그림 한 장으로 정리해요.", color:"#1565C0", category:"최꼬 아카데미" },
   { key:"avianphys", icon:"🫀", title:"조류생리 아카데미 — 닭 몸속 탐험", desc:"닭의 장기 10개 계통(소화·호흡·순환·배설·생식·신경·호르몬·면역·뼈근육)이 하는 일을 쉬운 비유와 그림으로 배우고, 농장에서 보는 문제와 연결해 봅니다.", color:"#AD1457", category:"최꼬 아카데미" },
   { key:"hpaizero", icon:"🦠", title:"AI 막는 농장 지킴이 교실 — HPAI ZERO FARM", desc:"조류인플루엔자(AI)가 우리 농장에 들어오지 못하게 오늘 할 일, 우리 농장 위험도, 농장 보고서, 매일 방역 점검표, 6단계 방역 수칙 만들기를 쉽게 알려 드립니다.", color:"#00695C", category:"최꼬 아카데미" },
   { key:"farmgame_broiler", icon:"🐥", title:"육계 키우기 3D — 33일 출하 경영 게임", desc:"3D 계사에서 병아리 1,000수를 입추해 33일 출하까지 키워 봅니다. 사료·물·온도·환기·깔짚을 관리하고 폭염·사료값 인상·질병 같은 돌발 상황에 대응해 출하체중·생존율·사료요구율·순이익 성적표를 받아요.", color:"#F9A825", category:"체험·게임" },
@@ -961,7 +962,7 @@ const PREMIUM_MENU_LEGACY_PATH = "premium_menu/items.json";
 // 제공한다(회원관리·자동문자발송관리는 별도로 자동 추가되는 관리자 전용
 // 항목이라 목록에서 뺀다).
 const PREMIUM_MENU_KNOWN_KEYS = [
-  "ibteam","hpaizero","farmgame_broiler","farmgame_layer","coliclass","avianphys","ventclass","drug","drugusage","treatment","seasonal","disinfect","newproducts","vaccine",
+  "ibteam","hpaizero","farmgame_broiler","farmgame_layer","coliclass","avianphys","ventclass","germclass","drug","drugusage","treatment","seasonal","disinfect","newproducts","vaccine",
   "ventfinder","lightguide","moltguide","feedstandard","feedgrain","grainprice","priceforecast","tradestats","supplement","selfcheck","diagnosis","specimen","faq","study",
   "research","diseasebrief","emerging","industrynews","drugnews","magazine","kkoko","feature_board","consult","consulting","smssub",
 ];
@@ -970,7 +971,7 @@ let premiumMenuState = { status:"idle", data:null, busy:false, msg:"", adminOpen
 
 // 관리자가 저장한 메뉴가 있어도, 그 뒤에 새로 만든 기본 메뉴(PREMIUM_MENU_NEW_SEED_KEYS)는 빠져 보이지 않게
 // 저장된 메뉴에 없을 때만 기본 위치(앞 메뉴 뒤)에 끼워 보여 준다.
-const PREMIUM_MENU_NEW_SEED_KEYS = ["ibteam", "hpaizero", "farmgame_broiler", "farmgame_layer", "coliclass", "avianphys", "ventclass", "drugusage", "drugnews", "diseasebrief", "priceforecast", "tradestats", "supplement"];
+const PREMIUM_MENU_NEW_SEED_KEYS = ["ibteam", "hpaizero", "farmgame_broiler", "farmgame_layer", "coliclass", "avianphys", "ventclass", "germclass", "drugusage", "drugnews", "diseasebrief", "priceforecast", "tradestats", "supplement"];
 // 관리자가 예전에 저장한 메뉴에는 두 항목이 「사양관리」로 들어 있으므로, 분류만 새 묶음으로 강제한다.
 // 분류 이름이 바뀐 경우(관리자가 예전에 저장한 메뉴에 옛 이름이 남아 있어도 새 이름으로 묶는다)
 const PREMIUM_MENU_CATEGORY_RENAME = { "백신관리": "백신·약품관리", "AI공동연구팀": "최꼬 아카데미", "인공지능 공동연구팀": "최꼬 아카데미" };
@@ -9814,6 +9815,1046 @@ function phBind(){
   if(!(state.tab === "premium" && premiumState.view === "avianphys")) return;
   const back = document.getElementById("ph-back"); if(back) back.onclick = () => { premiumState.view = "menu"; render(); };
   document.querySelectorAll(".ph-tab").forEach(b => b.onclick = () => { phState.tab = b.dataset.t; render(); const r = document.getElementById("ph-root"); if(r) r.scrollIntoView({ block:"start" }); });
+}
+
+// ── 🔬 세균·바이러스 기초교실 (유료서비스 · 최꼬 아카데미, 정적 교육과정) ─────────────────────────
+// 닭·돼지·소 농장주를 위한 4편 38강 + 종합편: ① 세균·바이러스(9) ② 항생제(9) ③ 백신(10) ④ 소독제(10) ⑤ 종합편(농장 한 장 그림).
+// 그림은 모두 인라인 SVG 단순화 도식(320 단위 폭, 글자 12px 이상)이며 실제 크기·비율과 다를 수 있다. 숫자는 대략값이다.
+// 약품은 계열(작용 방식) 이름까지만 쓰고 제품명·용량은 쓰지 않는다 — 사용은 수의사 처방과 제품 표시(라벨)를 따르게 안내한다.
+// 진도(본 강의)·선택한 축종은 localStorage gm_v1 에만 저장한다(기기별 편의 기능).
+const GM_COLOR = "#1565C0";
+const gmState = (function(){
+  const s = { part:"home", les:-1, sp:"all", done:{} };
+  try {
+    const v = JSON.parse(localStorage.getItem("gm_v1") || "null");
+    if(v && typeof v === "object"){
+      if(typeof v.part === "string") s.part = v.part;
+      if(typeof v.les === "number") s.les = v.les;
+      if(["all","chick","pig","cow"].includes(v.sp)) s.sp = v.sp;
+      if(v.done && typeof v.done === "object") s.done = v.done;
+    }
+  } catch(e){}
+  return s;
+})();
+function gmSave(){ try { localStorage.setItem("gm_v1", JSON.stringify(gmState)); } catch(e){} }
+const gmR = n => Math.round(n * 10) / 10;
+function gmSvg(h, inner, label){
+  return `<svg viewBox="0 0 320 ${h}" role="img" aria-label="${label}" style="width:100%;height:auto;max-width:560px;display:block;margin:0 auto" font-family="inherit">${inner}</svg>`;
+}
+function gmFig(svg, cap){
+  return `<figure style="margin:10px 0;text-align:center"><div style="background:#fff;border:1px solid #dbe6f3;border-radius:14px;padding:8px 6px">${svg}</div>${cap ? `<figcaption style="font-size:13px;color:#777;margin-top:4px;line-height:1.6">${cap}</figcaption>` : ""}</figure>`;
+}
+// 글자(여러 줄은 배열) · o = { s:크기, w:굵기, c:색, a:정렬, lh:줄간격 }
+function gmT(x, y, t, o){
+  o = o || {};
+  const lines = Array.isArray(t) ? t : [t], lh = o.lh || (o.s || 13) * 1.3;
+  const tsp = lines.map((l, i) => `<tspan x="${x}" dy="${i ? lh : 0}">${l}</tspan>`).join("");
+  return `<text x="${x}" y="${y}" font-size="${o.s || 13}" font-weight="${o.w || 700}" fill="${o.c || "#333"}" text-anchor="${o.a || "middle"}">${tsp}</text>`;
+}
+function gmE(x, y, e, s){ return `<text x="${x}" y="${y}" font-size="${s || 26}" text-anchor="middle" dominant-baseline="central">${e}</text>`; }
+function gmArrow(id, c){ return `<defs><marker id="${id}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="${c}"/></marker></defs>`; }
+function gmLine(x1, y1, x2, y2, c, id, o){ o = o || {}; return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${c}" stroke-width="${o.w || 2.5}"${o.dash ? ` stroke-dasharray="${o.dash}"` : ""}${id ? ` marker-end="url(#${id})"` : ""} stroke-linecap="round"/>`; }
+function gmBox(x, y, w, h, fill, stroke, rx){ return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx == null ? 10 : rx}" fill="${fill}"${stroke ? ` stroke="${stroke}" stroke-width="1.8"` : ""}/>`; }
+// ── 미생물 그림 조각 ──
+function gmCoccus(x, y, r, c){ return `<circle cx="${x}" cy="${y}" r="${r}" fill="${c}" stroke="#00000033" stroke-width="1.2"/><circle cx="${gmR(x - r * .35)}" cy="${gmR(y - r * .35)}" r="${gmR(r * .28)}" fill="#ffffff66"/>`; }
+function gmRod(x, y, w, h, c, rot){
+  return `<g transform="translate(${x} ${y}) rotate(${rot || 0})"><rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="${h / 2}" fill="${c}" stroke="#00000033" stroke-width="1.2"/><rect x="${gmR(-w / 2 + h * .3)}" y="${gmR(-h / 2 + h * .2)}" width="${gmR(w * .45)}" height="${gmR(h * .22)}" rx="${gmR(h * .11)}" fill="#ffffff66"/></g>`;
+}
+function gmSpiral(x, y, len, c, amp, turns){
+  amp = amp || 7; turns = turns || 3;
+  const pts = [];
+  for(let i = 0; i <= 40; i++){ const t = i / 40; pts.push(`${gmR(x - len / 2 + len * t)},${gmR(y + Math.sin(t * Math.PI * 2 * turns) * amp)}`); }
+  return `<polyline points="${pts.join(" ")}" fill="none" stroke="${c}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>`;
+}
+function gmFlag(x, y, len, c){ // 편모(꼬리)
+  const pts = [];
+  for(let i = 0; i <= 20; i++){ const t = i / 20; pts.push(`${gmR(x + len * t)},${gmR(y + Math.sin(t * Math.PI * 4) * 4)}`); }
+  return `<polyline points="${pts.join(" ")}" fill="none" stroke="${c}" stroke-width="1.8" stroke-linecap="round"/>`;
+}
+// 바이러스: o = { env:외피, spikes:돌기, n:돌기 수, face }
+function gmVirus(x, y, r, c, o){
+  o = o || {};
+  let s = "";
+  const n = o.n || 12;
+  if(o.spikes !== false){
+    for(let i = 0; i < n; i++){
+      const a = i * 2 * Math.PI / n + .2;
+      const x1 = x + Math.cos(a) * r, y1 = y + Math.sin(a) * r, x2 = x + Math.cos(a) * r * 1.33, y2 = y + Math.sin(a) * r * 1.33;
+      s += `<line x1="${gmR(x1)}" y1="${gmR(y1)}" x2="${gmR(x2)}" y2="${gmR(y2)}" stroke="${c}" stroke-width="${gmR(Math.max(1.4, r * .07))}"/><circle cx="${gmR(x2)}" cy="${gmR(y2)}" r="${gmR(Math.max(1.6, r * .12))}" fill="${o.spikeC || c}"/>`;
+    }
+  }
+  if(o.env !== false) s += `<circle cx="${x}" cy="${y}" r="${r}" fill="${c}2a" stroke="${c}" stroke-width="${gmR(Math.max(1.6, r * .08))}"/>`;
+  const hr = r * (o.env === false ? .95 : .66), hex = [];
+  for(let i = 0; i < 6; i++){ const a = i * Math.PI / 3 + Math.PI / 6; hex.push(`${gmR(x + Math.cos(a) * hr)},${gmR(y + Math.sin(a) * hr)}`); }
+  s += `<polygon points="${hex.join(" ")}" fill="${o.env === false ? c + "33" : "#fff"}" stroke="${c}" stroke-width="${gmR(Math.max(1.3, r * .06))}" stroke-linejoin="round"/>`;
+  if(o.env === false){ for(let i = 0; i < 6; i++){ const a = i * Math.PI / 3 + Math.PI / 6; s += `<circle cx="${gmR(x + Math.cos(a) * hr)}" cy="${gmR(y + Math.sin(a) * hr)}" r="${gmR(Math.max(1.5, r * .1))}" fill="${c}"/>`; } }
+  const rr = hr * .55, rp = [];
+  for(let i = 0; i <= 24; i++){ const t = i / 24; rp.push(`${gmR(x - rr + 2 * rr * t)},${gmR(y + Math.sin(t * Math.PI * 4) * rr * .45)}`); }
+  s += `<polyline points="${rp.join(" ")}" fill="none" stroke="${o.rnaC || "#8E24AA"}" stroke-width="${gmR(Math.max(1.4, r * .07))}" stroke-linecap="round"/>`;
+  return s;
+}
+// 항체(Y자)
+function gmAb(x, y, s, c, rot){
+  return `<g transform="translate(${x} ${y}) rotate(${rot || 0})"><path d="M0 0L0 ${-s}M0 ${-s}L${gmR(-s * .62)} ${gmR(-s * 1.6)}M0 ${-s}L${gmR(s * .62)} ${gmR(-s * 1.6)}" stroke="${c}" stroke-width="${gmR(Math.max(3, s * .22))}" stroke-linecap="round" fill="none"/></g>`;
+}
+// 세균 한 마리 속(세포벽·세포막·DNA·리보솜·편모) — 1편 2강과 2편 3강이 같이 쓴다
+function gmCellInner(cx, cy){
+  let s = `<rect x="${cx - 112}" y="${cy - 50}" width="224" height="100" rx="50" fill="#E8F5E9" stroke="#6D4C41" stroke-width="7"/>`
+    + `<rect x="${cx - 103}" y="${cy - 41}" width="206" height="82" rx="41" fill="none" stroke="#FB8C00" stroke-width="2.5" stroke-dasharray="6 4"/>`;
+  const dp = [];
+  for(let i = 0; i <= 60; i++){ const t = i / 60; dp.push(`${gmR(cx - 60 + 120 * t)},${gmR(cy + Math.sin(t * Math.PI * 9) * 16 + Math.sin(t * Math.PI * 2) * 6)}`); }
+  s += `<polyline points="${dp.join(" ")}" fill="none" stroke="#8E24AA" stroke-width="3" stroke-linecap="round"/>`;
+  [[-80, -22], [-70, 24], [-40, -30], [-20, 30], [10, -32], [35, 28], [60, -26], [78, 18], [-88, 2], [88, -4]].forEach(([dx, dy]) => { s += `<circle cx="${cx + dx}" cy="${cy + dy}" r="4" fill="#1E88E5"/>`; });
+  s += gmFlag(cx + 115, cy, 46, "#6D4C41");
+  return s;
+}
+
+// ── 1편 그림: 세균·바이러스 ──
+function gmFigSize(){
+  const rows = [
+    [gmE(30, 0, "🧑", 30), "사람", "키 약 1.7m", "높이 4km 거인 ⛰️"],
+    [`<rect x="12" y="-5" width="36" height="10" rx="5" fill="#6D4C41"/>`, "머리카락 굵기", "약 0.07mm (70µm)", "굵기 17cm 기둥"],
+    [`<circle cx="30" cy="0" r="14" fill="#E53935"/><circle cx="30" cy="0" r="5.5" fill="#EF9A9A"/>`, "적혈구(피 세포)", "약 0.007mm (7µm)", "10원 동전 🪙"],
+    [gmRod(30, 0, 34, 14, "#43A047"), "세균 (대장균)", "약 0.002mm (2µm)", "쌀알 🍚"],
+    [gmVirus(30, 0, 9, "#8E24AA"), "바이러스 (독감)", "약 0.0001mm (0.1µm)", "고운 모래알"],
+  ];
+  let s = gmT(8, 16, "실제 크기", { a:"start", s:12, c:"#777" }) + gmT(258, 16, "세균이 쌀알만 하다면?", { s:12, c:GM_COLOR });
+  rows.forEach((r, i) => {
+    const y = 48 + i * 56;
+    s += gmBox(4, y - 24, 312, 48, i % 2 ? "#fff" : "#F5F9FF", null, 10)
+      + `<g transform="translate(0 ${y})">${r[0]}</g>`
+      + gmT(60, y - 3, r[1], { a:"start", s:14, w:800 })
+      + gmT(60, y + 15, r[2], { a:"start", s:12, w:600, c:"#666" })
+      + gmBox(200, y - 15, 112, 30, "#E3F2FD", "#90CAF9", 15) + gmT(256, y + 5, r[3], { s:13, w:800, c:"#0D47A1" });
+  });
+  return gmSvg(304, s, "사람·세포·세균·바이러스 크기 비교");
+}
+function gmFigShapes(){
+  let s = gmBox(4, 6, 100, 120, "#FFF8E1") + gmBox(110, 6, 100, 120, "#E8F5E9") + gmBox(216, 6, 100, 120, "#F3E5F5");
+  [[38, 40], [52, 34], [46, 50], [32, 55], [60, 50], [52, 64]].forEach(([x, y]) => { s += gmCoccus(x, y, 8, "#FFA000"); });
+  [[22, 100], [38, 100], [54, 100], [70, 100]].forEach(([x, y]) => { s += gmCoccus(x + 6, y, 7.5, "#F57C00"); });
+  s += gmRod(150, 36, 54, 18, "#43A047", -12) + gmFlag(176, 30, 26, "#2E7D32") + gmRod(160, 70, 54, 18, "#66BB6A", 8) + gmRod(146, 104, 48, 16, "#2E7D32", -4);
+  s += gmSpiral(266, 44, 76, "#8E24AA", 8, 3) + gmSpiral(266, 92, 60, "#AB47BC", 6, 1.5);
+  s += gmT(54, 148, "구균 · 둥근형", { s:14, w:900, c:"#E65100" }) + gmT(160, 148, "간균 · 막대형", { s:14, w:900, c:"#2E7D32" }) + gmT(266, 148, "나선균 · 나선형", { s:14, w:900, c:"#6A1B9A" });
+  s += gmT(54, 168, ["포도송이나", "사슬처럼 모여요"], { s:12, w:600, c:"#555" }) + gmT(160, 168, ["막대 모양,", "꼬리 달린 것도"], { s:12, w:600, c:"#555" }) + gmT(266, 168, ["꼬불꼬불하거나", "휘어 있어요"], { s:12, w:600, c:"#555" });
+  return gmSvg(206, s, "세균의 세 가지 모양");
+}
+function gmFigBactInside(){
+  const cx = 140, cy = 112;
+  let s = gmCellInner(cx, cy);
+  const lab = (x, y, tx, ty, t, c, a) => gmLine(x, y, tx, ty, "#999", null, { w:1.4 }) + gmT(tx + (a === "end" ? -3 : 3), ty + 4, t, { a:a || "start", s:12.5, w:800, c });
+  s += lab(cx - 70, cy - 48, 18, 26, "① 세포벽 (바깥 벽)", "#6D4C41")
+    + lab(cx + 40, cy - 40, 170, 26, "② 세포막 (안쪽 막)", "#E65100")
+    + lab(cx - 10, cy + 12, 18, 196, "③ 유전물질 (DNA·설계도)", "#8E24AA")
+    + lab(cx + 78, cy + 18, 184, 196, "④ 리보솜 (단백질 공장)", "#1565C0")
+    + lab(cx + 150, cy + 2, 252, 60, "⑤ 편모", "#6D4C41");
+  return gmSvg(212, s, "세균 한 마리 속 구조");
+}
+function gmFigVirus(){
+  let s = gmVirus(96, 104, 54, "#C2185B", { n:14 });
+  const lab = (x, y, ty, n, t, sub, c) => gmLine(x, y, 176, ty, "#aaa", null, { w:1.4 }) + gmT(180, ty, n + " " + t, { a:"start", s:13.5, w:900, c }) + gmT(180, ty + 16, sub, { a:"start", s:12, w:600, c:"#666" });
+  s += lab(130, 46, 28, "①", "돌기(스파이크)", "세포 문을 여는 열쇠", "#C2185B")
+    + lab(146, 92, 78, "②", "외피(기름막)", "없는 바이러스도 있어요", "#AD1457")
+    + lab(128, 120, 128, "③", "껍질(캡시드)", "단백질로 된 상자", "#6D4C41")
+    + lab(110, 104, 178, "④", "유전물질", "DNA 또는 RNA = 설계도", "#8E24AA");
+  return gmSvg(212, s, "바이러스의 구조");
+}
+function gmFigEnv(){
+  let s = gmBox(4, 4, 154, 196, "#FCE4EC") + gmBox(162, 4, 154, 196, "#ECEFF1");
+  s += gmVirus(81, 52, 26, "#C2185B", { n:12 }) + gmVirus(239, 52, 28, "#546E7A", { env:false, spikes:false });
+  s += gmT(81, 104, "외피 있는 바이러스", { s:13.5, w:900, c:"#AD1457" }) + gmT(239, 104, "외피 없는 바이러스", { s:13.5, w:900, c:"#37474F" });
+  s += gmT(81, 126, ["🐔 AI·뉴캐슬병·IB", "🐷 ASF·PRRS·PED", "🐄 소바이러스성설사"], { s:12, w:700, c:"#444", lh:17 });
+  s += gmT(239, 126, ["🐔 감보로(IBD)", "🐷 써코·파보·로타", "🐄 구제역"], { s:12, w:700, c:"#444", lh:17 });
+  s += gmBox(14, 176, 134, 20, "#fff", null, 10) + gmT(81, 191, "소독제·세제에 약한 편", { s:12, w:800, c:"#AD1457" });
+  s += gmBox(172, 176, 134, 20, "#fff", null, 10) + gmT(239, 191, "더 질겨요 → 제품 확인", { s:12, w:800, c:"#37474F" });
+  return gmSvg(204, s, "외피 있는 바이러스와 없는 바이러스");
+}
+function gmFigGrow(){
+  let s = gmArrow("gmga", "#2E7D32") + gmArrow("gmgv", "#C2185B");
+  s += gmT(8, 18, "🦠 세균: 혼자 둘로 갈라지며 늘어요", { a:"start", s:13.5, w:900, c:"#2E7D32" });
+  s += gmRod(30, 54, 32, 13, "#43A047");
+  s += gmLine(52, 54, 72, 54, "#2E7D32", "gmga");
+  s += gmRod(98, 46, 30, 12, "#43A047") + gmRod(98, 63, 30, 12, "#43A047");
+  s += gmLine(120, 54, 140, 54, "#2E7D32", "gmga");
+  [[166, 38], [166, 52], [166, 66], [166, 80]].forEach(([x, y]) => { s += gmRod(x, y - 6, 28, 11, "#43A047"); });
+  s += gmLine(188, 54, 208, 54, "#2E7D32", "gmga");
+  for(let i = 0; i < 8; i++) s += gmRod(232 + (i % 2) * 30, 30 + Math.floor(i / 2) * 15, 26, 10, "#43A047");
+  s += gmT(62, 84, "20~30분", { s:12, c:"#666" }) + gmT(130, 84, "20~30분", { s:12, c:"#666" });
+  s += gmBox(8, 98, 304, 24, "#E8F5E9", null, 12) + gmT(160, 115, "조건이 좋으면 10시간 만에 이론상 10억 마리 이상", { s:12.5, w:800, c:"#1B5E20" });
+  s += gmT(8, 148, "🧬 바이러스: 남의 세포 공장을 빌려요", { a:"start", s:13.5, w:900, c:"#C2185B" });
+  s += `<ellipse cx="160" cy="214" rx="150" ry="52" fill="#FFF3E0" stroke="#FB8C00" stroke-width="2.5"/><ellipse cx="160" cy="218" rx="34" ry="20" fill="#FFE0B2" stroke="#EF6C00" stroke-width="1.5"/>`;
+  s += gmT(160, 222, "세포핵", { s:12, c:"#BF360C" });
+  s += gmVirus(30, 168, 9, "#C2185B", { n:8 }) + gmT(44, 172, "①붙기", { a:"start", s:12, w:800, c:"#C2185B" });
+  s += gmVirus(62, 200, 8, "#C2185B", { n:8 }) + gmT(48, 228, "②들어가기", { s:12, w:800, c:"#C2185B" });
+  s += gmSpiral(110, 196, 26, "#8E24AA", 3, 2) + gmSpiral(112, 240, 26, "#8E24AA", 3, 2) + gmT(108, 262, "③설계도 복사", { s:12, w:800, c:"#8E24AA" });
+  [[204, 196], [222, 208], [206, 232], [226, 238]].forEach(([x, y]) => { s += gmVirus(x, y, 6, "#C2185B", { n:6 }); });
+  s += gmT(214, 262, "④조립", { s:12, w:800, c:"#C2185B" });
+  [[286, 178], [302, 200], [292, 238], [276, 160]].forEach(([x, y]) => { s += gmVirus(x, y, 6, "#C2185B", { n:6 }); });
+  s += gmLine(248, 212, 272, 196, "#C2185B", "gmgv") + gmT(276, 268, "⑤수천 개 나옴", { s:12, w:800, c:"#C2185B" });
+  return gmSvg(276, s, "세균과 바이러스가 늘어나는 방법");
+}
+function gmFigGoodBad(){
+  let s = gmBox(4, 4, 154, 196, "#E8F5E9", "#A5D6A7") + gmBox(162, 4, 154, 196, "#FFEBEE", "#EF9A9A");
+  s += gmT(81, 26, "😊 도움 되는 세균", { s:14, w:900, c:"#2E7D32" }) + gmT(239, 26, "😈 병 일으키는 세균", { s:14, w:900, c:"#C62828" });
+  const L = [["🐄", "소 위 속 미생물", "풀을 소화해요"], ["🌿", "젖산균", "사일리지를 발효"], ["🛡️", "장 속 정상 세균", "나쁜 균 자리 뺏기"], ["♻️", "퇴비 미생물", "분뇨를 거름으로"]];
+  const R = [["🦠", "병원성 대장균", "설사·패혈증"], ["🥚", "살모넬라", "사람 식중독까지"], ["💥", "클로스트리디움", "괴사성 장염 등"], ["🧑", "브루셀라 등", "사람에게도 옮아요"]];
+  L.forEach((r, i) => { const y = 54 + i * 38; s += gmE(22, y, r[0], 20) + gmT(38, y - 3, r[1], { a:"start", s:12.5, w:800 }) + gmT(38, y + 12, r[2], { a:"start", s:12, w:600, c:"#2E7D32" }); });
+  R.forEach((r, i) => { const y = 54 + i * 38; s += gmE(180, y, r[0], 20) + gmT(196, y - 3, r[1], { a:"start", s:12.5, w:800 }) + gmT(196, y + 12, r[2], { a:"start", s:12, w:600, c:"#C62828" }); });
+  s += gmBox(4, 206, 312, 38, "#FFF8E1", "#FFE082") + gmT(160, 222, "⚠️ 기회감염: 평소엔 조용한 균도", { s:12.5, w:800, c:"#6b5400" }) + gmT(160, 238, "동물이 약해지면 병을 일으켜요", { s:12.5, w:800, c:"#6b5400" });
+  return gmSvg(248, s, "도움 되는 세균과 병을 일으키는 세균");
+}
+function gmFigEntry(){
+  let s = gmArrow("gmen", "#C62828");
+  s += `<rect x="92" y="78" width="136" height="124" rx="14" fill="none" stroke="#8D6E63" stroke-width="2.5" stroke-dasharray="7 5"/>`;
+  s += `<path d="M112 140 L160 102 L208 140 Z" fill="#EF9A9A" stroke="#C62828" stroke-width="2"/><rect x="120" y="140" width="80" height="48" fill="#FFF3E0" stroke="#8D6E63" stroke-width="2"/><rect x="150" y="160" width="20" height="28" fill="#8D6E63"/>`;
+  s += gmE(134, 162, "🐔", 15) + gmE(186, 162, "🐷", 15) + gmT(160, 216, "울타리·출입통제 = 문 닫기", { s:12, w:800, c:"#6D4C41" });
+  const box = (x, y, e, t, sub) => gmBox(x, y, 96, 62, "#fff", "#EF9A9A") + gmE(x + 20, y + 22, e, 22) + gmT(x + 38, y + 27, t, { a:"start", s:14, w:900, c:"#C62828" }) + gmT(x + 48, y + 50, sub, { s:12, w:600, c:"#555" });
+  s += box(4, 4, "🧑‍🌾", "사람", "옷·신발·손") + box(220, 4, "🚚", "차량", "바퀴·운전석")
+    + box(4, 224, "🐀", "동물", "쥐·새·멧돼지") + box(220, 224, "📦", "물품", "도구·계란판·포대");
+  s += gmLine(100, 60, 128, 98, "#C62828", "gmen") + gmLine(220, 60, 192, 98, "#C62828", "gmen") + gmLine(100, 236, 126, 196, "#C62828", "gmen") + gmLine(220, 236, 194, 196, "#C62828", "gmen");
+  s += gmT(36, 120, ["💧 물", "💨 공기", "🦟 해충"], { s:12.5, w:800, c:"#555", lh:22 }) + gmT(276, 120, ["🐣 새 가축", "🧑 방문객", "🍖 고기 가공품"], { s:12, w:800, c:"#555", lh:22 });
+  return gmSvg(290, s, "병원체가 농장에 들어오는 길");
+}
+function gmFigChain(){
+  const cx = 160, cy = 158, R = 106;
+  const N = [["🦠", "① 병원체"], ["🐖", "② 숨는 곳"], ["💩", "③ 나오는 길"], ["🚚", "④ 옮기는 길"], ["👃", "⑤ 들어가는 길"], ["🐣", "⑥ 약한 동물"]];
+  let s = gmArrow("gmch", "#90A4AE") + `<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="#CFD8DC" stroke-width="10"/>`;
+  N.forEach((n, i) => {
+    const a = -Math.PI / 2 + i * Math.PI / 3, x = gmR(cx + Math.cos(a) * R), y = gmR(cy + Math.sin(a) * R);
+    s += `<circle cx="${x}" cy="${y}" r="26" fill="#fff" stroke="#C62828" stroke-width="3"/>` + gmE(x, y - 2, n[0], 22);
+    const ly = y + (Math.sin(a) > .3 ? 40 : -34), lx = x;
+    s += gmBox(lx - 44, ly - 13, 88, 20, "#C62828", null, 10) + gmT(lx, ly + 2, n[1], { s:12, w:800, c:"#fff" });
+  });
+  s += gmT(cx, cy - 8, "감염 고리", { s:17, w:900, c:"#C62828" }) + gmT(cx, cy + 14, "✂ 한 고리만", { s:13, w:800, c:"#555" }) + gmT(cx, cy + 31, "끊어도 멈춰요", { s:13, w:800, c:"#555" });
+  return gmSvg(316, s, "감염 고리 여섯 칸");
+}
+function gmFigDx(){
+  let s = gmArrow("gmdx", "#546E7A");
+  s += gmBox(110, 4, 100, 34, "#FFEBEE", "#EF9A9A", 17) + gmT(160, 27, "😷 설사·기침", { s:14, w:900, c:"#C62828" });
+  const C = [["🦠", "세균", "#2E7D32"], ["🧬", "바이러스", "#C2185B"], ["🪱", "기생충·원충", "#6D4C41"], ["🌾", "사료·환경", "#F57C00"]];
+  C.forEach((c, i) => { const x = 42 + i * 79; s += gmLine(160, 40, x, 66, "#90A4AE", "gmdx") + gmBox(x - 37, 70, 74, 52, "#fff", c[2]) + gmE(x, 88, c[0], 18) + gmT(x, 114, c[1], { s:12, w:800, c:c[2] }); });
+  s += gmT(160, 142, "❓ 겉으로는 구별이 잘 안 돼요", { s:13, w:900, c:"#555" });
+  s += gmLine(160, 150, 160, 168, "#546E7A", "gmdx");
+  s += gmBox(8, 172, 304, 58, "#E3F2FD", "#90CAF9") + gmT(160, 192, "🔬 검사", { s:14, w:900, c:GM_COLOR });
+  s += gmT(160, 214, "부검 · 세균 배양 · PCR(유전자) · 항체 · 현미경", { s:12, w:700, c:"#333" });
+  s += gmLine(160, 232, 160, 248, "#546E7A", "gmdx") + gmBox(70, 252, 180, 30, "#E8F5E9", "#A5D6A7", 15) + gmT(160, 272, "✅ 진단 → 맞는 대책", { s:13.5, w:900, c:"#2E7D32" });
+  return gmSvg(288, s, "같은 증상, 여러 원인 — 검사가 필요한 이유");
+}
+function gmFigTwo(){
+  let s = gmBox(4, 4, 154, 96, "#E8F5E9") + gmBox(162, 4, 154, 96, "#FCE4EC");
+  s += gmRod(60, 44, 64, 26, "#43A047", -8) + gmE(110, 44, "🙂", 22) + gmT(81, 88, "세균", { s:15, w:900, c:"#2E7D32" });
+  s += gmVirus(222, 44, 18, "#C2185B", { n:10 }) + gmE(272, 44, "😼", 22) + gmT(239, 88, "바이러스", { s:15, w:900, c:"#C2185B" });
+  return gmSvg(104, s, "세균과 바이러스");
+}
+
+// ── 2편 그림: 항생제 ──
+function gmFigHistory(){
+  let s = `<circle cx="78" cy="74" r="64" fill="#FFFDE7" stroke="#BDBDBD" stroke-width="3"/>`;
+  for(let i = 0; i < 46; i++){
+    const a = i * 2.39996, r = 10 + (i * 37 % 50);
+    const x = 78 + Math.cos(a) * r, y = 74 + Math.sin(a) * r;
+    if(Math.hypot(x - 96, y - 58) > 26 && Math.hypot(x - 78, y - 74) < 58) s += `<circle cx="${gmR(x)}" cy="${gmR(y)}" r="3.4" fill="#FFB300"/>`;
+  }
+  s += `<circle cx="96" cy="58" r="25" fill="none" stroke="#9E9E9E" stroke-width="1.4" stroke-dasharray="3 3"/><circle cx="96" cy="58" r="12" fill="#90A4AE"/><circle cx="90" cy="54" r="6" fill="#B0BEC5"/><circle cx="102" cy="62" r="5" fill="#78909C"/>`;
+  s += gmT(150, 34, "🍞 곰팡이(푸른곰팡이)", { a:"start", s:13, w:900, c:"#455A64" }) + gmT(150, 56, ["둘레에는 세균(노란 점)이", "자라지 못했어요"], { a:"start", s:12.5, w:700, c:"#555", lh:17 });
+  s += gmT(150, 104, "→ 곰팡이가 만든 물질", { a:"start", s:12.5, w:800, c:"#C62828" }) + gmT(150, 122, "= 페니실린", { a:"start", s:14, w:900, c:"#C62828" });
+  const T = [["1928년", "플레밍이 곰팡이 둘레 빈자리를 발견"], ["1940년대", "플로리·체인이 약으로 정제, 대량생산"], ["1945년", "노벨상 · 플레밍 「내성」 경고"], ["1940~60년대", "다른 여러 항생제가 잇따라 발견"], ["지금", "새 항생제는 드물고 내성은 늘어요"]];
+  s += `<line x1="22" y1="160" x2="22" y2="${160 + 30 * 4}" stroke="#EF9A9A" stroke-width="4"/>`;
+  T.forEach((t, i) => { const y = 160 + i * 30; s += `<circle cx="22" cy="${y}" r="7" fill="${i === 4 ? "#C62828" : "#fff"}" stroke="#C62828" stroke-width="3"/>` + gmT(36, y + 5, t[0], { a:"start", s:12.5, w:900, c:"#C62828" }) + gmT(118, y + 5, t[1], { a:"start", s:12, w:600, c:"#333" }); });
+  return gmSvg(290, s, "페니실린 발견과 항생제의 역사");
+}
+function gmFigTarget(){
+  const C = [["🦠", "세균", "✅ 들어요", "#2E7D32", "#E8F5E9"], ["🧬", "바이러스", "❌ 안 들어요", "#C62828", "#FFEBEE"], ["🍄", "곰팡이", "❌ 다른 약", "#6D4C41", "#EFEBE9"], ["🪱", "기생충·원충", "❌ 다른 약", "#6D4C41", "#EFEBE9"]];
+  let s = gmE(160, 22, "💊", 30) + gmT(160, 54, "항생제가 상대하는 것", { s:13.5, w:900, c:"#333" });
+  C.forEach((c, i) => { const x = 6 + (i % 2) * 156, y = 66 + Math.floor(i / 2) * 70; s += gmBox(x, y, 152, 62, c[4], c[3]) + gmE(x + 26, y + 31, c[0], 26) + gmT(x + 52, y + 26, c[1], { a:"start", s:14, w:900, c:c[3] }) + gmT(x + 52, y + 46, c[2], { a:"start", s:13, w:800, c:c[3] }); });
+  s += gmBox(6, 210, 308, 40, "#FFF8E1", "#FFE082") + gmT(160, 226, "바이러스에는 세포벽·리보솜이 없어서", { s:12.5, w:800, c:"#6b5400" }) + gmT(160, 243, "항생제가 공격할 곳이 없어요", { s:12.5, w:800, c:"#6b5400" });
+  return gmSvg(256, s, "항생제가 듣는 것과 안 듣는 것");
+}
+function gmFigAttack(){
+  const cx = 140, cy = 104;
+  let s = gmCellInner(cx, cy);
+  const tg = (x, y, n) => `<circle cx="${x}" cy="${y}" r="13" fill="#C62828" stroke="#fff" stroke-width="2.5"/>` + gmT(x, y + 5, n, { s:13, w:900, c:"#fff" });
+  s += tg(cx - 110, cy - 30, "1") + tg(cx + 30, cy + 40, "2") + tg(cx - 30, cy - 4, "3") + tg(cx + 102, cy - 36, "4");
+  const L = [["1", "세포벽 쌓기 방해 → 터져요", "페니실린·세팔로스포린 계열"], ["2", "단백질 공장(리보솜) 멈춤", "테트라사이클린·마크로라이드 계열 등"], ["3", "유전물질 복사 방해", "퀴놀론 계열 / 재료 차단: 설파제 계열"], ["4", "세포막에 구멍", "폴리믹신(콜리스틴) 계열"]];
+  L.forEach((l, i) => { const y = 176 + i * 40; s += gmBox(4, y, 312, 36, i % 2 ? "#fff" : "#FFF5F5", "#FFCDD2", 9) + tg(22, y + 18, l[0]) + gmT(42, y + 15, l[1], { a:"start", s:13, w:900, c:"#C62828" }) + gmT(42, y + 30, l[2], { a:"start", s:12, w:600, c:"#555" }); });
+  return gmSvg(338, s, "항생제가 세균을 공격하는 네 곳");
+}
+function gmFigSpectrum(){
+  let s = gmBox(4, 4, 154, 92, "#EDE7F6", "#B39DDB") + gmBox(162, 4, 154, 92, "#FCE4EC", "#F48FB1");
+  s += `<rect x="30" y="22" width="56" height="24" rx="12" fill="#7E57C2" stroke="#4527A0" stroke-width="5"/>` + gmCoccus(110, 34, 11, "#7E57C2");
+  s += `<rect x="186" y="22" width="56" height="24" rx="12" fill="#F06292" stroke="#AD1457" stroke-width="1.6"/><rect x="182" y="18" width="64" height="32" rx="16" fill="none" stroke="#AD1457" stroke-width="1.4" stroke-dasharray="3 2"/>` + gmRod(278, 34, 34, 14, "#F06292");
+  s += gmT(81, 68, "그람양성균", { s:13.5, w:900, c:"#4527A0" }) + gmT(81, 86, "벽이 두꺼운 무리", { s:12, w:600, c:"#555" });
+  s += gmT(239, 68, "그람음성균", { s:13.5, w:900, c:"#AD1457" }) + gmT(239, 86, "얇은 벽 + 바깥막", { s:12, w:600, c:"#555" });
+  s += gmT(8, 122, "좁은 범위 약", { a:"start", s:13, w:900, c:"#333" }) + gmBox(110, 108, 100, 20, "#7E57C2", null, 10) + gmT(160, 123, "한 무리만", { s:12, w:800, c:"#fff" });
+  s += gmT(8, 156, "넓은 범위 약", { a:"start", s:13, w:900, c:"#333" }) + gmBox(110, 142, 204, 20, "#C62828", null, 10) + gmT(212, 157, "두 무리 + 장 속 좋은 균까지", { s:12, w:800, c:"#fff" });
+  s += gmBox(4, 174, 312, 40, "#FFF8E1", "#FFE082") + gmT(160, 190, "넓다고 좋은 약이 아니에요 — 원인균을 알면", { s:12.5, w:800, c:"#6b5400" }) + gmT(160, 207, "그 균에 맞는 약을 고르는 게 내성을 줄여요", { s:12.5, w:800, c:"#6b5400" });
+  return gmSvg(218, s, "항생제의 작용 범위");
+}
+function gmFigCidal(){
+  let s = gmArrow("gmcd", "#555");
+  s += gmLine(40, 186, 40, 20, "#555", "gmcd") + gmLine(40, 186, 312, 186, "#555", "gmcd");
+  s += gmT(36, 14, "세균 수", { a:"start", s:12, c:"#555" }) + gmT(312, 206, "시간 →", { a:"end", s:12, c:"#555" }) + gmT(70, 206, "💊 투약 시작", { s:12, c:"#C62828" });
+  s += `<line x1="70" y1="186" x2="70" y2="30" stroke="#C62828" stroke-dasharray="4 4" stroke-width="1.5"/>`;
+  s += `<path d="M40 120 Q60 112 70 104 Q160 70 300 30" fill="none" stroke="#9E9E9E" stroke-width="3.5"/>`;
+  s += `<path d="M40 120 Q60 112 70 104 Q120 100 170 104 Q230 120 300 150" fill="none" stroke="#FB8C00" stroke-width="3.5"/>`;
+  s += `<path d="M40 120 Q60 112 70 104 Q100 150 140 176 L300 180" fill="none" stroke="#C62828" stroke-width="3.5"/>`;
+  s += gmT(296, 46, "약 없음", { a:"end", s:12.5, w:900, c:"#757575" }) + gmT(300, 132, "정균: 멈춤 → 방어세포가 정리", { a:"end", s:12.5, w:900, c:"#EF6C00" }) + gmT(300, 172, "살균: 바로 줄어요", { a:"end", s:12.5, w:900, c:"#C62828" });
+  s += gmBox(4, 214, 152, 52, "#FFEBEE", "#EF9A9A") + gmT(80, 234, "🔨 살균 = 잡초 뽑기", { s:13, w:900, c:"#C62828" }) + gmT(80, 254, "세균을 죽여요", { s:12, w:600, c:"#555" });
+  s += gmBox(164, 214, 152, 52, "#FFF3E0", "#FFCC80") + gmT(240, 234, "🪢 정균 = 묶어 두기", { s:13, w:900, c:"#EF6C00" }) + gmT(240, 254, "늘지 못하게 막아요", { s:12, w:600, c:"#555" });
+  return gmSvg(270, s, "살균과 정균의 차이");
+}
+function gmFigResist(){
+  const G = "#66BB6A", R = "#E53935";
+  let s = gmArrow("gmrs", "#555");
+  const pan = (x, y, n, t) => gmBox(x, y, 154, 126, "#fff", "#ddd") + `<circle cx="${x + 14}" cy="${y + 14}" r="10" fill="#455A64"/>` + gmT(x + 14, y + 19, n, { s:12, w:900, c:"#fff" }) + gmT(x + 77, y + 118, t, { s:12, w:800, c:"#333" });
+  s += pan(4, 4, "1", "대부분 약에 약해요") + pan(162, 4, "2", "약: 약한 균만 죽어요") + pan(4, 136, "3", "내성균만 남아 늘어요") + pan(162, 136, "4", "내성 유전자가 퍼져요");
+  const P1 = [[40, 40], [64, 34], [92, 44], [118, 38], [36, 66], [62, 62], [88, 70], [114, 64], [50, 88], [78, 92], [104, 90], [128, 86]];
+  P1.forEach(([x, y], i) => { s += gmRod(x, y, 22, 10, i === 5 || i === 10 ? R : G, i * 20); });
+  P1.forEach(([x, y], i) => { const X = x + 158; if(i === 5 || i === 10) s += gmRod(X, y, 22, 10, R, i * 20); else s += gmRod(X, y, 22, 10, "#C8E6C9", i * 20) + gmT(X, y + 5, "✕", { s:12, w:900, c:"#9E9E9E" }); });
+  s += gmE(300, 22, "💊", 18);
+  P1.forEach(([x, y], i) => { s += gmRod(x, y + 132, 22, 10, R, i * 20); });
+  s += gmRod(196, 180, 26, 11, R) + `<circle cx="196" cy="180" r="4" fill="none" stroke="#FFEB3B" stroke-width="2.5"/>` + gmLine(214, 180, 236, 180, "#555", "gmrs") + gmRod(258, 180, 26, 11, G) + `<circle cx="258" cy="180" r="4" fill="none" stroke="#FFEB3B" stroke-width="2.5"/>`;
+  s += gmT(240, 204, "💩 → 🌍 → 🧑", { s:15, w:800 }) + gmT(240, 224, "분뇨·물·사람에게까지", { s:12, w:600, c:"#555" });
+  return gmSvg(266, s, "내성균이 남고 퍼지는 과정");
+}
+function gmFigAst(){
+  let s = gmArrow("gmas", "#546E7A");
+  const st = (x, e, t) => gmBox(x, 4, 68, 54, "#fff", "#CFD8DC") + gmE(x + 34, 22, e, 20) + gmT(x + 34, 48, t, { s:12, w:800, c:"#333" });
+  s += st(4, "🤒", "아픈 동물") + st(84, "🧪", "시료 채취") + st(164, "🧫", "세균 배양") + st(244, "🔎", "균 확인");
+  s += gmLine(74, 31, 82, 31, "#546E7A", "gmas") + gmLine(154, 31, 162, 31, "#546E7A", "gmas") + gmLine(234, 31, 242, 31, "#546E7A", "gmas");
+  s += gmT(160, 80, "감수성 검사: 약 종이를 올려 봐요", { s:13, w:900, c:"#C62828" });
+  s += `<circle cx="100" cy="160" r="66" fill="#FFF59D" stroke="#BDBDBD" stroke-width="3"/>`;
+  [[72, 132, 26, "A"], [130, 140, 13, "B"], [96, 196, 0, "C"]].forEach(([x, y, z, n]) => { if(z) s += `<circle cx="${x}" cy="${y}" r="${z}" fill="#FFFDE7" stroke="#E0E0E0"/>`; s += `<circle cx="${x}" cy="${y}" r="7" fill="#fff" stroke="#555" stroke-width="1.4"/>` + gmT(x, y + 4, n, { s:12, w:900, c:"#333" }); });
+  s += gmBox(176, 100, 140, 30, "#E8F5E9", "#A5D6A7", 8) + gmT(182, 120, "A 넓게 빔 = 잘 들음(S)", { a:"start", s:12, w:800, c:"#2E7D32" });
+  s += gmBox(176, 136, 140, 30, "#FFF8E1", "#FFE082", 8) + gmT(182, 156, "B 조금 빔 = 중간(I)", { a:"start", s:12, w:800, c:"#8D6E00" });
+  s += gmBox(176, 172, 140, 30, "#FFEBEE", "#EF9A9A", 8) + gmT(182, 192, "C 안 빔 = 안 들음(R)", { a:"start", s:12, w:800, c:"#C62828" });
+  s += gmBox(176, 210, 140, 26, "#E3F2FD", "#90CAF9", 13) + gmT(246, 228, "🩺 수의사가 약 결정", { s:12.5, w:900, c:GM_COLOR });
+  return gmSvg(240, s, "진단과 감수성 검사");
+}
+function gmFigRecord(){
+  const F = ["📅 투약 날짜·시각", "🏠 동·돈방·개체 / 두수·일령", "🩺 증상·진단 / 처방 수의사", "💊 약품명·제조번호(로트)", "💧 투여 방법·용량·기간", "⏳ 휴약기간 → 출하 가능일", "✍️ 담당자 · 효과(좋아졌나)"];
+  let s = gmBox(4, 4, 312, 30, "#C62828", null, 10) + gmT(160, 24, "📒 투약 기록장 (예시)", { s:14, w:900, c:"#fff" });
+  F.forEach((f, i) => { const y = 40 + i * 28; s += gmBox(4, y, 312, 25, i % 2 ? "#fff" : "#FFF5F5", "#FFCDD2", 6) + gmT(12, y + 17, f, { a:"start", s:12.5, w:800, c:"#333" }) + `<line x1="214" y1="${y + 19}" x2="308" y2="${y + 19}" stroke="#ccc" stroke-dasharray="3 3"/>`; });
+  const y0 = 246;
+  s += gmT(8, y0, "휴약기간 달력 (예: 7일)", { a:"start", s:12.5, w:900, c:"#C62828" });
+  for(let i = 0; i < 10; i++){
+    const x = 6 + i * 31, fill = i === 0 ? "#C62828" : (i <= 7 ? "#FFCDD2" : "#C8E6C9");
+    s += gmBox(x, y0 + 8, 28, 28, fill, null, 6) + gmT(x + 14, y0 + 27, i === 0 ? "💊" : (i <= 7 ? "✕" : "✔"), { s:12.5, w:900, c:i === 0 ? "#fff" : (i <= 7 ? "#C62828" : "#2E7D32") });
+  }
+  s += gmT(8, y0 + 54, "💊 마지막 투약 · ✕ 출하·집유·집란 안 됨 · ✔ 가능", { a:"start", s:12, w:700, c:"#555" });
+  return gmSvg(306, s, "투약 기록장과 휴약기간");
+}
+function gmFigRepeat(){
+  const cx = 160, cy = 132;
+  const P = [["🧹", "남은 병원체", "청소·소독"], ["🌡️", "온도·환기", "습도·암모니아"], ["🍽️", "사료·물", "사육 밀도"], ["🛡️", "면역", "백신·스트레스"], ["🚪", "들어오는 길", "차단방역"], ["💊", "약 사용", "진단·용량"]];
+  let s = `<circle cx="${cx}" cy="${cy}" r="40" fill="#C62828"/>` + gmT(cx, cy - 4, "병이", { s:14, w:900, c:"#fff" }) + gmT(cx, cy + 14, "또 왔다", { s:14, w:900, c:"#fff" });
+  P.forEach((p, i) => {
+    const a = -Math.PI / 2 + i * Math.PI / 3, x = gmR(cx + Math.cos(a) * 104), y = gmR(cy + Math.sin(a) * 92);
+    s += `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="#FFCDD2" stroke-width="4"/>` + gmBox(x - 56, y - 26, 112, 52, "#fff", "#EF9A9A", 12) + gmE(x - 38, y, p[0], 18) + gmT(x - 24, y - 4, p[1], { a:"start", s:12, w:900, c:"#C62828" }) + gmT(x - 24, y + 13, p[2], { a:"start", s:12, w:600, c:"#555" });
+  });
+  return gmSvg(258, s, "병이 반복될 때 함께 살필 여섯 가지");
+}
+
+// ── 3편 그림: 백신 ──
+function gmFigCastle(){
+  let s = gmBox(4, 4, 312, 132, "#F1F8E9", null, 12);
+  [[22, 40], [16, 76], [26, 108]].forEach(([x, y]) => { s += gmVirus(x, y, 8, "#C2185B", { n:8 }); });
+  for(let r = 0; r < 6; r++) for(let c = 0; c < 2; c++) s += `<rect x="${48 + c * 14 + (r % 2) * 7}" y="${14 + r * 19}" width="13" height="17" fill="#A1887F" stroke="#6D4C41" stroke-width="1"/>`;
+  s += `<circle cx="132" cy="50" r="17" fill="#FFCC80" stroke="#EF6C00" stroke-width="2"/>` + gmE(132, 50, "😋", 18) + gmVirus(152, 46, 6, "#C2185B", { n:6 });
+  s += `<circle cx="132" cy="102" r="15" fill="#FFCC80" stroke="#EF6C00" stroke-width="2"/>` + gmE(132, 102, "😤", 16);
+  s += `<circle cx="226" cy="40" r="15" fill="#90CAF9" stroke="#1565C0" stroke-width="2"/>` + gmT(226, 45, "B", { s:13, w:900, c:"#0D47A1" });
+  s += gmAb(256, 52, 9, "#1565C0", 40) + gmAb(272, 32, 9, "#1565C0", 70) + gmAb(258, 26, 8, "#1565C0", 100);
+  s += `<circle cx="226" cy="100" r="15" fill="#CE93D8" stroke="#6A1B9A" stroke-width="2"/>` + gmT(226, 105, "T", { s:13, w:900, c:"#4A148C" });
+  s += `<circle cx="290" cy="100" r="12" fill="#FFF59D" stroke="#F9A825" stroke-width="2"/>` + gmT(290, 105, "기억", { s:12, w:900, c:"#8D6E00" });
+  s += gmT(62, 156, "① 성벽", { s:13.5, w:900, c:"#6D4C41" }) + gmT(62, 174, ["피부·점막", "위산·섬모"], { s:12, w:600, c:"#555", lh:16 });
+  s += gmT(140, 156, "② 경비병", { s:13.5, w:900, c:"#EF6C00" }) + gmT(140, 174, ["먹보세포가", "아무나 먹어요"], { s:12, w:600, c:"#555", lh:16 });
+  s += gmT(256, 156, "③ 특수부대", { s:13.5, w:900, c:GM_COLOR }) + gmT(256, 174, ["B세포 → 항체", "T세포 → 지휘·처리"], { s:12, w:600, c:"#555", lh:16 });
+  s += gmBox(4, 206, 312, 26, "#FFF8E1", null, 12) + gmT(160, 224, "③은 느리지만 정확하고, 한 번 싸운 적을 기억해요", { s:12.5, w:800, c:"#6b5400" });
+  return gmSvg(236, s, "면역의 세 겹 방어");
+}
+function gmFigAbAg(){
+  let s = `<circle cx="80" cy="96" r="50" fill="#FCE4EC" stroke="#C2185B" stroke-width="3"/>` + gmE(80, 96, "🦠", 30);
+  s += `<polygon points="80,34 70,48 90,48" fill="#FB8C00"/><rect x="122" y="88" width="16" height="16" fill="#43A047"/><circle cx="34" cy="96" r="9" fill="#1E88E5"/><polygon points="80,158 70,144 90,144" fill="#FB8C00"/>`;
+  s += gmT(80, 182, "항원 = 병원체의 이름표", { s:13, w:900, c:"#C2185B" });
+  // 맞는 항체(초록 네모 홈)
+  s += `<path d="M150 96 L178 96 M178 96 L200 76 M178 96 L200 116" stroke="#2E7D32" stroke-width="7" stroke-linecap="round" fill="none"/>`;
+  s += `<rect x="140" y="88" width="10" height="16" fill="#fff" stroke="#2E7D32" stroke-width="2"/>`;
+  s += gmT(232, 60, "✅ 딱 맞는 열쇠", { s:13, w:900, c:"#2E7D32" }) + gmT(232, 78, "= 항체가 붙어 막아요", { s:12, w:700, c:"#555" });
+  s += gmAb(250, 166, 18, "#9E9E9E", 0) + `<polygon points="226,138 238,138 232,128" fill="#fff" stroke="#9E9E9E" stroke-width="1.5"/>`;
+  s += gmT(250, 120, "❌ 모양이 다르면", { s:13, w:900, c:"#757575" }) + gmT(250, 192, "안 붙어요", { s:12, w:700, c:"#555" });
+  return gmSvg(198, s, "항원과 항체 — 이름표와 맞춤 열쇠");
+}
+function gmFigMemory(){
+  let s = gmArrow("gmmm", "#555");
+  s += gmLine(36, 180, 36, 16, "#555", "gmmm") + gmLine(36, 180, 314, 180, "#555", "gmmm");
+  s += gmT(32, 12, "방어력(항체)", { a:"start", s:12, c:"#555" }) + gmT(314, 198, "시간 →", { a:"end", s:12, c:"#555" });
+  s += `<line x1="36" y1="96" x2="310" y2="96" stroke="#C62828" stroke-dasharray="5 4" stroke-width="1.6"/>` + gmT(310, 90, "병을 막는 선", { a:"end", s:12, w:800, c:"#C62828" });
+  s += `<path d="M60 178 C 90 178 100 130 120 122 C 140 116 150 150 180 160 L196 162" fill="none" stroke="#66BB6A" stroke-width="3.5"/>`;
+  s += `<path d="M196 162 C 210 160 214 40 236 36 C 262 32 280 50 306 56" fill="none" stroke="#2E7D32" stroke-width="4"/>`;
+  s += gmE(60, 166, "💉", 16) + gmT(66, 198, "백신(처음)", { s:12, w:800, c:"#2E7D32" }) + gmE(196, 150, "🦠", 16) + gmT(200, 198, "진짜 병원체", { s:12, w:800, c:"#C2185B" });
+  s += gmT(112, 112, "느리고 약하게", { s:12, w:800, c:"#558B2F" }) + gmT(252, 26, "빠르고 강하게 = 기억!", { s:12.5, w:900, c:"#1B5E20" });
+  return gmSvg(204, s, "면역 기억 — 두 번째는 빠르고 강하게");
+}
+function gmFigVtypes(){
+  const rows = [
+    [gmVirus(30, 0, 13, "#43A047", { n:10 }) + gmT(48, -8, "z", { s:12, w:900, c:"#43A047" }) + gmT(54, -16, "z", { s:12, w:900, c:"#43A047" }), "생백신", "약하게 만든 살아 있는 병원체", "#2E7D32"],
+    [gmVirus(30, 0, 13, "#9E9E9E", { n:10 }) + gmT(30, 6, "✕", { s:20, w:900, c:"#C62828" }), "불활화(사)백신", "죽인 병원체 + 면역보조제", "#616161"],
+    [`<g>${[0, 1, 2].map(i => `<line x1="${18 + i * 12}" y1="8" x2="${18 + i * 12}" y2="-4" stroke="#1E88E5" stroke-width="2.4"/><circle cx="${18 + i * 12}" cy="-6" r="3.6" fill="#1E88E5"/>`).join("")}</g>`, "성분·재조합 백신", "이름표(필요한 조각)만", "#1565C0"],
+    [`<rect x="10" y="-10" width="36" height="20" rx="6" fill="#FFE082" stroke="#F9A825" stroke-width="2"/><circle cx="18" cy="12" r="4" fill="#555"/><circle cx="38" cy="12" r="4" fill="#555"/><polygon points="28,-18 22,-10 34,-10" fill="#FB8C00"/>`, "벡터 백신", "무해한 바이러스에 이름표를 실어요", "#EF6C00"],
+    [gmE(30, 0, "☠️", 20) + gmT(30, 6, "✕", { s:26, w:900, c:"#C62828" }), "톡소이드", "세균 독소를 독 없게 바꾼 것", "#6A1B9A"],
+  ];
+  let s = "";
+  rows.forEach((r, i) => { const y = 30 + i * 52; s += gmBox(4, y - 24, 312, 48, i % 2 ? "#fff" : "#F1F8E9", "#C5E1A5", 10) + `<g transform="translate(0 ${y})">${r[0]}</g>` + gmT(70, y - 3, r[1], { a:"start", s:14, w:900, c:r[3] }) + gmT(70, y + 15, r[2], { a:"start", s:12, w:600, c:"#555" }); });
+  return gmSvg(264, s, "백신의 종류");
+}
+function gmFigFactory(){
+  const S = [["🌱", "① 씨앗", "종균·종독"], ["🥚", "② 키우기", "알·세포 배양"], ["⚗️", "③ 가공", "약화·불활화"], ["🧪", "④ 배합", "보조제·안정제"], ["🔍", "⑤ 품질검사", "무균·안전·효력"], ["📦", "⑥ 포장·출하", "국가검정·냉장"]];
+  let s = gmArrow("gmfc", "#2E7D32");
+  S.forEach((t, i) => {
+    const row = Math.floor(i / 3), col = row ? 2 - (i % 3) : i % 3, x = 6 + col * 106, y = 6 + row * 104;
+    s += gmBox(x, y, 92, 86, "#fff", "#A5D6A7", 12) + gmE(x + 46, y + 24, t[0], 24) + gmT(x + 46, y + 56, t[1], { s:13, w:900, c:"#2E7D32" }) + gmT(x + 46, y + 74, t[2], { s:12, w:600, c:"#555" });
+  });
+  s += gmLine(100, 49, 110, 49, "#2E7D32", "gmfc") + gmLine(206, 49, 216, 49, "#2E7D32", "gmfc") + gmLine(264, 93, 264, 108, "#2E7D32", "gmfc") + gmLine(216, 153, 206, 153, "#2E7D32", "gmfc") + gmLine(110, 153, 100, 153, "#2E7D32", "gmfc");
+  return gmSvg(200, s, "백신이 만들어지는 과정");
+}
+function gmFigOnset(){
+  let s = gmArrow("gmon", "#555");
+  s += `<rect x="40" y="20" width="132" height="150" fill="#FFEBEE"/>` + gmT(106, 40, "⚠️ 빈틈", { s:13.5, w:900, c:"#C62828" }) + gmT(106, 58, ["아직 보호가", "약해요"], { s:12, w:700, c:"#C62828", lh:16 });
+  s += gmLine(40, 170, 40, 14, "#555", "gmon") + gmLine(40, 170, 314, 170, "#555", "gmon");
+  s += `<path d="M40 166 C 100 166 120 150 150 110 C 180 66 200 54 300 50" fill="none" stroke="#2E7D32" stroke-width="4"/>`;
+  [0, 7, 14, 21, 28].forEach((d, i) => { const x = 40 + i * 66; s += `<line x1="${x}" y1="170" x2="${x}" y2="175" stroke="#555"/>` + gmT(x, 190, d + "일", { s:12, c:"#555" }); });
+  s += gmE(40, 150, "💉", 16) + gmT(240, 42, "보호 형성", { s:13, w:900, c:"#2E7D32" });
+  s += gmBox(4, 200, 312, 26, "#E8F5E9", null, 12) + gmT(160, 218, "보통 1~3주 — 백신·동물·나이마다 달라요(제품 표시)", { s:12, w:800, c:"#1B5E20" });
+  return gmSvg(230, s, "접종 뒤 면역이 생기는 데 걸리는 시간");
+}
+function gmFigBoost(){
+  let s = gmArrow("gmbs", "#555");
+  s += gmLine(36, 176, 36, 14, "#555", "gmbs") + gmLine(36, 176, 314, 176, "#555", "gmbs");
+  s += `<line x1="36" y1="100" x2="310" y2="100" stroke="#C62828" stroke-dasharray="5 4" stroke-width="1.6"/>` + gmT(310, 94, "보호선", { a:"end", s:12, w:800, c:"#C62828" });
+  s += `<path d="M36 40 C 80 60 110 150 160 172" fill="none" stroke="#FB8C00" stroke-width="3" stroke-dasharray="7 4"/>` + gmT(48, 32, "어미에게 받은 항체(이행항체)", { a:"start", s:12, w:800, c:"#EF6C00" });
+  s += `<path d="M70 174 C 90 172 96 128 112 126 C 128 124 136 150 156 152 C 170 152 172 70 192 62 C 214 56 226 86 248 92 C 262 94 266 50 282 46 C 296 44 304 52 312 56" fill="none" stroke="#2E7D32" stroke-width="4"/>`;
+  s += gmE(70, 160, "💉", 14) + gmE(160, 140, "💉", 14) + gmE(254, 80, "💉", 14);
+  s += gmT(76, 196, "기초 접종", { s:12, w:900, c:"#2E7D32" }) + gmT(166, 196, "추가 접종", { s:12, w:900, c:"#2E7D32" }) + gmT(262, 196, "정기 재접종", { s:12, w:900, c:"#2E7D32" });
+  return gmSvg(204, s, "기초 접종과 추가 접종");
+}
+function gmFigFridge(){
+  let s = gmBox(10, 6, 130, 226, "#ECEFF1", "#90A4AE", 14) + `<line x1="10" y1="66" x2="140" y2="66" stroke="#90A4AE" stroke-width="2"/>`;
+  s += gmT(75, 30, "❄️ 냉동칸", { s:12.5, w:900, c:"#455A64" }) + gmT(75, 52, "❌ 얼리면 망가져요", { s:12, w:800, c:"#C62828" });
+  s += `<line x1="18" y1="116" x2="132" y2="116" stroke="#B0BEC5" stroke-width="2"/><line x1="18" y1="176" x2="132" y2="176" stroke="#B0BEC5" stroke-width="2"/>`;
+  s += [36, 56, 76].map(x => `<rect x="${x}" y="128" width="14" height="30" rx="3" fill="#A5D6A7" stroke="#2E7D32" stroke-width="1.5"/><rect x="${x + 2}" y="124" width="10" height="6" fill="#9E9E9E"/>`).join("");
+  s += gmT(75, 172, "✅ 가운데 칸", { s:12, w:900, c:"#2E7D32" }) + gmE(112, 142, "🌡️", 18) + gmT(75, 92, "2~8℃ 냉장", { s:14, w:900, c:GM_COLOR });
+  s += gmT(75, 200, "❌ 문 칸", { s:12, w:900, c:"#C62828" }) + gmT(75, 218, "온도가 출렁여요", { s:12, w:600, c:"#555" });
+  const R = [["☀️", "❌ 햇볕·차 안", "#C62828"], ["🧴", "❌ 소독제 남은 기구", "#C62828"], ["⏱️", "✅ 개봉 후 바로 쓰기", "#2E7D32"], ["🧊", "✅ 아이스박스 운반", "#2E7D32"], ["📝", "✅ 온도 매일 기록", "#2E7D32"]];
+  R.forEach((r, i) => { const y = 24 + i * 44; s += gmBox(148, y - 18, 168, 36, "#fff", "#e0e0e0", 10) + gmE(164, y, r[0], 18) + gmT(180, y + 5, r[1], { a:"start", s:12, w:800, c:r[2] }); });
+  return gmSvg(238, s, "백신 보관과 취급");
+}
+function gmFigShield(){
+  let s = `<path d="M160 8 L212 26 L209 88 C 204 120 182 136 160 146 C 138 136 116 120 111 88 L108 26 Z" fill="#C8E6C9" stroke="#2E7D32" stroke-width="4"/>`;
+  s += `<polyline points="160,14 151,48 166,70 152,98 161,132" fill="none" stroke="#fff" stroke-width="4"/><polyline points="160,14 151,48 166,70 152,98 161,132" fill="none" stroke="#C62828" stroke-width="1.6"/>`;
+  s += gmE(184, 80, "💉", 22);
+  const L = ["① 형(변이)이 달라요", "② 보관·접종 실수", "③ 면역 생기기 전 감염", "④ 면역 약하게 하는 병", "⑤ 이행항체가 방해", "⑥ 병원체가 너무 많아요"];
+  L.forEach((t, i) => { const x = 4 + (i % 2) * 158, y = 156 + Math.floor(i / 2) * 38; s += gmBox(x, y, 154, 32, "#fff", "#EF9A9A", 10) + gmT(x + 10, y + 21, t, { a:"start", s:12.5, w:800, c:"#333" }); });
+  s += gmBox(4, 272, 312, 28, "#E8F5E9", null, 14) + gmT(160, 291, "백신 + 차단방역 + 사양관리 = 함께 막아요", { s:13, w:900, c:"#1B5E20" });
+  return gmSvg(304, s, "백신을 맞아도 병이 생길 수 있는 이유");
+}
+
+// ── 4편 그림: 소독제 ──
+const GM_DIRT = (x, y, w) => `<ellipse cx="${x}" cy="${y}" rx="${w}" ry="${gmR(w * .42)}" fill="#8D6E63"/><ellipse cx="${x - w * .3}" cy="${y - w * .12}" rx="${gmR(w * .35)}" ry="${gmR(w * .2)}" fill="#A1887F"/>`;
+function gmFigCleanDis(){
+  let s = gmArrow("gmcl", "#6A1B9A");
+  s += gmBox(4, 4, 98, 120, "#EFEBE9") + gmBox(111, 4, 98, 120, "#F3E5F5") + gmBox(218, 4, 98, 120, "#E8F5E9");
+  s += GM_DIRT(40, 80, 22) + GM_DIRT(72, 92, 16) + gmRod(34, 60, 18, 8, "#43A047", 20) + gmVirus(76, 70, 5, "#C2185B", { n:6 }) + gmRod(58, 104, 18, 8, "#43A047") + gmE(53, 30, "😖", 22);
+  s += gmE(160, 30, "🧹", 24) + gmRod(146, 84, 18, 8, "#43A047", 20) + gmVirus(176, 94, 5, "#C2185B", { n:6 }) + `<line x1="120" y1="112" x2="200" y2="112" stroke="#BCAAA4" stroke-width="3"/>`;
+  s += gmE(267, 30, "🧴", 24) + gmRod(252, 84, 18, 8, "#C8E6C9", 20) + gmT(252, 89, "✕", { s:12, w:900, c:"#9E9E9E" }) + gmVirus(284, 94, 5, "#BDBDBD", { n:6 }) + gmT(284, 99, "✕", { s:12, w:900, c:"#757575" }) + `<line x1="226" y1="112" x2="308" y2="112" stroke="#C8E6C9" stroke-width="3"/>`;
+  s += gmLine(104, 64, 109, 64, "#6A1B9A", "gmcl") + gmLine(211, 64, 216, 64, "#6A1B9A", "gmcl");
+  s += gmT(53, 146, "처음", { s:13.5, w:900, c:"#6D4C41" }) + gmT(53, 164, ["분변 속에", "병원체"], { s:12, w:600, c:"#555", lh:16 });
+  s += gmT(160, 146, "① 청소", { s:13.5, w:900, c:"#6A1B9A" }) + gmT(160, 164, ["오염물을", "걷어내요"], { s:12, w:600, c:"#555", lh:16 });
+  s += gmT(267, 146, "② 소독", { s:13.5, w:900, c:"#2E7D32" }) + gmT(267, 164, ["남은 병원체", "힘 빼기"], { s:12, w:600, c:"#555", lh:16 });
+  return gmSvg(200, s, "청소와 소독의 차이");
+}
+function gmFigOrganic(){
+  let s = gmBox(4, 4, 154, 150, "#FFEBEE", "#EF9A9A") + gmBox(162, 4, 154, 150, "#E8F5E9", "#A5D6A7");
+  s += `<path d="M24 120 C 30 72 60 62 81 66 C 112 70 136 90 138 120 Z" fill="#8D6E63"/>` + gmRod(70, 104, 20, 9, "#43A047", 10) + gmVirus(98, 108, 6, "#C2185B", { n:6 }) + gmRod(54, 116, 18, 8, "#43A047");
+  [[40, 30], [70, 24], [104, 32], [126, 46]].forEach(([x, y]) => { s += `<path d="M${x} ${y} q 4 8 0 12 q -4 -4 0 -12z" fill="#7E57C2"/>`; });
+  s += gmT(81, 140, "❌ 분변 방패에 막혀요", { s:12.5, w:900, c:"#C62828" });
+  s += `<line x1="172" y1="120" x2="306" y2="120" stroke="#A1887F" stroke-width="4"/>` + gmRod(210, 112, 20, 9, "#C8E6C9", 10) + gmT(210, 117, "✕", { s:12, w:900, c:"#9E9E9E" }) + gmVirus(262, 110, 6, "#BDBDBD", { n:6 }) + gmT(262, 115, "✕", { s:12, w:900, c:"#757575" });
+  [[198, 40], [228, 30], [262, 38], [290, 50]].forEach(([x, y]) => { s += `<path d="M${x} ${y} q 4 8 0 12 q -4 -4 0 -12z" fill="#7E57C2"/>`; });
+  s += gmT(239, 140, "✅ 씻은 면엔 잘 닿아요", { s:12.5, w:900, c:"#2E7D32" });
+  s += gmBox(4, 160, 312, 40, "#FFF8E1", "#FFE082") + gmT(160, 176, "분변·흙·피·우유 찌꺼기는 병원체를 감싸고", { s:12.5, w:800, c:"#6b5400" }) + gmT(160, 193, "소독제와 먼저 반응해 힘을 빼앗아요", { s:12.5, w:800, c:"#6b5400" });
+  return gmSvg(204, s, "유기물이 소독을 방해하는 이유");
+}
+function gmFigMode(){
+  let s = gmBox(4, 4, 100, 130, "#F3E5F5") + gmBox(110, 4, 100, 130, "#FFF3E0") + gmBox(216, 4, 100, 130, "#E3F2FD");
+  s += `<path d="M30 60 A 24 24 0 0 1 70 46" fill="none" stroke="#C2185B" stroke-width="3"/><path d="M76 58 A 24 24 0 0 1 60 92" fill="none" stroke="#C2185B" stroke-width="3"/><path d="M48 96 A 24 24 0 0 1 28 72" fill="none" stroke="#C2185B" stroke-width="3"/>` + gmE(54, 70, "💥", 18);
+  s += gmVirus(160, 66, 20, "#EF6C00", { spikes:false }) + `<line x1="128" y1="98" x2="134" y2="104" stroke="#EF6C00" stroke-width="2"/><circle cx="136" cy="108" r="3" fill="#EF6C00"/><line x1="186" y1="100" x2="190" y2="108" stroke="#EF6C00" stroke-width="2"/><circle cx="191" cy="111" r="3" fill="#EF6C00"/>`;
+  s += gmSpiral(254, 66, 26, "#1565C0", 5, 1.5) + gmSpiral(286, 70, 22, "#1565C0", 5, 1.2) + gmE(270, 40, "✂️", 18);
+  s += gmT(54, 122, "막 녹이기", { s:13, w:900, c:"#AD1457" }) + gmT(160, 122, "단백질 망가뜨리기", { s:12.5, w:900, c:"#E65100" }) + gmT(266, 122, "유전물질 손상", { s:13, w:900, c:"#1565C0" });
+  s += gmT(54, 152, ["알코올·4급 암모늄", "세제·페놀계"], { s:12, w:600, c:"#555", lh:16 }) + gmT(160, 152, ["염소·요오드·", "산화제·알데하이드"], { s:12, w:600, c:"#555", lh:16 }) + gmT(266, 152, ["산화제·", "알데하이드"], { s:12, w:600, c:"#555", lh:16 });
+  s += gmBox(4, 186, 154, 52, "#FFEBEE", "#EF9A9A") + gmT(81, 206, "💊 항생제", { s:13, w:900, c:"#C62828" }) + gmT(81, 226, "몸속 · 세균만 골라서", { s:12, w:700, c:"#555" });
+  s += gmBox(162, 186, 154, 52, "#F3E5F5", "#CE93D8") + gmT(239, 206, "🧴 소독제", { s:13, w:900, c:"#6A1B9A" }) + gmT(239, 226, "몸 밖 · 가리지 않고", { s:12, w:700, c:"#555" });
+  return gmSvg(242, s, "소독제가 병원체를 망가뜨리는 방법");
+}
+function gmFigLadder(){
+  const L = [["세균 아포(포자)", "클로스트리디움·탄저", "#B71C1C"], ["원충 알(오시스트)", "콕시듐·크립토스포리디움", "#C62828"], ["결핵균 무리", "소 결핵", "#E53935"], ["외피 없는 바이러스", "구제역·감보로·써코·파보", "#EF6C00"], ["일반 세균", "대장균·살모넬라·포도상구균", "#F9A825"], ["외피 있는 바이러스", "AI·뉴캐슬·ASF·PRRS·PED", "#43A047"]];
+  let s = gmArrow("gmld", "#555") + gmLine(16, 270, 16, 14, "#555", "gmld");
+  s += gmT(10, 10, "질겨요", { a:"start", s:12, w:900, c:"#B71C1C" });
+  L.forEach((l, i) => { const y = 22 + i * 42; s += gmBox(30, y, 286, 36, l[2] + "22", l[2], 10) + `<rect x="30" y="${y}" width="10" height="36" rx="4" fill="${l[2]}"/>` + gmT(48, y + 16, l[0], { a:"start", s:13.5, w:900, c:l[2] }) + gmT(48, y + 31, l[1], { a:"start", s:12, w:600, c:"#444" }); });
+  s += gmT(10, 290, "약해요 (소독이 잘 들어요)", { a:"start", s:12, w:900, c:"#2E7D32" });
+  return gmSvg(296, s, "병원체별 소독제에 견디는 정도");
+}
+function gmFigDilute(){
+  const B = [["너무 연하게", "😈 병원체가 살아남아요", "#90CAF9", "#C62828", 20], ["표시대로", "✅ 효력이 확인된 농도", "#7E57C2", "#2E7D32", 44], ["너무 진하게", "💸 낭비·부식·자극·잔류", "#4A148C", "#C62828", 70]];
+  let s = "";
+  B.forEach((b, i) => {
+    const x = 6 + i * 105;
+    s += `<path d="M${x + 14} 30 L${x + 86} 30 L${x + 80} 112 L${x + 20} 112 Z" fill="#fff" stroke="#90A4AE" stroke-width="2.5"/>`;
+    s += `<path d="M${x + 17} ${112 - b[4]} L${x + 83} ${112 - b[4]} L${x + 80} 112 L${x + 20} 112 Z" fill="${b[2]}" opacity="${.45 + i * .25}"/>`;
+    s += gmT(x + 50, 20, b[0], { s:13, w:900, c:i === 1 ? "#2E7D32" : "#555" });
+    s += gmBox(x, 120, 98, 44, i === 1 ? "#E8F5E9" : "#FFEBEE", null, 10) + gmT(x + 49, 138, b[1].split(" ")[0], { s:14, w:900 }) + gmT(x + 49, 156, b[1].split(" ").slice(1).join(" "), { s:12, w:800, c:b[3] });
+  });
+  return gmSvg(170, s, "희석 농도 — 연하게도 진하게도 아닌 표시대로");
+}
+function gmFigContact(){
+  let s = gmArrow("gmct", "#555") + gmE(24, 26, "⏱️", 24);
+  s += gmT(46, 32, "표시된 접촉 시간 동안 젖어 있어야 해요", { a:"start", s:12.5, w:900, c:"#6A1B9A" });
+  s += gmLine(20, 70, 312, 70, "#555", "gmct") + gmT(20, 90, "0분", { s:12, c:"#555", a:"start" }) + gmT(300, 90, "표시 시간", { s:12, c:"#555", a:"end" });
+  s += gmBox(20, 98, 280, 26, "#B39DDB", null, 8) + gmT(160, 116, "💧 계속 젖어 있음 → ✅ 병원체 비활성", { s:12.5, w:900, c:"#311B92" });
+  s += gmBox(20, 132, 60, 26, "#B39DDB", null, 8) + gmBox(80, 132, 220, 26, "#ECEFF1", "#CFD8DC", 8) + gmT(190, 150, "☀️💨 빨리 마름 → ❌ 덜 죽어요", { s:12.5, w:900, c:"#C62828" });
+  s += gmBox(4, 168, 312, 38, "#FFF8E1", "#FFE082") + gmT(160, 184, "추운 날은 효과가 떨어지고 얼 수 있어요", { s:12.5, w:800, c:"#6b5400" }) + gmT(160, 200, "→ 겨울 사용법은 제품 안내를 확인", { s:12.5, w:800, c:"#6b5400" });
+  return gmSvg(210, s, "접촉 시간 지키기");
+}
+function gmFigSteps(){
+  const S = [["🚚", "① 비우기", "가축·사료·깔짚·도구 밖으로"], ["🧹", "② 오염물 제거", "긁고 쓸어 분변·먼지 걷기"], ["🚿", "③ 세척", "세제로 불리고 고압수, 위→아래"], ["🧴", "④ 소독", "표시 희석 · 골고루 · 접촉 시간"], ["☀️", "⑤ 건조", "완전히 말린 뒤 다음 가축"]];
+  let s = gmArrow("gmst", "#6A1B9A");
+  S.forEach((t, i) => { const y = 6 + i * 52; s += gmBox(4, y, 312, 44, i % 2 ? "#fff" : "#F3E5F5", "#CE93D8", 12) + `<circle cx="28" cy="${y + 22}" r="17" fill="#fff" stroke="#6A1B9A" stroke-width="2"/>` + gmE(28, y + 22, t[0], 18) + gmT(54, y + 19, t[1], { a:"start", s:14, w:900, c:"#6A1B9A" }) + gmT(54, y + 36, t[2], { a:"start", s:12, w:600, c:"#444" }); if(i < 4) s += gmLine(28, y + 40, 28, y + 52, "#6A1B9A", "gmst"); });
+  return gmSvg(266, s, "축사 소독 다섯 단계");
+}
+function gmFigSpots(){
+  let s = gmBox(4, 4, 312, 128, "#F5F5F5", null, 12);
+  s += `<path d="M22 100 L22 70 C 22 56 30 48 44 48 L58 48 L64 30 L118 30 L130 60 L156 66 L156 100 Z" fill="#FFCA28" stroke="#F57F17" stroke-width="2"/><rect x="70" y="36" width="40" height="22" rx="3" fill="#B3E5FC"/>`;
+  s += `<rect x="156" y="40" width="140" height="60" rx="4" fill="#ECEFF1" stroke="#90A4AE" stroke-width="2"/>`;
+  [[52, 104], [126, 104], [236, 104], [272, 104]].forEach(([x, y]) => { s += `<circle cx="${x}" cy="${y}" r="15" fill="#424242"/><circle cx="${x}" cy="${y}" r="6" fill="#9E9E9E"/><circle cx="${x}" cy="${y}" r="21" fill="none" stroke="#E53935" stroke-width="3" stroke-dasharray="5 3"/>`; });
+  s += `<circle cx="92" cy="72" r="13" fill="none" stroke="#E53935" stroke-width="3" stroke-dasharray="5 3"/><circle cx="196" cy="112" r="11" fill="none" stroke="#E53935" stroke-width="3" stroke-dasharray="5 3"/>`;
+  s += gmT(160, 20, "🚚 바퀴 홈·흙받이 · 차 밑 · 운전석 발판·페달", { s:12, w:800, c:"#C62828" });
+  s += `<path d="M30 160 L118 160 C 136 160 144 172 144 186 L144 196 L30 196 Z" fill="#455A64"/>`;
+  for(let i = 0; i < 6; i++) s += `<rect x="${36 + i * 17}" y="188" width="10" height="8" fill="#212121"/>`;
+  s += `<ellipse cx="88" cy="198" rx="64" ry="12" fill="none" stroke="#E53935" stroke-width="3" stroke-dasharray="5 3"/>`;
+  s += gmT(88, 152, "👢 장화 밑창 홈", { s:12.5, w:900, c:"#C62828" });
+  s += gmT(236, 156, ["🧰 삽·수레·계란판", "🐖 몰이판·주사기통", "📱 휴대폰·손잡이"], { s:12, w:800, c:"#333", lh:20 });
+  return gmSvg(218, s, "장화·차량·도구에서 놓치기 쉬운 곳");
+}
+function gmFigMix(){
+  let s = "";
+  const M = [["염소계", "산성 제품", "☠️ 염소 가스"], ["염소계", "암모니아·분뇨", "☠️ 유해 가스"], ["4급 암모늄", "비누·세제", "📉 효과 사라짐"]];
+  M.forEach((m, i) => { const y = 6 + i * 46; s += gmBox(4, y, 180, 40, "#FFEBEE", "#EF9A9A", 10) + gmT(12, y + 17, m[0] + " + " + m[1], { a:"start", s:12, w:800, c:"#333" }) + gmT(12, y + 34, "→ " + m[2], { a:"start", s:12, w:900, c:"#C62828" }); });
+  s += gmT(94, 162, "❌ 섞지 마세요", { s:15, w:900, c:"#C62828" }) + gmT(94, 182, ["라벨이 허락한 것만 함께", "세제는 헹군 뒤 소독"], { s:12, w:600, c:"#555", lh:16 });
+  s += gmE(252, 92, "🧑‍🔧", 64);
+  const P = [[252, 28, "🥽 보안경"], [252, 52, "😷 마스크"], [214, 130, "🧤 고무장갑"], [282, 154, "🦺 방수복"], [252, 182, "👢 장화"]];
+  P.forEach(([x, y, t]) => { s += gmBox(x - 36, y - 13, 72, 20, "#E3F2FD", null, 10) + gmT(x, y + 2, t, { s:12, w:800, c:"#0D47A1" }); });
+  return gmSvg(214, s, "섞으면 안 되는 소독제와 보호장비");
+}
+
+// ── 5편: 종합편 농장 그림 (구역을 누르면 아래 카드로) ──
+function gmFigFarm(sel){
+  const hl = z => sel === z ? ' stroke="#FFD600" stroke-width="5"' : "";
+  let s = `<rect x="0" y="0" width="320" height="340" rx="14" fill="#E8F5E9"/>`;
+  s += `<path d="M0 34 L60 34 L60 330" fill="none" stroke="#BDBDBD" stroke-width="22" stroke-linejoin="round"/>`;
+  s += `<rect x="70" y="18" width="242" height="314" rx="12" fill="none" stroke="#8D6E63" stroke-width="3" stroke-dasharray="8 6"/>`;
+  // ① 입구
+  s += `<g class="gm-zone" data-z="gate" style="cursor:pointer"><rect x="6" y="46" width="108" height="76" rx="12" fill="#FFF3E0"${hl("gate")}/>` + gmE(26, 70, "🚚", 22) + gmE(56, 70, "🧑‍🌾", 22) + gmE(88, 70, "🚿", 20) + gmT(60, 100, "① 입구", { s:13.5, w:900, c:"#E65100" }) + gmT(60, 116, "들어오는 길 막기", { s:12, w:700, c:"#555" }) + `</g>`;
+  // ② 건강한 동물
+  s += `<g class="gm-zone" data-z="healthy" style="cursor:pointer"><path d="M126 70 L218 30 L310 70 Z" fill="#81C784"/><rect x="132" y="70" width="172" height="84" rx="6" fill="#fff"${hl("healthy")}/>` + gmE(160, 98, "🐔", 24) + gmE(204, 98, "🐷", 24) + gmE(250, 98, "🐄", 26) + gmT(218, 130, "② 건강한 동물", { s:13.5, w:900, c:"#2E7D32" }) + gmT(218, 147, "백신·관찰·차단방역", { s:12, w:700, c:"#555" }) + `</g>`;
+  // ③ 아픈 동물(격리)
+  s += `<g class="gm-zone" data-z="sick" style="cursor:pointer"><path d="M80 200 L130 170 L180 200 Z" fill="#E57373"/><rect x="84" y="200" width="92" height="96" rx="6" fill="#FFEBEE"${hl("sick")}/>` + gmE(110, 224, "🤒", 22) + gmE(150, 224, "🩺", 20) + gmT(130, 256, "③ 아픈 동물", { s:13.5, w:900, c:"#C62828" }) + gmT(130, 272, "격리·진단·", { s:12, w:700, c:"#555" }) + gmT(130, 288, "처방대로 치료", { s:12, w:700, c:"#555" }) + `</g>`;
+  // ④ 오염된 축사(비움)
+  s += `<g class="gm-zone" data-z="dirty" style="cursor:pointer"><path d="M190 200 L250 170 L310 200 Z" fill="#A1887F"/><rect x="194" y="200" width="112" height="96" rx="6" fill="#EFEBE9"${hl("dirty")}/>` + GM_DIRT(218, 222, 12) + GM_DIRT(282, 228, 10) + gmE(250, 222, "🧹", 18) + gmT(250, 256, "④ 오염된 축사", { s:13.5, w:900, c:"#5D4037" }) + gmT(250, 272, "비우기→청소→세척", { s:12, w:700, c:"#555" }) + gmT(250, 288, "→소독→건조", { s:12, w:700, c:"#555" }) + `</g>`;
+  // 바깥 위험
+  s += gmE(28, 156, "🐦", 18) + gmE(28, 214, "🐀", 18) + gmE(28, 272, "🐗", 20) + gmT(30, 306, ["울타리", "밖 위험"], { s:12, w:800, c:"#6D4C41" });
+  // 주제 표지
+  s += `<circle cx="300" cy="80" r="11" fill="#2E7D32"/>` + gmT(300, 85, "💉", { s:12 }) + `<circle cx="168" cy="196" r="11" fill="#C62828"/>` + gmT(168, 201, "💊", { s:12 }) + `<circle cx="296" cy="208" r="11" fill="#6A1B9A"/>` + gmT(296, 213, "🧴", { s:12 }) + `<circle cx="104" cy="54" r="11" fill="#1565C0"/>` + gmT(104, 59, "🦠", { s:12 });
+  return gmSvg(340, s, "우리 농장 한 장 그림 — 입구·건강한 동물·아픈 동물·오염된 축사");
+}
+
+// ── 강의 내용 ── 각 강: t 제목 · s 부제 · fig 그림 · cap 그림 설명 · pts 쉬운 설명 · ex [닭, 돼지, 소] 예 · sum 한 줄 정리 · extra 추가 HTML
+const GM_COMPARE_ROWS = [
+  ["크기", "1~5µm (광학현미경)", "0.02~0.3µm (전자현미경)"],
+  ["생김새", "둥근형·막대형·나선형 세포", "설계도 + 단백질 껍질 (+ 외피·돌기)"],
+  ["살아 있는 세포인가", "예 — 혼자 먹고 자라요", "아니요 — 세포 안에서만 늘어요"],
+  ["늘어나는 곳", "젖은 깔짚·물때·분변 등 어디서나", "살아 있는 동물의 세포 안"],
+  ["항생제", "✅ 맞는 약이면 들어요", "❌ 안 들어요"],
+  ["백신", "있는 병도 있어요", "있는 병이 많아요"],
+  ["소독", "✅ 줄일 수 있어요 (아포는 질김)", "✅ 줄일 수 있어요 (외피 없으면 질김)"],
+  ["예", "대장균·살모넬라·연쇄상구균·브루셀라", "AI·ASF·구제역·PRRS·IB·PED"],
+];
+const GM_DIS_TYPES = [
+  ["🟡", "염소계", "차아염소산나트륨 등", "빠르고 범위가 넓어요", "유기물에 약함 · 금속 부식 · 산과 섞으면 가스"],
+  ["🟤", "요오드계", "요오드 복합제", "범위가 넓어요 · 갈색이 옅어지면 힘이 빠진 신호", "유기물에 약함 · 얼룩"],
+  ["🔵", "산화제", "과산화수소·과초산·복합 산화제", "범위가 넓어요", "금속 부식 · 피부·눈 자극"],
+  ["🟣", "4급 암모늄계", "제4급 암모늄 화합물", "냄새·자극이 적어요 · 세균·외피 바이러스에 좋아요", "외피 없는 바이러스·아포에 약함 · 비누와 섞이면 효과 ↓"],
+  ["🟠", "알데하이드계", "글루타르알데하이드·포름알데히드", "강하고 범위가 넓어요", "자극·독성이 커서 보호장비 필수"],
+  ["⚪", "알칼리", "생석회·소석회·수산화나트륨", "바닥·출입로·분뇨 주변", "피부 화상 · 물과 만나면 열 (생석회)"],
+  ["🟢", "산·알코올·페놀계 등", "구연산·에탄올·크레졸 등", "용도별 (손·작은 도구·특정 병원체)", "범위가 제품마다 달라요"],
+];
+const GM_PARTS = [
+  { k:"germ", n:1, icon:"🦠", t:"세균·바이러스", sub:"보이지 않는 세계", color:"#1565C0", lessons:[
+    { t:"세균과 바이러스는 얼마나 작을까?", s:"사람·세포·미생물 크기 비교", fig:gmFigSize, cap:"세균(대장균)을 쌀알(약 5mm)만큼 크게 키우면, 같은 비율로 사람은 높이 4km가 넘는 거인이 돼요.",
+      pts:["세균과 바이러스는 <b>눈으로 볼 수 없어요</b>. 세균은 광학현미경으로, 훨씬 작은 바이러스는 <b>전자현미경</b>이 있어야 보여요.",
+        "1mm를 1,000조각 낸 것이 <b>1µm(마이크로미터)</b>예요. 세균은 1~5µm, 바이러스는 0.02~0.3µm쯤이에요.",
+        "바이러스는 세균보다 보통 <b>10~100배 더 작아요</b>.",
+        "장화 밑창에 묻은 흙 한 덩이, 분변 조금에도 <b>수많은 미생물</b>이 들어 있을 수 있어요."],
+      ex:["콧물 한 방울·분변 조금에도 조류인플루엔자(AI) 바이러스가 아주 많이 들어 있을 수 있어요.", "아프리카돼지열병(ASF) 바이러스는 피·고기 조금에도 들어 있어 사람·차량·가공품에 묻어 옮겨져요.", "구제역 바이러스는 아주 작아 침·물집액·숨에 섞여 퍼지고 바람을 타기도 해요."],
+      sum:"보이지 않는다고 없는 게 아니에요 — 깨끗해 보여도 씻고 소독해야 하는 이유예요." },
+    { t:"세균은 어떻게 생겼을까?", s:"둥근형·막대형·나선형", fig:() => gmFigShapes() + gmFigBactInside(), cap:"아래 그림은 세균 한 마리 속이에요. 이 다섯 부분은 2편 「항생제」에서 다시 나와요.",
+      pts:["세균은 <b>혼자서 살아가는 아주 작은 세포 하나</b>(단세포 생물)예요.",
+        "모양은 크게 셋: <b>구균(둥근형)</b>·<b>간균(막대형)</b>·<b>나선균(나선형)</b>. 검사실은 모양과 염색 색깔로 무리를 먼저 나눠요.",
+        "세균 몸은 바깥 <b>세포벽</b> → 안쪽 <b>세포막</b> → 속에 <b>유전물질(설계도)</b>과 <b>리보솜(단백질 공장)</b>이 있어요. 꼬리(편모)로 헤엄치는 균도 있어요.",
+        "어떤 세균(클로스트리디움·탄저균 등)은 <b>아포(포자)</b>라는 단단한 씨앗 상태로 흙 속에서 몇 년도 버텨요."],
+      ex:["포도상구균(둥근형) — 관절·발바닥 염증 / 대장균(막대형) / 캠필로박터(휘어진 나선형) — 닭 장에 흔하고 사람 식중독 원인.", "연쇄상구균(둥근형) — 관절염·뇌막염 / 돼지 이질균(나선형) — 피 섞인 설사.", "포도상구균·연쇄상구균(둥근형) — 유방염 / 렙토스피라(나선형) — 유산·황달."],
+      sum:"세균은 모양으로 무리를 나누지만, 같은 모양이라도 병을 일으키는 힘은 서로 달라요." },
+    { t:"바이러스는 어떻게 생겼을까?", s:"유전물질·껍질·돌기", fig:() => gmFigVirus() + gmFigEnv(), cap:"바이러스는 세포가 아니라 「설계도 + 껍질」 꾸러미예요. 외피(기름막)가 있느냐 없느냐로 소독 난이도가 달라져요.",
+      pts:["바이러스는 <b>세포가 아니에요</b>. 스스로 먹지도, 자라지도 못하는 <b>설계도(DNA 또는 RNA) + 단백질 껍질</b>이에요.",
+        "많은 바이러스는 겉에 <b>외피(기름막)</b>와 <b>돌기(스파이크)</b>가 있어요. 돌기는 동물 세포의 문을 여는 <b>열쇠</b>예요.",
+        "AI 이름 「H5N1」의 <b>H와 N은 돌기 두 종류</b>의 이름이에요. 돌기 모양이 바뀌면(변이) 백신이 잘 안 맞을 수 있어요 → 3편 9강.",
+        "외피가 있는 바이러스는 세제·소독제·건조에 <b>비교적 약하고</b>, 외피가 없는 바이러스는 <b>더 질겨요</b> → 4편 5강."],
+      ex:["외피 있음: AI·뉴캐슬병·전염성기관지염(IB) / 외피 없음: 감보로(IBD) — 깔짚·계사에 오래 남아요.", "외피 있음: ASF·PRRS·PED / 외피 없음: 써코바이러스·파보바이러스·로타바이러스.", "외피 있음: 소바이러스성설사(BVD) / 외피 없음: 구제역·로타바이러스."],
+      sum:"바이러스 = 설계도 + 껍질. 외피가 없는 바이러스일수록 소독이 더 어려워요." },
+    { t:"둘은 어떻게 늘어날까?", s:"혼자 증식하는 세균, 세포 안에서 증식하는 바이러스", fig:gmFigGrow, cap:"세균은 먹이·물기·온도만 맞으면 어디서나 늘고, 바이러스는 살아 있는 세포 안에서만 늘어요.",
+      pts:["<b>세균</b>은 몸이 <b>둘로 갈라지며</b> 늘어요. 조건이 좋으면 20~30분마다 두 배 — 한 마리가 하룻밤에 <b>이론상 10억 마리</b>를 넘어요.",
+        "그래서 <b>젖은 깔짚·물통 물때(바이오필름)·따뜻한 분변</b>은 세균 공장이에요. 마르고 깨끗하면 덜 늘어요.",
+        "<b>바이러스</b>는 동물 세포에 붙어 들어가 <b>세포의 공장을 빌려</b> 자기 복사본을 만들고, 한 세포에서 수백~수천 개가 쏟아져 나와요.",
+        "바이러스는 몸 밖에서 <b>늘지는 못해도 한동안 버텨요</b>. 분변·깔짚·차량·장화에 묻어 다음 농장으로 가요."],
+      ex:["급수라인 속 물때에서 세균이 늘어요. / IB 바이러스는 기관 점막 세포 안에서 늘어 기침을 일으켜요.", "분만사 바닥의 젖은 분변에서 대장균이 늘어요. / PED 바이러스는 장 점막 세포를 망가뜨려 심한 설사를 일으켜요.", "착유기 관에 남은 우유 찌꺼기에서 세균이 늘어요. / 구제역 바이러스는 입·발굽 세포에서 늘어 물집을 만들어요."],
+      sum:"세균은 「물기와 먹이」를 없애면 덜 늘고, 바이러스는 「살아 있는 동물」에게 닿지 못하게 막아야 해요." },
+    { t:"세균은 모두 나쁠까?", s:"도움이 되는 세균과 병을 일으키는 세균", fig:gmFigGoodBad, cap:"대부분의 세균은 해롭지 않고, 일부만 병을 일으켜요.",
+      pts:["아니에요! 동물 몸과 농장에는 <b>도움이 되는 세균</b>이 훨씬 많아요.",
+        "장 속 <b>정상 세균</b>은 자리를 먼저 차지해 나쁜 균이 붙지 못하게 하고, 소화도 도와요.",
+        "같은 <b>대장균</b>도 대부분은 장 속에서 얌전하지만, <b>병원성 대장균</b>만 병을 일으켜요.",
+        "<b>기회감염</b>: 평소 조용하던 균도 스트레스·추위·다른 병으로 동물이 약해지면 병을 일으켜요.",
+        "항생제는 좋은 세균까지 죽일 수 있어요 — 꼭 필요할 때만 쓰는 이유 중 하나예요."],
+      ex:["장 속 좋은 균이 먼저 자리 잡으면 살모넬라가 붙기 어려워요(경쟁적 배제).", "젖을 떼는 스트레스로 장 속 균형이 깨지면 대장균 설사(이유 후 설사)가 잘 생겨요.", "소 위(반추위) 속 미생물이 풀을 소화해요. 사료를 갑자기 바꾸면 균형이 깨져 고창증·산증이 생길 수 있어요."],
+      sum:"세균은 「친구」가 더 많아요 — 나쁜 균만 줄이고 좋은 균은 지키는 것이 관리예요." },
+    { t:"병원체는 농장에 어떻게 들어올까?", s:"사람·차량·동물·물품", fig:gmFigEntry, cap:"병원체는 거의 언제나 「무언가에 묻어서」 들어와요.",
+      pts:["가장 흔한 길은 <b>사람과 차량</b>이에요. 옷·신발·손, 바퀴·운전석 발판에 묻은 분변·흙이 병원체를 실어 와요.",
+        "<b>동물</b>: 새로 들인 가축은 겉으로 건강해도 병원체를 갖고 있을 수 있어요. 쥐·야생조류·멧돼지·고양이·해충도 옮겨요.",
+        "<b>물품</b>: 다른 농장에서 쓰던 도구, 계란판·사료 포대, 깔짚·물도 길이 돼요.",
+        "울타리·출입 기록·소독·농장 전용 장화와 옷 = <b>농장의 문을 닫는 일</b>이에요."],
+      ex:["철새(야생조류) 분변이 AI를 옮기고, 쥐가 살모넬라를 옮겨요. 계란판·난좌 재사용도 조심해요.", "멧돼지·오염된 돼지고기 가공품이 ASF를 옮길 수 있어요. 남은 음식물을 돼지에게 주면 안 돼요.", "다른 농장을 다녀온 사람·차량, 새로 들인 소가 구제역을 옮길 수 있고, 럼피스킨은 모기·침파리 같은 흡혈 곤충이 옮겨요."],
+      sum:"들어오는 길은 네 가지 — 사람·차량·동물·물품. 문을 하나씩 닫으면 위험이 줄어요." },
+    { t:"한 마리의 감염이 어떻게 퍼질까?", s:"전파 경로와 감염 고리", fig:gmFigChain, cap:"여섯 칸 중 하나만 끊어도 병이 이어지지 못해요.",
+      pts:["병이 퍼지려면 <b>여섯 칸의 고리</b>가 모두 이어져야 해요: 병원체 → 숨는 곳 → 나오는 길 → 옮기는 길 → 들어가는 길 → 약한 동물.",
+        "옮기는 길: <b>직접 접촉</b>, <b>분변이 입으로</b>, <b>공기·비말</b>, <b>물·사료</b>, <b>사람·차량·도구</b>, <b>쥐·해충</b>, 그리고 어미에서 알·새끼로 가는 길도 있어요.",
+        "같은 공기·물·사료통을 나눠 쓰는 축사 안에서는 <b>한 마리가 금방 여러 마리</b>가 돼요."],
+      ex:["한 마리가 기침하면 같은 공기와 급수기를 통해 계사 전체로 빠르게 퍼져요.", "장화·삽에 묻은 분변이 옆 돈방으로, 어미돼지가 새끼돼지에게 옮기기도 해요.", "같은 착유기를 쓰면 유방염 소에서 다른 소로 옮아요 — 유방염 소는 맨 마지막에 짜요."],
+      sum:"고리 하나만 끊어도 멈춰요 — 우리 농장에서 가장 끊기 쉬운 고리부터 시작하세요.",
+      extra:() => gmRows("✂️ 고리마다 끊는 방법", [["② 숨는 곳", "아픈 동물 격리 · 빨리 진단·치료 · 폐사체 바로 치우기"], ["③ 나오는 길", "분변·깔짚 자주 치우기 · 오염된 물·사료 바꾸기"], ["④ 옮기는 길", "출입 통제 · 장화·옷 갈아입기 · 차량·도구 소독 · 쥐·해충 잡기"], ["⑤ 들어가는 길", "깨끗한 물·사료 · 상처·배꼽 관리 · 먼지·암모니아 줄이기"], ["⑥ 약한 동물", "백신 · 알맞은 온도·밀도 · 스트레스 줄이기 · 초유·영양"]], "#C62828") },
+    { t:"증상만 보고 세균인지 바이러스인지 알 수 있을까?", s:"검사와 진단의 필요성", fig:gmFigDx, cap:"같은 설사·기침도 원인이 여러 가지예요.",
+      pts:["거의 <b>알 수 없어요</b>. 설사·기침·열·폐사 같은 증상은 세균·바이러스·기생충·사료·환경 어느 쪽에서도 나와요.",
+        "실제로는 <b>바이러스로 약해진 틈에 세균이 겹치는 경우</b>(2차 감염)도 흔해요.",
+        "그래서 <b>검사</b>가 필요해요: 부검(장기 변화) · 세균 배양(어떤 균인지 + 어떤 약이 듣는지) · PCR(유전자로 병원체 찾기) · 항체검사(감염·접종 흔적) · 현미경(기생충).",
+        "시료는 <b>투약 전에</b>, 막 죽었거나 아픈 동물 <b>여러 마리</b>에서 받는 게 좋아요. 담는 법·보내는 법은 수의사·검사기관 안내를 따르세요.",
+        "법정 가축전염병이 의심되면 <b>바로 신고</b>해요 (가축질병 신고 <b>1588-9060</b>)."],
+      ex:["기침·콧물: IB(바이러스)일 수도, 마이코플라스마(세균)일 수도 있어요.", "새끼돼지 설사: 대장균(세균)·PED·로타(바이러스)·콕시듐(원충) 모두 가능해요.", "송아지 설사: 대장균·살모넬라(세균), 로타·코로나(바이러스), 크립토스포리디움(원충) 모두 가능해요."],
+      sum:"짐작으로 약을 쓰기 전에 — 수의사 진단과 검사로 원인부터 확인해요." },
+    { t:"세균과 바이러스, 무엇이 같고 다를까?", s:"한 장 비교표", fig:gmFigTwo, cap:"1편을 한 장으로 정리했어요.",
+      pts:["<b>같은 점</b>: 눈에 안 보여요 · 사람·차량·동물·물품에 묻어 들어와요 · 청소·소독으로 줄일 수 있어요 · 백신이 있는 병도 있어요 · 검사로만 정확히 구별해요.",
+        "<b>다른 점</b>은 아래 표를 보세요. 가장 중요한 차이는 <b>항생제가 세균에만 듣는다</b>는 것이에요."],
+      ex:null, sum:"세균은 「작은 생물」, 바이러스는 「세포를 빌려 쓰는 설계도」 — 그래서 대처법이 달라요.",
+      extra:() => gmTable(["", "🦠 세균", "🧬 바이러스"], GM_COMPARE_ROWS, "#1565C0") },
+  ]},
+  { k:"abx", n:2, icon:"💊", t:"항생제", sub:"세균을 상대하는 약", color:"#C62828", lessons:[
+    { t:"항생제는 어떻게 발견됐을까?", s:"페니실린에서 시작하는 짧은 역사", fig:gmFigHistory, cap:"1928년 플레밍의 세균 접시 — 곰팡이 둘레에만 세균이 자라지 않았어요.",
+      pts:["1928년 영국의 <b>플레밍</b>이 세균을 키우던 접시에 <b>푸른곰팡이</b>가 들어가자, 곰팡이 둘레에 세균이 자라지 않는 것을 봤어요.",
+        "곰팡이가 만든 이 물질이 <b>페니실린</b>이에요. 1940년대에 플로리·체인이 약으로 정제해 대량생산했고, 많은 생명을 살렸어요.",
+        "1945년 노벨상을 받은 플레밍은 <b>「약을 잘못 쓰면 세균이 견디게 된다(내성)」</b>고 이미 경고했어요.",
+        "그 뒤 여러 항생제가 발견됐지만, 지금은 새 항생제가 드물고 <b>내성균은 늘어</b> 있는 약을 아껴 쓰는 것이 중요해졌어요.",
+        "우리나라는 <b>2011년 7월부터</b> 배합사료에 성장촉진용 항생제를 넣는 것을 금지했어요. 지금 항생제는 <b>병을 치료하는 약</b>이에요."],
+      ex:null, sum:"항생제는 생명을 살린 발견이지만, 잘못 쓰면 듣지 않게 돼요 — 처음부터 나온 경고예요." },
+    { t:"항생제는 어디에 듣고 어디에 안 들을까?", s:"세균과 바이러스 구분", fig:gmFigTarget, cap:"항생제는 세균의 몸(세포벽·리보솜 등)을 공격해요. 바이러스엔 그런 몸이 없어요.",
+      pts:["항생제는 <b>세균에만</b> 들어요. <b>바이러스 감염 자체는 치료하지 못해요.</b>",
+        "곰팡이·기생충·원충에는 대개 <b>다른 종류의 약</b>을 써요.",
+        "바이러스 병인데 수의사가 항생제를 쓰는 때가 있어요 — 바이러스로 약해진 틈에 들어온 <b>세균(2차 감염)</b>을 잡기 위해서예요. 이것은 수의사가 판단해요.",
+        "열이 나거나 기침한다고 무조건 항생제가 아니에요. 바이러스 병은 <b>면역·백신·차단방역</b>으로 막아요."],
+      ex:["AI·뉴캐슬병·IB는 바이러스 병이라 항생제로 바이러스를 없애지 못해요.", "ASF·PRRS·PED는 바이러스 병이라 항생제로 치료되지 않아요.", "구제역·럼피스킨·BVD는 바이러스 병이라 항생제로 치료되지 않아요."],
+      sum:"항생제 = 세균 약. 바이러스에는 듣지 않아요." },
+    { t:"항생제는 세균의 무엇을 공격할까?", s:"세포벽·단백질 생산·유전물질", fig:gmFigAttack, cap:"1편 2강의 「세균 한 마리 속」 그림에 공격 지점을 표시했어요.",
+      pts:["세균을 「성」이라고 하면, 항생제는 <b>네 가지 방법</b>으로 공격해요.",
+        "① <b>성벽(세포벽) 허물기</b> — 벽을 쌓지 못해 세균이 터져요.",
+        "② <b>공장(리보솜) 멈추기</b> — 단백질을 못 만들어 자라지 못해요.",
+        "③ <b>설계도(유전물질) 찢기</b> — 복사를 못 하거나, 복사 재료(엽산)를 끊어요.",
+        "④ <b>담장(세포막)에 구멍</b> — 속이 새어 나와요.",
+        "동물 세포에는 세포벽이 없고 리보솜 모양도 달라서, 항생제는 <b>세균을 골라</b> 공격할 수 있어요."],
+      ex:null, sum:"항생제는 「세균에만 있는 부분」을 노려요 — 그래서 그 부분이 없는 바이러스엔 듣지 않아요." },
+    { t:"항생제에도 종류가 있을까?", s:"작용 대상과 범위", fig:gmFigSpectrum, cap:"세균은 염색했을 때 색으로 두 무리(그람양성·그람음성)로 나뉘고, 약마다 잘 듣는 무리가 달라요.",
+      pts:["항생제는 <b>공격하는 곳</b>(앞 강의 ①~④)과 <b>듣는 세균의 범위</b>로 나눠요.",
+        "<b>좁은 범위</b>: 한 무리의 세균에만 / <b>넓은 범위</b>: 여러 무리에 — 하지만 장 속 좋은 균까지 많이 죽이고 내성 위험도 커요.",
+        "같은 <b>계열</b>은 공격 방식이 비슷해요. 한 약에 내성이 생기면 <b>같은 계열의 다른 약도 잘 안 듣는</b> 경우가 많아요.",
+        "약을 「이름」이 아니라 <b>「계열」</b>로 기억하면 같은 약을 이름만 바꿔 반복하는 실수를 줄일 수 있어요.",
+        "사람 치료에도 매우 중요한 항생제는 동물에게 더 신중히 써요."],
+      ex:["같은 증상이 반복된다고 제품 이름만 바꿔 같은 계열을 다시 쓰고 있지 않은지 기록을 확인해요.", "돈사에서 자주 쓰는 약의 계열을 정리해 두면 수의사와 상의하기 쉬워요.", "유방염 약도 원인균(우유 배양 결과)에 따라 고르는 것이 좋아요."],
+      sum:"넓은 약이 좋은 약이 아니에요 — 원인균에 맞는 약이 좋은 약이에요." },
+    { t:"죽이는 약과 증식을 막는 약은 어떻게 다를까?", s:"살균·정균", fig:gmFigCidal, cap:"정균제는 세균을 멈춰 두고, 마무리는 동물 몸의 방어세포가 해요.",
+      pts:["<b>살균</b>: 세균을 <b>죽여요</b> — 잡초를 뽑는 것과 같아요. (대체로 페니실린·아미노글리코사이드·퀴놀론 계열)",
+        "<b>정균</b>: 세균이 <b>더 늘지 못하게 묶어 둬요</b>. 그 사이 동물의 면역(방어세포)이 균을 정리해요. (대체로 테트라사이클린·마크로라이드·설파제 계열)",
+        "그래서 정균제는 <b>면역이 일할 수 있어야</b> 효과가 좋아요. 아주 어리거나 많이 약한 동물은 수의사가 이 점을 함께 따져요.",
+        "같은 약도 농도·세균에 따라 달라질 수 있어 딱 잘라 나눌 수는 없어요. 정해진 <b>용량과 기간</b>을 지키는 것이 기본이에요."],
+      ex:null, sum:"살균은 「뽑기」, 정균은 「묶어 두기」 — 어느 쪽이든 처방된 용량·기간을 지켜요." },
+    { t:"같은 항생제가 왜 어느 날 듣지 않을까?", s:"내성균이 남고 퍼지는 과정", fig:gmFigResist, cap:"약이 내성균을 「만드는」 게 아니라, 약에 약한 균을 없애 내성균이 「남게」 해요.",
+      pts:["세균 무리 속에는 원래 약을 견디는 균이 <b>조금</b> 섞여 있어요(돌연변이).",
+        "항생제를 쓰면 약한 균은 죽고 <b>내성균만 남아 늘어나요</b> → 다음엔 그 약이 안 들어요.",
+        "내성 유전자는 <b>다른 세균에게 건네지기도</b> 해요. 분뇨·물·축산물을 거쳐 <b>사람에게까지</b> 갈 수 있어요(원헬스).",
+        "내성을 키우는 습관: <b>바이러스 병에 항생제</b> · 진단 없이 이것저것 · <b>용량 부족·기간 들쭉날쭉</b> · 남은 약을 임의로 다시 쓰기."],
+      ex:["음수투약 때 급수라인이 막히거나 닭이 물을 덜 먹으면 실제 먹은 양이 모자라 효과는 줄고 내성은 늘어요.", "같은 설사약을 매번 반복해 쓰면 점점 효과가 떨어질 수 있어요.", "남은 유방염 약을 진단 없이 다른 소에게 쓰지 않아요."],
+      sum:"내성은 「약을 쓴 만큼」 자라요 — 필요할 때, 맞는 약을, 정해진 대로.",
+      extra:() => `<a href="https://www.woah.org/en/what-we-do/global-initiatives/antimicrobial-resistance/" target="_blank" rel="noopener" style="display:block;margin:8px 0;background:#FFF5F5;border:1.5px solid #EF9A9A;border-radius:12px;padding:10px 13px;font-size:14px;font-weight:800;color:#C62828;text-decoration:none">🌍 세계동물보건기구(WOAH) 항생제 내성 자료 보기 ↗</a>` },
+    { t:"어떤 약이 맞는지 어떻게 알까?", s:"진단과 감수성 검사", fig:gmFigAst, cap:"세균을 키운 접시에 약을 묻힌 종이를 올려, 둘레가 얼마나 비는지로 약이 듣는지 봐요.",
+      pts:["먼저 <b>진단</b> — 정말 세균 병인지, 어떤 균인지 확인해요.",
+        "<b>감수성 검사</b>는 우리 농장에서 나온 그 균에 <b>어떤 약이 듣는지 미리 시험</b>하는 거예요.",
+        "결과지 읽기: <b>S = 잘 들음</b>, <b>I = 중간</b>, <b>R = 안 들음(내성)</b>.",
+        "결과는 며칠 걸려요. 급하면 수의사가 먼저 약을 정하고, 결과를 보고 바꿀 수 있어요.",
+        "시료는 <b>약을 쓰기 전</b>에 받는 게 좋아요. 약을 먼저 쓰면 균이 안 자라 결과가 틀어질 수 있어요.",
+        "처방대상 동물용의약품은 <b>수의사 처방</b>을 받아 써요."],
+      ex:["부검한 닭의 간·심장 등에서 균을 키워 검사해요.", "폐사 돼지의 폐·관절, 설사 분변에서 균을 키워 검사해요.", "유방염 우유를 배양하면 원인균과 듣는 약을 알 수 있어요."],
+      sum:"「이 약이 듣던데」가 아니라 「이 균에 이 약이 듣는다」를 확인하고 써요." },
+    { t:"항생제 사용 때 무엇을 기록할까?", s:"약품·투여·휴약기간", fig:gmFigRecord, cap:"휴약기간 달력은 예시예요. 실제 휴약기간과 계산 방법은 제품 표시와 수의사 안내를 따르세요.",
+      pts:["<b>휴약기간</b>: 마지막 투약 뒤 고기·우유·계란을 <b>출하하면 안 되는 기간</b>이에요. 약이 몸에서 빠져나가는 시간이에요.",
+        "휴약기간은 <b>제품마다, 축종마다, 투여 방법마다</b> 달라요. 라벨에서 꼭 확인해요.",
+        "남은 약 성분(잔류)이 기준을 넘으면 출하가 막히거나 폐기되고 처벌받을 수 있어요.",
+        "기록하면 <b>①휴약 실수를 막고 ②효과를 비교하고 ③내성 신호를 일찍 알아요</b>.",
+        "처방전·구입 영수증도 함께 보관해요."],
+      ex:["육계는 키우는 기간이 짧아 출하 직전 투약이 휴약기간과 겹치기 쉬워요. 산란 중에 쓸 수 없는 약도 있어요.", "주사 맞은 돼지는 표시(스프레이·귀표)해 두고 돈방별로 기록해요.", "착유우는 투약 소를 표시하고, 우유를 따로 짜 버리고 집유하지 않아요."],
+      sum:"기록장이 곧 안전장치 — 「언제 마지막으로 줬나」를 모르면 출하일도 모르는 거예요." },
+    { t:"병이 반복된다면 약만 바꾸면 될까?", s:"사육환경과 감염원 함께 살피기", fig:gmFigRepeat, cap:"약은 지금 있는 균을 줄일 뿐, 균이 다시 들어오고 늘어나는 조건은 그대로 남아요.",
+      pts:["아니에요. 약만 바꾸면 <b>같은 병이 또 오고, 내성만 커져요</b>.",
+        "반복되면 <b>언제·어느 동·몇 일령</b>에 오는지 기록을 비교해 보세요. 늘 같은 때라면 원인도 늘 그 자리에 있어요.",
+        "함께 살필 것: <b>남아 있는 병원체</b>(청소·소독) · <b>온도·환기·습도·암모니아</b> · <b>사료·물·밀도</b> · <b>면역</b>(백신·스트레스) · <b>들어오는 길</b>(차단방역·쥐) · <b>약 사용</b>(진단·용량).",
+        "수의사와 농장을 함께 둘러보고, 필요하면 검사를 다시 해요."],
+      ex:["매 회차 같은 일령에 대장균증이 오면 → 급수라인 물때·깔짚 습도·환기·병아리 상태를 봐요.", "이유 후 설사가 반복되면 → 이유 때 온도·사료 바꾸는 방법·돈방 청소와 건조·올인올아웃을 봐요.", "송아지 설사가 반복되면 → 초유를 빨리·충분히 먹였는지, 분만 장소와 송아지 우리가 깨끗하고 마른지 봐요."],
+      sum:"반복되는 병은 「약 문제」보다 「농장 문제」인 경우가 많아요." },
+  ]},
+  { k:"vac", n:3, icon:"💉", t:"백신", sub:"몸의 방어 연습", color:"#2E7D32", lessons:[
+    { t:"면역은 몸에서 어떤 일을 할까?", s:"침입자와 방어세포", fig:gmFigCastle, cap:"면역은 세 겹으로 몸을 지켜요.",
+      pts:["① <b>성벽</b>: 피부·점막·위산, 기관의 섬모(털)가 병원체를 먼저 막아요.",
+        "② <b>경비병</b>: 먹보세포(대식세포·호중구)가 들어온 침입자를 가리지 않고 <b>바로</b> 먹어 치워요.",
+        "③ <b>특수부대</b>: B세포는 <b>항체</b>를 만들고, T세포는 지휘하며 감염된 세포를 처리해요. 느리지만 정확하고, 한 번 싸운 적을 <b>기억</b>해요.",
+        "백신은 바로 이 ③번이 <b>미리 연습</b>하게 하는 거예요."],
+      ex:["암모니아가 높으면 기관 섬모(성벽)가 다쳐 호흡기병이 잘 와요. 닭의 B세포는 파브리시우스낭에서 자라는데, 감보로 바이러스가 이곳을 망가뜨려 면역이 약해져요.", "젖 떼기·이동·온도 변화 스트레스가 방어력을 떨어뜨려요.", "분만 전후에는 면역이 떨어져 유방염·자궁염이 늘어요."],
+      sum:"면역 = 성벽 + 경비병 + 기억하는 특수부대. 백신은 특수부대 훈련이에요." },
+    { t:"항원·항체는 무엇일까?", s:"이름표와 맞춤 열쇠", fig:gmFigAbAg, cap:"항체는 자기와 딱 맞는 이름표(항원)에만 붙어요.",
+      pts:["<b>항원</b> = 병원체 겉에 붙은 <b>이름표</b>(특정한 모양)예요.",
+        "<b>항체</b> = 그 이름표에만 딱 맞는 <b>Y자 맞춤 열쇠</b>예요. 붙으면 병원체가 세포에 들어가지 못하고, 경비병이 먹기 쉬워져요.",
+        "이름표가 다르면(다른 혈청형·변이) 항체가 잘 붙지 않아요.",
+        "<b>이행항체</b>: 어미가 새끼에게 물려주는 항체예요. 새끼를 처음 몇 주 지켜 줘요.",
+        "<b>항체검사</b>는 피 속 항체 양을 재서 접종이 잘됐는지, 감염된 흔적이 있는지 봐요."],
+      ex:["어미닭(종계)의 항체가 노른자를 통해 병아리에게 가요.", "돼지는 태반으로 항체가 거의 안 넘어가서 <b>초유</b>가 꼭 필요해요. 초유를 못 먹은 새끼돼지는 설사·폐사가 많아요.", "송아지도 초유로 항체를 받아요. 태어난 뒤 <b>몇 시간 안에 충분히</b> 먹여야 잘 흡수돼요."],
+      sum:"항원은 이름표, 항체는 그 이름표에만 맞는 열쇠예요." },
+    { t:"백신은 왜 병이 나기 전에 맞을까?", s:"면역 기억 만들기", fig:gmFigMemory, cap:"처음 만난 적에는 느리게, 두 번째는 빠르고 강하게 반응해요.",
+      pts:["몸이 병원체를 <b>처음</b> 만나면 항체를 만드는 데 <b>1~2주</b>가 걸려요. 그 사이 병이 진행돼요.",
+        "백신은 <b>약하게 하거나 죽인 병원체(또는 이름표)</b>를 미리 보여 줘서 몸이 <b>기억</b>하게 해요.",
+        "그러면 진짜 병원체가 왔을 때 <b>빠르고 강하게</b> 막아요 — 불이 나기 전에 하는 소방 훈련과 같아요.",
+        "이미 병이 돈 뒤 맞히면 보호가 늦어요. 긴급 접종은 수의사·방역당국이 판단해요."],
+      ex:null, sum:"백신은 「치료약」이 아니라 「예습」이에요 — 그래서 아프기 전에 맞혀요." },
+    { t:"백신에는 어떤 종류가 있을까?", s:"생백신·불활화백신·성분백신 등", fig:gmFigVtypes, cap:"종류마다 장단점과 다루는 방법이 달라요.",
+      pts:["<b>생백신</b>: 약하게 만든 살아 있는 병원체. 몸속에서 조금 늘며 강한 면역을 만들어요. <b>살아 있어서</b> 보관 온도·소독제에 아주 약해요.",
+        "<b>불활화(사)백신</b>: 죽인 병원체 + 면역보조제(오일 등). 안전하지만 주사로 맞히고, 여러 번 맞히는 경우가 많아요.",
+        "<b>성분·재조합 백신</b>: 병원체 전체 대신 이름표(필요한 조각)만 담아요.",
+        "<b>벡터 백신</b>: 해가 없는 다른 바이러스에 이름표를 실어 보내요.",
+        "<b>톡소이드</b>: 세균이 내는 독소를 독 없게 바꿔 독소에 대한 면역을 만들어요."],
+      ex:["뉴캐슬병·IB 생백신은 분무·음수·점안으로, 산란 전 오일 사백신은 주사로 맞혀요. 마렉병 벡터 백신은 부화장에서 맞히기도 해요.", "써코바이러스 성분백신, 구제역 불활화백신 등을 써요.", "구제역 불활화백신을 정기 접종하고, 클로스트리디움 병에는 톡소이드 백신을 써요."],
+      sum:"살아 있는 백신일수록 강하지만 예민해요 — 종류에 맞게 다뤄요." },
+    { t:"백신은 어떻게 만들어질까?", s:"항원 준비→가공→배합→품질검사→포장", fig:gmFigFactory, cap:"백신 한 병이 나오기까지 몇 달 이상 걸려요.",
+      pts:["① <b>씨앗 고르기</b>: 백신에 쓸 균·바이러스(종균·종독)를 골라요.",
+        "② <b>키우기</b>: 유정란·세포·배양통에서 키워 양을 늘려요.",
+        "③ <b>가공</b>: 약하게 하거나(생백신) 죽이고(불활화), 깨끗하게 걸러요.",
+        "④ <b>배합</b>: 면역보조제·안정제를 섞고 병에 담아요(생백신은 얼려 말리기도 해요).",
+        "⑤ <b>품질검사</b>: 오염이 없는지, 안전한지, 정말 보호하는지, 양이 맞는지 확인해요. 우리나라는 출하 전 <b>국가검정</b>도 거쳐요.",
+        "⑥ <b>포장·출하</b>: 제조번호(로트)·유효기간을 붙이고 냉장으로 유통해요."],
+      ex:null, sum:"백신 병에 적힌 제조번호·유효기간은 이 긴 과정의 「이력서」예요 — 접종 기록에 꼭 적어요.",
+      extra:() => `<a href="https://iris.who.int/bitstream/handle/10665/350968/WHO-EURO-2017-4683-44446-62833-eng.pdf" target="_blank" rel="noopener" style="display:block;margin:8px 0;background:#F1F8E9;border:1.5px solid #A5D6A7;border-radius:12px;padding:10px 13px;font-size:14px;font-weight:800;color:#2E7D32;text-decoration:none">📄 WHO 백신 제조과정 자료(영문) 보기 ↗</a>` },
+    { t:"접종 직후 바로 보호될까?", s:"면역이 형성되는 시간", fig:gmFigOnset, cap:"접종한 날부터 면역이 생길 때까지는 빈틈이 있어요.",
+      pts:["아니에요. 면역이 생기려면 보통 <b>1~3주</b>가 걸려요(백신·동물·나이마다 달라요 — 제품 표시 확인).",
+        "그 <b>빈틈 동안</b>은 차단방역·사양관리를 더 철저히 해야 해요.",
+        "스트레스·다른 병·영양 부족·곰팡이독소·이행항체는 면역이 생기는 것을 <b>방해</b>해요.",
+        "접종 뒤 잠깐 기운이 없거나 열·접종 부위 붓기가 생길 수 있어요. 심하면 수의사에게 알려요."],
+      ex:["1일령 접종 뒤 면역이 생기는 동안 병아리 온도·물·밀도를 잘 맞춰 스트레스를 줄여요.", "젖 떼는 시기와 접종이 겹치면 스트레스가 겹쳐요 — 일정은 수의사와 상의해요.", "이동·출하 전에 맞혀야 하는 백신은 미리(몇 주 전) 맞혀야 이동할 때 보호돼요."],
+      sum:"맞힌 날 = 보호 시작이 아니에요. 면역이 자랄 시간을 지켜 주세요." },
+    { t:"왜 여러 번 접종하기도 할까?", s:"기초 접종과 추가 접종", fig:gmFigBoost, cap:"추가 접종을 하면 방어력이 더 높고 오래가요.",
+      pts:["<b>기초 접종</b>: 몸이 처음 배우는 단계예요. 방어력이 낮고 짧아요.",
+        "<b>추가 접종</b>: 기억을 단단하게 해서 방어력을 <b>더 높고 오래</b> 가게 해요.",
+        "<b>정기 재접종</b>: 시간이 지나면 항체가 줄어서, 오래 키우는 동물은 때마다 다시 맞혀요.",
+        "<b>이행항체</b>가 많을 때 맞히면 백신을 막아 효과가 떨어지고, 너무 늦으면 빈틈이 생겨요 → 접종 시기를 정하는 이유예요."],
+      ex:["산란계는 오래 키우니 육성기에 여러 번 생백신을 맞히고 산란 전 사백신으로 마무리해요.", "어미돼지에게 분만 전에 맞히면 초유 항체가 늘어 새끼돼지를 지켜요.", "구제역처럼 정해진 시기마다(예: 봄·가을 일제접종) 다시 맞히는 백신이 있어요."],
+      sum:"한 번으로 끝나지 않는 백신이 많아요 — 계획표대로 「다음 접종」을 챙겨요." },
+    { t:"백신은 어떻게 보관하고 다룰까?", s:"제품별 보관 조건 확인", fig:gmFigFridge, cap:"정답은 제품 라벨에 있어요. 대부분 2~8℃ 냉장이지만 다른 백신도 있어요.",
+      pts:["대부분 <b>2~8℃ 냉장</b>, 냉장고 <b>가운데 칸</b>에 보관해요. 문 칸은 온도가 출렁여요.",
+        "<b>얼리면 망가지는 백신</b>(특히 오일 사백신)이 많아요. 반대로 액체질소(-196℃)에 두는 백신도 있어요 → <b>제품 표시가 정답</b>.",
+        "옮길 때는 아이스박스 + 아이스팩, 백신이 얼음에 직접 닿지 않게 해요. 햇볕·자동차 안에 두지 않아요.",
+        "개봉·희석한 백신은 <b>제품에 적힌 시간 안에</b> 다 쓰고, 남은 것은 다음에 쓰지 않아요.",
+        "<b>생백신은 소독제에 죽어요</b> — 염소 소독한 물, 소독제가 남은 분무기·음수기·주사기를 쓰지 않아요."],
+      ex:["분무기·음수기는 백신 전용으로 쓰고, 음수 접종 때는 소독제 없는 물을 써요. 마렉 백신 일부는 액체질소 통에 보관해요.", "주사바늘은 정해진 두수·돈방마다 바꿔요(바늘로 병이 옮을 수 있어요).", "농장 냉장고에 온도계를 두고 매일 온도를 적어요."],
+      sum:"백신은 「살아 있는 약」처럼 다뤄요 — 온도·시간·소독제를 조심해요." },
+    { t:"백신을 맞아도 왜 병이 생길 수 있을까?", s:"보호 범위와 접종 관리", fig:gmFigShield, cap:"백신은 100% 방패가 아니에요. 금이 가는 이유를 알면 막을 수 있어요.",
+      pts:["① <b>형이 달라요</b>: 백신과 다른 혈청형·변이 병원체가 오면 보호가 약해요.",
+        "② <b>보관·접종 실수</b>: 얼었거나 더웠던 백신, 소독제, 빠뜨린 개체.",
+        "③ <b>면역이 생기기 전</b>에 감염됐어요.",
+        "④ <b>면역을 약하게 하는 병·상태</b>: 감보로·PRRS·마렉·곰팡이독소·스트레스.",
+        "⑤ <b>이행항체</b>가 백신을 막았어요.",
+        "⑥ <b>병원체가 너무 많아요</b>: 오염이 심하면 방패가 버티지 못해요.",
+        "백신은 병을 <b>가볍게, 덜 퍼지게</b> 해 줘요. 차단방역과 함께해야 해요."],
+      ex:["IB는 변이형이 많아 백신과 형이 다르면 보호가 약할 수 있어요.", "PRRS는 변이가 심해 백신만으로 막기 어려워 차단방역과 돼지 흐름 관리가 함께 필요해요.", "새로 들어온 소, 접종 시기를 놓친 송아지처럼 빠진 개체가 없는지 기록으로 확인해요."],
+      sum:"「백신 맞혔는데 왜?」 — 형·보관·시기·면역·오염 다섯 가지를 차례로 점검해요." },
+    { t:"우리 농장 접종계획은 어떻게 읽을까?", s:"질병·대상·시기·기록", fig:null, cap:"",
+      pts:["접종계획표는 <b>무슨 병을 · 어떤 백신으로 · 누구에게 · 언제 · 어떻게</b> 맞히는지 적은 표예요.",
+        "<b>대상</b>은 축종과 나이로 적어요: 닭은 일령·주령, 돼지는 모돈·자돈·비육돈, 소는 송아지·번식우·착유우.",
+        "<b>용량·부위</b>는 제품 표시를 따르고, 계획은 우리 농장 질병 상황·지역 발생에 맞춰 <b>수의사와 함께</b> 정해요.",
+        "맞힌 뒤에는 <b>날짜·제품명·제조번호·유효기간·두수·접종자·이상 반응</b>을 적어요. 기록이 있어야 「빠진 개체」를 찾을 수 있어요."],
+      ex:null, sum:"계획표는 「약속」, 기록은 「지킨 증거」 — 둘이 짝을 이뤄야 백신이 제 몫을 해요.",
+      extra:() => gmTable(["질병", "백신", "대상", "시기", "방법", "✔ 기록"], [["A병", "생백신", "육계", "1일령", "분무", "날짜·로트"], ["B병", "생백신", "산란계", "4주령", "음수", "두수·접종자"], ["C병", "불활화", "모돈", "분만 4주 전", "근육 주사", "개체 번호"], ["D병", "불활화", "소 전체", "봄·가을", "근육 주사", "이상 반응"]], "#2E7D32")
+        + `<div style="font-size:13px;color:#777;margin:-2px 0 8px">※ 읽는 법을 보여 주는 <b>예시</b>예요. 실제 질병·시기는 수의사와 정하세요.</div>`
+        + `<button type="button" class="gm-goprem" data-v="vaccine" style="display:block;width:100%;border:0;border-radius:12px;background:#2E7D32;color:#fff;padding:13px;font-size:15px;font-weight:900;cursor:pointer;margin:8px 0">💉 백신관리 프로그램(축종별 접종표) 보러 가기 →</button>` },
+  ]},
+  { k:"dis", n:4, icon:"🧴", t:"소독제", sub:"농장 환경의 병원체 줄이기", color:"#6A1B9A", lessons:[
+    { t:"청소와 소독은 어떻게 다를까?", s:"오염물 제거와 병원체 비활성화", fig:gmFigCleanDis, cap:"청소로 「숨는 집」을 치우고, 소독으로 남은 병원체의 힘을 빼요.",
+      pts:["<b>청소</b>: 분변·먼지·찌꺼기 같은 <b>오염물을 걷어내는 일</b>이에요. 이것만으로도 많은 병원체가 함께 치워져요.",
+        "<b>소독</b>: 남아 있는 병원체를 약으로 <b>병을 못 일으키게(비활성화)</b> 하는 일이에요.",
+        "소독은 <b>깨끗한 표면에서만</b> 제대로 일해요 — 그래서 늘 청소가 먼저예요.",
+        "농장 소독은 모든 미생물을 없애는 「멸균」이 아니라 병원체를 <b>충분히 줄이는 것</b>이 목표예요."],
+      ex:null, sum:"청소 없이 소독 없다 — 「씻고 나서 뿌린다」가 기본 순서예요." },
+    { t:"왜 분변·흙을 먼저 치워야 할까?", s:"유기물과 소독 효과", fig:gmFigOrganic, cap:"분변 덩어리는 병원체의 방패이자, 소독제의 힘을 빼는 스펀지예요.",
+      pts:["분변·흙·피·우유·사료 찌꺼기 같은 <b>유기물</b>은 병원체를 <b>감싸서 보호</b>해요.",
+        "소독제는 유기물과 <b>먼저 반응해 힘이 빠져요</b>. 특히 염소계·요오드계가 유기물에 약해요.",
+        "급수라인·착유라인 속 <b>물때(바이오필름)</b>도 세균의 방패예요 — 세척제로 따로 벗겨 내요.",
+        "<b>긁어내기 → 세제로 불리기 → 씻어내기</b>를 하고 나서 소독해야 같은 약으로 훨씬 효과가 좋아요."],
+      ex:["깔짚을 다 빼고 바닥·벽에 붙은 분변을 긁어낸 뒤 씻어요. 급수라인 물때도 함께 청소해요.", "슬랫 틈·돈방 모서리의 굳은 분변을 불려서 고압수로 씻어요.", "착유실 바닥과 착유기 관의 우유 찌꺼기를 매번 씻어내요."],
+      sum:"분변 위에 뿌린 소독제는 「병원체」가 아니라 「분변」을 소독하는 거예요." },
+    { t:"소독제에는 어떤 종류가 있을까?", s:"염소계·요오드계·산화제·4급 암모늄계 등", fig:null, cap:"",
+      pts:["소독제는 <b>주성분</b>에 따라 성질이 달라요. 아래 카드에서 장점·약점을 비교해 보세요.",
+        "한 제품에 여러 성분이 섞인 <b>복합제</b>도 많아요 — 라벨의 성분과 <b>효력이 확인된 병원체</b>를 봐요.",
+        "방역용으로는 동물용 소독제로 허가받아 질병별 효력이 확인된 제품을 쓰고, 방역당국 지침이 있으면 그것을 따라요."],
+      ex:null, sum:"「어떤 소독제가 제일 좋아요?」의 답은 「무엇을, 어디에, 어떤 상태에서」에 따라 달라요.",
+      extra:() => `<div style="margin:6px 0">${GM_DIS_TYPES.map(d => `<div style="border:2px solid #CE93D855;border-left:7px solid #6A1B9A;border-radius:14px;padding:10px 13px;margin-bottom:8px;background:#fff">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-size:22px">${d[0]}</span><span style="font-size:17px;font-weight:900;color:#6A1B9A">${d[1]}</span><span style="font-size:13px;color:#777">${d[2]}</span></div>
+          <div style="font-size:15px;line-height:1.7;margin-top:4px"><span style="color:#2E7D32;font-weight:800">👍</span> ${d[3]}</div>
+          <div style="font-size:15px;line-height:1.7"><span style="color:#C62828;font-weight:800">⚠️</span> ${d[4]}</div></div>`).join("")}</div>`
+        + `<button type="button" class="gm-goprem" data-v="disinfect" style="display:block;width:100%;border:0;border-radius:12px;background:#6A1B9A;color:#fff;padding:13px;font-size:15px;font-weight:900;cursor:pointer;margin:8px 0">🧴 질병별 소독제 선택과 소독요령 보러 가기 →</button>` },
+    { t:"소독제는 무엇을 망가뜨릴까?", s:"막·단백질 등 작용 원리", fig:gmFigMode, cap:"소독제는 병원체의 막·단백질·유전물질을 가리지 않고 망가뜨려요.",
+      pts:["<b>막 녹이기</b>: 바이러스의 외피·세균의 막을 녹여요 — 세제가 기름때를 녹이듯이요.",
+        "<b>단백질 망가뜨리기</b>: 껍질·돌기·효소를 산화시키거나 굳혀 못 쓰게 해요.",
+        "<b>유전물질 손상</b>: 설계도를 끊어 다시 늘지 못하게 해요.",
+        "항생제는 <b>몸속에서 세균만 골라</b> 공격하지만, 소독제는 <b>몸 밖에서 가리지 않고</b> 망가뜨려요 → 그래서 동물·사람에게도 해로울 수 있어요.",
+        "소독제를 먹이거나 상처에 함부로 바르지 않아요. 몸에 쓰는 제품(유두 소독제 등)은 따로 있어요."],
+      ex:null, sum:"소독제는 「가리지 않는 힘」 — 병원체에게는 강하고, 사람·동물에게도 조심해야 해요." },
+    { t:"모든 소독제가 모든 병원체에 들을까?", s:"대상 병원체에 맞는 제품 선택", fig:gmFigLadder, cap:"위로 갈수록 소독제에 잘 견뎌요(일반적인 순서이며 제품마다 달라요).",
+      pts:["아니에요. 병원체마다 <b>견디는 힘이 달라요</b>.",
+        "<b>외피 있는 바이러스</b>(AI·ASF 등)는 비교적 잘 죽지만, <b>외피 없는 바이러스</b>(구제역·감보로·써코 등)와 <b>세균 아포</b>는 훨씬 질겨요.",
+        "<b>콕시듐 같은 원충 알(오시스트)</b>은 일반 소독제로는 거의 죽지 않아요 → 청소·건조·열이나 전용 제품이 필요해요.",
+        "라벨의 <b>「효력이 확인된 병원체」</b> 목록에 우리 농장의 문제 병원체가 있는지 확인해요."],
+      ex:["AI는 비교적 잘 죽지만, 감보로·콕시듐은 질겨 청소·건조가 더 중요해요.", "ASF는 비교적 잘 죽지만, 써코·파보 바이러스는 질겨 제품 선택이 중요해요.", "구제역은 외피가 없어 질긴 편이라 효력이 확인된 제품을 써요. 송아지 설사를 일으키는 크립토스포리디움도 아주 질겨요."],
+      sum:"「우리 농장의 적」을 먼저 정하고, 그 적에 듣는 제품을 고르세요." },
+    { t:"진하게 뿌릴수록 좋을까?", s:"제품 표시의 희석 기준", fig:gmFigDilute, cap:"라벨의 희석 배수는 효과가 시험으로 확인된 농도예요.",
+      pts:["아니에요. 너무 <b>연하면</b> 병원체가 살아남고, 너무 <b>진하면</b> 돈 낭비·시설 부식·동물과 사람 자극·잔류만 늘어요. 더 잘 듣지도 않아요.",
+        "같은 제품도 <b>병원체마다 희석 배수가 다르게</b> 적혀 있을 수 있어요 — 우리가 막을 병 기준으로 봐요.",
+        "눈대중 말고 <b>계량컵·주사기</b>로 재고, 물을 먼저 담은 뒤 원액을 넣어요.",
+        "희석액은 <b>그날 만들어 그날</b> 써요. 센물·찬물은 효과를 떨어뜨리기도 해요."],
+      ex:null, sum:"「진하게」가 아니라 「정확하게」 — 라벨 배수가 정답이에요.",
+      extra:() => gmDilBox() },
+    { t:"뿌린 뒤 왜 기다려야 할까?", s:"충분한 접촉 시간", fig:gmFigContact, cap:"표면이 젖어 있는 동안에만 소독제가 일해요.",
+      pts:["소독제는 병원체에 닿아 <b>일할 시간</b>이 필요해요. 라벨에 적힌 <b>접촉 시간</b>을 지켜요.",
+        "표면이 <b>충분히 젖도록</b> 뿌리고, 바람·햇볕·더위로 금방 마르면 다시 뿌려요.",
+        "추운 날은 효과가 떨어지고 얼 수 있어요 — 겨울 사용법은 제품 안내를 확인해요.",
+        "발판소독조에 장화를 <b>담갔다 바로 빼면</b> 소독이 안 돼요. 흙을 먼저 털고, 충분히 담가요.",
+        "사료통·급수기처럼 동물 입에 닿는 곳은 접촉 시간이 끝난 뒤 <b>헹궈야 하는 제품</b>인지 확인해요."],
+      ex:null, sum:"뿌리는 순간이 아니라 「젖어 있는 시간」이 소독이에요." },
+    { t:"축사 소독은 어떤 순서로 할까?", s:"비우기→오염물 제거→세척→소독→건조", fig:gmFigSteps, cap:"한 단계라도 건너뛰면 다음 단계의 효과가 줄어요.",
+      pts:["① <b>비우기</b>: 가축·사료·깔짚·옮길 수 있는 도구를 모두 빼요(올인올아웃이 가장 좋아요).",
+        "② <b>오염물 제거</b>: 마른 상태에서 긁고 쓸어 분변·먼지를 걷어내요.",
+        "③ <b>세척</b>: 세제를 뿌려 불린 뒤 고압수로 <b>위→아래, 안→밖</b> 순서로 씻어요.",
+        "④ <b>소독</b>: 표시 희석 배수로 골고루, 접촉 시간을 지켜요.",
+        "⑤ <b>건조</b>: 완전히 말린 뒤(가능하면 비워 두는 기간을 두고) 다음 가축을 넣어요.",
+        "급수라인·물탱크·사료통도 함께 하고, 쥐·해충 관리도 이때 해요."],
+      ex:["출하 뒤 깔짚을 모두 빼고, 급수라인·니플까지 세척·소독한 뒤 말려요.", "분만사·자돈사는 돈방 단위로 비우고 슬랫 아래까지 씻어요.", "분만방·송아지 우리는 깔짚을 빼고 씻고 말린 뒤 새 깔짚을 넣어요. 착유실은 매 착유 뒤 씻어요."],
+      sum:"비우고 → 치우고 → 씻고 → 소독하고 → 말린다. 다섯 단계를 건너뛰지 마세요." },
+    { t:"장화·차량·도구는 어디를 놓치기 쉬울까?", s:"접촉 지점 점검", fig:gmFigSpots, cap:"빨간 점선이 자주 놓치는 곳이에요.",
+      pts:["<b>장화</b>: 밑창 홈에 낀 흙이 가장 위험해요. 솔로 털고 → 소독하고 → 가능하면 <b>동마다 전용 장화</b>로 갈아신어요.",
+        "<b>발판소독조</b>: 흙이 섞이면 금방 힘이 빠져요. 자주 갈고, 비가 들이치지 않게 해요.",
+        "<b>차량</b>: 바퀴 홈·흙받이·차 밑, 그리고 <b>운전석 발판·페달</b>(운전자 신발이 묻혀요). 농장 안으로 들어오는 차를 줄여요.",
+        "<b>도구</b>: 삽·수레·계란판·몰이판·주사기 통 — 농장 전용, 가능하면 동 전용으로 써요.",
+        "<b>손·휴대폰·문손잡이</b>도 사람 손을 따라 병원체가 옮겨 다니는 곳이에요."],
+      ex:["동마다 장화를 바꿔 신고, 계란판·난좌는 소독된 것만 들여요.", "출하차·사료차가 돈사 가까이 오지 않게 하고, 몰이판은 돈사 전용으로 써요.", "인공수정사·수의사·사료 기사 등 방문자 차량은 농장 밖에 세우고 장화를 갈아신게 해요."],
+      sum:"병원체는 「손과 발이 닿는 곳」을 따라 다녀요 — 거기부터 점검하세요." },
+    { t:"소독제를 섞어 써도 될까?", s:"혼합 위험과 보호장비", fig:gmFigMix, cap:"섞으면 유해 가스가 나오거나 효과가 사라질 수 있어요.",
+      pts:["<b>섞지 마세요.</b> 라벨이 함께 써도 된다고 한 경우만 예외예요.",
+        "<b>염소계 + 산성 제품</b> → 염소 가스, <b>염소계 + 암모니아(분뇨·오줌)</b> → 유해 가스가 나올 수 있어요.",
+        "<b>4급 암모늄 + 비누·세제</b> → 효과가 사라져요. 세제로 씻은 뒤엔 <b>헹구고</b> 소독해요.",
+        "보호장비: <b>보안경·마스크·고무장갑·방수복·장화</b>. 섞고 뿌릴 때는 바람이 통하는 곳에서 해요.",
+        "보관: 원래 용기 그대로, 이름표를 붙여, 사료·물·아이 손에서 멀리. 동물이 있는 곳에 뿌려도 되는 제품인지 라벨을 확인해요.",
+        "눈에 들어가면 흐르는 물로 오래(15분 이상) 씻고, 삼켰으면 억지로 토하게 하지 말고 제품 용기를 들고 병원에 가요."],
+      ex:null, sum:"소독제는 하나씩, 라벨대로, 몸을 가리고 — 섞지 않는 것이 가장 안전해요." },
+  ]},
+];
+// 종합편: 구역별 할 일 (주제 4가지) — rel은 관련 강의 [편 key, 강 index]
+const GM_ZONES = [
+  { z:"gate", icon:"🚪", t:"① 입구 — 들어오는 길 막기", color:"#E65100", rows:[
+      ["🦠", "사람·차량·동물·물품이 병원체를 실어 와요. 출입 기록, 울타리, 외부 주차."],
+      ["💊", "다른 농장의 남은 약·주사기를 들이지 않아요."],
+      ["💉", "새로 들이는 가축의 접종 기록을 받아 두고 따로 지켜봐요."],
+      ["🧴", "차량 소독, 장화·옷 갈아입기, 손 씻기, 발판소독조 자주 갈기."],
+    ], rel:[["germ", 5], ["dis", 8]] },
+  { z:"healthy", icon:"💪", t:"② 건강한 동물 — 지키기", color:"#2E7D32", rows:[
+      ["🦠", "매일 관찰: 먹이·물·분변·기침·폐사를 같은 시각에 기록해요."],
+      ["💊", "「혹시 몰라서」 쓰지 않아요 — 수의사 판단 없이 항생제를 쓰지 않아요."],
+      ["💉", "접종계획대로, 보관·접종 방법을 지키고 기록해요."],
+      ["🧴", "동마다 전용 장화·도구, 쥐·해충 관리, 급수기·사료통 청결."],
+    ], rel:[["vac", 9], ["vac", 7], ["germ", 6]] },
+  { z:"sick", icon:"🤒", t:"③ 아픈 동물 — 나누고 확인하기", color:"#C62828", rows:[
+      ["🦠", "따로 떼어 놓고, 수의사 진단·검사로 원인부터 확인. 법정 전염병 의심이면 바로 신고 1588-9060."],
+      ["💊", "세균 병일 때 수의사 처방대로. 투약·휴약기간 기록 → 출하 가능일 확인."],
+      ["💉", "아픈 동물에게 백신은 치료가 안 돼요. 접종 기록으로 빈틈을 찾아 다음 계획에 반영."],
+      ["🧴", "격리 칸·통로·도구 자주 소독, 아픈 동물은 맨 마지막에 돌보기."],
+    ], rel:[["germ", 7], ["abx", 6], ["abx", 7]] },
+  { z:"dirty", icon:"🧹", t:"④ 오염된 축사 — 비우고 되살리기", color:"#5D4037", rows:[
+      ["🦠", "비어 있어도 분변·깔짚 속 병원체가 남아 다음 무리로 가요."],
+      ["💊", "약으로 축사를 깨끗하게 할 수 없어요 — 항생제는 축사에 뿌리는 약이 아니에요."],
+      ["💉", "다음 무리의 접종계획·백신·냉장고를 입식 전에 미리 준비해요."],
+      ["🧴", "비우기 → 오염물 제거 → 세척 → 소독(표시 희석·접촉 시간) → 완전 건조 후 입식."],
+    ], rel:[["dis", 7], ["dis", 1], ["dis", 4]] },
+];
+const GM_TOPICS = { "🦠":["세균·바이러스", "#1565C0"], "💊":["항생제", "#C62828"], "💉":["백신", "#2E7D32"], "🧴":["소독제", "#6A1B9A"] };
+
+// ── 화면 조각 ──
+function gmRows(title, rows, c){
+  return `<div style="font-size:16px;font-weight:900;color:${c};margin:12px 0 6px">${title}</div>` + rows.map(r => `<div style="display:flex;gap:10px;align-items:flex-start;border:1.5px solid ${c}33;border-radius:12px;padding:9px 12px;margin-bottom:6px;background:#fff"><b style="flex:none;min-width:92px;font-size:14.5px;color:${c}">${r[0]}</b><span style="font-size:15px;line-height:1.65;color:#333">${r[1]}</span></div>`).join("");
+}
+// 표는 휴대폰에서도 읽히게 한 줄을 카드 하나로 보여 준다(첫 칸 = 카드 제목).
+function gmTable(head, rows, c){
+  return `<div style="margin:8px 0">${rows.map(r => `<div style="border:1.5px solid ${c}40;border-radius:12px;margin-bottom:7px;background:#fff;overflow:hidden">
+      <div style="background:${c}14;color:${c};font-size:15px;font-weight:900;padding:7px 12px">${r[0]}</div>
+      <div style="display:grid;grid-template-columns:${head.length > 3 ? "repeat(auto-fit,minmax(130px,1fr))" : "1fr 1fr"};gap:1px;background:#eee">${r.slice(1).map((v, i) => `<div style="background:#fff;padding:7px 11px"><div style="font-size:12.5px;color:#888;font-weight:700">${head[i + 1]}</div><div style="font-size:15px;line-height:1.55;color:#222;font-weight:600">${v}</div></div>`).join("")}</div></div>`).join("")}</div>`;
+}
+const gmDil = { x:200, l:10 };
+function gmDilOut(){
+  const x = Number(gmDil.x), l = Number(gmDil.l);
+  if(!(x >= 2) || !(l > 0)) return `<div style="color:#C62828;font-size:14px">희석 배수(2 이상)와 만들 양을 넣어 주세요.</div>`;
+  const ml = l * 1000 / x, w = l - ml / 1000;
+  const mlTxt = ml >= 1000 ? (Math.round(ml / 100) / 10) + " L" : (ml >= 10 ? Math.round(ml) : Math.round(ml * 10) / 10) + " mL";
+  return `<div style="font-size:16px;line-height:1.7;color:#222"><b style="color:#6A1B9A">원액 ${mlTxt}</b> + 물 약 ${Math.round(w * 10) / 10} L → 희석액 ${l} L</div><div style="font-size:12.5px;color:#888">원액 = 만들 양 ÷ 희석 배수. 라벨이 「물 ○L에 원액 ○mL」로 적혀 있으면 라벨대로 해요.</div>`;
+}
+function gmDilBox(){
+  return `<div style="background:#F3E5F5;border:2px solid #CE93D8;border-radius:14px;padding:12px 14px;margin:10px 0">
+    <div style="font-size:16px;font-weight:900;color:#6A1B9A;margin-bottom:8px">🧮 원액은 얼마나? (간단 계산기)</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:8px;font-size:15px;color:#444">
+      <label>희석 배수 <input id="gm-dil-x" type="number" min="2" step="1" inputmode="numeric" value="${gmDil.x}" style="width:84px;padding:8px;border:1.5px solid #bbb;border-radius:8px;font-size:16px;font-weight:800"> 배</label>
+      <label>만들 양 <input id="gm-dil-l" type="number" min="0.1" step="any" inputmode="decimal" value="${gmDil.l}" style="width:84px;padding:8px;border:1.5px solid #bbb;border-radius:8px;font-size:16px;font-weight:800"> L</label>
+    </div>
+    <div id="gm-dil-out">${gmDilOut()}</div></div>`;
+}
+const GM_SP = [["all", "전체"], ["chick", "🐔 닭"], ["pig", "🐷 돼지"], ["cow", "🐄 소"]];
+function gmLessonKey(p, i){ return p + "-" + i; }
+function gmPartDone(P){ return P.lessons ? P.lessons.filter((_, i) => gmState.done[gmLessonKey(P.k, i)]).length : (gmState.done["all-0"] ? 1 : 0); }
+
+function renderGmPanel(){
+  const parts = GM_PARTS.concat([{ k:"all", n:5, icon:"🏡", t:"종합편", sub:"아픈 동물·건강한 동물·오염된 축사", color:"#E65100" }]);
+  const P = parts.find(x => x.k === gmState.part);
+  const head = `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:8px"><div><div class="display" style="font-size:19px;margin-bottom:2px">🔬 세균·바이러스 기초교실</div><div style="font-size:13.5px;color:#777">닭·돼지·소 농장주를 위한 보이지 않는 적 이야기 — 그림으로 쉽게</div></div><button id="gm-back" style="border:1px solid #ddd;border-radius:9px;background:#fff;color:#777;padding:9px 15px;font-size:13px;font-weight:700;cursor:pointer">← 메뉴로</button></div>`;
+  const nav = `<div style="display:flex;gap:6px;overflow-x:auto;padding:4px 0 8px;margin-bottom:6px"><button type="button" class="gm-part" data-p="home" style="flex:none;border:2px solid ${!P ? GM_COLOR : "#e5e5e5"};background:${!P ? GM_COLOR : "#fff"};color:${!P ? "#fff" : "#555"};border-radius:18px;padding:8px 13px;font-size:14px;font-weight:800;cursor:pointer;white-space:nowrap">🏠 처음</button>${parts.map(x => { const on = P && x.k === P.k; return `<button type="button" class="gm-part" data-p="${x.k}" style="flex:none;border:2px solid ${on ? x.color : "#e5e5e5"};background:${on ? x.color : "#fff"};color:${on ? "#fff" : "#555"};border-radius:18px;padding:8px 13px;font-size:14px;font-weight:800;cursor:pointer;white-space:nowrap">${x.icon} ${x.n}. ${x.t}</button>`; }).join("")}</div>`;
+  const foot = `<div style="margin-top:14px;background:#FFF8E1;border-radius:9px;padding:9px 12px;font-size:12px;color:#6b5400;line-height:1.75"><b>유의</b> · 그림은 이해를 돕는 단순화 도식이고 숫자는 대략값이에요. 약품은 계열 이름만 소개하며 제품·용량은 다루지 않아요. 진단·치료·투약은 담당 수의사, 백신·소독제 사용은 제품 표시(라벨)와 방역당국 지침을 따르세요.</div>`;
+  let body;
+  if(!P) body = gmHome(parts);
+  else if(P.k === "all") body = gmFinal();
+  else if(gmState.les >= 0 && gmState.les < P.lessons.length) body = gmLesson(P, gmState.les);
+  else body = gmPartHome(P);
+  return `<div class="card" id="gm-root" style="border-top:6px solid ${P ? P.color : GM_COLOR}">${head}${nav}${body}${foot}</div>`;
+}
+function gmHome(parts){
+  const total = GM_PARTS.reduce((a, p) => a + p.lessons.length, 0), seen = GM_PARTS.reduce((a, p) => a + gmPartDone(p), 0);
+  const intro = `<div style="background:linear-gradient(135deg,#1565C0,#42A5F5);color:#fff;border-radius:16px;padding:16px">
+      <div style="font-size:22px;font-weight:900;margin-bottom:6px">보이지 않는 적을 알면, 막을 수 있어요</div>
+      <div style="font-size:15.5px;line-height:1.75">세균과 바이러스가 무엇인지, 항생제·백신·소독제가 각각 <b>누구를, 어떻게</b> 상대하는지 그림으로 배워요. 닭·돼지·소 농장 예를 함께 들어요.</div>
+      <div style="margin-top:10px;background:#ffffff33;border-radius:10px;height:10px;overflow:hidden"><div style="width:${Math.round(seen / total * 100)}%;height:100%;background:#FFEB3B"></div></div>
+      <div style="font-size:13px;margin-top:4px;opacity:.95">본 강의 ${seen} / ${total}</div></div>`;
+  const map = gmFig(gmSvg(150, gmBox(4, 4, 312, 142, "#F5F9FF", null, 14)
+      + gmVirus(52, 54, 16, "#C2185B", { n:10 }) + gmRod(52, 96, 40, 16, "#43A047", -10) + gmT(52, 134, "적을 알기", { s:13, w:900, c:"#1565C0" })
+      + gmE(130, 60, "💊", 30) + gmT(130, 100, "세균만", { s:12.5, w:800, c:"#C62828" }) + gmT(130, 134, "치료하기", { s:13, w:900, c:"#C62828" })
+      + gmE(204, 60, "💉", 30) + gmT(204, 100, "미리 연습", { s:12.5, w:800, c:"#2E7D32" }) + gmT(204, 134, "예방하기", { s:13, w:900, c:"#2E7D32" })
+      + gmE(274, 60, "🧴", 30) + gmT(274, 100, "몸 밖에서", { s:12.5, w:800, c:"#6A1B9A" }) + gmT(274, 134, "줄이기", { s:13, w:900, c:"#6A1B9A" }), "네 주제 한눈에"));
+  const cards = parts.map(x => { const n = x.lessons ? x.lessons.length : 1, d = gmPartDone(x);
+    return `<button type="button" class="gm-part" data-p="${x.k}" style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:2px solid ${x.color}40;border-left:8px solid ${x.color};border-radius:14px;background:#fff;padding:12px 14px;margin-bottom:9px;cursor:pointer">
+      <span style="font-size:34px;line-height:1">${x.icon}</span>
+      <span style="flex:1;min-width:0"><span style="display:block;font-size:13px;color:${x.color};font-weight:800">${x.n}편${x.lessons ? ` · ${n}강` : ""}</span><span style="display:block;font-size:18px;font-weight:900;color:#222">${x.t}</span><span style="display:block;font-size:14px;color:#666;margin-top:1px">${x.sub}</span></span>
+      <span style="flex:none;font-size:13px;font-weight:800;color:${d >= n ? "#2E7D32" : "#999"}">${d >= n ? "✅ 완료" : d + "/" + n}</span></button>`; }).join("");
+  return intro + map + `<div style="font-size:17px;font-weight:900;color:#333;margin:12px 0 8px">📚 차례</div>` + cards
+    + `<div style="text-align:right;margin-top:4px"><button type="button" id="gm-reset" style="border:none;background:none;color:#999;font-size:12.5px;text-decoration:underline;cursor:pointer">진도 지우기</button></div>`;
+}
+function gmPartHome(P){
+  const warn = P.k === "abx" ? `<div style="border:4px solid #C62828;background:#FFF5F5;border-radius:16px;padding:16px 15px;margin:12px 0">
+      <div style="font-size:21px;font-weight:900;color:#C62828;line-height:1.45">⚠️ 항생제는 세균 약이에요.<br>바이러스 감염 자체는 치료하지 못해요.</div>
+      <div style="font-size:16px;line-height:1.75;color:#333;margin-top:8px">필요 없이 쓰면 <b>내성균</b>만 키워, 정말 필요할 때 약이 듣지 않게 돼요. 항생제는 <b>수의사 진단과 처방</b>에 따라, 정해진 용량·기간·휴약기간을 지켜 써요.</div>
+      <a href="https://www.woah.org/en/what-we-do/global-initiatives/antimicrobial-resistance/" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;font-size:13.5px;font-weight:800;color:#C62828">🌍 세계동물보건기구(WOAH) 항생제 내성 ↗</a></div>` : "";
+  const banner = `<div style="background:linear-gradient(135deg,${P.color},${P.color}cc);color:#fff;border-radius:16px;padding:14px 16px"><div style="font-size:13px;opacity:.9">${P.n}편 · ${P.lessons.length}강</div><div style="font-size:23px;font-weight:900;margin:2px 0 4px">${P.icon} ${P.t}</div><div style="font-size:16px;line-height:1.6">${P.sub}</div></div>`;
+  const list = P.lessons.map((L, i) => { const d = gmState.done[gmLessonKey(P.k, i)];
+    return `<button type="button" class="gm-les" data-p="${P.k}" data-l="${i}" style="display:flex;align-items:center;gap:11px;width:100%;text-align:left;border:1.5px solid ${d ? P.color + "55" : "#e5e5e5"};border-radius:13px;background:${d ? P.color + "0d" : "#fff"};padding:11px 13px;margin-bottom:7px;cursor:pointer">
+      <b style="flex:none;width:34px;height:34px;border-radius:50%;background:${P.color};color:#fff;font-size:15px;display:flex;align-items:center;justify-content:center">${i + 1}</b>
+      <span style="flex:1;min-width:0"><span style="display:block;font-size:16px;font-weight:900;color:#222;line-height:1.4">${L.t}</span><span style="display:block;font-size:13.5px;color:#777;margin-top:1px">${L.s}</span></span>
+      <span style="flex:none;font-size:16px">${d ? "✅" : "›"}</span></button>`; }).join("");
+  return banner + warn + `<div style="font-size:17px;font-weight:900;color:#333;margin:12px 0 8px">📖 강의 목록</div>` + list;
+}
+function gmLesson(P, i){
+  const L = P.lessons[i], C = P.color;
+  gmState.done[gmLessonKey(P.k, i)] = 1; gmSave();
+  const crumb = `<div style="font-size:13.5px;color:${C};font-weight:800;margin-bottom:4px"><button type="button" class="gm-part" data-p="${P.k}" style="border:none;background:none;color:${C};font-weight:900;font-size:13.5px;padding:0;cursor:pointer">${P.icon} ${P.n}편 ${P.t}</button> · ${i + 1} / ${P.lessons.length}강</div>`;
+  const title = `<div style="background:linear-gradient(135deg,${C},${C}cc);color:#fff;border-radius:16px;padding:14px 16px"><div style="font-size:21px;font-weight:900;line-height:1.4">${i + 1}. ${L.t}</div><div style="font-size:15px;margin-top:4px;opacity:.95">— ${L.s}</div></div>`;
+  const warn = P.k === "abx" && i < 2 ? `<div style="border:3px solid #C62828;background:#FFF5F5;border-radius:12px;padding:9px 12px;margin:10px 0 0;font-size:15.5px;font-weight:900;color:#C62828;line-height:1.55">⚠️ 항생제는 바이러스 감염 자체를 치료하지 않아요. 불필요한 사용은 내성을 키워요.</div>` : "";
+  const fig = L.fig ? gmFig(L.fig(), L.cap) : "";
+  const pts = `<div style="font-size:17px;font-weight:900;color:${C};margin:12px 0 6px">🔎 쉽게 알아보기</div><div style="border:2px solid ${C}33;border-radius:14px;padding:10px 14px;background:#fff">${L.pts.map(t => `<div style="display:flex;gap:9px;font-size:16px;line-height:1.8;color:#222;margin:3px 0"><span style="color:${C};flex:none">●</span><span>${t}</span></div>`).join("")}</div>`;
+  let ex = "";
+  if(L.ex){
+    const sp = [["chick", "🐔", "닭", "#F9A825"], ["pig", "🐷", "돼지", "#EC407A"], ["cow", "🐄", "소", "#6D4C41"]];
+    const chips = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 8px">${GM_SP.map(([k, t]) => `<button type="button" class="gm-sp" data-s="${k}" style="border:1.5px solid ${gmState.sp === k ? C : "#ddd"};background:${gmState.sp === k ? C : "#fff"};color:${gmState.sp === k ? "#fff" : "#555"};border-radius:16px;padding:6px 12px;font-size:14px;font-weight:800;cursor:pointer">${t}</button>`).join("")}</div>`;
+    ex = `<div style="font-size:17px;font-weight:900;color:#333;margin:14px 0 2px">🌾 우리 농장에서는</div>${chips}` + sp.map((s, j) => (gmState.sp === "all" || gmState.sp === s[0]) ? `<div style="display:flex;gap:10px;align-items:flex-start;background:#F1F8F4;border-radius:12px;padding:10px 12px;margin-bottom:7px"><span style="flex:none;font-size:28px;line-height:1">${s[1]}</span><span style="font-size:15.5px;line-height:1.7;color:#2E3E33"><b style="color:${s[3]}">${s[2]}</b> · ${L.ex[j]}</span></div>` : "").join("");
+  }
+  const extra = L.extra ? L.extra() : "";
+  const sum = `<div style="background:${C}12;border:2px solid ${C}55;border-radius:14px;padding:12px 14px;margin:12px 0 6px;font-size:16.5px;font-weight:900;color:${C};line-height:1.65">📌 한 줄 정리 · ${L.sum}</div>`;
+  const pi = GM_PARTS.findIndex(x => x.k === P.k), nextPart = GM_PARTS[pi + 1];
+  const prevB = i > 0 ? `<button type="button" class="gm-les" data-p="${P.k}" data-l="${i - 1}" style="flex:none;white-space:nowrap;border:1px solid #ccc;background:#fff;color:#555;border-radius:12px;padding:13px 14px;font-size:15px;font-weight:800;cursor:pointer">← ${i}강</button>` : `<button type="button" class="gm-part" data-p="${P.k}" style="flex:none;white-space:nowrap;border:1px solid #ccc;background:#fff;color:#555;border-radius:12px;padding:13px 14px;font-size:15px;font-weight:800;cursor:pointer">← 목록</button>`;
+  const nextB = i < P.lessons.length - 1 ? `<button type="button" class="gm-les" data-p="${P.k}" data-l="${i + 1}" style="border:none;background:${C};color:#fff;border-radius:12px;padding:13px 16px;font-size:15px;font-weight:900;cursor:pointer;text-align:right">${i + 2}강 ${P.lessons[i + 1].t.length > 14 ? P.lessons[i + 1].t.slice(0, 13) + "…" : P.lessons[i + 1].t} →</button>`
+    : (nextPart ? `<button type="button" class="gm-les" data-p="${nextPart.k}" data-l="0" style="border:none;background:${nextPart.color};color:#fff;border-radius:12px;padding:13px 16px;font-size:15px;font-weight:900;cursor:pointer">${nextPart.icon} ${nextPart.n}편 ${nextPart.t} →</button>`
+      : `<button type="button" class="gm-part" data-p="all" style="border:none;background:#E65100;color:#fff;border-radius:12px;padding:13px 16px;font-size:15px;font-weight:900;cursor:pointer">🏡 종합편 →</button>`);
+  return crumb + title + warn + fig + pts + ex + extra + sum + `<div style="display:flex;justify-content:space-between;gap:8px;margin-top:12px">${prevB}${nextB}</div>`;
+}
+function gmFinal(){
+  gmState.done["all-0"] = 1; gmSave();
+  const sel = gmState.zone || "";
+  const title = `<div style="background:linear-gradient(135deg,#E65100,#FB8C00);color:#fff;border-radius:16px;padding:14px 16px"><div style="font-size:13px;opacity:.9">5편 · 종합편</div><div style="font-size:21px;font-weight:900;line-height:1.4;margin-top:2px">아픈 동물·건강한 동물·오염된 축사: 각각 무엇을 해야 할까?</div><div style="font-size:15px;margin-top:6px;line-height:1.6">네 주제(🦠 세균·바이러스 · 💊 항생제 · 💉 백신 · 🧴 소독제)를 한 장의 농장 그림에 모았어요. <b>그림의 구역을 누르면</b> 해야 할 일이 열려요.</div></div>`;
+  const legend = `<div style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0">${Object.entries(GM_TOPICS).map(([e, [t, c]]) => `<span style="display:inline-flex;align-items:center;gap:5px;border:1.5px solid ${c}55;border-radius:16px;padding:4px 11px;font-size:14px;font-weight:800;color:${c};background:#fff">${e} ${t}</span>`).join("")}</div>`;
+  const fig = gmFig(gmFigFarm(sel), "울타리 안 네 구역 — ① 입구 ② 건강한 동물 ③ 아픈 동물(격리) ④ 오염된 축사(비운 축사)");
+  const zoneBtns = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:6px 0 10px">${GM_ZONES.map(Z => `<button type="button" class="gm-zbtn" data-z="${Z.z}" style="border:2px solid ${Z.color};background:${sel === Z.z ? Z.color : "#fff"};color:${sel === Z.z ? "#fff" : Z.color};border-radius:12px;padding:10px 8px;font-size:14.5px;font-weight:900;cursor:pointer">${Z.icon} ${Z.t.split(" — ")[0].slice(2)}</button>`).join("")}</div>`;
+  const cards = GM_ZONES.filter(Z => !sel || Z.z === sel).map(Z => `<div id="gm-z-${Z.z}" style="border:2.5px solid ${Z.color}55;border-top:7px solid ${Z.color};border-radius:16px;padding:12px 14px;margin-bottom:12px;background:#fff">
+      <div style="font-size:18px;font-weight:900;color:${Z.color};margin-bottom:8px">${Z.icon} ${Z.t}</div>
+      ${Z.rows.map(([e, t]) => { const [n, c] = GM_TOPICS[e]; return `<div style="display:flex;gap:10px;align-items:flex-start;border-left:5px solid ${c};background:${c}0d;border-radius:10px;padding:8px 11px;margin-bottom:6px"><span style="flex:none;font-size:22px;line-height:1.2">${e}</span><span style="font-size:15.5px;line-height:1.7;color:#222"><b style="color:${c}">${n}</b> · ${t}</span></div>`; }).join("")}
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">${Z.rel.map(([p, l]) => { const PP = GM_PARTS.find(x => x.k === p); return `<button type="button" class="gm-les" data-p="${p}" data-l="${l}" style="border:1.5px solid ${PP.color}66;background:#fff;color:${PP.color};border-radius:14px;padding:6px 11px;font-size:13.5px;font-weight:800;cursor:pointer">${PP.icon} ${PP.n}-${l + 1}강 다시 보기</button>`; }).join("")}</div></div>`).join("");
+  const showAll = sel ? `<button type="button" class="gm-zbtn" data-z="" style="display:block;width:100%;border:1.5px solid #ccc;background:#fff;color:#555;border-radius:12px;padding:11px;font-size:14.5px;font-weight:800;cursor:pointer;margin-bottom:12px">네 구역 모두 보기</button>` : "";
+  const grid = `<div style="font-size:17px;font-weight:900;color:#333;margin:14px 0 6px">🗂️ 한 장 정리표</div>` + gmTable(["", "🤒 아픈 동물", "💪 건강한 동물", "🧹 오염된 축사"], [
+      ["🦠 세균·바이러스", "격리 · 진단·검사", "매일 관찰 · 새 가축 격리", "비어도 병원체가 남아요"],
+      ["💊 항생제", "세균일 때 처방대로 · 휴약 기록", "「혹시 몰라」 쓰지 않기", "축사에 뿌리는 약 아님"],
+      ["💉 백신", "치료 효과 없음 · 빈틈 찾기", "계획대로 · 보관·기록", "다음 무리 접종 준비"],
+      ["🧴 소독제", "격리 칸·도구 자주 · 맨 나중에 돌보기", "출입구·장화·쥐·해충", "비우기→치우기→씻기→소독→말리기"]], "#E65100");
+  const close = `<div style="background:#E8F5E9;border:2px solid #A5D6A7;border-radius:14px;padding:12px 14px;margin-top:10px;font-size:16px;line-height:1.75;color:#1B5E20;font-weight:700">🎓 기억할 세 문장<br>① <b>세균엔 항생제(처방대로), 바이러스엔 백신과 차단방역</b><br>② <b>청소가 먼저, 소독은 라벨대로</b> — 희석·접촉 시간·건조<br>③ <b>약보다 농장</b> — 반복되는 병은 환경과 들어오는 길에서 답을 찾아요</div>`;
+  return title + legend + fig + zoneBtns + showAll + cards + grid + close;
+}
+function gmBind(){
+  if(!(state.tab === "premium" && premiumState.view === "germclass")) return;
+  const root = document.getElementById("gm-root");
+  const go = () => { gmSave(); render(); const r = document.getElementById("gm-root"); if(r) r.scrollIntoView({ block:"start" }); };
+  const back = document.getElementById("gm-back"); if(back) back.onclick = () => { premiumState.view = "menu"; render(); };
+  document.querySelectorAll(".gm-part").forEach(b => b.onclick = () => { gmState.part = b.dataset.p; gmState.les = -1; go(); });
+  document.querySelectorAll(".gm-les").forEach(b => b.onclick = () => { gmState.part = b.dataset.p; gmState.les = Number(b.dataset.l); go(); });
+  document.querySelectorAll(".gm-sp").forEach(b => b.onclick = () => { gmState.sp = b.dataset.s; gmSave(); render(); });
+  const zone = z => { gmState.zone = z; render(); const t = document.getElementById(z ? "gm-z-" + z : "gm-root"); if(t) t.scrollIntoView({ block:"start", behavior:"smooth" }); };
+  document.querySelectorAll(".gm-zbtn").forEach(b => b.onclick = () => zone(b.dataset.z));
+  if(root) root.querySelectorAll(".gm-zone").forEach(g => g.addEventListener("click", () => zone(g.getAttribute("data-z"))));
+  document.querySelectorAll(".gm-goprem").forEach(b => b.onclick = () => { premiumState.view = b.dataset.v; render(); window.scrollTo(0, 0); });
+  const reset = document.getElementById("gm-reset"); if(reset) reset.onclick = () => { if(confirm("이 기기에 저장된 진도를 지울까요?")){ gmState.done = {}; gmSave(); render(); } };
+  const x = document.getElementById("gm-dil-x"), l = document.getElementById("gm-dil-l"), out = document.getElementById("gm-dil-out");
+  if(x && l && out){ const upd = () => { gmDil.x = x.value; gmDil.l = l.value; out.innerHTML = gmDilOut(); }; x.oninput = upd; l.oninput = upd; }
 }
 
 // ── 유료서비스 「닭 키우기」 게임 ───────────────────────────────────────────────
@@ -28703,6 +29744,10 @@ function renderPremiumTab(){
   if(premiumState.view === "ventclass"){
     return renderPremiumGateHeader() + logoutBar + renderVcPanel();
   }
+  // 세균·바이러스 기초교실(정적 교육과정)
+  if(premiumState.view === "germclass"){
+    return renderPremiumGateHeader() + logoutBar + renderGmPanel();
+  }
   // 조류생리 아카데미(정적 교육과정)
   if(premiumState.view === "avianphys"){
     return renderPremiumGateHeader() + logoutBar + renderPhPanel();
@@ -29009,6 +30054,7 @@ function renderHeaderSolarTerm(now){
 // go: {tab} 일반 탭으로 / {premium:"메뉴key"} 유료서비스의 그 화면으로(승인·로그인 안내는 그 화면이 처리) / {premium:"vaccine", vaccineView:"guide"} 처럼 보기까지 지정.
 const NEW_FEATURE_DAYS = 21;
 const NEW_FEATURES = [
+  { key:"germclass",      date:"2026-11-13", label:"세균·바이러스 기초교실 — 항생제·백신·소독제까지 그림으로 (닭·돼지·소)", where:"유료서비스 · 최꼬 아카데미", go:{ premium:"germclass" } },
   { key:"farmgame3d",     date:"2026-11-10", label:"육계·산란계 키우기 게임이 3D 계사로 바뀌었어요 (끌어서 돌려 보기)", where:"유료서비스 · 체험·게임", go:{ premium:"farmgame_broiler" } },
   { key:"fgventbird",     date:"2026-11-01", label:"닭 키우기 게임 — 환기량을 한 마리 기준·일령별 증가량으로 계산(관리자 조정)", where:"유료서비스 · 체험·게임", go:{ premium:"farmgame_broiler" } },
   { key:"h5n1human", date:"2026-11-04", label:"사람 H5N1 감염·사망 현황 — WHO 국가별·연도별 + AI 위험 경고", where:"AI 탭 · 사람 감염(WHO)", go:{ tab:"hpai" } },
@@ -36312,6 +37358,7 @@ function attachEvents(){
   farmGameBind();
   phBind();
   vcBind();
+  gmBind();
   dilBind();
   const disinfectBackBtn = document.getElementById("disinfect-back-btn");
   if(disinfectBackBtn) disinfectBackBtn.onclick = ()=>{ premiumState.view = "menu"; render(); };
