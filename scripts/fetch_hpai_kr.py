@@ -262,10 +262,16 @@ def fetch_table_data() -> dict:
         raise
     # 표 위 "총 N건" 과 읽은 행 수가 맞는지 확인(양식이 달라져 일부만 읽었는지 감지)
     tot = [int(x) for x in re.findall(r"총\s*(\d+)\s*건", " ".join(lines[:80]))]
+    # 농식품부 문서 머리말 숫자가 표보다 늦게 고쳐지는 일이 있다('26.11.7 표: 「총 2건」인데 연번 1~3).
+    # 연번이 1부터 끊김 없이 이어지고 머리말보다 많이 읽었으면 표 행을 믿는다(덜 읽은 경우만 거부).
+    seq_ok = [f["n"] for f in farms] == list(range(1, len(farms) + 1))
     if tot and farms and tot[0] != len(farms):
-        dump()
-        print("읽은 가금농장 행:", json.dumps(farms, ensure_ascii=False))
-        raise RuntimeError(f"가금농장 건수 불일치: 문서 {tot[0]}건, 읽은 행 {len(farms)}건")
+        if seq_ok and len(farms) > tot[0]:
+            print(f"::notice::표 머리말은 총 {tot[0]}건이지만 연번 1~{len(farms)} 행이 모두 있어 행 기준으로 반영")
+        else:
+            dump()
+            print("읽은 가금농장 행:", json.dumps(farms, ensure_ascii=False))
+            raise RuntimeError(f"가금농장 건수 불일치: 문서 {tot[0]}건, 읽은 행 {len(farms)}건")
     if not farms:
         raise RuntimeError("가금농장 행을 읽지 못함")
     for row in farms + wild:            # 「전남광주」 같은 통합 시·도 이름 → 지도의 시·도
