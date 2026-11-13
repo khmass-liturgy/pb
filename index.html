@@ -27580,6 +27580,9 @@ const SM_REFS = {
     { pmid:"38136748", doi:"10.3390/antibiotics12121714", who:"서울대, 2023", journal:"Antibiotics",
       title:"Tracing the Evolutionary Pathways of Serogroup O78 APEC",
       res:"국내 <b>O78</b> 대장균 32주를 족보로 나눠 보니 대부분 한 갈래에서 갈라져 나왔고, 뒤늦게 나타난 유전적으로 다른 갈래(RST21-1)도 있었음 — O78 안에서도 성질이 갈림." },
+    { pmid:"35332711", doi:"10.4142/jvs.21105", who:"충북대, 2022", journal:"J Vet Sci",
+      title:"Molecular characteristics of ESBL-producing E. coli from chickens with colibacillosis",
+      res:"닭 대장균증에서 나온 <b>ESBL 생성 대장균</b> 분석: 3세대 세팔로스포린을 깨는 내성 유전자 <b>CTX-M-55·CTX-M-1</b>을 플라스미드(균끼리 옮겨 다니는 조각)에 갖고 있었고, 사람 임상에서도 보이는 계통(ST410·ST162) — 내성 유전자가 균 사이·사람에게 옮겨갈 수 있어 감시가 필요." },
   ],
 };
 
@@ -27661,6 +27664,30 @@ function smIbGi19(C){
   });
   return gmSvg(300, s, "GI-19(QX) 하위형 — 두 연구팀 분류");
 }
+// H5N1 하위 변이형(유전형) — 시즌마다 바뀜. G 번호는 검역본부가 붙인 유전형 이름(논문 그대로).
+function smAiH5n1(C){
+  return smTree("H5N1 유전형(시즌별)", C, [
+    { t:"22G7", sub:"22/23 시즌 가장 많음", hot:true },
+    { t:"24G0", sub:"한국·일본" },
+    { t:"24G1", sub:"24/25 주력 · 한·일·몽골", hot:true },
+    { t:"25G2", sub:"25/26 가금 최다", hot:true },
+    { t:"EA-2024-DI.2.1", sub:"유럽서 번진 형·국내 확인" },
+  ], "모두 2.3.4.4b · 재조합형");
+}
+// 닭 대장균(APEC) 항생제 내성률 막대 — 2018년 전국 육계 분리주(Poult Sci 2020) 숫자 그대로.
+function smEcAmr(C){
+  const rows = [["암피실린", 83.5], ["날리딕스산", 65.8], ["테트라사이클린", 64.6], ["시프로플록사신", 46.8]];
+  const x0 = 100, w = 150, h = 32 + rows.length * 34;
+  let s = gmT(8, 16, "항생제 내성률 (2018년 분리주)", { a:"start", s:13, w:900, c:C });
+  rows.forEach((r, i) => {
+    const y = 40 + i * 34, bw = w * r[1] / 100, col = r[1] >= 70 ? "#C62828" : r[1] >= 50 ? "#EF6C00" : "#F9A825";
+    s += gmT(94, y + 5, r[0], { a:"end", s:12.5, w:800, c:"#333" })
+      + gmBox(x0, y - 9, w, 18, "#eee", null, 9)
+      + gmBox(x0, y - 9, bw < 9 ? 9 : bw, 18, col, null, 9)
+      + gmT(x0 + bw + 6, y + 5, r[1] + "%", { a:"start", s:12.5, w:900, c:"#333" });
+  });
+  return gmSvg(h, s, "닭 대장균 항생제 내성률 막대");
+}
 function smSection(kind){
   const C = kind === "ai" ? "#6A1B9A" : kind === "ec" ? "#00695C" : IB_COLOR;
   const refs = SM_REFS[kind] || [];
@@ -27687,6 +27714,9 @@ function smSection(kind){
       { t:"H5N9", sub:"25/26 시즌" },
       { t:"H5N3", sub:"24/25 시즌" },
     ], "모두 2.3.4.4b 한 뿌리");
+    fig += `<div style="font-size:16.5px;font-weight:900;color:${C};margin:14px 0 2px">⭐ 가장 중요 — H5N1 하위 변이형(유전형)</div><div style="font-size:14px;color:#555;line-height:1.7;margin-bottom:4px">같은 H5N1이라도 <b>유전자 조합(유전형)</b>이 해마다 달라요. <b>G 번호</b>는 검역본부가 붙인 유전형 이름이에요(예: 24G1 = 2024년 1번 유전형).</div>`;
+    fig += gmFig(smAiH5n1(C), "H5N1 안에서도 시즌마다 주력 유전형이 바뀌어요 — 22G7(22/23) → 24G1(24/25) → 25G2(25/26 가금). 그래서 해마다 새로 들어오는지 감시해요.");
+    fig += `<div style="background:${C}0d;border:1.5px solid ${C}44;border-radius:12px;padding:11px 13px;margin:8px 0;font-size:14.5px;line-height:1.75;color:#333"><b style="color:${C}">한눈에</b><br>· <b>22G7</b> = 22/23 시즌 21개 유전형 중 가장 많았음(검역본부 2025)<br>· <b>24G1</b> = 24/25 주력, 한국·일본·몽골에서 함께 확인(검역본부 2026)<br>· <b>25G2</b> = 25/26 시즌 가금에서 가장 많음, 유럽서 번진 <b>EA-2024-DI.2.1</b>도 국내 확인(검역본부 2026)<br>· 대부분 철새 바이러스와 <b>재조합</b>으로 생겨요</div>`;
     fig += gmFig(smMix(), "철새·우리 농장·주변국 바이러스가 유전자를 섞어 해마다 새 유전형이 나와요.");
   } else {
     head = ["🧬 우리나라 닭 대장균(APEC) 족보", "최근 논문으로 본 혈청형·계통군"];
@@ -27698,6 +27728,10 @@ function smSection(kind){
       { t:"계통군 B2 · 사람형 ST95", sub:"독성·내성 높아 주의" },
     ], "혈청형과 계통군 두 기준");
     fig += `<div style="background:#E8F5E9;border:1.5px solid #A5D6A7;border-radius:12px;padding:10px 12px;margin:8px 0;font-size:14px;line-height:1.7;color:#1B5E20">🔎 <b>혈청형</b>은 균 겉옷(O항원)의 번호, <b>계통군</b>은 균의 족보 그룹이에요. 같은 대장균증이라도 어떤 형인지는 <b>배양·검사</b>로만 알 수 있어요.</div>`;
+    fig += `<div style="font-size:16.5px;font-weight:900;color:${C};margin:16px 0 2px">⭐ 변이·항생제 내성이 있을까? — 있어요</div><div style="font-size:14px;color:#555;line-height:1.7;margin-bottom:4px">국내 닭 대장균은 <b>여러 항생제에 안 듣는 경우가 많고</b>, 약이 안 듣게 만드는 <b>돌연변이·내성 유전자</b>도 자주 확인돼요.</div>`;
+    fig += gmFig(smEcAmr(C), "2018년 전국 육계 분리주에서 암피실린은 10마리 중 8마리가 안 들을 만큼 내성이 높았어요(검역본부·전북대 2020).");
+    fig += `<div style="background:${C}0d;border:1.5px solid ${C}44;border-radius:12px;padding:11px 13px;margin:8px 0;font-size:14.5px;line-height:1.75;color:#333"><b style="color:${C}">내성·변이 요점</b><br>· <b>여러 약 동시 내성(MDR)</b> — 닭 분리주의 약 <b>77%</b>가 해당(충남대 2021)<br>· <b>플루오로퀴놀론</b>(엔로·시프로) 내성 — 약 46%, 원인은 <b>gyrA 83·87번 돌연변이</b> 등(서울대 2021)<br>· <b>ESBL</b>(3세대 세팔로스포린 깨는) 유전자 <b>CTX-M-55·CTX-M-1</b> 확인(충북대 2022)<br>· <b>콜리스틴</b> 내성 유전자 mcr-1도 드물게 — 사람 최후 항생제라 주의(충남대 2021)</div>
+    <div style="background:#FFF5F5;border:2px solid #EF9A9A;border-radius:12px;padding:10px 13px;margin:8px 0;font-size:14.5px;line-height:1.7;color:#C62828"><b>👉 그래서</b> 진단 없이 같은 약을 반복하면 <b>안 듣는 균만 남아요</b>. 꼭 <b>배양·감수성 검사</b>로 듣는 약을 고르고, 사육환경(물때·깔짚·환기)도 함께 손봐야 재발이 줄어요.</div>`;
   }
   const banner = `<div style="background:linear-gradient(135deg,${C},${C}cc);color:#fff;border-radius:16px;padding:14px 16px;margin-bottom:10px"><div style="font-size:19px;font-weight:900">${head[0]}</div><div style="font-size:14px;margin-top:3px;opacity:.95">${head[1]}</div></div>`;
   const leadBox = `<div style="font-size:15.5px;line-height:1.8;color:#222;background:#fff;border:1.5px solid ${C}33;border-radius:12px;padding:12px 14px;margin-bottom:10px">${lead}</div>`;
