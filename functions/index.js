@@ -1078,6 +1078,32 @@ exports.fetchRssItems = onCall({ timeoutSeconds: 30 }, async (request) => {
   return { results };
 });
 
+// ── 🌤️ 날씨 예보 프록시(Open-Meteo) ───────────────────────────────────────────
+// 브라우저에서 api.open-meteo.com 직접 호출이 막히거나(네트워크·광고차단·401/429) CORS 프록시가
+// 죽어서 날씨탭이 비는 경우를 위해, 서버가 대신 읽는다. Open-Meteo 주소만 허용(아무 주소나 대신 읽어
+// 주는 프록시가 되지 않게), 로그인 불필요(무료 탭).
+const WX_ALLOWED_HOSTS = ["api.open-meteo.com", "archive-api.open-meteo.com", "geocoding-api.open-meteo.com", "ensemble-api.open-meteo.com"];
+exports.fetchWeatherData = onCall({ timeoutSeconds: 30 }, async (request) => {
+  const { url } = request.data || {};
+  let u;
+  try { u = new URL(String(url)); } catch (e) { throw new HttpsError("invalid-argument", "주소 형식 오류"); }
+  if (u.protocol !== "https:" || !WX_ALLOWED_HOSTS.includes(u.hostname)) {
+    throw new HttpsError("invalid-argument", "허용되지 않은 주소");
+  }
+  try {
+    const res = await fetch(u, {
+      headers: { "User-Agent": "Mozilla/5.0 polcon-weather-proxy", "Accept": "application/json" },
+      signal: AbortSignal.timeout(15000),
+    });
+    const text = await res.text();
+    if (!res.ok) throw new HttpsError("unavailable", "Open-Meteo HTTP " + res.status + " " + text.slice(0, 120));
+    return { json: JSON.parse(text) };
+  } catch (e) {
+    if (e instanceof HttpsError) throw e;
+    throw new HttpsError("unavailable", String((e && e.message) || e).slice(0, 160));
+  }
+});
+
 // ── 🔬 부검 사진 AI 예비 진단(온라인 진단) ─────────────────────────────────────
 // 회원이 올린 부검 사진(간/비장·소장·신장·기타)과 농장 정보를 Claude(비전)에 보내 "예비 소견"을
 // 만든다. 결과는 premium_board/diagnosis/{uid}/{postId}/ai.json 에 저장하고, 최동명 수의사가
