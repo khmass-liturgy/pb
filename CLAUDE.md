@@ -333,3 +333,27 @@ User-editable state (custom watchlists, board list, weather location) persists t
 adding a new data panel, follow the existing pattern: a `*_JSON_URL` pointing at
 `raw.githubusercontent.com/khmass-liturgy/pb/main/...`, an `async function fetch*()` that fetches it
 with a proxy fallback list, and a render function — rather than inventing a new data-loading approach.
+
+## graphify (토큰 절약용 코드 지식 그래프)
+
+`graphify-out/graph.json`은 공개 도구 graphify로 만든 코드 구조 그래프다(`scripts/`·`functions/`·`index.html`의 함수·호출 관계).
+파일을 통째로 읽기 전에 그래프로 관련 함수·파일 위치를 먼저 찾아 토큰을 줄이는 용도다. graphify가 설치돼 있지 않으면
+(`command -v graphify`) 먼저 `pip install graphifyy`로 설치한다(안 되면 아래 규칙은 건너뛰고 평소처럼 작업).
+질문은 한국어 문장보다 함수·파일 이름(예: `renderHpaiKrLiveStrip`)으로 해야 잘 찾는다.
+
+- **index.html은 graphify가 직접 못 읽는다**(HTML 속 JS는 분석 대상이 아님). 그래서 `python scripts/graphify_prepare.py`가
+  인라인 `<script>`를 `graphify-src/index.inline.js`로 뽑는다(줄 번호는 index.html과 같게 맞춤, 1500자 넘는 줄은 생략).
+  결과의 `src=graphify-src/index.inline.js loc=L8471`은 **index.html의 8471줄**이다. 이 파일은 Pages 배포 허용 목록에
+  없으므로 사이트에는 올라가지 않는다. `assets/vendor/`(three.js 등)는 `.graphifyignore`로 제외.
+- **갱신**: 코드를 바꾼 커밋에는 `python scripts/graphify_prepare.py && graphify update .`로 갱신한
+  `graphify-src/`·`graphify-out/` 변경을 함께 넣는다(로컬 분석, API 비용 없음, 약 6초).
+- `.claude/settings.json`의 훅이 Bash·Grep·Read·Glob 전에 graphify를 먼저 쓰게 안내한다(graphify가 없으면 건너뜀).
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+Rules:
+- When graphify-out/graph.json exists, run `graphify query "<question>"` before your first grep, search or source-file read for a codebase question, and put this rule in every subagent prompt that explores code. Read raw files only for lines the graph or an earlier read already located. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `python scripts/graphify_prepare.py && graphify update .` to keep the graph current (AST-only, no API cost).
+- A committed graphify-out/graph.json is rewritten whole on every build, so a large diff to it in a pull request is expected. Do not flag it as churn or suggest skipping the graph rebuild or its hooks.
