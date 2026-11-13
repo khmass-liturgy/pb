@@ -6183,15 +6183,33 @@ async function fetchWeather(lat, lng, name){
   weatherState.status="loading"; weatherState.locationName=name;
   if(state.tab==="weather" || state.tab==="vent" || state.tab==="disease" || state.tab==="premium") render();
   try {
-    const fcstUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max,relative_humidity_2m_mean&hourly=temperature_2m,weathercode,precipitation,windspeed_10m,relativehumidity_2m&timezone=Asia%2FSeoul&forecast_days=7&windspeed_unit=ms`;
-    const fcstResp = await fetchWithTimeout(fcstUrl, 10000);
-    if(!fcstResp.ok) throw new Error("예보 HTTP "+fcstResp.status);
-    const fcstData = await fcstResp.json();
+    // Open-Meteo 공식 변수명(weather_code·wind_speed_10m·relative_humidity_2m, 단위는 wind_speed_unit).
+    // 옛 이름(weathercode/windspeed_10m/relativehumidity_2m)은 폐기돼 400으로 거절될 수 있다.
+    const fcstUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean&hourly=temperature_2m,weather_code,precipitation,wind_speed_10m,relative_humidity_2m&timezone=Asia%2FSeoul&forecast_days=7&wind_speed_unit=ms`;
+    // 직접 호출이 막히거나(429·네트워크 차단) 실패하면 CORS 프록시로 한 번 더 시도한다.
+    let fcstData = null, lastErr = "";
+    const routes = [fcstUrl].concat(proxyRoutes(fcstUrl).slice(0,2));
+    for(let ri=0; ri<routes.length && !fcstData; ri++){
+      try {
+        const fr = await fetchWithTimeout(routes[ri], ri===0 ? 10000 : 12000);
+        if(!fr.ok){
+          let why=""; try{ why=(await fr.json()).reason||""; }catch(_){}
+          throw new Error("HTTP "+fr.status+(why?" · "+why:""));
+        }
+        const j = await fr.json();
+        if(!j || !j.daily || !j.daily.time) throw new Error("응답 형식 오류");
+        fcstData = j;
+      } catch(e){
+        lastErr = e.message || String(e);
+        console.warn("예보 경로 "+(ri+1)+" 실패:", lastErr);
+      }
+    }
+    if(!fcstData) throw new Error(lastErr || "예보 조회 실패");
     const days = fcstData.daily;
     weatherState.forecast = days.time.map((t,i)=>({
-      date:t, code:days.weathercode[i],
+      date:t, code:days.weather_code[i],
       tMax:days.temperature_2m_max[i], tMin:days.temperature_2m_min[i],
-      rain:days.precipitation_sum[i], wind:days.windspeed_10m_max[i],
+      rain:days.precipitation_sum[i], wind:days.wind_speed_10m_max[i],
       hum: days.relative_humidity_2m_mean ? days.relative_humidity_2m_mean[i] : null,
     }));
     // 시간대별 데이터 → 날짜별 그룹핑 (THI 계산용)
@@ -6203,11 +6221,11 @@ async function fetchWeather(lat, lng, name){
         if(!hourlyByDate[date]) hourlyByDate[date] = [];
         hourlyByDate[date].push({
           hour:     parseInt(dt.slice(11,13)),
-          code:     h.weathercode[i],
+          code:     h.weather_code[i],
           temp:     h.temperature_2m[i],
           rain:     h.precipitation[i],
-          wind:     h.windspeed_10m[i],
-          humidity: h.relativehumidity_2m[i],
+          wind:     h.wind_speed_10m[i],
+          humidity: h.relative_humidity_2m[i],
         });
       });
     }
@@ -6236,7 +6254,7 @@ async function fetchWeather(lat, lng, name){
     if(anomState.key !== lat+","+lng && anomState.status !== "loading") setTimeout(()=>anomRun(true), 0);
   } catch(e){
     console.error("날씨 조회 실패:", e);
-    weatherState.status="error";
+    weatherState.status="error"; weatherState.errMsg = (e && e.message) || "";
     if(state.tab==="weather" || state.tab==="vent" || state.tab==="disease" || state.tab==="premium") render();
     return;
   }
@@ -6253,13 +6271,13 @@ async function fetchWeather(lat, lng, name){
     const lyStart = new Date(today); lyStart.setFullYear(today.getFullYear()-1);
     const lyEnd = new Date(lyStart); lyEnd.setDate(lyStart.getDate()+6);
     const dateFmt = (d)=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-    const histUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=${dateFmt(lyStart)}&end_date=${dateFmt(lyEnd)}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,relative_humidity_2m_mean&timezone=Asia%2FSeoul`;
+    const histUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=${dateFmt(lyStart)}&end_date=${dateFmt(lyEnd)}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,relative_humidity_2m_mean&timezone=Asia%2FSeoul`;
     const histResp = await fetchWithTimeout(histUrl, 8000);
     if(histResp.ok){
       const hd = (await histResp.json()).daily;
       if(hd && hd.time){
         weatherState.lastYear = hd.time.map((t,i)=>({
-          date:t, code:hd.weathercode[i],
+          date:t, code:hd.weather_code[i],
           tMax:hd.temperature_2m_max[i], tMin:hd.temperature_2m_min[i],
           rain:hd.precipitation_sum[i],
           hum: hd.relative_humidity_2m_mean ? hd.relative_humidity_2m_mean[i] : null,
@@ -34806,7 +34824,8 @@ function renderWeatherBody(sub){
   if(weatherState.status==="error"){
     return `<div class="card" style="text-align:center;padding:40px">
       <div style="font-size:32px;margin-bottom:12px">⚠️</div>
-      <div style="font-size:14px;color:#D32F2F;margin-bottom:16px">날씨 정보를 가져오지 못했습니다.</div>
+      <div style="font-size:14px;color:#D32F2F;margin-bottom:${weatherState.errMsg?"6px":"16px"}">날씨 정보를 가져오지 못했습니다.</div>
+      ${weatherState.errMsg?`<div style="font-size:11px;color:#999;margin-bottom:16px;word-break:break-all">원인: ${weatherState.errMsg.replace(/[<>&]/g,"")}</div>`:""}
       <button id="btn-wx-gps" style="border:none;border-radius:10px;background:#1a2744;color:#fff;padding:10px 20px;font-size:13px;font-weight:600">📍 내 위치로 다시 시도</button>
     </div>`;
   }
@@ -38397,10 +38416,6 @@ function attachEvents(){
     navigator.geolocation.getCurrentPosition(async pos=>{
       const {latitude:lat, longitude:lng} = pos.coords;
       // 역지오코딩으로 지역명 가져오기
-      try {
-        const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=&count=1&language=ko&format=json`);
-        // 간단히 좌표 표시
-      } catch(e){}
       // nominatim으로 역지오코딩
       try {
         const r=await fetchWithTimeout(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=ko`,5000);
