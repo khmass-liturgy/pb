@@ -3068,31 +3068,6 @@ const DEFAULT_DISEASE_DISINFECTANTS = [
     products:[],
     caution:"세균성 질병은 항생제 감수성 검사 결과에 따라 치료 방향이 달라질 수 있으므로, 소독과 함께 수의사 진단을 받으시기 바랍니다." },
 ];
-// 세균(세포벽·세포막을 가진 단일 구조) vs 외피 바이러스(지질막이 있어 계면활성제에
-// 약함) vs 비외피 바이러스(단백질 캡시드만 있어 저항성이 강함)를 한눈에 비교하는
-// 모식도. 정적 SVG라 이 파일 안에 문자열로 직접 둔다(별도 이미지 호스팅 불필요).
-const DISINFECT_DIAGRAM_SVG = `<svg viewBox="0 0 700 250" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;max-width:560px;display:block;margin:10px auto">
-  <text x="120" y="18" text-anchor="middle" font-size="12.5" font-weight="700" fill="#00695C">세균</text>
-  <rect x="55" y="28" width="130" height="170" rx="60" fill="#E0F2F1" stroke="#00695C" stroke-width="2.5"/>
-  <rect x="68" y="40" width="104" height="146" rx="48" fill="#B2DFDB" stroke="#4DB6AC" stroke-width="1.5"/>
-  <ellipse cx="120" cy="113" rx="30" ry="19" fill="#004D40"/>
-  <text x="120" y="117" text-anchor="middle" font-size="9" fill="#fff">DNA</text>
-  <text x="120" y="212" text-anchor="middle" font-size="9.5" fill="#333" font-weight="700">세포벽·세포막</text>
-  <text x="120" y="226" text-anchor="middle" font-size="8.5" fill="#00695C">막 파괴·단백질 변성으로 사멸</text>
-
-  <text x="350" y="18" text-anchor="middle" font-size="12.5" font-weight="700" fill="#1565C0">외피 바이러스</text>
-  <circle cx="350" cy="113" r="72" fill="#BBDEFB" stroke="#1565C0" stroke-width="2.5" stroke-dasharray="6 4"/>
-  <circle cx="350" cy="113" r="46" fill="#64B5F6" stroke="#1976D2" stroke-width="1.5"/>
-  <circle cx="350" cy="113" r="16" fill="#0D47A1"/>
-  <text x="350" y="212" text-anchor="middle" font-size="9.5" fill="#333" font-weight="700">지질외피(envelope)</text>
-  <text x="350" y="226" text-anchor="middle" font-size="8.5" fill="#1565C0">알코올·계면활성제에 취약 → 쉽게 불활화</text>
-
-  <text x="580" y="18" text-anchor="middle" font-size="12.5" font-weight="700" fill="#C62828">비외피 바이러스</text>
-  <polygon points="580,55 616,80 616,130 580,155 544,130 544,80" fill="#FFCDD2" stroke="#C62828" stroke-width="2.5"/>
-  <circle cx="580" cy="105" r="16" fill="#B71C1C"/>
-  <text x="580" y="212" text-anchor="middle" font-size="9.5" fill="#333" font-weight="700">단백질 캡시드만(외피 없음)</text>
-  <text x="580" y="226" text-anchor="middle" font-size="8.5" fill="#C62828">저항성 강함 → 산화제·알데히드 필요</text>
-</svg>`;
 
 // 질병별 목록과 별개로, 소독 자체에 대한 일반 원리·절차를 다루는 고정 카드
 // 4종. 질병마다 달라지는 내용이 아니라 이 화면에서만 쓰는 정적 참고자료라
@@ -12695,7 +12670,7 @@ function renderResearchPanel(){
 // ── 상황별 처방(투약) 패키지 화면 ────────────────────────────────────────────
 let treatmentTabState = { species: "broiler", openKey: null, adminOpen: false, formKey: undefined };
 let seasonalTabState = { season: "spring", animal: "broiler", openKey: null, adminOpen: false, formKey: undefined };
-let disinfectTabState = { openKey: null, adminOpen: false, formKey: undefined, generalOpenKey: null };
+let disinfectTabState = { openKey: null, adminOpen: false, formKey: undefined, generalOpenKey: null, tab: (function(){ try { return localStorage.getItem("ds_tab") || "home"; } catch(e){ return "home"; } })() };
 let moltGuideState = { openKey: null };
 let moltSmsState = { mode:"short", phone:"" };   // short=단계별 첫 문장 요약, full=전체 문구
 // 학습 화면 내비게이션 — deckKey가 없으면 덱 목록, 있으면 그 덱의 카드
@@ -13889,78 +13864,191 @@ function disinfectFlowHtml(steps, color){
         </div>
       </div>`).join("") + `</div>`;
 }
-const DISINFECT_EASY_STRIP = `
-  <div style="display:flex;gap:4px;align-items:stretch;margin-bottom:10px;text-align:center">
-    <div style="flex:1;background:#E3F2FD;border-radius:8px;padding:6px 3px"><div style="font-size:18px">🧹</div><div style="font-size:11px;font-weight:800;color:#1565C0">① 치우고 씻기</div><div style="font-size:10px;color:#666">분변·먼지 제거</div></div>
-    <div style="align-self:center;color:#999">▶</div>
-    <div style="flex:1;background:#FCE4EC;border-radius:8px;padding:6px 3px"><div style="font-size:18px">🧴</div><div style="font-size:11px;font-weight:800;color:#C62828">② 소독제 뿌리기</div><div style="font-size:10px;color:#666">라벨 배수대로</div></div>
-    <div style="align-self:center;color:#999">▶</div>
-    <div style="flex:1;background:#FFF3E0;border-radius:8px;padding:6px 3px"><div style="font-size:18px">⏱️</div><div style="font-size:11px;font-weight:800;color:#EF6C00">③ 기다리기</div><div style="font-size:10px;color:#666">접촉시간 지키기</div></div>
-    <div style="align-self:center;color:#999">▶</div>
-    <div style="flex:1;background:#E8F5E9;border-radius:8px;padding:6px 3px"><div style="font-size:18px">🌬️</div><div style="font-size:11px;font-weight:800;color:#2E7D32">④ 말리기</div><div style="font-size:10px;color:#666">건조·환기</div></div>
-  </div>`;
 
-function renderGeneralDisinfectCards(){
-  return GENERAL_DISINFECT_GUIDE.map((g, ci) => {
-    const open = disinfectTabState.generalOpenKey === g.key;
-    const pc = pkgColor(ci + 2);
-    return pkgCardHtml({
-      color: pc.color, tint: pc.tint, icon: g.icon,
-      chips: pkgChip("일반 소독 지침", "#fff", pc.color),
-      title: g.title, toggleClass: "disinfect-general-toggle", key: g.key, open,
-      openLabel: "내용 보기 ▼", admin: false,
-      body: (g.intro ? `<div style="font-size:12.5px;color:#555;line-height:1.6;margin-bottom:10px">${esc(g.intro)}</div>` : "")
-        + (g.diagram ? DISINFECT_DIAGRAM_SVG : "")
-        + pkgStepsHtml(g.sections, pc.color)
-        + pkgCautionHtml(g.caution),
-    });
-  }).join("");
+// ── 🧴 질병별 소독제 선택과 소독요령 — 그림 교실형 화면 ─────────────────────────
+// 탭: 한눈에 · 질병별 · 희석 계산 · 닭 있을 때 · 비었을 때 · 훈증 · 원리.
+// 질병 목록은 지금처럼 관리자가 편집하는 Firebase premium_content/disease_disinfectants 이므로,
+// 그림(병원체 모양·소독 난이도·단계 아이콘)은 내용 글자에서 자동으로 고른다(dsType/dsStepIcon).
+// 그림은 세균·바이러스 기초교실의 gm* 조각(gmSvg·gmVirus·gmRod…)을 같이 쓴다.
+const DS_TABS = [["home", "🏠 한눈에"], ["disease", "🦠 질병별"], ["dilute", "💧 희석 계산"], ["birds", "🐔 닭 있을 때"], ["empty", "🚪 비었을 때"], ["fume", "🌫️ 훈증"], ["basic", "📖 원리"]];
+const DS_COLOR = "#00695C";
+// 병원체 종류 = 소독 난이도(1 쉬움 ~ 5 아주 질김)
+const DS_TYPES = {
+  env:    { lv:1, t:"외피 있는 바이러스", c:"#2E7D32", easy:"대부분의 축산용 소독제가 잘 들어요", weak:"" },
+  bact:   { lv:2, t:"일반 세균", c:"#9E9D24", easy:"범용 소독제로 충분한 편이에요", weak:"" },
+  bmix:   { lv:2, t:"세균 (아포 여부 확인)", c:"#9E9D24", easy:"아포를 만드는 균인지 먼저 확인해요", weak:"아포 형성균이면 「아포 살균(sporicidal)」 표시 제품이 필요해요" },
+  vmix:   { lv:3, t:"바이러스 (외피 여부 확인)", c:"#1565C0", easy:"원인 바이러스의 외피 유무부터 확인해요", weak:"모르면 더 질긴 「외피 없는 바이러스」 기준으로 소독해요" },
+  nonenv: { lv:3, t:"외피 없는 바이러스", c:"#EF6C00", easy:"보통 소독제로는 잘 안 죽어요", weak:"4급 암모늄·알코올만으로는 약해요 — 「비외피 바이러스」 효능 표시 제품" },
+  spore:  { lv:4, t:"세균 아포(포자)", c:"#C62828", easy:"아포는 열·건조·소독제에 아주 강해요", weak:"저농도 일반 소독제로는 아포가 잘 안 죽어요 — 「아포 살균」 표시 제품" },
+  oocyst: { lv:5, t:"원충 알(오시스트)", c:"#6A1B9A", easy:"화학 소독제에 가장 강한 편이에요", weak:"염소계·요오드계·4급 암모늄은 거의 효과가 없어요 — 건조·열·전용 방법" },
+};
+const DS_LADDER = ["oocyst", "spore", "nonenv", "bact", "env"];
+function dsType(p){
+  const items = p.disinfectants || [], first = items[0] || { step:"", detail:"" };
+  const all = items.map(s => s.step + " " + s.detail).join(" ") + " " + (p.disease || "");
+  if(/확인 먼저/.test(first.step)) return /바이러스/.test(p.disease) ? "vmix" : /세균/.test(p.disease) ? "bmix" : (/아포/.test(all) ? "bmix" : "vmix");
+  const d = first.detail + " " + (p.disease || "");
+  if(/오오시스트|오시스트|콕시듐|oocyst/i.test(d)) return "oocyst";
+  if(/아포|spore/i.test(d)) return "spore";
+  if(/외피가 없는|외피 없는|비외피|non-enveloped/i.test(d)) return "nonenv";
+  if(/외피|envelope/i.test(d)) return "env";
+  if(/세균|균\b/.test(d)) return "bact";
+  return /바이러스/.test(all) ? "vmix" : "bmix";
 }
-
+// 병원체 작은 그림(정사각형)
+function dsBug(type, size){
+  const T = DS_TYPES[type] || DS_TYPES.vmix, c = T.c;
+  let s;
+  if(type === "env") s = gmVirus(50, 50, 24, c, { n:12 });
+  else if(type === "nonenv") s = gmVirus(50, 50, 30, c, { env:false, spikes:false });
+  else if(type === "bact") s = gmRod(50, 50, 66, 26, c, -15);
+  else if(type === "spore") s = gmRod(50, 50, 66, 26, "#EF9A9A", -15) + `<ellipse cx="66" cy="45" rx="11" ry="9" fill="#fff" stroke="${c}" stroke-width="4"/>`;
+  else if(type === "oocyst") s = `<ellipse cx="50" cy="50" rx="30" ry="38" fill="${c}22" stroke="${c}" stroke-width="5"/><ellipse cx="50" cy="50" rx="23" ry="31" fill="none" stroke="${c}" stroke-width="2"/>` + [[42, 38], [58, 38], [42, 62], [58, 62]].map(([x, y]) => `<ellipse cx="${x}" cy="${y}" rx="7" ry="9" fill="${c}88"/>`).join("");
+  else s = `<circle cx="50" cy="50" r="36" fill="${c}18" stroke="${c}" stroke-width="3" stroke-dasharray="6 4"/>` + gmT(50, 64, "?", { s:44, w:900, c });
+  return `<svg viewBox="0 0 100 100" width="${size}" height="${size}" aria-hidden="true" style="flex:none;display:block">${s}</svg>`;
+}
+function dsMeter(lv, c){
+  return `<span style="display:inline-flex;gap:3px;align-items:center" title="소독 난이도 ${lv}/5">${[1, 2, 3, 4, 5].map(i => `<i style="width:14px;height:9px;border-radius:3px;background:${i <= lv ? c : "#e5e5e5"}"></i>`).join("")}</span>`;
+}
+const DS_STEP_ICONS = [[/공백/, "🗓️"], [/훈증/, "🌫️"], [/화염|고온/, "🔥"], [/생석회/, "⚪"], [/종란|부화/, "🥚"], [/음수|급수|라인/, "💧"], [/통제|출입/, "🚧"], [/배수/, "🚰"],
+  [/반복/, "🔁"], [/선택/, "🔎"], [/접촉/, "⏱️"], [/세척|세제|고압/, "🚿"], [/청소|반출|제거|건조 청소/, "🧹"], [/건조|환기/, "☀️"], [/살포|도포|소독|분무/, "🧴"], [/조제|비율/, "⚖️"], [/원리/, "🔬"], [/조건/, "🌡️"], [/절차/, "📋"]];
+function dsStepIcon(s){
+  const t = String(s.step || "");
+  const hit = DS_STEP_ICONS.find(([re]) => re.test(t)) || DS_STEP_ICONS.find(([re]) => re.test(String(s.detail || "")));
+  return hit ? hit[1] : "✅";
+}
+// 단계 흐름: 큰 번호·아이콘 원 + 제목 + 설명, 아래로 이어지는 선
+function dsSteps(steps, color){
+  return `<div style="margin:8px 0">${(steps || []).map((s, i, a) => `<div style="display:flex;gap:12px;align-items:stretch">
+      <div style="display:flex;flex-direction:column;align-items:center;flex:none;width:52px">
+        <div style="position:relative;width:52px;height:52px;border-radius:50%;background:#fff;border:3px solid ${color};display:flex;align-items:center;justify-content:center;font-size:25px">${dsStepIcon(s)}<b style="position:absolute;top:-6px;left:-6px;width:22px;height:22px;border-radius:50%;background:${color};color:#fff;font-size:12.5px;display:flex;align-items:center;justify-content:center">${i + 1}</b></div>
+        ${i < a.length - 1 ? `<div style="flex:1;width:4px;background:${color}44;margin:3px 0;min-height:12px"></div>` : ""}</div>
+      <div style="flex:1;min-width:0;padding:4px 0 ${i < a.length - 1 ? 14 : 4}px">
+        <div style="font-size:16.5px;font-weight:900;color:${color};line-height:1.35">${esc(String(s.step || "").replace(/^\d+\s*단계\s*/, ""))}</div>
+        <div style="font-size:15px;color:#333;line-height:1.7;margin-top:3px">${esc(s.detail || "")}</div></div></div>`).join("")}</div>`;
+}
+function dsWarn(text, c){
+  return text ? `<div style="border:2.5px solid ${c || "#C62828"};background:#FFF5F5;border-radius:14px;padding:11px 14px;margin:12px 0;font-size:15px;line-height:1.7;color:#333"><b style="color:${c || "#C62828"};font-size:16px">⚠️ 꼭 지켜요</b><br>${esc(text)}</div>` : "";
+}
+function dsBanner(icon, title, sub, c){
+  return `<div style="background:linear-gradient(135deg,${c},${c}cc);color:#fff;border-radius:16px;padding:14px 16px;margin-bottom:8px"><div style="font-size:21px;font-weight:900;line-height:1.4">${icon} ${title}</div>${sub ? `<div style="font-size:15px;line-height:1.65;margin-top:4px;opacity:.96">${sub}</div>` : ""}</div>`;
+}
+// ── 그림 ──
+function dsFigFlow(){
+  const S = [["🧹", "① 치우고 씻기", ["분변·깔짚·먼지를", "걷고 세제로 씻기"], "#1565C0", "#E3F2FD"], ["🧴", "② 소독제 뿌리기", ["라벨 배수대로", "골고루 흠뻑"], "#C62828", "#FCE4EC"],
+    ["⏱️", "③ 기다리기", ["접촉 시간 동안", "젖은 채로 두기"], "#EF6C00", "#FFF3E0"], ["☀️", "④ 말리기", ["완전히 말리고", "환기 후 입식"], "#2E7D32", "#E8F5E9"]];
+  let s = gmArrow("dsfl", "#90A4AE");
+  S.forEach((t, i) => { const x = 6 + (i % 2) * 160, y = 6 + Math.floor(i / 2) * 116;
+    s += gmBox(x, y, 148, 104, t[4], t[3] + "55", 14) + gmE(x + 74, y + 26, t[0], 30) + gmT(x + 74, y + 62, t[1], { s:14.5, w:900, c:t[3] }) + gmT(x + 74, y + 80, t[2], { s:12, w:700, c:"#444", lh:15 }); });
+  s += gmLine(156, 58, 164, 58, "#90A4AE", "dsfl") + gmLine(240, 112, 92, 124, "#90A4AE", "dsfl") + gmLine(156, 174, 164, 174, "#90A4AE", "dsfl");
+  return gmSvg(232, s, "소독 네 단계: 치우고 씻기, 소독제 뿌리기, 기다리기, 말리기");
+}
+function dsFigThree(){
+  const C = [["세척", "유기물 제거", "🚿", "#1565C0"], ["정확한 희석", "라벨 배수", "⚖️", "#6A1B9A"], ["접촉 시간", "젖은 채 유지", "⏱️", "#EF6C00"]];
+  let s = `<circle cx="160" cy="100" r="34" fill="#00695C"/>` + gmT(160, 96, "소독", { s:15, w:900, c:"#fff" }) + gmT(160, 114, "효과", { s:15, w:900, c:"#fff" });
+  C.forEach((c, i) => { const a = -Math.PI / 2 + i * 2 * Math.PI / 3, x = gmR(160 + Math.cos(a) * 100), y = gmR(104 + Math.sin(a) * 72);
+    s += `<line x1="160" y1="100" x2="${x}" y2="${y}" stroke="${c[3]}55" stroke-width="5"/>` + gmBox(x - 56, y - 28, 112, 56, "#fff", c[3], 14) + gmE(x - 34, y, c[2], 22) + gmT(x - 14, y - 4, c[0], { a:"start", s:13, w:900, c:c[3] }) + gmT(x - 14, y + 14, c[1], { a:"start", s:12, w:600, c:"#555" }); });
+  s += gmT(160, 186, "셋 중 하나라도 빠지면 효과가 크게 떨어져요", { s:12.5, w:800, c:"#C62828" });
+  return gmSvg(194, s, "소독의 3요소: 세척, 정확한 희석, 접촉 시간");
+}
+function dsFigTypes(){
+  let s = gmBox(4, 4, 100, 150, "#F9FBE7") + gmBox(110, 4, 100, 150, "#E8F5E9") + gmBox(216, 4, 100, 150, "#FFF3E0");
+  s += gmRod(54, 46, 62, 24, "#9E9D24", -12) + gmVirus(160, 46, 20, "#2E7D32", { n:12 }) + gmVirus(266, 46, 25, "#EF6C00", { env:false, spikes:false });
+  s += gmT(54, 96, "세균", { s:14, w:900, c:"#827717" }) + gmT(160, 96, ["외피 있는", "바이러스"], { s:13, w:900, c:"#2E7D32", lh:15 }) + gmT(266, 96, ["외피 없는", "바이러스"], { s:13, w:900, c:"#E65100", lh:15 });
+  s += gmT(54, 124, ["막 파괴·단백질", "변성으로 죽어요"], { s:12, w:600, c:"#555", lh:15 }) + gmT(160, 128, ["기름막이 약점", "→ 쉽게 죽어요"], { s:12, w:600, c:"#555", lh:15 }) + gmT(266, 128, ["단백질 껍질뿐", "→ 질겨요"], { s:12, w:600, c:"#555", lh:15 });
+  return gmSvg(158, s, "세균, 외피 있는 바이러스, 외피 없는 바이러스의 구조 차이");
+}
+function dsFigBirds(on){
+  let s = gmBox(4, 4, 312, 112, on ? "#E8F5E9" : "#EFEBE9", null, 14);
+  s += `<path d="M24 54 L160 14 L296 54 Z" fill="${on ? "#81C784" : "#A1887F"}"/><rect x="34" y="54" width="252" height="56" rx="4" fill="#fff"/>`;
+  if(on) s += gmE(80, 82, "🐔", 26) + gmE(124, 86, "🐔", 22) + gmE(170, 82, "🐔", 26) + gmT(250, 78, "약한 소독만", { s:13, w:900, c:"#2E7D32" }) + gmT(250, 96, "음수·저자극 분무", { s:12, w:700, c:"#555" });
+  else s += GM_DIRT(80, 90, 14) + GM_DIRT(130, 96, 10) + gmE(170, 84, "🧹", 22) + gmT(250, 78, "강하게 OK", { s:13, w:900, c:"#5D4037" }) + gmT(250, 96, "세척·소독·훈증", { s:12, w:700, c:"#555" });
+  return gmSvg(120, s, on ? "닭이 있는 계사" : "비어 있는 계사");
+}
+function dsFigFume(){
+  let s = gmBox(4, 4, 312, 132, "#ECEFF1", null, 14);
+  s += `<path d="M30 60 L160 20 L290 60 Z" fill="#90A4AE"/><rect x="40" y="60" width="240" height="68" rx="4" fill="#fff" stroke="#607D8B" stroke-width="2"/>`;
+  for(let i = 0; i < 9; i++) s += `<circle cx="${70 + i * 25}" cy="${84 + (i % 3) * 12}" r="${9 + (i % 2) * 4}" fill="#B0BEC5" opacity=".7"/>`;
+  s += gmE(160, 112, "🫙", 20) + gmT(160, 50, "🔒 꽉 막고 가스로 채워요", { s:13, w:900, c:"#37474F" });
+  s += gmBox(206, 8, 106, 26, "#C62828", null, 13) + gmT(259, 26, "🚫 닭 없을 때만", { s:12, w:900, c:"#fff" });
+  return gmSvg(140, s, "밀폐한 계사에 가스를 채우는 훈증 소독");
+}
+// ── 탭 화면 ──
+function dsHome(list){
+  const groups = {};
+  list.forEach(p => { const t = dsType(p); const k = t === "vmix" ? "nonenv" : t === "bmix" ? "bact" : t; (groups[k] = groups[k] || []).push(p); });
+  const ladder = DS_LADDER.map(k => { const T = DS_TYPES[k], L = groups[k] || [];
+    return `<div style="display:flex;gap:10px;align-items:center;border:2px solid ${T.c}55;border-left:9px solid ${T.c};border-radius:14px;background:${T.c}0f;padding:8px 10px;margin-bottom:7px">
+      ${dsBug(k, 50)}<div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><b style="font-size:16px;color:${T.c}">${T.t}</b>${dsMeter(T.lv, T.c)}</div>
+      <div style="font-size:13.5px;color:#555;margin:2px 0 5px">${T.easy}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px">${L.length ? L.map(p => `<button type="button" class="ds-pick" data-k="${esc(p.key)}" style="border:1.5px solid ${T.c};background:#fff;color:${T.c};border-radius:14px;padding:5px 11px;font-size:14px;font-weight:800;cursor:pointer">${esc(p.disease)} ›</button>`).join("") : `<span style="font-size:12.5px;color:#aaa">등록된 질병 없음</span>`}</div></div></div>`; }).join("");
+  return dsBanner("🧴", "소독, 네 단계만 기억하세요", "어떤 병이든 순서는 같아요. 병마다 다른 것은 <b>어떤 소독제를 고르고 얼마나 오래 두느냐</b>예요.", DS_COLOR)
+    + gmFig(dsFigFlow(), "치우지 않고 뿌린 소독제는 병원체가 아니라 분변을 소독하는 거예요.")
+    + `<div style="font-size:17px;font-weight:900;color:#333;margin:14px 0 4px">🎯 소독 효과를 만드는 3요소</div>` + gmFig(dsFigThree(), "")
+    + `<div style="font-size:17px;font-weight:900;color:#333;margin:14px 0 2px">🪜 병원체마다 질긴 정도가 달라요</div><div style="font-size:14px;color:#666;margin-bottom:8px">위로 갈수록 소독제에 강해요. <b>질병 이름을 누르면</b> 그 병의 소독법으로 가요.</div>` + ladder
+    + `<button type="button" class="ds-tab" data-t="dilute" style="display:block;width:100%;border:0;border-radius:12px;background:#1565C0;color:#fff;padding:13px;font-size:15.5px;font-weight:900;cursor:pointer;margin-top:10px">💧 원액을 얼마나 넣을까? — 희석 계산기 →</button>`;
+}
+function dsDisease(list, admin){
+  const sel = list.find(p => p.key === disinfectTabState.openKey);
+  const grid = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:6px 0 10px">${list.map(p => { const k = dsType(p), T = DS_TYPES[k], on = sel && sel.key === p.key;
+    return `<button type="button" class="ds-pick" data-k="${esc(p.key)}" style="display:flex;flex-direction:column;align-items:center;gap:4px;border:2.5px solid ${on ? T.c : T.c + "44"};background:${on ? T.c + "14" : "#fff"};border-radius:14px;padding:10px 6px;cursor:pointer">
+      ${dsBug(k, 46)}<span style="font-size:14.5px;font-weight:900;color:#222;line-height:1.3;text-align:center">${esc(p.disease)}</span>${dsMeter(T.lv, T.c)}</button>`; }).join("")}</div>`;
+  if(!list.length) return `<div class="card" style="text-align:center;padding:28px 16px;color:#aaa">아직 등록된 질병이 없습니다.</div>`;
+  if(!sel) return dsBanner("🦠", "우리 농장 병을 고르세요", "병원체 그림 아래 막대가 <b>소독 난이도</b>예요(많이 찰수록 질겨요).", DS_COLOR) + grid;
+  const k = dsType(sel), T = DS_TYPES[k];
+  const head = `<div style="display:flex;gap:12px;align-items:center;background:linear-gradient(135deg,${T.c},${T.c}cc);color:#fff;border-radius:16px;padding:12px 14px">
+      <div style="background:#fff;border-radius:14px;padding:4px">${dsBug(k, 64)}</div>
+      <div style="flex:1;min-width:0"><div style="font-size:21px;font-weight:900;line-height:1.35">${esc(sel.disease)}</div>
+      <div style="font-size:14px;margin-top:3px;opacity:.95">${T.t} · 소독 난이도 ${T.lv}/5</div>
+      <div style="margin-top:5px;background:#fff;display:inline-block;border-radius:8px;padding:3px 6px">${dsMeter(T.lv, T.c)}</div></div></div>`;
+  const pick = (sel.disinfectants || []).map(s => {
+    const rec = /추천|외피 바이러스인|비외피 바이러스인|일반 세균|아포 형성균/.test(s.step);
+    const ico = /특성/.test(s.step) ? "🔬" : /농도/.test(s.step) ? "💧" : rec ? "✅" : "📌";
+    let body = esc(s.detail);
+    if(/추천 계열/.test(s.step)){
+      const [main, note] = String(s.detail).split(/\s+—\s+/);
+      body = `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">${main.split(/,|，/).map(x => x.trim()).filter(Boolean).map(x => `<span style="background:#E8F5E9;border:1.5px solid #A5D6A7;color:#1B5E20;border-radius:12px;padding:4px 10px;font-size:14.5px;font-weight:800">✔ ${esc(x)}</span>`).join("")}</div>${note ? `<div style="font-size:14px;color:#555;margin-top:5px">${esc(note)}</div>` : ""}`;
+    }
+    return `<div style="display:flex;gap:10px;align-items:flex-start;border:1.5px solid ${T.c}33;border-radius:13px;padding:10px 12px;margin-bottom:7px;background:#fff"><span style="font-size:24px;line-height:1.1;flex:none">${ico}</span><div style="flex:1;min-width:0"><div style="font-size:15.5px;font-weight:900;color:${T.c}">${esc(s.step)}</div><div style="font-size:15px;line-height:1.7;color:#333">${body}</div></div></div>`;
+  }).join("");
+  const weak = T.weak ? `<div style="display:flex;gap:10px;align-items:flex-start;background:#FFF3E0;border:2px solid #FFB74D;border-radius:13px;padding:10px 12px;margin-bottom:7px"><span style="font-size:24px">🚫</span><div style="font-size:15px;line-height:1.7;color:#5D4037"><b style="color:#E65100">잘 안 듣는 것</b><br>${T.weak}</div></div>` : "";
+  const prods = (sel.products || []).length ? `<div style="font-size:17px;font-weight:900;color:#333;margin:14px 0 6px">🏷️ 등록된 제품</div>` + sel.products.map(pr => `<div style="border:1.5px solid #ddd;border-radius:12px;padding:9px 12px;margin-bottom:6px;background:#fff"><div style="font-size:15.5px;font-weight:900;color:#333">${esc(pr.name)}${pr.company ? ` <span style="font-size:13px;color:#888;font-weight:600">${esc(pr.company)}</span>` : ""}</div>${pr.usage ? `<div style="font-size:14.5px;color:#444;line-height:1.6;margin-top:2px">${esc(pr.usage)}</div>` : ""}</div>`).join("") : "";
+  const adminBtns = admin ? `<div style="display:flex;gap:6px;justify-content:flex-end;margin:6px 0"><button type="button" class="disinfect-edit-btn" data-key="${esc(sel.key)}" style="font-size:12px;border:1px solid #B8860B;border-radius:7px;background:#fff;color:#B8860B;padding:5px 11px;cursor:pointer">✏️ 수정</button><button type="button" class="disinfect-del-btn" data-key="${esc(sel.key)}" style="font-size:12px;border:1px solid #C62828;border-radius:7px;background:#fff;color:#C62828;padding:5px 11px;cursor:pointer">🗑 삭제</button></div>` : "";
+  return `<button type="button" class="ds-pick" data-k="" style="border:1px solid #ccc;background:#fff;color:#555;border-radius:12px;padding:9px 13px;font-size:14px;font-weight:800;cursor:pointer;margin-bottom:8px">← 질병 목록</button>`
+    + head + adminBtns
+    + `<div style="font-size:17px;font-weight:900;color:#333;margin:14px 0 6px">🧪 어떤 소독제를 고를까?</div>` + pick + weak + prods
+    + `<div style="font-size:17px;font-weight:900;color:#333;margin:14px 0 2px">🧼 이렇게 소독하세요</div>` + dsSteps(sel.procedure, T.c)
+    + `<button type="button" class="ds-tab" data-t="dilute" style="display:block;width:100%;border:1.5px solid #1565C0;border-radius:12px;background:#E3F2FD;color:#1565C0;padding:11px;font-size:15px;font-weight:900;cursor:pointer;margin:8px 0">💧 희석 계산기로 원액 양 구하기 →</button>`
+    + dsWarn(sel.caution, T.c)
+    + `<div style="font-size:15px;font-weight:900;color:#555;margin:14px 0 4px">다른 질병 보기</div>` + grid;
+}
+function dsGeneral(key, color){
+  const g = GENERAL_DISINFECT_GUIDE.find(x => x.key === key);
+  if(!g) return "";
+  const pic = key === "with_birds" ? gmFig(dsFigBirds(true), "") : key === "without_birds" ? gmFig(dsFigBirds(false), "") : key === "fumigation" ? gmFig(dsFigFume(), "") : "";
+  return dsBanner(g.icon, g.title, g.intro ? esc(g.intro) : "", color) + pic + dsSteps(g.sections, color) + dsWarn(g.caution, key === "fumigation" ? "#C62828" : color);
+}
+function dsBasic(){
+  const C = GENERAL_DISINFECT_GUIDE.find(x => x.key === "concept"), P = GENERAL_DISINFECT_GUIDE.find(x => x.key === "principle");
+  const icons = { "소독이란":"🧴", "소독의 3요소":"🎯", "유기물이 최대의 적":"💩", "병원체별 저항성 순서":"🪜", "온도·pH·물 경도의 영향":"🌡️", "세균을 죽이는 원리":"🦠", "소독제 작용기전 요약":"⚙️" };
+  const card = (s, c) => `<div style="display:flex;gap:10px;align-items:flex-start;border:1.5px solid ${c}33;border-left:6px solid ${c};border-radius:13px;padding:10px 12px;margin-bottom:8px;background:#fff"><span style="font-size:26px;line-height:1.1;flex:none">${icons[s.step] || (/비외피/.test(s.step) ? "🛡️" : /외피/.test(s.step) ? "🫧" : "📌")}</span><div style="flex:1;min-width:0"><div style="font-size:16px;font-weight:900;color:${c}">${esc(s.step)}</div><div style="font-size:15px;line-height:1.75;color:#333;margin-top:2px">${esc(s.detail)}</div></div></div>`;
+  return dsBanner("📖", "소독의 원리", "왜 씻고, 왜 기다리고, 왜 병마다 소독제가 다른지 그림으로 봐요.", "#B8860B")
+    + gmFig(dsFigThree(), "")
+    + (C ? C.sections.map(s => card(s, "#B8860B")).join("") : "")
+    + `<div style="font-size:17px;font-weight:900;color:#333;margin:14px 0 4px">🔬 세균·바이러스는 생김새가 달라요</div>` + gmFig(dsFigTypes(), "")
+    + `<div style="font-size:17px;font-weight:900;color:#333;margin:14px 0 4px">⚙️ 소독제가 망가뜨리는 곳</div>` + gmFig(gmFigMode(), "소독제는 몸 밖에서 가리지 않고 망가뜨려요 — 그래서 사람·닭에게도 조심해야 해요.")
+    + (P ? P.sections.map(s => card(s, "#1565C0")).join("") : "")
+    + `<button type="button" class="gm-goprem" data-v="germclass" style="display:block;width:100%;border:0;border-radius:12px;background:#1565C0;color:#fff;padding:13px;font-size:15px;font-weight:900;cursor:pointer;margin:10px 0">🔬 세균·바이러스 기초교실 「소독제」 편 보러 가기 →</button>`;
+}
 function renderDisinfectPanel(){
-  const head = `
-  <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
-    <div>
-      <div class="display" style="font-size:16px;margin-bottom:3px">🧴 질병별 소독제 선택과 소독요령</div>
-      <div style="font-size:11px;color:#aaa">질병을 고르면 소독제 선택 기준과 소독요령을 단계별로 보여드립니다</div>
-    </div>
-    <button id="disinfect-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button>
-  </div>`;
-
+  const head = `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:8px"><div><div class="display" style="font-size:19px;margin-bottom:2px">🧴 질병별 소독제 선택과 소독요령</div><div style="font-size:13.5px;color:#777">그림으로 쉽게 — 네 단계 순서, 병마다 다른 소독제</div></div><button id="disinfect-back-btn" style="border:1px solid #ddd;border-radius:9px;background:#fff;color:#777;padding:9px 15px;font-size:13px;font-weight:700;cursor:pointer">← 메뉴로</button></div>`;
   const st = diseaseDisinfectState;
-  if(st.status === "idle" || st.status === "loading"){
-    return head + `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⏳ 질병 목록을 불러오는 중...</div>`;
-  }
-  if(!st.data){
-    return head + `<div class="card" style="text-align:center;padding:32px 16px;color:#aaa">⚠️ 질병 목록을 불러오지 못했습니다.</div>`;
-  }
-
+  if(st.status === "idle" || st.status === "loading") return `<div class="card" style="border-top:6px solid ${DS_COLOR}">${head}<div style="text-align:center;padding:32px 16px;color:#aaa">⏳ 질병 목록을 불러오는 중...</div></div>`;
+  if(!st.data) return `<div class="card" style="border-top:6px solid ${DS_COLOR}">${head}<div style="text-align:center;padding:32px 16px;color:#aaa">⚠️ 질병 목록을 불러오지 못했습니다.</div></div>`;
   const admin = isBoardAdmin();
   const list = currentDiseaseDisinfectants();
-  const cards = list.length ? list.map((p, ci) => {
-    const open = disinfectTabState.openKey === p.key;
-    const pc = pkgColorOf(p, ci);
-    return pkgCardHtml({
-      color: pc.color, tint: pc.tint, icon: "🧴",
-      chips: pkgChip("질병별 소독", "#fff", pc.color),
-      title: p.disease, toggleClass: "disinfect-toggle", key: p.key, open,
-      openLabel: "내용 보기 ▼", admin, editClass: "disinfect-edit-btn", delClass: "disinfect-del-btn",
-      body: DISINFECT_EASY_STRIP
-        + pkgSectionTitle("🧪 어떤 소독제를 고를까? (선택 기준)", pc.color, true)
-        + (p.disinfectants.length ? pkgStepsHtml(p.disinfectants, pc.color) : pkgEmptyHtml("등록된 내용이 없습니다."))
-        + pkgSectionTitle("💊 추천 소독제 제품", pc.color)
-        + ((p.products&&p.products.length) ? p.products.map(pr => `
-        <div style="margin-bottom:8px;padding:8px 10px;background:${pc.color}14;border-radius:8px">
-          <div style="font-size:12.5px;font-weight:700;color:#333">${esc(pr.name)}${pr.company?` <span style="font-size:11px;color:#888;font-weight:400">${esc(pr.company)}</span>`:""}</div>
-          ${pr.usage?`<div style="font-size:12px;color:#444;line-height:1.6;margin-top:2px">${esc(pr.usage)}</div>`:""}
-        </div>`).join("") : pkgEmptyHtml("등록된 제품이 없습니다."))
-        + pkgSectionTitle("🧼 이렇게 소독하세요 (순서대로)", pc.color)
-        + (p.procedure.length ? disinfectFlowHtml(p.procedure, pc.color) : pkgEmptyHtml("등록된 내용이 없습니다."))
-        + `<div style="font-size:11px;color:#2E7D32;background:#E8F5E9;border-radius:8px;padding:7px 10px;margin-top:10px;line-height:1.6">💧 소독제를 얼마나 타는지 헷갈리면 위쪽 ‘희석배수 카드’의 계산기를 쓰세요.</div>`
-        + pkgCautionHtml(p.caution),
-    });
-  }).join("") : `<div class="card" style="text-align:center;padding:28px 16px;color:#aaa">아직 등록된 질병이 없습니다.${admin?"":" 곧 추가됩니다."}</div>`;
-
+  const tab = DS_TABS.some(t => t[0] === disinfectTabState.tab) ? disinfectTabState.tab : "home";
+  const nav = `<div style="display:flex;gap:6px;overflow-x:auto;padding:4px 0 8px;margin-bottom:6px">${DS_TABS.map(([k, t]) => `<button type="button" class="ds-tab" data-t="${k}" style="flex:none;border:2px solid ${k === tab ? DS_COLOR : "#e5e5e5"};background:${k === tab ? DS_COLOR : "#fff"};color:${k === tab ? "#fff" : "#555"};border-radius:18px;padding:8px 13px;font-size:14px;font-weight:800;cursor:pointer;white-space:nowrap">${t}</button>`).join("")}</div>`;
   const editing = disinfectTabState.formKey && list.find(p=>p.key===disinfectTabState.formKey);
   const adminBox = !admin ? "" : `
   <div style="margin-top:16px;border-top:1px dashed #eee;padding-top:12px">
@@ -13992,19 +14080,23 @@ function renderDisinfectPanel(){
     </div>` : ""}
   </div>`;
 
-  return head + `
-  <div style="font-size:12px;font-weight:800;color:#1565C0;margin:4px 0 8px">💧 소독제 희석요령</div>
-  ${renderDilutionCard()}
-  <div style="font-size:12px;font-weight:800;color:#B8860B;margin:14px 0 8px">📘 일반적인 소독요령(기본 개념)</div>
-  ${renderGeneralDisinfectCards()}
-  <div style="font-size:12px;font-weight:800;color:#00695C;margin:18px 0 8px">🦠 질병별 소독제 선택과 소독요령</div>
-  ${cards}
-  ${adminBox}
-  <div style="font-size:9px;color:#aaa;line-height:1.6;margin-top:6px">
-    ※ 여기 나온 소독제는 성상(계열/성분군) 기준 안내이며, 실제 사용 제품은 축산용으로 등록된 제품인지 확인하고
-    라벨의 사용농도·접촉시간을 따르세요. 가축전염병예방법상 신고대상 질병(AI 등)은 방역당국 지침이 우선합니다.
-    새로운 질병은 계속 추가됩니다.
-  </div>`;
+  let body;
+  if(tab === "disease") body = dsDisease(list, admin) + adminBox;
+  else if(tab === "dilute") body = dsBanner("💧", "원액을 얼마나 넣을까?", "라벨의 <b>희석 배수</b>와 만들 양만 넣으면 원액 양이 나와요.", "#1565C0") + renderDilutionCard();
+  else if(tab === "birds") body = dsGeneral("with_birds", "#2E7D32");
+  else if(tab === "empty") body = dsGeneral("without_birds", "#5D4037");
+  else if(tab === "fume") body = dsGeneral("fumigation", "#455A64");
+  else if(tab === "basic") body = dsBasic();
+  else body = dsHome(list);
+  const foot = `<div style="margin-top:14px;background:#FFF8E1;border-radius:9px;padding:9px 12px;font-size:12px;color:#6b5400;line-height:1.75"><b>유의</b> · 소독제는 계열(성분군) 기준 안내예요. 실제 제품은 축산용으로 등록된 제품인지 확인하고 라벨의 희석 배수·접촉 시간을 따르세요. AI 같은 법정 가축전염병은 방역당국 지침이 우선입니다. 그림은 이해를 돕는 단순화 그림이에요.</div>`;
+  return `<div class="card" id="ds-root" style="border-top:6px solid ${DS_COLOR}">${head}${nav}${body}${foot}</div>`;
+}
+function dsBind(){
+  if(!(state.tab === "premium" && premiumState.view === "disinfect")) return;
+  const go = () => { render(); const r = document.getElementById("ds-root"); if(r) r.scrollIntoView({ block:"start" }); };
+  document.querySelectorAll(".ds-tab").forEach(b => b.onclick = () => { disinfectTabState.tab = b.dataset.t; try { localStorage.setItem("ds_tab", b.dataset.t); } catch(e){} go(); });
+  document.querySelectorAll(".ds-pick").forEach(b => b.onclick = () => { disinfectTabState.tab = "disease"; disinfectTabState.openKey = b.dataset.k || null; go(); });
+  document.querySelectorAll("#ds-root .gm-goprem").forEach(b => b.onclick = () => { if(b.dataset.v === "germclass"){ gmState.part = "dis"; gmState.les = -1; gmSave(); } premiumState.view = b.dataset.v; render(); window.scrollTo(0, 0); });
 }
 
 // ── 농장에서 많이 궁금해 하는 질문 화면 ───────────────────────────────────────
@@ -30066,6 +30158,7 @@ function renderHeaderSolarTerm(now){
 // go: {tab} 일반 탭으로 / {premium:"메뉴key"} 유료서비스의 그 화면으로(승인·로그인 안내는 그 화면이 처리) / {premium:"vaccine", vaccineView:"guide"} 처럼 보기까지 지정.
 const NEW_FEATURE_DAYS = 21;
 const NEW_FEATURES = [
+  { key:"disinfect2",     date:"2026-11-14", label:"질병별 소독제 선택과 소독요령 — 그림으로 새로 정리(한눈에·질병별 난이도·희석 계산·훈증)", where:"유료서비스 · 약품·투약·소독", go:{ premium:"disinfect" } },
   { key:"germclass",      date:"2026-11-13", label:"세균·바이러스 기초교실 — 항생제·백신·소독제까지 그림으로 (닭·돼지·소)", where:"유료서비스 · 최꼬 아카데미", go:{ premium:"germclass" } },
   { key:"farmgame3d",     date:"2026-11-10", label:"육계·산란계 키우기 게임이 3D 계사로 바뀌었어요 (끌어서 돌려 보기)", where:"유료서비스 · 체험·게임", go:{ premium:"farmgame_broiler" } },
   { key:"fgventbird",     date:"2026-11-01", label:"닭 키우기 게임 — 환기량을 한 마리 기준·일령별 증가량으로 계산(관리자 조정)", where:"유료서비스 · 체험·게임", go:{ premium:"farmgame_broiler" } },
@@ -37372,6 +37465,7 @@ function attachEvents(){
   vcBind();
   gmBind();
   dilBind();
+  dsBind();
   const disinfectBackBtn = document.getElementById("disinfect-back-btn");
   if(disinfectBackBtn) disinfectBackBtn.onclick = ()=>{ premiumState.view = "menu"; render(); };
   document.querySelectorAll(".disinfect-toggle").forEach(b=>b.onclick=()=>{
