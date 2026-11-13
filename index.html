@@ -5785,7 +5785,7 @@ const RSS2JSON = "https://api.rss2json.com/v1/api.json";
 // ── 날씨 상태 ──────────────────────────────────────────────────────────────
 let weatherState = {
   status:"idle", // idle | loading | done | error
-  lat:null, lng:null, locationName:"",
+  lat:null, lng:null, locationName:"", staleAt:null, // staleAt: 갱신 실패로 캐시(마지막 성공) 예보를 쓸 때의 저장 시각(ms)
   forecast:[], // 7일 예보
   lastYear:null, // 작년 오늘 날씨
   hourly:{},   // { "2026-07-29": [{hour,code,temp,rain,wind,humidity},...] }
@@ -5796,6 +5796,19 @@ function saveWeatherLocation(lat,lng,name){
 }
 function loadWeatherLocation(){
   try { const s=localStorage.getItem("weather_loc"); if(s) return JSON.parse(s); } catch(e){}
+  return null;
+}
+// 마지막으로 성공한 예보를 통째로 저장/복원 — 모든 경로가 실패해도 "마지막 조회" 자료라도 보여 주기 위함.
+function saveWeatherCache(){
+  try {
+    localStorage.setItem("weather_cache_v1", JSON.stringify({
+      lat:weatherState.lat, lng:weatherState.lng, name:weatherState.locationName,
+      forecast:weatherState.forecast, hourly:weatherState.hourly, savedAt:Date.now(),
+    }));
+  } catch(e){}
+}
+function loadWeatherCache(){
+  try { const s=localStorage.getItem("weather_cache_v1"); if(s) return JSON.parse(s); } catch(e){}
   return null;
 }
 const WX_ICONS = {
@@ -6180,21 +6193,36 @@ async function fetchWeather(lat, lng, name){
       const res = await fn({ url: fcstUrl });
       return res.data && res.data.json;
     };
-    const routes = [
+    // 모든 경로를 동시에(병렬) 쏘고 가장 먼저 유효하게 돌아온 응답을 쓴다.
+    // (예전처럼 직접→서버→프록시를 순서대로 기다리면 느린 경로의 타임아웃이 쌓여 전체가 수십 초 걸리고
+    //  한 네트워크에서 다 같이 막히면 매번 실패했다. 병렬로 경주시키면 한 곳만 살아 있어도 빨리 성공한다.)
+    const routeDefs = [
       ["직접", ()=>viaUrl(fcstUrl, 15000)],
       ["서버", viaFn],
     ].concat(proxyRoutes(fcstUrl).map((p,i)=>["프록시"+(i+1), ()=>viaUrl(p, 13000)]));
-    for(let ri=0; ri<routes.length && !fcstData; ri++){
-      try {
-        const j = await routes[ri][1]();
-        if(!j || !j.daily || !j.daily.time) throw new Error("응답 형식 오류");
-        fcstData = j;
-      } catch(e){
-        errs.push(routes[ri][0]+": "+((e && e.message) || e));
-        console.warn("예보 경로 "+routes[ri][0]+" 실패:", e);
+    const race = routeDefs.map(([label, fn]) => Promise.resolve().then(fn).then(j => {
+      if(!j || !j.daily || !j.daily.time) throw new Error("응답 형식 오류");
+      return j;
+    }).catch(e => { errs.push(label+": "+((e && e.message) || e)); console.warn("예보 경로 "+label+" 실패:", e); throw e; }));
+    try { fcstData = await Promise.any(race); } catch(_){ /* 모든 경로 실패 */ }
+    if(!fcstData){
+      // 실시간 조회가 모두 실패 — 마지막으로 받아 둔 예보(오늘 이후만) 라도 보여 준다.
+      const cache = loadWeatherCache();
+      const todayKST = new Date(Date.now() + 9*3600e3).toISOString().slice(0,10);
+      const keep = (cache && Array.isArray(cache.forecast)) ? cache.forecast.filter(d => d && d.date >= todayKST) : [];
+      if(keep.length){
+        weatherState.forecast = keep;
+        weatherState.hourly = cache.hourly || {};
+        weatherState.selectedDate = keep.some(d => d.date === weatherState.selectedDate) ? weatherState.selectedDate : keep[0].date;
+        weatherState.lat = lat; weatherState.lng = lng; weatherState.locationName = name;
+        weatherState.staleAt = cache.savedAt || null;
+        weatherState.status = "done";
+        weatherState.errMsg = errs.join(" / ");
+        if(state.tab==="weather" || state.tab==="vent" || state.tab==="disease" || state.tab==="premium") render();
+        return;
       }
+      throw new Error(errs.join(" / ") || "예보 조회 실패");
     }
-    if(!fcstData) throw new Error(errs.join(" / ") || "예보 조회 실패");
     const days = fcstData.daily;
     weatherState.forecast = days.time.map((t,i)=>({
       date:t, code:days.weather_code[i],
@@ -6238,8 +6266,9 @@ async function fetchWeather(lat, lng, name){
       weatherState.selectedDate = days.time[0];
     }
     weatherState.lat=lat; weatherState.lng=lng;
-    weatherState.status="done";
+    weatherState.status="done"; weatherState.staleAt=null;
     saveWeatherLocation(lat, lng, name);
+    saveWeatherCache();
     // 오늘의 관리 포인트용 이상기온 신호 — 위치가 바뀌었거나 아직 없으면 가볍게(16일) 백그라운드 계산
     if(anomState.key !== lat+","+lng && anomState.status !== "loading") setTimeout(()=>anomRun(true), 0);
   } catch(e){
@@ -36197,6 +36226,13 @@ function wxFeelLevel(v){
   if(v > -20) return {label:"매우 추움", color:"#E65100", bg:"#FFF3E0"};
   return {label:"혹한", color:"#B71C1C", bg:"#FFEBEE"};
 }
+// 갱신 실패로 마지막 캐시 예보를 보여 줄 때 띄우는 안내(성공 시 "" 반환)
+function wxStaleBanner(){
+  if(!weatherState.staleAt) return "";
+  const mins = Math.max(1, Math.round((Date.now() - weatherState.staleAt) / 60000));
+  const ago = mins < 60 ? mins + "분 전" : mins < 1440 ? Math.round(mins/60) + "시간 전" : Math.round(mins/1440) + "일 전";
+  return `<div style="background:#FFF3E0;border:1.5px solid #FFB74D;border-radius:10px;padding:9px 12px;margin-bottom:12px;font-size:12.5px;color:#8D4E00;line-height:1.7">⚠️ 실시간 날씨를 가져오지 못해 <b>마지막으로 받아 둔 예보(${ago})</b>를 보여 드려요. 수치가 지금과 다를 수 있어요. <button id="btn-wx-retry-stale" style="border:1px solid #EF6C00;border-radius:7px;background:#fff;color:#EF6C00;padding:3px 10px;font-size:11.5px;font-weight:700;cursor:pointer;margin-left:4px">🔄 다시 시도</button></div>`;
+}
 function renderWeatherBody(sub){
   const today = new Date();
   const dayNames = ["일","월","화","수","목","금","토"];
@@ -36368,6 +36404,7 @@ function renderWeatherBody(sub){
 
   if(sub === "livestock") return renderLivestockWeatherPanel(fc, weatherState.hourly);
   return `
+  ${wxStaleBanner()}
   <div style="margin-bottom:16px">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
       <div>
@@ -39811,6 +39848,8 @@ function attachEvents(){
   });
 
   // 날씨 GPS 버튼
+  const wxRetryStale=document.getElementById("btn-wx-retry-stale");
+  if(wxRetryStale) wxRetryStale.onclick=()=>{ if(weatherState.lat!=null) fetchWeather(weatherState.lat, weatherState.lng, weatherState.locationName); };
   const wxGpsBtn=document.getElementById("btn-wx-gps");
   if(wxGpsBtn) wxGpsBtn.onclick=()=>{
     if(!navigator.geolocation){ alert("이 브라우저는 위치 감지를 지원하지 않습니다."); return; }
