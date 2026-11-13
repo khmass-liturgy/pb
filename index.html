@@ -6187,24 +6187,38 @@ async function fetchWeather(lat, lng, name){
     // 옛 이름(weathercode/windspeed_10m/relativehumidity_2m)은 폐기돼 400으로 거절될 수 있다.
     const fcstUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean&hourly=temperature_2m,weather_code,precipitation,wind_speed_10m,relative_humidity_2m&timezone=Asia%2FSeoul&forecast_days=7&wind_speed_unit=ms`;
     // 직접 호출이 막히거나(429·네트워크 차단) 실패하면 CORS 프록시로 한 번 더 시도한다.
-    let fcstData = null, lastErr = "";
-    const routes = [fcstUrl].concat(proxyRoutes(fcstUrl).slice(0,2));
+    // 순서: ① 직접 → ② 서버(Cloud Function fetchWeatherData, 배포돼 있으면 가장 안정적) → ③ CORS 프록시 2곳.
+    // 어느 경로가 어떤 이유로 실패했는지 모두 모아 오류 화면에 보여준다.
+    let fcstData = null; const errs = [];
+    const viaUrl = async (u, ms)=>{
+      const fr = await fetchWithTimeout(u, ms);
+      if(!fr.ok){
+        let why=""; try{ why=(await fr.json()).reason||""; }catch(_){}
+        throw new Error("HTTP "+fr.status+(why?" · "+why:""));
+      }
+      return fr.json();
+    };
+    const viaFn = async ()=>{
+      if(typeof firebaseReady === "undefined" || !firebaseReady) throw new Error("Firebase 미준비");
+      const fn = firebase.app().functions().httpsCallable("fetchWeatherData", { timeout: 25000 });
+      const res = await fn({ url: fcstUrl });
+      return res.data && res.data.json;
+    };
+    const routes = [
+      ["직접", ()=>viaUrl(fcstUrl, 10000)],
+      ["서버", viaFn],
+    ].concat(proxyRoutes(fcstUrl).slice(0,2).map((p,i)=>["프록시"+(i+1), ()=>viaUrl(p, 12000)]));
     for(let ri=0; ri<routes.length && !fcstData; ri++){
       try {
-        const fr = await fetchWithTimeout(routes[ri], ri===0 ? 10000 : 12000);
-        if(!fr.ok){
-          let why=""; try{ why=(await fr.json()).reason||""; }catch(_){}
-          throw new Error("HTTP "+fr.status+(why?" · "+why:""));
-        }
-        const j = await fr.json();
+        const j = await routes[ri][1]();
         if(!j || !j.daily || !j.daily.time) throw new Error("응답 형식 오류");
         fcstData = j;
       } catch(e){
-        lastErr = e.message || String(e);
-        console.warn("예보 경로 "+(ri+1)+" 실패:", lastErr);
+        errs.push(routes[ri][0]+": "+((e && e.message) || e));
+        console.warn("예보 경로 "+routes[ri][0]+" 실패:", e);
       }
     }
-    if(!fcstData) throw new Error(lastErr || "예보 조회 실패");
+    if(!fcstData) throw new Error(errs.join(" / ") || "예보 조회 실패");
     const days = fcstData.daily;
     weatherState.forecast = days.time.map((t,i)=>({
       date:t, code:days.weather_code[i],
