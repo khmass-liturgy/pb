@@ -5785,7 +5785,7 @@ const RSS2JSON = "https://api.rss2json.com/v1/api.json";
 // ── 날씨 상태 ──────────────────────────────────────────────────────────────
 let weatherState = {
   status:"idle", // idle | loading | done | error
-  lat:null, lng:null, locationName:"", staleAt:null, // staleAt: 갱신 실패로 캐시(마지막 성공) 예보를 쓸 때의 저장 시각(ms)
+  lat:null, lng:null, locationName:"", staleAt:null, fallbackNote:null, cityUpdated:"", // staleAt: 캐시 예보 저장 시각 / fallbackNote: 가까운 도시 예보로 대체했을 때 그 도시 이름
   forecast:[], // 7일 예보
   lastYear:null, // 작년 오늘 날씨
   hourly:{},   // { "2026-07-29": [{hour,code,temp,rain,wind,humidity},...] }
@@ -5887,7 +5887,7 @@ let coinFetchStatus = "idle"; // idle | loading | done | error
 // 저장소 기준 경로에서 .json을 떼고 영문·숫자 이외를 _로 바꾼 것(market/quotes.json → market_quotes).
 // Storage에 아직 없거나 함수가 실패하면 예전처럼 raw를 시도한다(저장소가 공개인 동안의 안전망).
 const DATA_RAW_PREFIX = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/";
-const DATA_DIRS_RE = /^(poultry_price|broiler_price_today|taxfree_fuel|prices|egg_report|layer_stats|feed_production|jungchu_price|hpai_risk|hpai_kr|poultry_disease|research_papers|market|news|notices|grain_quality|grain_price|import_status|industry_news|animal_drug_news|poultry_disease_brief|price_history|weather_news|farm_density|broiler_breeder|usda_crop_progress|h5n1_human)\//;
+const DATA_DIRS_RE = /^(poultry_price|broiler_price_today|taxfree_fuel|prices|egg_report|layer_stats|feed_production|jungchu_price|hpai_risk|hpai_kr|poultry_disease|research_papers|market|news|notices|grain_quality|grain_price|import_status|industry_news|animal_drug_news|poultry_disease_brief|price_history|weather_news|farm_density|broiler_breeder|usda_crop_progress|h5n1_human|weather)\//;
 function dataDatasetOf(url){
   if(typeof url !== "string" || url.indexOf(DATA_RAW_PREFIX) !== 0) return null;
   const rel = url.slice(DATA_RAW_PREFIX.length).split("?")[0];
@@ -6168,7 +6168,22 @@ async function fetchNews(channelId){
 }
 
 // ── Open-Meteo 날씨 연동 ───────────────────────────────────────────────────
+// 서버가 미리 받아 커밋한 전국 지점 예보(weather/kr_forecast.json) — 브라우저가 open-meteo에 직접 못 닿을 때의 대체 경로.
+const WEATHER_CITIES_JSON_URL = DATA_RAW_PREFIX + "weather/kr_forecast.json";
+function pickNearestCity(cities, lat, lng){
+  if(!Array.isArray(cities) || !cities.length) return null;
+  let best = null, bd = Infinity;
+  const cosLat = Math.cos(lat * Math.PI / 180);
+  for(const c of cities){
+    if(c == null || c.lat == null || c.lng == null) continue;
+    const dLat = c.lat - lat, dLng = (c.lng - lng) * cosLat;
+    const d = dLat * dLat + dLng * dLng;
+    if(d < bd){ bd = d; best = c; }
+  }
+  return best;
+}
 async function fetchWeather(lat, lng, name){
+  weatherState.fallbackNote = null; weatherState.cityUpdated = "";
   weatherState.status="loading"; weatherState.locationName=name;
   if(state.tab==="weather" || state.tab==="vent" || state.tab==="disease" || state.tab==="premium") render();
   try {
@@ -6206,7 +6221,22 @@ async function fetchWeather(lat, lng, name){
     }).catch(e => { errs.push(label+": "+((e && e.message) || e)); console.warn("예보 경로 "+label+" 실패:", e); throw e; }));
     try { fcstData = await Promise.any(race); } catch(_){ /* 모든 경로 실패 */ }
     if(!fcstData){
-      // 실시간 조회가 모두 실패 — 마지막으로 받아 둔 예보(오늘 이후만) 라도 보여 준다.
+      // (A) 서버가 미리 받아 둔 전국 지점 예보에서 가장 가까운 지점 — 브라우저가 못 닿는 경로를 서버가 대신 받아 둔 것.
+      try {
+        const cr = await fetchWithTimeout(WEATHER_CITIES_JSON_URL + "?t=" + Date.now(), 9000);
+        if(cr.ok){
+          const cj = await cr.json();
+          const near = pickNearestCity(cj && cj.cities, lat, lng);
+          if(near && near.daily && near.daily.time){
+            fcstData = { daily: near.daily, hourly: near.hourly || {} };
+            weatherState.fallbackNote = near.name;
+            weatherState.cityUpdated = (cj && cj.updated) || "";
+          }
+        } else { errs.push("도시예보: HTTP " + cr.status); }
+      } catch(e){ errs.push("도시예보: " + ((e && e.message) || e)); }
+    }
+    if(!fcstData){
+      // (B) 그것도 실패 — localStorage에 남은 마지막 성공 예보(오늘 이후만).
       const cache = loadWeatherCache();
       const todayKST = new Date(Date.now() + 9*3600e3).toISOString().slice(0,10);
       const keep = (cache && Array.isArray(cache.forecast)) ? cache.forecast.filter(d => d && d.date >= todayKST) : [];
@@ -6268,7 +6298,7 @@ async function fetchWeather(lat, lng, name){
     weatherState.lat=lat; weatherState.lng=lng;
     weatherState.status="done"; weatherState.staleAt=null;
     saveWeatherLocation(lat, lng, name);
-    saveWeatherCache();
+    if(!weatherState.fallbackNote) saveWeatherCache();   // 가까운 도시(근사) 예보는 "내 위치" 캐시로 저장하지 않는다
     // 오늘의 관리 포인트용 이상기온 신호 — 위치가 바뀌었거나 아직 없으면 가볍게(16일) 백그라운드 계산
     if(anomState.key !== lat+","+lng && anomState.status !== "loading") setTimeout(()=>anomRun(true), 0);
   } catch(e){
@@ -36228,6 +36258,11 @@ function wxFeelLevel(v){
 }
 // 갱신 실패로 마지막 캐시 예보를 보여 줄 때 띄우는 안내(성공 시 "" 반환)
 function wxStaleBanner(){
+  if(weatherState.fallbackNote){
+    const city = String(weatherState.fallbackNote).replace(/[<>&]/g,"");
+    const upd = weatherState.cityUpdated ? " · " + String(weatherState.cityUpdated).replace(/[<>&]/g,"") : "";
+    return `<div style="background:#FFF3E0;border:1.5px solid #FFB74D;border-radius:10px;padding:9px 12px;margin-bottom:12px;font-size:12.5px;color:#8D4E00;line-height:1.7">📍 실시간 날씨를 가져오지 못해 <b>가까운 ${city}</b> 예보(서버 자료${upd})를 보여 드려요. 실제 농장 위치와 조금 다를 수 있어요. <button id="btn-wx-retry-stale" style="border:1px solid #EF6C00;border-radius:7px;background:#fff;color:#EF6C00;padding:3px 10px;font-size:11.5px;font-weight:700;cursor:pointer;margin-left:4px">🔄 다시 시도</button></div>`;
+  }
   if(!weatherState.staleAt) return "";
   const mins = Math.max(1, Math.round((Date.now() - weatherState.staleAt) / 60000));
   const ago = mins < 60 ? mins + "분 전" : mins < 1440 ? Math.round(mins/60) + "시간 전" : Math.round(mins/1440) + "일 전";

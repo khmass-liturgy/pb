@@ -223,6 +223,8 @@ The scrolling 「NEW」 strip under the tab bar (`renderNewFeatureStrip`) is dri
 `import_status/latest.json` is a **hand-researched** (news/MAFRA press releases, with source URLs and an `as_of` date) summary of 계란·닭고기 imports shown as the 📦 수입 card in the 공급·소비 tab — not a statistics feed (no customs/UNI-PASS API is connected); update it by editing the file when new reports appear.
 Assumption constants live in `PF` (seasonal indices are 경험값, not consumption statistics; consumption data is only used if uploaded).
 
+`scripts/fetch_weather_cities.py` + `.github/workflows/fetch-weather-cities.yml` (4×/day KST) fetch Open-Meteo 7-day forecast for ~33 Korean points in one multi-location call and commit `weather/kr_forecast.json` `{updated, cities:[{name,lat,lng,daily,hourly}]}`. This is a **fallback for the weather tab**: the browser still calls Open-Meteo live (parallel race in `fetchWeather`), but when every live route fails (open-meteo + public proxies all blocked on the user's network), `fetchWeather` reads this committed JSON through the already-working data path and shows the **nearest city** (`pickNearestCity`) with a 「가까운 ○○ 예보」 banner (`weatherState.fallbackNote`); below that it falls back to the localStorage last-good (`weather_cache_v1`). `weather` is in `DATA_DIRS_RE`. The most reliable path remains the undeployed Cloud Function `fetchWeatherData` (`firebase deploy --only functions:fetchWeatherData`).
+
 `fetch_egg_report.py` and `fetch_egg_price.py` currently have no workflow wired up — check before
 assuming their output is refreshed automatically.
 
