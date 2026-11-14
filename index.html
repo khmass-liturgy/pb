@@ -101,6 +101,56 @@
   .lc-rt { font-size: 14.5px; font-weight: 900; color: #222; line-height: 1.5; }
   .lc-kv { font-size: 13.5px; line-height: 1.65; color: #333; margin-top: 3px; }
   .lc-k { display: inline-block; font-size: 11.5px; font-weight: 800; color: var(--lc, #00897B); background: #eef2f4; border-radius: 6px; padding: 1px 7px; margin-right: 6px; }
+  /* 🩺 닭은 왜 아플까? (whysick, wy*) — 강의 본문 조각 */
+  .wy-p { font-size: 15.5px; line-height: 1.8; color: #222; margin: 4px 0; }
+  .wy-case { background: #FFF8E1; border: 2px dashed #FFB300; border-radius: 12px; padding: 11px 13px; font-size: 16px; line-height: 1.75; color: #3E2723; font-weight: 600; }
+  .wy-dl { font-size: 15px; line-height: 1.8; color: #222; margin: 6px 0; }
+  .wy-dl > b.wy-k { display: inline-block; background: #EDE7F6; color: #4527A0; border-radius: 6px; padding: 0 7px; margin-right: 5px; font-size: 14px; }
+  .wy-note { background: #F5F7F9; border-left: 4px solid #90A4AE; border-radius: 9px; padding: 9px 12px; margin: 8px 0; font-size: 14.5px; line-height: 1.75; color: #37474F; }
+  .wy-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 7px; margin: 6px 0; }
+  .wy-gi { background: #FAF8FF; border: 1.5px solid #E1D9F5; border-radius: 11px; padding: 9px 11px; font-size: 14px; line-height: 1.65; color: #333; }
+  .wy-gt { font-size: 15px; font-weight: 900; color: #4527A0; margin-bottom: 3px; }
+  .wy-line { border: 2px solid; border-radius: 12px; padding: 9px 12px; font-size: 14.5px; line-height: 1.75; font-weight: 800; color: #263238; background: #fff; }
+  .wy-step { border-left: 5px solid var(--wc); background: #fafafa; border-radius: 10px; padding: 8px 12px; }
+  .wy-step .wy-sl { font-size: 12.5px; font-weight: 900; color: var(--wc); }
+  .wy-step .wy-st { font-size: 15.5px; font-weight: 800; color: #222; line-height: 1.6; }
+  .wy-arrow { display: flex; gap: 8px; align-items: flex-start; padding: 5px 4px 5px 12px; font-size: 16px; font-weight: 900; }
+  .wy-arrow span { font-size: 14.5px; font-weight: 600; color: #444; line-height: 1.7; }
+  .wy-two { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
+  .wy-col { border: 2px solid color-mix(in srgb, var(--wc) 30%, transparent); border-top: 5px solid var(--wc); border-radius: 12px; padding: 9px 12px; font-size: 14.5px; line-height: 1.75; color: #222; }
+  .wy-ct { font-size: 15px; font-weight: 900; color: var(--wc); margin-bottom: 4px; }
+  .wy-alike { background: #FFF3E0; border-radius: 9px; padding: 7px 11px; margin: 5px 0; font-size: 14.5px; line-height: 1.7; color: #3E2723; }
+  .wy-alike b { color: #E65100; margin-right: 4px; }
+  .wy-tbl { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 14px; line-height: 1.6; border: 1.5px solid #e0e0e0; border-radius: 12px; overflow: hidden; }
+  .wy-tbl th, .wy-tbl td { padding: 8px 9px; vertical-align: top; text-align: left; border-bottom: 1px solid #eee; }
+  .wy-tbl thead th { background: #F5F5F5; font-weight: 900; color: #333; }
+  .wy-tbl tbody th { width: 26%; background: #FAFAFA; font-weight: 900; color: #444; }
+  .wy-tbl td.wy-tc { background: #F3F8F4; font-weight: 700; }
+  .wy-rec { background: #263238; color: #E0F2F1; border-radius: 10px; padding: 10px 12px; font-size: 14px; line-height: 1.75; font-weight: 600; }
+  .wy-q { border: 1.5px solid #D1C4E9; border-radius: 12px; margin: 8px 0; background: #fff; }
+  .wy-q > summary { list-style: none; cursor: pointer; padding: 10px 12px; font-size: 15px; line-height: 1.65; color: #222; }
+  .wy-q > summary::-webkit-details-marker { display: none; }
+  .wy-qt { display: inline-block; font-size: 11.5px; font-weight: 800; color: #00695C; background: #E0F2F1; border-radius: 6px; padding: 0 6px; vertical-align: 1px; }
+  .wy-qo { margin: 6px 0 4px; font-size: 14.5px; line-height: 1.7; color: #333; }
+  .wy-qa { display: inline-block; font-size: 12.5px; font-weight: 800; color: #5E35B1; }
+  .wy-q[open] .wy-qa { display: none; }
+  .wy-ans { border-top: 1px dashed #D1C4E9; padding: 9px 12px 11px; font-size: 14.5px; line-height: 1.75; color: #1B5E20; background: #F1F8E9; border-radius: 0 0 12px 12px; }
+  .wy-refs { margin-top: 12px; border-top: 1px solid #eee; padding-top: 10px; }
+  .wy-ref { font-size: 13px; line-height: 1.6; color: #444; margin: 0 0 8px; }
+  .wy-rl { font-size: 12.5px; margin-top: 2px; }
+  .wy-rl a { color: #1565C0; font-weight: 700; }
+  .wy-ver { display: inline-block; font-size: 11px; font-weight: 800; color: #6D4C41; background: #EFEBE9; border-radius: 5px; padding: 0 5px; margin-left: 3px; }
+  .wy-alert { border: 3px solid #C62828; background: #FFF5F5; border-radius: 14px; padding: 10px 13px; }
+  .wy-al { font-size: 15px; line-height: 1.75; color: #222; margin: 4px 0; }
+  .wy-call { display: block; text-align: center; margin-top: 10px; background: #C62828; color: #fff; border-radius: 12px; padding: 13px; font-size: 17px; font-weight: 900; text-decoration: none; }
+  .wy-sum { width: 100%; border-collapse: collapse; font-size: 13.5px; line-height: 1.6; }
+  .wy-sum th, .wy-sum td { border: 1px solid #cfd8dc; padding: 8px 9px; vertical-align: top; text-align: left; }
+  .wy-sum thead th { background: #E0F2F1; color: #004D40; font-weight: 900; }
+  .wy-sum tbody th { width: 20%; background: #FAFAFA; font-weight: 900; color: #263238; }
+  .wy-sum tr.wy-red th, .wy-sum tr.wy-red td { background: #FFEBEE; color: #B71C1C; font-weight: 700; }
+  .wy-sl2 { display: block; margin-top: 4px; border: 1px solid #80CBC4; background: #fff; color: #00695C; border-radius: 10px; padding: 2px 8px; font-size: 12px; font-weight: 800; cursor: pointer; }
+  .wy-sumwrap { display: none; }
+  @media (min-width: 720px) { .wy-sumwrap { display: block; } .wy-sumcards { display: none; } }
   /* 하위 메뉴 칩 줄(renderHeaderSubBar)도 넘치면 같은 ‹ › 화살표로 넘긴다(setupSubArrows). */
   .subbar-wrap { position: relative; }
   .subbar-wrap .hd-subbar::-webkit-scrollbar { display: none; }
@@ -829,6 +879,7 @@ const PREMIUM_ITEMS = [
   { key:"coliclass", icon:"🧫", title:"닭 대장균증 잡는 교실 — 발견부터 재발 방지까지 10차시", desc:"육계·산란계를 나누어 대장균증을 쉽게 배웁니다. 기초 → 현장 판단 → 치료·재발 방지·백신, 그림과 사례를 카드로 한눈에.", color:"#00897B", category:"최꼬 아카데미" },
   { key:"ventclass", icon:"🌬️", title:"환기 기초교실 — 정압·음압·입기구·1만수당 환기량", desc:"계사 환기를 7단계로 배웁니다. 정압·음압·양압, 자연·강제환기, 계사 구조, 입기구 크기로 환기량 계산, 육계 일령별·산란계 주령별 1만수당 환기량을 그림과 계산기로 쉽게 익혀요.", color:"#0277BD", category:"최꼬 아카데미" },
   { key:"germclass", icon:"🔬", title:"세균·바이러스 기초교실 — 항생제·백신·소독제까지", desc:"닭·돼지·소 농장주를 위한 기초교실. 보이지 않는 세균·바이러스, 세균을 상대하는 항생제, 몸의 방어 연습 백신, 농장 환경을 지키는 소독제를 4편 38강 그림으로 쉽게 배우고, 종합편 농장 그림 한 장으로 정리해요.", color:"#1565C0", category:"최꼬 아카데미" },
+  { key:"whysick", icon:"🩺", title:"닭은 왜 아플까? — 병이 생기는 원리 5강", desc:"같은 병에도 왜 피해가 다를까? 기침·묽은 변·증체 저하·산란 감소가 닭 몸의 어떤 변화에서 오는지 그림으로 쉽게 배워요. 호흡기·소화기·콕시듐·AI·감보로·더위까지, 이상할 때 무엇을 보고 적어 수의사에게 알릴지 한 장 요약표로 정리해요.", color:"#5E35B1", category:"최꼬 아카데미" },
   { key:"avianphys", icon:"🫀", title:"조류생리 아카데미 — 닭 몸속 탐험", desc:"닭의 장기 10개 계통(소화·호흡·순환·배설·생식·신경·호르몬·면역·뼈근육)이 하는 일을 쉬운 비유와 그림으로 배우고, 농장에서 보는 문제와 연결해 봅니다.", color:"#AD1457", category:"최꼬 아카데미" },
   { key:"hpaizero", icon:"🦠", title:"AI 막는 농장 지킴이 교실 — HPAI ZERO FARM", desc:"조류인플루엔자(AI)가 우리 농장에 들어오지 못하게 오늘 할 일, 우리 농장 위험도, 농장 보고서, 매일 방역 점검표, 6단계 방역 수칙 만들기를 쉽게 알려 드립니다.", color:"#00695C", category:"최꼬 아카데미" },
   { key:"farmgame_broiler", icon:"🐥", title:"육계 키우기 3D — 33일 출하 경영 게임", desc:"3D 계사에서 병아리 1,000수를 입추해 33일 출하까지 키워 봅니다. 사료·물·온도·환기·깔짚을 관리하고 폭염·사료값 인상·질병 같은 돌발 상황에 대응해 출하체중·생존율·사료요구율·순이익 성적표를 받아요.", color:"#F9A825", category:"체험·게임" },
@@ -962,7 +1013,7 @@ const PREMIUM_MENU_LEGACY_PATH = "premium_menu/items.json";
 // 제공한다(회원관리·자동문자발송관리는 별도로 자동 추가되는 관리자 전용
 // 항목이라 목록에서 뺀다).
 const PREMIUM_MENU_KNOWN_KEYS = [
-  "ibteam","hpaizero","farmgame_broiler","farmgame_layer","coliclass","avianphys","ventclass","germclass","drug","drugusage","treatment","seasonal","disinfect","newproducts","vaccine",
+  "ibteam","hpaizero","farmgame_broiler","farmgame_layer","coliclass","avianphys","ventclass","germclass","whysick","drug","drugusage","treatment","seasonal","disinfect","newproducts","vaccine",
   "ventfinder","lightguide","moltguide","feedstandard","feedgrain","grainprice","priceforecast","tradestats","supplement","selfcheck","diagnosis","specimen","faq","study",
   "research","diseasebrief","emerging","industrynews","drugnews","magazine","kkoko","feature_board","consult","consulting","smssub",
 ];
@@ -971,7 +1022,7 @@ let premiumMenuState = { status:"idle", data:null, busy:false, msg:"", adminOpen
 
 // 관리자가 저장한 메뉴가 있어도, 그 뒤에 새로 만든 기본 메뉴(PREMIUM_MENU_NEW_SEED_KEYS)는 빠져 보이지 않게
 // 저장된 메뉴에 없을 때만 기본 위치(앞 메뉴 뒤)에 끼워 보여 준다.
-const PREMIUM_MENU_NEW_SEED_KEYS = ["ibteam", "hpaizero", "farmgame_broiler", "farmgame_layer", "coliclass", "avianphys", "ventclass", "germclass", "drugusage", "drugnews", "diseasebrief", "priceforecast", "tradestats", "supplement"];
+const PREMIUM_MENU_NEW_SEED_KEYS = ["ibteam", "hpaizero", "farmgame_broiler", "farmgame_layer", "coliclass", "avianphys", "ventclass", "germclass", "whysick", "drugusage", "drugnews", "diseasebrief", "priceforecast", "tradestats", "supplement"];
 // 관리자가 예전에 저장한 메뉴에는 두 항목이 「사양관리」로 들어 있으므로, 분류만 새 묶음으로 강제한다.
 // 분류 이름이 바뀐 경우(관리자가 예전에 저장한 메뉴에 옛 이름이 남아 있어도 새 이름으로 묶는다)
 const PREMIUM_MENU_CATEGORY_RENAME = { "백신관리": "백신·약품관리", "AI공동연구팀": "최꼬 아카데미", "인공지능 공동연구팀": "최꼬 아카데미" };
@@ -11001,6 +11052,507 @@ function gmBind(){
   const reset = document.getElementById("gm-reset"); if(reset) reset.onclick = () => { if(confirm("이 기기에 저장된 진도를 지울까요?")){ gmState.done = {}; gmSave(); render(); } };
   const x = document.getElementById("gm-dil-x"), l = document.getElementById("gm-dil-l"), out = document.getElementById("gm-dil-out");
   if(x && l && out){ const upd = () => { gmDil.x = x.value; gmDil.l = l.value; out.innerHTML = gmDilOut(); }; x.oninput = upd; l.oninput = upd; }
+}
+
+// ── 🩺 닭은 왜 아플까? — 질병이 생기는 원리 5강 (유료서비스 · 최꼬 아카데미, 정적 교육과정) ─────────────────
+// 수의학을 처음 배우는 육계·산란계 농장주용 기초교육: 1강 질병이 생기는 원리 · 2강 호흡기 · 3강 소화기 · 4강 원충(콕시듐) ·
+// 5강 여러 계통에 걸친 질병(AI·뉴캣슬병 / 감보로 / 열 스트레스·칼슘) + 한 장 요약표(「닭 상태가 평소와 다를 때 무엇부터 볼까?」).
+// 각 강은 같은 6단 형식: ①농장 사례 ②정상일 때 ③질병이 생기는 과정(화살표 한 줄 + 왜 이어지나) ④볼 수 있는 것/확인이 필요한 것
+// ⑤육계·산란계 관찰 포인트 ⑥현장 기록 예시·복습 2문제 — 끝에 실제 확인한 출처(WOAH 진단매뉴얼 요약, PubMed 초록)만 단다.
+// 병명 확정·약품명·투약량·처방은 다루지 않는다. 그림은 인라인 SVG 단순화 도식(320 단위 폭, 글자 12px 이상, gm* 조각 재사용).
+// 숫자는 출처가 밝힌 것만 쓴다(암모니아 15 ppm 실험, 산란계 더위 9.0~22.6% 감소, 산란계 골절 최대 30%, 감보로 3~6주령).
+// 신고 전화 1588-9060은 사이트의 다른 화면과 같은 번호(2026-11-14 지자체 가축질병 신고 안내로 재확인). 진도는 localStorage wy_v1.
+const WY_COLOR = "#5E35B1";
+const wyState = (function(){
+  const s = { les:-1, done:{} };
+  try {
+    const v = JSON.parse(localStorage.getItem("wy_v1") || "null");
+    if(v && typeof v === "object"){
+      if(typeof v.les === "number") s.les = v.les;
+      if(v.done && typeof v.done === "object") s.done = v.done;
+    }
+  } catch(e){}
+  return s;
+})();
+function wySave(){ try { localStorage.setItem("wy_v1", JSON.stringify(wyState)); } catch(e){} }
+// 닭 옆모습(오른쪽을 봄). x,y = 몸통 가운데, s = 크기 배율
+function wyHen(x, y, s, o){
+  o = o || {};
+  const R = n => gmR(n), c = o.c || "#FFF3E0", st = o.st || "#A1887F", red = o.red || "#E53935";
+  return `<g>`
+    + `<path d="M${R(x - 24 * s)} ${R(y - 4 * s)}L${R(x - 44 * s)} ${R(y - 30 * s)}L${R(x - 37 * s)} ${R(y - 4 * s)}L${R(x - 47 * s)} ${R(y - 14 * s)}L${R(x - 29 * s)} ${R(y + 10 * s)}Z" fill="${c}" stroke="${st}" stroke-width="1.6" stroke-linejoin="round"/>`
+    + `<line x1="${R(x - 6 * s)}" y1="${R(y + 18 * s)}" x2="${R(x - 8 * s)}" y2="${R(y + 34 * s)}" stroke="#FB8C00" stroke-width="${R(2.6 * s)}" stroke-linecap="round"/>`
+    + `<line x1="${R(x + 8 * s)}" y1="${R(y + 18 * s)}" x2="${R(x + 10 * s)}" y2="${R(y + 34 * s)}" stroke="#FB8C00" stroke-width="${R(2.6 * s)}" stroke-linecap="round"/>`
+    + `<path d="M${R(x - 14 * s)} ${R(y + 34 * s)}H${R(x - 2 * s)}M${R(x + 4 * s)} ${R(y + 34 * s)}H${R(x + 16 * s)}" stroke="#FB8C00" stroke-width="${R(2.2 * s)}" stroke-linecap="round"/>`
+    + `<ellipse cx="${x}" cy="${y}" rx="${R(31 * s)}" ry="${R(21 * s)}" fill="${c}" stroke="${st}" stroke-width="1.8"/>`
+    + `<ellipse cx="${R(x + 20 * s)}" cy="${R(y - 15 * s)}" rx="${R(9 * s)}" ry="${R(15 * s)}" fill="${c}" stroke="none"/>`
+    + `<circle cx="${R(x + 24 * s)}" cy="${R(y - 30 * s)}" r="${R(10 * s)}" fill="${c}" stroke="${st}" stroke-width="1.6"/>`
+    + `<circle cx="${R(x + 19 * s)}" cy="${R(y - 40 * s)}" r="${R(4 * s)}" fill="${red}"/><circle cx="${R(x + 25 * s)}" cy="${R(y - 42 * s)}" r="${R(4.4 * s)}" fill="${red}"/><circle cx="${R(x + 30.5 * s)}" cy="${R(y - 39 * s)}" r="${R(3.8 * s)}" fill="${red}"/>`
+    + `<polygon points="${R(x + 33 * s)},${R(y - 33 * s)} ${R(x + 42 * s)},${R(y - 29.5 * s)} ${R(x + 33 * s)},${R(y - 26 * s)}" fill="#FFA000"/>`
+    + `<ellipse cx="${R(x + 31 * s)}" cy="${R(y - 21 * s)}" rx="${R(2.6 * s)}" ry="${R(4.2 * s)}" fill="${red}"/>`
+    + `<circle cx="${R(x + 27 * s)}" cy="${R(y - 32 * s)}" r="${R(1.9 * s)}" fill="#333"/>`
+    + (o.wing === false ? "" : `<path d="M${R(x - 18 * s)} ${R(y - 4 * s)}Q${R(x - 2 * s)} ${R(y - 16 * s)} ${R(x + 14 * s)} ${R(y - 4 * s)}Q${R(x)} ${R(y + 12 * s)} ${R(x - 18 * s)} ${R(y - 4 * s)}Z" fill="${o.wingC || "#FFE0B2"}" stroke="${st}" stroke-width="1.3"/>`)
+    + `</g>`;
+}
+// 화살표 꼬리 표시용 작은 둥근 번호
+function wyNum(x, y, n, c){ return `<circle cx="${x}" cy="${y}" r="11" fill="${c}"/>` + gmT(x, y + 4.5, String(n), { s:13, w:900, c:"#fff" }); }
+
+// ── 그림: 처음 화면(5강 지도) ──
+function wyFigMap(){
+  const s = 2.3, x = 150, y = 112;
+  let g = gmBox(4, 4, 312, 222, "#F7F4FC", null, 14) + wyHen(x, y, s);
+  g += `<path d="M${gmR(x + 24 * s)} ${gmR(y - 22 * s)}Q${gmR(x + 22 * s)} ${gmR(y - 10 * s)} ${gmR(x + 12 * s)} ${gmR(y - 6 * s)}" stroke="#1E88E5" stroke-width="5" fill="none" stroke-linecap="round"/>`
+    + `<path d="M${gmR(x - 4 * s)} ${gmR(y + 2 * s)}q${gmR(10 * s)} ${gmR(8 * s)} ${gmR(18 * s)} 0q${gmR(-6 * s)} ${gmR(10 * s)} ${gmR(-18 * s)} ${gmR(6 * s)}" stroke="#8D6E63" stroke-width="4" fill="none" stroke-linecap="round"/>`
+    + `<ellipse cx="${gmR(x - 14 * s)}" cy="${gmR(y + 8 * s)}" rx="${gmR(4 * s)}" ry="${gmR(6 * s)}" fill="#BCAAA4" stroke="#8D6E63" stroke-width="1.5"/>`;
+  const tags = [[46, 40, 1, "왜 아플까?", WY_LESSONS[0].color], [262, 40, 2, "숨길(호흡기)", WY_LESSONS[1].color], [268, 170, 3, "장(소화기)", WY_LESSONS[2].color], [52, 186, 4, "장 속 원충", WY_LESSONS[3].color], [160, 214, 5, "여러 계통", WY_LESSONS[4].color]];
+  tags.forEach(([tx, ty, n, t, c]) => { g += `<rect x="${tx - 44}" y="${ty - 14}" width="88" height="26" rx="13" fill="#fff" stroke="${c}" stroke-width="2"/>` + wyNum(tx - 32, ty - 1, n, c) + gmT(tx + 8, ty + 4, t, { s:12, w:800, c }); });
+  g += gmLine(268, 54, 214, 76, WY_LESSONS[1].color, null, { dash:"4 3", w:2 }) + gmLine(262, 156, 186, 124, WY_LESSONS[2].color, null, { dash:"4 3", w:2 }) + gmLine(70, 172, 112, 136, WY_LESSONS[3].color, null, { dash:"4 3", w:2 });
+  return gmSvg(230, g, "닭 그림 위에 다섯 강의가 다루는 부위를 표시한 지도");
+}
+// ── 1강 그림 ──
+function wyFigTriad(){
+  let g = gmBox(4, 4, 312, 262, "#FCFBFF", null, 14);
+  g += `<circle cx="116" cy="94" r="68" fill="#E5393522" stroke="#E53935" stroke-width="2.5"/><circle cx="204" cy="94" r="68" fill="#FB8C0022" stroke="#FB8C00" stroke-width="2.5"/><circle cx="160" cy="166" r="68" fill="#43A04722" stroke="#43A047" stroke-width="2.5"/>`;
+  g += gmE(84, 54, "🦠", 24) + gmT(84, 86, "병원체", { s:14, w:900, c:"#C62828" }) + gmT(84, 103, ["종류·양", "·독성"], { s:12, w:700, c:"#C62828", lh:15 });
+  g += gmE(236, 54, "🐔", 24) + gmT(236, 86, "닭의 상태", { s:14, w:900, c:"#E65100" }) + gmT(236, 103, ["일령·면역", "·스트레스"], { s:12, w:700, c:"#E65100", lh:15 });
+  g += gmE(160, 190, "🏠", 22) + gmT(160, 216, "사육환경", { s:14, w:900, c:"#2E7D32" }) + gmT(160, 254, "환기·깔짚·온도·물·사료", { s:12.5, w:800, c:"#2E7D32" });
+  g += `<circle cx="160" cy="120" r="22" fill="${WY_COLOR}"/>` + gmT(160, 125, "질병", { s:14, w:900, c:"#fff" });
+  return gmSvg(266, g, "병원체, 닭의 상태, 사육환경 세 원이 겹치는 곳에서 질병이 생긴다는 그림");
+}
+function wyFigIceberg(){
+  let g = gmBox(4, 4, 312, 192, "#fff", null, 14) + `<path d="M4 100H316V182Q316 196 302 196H18Q4 196 4 182Z" fill="#E3F2FD"/>`;
+  const L = [[14, 46, "#B71C1C", "폐사", ""], [56, 110, "#E53935", "임상증상", "기침·설사·침울"], [104, 170, "#FB8C00", "발병", "섭취↓·증체↓·산란↓"], [148, 236, "#FFB74D", "감염", "증상이 거의 없음"]];
+  L.forEach(([ty, w, c, t, sub]) => { g += `<rect x="${160 - w / 2}" y="${ty}" width="${w}" height="40" rx="8" fill="${c}"/>` + gmT(160, ty + (sub ? 17 : 25), t, { s:14, w:900, c:"#fff" }) + (sub ? gmT(160, ty + 33, sub, { s:12, w:700, c:"#fff" }) : ""); });
+  g += gmLine(10, 100, 310, 100, "#1E88E5", null, { w:2, dash:"6 4" }) + gmT(306, 92, "눈에 보이는 선", { s:12, w:800, c:"#1565C0", a:"end" }) + gmT(12, 118, ["물 아래는", "숫자로만"], { s:12, w:800, c:"#1565C0", a:"start", lh:15 });
+  return gmSvg(200, g, "감염이 가장 넓고 그 위로 발병, 임상증상, 폐사가 점점 좁아지는 빙산 그림");
+}
+function wyFigChain(){
+  let g = gmBox(4, 4, 312, 212, "#FCFBFF", null, 14) + gmArrow("wyca", "#7E57C2");
+  const row = (y, items, c) => { let s = ""; items.forEach((t, i) => { const x = 10 + i * 77; s += gmBox(x, y, 70, 52, "#fff", c, 10) + gmT(x + 35, y + (t.length > 1 ? 22 : 31), t, { s:12, w:800, c:"#333" }); if(i < items.length - 1) s += gmLine(x + 70, y + 26, x + 77, y + 26, "#7E57C2", "wyca", { w:2, dash:"3 2" }); }); return s; };
+  g += gmT(12, 26, "예 1 · 공기", { s:13, w:900, c:"#1565C0", a:"start" }) + row(34, [["환기", "불량"], ["암모니아", "·먼지↑"], ["기관 섬모", "약해짐"], ["세균이", "붙기 쉬움"]], "#64B5F6");
+  g += gmT(12, 116, "예 2 · 장", { s:13, w:900, c:"#6D4C41", a:"start" }) + row(124, [["장 점막", "손상"], ["장내 균형", "깨짐"], ["독소 내는", "균 증식"], ["괴사성", "장염 위험↑"]], "#A1887F");
+  g += gmT(160, 196, ["점선 화살표 = 「그럴 수 있다」", "반드시 일어나는 일은 아니에요"], { s:12, w:800, c:"#7E57C2", lh:15 });
+  return gmSvg(220, g, "환기 불량과 장 점막 손상이 다른 문제를 키울 수 있는 두 가지 연결 고리");
+}
+// ── 2강 그림 ──
+function wyFigResp(){
+  const s = 2.5, x = 150, y = 132;
+  let g = gmBox(4, 4, 312, 244, "#F5FAFF", null, 14) + wyHen(x, y, s, { wing:false, c:"#FFF8EE" });
+  g += `<ellipse cx="${gmR(x + 12 * s)}" cy="${gmR(y + 4 * s)}" rx="${gmR(9 * s)}" ry="${gmR(7 * s)}" fill="#B3E5FC" stroke="#29B6F6" stroke-width="1.8"/>`
+    + `<ellipse cx="${gmR(x - 14 * s)}" cy="${gmR(y + 4 * s)}" rx="${gmR(11 * s)}" ry="${gmR(8 * s)}" fill="#B3E5FC" stroke="#29B6F6" stroke-width="1.8"/>`
+    + `<ellipse cx="${gmR(x - 2 * s)}" cy="${gmR(y - 9 * s)}" rx="${gmR(10 * s)}" ry="${gmR(5 * s)}" fill="#F48FB1" stroke="#D81B60" stroke-width="1.8"/>`
+    + `<path d="M${gmR(x + 25 * s)} ${gmR(y - 24 * s)}Q${gmR(x + 24 * s)} ${gmR(y - 10 * s)} ${gmR(x + 8 * s)} ${gmR(y - 9 * s)}" stroke="#1E88E5" stroke-width="6" fill="none" stroke-linecap="round"/>`;
+  g += gmT(280, 104, "기관", { s:14, w:900, c:"#1565C0" }) + gmT(280, 120, ["공기 통로", "·청소"], { s:12, w:700, c:"#1565C0", lh:14 }) + gmLine(256, 110, 210, 92, "#1565C0", null, { w:1.6 });
+  g += gmT(58, 26, "폐", { s:14, w:900, c:"#AD1457" }) + gmT(58, 42, "산소 받아들이기", { s:12, w:700, c:"#AD1457" }) + gmLine(76, 48, 132, 104, "#AD1457", null, { w:1.6 });
+  g += gmT(160, 240, "기낭 — 풀무처럼 공기를 폐로 흘려보내요", { s:13, w:900, c:"#0277BD" }) + gmLine(122, 226, 115, 158, "#0277BD", null, { w:1.6 }) + gmLine(198, 226, 182, 156, "#0277BD", null, { w:1.6 });
+  return gmSvg(250, g, "닭 몸속 기관, 폐, 기낭의 위치");
+}
+function wyFigCilia(){
+  let g = gmBox(4, 4, 312, 186, "#fff", null, 14) + gmArrow("wyci", "#2E7D32");
+  const panel = (ox, bad) => {
+    let s = gmBox(ox, 30, 146, 120, bad ? "#FFF5F5" : "#F1F8E9", bad ? "#EF9A9A" : "#A5D6A7", 10);
+    s += `<rect x="${ox + 6}" y="122" width="134" height="22" rx="4" fill="#FFCCBC"/>`;
+    for(let i = 0; i < 9; i++){ const cx = ox + 14 + i * 15; s += `<rect x="${cx - 6}" y="104" width="12" height="18" rx="3" fill="#FFAB91" stroke="#E64A19" stroke-width=".8"/>`;
+      if(!bad || i % 3 === 0) s += `<path d="M${cx - 3} 104q-3 -8 ${bad ? 2 : -2} -14M${cx + 2} 104q-2 -8 ${bad ? 4 : 0} -14" stroke="#6D4C41" stroke-width="1.4" fill="none"/>`;
+      else s += `<path d="M${cx - 2} 104l-2 -4M${cx + 2} 104l2 -3" stroke="#6D4C41" stroke-width="1.4"/>`; }
+    if(bad){ s += `<path d="M${ox + 8} 92Q${ox + 40} 46 ${ox + 74} 78T${ox + 140} 70V100H${ox + 8}Z" fill="#FFF59D" stroke="#F9A825" stroke-width="1.5"/>` + gmVirus(ox + 46, 70, 8, "#C2185B", { n:8 }) + gmRod(ox + 104, 82, 18, 8, "#43A047", 20) + gmT(ox + 73, 166, ["점액이 고이고", "세균이 붙어요 → 기침"], { s:12, w:800, c:"#C62828" }); }
+    else { s += `<rect x="${ox + 8}" y="80" width="130" height="10" rx="5" fill="#FFF59D" stroke="#F9A825" stroke-width="1.2"/>` + gmLine(ox + 30, 66, ox + 116, 66, "#2E7D32", "wyci", { w:3 }) + gmT(ox + 73, 58, "입 쪽으로", { s:12, w:800, c:"#2E7D32" }) + gmT(ox + 73, 166, ["섬모가 점액을", "밀어 내보내요"], { s:12, w:800, c:"#2E7D32" }); }
+    return s;
+  };
+  g += gmT(81, 22, "정상 기관 점막", { s:13.5, w:900, c:"#2E7D32" }) + gmT(239, 22, "자극·손상된 점막", { s:13.5, w:900, c:"#C62828" }) + panel(8, false) + panel(166, true);
+  return gmSvg(192, g, "정상 기관 점막의 섬모가 점액을 밀어내는 모습과 손상된 점막에 점액이 고인 모습 비교");
+}
+function wyFigOviduct(){
+  let g = gmBox(4, 4, 312, 176, "#FFFDF7", null, 14) + gmArrow("wyov", "#8D6E63");
+  const seg = [["누두부", "알 받기", "#FFE082"], ["팽대부", "흰자", "#FFF59D"], ["협부", "껍질막", "#C5E1A5"], ["자궁부", "껍질·색", "#FFCC80"]];
+  seg.forEach(([t, d, c], i) => { const x = 10 + i * 76; g += gmBox(x, 26, 70, 52, c, "#8D6E63", 12) + gmT(x + 35, 47, t, { s:13, w:900, c:"#4E342E" }) + gmT(x + 35, 65, d, { s:12, w:700, c:"#5D4037" }); if(i < 3) g += gmLine(x + 70, 52, x + 76, 52, "#8D6E63", "wyov", { w:2 }); });
+  g += gmT(160, 98, "난관 = 알 공장. 차례로 흰자 → 껍질막 → 껍질을 입혀요", { s:12, w:800, c:"#5D4037" });
+  g += `<ellipse cx="88" cy="140" rx="20" ry="26" fill="#D7A86E" stroke="#8D6E63" stroke-width="2"/>` + gmT(150, 132, "→", { s:20, w:900, c:"#C62828" });
+  g += `<ellipse cx="216" cy="140" rx="20" ry="26" fill="#F3E5D0" stroke="#BCAAA4" stroke-width="2" stroke-dasharray="4 3"/><path d="M204 128l6 8-4 6 8 8" stroke="#BCAAA4" stroke-width="1.6" fill="none"/>`;
+  g += gmT(42, 128, ["정상", "알"], { s:12, w:800, c:"#5D4037" }) + gmT(276, 126, ["얇고 연한", "껍질·묽은", "흰자"], { s:12, w:800, c:"#C62828" });
+  return gmSvg(180, g, "난관의 네 부분이 차례로 알을 만들고, 난관이 손상되면 껍질이 얇고 연한 알이 나올 수 있음을 보여주는 그림");
+}
+// ── 3강 그림 ──
+function wyFigVilli(){
+  let g = gmBox(4, 4, 312, 186, "#fff", null, 14);
+  const panel = (ox, bad) => {
+    let s = gmBox(ox, 30, 146, 116, bad ? "#FFF5F5" : "#F1F8E9", bad ? "#EF9A9A" : "#A5D6A7", 10) + `<rect x="${ox + 6}" y="124" width="134" height="14" rx="4" fill="#EF9A9A"/>` + gmT(ox + 73, 135, "피(혈관)", { s:12, w:800, c:"#B71C1C" });
+    for(let i = 0; i < 7; i++){ const cx = ox + 18 + i * 18.5, h = bad ? (i % 2 ? 22 : 12) : 66; s += `<rect x="${gmR(cx - 7)}" y="${124 - h}" width="14" height="${h}" rx="7" fill="${bad ? "#FFCDD2" : "#FFCC80"}" stroke="${bad ? "#E57373" : "#EF6C00"}" stroke-width="1.3"/>`; }
+    if(bad){ s += gmRod(ox + 40, 70, 20, 9, "#6D4C41", -15) + gmRod(ox + 84, 60, 20, 9, "#6D4C41", 20) + gmRod(ox + 118, 78, 20, 9, "#6D4C41", 5) + `<circle cx="${ox + 62}" cy="88" r="4" fill="#7E57C2"/><circle cx="${ox + 104}" cy="92" r="4" fill="#7E57C2"/>` + gmT(ox + 73, 46, "독소·괴사", { s:12, w:800, c:"#6A1B9A" }) + gmT(ox + 73, 166, ["융모가 짧아져", "흡수가 줄어요"], { s:12, w:800, c:"#C62828" }); }
+    else { [[40, 46], [76, 40], [112, 48], [58, 104], [96, 100]].forEach(([dx, dy]) => { s += `<circle cx="${ox + dx}" cy="${dy}" r="3.5" fill="#1E88E5"/>`; }); s += gmT(ox + 73, 166, ["손가락 같은 융모로", "영양을 흡수해요"], { s:12, w:800, c:"#2E7D32" }); }
+    return s;
+  };
+  g += gmT(81, 22, "정상 장 점막", { s:13.5, w:900, c:"#2E7D32" }) + gmT(239, 22, "손상된 장 점막", { s:13.5, w:900, c:"#C62828" }) + panel(8, false) + panel(166, true);
+  return gmSvg(192, g, "정상 장 융모와 손상되어 짧아진 융모 비교");
+}
+function wyFigDrop(){
+  let g = gmBox(4, 4, 312, 292, "#FFFDF8", null, 14) + gmT(160, 28, "묽어 보인다고 모두 장염은 아니에요", { s:14, w:900, c:"#4E342E" });
+  const cell = (ox, oy, pic, t1, t2, c, bg) => gmBox(ox, oy, 148, 116, bg, c + "66", 12) + pic(ox + 74, oy + 44) + gmT(ox + 74, oy + 88, t1, { s:13, w:900, c }) + gmT(ox + 74, oy + 105, t2, { s:12, w:700, c });
+  const norm = (x, y) => `<path d="M${x - 22} ${y + 10}q8 -22 28 -16q18 6 4 18q-12 8 -26 2z" fill="#8D6E63" stroke="#5D4037" stroke-width="1.2"/><ellipse cx="${x}" cy="${y - 4}" rx="12" ry="7" fill="#FAFAFA" stroke="#BDBDBD" stroke-width="1"/>`;
+  const cecal = (x, y) => `<ellipse cx="${x}" cy="${y + 4}" rx="28" ry="16" fill="#5D4037" stroke="#3E2723" stroke-width="1.2"/><ellipse cx="${x - 8}" cy="${y - 2}" rx="9" ry="3.5" fill="#ffffff55"/>`;
+  const loose = (x, y) => `<path d="M${x - 34} ${y + 12}q4 -18 22 -14q14 -8 26 4q14 6 4 14q-12 10 -30 6q-20 2 -22 -10z" fill="#A1887F" stroke="#795548" stroke-width="1.2"/><circle cx="${x - 16}" cy="${y + 6}" r="2.5" fill="#FFB300"/><circle cx="${x + 2}" cy="${y + 10}" r="2.5" fill="#FFB300"/><path d="M${x - 6} ${y}q6 4 12 0" stroke="#FF7043" stroke-width="2" fill="none"/>`;
+  const wet = (x, y) => `<ellipse cx="${x}" cy="${y + 6}" rx="34" ry="19" fill="#B3E5FC" stroke="#4FC3F7" stroke-width="1.5"/><path d="M${x - 16} ${y + 8}q6 -16 20 -12q12 4 2 12q-10 6 -22 0z" fill="#8D6E63" stroke="#5D4037" stroke-width="1.2"/><ellipse cx="${x + 2}" cy="${y - 2}" rx="8" ry="5" fill="#FAFAFA" stroke="#BDBDBD" stroke-width="1"/>`;
+  g += cell(10, 40, norm, "① 정상 변", "덩어리 + 흰 요산", "#2E7D32", "#F1F8E9") + cell(162, 40, cecal, "② 정상 맹장변", "진갈색·끈적한 반죽", "#2E7D32", "#F1F8E9");
+  g += cell(10, 164, loose, "③ 변 자체가 묽음", "모양 없음·알갱이·점액", "#C62828", "#FFF5F5") + cell(162, 164, wet, "④ 주변 물기 많음", "덩어리는 그대로", "#0277BD", "#E1F5FE");
+  return gmSvg(300, g, "정상 변, 정상 맹장변, 자체가 묽은 변, 주변 물기가 많은 변 네 가지 비교");
+}
+// ── 4강 그림 ──
+function wyFigCycle(){
+  let g = gmBox(4, 4, 312, 244, "#FFFDF7", null, 14) + gmArrow("wycy", "#8D6E63");
+  const N = [["💩", "① 분변으로 나와요", "오시스트(알주머니) 상태"], ["💧", "② 깔짚에서 익어요", "따뜻·축축하면 감염력 생김"], ["🐔", "③ 닭이 쪼아 먹어요", "깔짚·사료·물에 묻은 것"], ["🧫", "④ 장세포 안에서 늘어요", "나올 때 세포를 터뜨림"]];
+  N.forEach(([e, t, d], k) => { const y = 34 + k * 56;
+    g += `<circle cx="44" cy="${y}" r="21" fill="#fff" stroke="#8D6E63" stroke-width="2"/>` + gmE(44, y, e, 20) + gmT(76, y - 3, t, { s:13.5, w:900, c:"#4E342E", a:"start" }) + gmT(76, y + 14, d, { s:12, w:700, c:"#795548", a:"start" });
+    if(k < 3) g += gmLine(44, y + 22, 44, y + 33, "#8D6E63", "wycy", { w:2.5 }); });
+  g += `<path d="M282 202Q304 202 304 172V64Q304 34 282 34" fill="none" stroke="#EF6C00" stroke-width="3" marker-end="url(#wycy)" stroke-dasharray="6 4"/>` + gmT(296, 124, "반복", { s:12, w:900, c:"#EF6C00", a:"end" });
+  return gmSvg(250, g, "콕시듐 원충이 분변에서 깔짚, 닭의 입, 장세포로 도는 한 바퀴");
+}
+function wyFigGutMap(){
+  let g = gmBox(4, 4, 312, 182, "#fff", null, 14);
+  g += `<path d="M28 74H52" stroke="#BCAAA4" stroke-width="12" stroke-linecap="round"/><circle cx="28" cy="74" r="15" fill="#BCAAA4"/>` + gmT(30, 40, ["모래", "주머니"], { s:12, w:700, c:"#6D4C41", lh:14 });
+  g += `<path d="M52 74Q66 128 86 74" stroke="#FFB74D" stroke-width="12" fill="none" stroke-linecap="round"/>` + gmT(70, 132, "십이지장", { s:12, w:900, c:"#E65100" });
+  g += `<path d="M86 74Q110 44 134 74T182 74T222 74" stroke="#FF8A65" stroke-width="12" fill="none" stroke-linecap="round"/>` + gmT(156, 126, "소장(가운데)", { s:12, w:900, c:"#D84315" });
+  g += `<path d="M222 74H300" stroke="#A1887F" stroke-width="9" stroke-linecap="round"/>` + gmT(300, 64, "대장", { s:12, w:700, c:"#6D4C41", a:"end" });
+  g += `<path d="M222 74Q232 34 250 46M222 74Q234 112 252 100" stroke="#E57373" stroke-width="11" fill="none" stroke-linecap="round"/>` + gmT(258, 40, "맹장", { s:12, w:900, c:"#C62828", a:"start" }) + gmT(260, 110, "(2개)", { s:12, w:700, c:"#C62828", a:"start" });
+  g += gmT(160, 158, "콕시듐은 종류마다 자리 잡는 장 부위가 달라요", { s:13, w:900, c:"#4E342E" }) + gmT(160, 175, "→ 같은 콕시듐증이라도 분변·병변 모습이 달라져요", { s:12, w:700, c:"#6D4C41" });
+  return gmSvg(188, g, "모래주머니, 십이지장, 소장, 맹장, 대장으로 이어지는 닭 장의 지도");
+}
+function wyFigThree(){
+  let g = gmBox(4, 4, 312, 168, "#FCFBFF", null, 14);
+  g += `<ellipse cx="58" cy="76" rx="40" ry="30" fill="#FFF3E0" stroke="#8D6E63" stroke-width="2"/><circle cx="58" cy="76" r="9" fill="#A1887F"/><circle cx="40" cy="64" r="4" fill="#BCAAA4"/><circle cx="76" cy="90" r="4" fill="#BCAAA4"/>`
+    + gmT(58, 128, "원충", { s:14, w:900, c:"#6D4C41" }) + gmT(58, 146, ["크고 복잡한", "한 세포 생물"], { s:12, w:700, c:"#6D4C41" });
+  g += gmRod(160, 76, 46, 18, "#43A047", -10) + gmT(160, 128, "세균", { s:14, w:900, c:"#2E7D32" }) + gmT(160, 146, ["작은 세포, 몸 밖", "에서도 늘 수 있음"], { s:12, w:700, c:"#2E7D32" });
+  g += gmVirus(262, 76, 13, "#C2185B", { n:10 }) + gmT(262, 128, "바이러스", { s:14, w:900, c:"#AD1457" }) + gmT(262, 146, ["세포가 아님, 세포", "안에서만 늘어남"], { s:12, w:700, c:"#AD1457" });
+  return gmSvg(176, g, "원충, 세균, 바이러스의 차이를 그린 그림(크기 비율은 실제와 다름)");
+}
+// ── 5강 그림 ──
+function wyFigBranch(){
+  let g = gmBox(4, 4, 312, 236, "#FCFBFF", null, 14);
+  const col = (x, c, n, e, t, sub, items) => {
+    let s = gmBox(x, 14, 96, 214, "#fff", c, 12) + `<rect x="${x}" y="14" width="96" height="58" rx="12" fill="${c}"/>` + wyNum(x + 16, 30, n, "#ffffff55") + gmE(x + 66, 32, e, 20) + gmT(x + 48, 60, t, { s:12.5, w:900, c:"#fff" });
+    s += gmT(x + 48, 90, sub, { s:12, w:800, c });
+    items.forEach((it, i) => { s += gmT(x + 48, 116 + i * 26, it, { s:12, w:700, c:"#333" }); });
+    return s;
+  };
+  g += col(8, "#C62828", 1, "🦠", "여러 장기 감염", "AI·뉴캣슬병", ["🫁 호흡기", "💩 소화기", "🌀 신경", "🥚 산란"]);
+  g += col(112, "#6A1B9A", 2, "🛡️", "면역기관 손상", "감보로(F낭)", ["방패가 약해짐", "↓", "다른 병이", "들어오기 쉬움"]);
+  g += col(216, "#EF6C00", 3, "🌡️", "비감염성", "더위·칼슘·뼈", ["🥵 헐떡임·섭취↓", "🥚 산란·난각↓", "🦴 뼈 약해짐", "🦵 주저앉음"]);
+  return gmSvg(240, g, "기타 질병을 여러 장기 감염, 면역기관 손상, 비감염성 문제 세 갈래로 나눈 그림");
+}
+function wyFigCalcium(){
+  let g = gmBox(4, 4, 312, 168, "#FFFDF7", null, 14) + gmArrow("wycal", "#EF6C00");
+  g += `<rect x="26" y="58" width="76" height="22" rx="11" fill="#ECEFF1" stroke="#90A4AE" stroke-width="2"/><circle cx="28" cy="69" r="13" fill="#ECEFF1" stroke="#90A4AE" stroke-width="2"/><circle cx="100" cy="69" r="13" fill="#ECEFF1" stroke="#90A4AE" stroke-width="2"/>`
+    + `<circle cx="52" cy="69" r="3" fill="#B0BEC5"/><circle cx="70" cy="66" r="2.5" fill="#B0BEC5"/><circle cx="84" cy="72" r="3" fill="#B0BEC5"/>` + gmT(64, 34, "다리뼈", { s:13, w:900, c:"#455A64" }) + gmT(64, 108, ["구조뼈는", "점점 얇아짐"], { s:12, w:800, c:"#C62828" });
+  g += gmLine(122, 69, 186, 69, "#EF6C00", "wycal", { w:3 }) + gmT(154, 58, "칼슘", { s:12, w:900, c:"#EF6C00" }) + gmT(154, 92, ["골수골 저장", "칼슘을 꺼내 씀"], { s:12, w:700, c:"#EF6C00" });
+  g += `<ellipse cx="236" cy="70" rx="24" ry="31" fill="#E8D3B5" stroke="#A1887F" stroke-width="2.5"/>` + gmT(236, 124, ["알 1개 껍질에", "칼슘이 많이 필요"], { s:12, w:800, c:"#5D4037" });
+  g += gmT(160, 160, "사료 속 칼슘이 모자라면 뼈에서 더 꺼내 써요", { s:12.5, w:900, c:"#4E342E" });
+  return gmSvg(176, g, "산란계가 뼈의 칼슘을 꺼내 계란 껍질을 만드는 흐름");
+}
+
+// ── 강의 내용 ──
+// 각 강: case(사례) · normal(정상일 때) · chain(원인/조건 → 먼저 영향받는 부위 → 기능 변화 → 농장에서 보는 신호) · why(왜 다음 단계로) ·
+// topics(핵심 이해 카드) · see/check/alike(볼 수 있는 것 / 확인 필요 / 비슷한 신호의 다른 원인) · tbl(육계·산란계) · rec(기록 예시) · quiz · refs
+const WY_LESSONS = [
+  { n:1, icon:"🔺", color:"#5E35B1", t:"닭은 왜 질병에 걸리는가?", s:"병원체·닭의 상태·사육환경, 세 가지가 만날 때",
+    caseQ:"같은 날 같은 부화장에서 들어온 병아리입니다. 그런데 <b>1동은 멀쩡하고 3동에서만</b> 기침 소리가 나고 폐사가 늘었어요. 같은 병원체가 들어왔을 텐데, 왜 동마다 피해가 이렇게 다를까요?",
+    normal:[ "건강한 닭도 늘 수많은 미생물과 함께 살아요. 미생물이 있다고 곧 병이 되는 것은 아니에요.",
+      "닭 몸에는 <b>여러 겹의 방어선</b>이 있어요. 숨길의 <b>점막(몸 안쪽 표면을 덮는 촉촉한 막)</b>과 섬모, 장 점막과 장 속 좋은 세균, 그리고 F낭·비장 같은 <b>면역기관</b>이에요.",
+      "방어선이 튼튼하고 들어오는 병원체의 양이 적으면, 몸은 큰 표시 없이 처리해요. 이 균형이 무너질 때 병이 돼요." ],
+    fig:wyFigTriad, cap:"질병은 세 원이 겹치는 곳에서 생겨요. 한 원만 바꿔도 겹치는 면적(피해)은 줄어들 수 있어요.",
+    chain:["병원체에 노출 + 방어력 약화 + 나쁜 환경", "숨길·장의 점막(첫 방어선)", "병원체가 늘고 조직이 손상, 몸이 싸우는 데 에너지를 씀", "섭취 감소 · 증체·산란 저하 · 증상 · 폐사"],
+    why:[ "방어선이 약하거나 들어온 병원체가 많으면, 같은 병원체라도 몸에 자리 잡고 늘어나기 쉬워요.",
+      "자리 잡은 곳의 조직이 다치면 제 일(공기 청소, 영양 흡수)을 못 하고, 몸은 회복과 방어에 영양·에너지를 써요.",
+      "그래서 가장 먼저 <b>먹는 양·체중·산란 같은 숫자</b>가 흔들리고, 더 심해지면 눈에 보이는 증상과 폐사로 나타나요." ],
+    topics:[
+      { icon:"🧊", t:"감염 · 발병 · 임상증상 · 폐사는 서로 달라요", fig:wyFigIceberg, cap:"빙산처럼, 물 아래(감염·발병)가 물 위(증상·폐사)보다 넓을 때가 많아요.",
+        html:`<div class="wy-dl"><b class="wy-k">감염</b> 병원체가 몸에 들어와 자리 잡고 늘어나는 것. 증상이 없을 수도 있어요.</div>
+          <div class="wy-dl"><b class="wy-k">발병</b> 감염(또는 다른 원인) 때문에 몸의 기능에 이상이 생기는 것. 먹는 양·체중·산란 같은 숫자로 먼저 보이기도 해요.</div>
+          <div class="wy-dl"><b class="wy-k">임상증상</b> 사람이 눈·귀로 알아챌 수 있는 변화 — 기침, 묽은 변, 웅크림, 깃털 부풂 같은 것.</div>
+          <div class="wy-dl"><b class="wy-k">폐사</b> 닭이 죽는 것. 피해의 가장 끝 단계예요.</div>
+          <div class="wy-note">✔ <b>감염되어도 증상이 뚜렷하지 않을 수 있어요.</b> 예를 들어 마이코플라스마 감염은 겉으로 드러나지 않기도 하고, 감보로병도 어린 시기에는 증상이 가벼운 감염이 흔하다고 해요(WOAH).<br>✔ <b>병원체 없이도 병은 생겨요.</b> 더위(열 스트레스), 나쁜 공기(암모니아·먼지), 칼슘 같은 영양 불균형, 빠른 성장에 따른 대사 문제처럼 <b>환경·영양·대사</b>가 원인인 경우도 많아요.</div>` },
+      { icon:"🏘️", t:"같은 계사에서도 피해가 다른 이유", html:`<div class="wy-grid">
+          <div class="wy-gi"><div class="wy-gt">👶 일령</div>어린 닭은 면역이 아직 자라는 중이고, 어미에게 받은 항체(모체이행항체)는 날이 갈수록 줄어요. 병마다 잘 걸리는 나이가 달라요.</div>
+          <div class="wy-gi"><div class="wy-gt">🛡️ 면역</div>백신이 제때·제대로 들어갔는지, 면역기관이 다친 적이 있는지에 따라 같은 병원체에도 버티는 힘이 달라요.</div>
+          <div class="wy-gi"><div class="wy-gt">🎯 노출 정도</div>처음 받은 병원체의 양이 많을수록 심해지기 쉬워요. 젖은 깔짚, 환기 사각지대, 급수기 주변처럼 병원체가 몰리는 자리가 있어요.</div>
+          <div class="wy-gi"><div class="wy-gt">😣 스트레스</div>더위·추위, 밀사, 이동, 사료 교체, 접종 직후처럼 몸이 힘든 시기에는 방어력이 떨어질 수 있어요.</div></div>` },
+      { icon:"🔗", t:"하나의 문제가 다른 문제를 키울 수 있어요", fig:wyFigChain, cap:"두 예 모두 「위험이 커진다」는 뜻이지, 꼭 그렇게 된다는 뜻은 아니에요.",
+        html:`<div class="wy-dl"><b class="wy-k">예 1 · 환기 불량</b> 환기가 부족하면 암모니아와 먼지가 쌓여요. 육계를 암모니아 15 ppm에 21일 둔 실험에서도 기관에 염증성 손상이 확인됐어요(Zhou 등, 2021). 숨길의 청소 기능이 약해지면 세균이 붙기 쉬워지고, WOAH는 IB 같은 호흡기병이 다른 세균과 겹치면 더 심해지고 오래가는 기낭염이 될 수 있다고 설명해요.</div>
+          <div class="wy-dl"><b class="wy-k">예 2 · 장 점막 손상</b> 콕시듐 등으로 장 점막이 다치거나 장 속 세균 균형·면역 상태가 바뀌면, 괴사성 장염이 생기기 쉬운 조건(선행 요인)이 돼요(Moore, 2016). → 3강·4강에서 자세히 봐요.</div>` }
+    ],
+    see:["동별·구역별 폐사 수와 그 추세", "사료 섭취량·음수량의 변화", "기침·호흡음, 웅크림, 몰려 있는 위치", "깔짚 젖음, 암모니아 냄새(눈이 따가운지)", "일령, 최근 백신·이동·사료 교체 기록"],
+    check:["실제로 어떤 병원체가 있는지(부검·검사)", "감염 때문인지, 환경·영양 문제인지", "여러 원인이 겹쳤는지", "백신으로 면역이 잘 생겼는지(항체 검사)"],
+    alike:[["폐사 증가", "감염병뿐 아니라 정전·고장으로 환기가 멈춰 생긴 더위, 급수 중단에서도 생길 수 있어요."], ["한 동만 문제", "병원체보다 그 동의 환기·온도·급수 설비 차이가 먼저일 수도 있어요."]],
+    tbl:[["공통으로 볼 것", "폐사 수 · 사료·물 섭취량 · 같은 시간에 매일 기록", "", ""], ["먼저 볼 생산 지표", "", "체중(증체)·균일도 — 주 1회 표본 체중", "산란율·난각·난중 — 매일 산란 수·이상란 수"]],
+    rec:"3동 · 21일령 · 11/12 아침부터 · 사료 섭취 전날 대비 약 10%↓ · 물은 비슷 · 폐사 4→9→15수(3일) · 입구 반대편 구석에 몰림 · 암모니아 냄새 강함 · 1동은 이상 없음",
+    quiz:[
+      { q:"감염과 발병에 대한 설명으로 맞는 것은?", o:["감염되면 반드시 증상이 나타난다", "감염되어도 증상이 뚜렷하지 않을 수 있다", "증상이 없으면 감염된 것이 아니다"], a:1, ex:"감염은 병원체가 자리 잡은 것, 발병은 몸 기능에 이상이 생긴 것이에요. 증상 없는 감염도 흔해서, 눈에 보이는 증상만으로 「없다/있다」를 판단할 수 없어요." },
+      { q:"같은 날 입추한 두 동 중 3동에서만 폐사가 늘었다. 병명을 추측하기 전에 <b>다음으로 확인할 것</b>으로 가장 알맞은 것은?", o:["다른 농장에서 유행하는 병 이름을 찾아본다", "3동의 환기·온도·깔짚·급수 상태와 폐사 추이를 1동과 비교해 기록한다", "3동의 닭을 1동으로 옮겨 섞는다"], a:1, ex:"두 동의 차이를 비교하면 원인을 좁히는 데 큰 도움이 돼요. 기록을 가지고 수의사와 상담하세요. 닭을 섞으면 병이 다른 동으로 퍼질 수 있어요." }
+    ],
+    refs:[
+      { t:"Moore RJ (2016). Necrotic enteritis predisposing factors in broiler chickens. Avian Pathology 45(3):275-81", pm:"26926926", doi:"10.1080/03079457.2016.1150587", ver:"초록 확인" },
+      { t:"Zhou Y 외 (2021). The alterations of tracheal microbiota and inflammation caused by different levels of ammonia exposure in broiler chickens. Poultry Science 100(2):685-96", pm:"33518122", doi:"10.1016/j.psj.2020.11.026", ver:"초록 확인" },
+      { t:"WOAH 육상동물 진단·백신 매뉴얼 3.3.12 전염성 F낭병(감보로병)", url:"https://www.woah.org/fileadmin/Home/eng/Health_standards/tahm/3.03.12_IBD.pdf", ver:"요약 확인" }
+    ] },
+
+  { n:2, icon:"🫁", color:"#1565C0", t:"호흡기 질병은 왜 기침과 호흡 이상을 일으키는가?", s:"기관·폐·기낭, 그리고 IB와 마이코플라스마",
+    caseQ:"밤에 불을 끄고 계사에 들어가면 「킁·꾸르륵」 하는 소리가 들려요. 사료는 조금 덜 먹는 것 같고, 산란계 동에서는 <b>껍질이 얇고 색이 연한 알</b>이 늘었어요. 숨길에서 무슨 일이 일어난 걸까요?",
+    normal:[ "<b>기관</b>은 코·목에서 폐까지 공기를 나르는 관이고, 안쪽 점막의 점액이 먼지·병원체를 붙잡으면 <b>섬모(아주 작은 털)</b>가 이를 입 쪽으로 밀어내요.",
+      "<b>폐</b>는 들이마신 공기에서 산소를 피로 받아들이고 이산화탄소를 내보내는 곳이에요.",
+      "<b>기낭</b>은 폐 앞뒤에 붙은 얇은 공기주머니로, 풀무처럼 공기를 폐 쪽으로 흘려보내요." ],
+    fig:() => wyFigResp() + wyFigCilia(), cap:"위: 기관·폐·기낭의 위치(단순화). 아래: 섬모가 청소하는 정상 점막과 점액이 고인 손상 점막.",
+    chain:["바이러스(IB 등)·마이코플라스마·암모니아·먼지", "기관 점막과 섬모(심하면 기낭까지)", "청소 기능 약화 · 점액·염증 분비물 증가", "기침·호흡음·눈물·콧물 · 섭취↓ · 증체↓ / 산란↓"],
+    why:[ "점막이 자극을 받으면 몸은 점액을 더 만들어 씻어 내려 해요. 그런데 섬모가 다쳐 있으면 그 점액을 밀어내지 못해 고여요.",
+      "고인 분비물이 숨길을 좁히고 자극해 기침·호흡음이 나요. 이 틈에 세균이 2차로 자리 잡으면 기낭까지 염증이 번져 오래갈 수 있어요.",
+      "숨쉬기가 힘들고 몸이 염증과 싸우면 먹는 양이 줄고, 성장·산란에 쓸 에너지도 줄어요." ],
+    topics:[
+      { icon:"🦠", t:"대표 사례 ① 전염성 기관지염(IB)", fig:wyFigOviduct, cap:"IB 바이러스는 숨길뿐 아니라 알을 만드는 난관에도 영향을 줄 수 있어요.",
+        html:`<div class="wy-dl"><b class="wy-k">무엇?</b> 코로나바이러스의 한 종류(감마코로나바이러스)가 일으키는 전파가 빠른 병이에요. 사람에게 옮는 병은 아니에요(WOAH).</div>
+          <div class="wy-dl"><b class="wy-k">숨길</b> 자라는 닭에서는 주로 호흡기 증상이 나타나요. 다른 세균이 함께 있으면 더 심해져 오래가는 기낭염이 되기도 해요.</div>
+          <div class="wy-dl"><b class="wy-k">호흡기 밖</b> 일부 균주는 <b>신장</b>을 다치게 해 폐사를 일으키고, 암컷의 <b>생식기(난관)</b>에도 영향을 줘요(Cook 등, 2012; WOAH).</div>
+          <div class="wy-dl"><b class="wy-k">산란계에서 알이 달라지는 이유</b> 알은 난관을 지나며 흰자 → 껍질막 → 껍질과 색을 차례로 입어요. 난관이 다치면 이 공정이 흐트러져 <b>산란율이 떨어지고</b>, 껍질이 얇거나 거칠거나 색이 연한 알, 흰자가 묽은 알이 늘 수 있어요(WOAH: 산란 감소·계란 품질 저하).</div>
+          <div class="wy-note">⚠️ IB는 유형(변이주)이 많아, 맞지 않는 유형이면 백신 면역을 넘어설 수 있어요. 어떤 유형인지는 검사로 확인해요. 더 깊은 내용은 「IB 닭기침 잡는 교실」에서 다뤄요.</div>` },
+      { icon:"🧫", t:"대표 사례 ② 마이코플라스마 감염", html:`<div class="wy-dl"><b class="wy-k">무엇?</b> 세포벽이 없는 아주 작은 세균이에요. 가금에서는 MG(마이코플라스마 갈리셉티쿰)와 MS(마이코플라스마 시노비애)가 가장 중요해요(WOAH).</div>
+          <div class="wy-dl"><b class="wy-k">MG</b> <b>만성 호흡기병</b>을 일으켜요. 특히 무리가 스트레스를 받거나 다른 호흡기 병원체가 함께 있을 때 심해져요. 콧물, 결막염(눈 염증), 재채기, 얼굴(부비동) 부음이 나타나고, 육계는 품질 저하, 산란계는 산란 감소로 손해가 나요.</div>
+          <div class="wy-dl"><b class="wy-k">MS</b> 호흡기병, 관절 염증, <b>난각 이상</b>, 산란 감소를 일으키거나 겉으로는 아무 표시 없이 지나가기도 해요.</div>
+          <div class="wy-note">💡 마이코플라스마는 「조용한 바탕병」처럼 오래 머물다가, 다른 병이나 나쁜 공기와 겹칠 때 피해를 키우는 경우가 많아요.</div>` },
+      { icon:"🌫️", t:"먼지·암모니아·환기 불량도 비슷한 신호를 만들어요", html:`<div class="wy-dl">암모니아와 먼지는 그 자체로 기관 점막을 자극해 <b>기침·눈물 같은 비슷한 신호</b>를 만들 수 있어요. 앞의 실험에서는 15 ppm 암모니아에 21일 노출된 육계의 기관에서 염증성 손상과 기관 속 세균 구성 변화가 보였어요(Zhou 등, 2021).</div>
+          <div class="wy-dl">이미 감염이 있다면 나쁜 공기가 <b>증상을 더 악화</b>시킬 수 있어요. 그래서 호흡기 신호가 보이면 「병원체」와 함께 「계사 공기」를 꼭 같이 확인해요.</div>
+          <div class="wy-note">👃 사람이 계사에 들어가 눈이 따갑거나 코가 찡하면, 닭도 이미 힘든 공기일 수 있어요. 환기 기준은 「환기 기초교실」을 참고하세요.</div>` }
+    ],
+    see:["소리: 밤에 불 끄고 조용할 때 들어 보기", "눈물·콧물·얼굴 부음, 고개 흔들기", "기침인지 더위 헐떡임인지(헐떡임은 입을 벌리고 빠르게 숨쉼)", "사료·물 섭취량, 육계 체중, 산란율", "알 껍질의 두께·색·모양, 계사 공기(냄새·먼지)"],
+    check:["어떤 병원체인지(유전자 검사·항체 검사·분리)", "백신 바이러스인지 야외 바이러스인지 구분", "기낭염·신장 손상이 있는지(부검)", "지금 쓰는 백신이 맞는 유형인지"],
+    alike:[["기침·호흡음", "암모니아·먼지, 그리고 생백신 접종 며칠 뒤의 가벼운 호흡기 반응도 있을 수 있어요."], ["난각 이상", "더위, 칼슘 부족, 닭의 나이(주령)에 따라서도 생겨요 → 5강."]],
+    tbl:[["공통 신호", "기침·호흡음·눈물·콧물, 섭취·음수 감소", "", ""], ["먼저 볼 생산 지표", "", "하루 사료 섭취량 · 주간 체중·균일도 · 출하 때 기낭염 폐기", "하루 산란율 · 난각 이상란(얇음·주름·연한 색) 수 · 흰자 상태"]],
+    rec:"육계 2동 · 24일령 · 11/10 밤 처음 호흡음 · 사료 전날 대비 8%↓ · 물 5%↓ · 폐사 3→6수 · 최소 환기 운전 중, 암모니아 냄새 강함 · 11/3 생백신 접종 / 산란계 B동 · 32주령 · 11/8부터 산란율 93→86% · 연한 색·얇은 껍질 알 하루 40개→120개 · 밤 호흡음",
+    quiz:[
+      { q:"IB를 앓은 산란계 무리에서 껍질이 얇고 흰자가 묽은 알이 늘 수 있는 이유는?", o:["바이러스가 사료를 상하게 해서", "알을 만드는 난관이 영향을 받을 수 있어서", "기침 때문에 알이 깨져서"], a:1, ex:"IB 바이러스는 호흡기뿐 아니라 난관에도 영향을 줄 수 있어요. 난관에서 흰자와 껍질을 입히는 과정이 흐트러지면 산란율과 계란 품질이 떨어져요. 다만 난각 이상은 더위·칼슘 부족에서도 생기므로 검사로 확인해요." },
+      { q:"밤에 호흡음이 들리기 시작한 육계사. 수의사에게 연락할 때 <b>먼저 정리해 둘 것</b>으로 가장 알맞은 것은?", o:["소리가 처음 난 날짜·동·일령, 섭취·음수량, 폐사 추이, 최근 백신·환기 변화", "인터넷에서 찾은 비슷한 병 이름", "소리 나는 닭만 골라 옆 동으로 옮긴 기록"], a:0, ex:"언제·어디서·얼마나 빨리 퍼지는지와 백신·환기 기록이 원인을 좁히는 핵심 정보예요. 아픈 닭을 다른 동으로 옮기면 오히려 병을 퍼뜨릴 수 있어요." }
+    ],
+    refs:[
+      { t:"WOAH 육상동물 진단·백신 매뉴얼 3.3.2 닭 전염성 기관지염(IB)", url:"https://www.woah.org/fileadmin/Home/eng/Health_standards/tahm/3.03.02_AIB.pdf", ver:"요약 확인" },
+      { t:"WOAH 육상동물 진단·백신 매뉴얼 3.3.5 가금 마이코플라스마증(MG·MS)", url:"https://www.woah.org/fileadmin/Home/eng/Health_standards/tahm/3.03.05_AVIAN_MYCO.pdf", ver:"요약 확인" },
+      { t:"Cook JK, Jackwood M, Jones RC (2012). The long view: 40 years of infectious bronchitis research. Avian Pathology 41(3):239-50", pm:"22702451", doi:"10.1080/03079457.2012.680432", ver:"초록 확인" }
+    ] },
+
+  { n:3, icon:"🌀", color:"#6D4C41", t:"소화기 질병은 왜 분변과 성장에 영향을 주는가?", s:"장 점막, 괴사성 장염, 그리고 「묽어 보이는 변」 구분하기",
+    caseQ:"사료는 평소만큼 들어가는데, <b>체중이 기대만큼 늘지 않습니다.</b> 깔짚이 축축해지고 분변도 묽어 보여요. 장에 어떤 문제가 생겼을까요?",
+    normal:[ "<b>소화</b>는 사료를 아주 작은 조각(영양소)으로 쪼개는 일이고, <b>흡수</b>는 그 조각을 장벽을 통과시켜 피로 들여보내는 일이에요.",
+      "<b>장 점막(장의 안쪽을 덮고 영양분 흡수에도 관여하는 층)</b>에는 손가락 같은 <b>융모</b>가 빽빽해 흡수 면적을 넓혀요.",
+      "장 점막은 동시에 병원체와 독소가 몸 안으로 들어오지 못하게 막는 벽이고, 장 속 세균과 균형을 이루며 지내요." ],
+    fig:wyFigVilli, cap:"융모가 짧아지거나 떨어져 나가면 흡수 면적이 줄어요.",
+    chain:["장 점막을 다치게 하는 조건 + 독소를 만드는 균(클로스트리디움 퍼프린젠스) 증식", "소장 점막과 융모", "점막 괴사 · 흡수 면적 감소 · 물·영양 흡수 저하", "먹는데 안 큼 · 사료효율 악화 · 묽은 변·젖은 깔짚 · 급하면 갑작스런 폐사"],
+    why:[ "독소를 만드는 균이 크게 늘면 점막 세포가 죽어(괴사) 융모가 짧아지거나 떨어져 나가요.",
+      "흡수 면적이 줄면 먹은 사료의 영양을 덜 흡수해 증체가 떨어지고, 흡수되지 못한 물과 영양이 분변으로 나와 깔짚을 적셔요.",
+      "흡수되지 못한 영양은 장 속 세균의 먹이가 되어 균형이 더 깨질 수 있어요. 그래서 장 문제는 한번 시작되면 꼬리를 물기 쉬워요." ],
+    topics:[
+      { icon:"🦠", t:"대표 사례 · 괴사성 장염", html:`<div class="wy-dl"><b class="wy-k">원인균</b> 클로스트리디움 퍼프린젠스라는 세균 중 <b>병을 일으키는 힘이 있는 균주</b>예요. 이 균이 만드는 독소가 장 점막을 다치게 해요(Fathima 등, 2022). 건강한 닭의 장에서 흔히 발견되는 균주는 대개 병을 일으키는 균주가 아니라는 연구도 있어요(Moore, 2016).</div>
+          <div class="wy-dl"><b class="wy-k">선행 요인</b> 균만으로는 잘 생기지 않고 <b>조건</b>이 겹쳐야 해요 — 장 표면 손상(콕시듐 등), 점액 증가, 장 통과 시간 변화, 장 속 세균 균형이 깨짐, 면역 상태 변화(Moore, 2016).</div>
+          <div class="wy-dl"><b class="wy-k">두 가지 모습</b> 갑자기 폐사가 늘어나는 급한 형태도 있고, 겉으로는 별 증상 없이 <b>증체와 사료효율만 나빠지는</b> 가벼운 형태(준임상형)도 있어요. 사례의 「먹는데 안 크는」 모습이 바로 이쪽일 수 있어요.</div>` },
+      { icon:"💩", t:"묽어 보이는 배설물, 모두 장염일까?", fig:wyFigDrop, cap:"①②는 정상, ③은 장 이상 가능성, ④는 물을 많이 마셨을 가능성부터 봐요. 닭은 소변이 따로 없어서 갈색 분변과 흰색 요산이 함께 나와요.",
+        html:`<div class="wy-dl"><b class="wy-k">③ 분변 자체가 묽음</b> 덩어리 모양 없이 퍼지고, 소화 안 된 사료 알갱이·점액·주황색이나 붉은 기·거품이 보일 수 있어요 → <b>장 이상 가능성</b>.</div>
+          <div class="wy-dl"><b class="wy-k">④ 주변 물기가 많음</b> 분변 덩어리 모양은 그대로인데 주변에 맑은 물이 고여요 → 물을 많이 마셨을 때(더위, 사료 속 염분), 신장 쪽 문제 등에서 보여요. 장염과는 다른 이야기예요.</div>
+          <div class="wy-dl"><b class="wy-k">② 정상 맹장변</b> 맹장이 비워질 때 하루 몇 번 나오는 진갈색의 끈적한 반죽 같은 변이에요. 냄새가 강하지만 <b>정상</b>이에요. 이것만 보고 설사라고 판단하지 않아요.</div>` },
+      { icon:"🔍", t:"비슷한 모습을 만드는 다른 원인들", html:`<div class="wy-grid">
+          <div class="wy-gi"><div class="wy-gt">🔄 사료 교체</div>원료나 알갱이 크기가 바뀌면 며칠간 분변이 달라질 수 있어요. 교체 날짜를 적어 두면 비교가 쉬워요.</div>
+          <div class="wy-gi"><div class="wy-gt">🚰 음수 변화</div>급수기 누수·수압 문제는 그 자리 깔짚만 젖게 해요. 물 맛이 바뀌면 마시는 양도 달라져요.</div>
+          <div class="wy-gi"><div class="wy-gt">🥵 더위</div>더우면 물을 많이 마셔 ④처럼 물기 많은 변이 늘어요. 깔짚이 전체적으로 젖어요.</div>
+          <div class="wy-gi"><div class="wy-gt">🦠 감염</div>콕시듐(4강)·괴사성 장염·장 바이러스 등. 체중·균일도 저하나 폐사가 함께 오면 수의사 확인이 필요해요.</div></div>
+          <div class="wy-note">💧 젖은 깔짚의 가장 큰 원인으로는 급수 설비 관리와 환기가 꼽혀요. 다만 콕시듐증·괴사성 장염 같은 장 질환도 함께 살펴야 해요(Dunlop 등, 2016).</div>` }
+    ],
+    see:["분변의 모양·색·덩어리 여부, 점액·피·알갱이", "깔짚이 젖은 위치(급수기 아래만? 전체?)", "음수량 그래프, 사료 교체 날짜, 계사 온도", "주간 표본 체중·균일도", "폐사 닭 수와 시간대"],
+    check:["장 점막이 얼마나 다쳤는지(부검)", "괴사성 장염·콕시듐이 함께 있는지(검사)", "사료 원료·배합에 문제가 있는지", "신장 등 다른 장기 문제인지"],
+    alike:[["묽은 변·젖은 깔짚", "급수기 누수, 더위로 늘어난 음수, 사료 교체로도 생겨요."], ["먹는데 안 큼", "사료·급수 공간 부족, 온도 불균형으로도 균일도와 증체가 떨어질 수 있어요."]],
+    tbl:[["공통 신호", "분변·깔짚 상태, 음수량 변화", "", ""], ["먼저 볼 생산 지표", "", "주간 체중 · 사료요구율 · 균일도 · 갑작스런 폐사", "산란율·난중 · 사료 섭취 · 분변 묻은 알(오란) 비율"]],
+    rec:"4동 · 18일령 · 11/9 사료 교체(전기→후기) · 11/11부터 묽은 변 · 급수기 아래가 아니라 깔짚 전체가 젖음 · 물 12%↑ · 표본 평균체중 기준 대비 7%↓ · 폐사 2→5수 · 계사 온도 정상",
+    quiz:[
+      { q:"분변 덩어리 모양은 그대로인데 주변에 맑은 물이 고여 있고, 계사 기온이 34℃까지 오른 날이다. <b>가장 먼저</b> 의심할 것은?", o:["장 점막이 크게 다친 장염", "더위로 물을 많이 마셔 배설물에 물기가 많아진 것", "정상 맹장변"], a:1, ex:"덩어리 모양이 있고 주변만 젖었다면, 먼저 음수량 증가(더위)를 의심해요. 다만 장 질환이 아니라고 확정할 수는 없으니, 체중·폐사가 함께 나빠지면 수의사에게 알려요." },
+      { q:"사료 섭취량은 정상인데 주간 체중이 기준보다 낮다. <b>다음으로 확인할 것</b>으로 알맞은 것은?", o:["사료를 더 많이 준다", "체중 균일도·분변·깔짚 상태, 최근 사료 교체·콕시듐 관리 기록을 확인하고 수의사와 부검 상담", "다음 주 체중을 볼 때까지 기다린다"], a:1, ex:"먹는데 안 크는 것은 흡수 문제(장 점막 손상)의 신호일 수 있어요. 기록을 정리해 수의사에게 장 상태 확인을 받는 것이 빠른 길이에요." }
+    ],
+    refs:[
+      { t:"Moore RJ (2016). Necrotic enteritis predisposing factors in broiler chickens. Avian Pathology 45(3):275-81", pm:"26926926", doi:"10.1080/03079457.2016.1150587", ver:"초록 확인" },
+      { t:"Fathima S 외 (2022). Necrotic Enteritis in Broiler Chickens: A Review on the Pathogen, Pathogenesis, and Prevention. Microorganisms 10(10):1958", pm:"36296234", doi:"10.3390/microorganisms10101958", ver:"초록 확인" },
+      { t:"Dunlop MW 외 (2016). The multidimensional causal factors of 'wet litter' in chicken-meat production. Science of the Total Environment 562:766-76", pm:"27110988", doi:"10.1016/j.scitotenv.2016.03.147", ver:"초록 확인" }
+    ] },
+
+  { n:4, icon:"🧫", color:"#EF6C00", t:"원충성 질병은 어떻게 장을 손상시키는가?", s:"콕시듐증 — 장세포 안에서 늘어나는 작은 생물",
+    caseQ:"급수라인이 새서 앞쪽 깔짚이 젖은 지 일주일쯤 지나자, <b>깃털을 부풀리고 웅크린 닭</b>이 늘고 균일도가 무너졌어요. 주황빛 점액 변이 보이고 몇 곳엔 피 섞인 변도 있어요. 장 속에서 무엇이 늘어난 걸까요?",
+    normal:[ "3강에서 본 장 점막 세포는 계속 새 세포로 바뀌며 장 안쪽을 덮어요. 이 세포가 영양을 흡수하고 병원체를 막는 일을 해요.",
+      "원충과 세균·바이러스는 이렇게 달라요 — <b>원충</b>은 세균보다 크고 복잡한 한 세포짜리 생물로, 콕시듐은 닭의 <b>장세포 안</b>에 들어가 그 안에서 늘어나요.",
+      "<b>세균</b>은 혼자 사는 아주 작은 세포로 먹이·물기만 있으면 몸 밖에서도 늘 수 있고, <b>바이러스</b>는 세포가 아닌 「설계도+껍질」이라 살아 있는 세포 안에서만 늘어요." ],
+    fig:() => wyFigThree() + wyFigCycle(), cap:"위: 원충·세균·바이러스 비교(크기 비율은 실제와 달라요). 아래: 콕시듐이 분변 → 깔짚 → 닭 → 장세포로 도는 한 바퀴.",
+    chain:["깔짚에서 감염력이 생긴 오시스트를 쪼아 먹음", "종류에 따라 정해진 장 부위의 점막 세포", "장세포 손상 → 염증 또는 출혈 → 흡수 저하", "웅크림·묽은 변(때로 혈변) · 증체·균일도 저하 · 심하면 폐사"],
+    why:[ "콕시듐은 장세포 안에서 여러 차례 늘어나고, 빠져나올 때 세포를 터뜨려요. 그래서 한꺼번에 많은 세포가 망가질 수 있어요.",
+      "망가진 점막에서는 염증이나 출혈이 생기고, 영양과 물을 흡수하는 힘이 떨어져요.",
+      "먹은 양에 비해 체중이 덜 늘고, 덜 다친 닭과 많이 다친 닭의 차이가 커져 균일도가 떨어져요. 손상이 심하면 폐사로 이어져요." ],
+    topics:[
+      { icon:"🧭", t:"원충성 질병이면서 소화기 질병", html:`<div class="wy-dl">콕시듐증은 <b>원인체로 보면 원충성 질병</b>이고, <b>다친 곳으로 보면 소화기 질병</b>이에요. 같은 병을 두 가지 기준으로 부르는 것이지, 다른 병이 아니에요.</div>
+          <div class="wy-dl">그래서 3강의 내용이 그대로 이어져요 — 콕시듐이 장 점막을 다치게 하면 흡수가 떨어지고, 그 손상은 <b>괴사성 장염이 생기기 쉬운 조건</b>이 되기도 해요(Moore, 2016). 콕시듐 관리는 곧 장 건강 관리예요.</div>
+          <div class="wy-note">🛡️ 콕시듐에 걸렸다 회복한 닭은 그 종류에 대해 튼튼한 면역을 얻어요. 콕시듐 백신은 이 원리를 이용해요(Witcombe·Smith, 2014). 약·백신 선택은 수의사와 정하세요.</div>` },
+      { icon:"🗺️", t:"침범하는 장 부위에 따라 모습이 달라요", fig:wyFigGutMap, cap:"종류(종)에 따라 십이지장 쪽, 소장 가운데, 맹장 등 자리 잡는 곳이 달라요.",
+        html:`<div class="wy-dl">닭 콕시듐(아이메리아)은 여러 종류가 있고, <b>종류에 따라 장에 생기는 병변이 달라요</b>(López-Osorio 등, 2020). 피가 섞인 급한 장염부터 겉으로 거의 드러나지 않는 형태까지 다양해요.</div>
+          <div class="wy-dl"><b class="wy-k">혈변이 항상 나타나는 것은 아니에요.</b> 소장 쪽이 주로 다치면 피 없이 묽은 변과 증체 저하만 보일 수 있어요. 「피가 없으니 콕시듐은 아니다」라고 판단하지 마세요.</div>
+          <div class="wy-note">🔬 어느 부위가 얼마나 다쳤는지, 어떤 종류인지는 <b>부검(장 병변 확인)과 현미경 검사(오시스트 확인)</b>로 수의사가 판단해요.</div>` },
+      { icon:"📊", t:"깔짚·분변·체중·폐사를 함께 보는 이유", html:`<div class="wy-grid">
+          <div class="wy-gi"><div class="wy-gt">🟫 깔짚</div>분변으로 나온 오시스트는 따뜻하고 축축한 깔짚에서 감염력을 갖춰요. 젖은 구역이 곧 위험 구역이에요.</div>
+          <div class="wy-gi"><div class="wy-gt">💩 분변</div>점액·주황색·피 같은 변화는 장 어디가 다쳤는지에 대한 힌트예요.</div>
+          <div class="wy-gi"><div class="wy-gt">⚖️ 체중·균일도</div>증상이 안 보이는 가벼운 콕시듐증의 손실은 숫자로만 잡혀요. 콕시듐증의 경제적 손실에는 증체·사료효율 저하가 크게 들어가요(Blake 등, 2020).</div>
+          <div class="wy-gi"><div class="wy-gt">📈 폐사 추세</div>하루 폐사가 늘어나는 방향인지 보면 급하게 나빠지는지 알 수 있어요.</div></div>
+          <div class="wy-note">하나만 보면 놓치기 쉬워요. 네 가지를 같은 날짜로 나란히 적으면 흐름이 보여요.</div>` }
+    ],
+    see:["웅크림·깃털 부풂·졸고 있는 닭", "분변의 점액·주황색·피, 젖은 깔짚 구역", "일령, 표본 체중·균일도", "하루 폐사 수의 추세", "급수 누수·환기 사각지대처럼 깔짚을 적시는 원인"],
+    check:["장 어느 부위가 얼마나 다쳤는지(부검 병변)", "분변·장 내용물의 오시스트 확인(현미경)", "괴사성 장염 등 다른 장 질환이 함께 있는지", "지금의 콕시듐 관리 방법이 맞는지"],
+    alike:[["피 섞인 변", "괴사성 장염 등 다른 장 질환에서도 붉거나 검은 변이 보일 수 있어요."], ["균일도 저하", "사료·급수 공간 부족, 입추 초기 온도 불균형으로도 생겨요."]],
+    tbl:[["공통 신호", "분변 변화(점액·피), 웅크림, 젖은 깔짚", "", ""], ["먼저 볼 생산 지표", "", "주간 체중·균일도 · 사료요구율 · 폐사 추세", "육성기 체중·균일도 · 산란 시작 체중 · 평사·방사 사육은 분변 접촉이 많아 계속 주의"]],
+    rec:"1동 · 19일령 · 11/7 급수라인 누수로 앞쪽 깔짚 젖음 · 11/12부터 웅크린 닭 늘어남 · 주황색 점액 변, 일부 혈변 · 표본 50수 평균체중 기준 대비 9%↓, 균일도 82→71% · 폐사 1→3→7수",
+    quiz:[
+      { q:"콕시듐증을 「원충성 질병」이면서 「소화기 질병」이라고 부를 수 있는 이유는?", o:["원충이 호흡기와 장을 모두 감염해서", "원인체(원충) 기준과 다친 부위(장) 기준으로 나눈 이름이라서", "세균이 원충으로 바뀌어서"], a:1, ex:"원인체로 분류하면 원충성, 손상 부위로 분류하면 소화기 질병이에요. 그래서 3강의 장 점막 손상과 그대로 연결돼요." },
+      { q:"혈변은 없지만 균일도가 갑자기 떨어지고 깔짚이 젖은 구역이 있다. <b>다음 행동</b>으로 알맞은 것은?", o:["혈변이 없으니 콕시듐은 아니라고 결론 낸다", "젖은 원인(누수·환기)을 찾고, 체중·분변·폐사를 기록해 수의사에게 부검·오시스트 검사를 상담한다", "젖은 깔짚 위에 새 깔짚만 덮고 기다린다"], a:1, ex:"소장 쪽 콕시듐증은 혈변 없이 증체·균일도만 떨어질 수 있어요. 젖은 원인을 고치고, 기록을 가지고 검사를 받는 것이 순서예요." }
+    ],
+    refs:[
+      { t:"López-Osorio S 외 (2020). Overview of Poultry Eimeria Life Cycle and Host-Parasite Interactions. Frontiers in Veterinary Science 7:384", pm:"32714951", doi:"10.3389/fvets.2020.00384", ver:"초록 확인" },
+      { t:"Witcombe DM, Smith NC (2014). Strategies for anti-coccidial prophylaxis. Parasitology 141(11):1379-89", pm:"24534138", doi:"10.1017/S0031182014000195", ver:"초록 확인" },
+      { t:"Blake DP 외 (2020). Re-calculating the cost of coccidiosis in chickens. Veterinary Research 51:115", pm:"32928271", doi:"10.1186/s13567-020-00837-2", ver:"초록 확인" }
+    ] },
+
+  { n:5, icon:"🧩", color:"#C62828", t:"기타 질병과 여러 계통에 걸쳐 나타나는 질병", s:"AI·뉴캣슬병 / 감보로병 / 열 스트레스·칼슘 — 세 갈래로 나눠 보기",
+    caseQ:"어제 폐사가 3수였는데 오늘 아침엔 25수예요. 벼슬이 검붉고, 녹색 변이 보이고, 고개를 비트는 닭도 있어요. <b>무슨 병인지 검색부터 해야 할까요?</b> → 이 강의 끝에서 답해요.",
+    normal:[ "닭의 몸은 계통이 따로 노는 것이 아니라 <b>피·면역·호르몬으로 이어진 한 몸</b>이에요.",
+      "피는 온몸을 돌고, 면역기관은 몸 전체의 방어력을 키우며, 체온과 칼슘 같은 균형은 여러 기관이 함께 맞춰요.",
+      "그래서 한 곳의 문제가 호흡기·소화기·신경·산란의 신호로 <b>동시에</b> 나타날 수 있어요. 「기타」는 한 가지 원인이 아니라, 아래 세 갈래로 나눠 봐야 해요." ],
+    fig:wyFigBranch, cap:"① 여러 장기에 퍼지는 감염 ② 면역기관을 다치게 하는 병 ③ 감염이 아닌 문제",
+    chain:["전신 감염 · 면역기관 손상 · 더위/칼슘 부족", "피를 따라 여러 장기 / F낭 / 체온·칼슘 조절", "여러 장기 기능 동시 저하 · 방어력 저하 · 에너지·칼슘 부족", "여러 증상 동시 · 2차 감염 증가 · 헐떡임·산란·난각 저하·주저앉음 · 폐사"],
+    why:[ "어떤 바이러스는 한 장기에만 머물지 않고 몸 여러 곳에서 늘어나, 숨길·장·신경·난관의 신호가 한꺼번에 나타나요.",
+      "면역기관이 다치면 그 병 자체보다, 그 뒤에 들어오는 다른 병(호흡기·장)이 더 쉽게 자리 잡아 피해가 커질 수 있어요.",
+      "감염이 아니어도 더위나 칼슘 부족은 몸 전체의 균형을 흔들어 먹는 양·산란·뼈에 동시에 영향을 줘요." ],
+    topics:[
+      { icon:"🦠", t:"① 여러 장기에 영향을 주는 감염 — 조류인플루엔자·뉴캣슬병", html:`<div class="wy-dl"><b class="wy-k">조류인플루엔자(고병원성)</b> 겉으로 별 증상 없이 갑자기 죽는 경우부터, 눈물·콧물·기침·호흡곤란·머리 부음, 침울, 사료·물 섭취 급감, 벼슬·육수의 청색증(검푸르게 변함), 비틀거림 같은 신경 증상, 설사까지 다양해요. 산란계는 산란이 크게 떨어지고 이상란이 늘어요. 보통 폐사가 빠르게 늘어나요(WOAH).</div>
+          <div class="wy-dl"><b class="wy-k">뉴캣슬병</b> 독한 균주는 호흡기·신경 증상 뒤 폐사가 많고, 약한 균주는 가벼운 호흡기 증상만 보이기도 해요. 약한 균주라도 다른 병원체나 나쁜 환경이 겹치면 심한 호흡기·장 질환이 될 수 있어요(WOAH).</div>
+          <div class="wy-note">⚠️ WOAH는 이 증상들 중 <b>어느 것도 그 병만의 증상이 아니라고</b> 해요. 높은 폐사를 보이는 심한 모습은 AI와 뉴캣슬병 모두가 만들 수 있어, <b>공식 기관의 검사로만</b> 구분해요.</div>` },
+      { icon:"🛡️", t:"② 면역기관에 영향을 주는 질병 — 전염성 F낭병(감보로병)", html:`<div class="wy-dl"><b class="wy-k">F낭(파브리시우스낭)</b> 항문 위쪽에 있는, 어린 닭의 항체 만드는 세포를 키우는 면역기관이에요.</div>
+          <div class="wy-dl"><b class="wy-k">감보로병</b> 심한 급성형은 보통 <b>3~6주령</b>에서 나타나고 폐사가 많을 수 있어요. 그보다 어릴 때는 증상이 가볍거나 거의 없는 감염이 흔해요. 바이러스가 F낭의 림프구를 없애 <b>항체 반응이 크게 떨어지고</b>, 그 결과 <b>2차 감염</b>이 늘 수 있어요(WOAH).</div>
+          <div class="wy-dl"><b class="wy-k">왜 여러 계통에 나타날까?</b> 감보로병은 숨길이나 장을 직접 망가뜨리기보다 몸의 방패를 약하게 해요. 그래서 그 뒤에 호흡기병·장 질환이 잘 생기고, 백신을 맞아도 반응이 약할 수 있어요(Sharma 등, 2000: 항체·세포 면역 모두 떨어짐).</div>` },
+      { icon:"🌡️", t:"③ 비감염성 문제 — 열 스트레스와 산란계의 칼슘·골격", fig:wyFigCalcium, cap:"산란계는 껍질을 만들 칼슘을 뼈 속 저장 칼슘에서도 꺼내 써요.",
+        html:`<div class="wy-dl"><b class="wy-k">열 스트레스</b> 닭은 땀샘이 없어 입을 벌리고 헐떡이며 열을 내보내요. 더우면 먹는 양이 줄어 증체와 산란이 떨어지고, 물을 많이 마셔 분변도 묽어 보여요(3강 ④). 131편 논문을 모은 분석에서 산란계는 15~20℃에 비해 30~35℃에서 <b>난각 강도·사료 섭취량·난괴·산란율이 9.0~22.6% 떨어졌어요</b>(Mignon-Grasteau 등, 2015).</div>
+          <div class="wy-dl"><b class="wy-k">칼슘과 뼈</b> 산란계는 성성숙 무렵부터 껍질용 칼슘을 저장하는 뼈(골수골)를 만들고, 몸을 받치는 구조뼈는 산란 기간 동안 점점 약해져요(골다공증). 상업 농장에서 산란 기간 동안 골절이 <b>최대 30%</b>까지 보고됐어요. 좋은 영양은 이를 줄일 수 있지만 완전히 막지는 못해요 — 점등을 시작할 때 고칼슘 사료로 바꾸고, 알갱이 형태 칼슘을 주는 것이 권장돼요(Whitehead·Fleming, 2000).</div>
+          <div class="wy-note">🔗 더위는 숨(헐떡임)·소화(섭취↓·음수↑)·산란(난각↓)에, 칼슘 부족은 뼈·다리(주저앉음)·산란(껍질)에 동시에 나타나요. 감염병과 겉모습이 겹칠 수 있어 함께 따져 봐요.</div>` },
+      { icon:"🚨", t:"갑자기 폐사가 늘거나 여러 증상이 한꺼번에 보이면", html:`<div class="wy-alert">
+          <div class="wy-al">⏱️ <b>병명 추측에 시간을 쓰지 마세요.</b> 검색·추측보다 연락이 먼저예요.</div>
+          <div class="wy-al">☎️ <b>담당 수의사</b>에게 바로 연락하고, 고병원성 AI·뉴캣슬병 같은 <b>법정 가축전염병</b>이 의심되면 <b>가축방역 신고 전화 1588-9060</b>(농림축산검역본부, 24시간)으로 신고하세요.</div>
+          <div class="wy-al">🚷 방역기관 안내가 올 때까지 <b>사람·차량·닭·계란·분뇨의 이동을 멈추고</b>, 죽은 닭은 옮기거나 버리지 말고 지시를 기다려요. 의심되는 닭은 다른 닭과 떼어 둬요.</div>
+          <div class="wy-al">📝 발견 시각, 동, 시간대별 폐사 수, 보이는 증상, 사료·물·산란 변화를 적어 두면 대응이 빨라져요.</div></div>
+          <a class="wy-call" href="tel:1588-9060">📞 가축방역 신고 1588-9060</a>
+          <div style="font-size:12.5px;color:#888;line-height:1.6;margin-top:6px">신고 번호·조치는 2026-11-14 지자체 가축질병 신고 안내로 확인했어요. 법 조문과 최신 절차는 <a href="https://www.law.go.kr/법령/가축전염병예방법" target="_blank" rel="noopener">국가법령정보센터 「가축전염병 예방법」 ↗</a>과 방역기관 안내를 따르세요.</div>` }
+    ],
+    see:["시간대별 폐사 수(어제와 오늘 비교)", "벼슬·육수 색, 머리·얼굴 부음", "신경 증상(고개 비틀기·마비·비틀거림), 녹색 변", "산란율 급감·이상란(껍질 없는 알 등)", "헐떡임·날개 벌림, 계사 온도·환기 작동, 다리 약함·주저앉음"],
+    check:["AI·뉴캣슬병 여부 — 공식 방역기관 검사로만", "F낭 등 면역기관 병변(부검)", "뼈·칼슘 상태", "2차 감염이 겹쳤는지"],
+    alike:[["갑작스런 폐사", "정전·환기 정지로 인한 더위, 급수 중단에서도 생겨요. 그래도 원인이 분명하지 않으면 바로 연락·신고해요."], ["산란 급감", "더위, 칼슘 부족, 점등 변화, 사료 섭취 저하로도 생겨요."]],
+    tbl:[["공통 신호", "시간대별 폐사, 사료·물 섭취 급변, 여러 증상 동시", "", ""], ["먼저 볼 생산 지표", "", "일령(감보로는 어린 시기) · 백신 일정 · 체중 · 2차 호흡기·장 질환 증가", "일별 산란율 · 이상란 · 다리 약함·골절 · 계사 온도"]],
+    rec:"산란계 A동 · 45주령 · 11/14 06시 발견 · 폐사 전날 2수 → 오늘 06시까지 18수 · 벼슬 검붉음, 녹색 변 · 산란율 91→78% · 사료 섭취 급감 · 06:20 수의사 연락, 06:30 1588-9060 신고 · 출입·이동 중지",
+    quiz:[
+      { q:"감보로병(IBD)을 앓은 무리에서 그 뒤에 다른 병이 잘 생길 수 있는 이유는?", o:["F낭이 다쳐 항체를 만드는 힘이 떨어질 수 있어서", "감보로 바이러스가 사료를 오염시켜서", "감보로병이 산란을 늘려서"], a:0, ex:"F낭은 어린 닭의 항체 만드는 세포를 키우는 곳이에요. 이곳이 다치면 방어력과 백신 반응이 떨어져, 다른 병이 쉽게 자리 잡을 수 있어요." },
+      { q:"아침에 폐사가 평소의 몇 배로 늘고, 벼슬 색 변화와 녹색 변이 함께 보인다. <b>가장 먼저</b> 할 일은?", o:["인터넷으로 병명을 찾아본다", "죽은 닭을 바로 밖에 묻는다", "수의사·방역기관(1588-9060)에 연락하고, 이동을 멈추고, 기록한다"], a:2, ex:"여러 증상과 갑작스런 폐사는 병명을 추측할 때가 아니라 연락할 때예요. 죽은 닭은 검사에 필요할 수 있어 지시를 기다려요." }
+    ],
+    refs:[
+      { t:"WOAH 육상동물 진단·백신 매뉴얼 3.3.4 조류인플루엔자", url:"https://www.woah.org/fileadmin/Home/eng/Health_standards/tahm/3.03.04_AI.pdf", ver:"본문 일부 확인" },
+      { t:"WOAH 육상동물 진단·백신 매뉴얼 3.3.14 뉴캣슬병", url:"https://www.woah.org/fileadmin/Home/eng/Health_standards/tahm/3.03.14_NEWCASTLE_DIS.pdf", ver:"본문 일부 확인" },
+      { t:"WOAH 육상동물 진단·백신 매뉴얼 3.3.12 전염성 F낭병(감보로병)", url:"https://www.woah.org/fileadmin/Home/eng/Health_standards/tahm/3.03.12_IBD.pdf", ver:"요약 확인" },
+      { t:"Sharma JM 외 (2000). Infectious bursal disease virus of chickens: pathogenesis and immunosuppression. Dev Comp Immunol 24(2-3):223-35", pm:"10717289", doi:"10.1016/s0145-305x(99)00074-9", ver:"초록 확인" },
+      { t:"Mignon-Grasteau S 외 (2015). Robustness to chronic heat stress in laying hens: a meta-analysis. Poultry Science 94(4):586-600", pm:"25717084", doi:"10.3382/ps/pev028", ver:"초록 확인" },
+      { t:"Whitehead CC, Fleming RH (2000). Osteoporosis in cage layers. Poultry Science 79(7):1033-41", pm:"10901207", doi:"10.1093/ps/79.7.1033", ver:"초록 확인" }
+    ] }
+];
+// 마지막 한 장 요약표 — 눈에 띈 신호 / 관련될 수 있는 몸의 기능 / 함께 볼 농장 기록 / 수의사에게 전달할 내용
+const WY_SUMMARY = [
+  ["🫁 기침·호흡음·눈물·콧물", "숨길(기관 점막·섬모), 기낭", "환기 운전·암모니아 냄새, 사료·물 섭취량, 최근 백신, 산란율·난각", "시작 날짜·동·일령, 소리 나는 시간대, 퍼지는 속도, 폐사 추이, 백신 기록", 2],
+  ["💧 묽은 변·젖은 깔짚", "장 점막의 흡수·수분 조절, 음수량(더위·신장)", "사료 교체일, 음수량 그래프, 급수기 누수, 계사 온도", "분변 사진(모양·색·점액·피), 젖은 위치, 체중 변화", 3],
+  ["⚖️ 먹는데 안 큼·균일도 저하", "장의 소화·흡수", "주간 표본 체중·균일도, 사료요구율, 콕시듐 관리 기록", "주간 체중표, 분변·깔짚 상태, 폐사 닭 상태", 3],
+  ["🩸 혈변·주황색 점액·웅크림", "장 점막 손상·출혈(원충 등)", "젖은 깔짚 구역, 일령, 체중·균일도, 폐사 추세", "변 사진, 해당 마릿수, 일령, 젖게 된 원인(누수 등)", 4],
+  ["🥚 산란율 감소·난각 이상", "난관(알 공장), 칼슘 대사, 체온 조절", "일별 산란율, 이상란 수, 계사 온도, 사료 섭취·칼슘 급여", "주령, 시작 시점, 이상란 종류·비율, 호흡기 증상 동반 여부", 2],
+  ["🥵 헐떡임·날개 벌림", "체온 조절(열 스트레스)", "계사 온도·습도, 환기 작동, 음수량", "시간대별 온도, 폐사 수, 정전·환기 고장 여부", 5],
+  ["🦵 다리 약함·주저앉음(산란계)", "뼈·칼슘", "칼슘 사료·알갱이 칼슘 급여, 산란율, 난각", "주령, 마릿수, 골절 여부, 사료 변경 기록", 5],
+  ["🚨 갑작스런 폐사 증가·여러 증상 동시", "여러 장기(전신 감염)·면역", "시간대별 폐사, 벼슬·육수 색, 신경 증상, 산란 급감", "☎ 즉시 수의사 + 1588-9060 신고 · 이동 중지 · 발견 시각과 폐사 수", 5]
+];
+
+function wyStepLabel(i){ return ["원인·조건", "먼저 영향받는 부위", "기능 변화", "농장에서 보는 신호"][i]; }
+function wyRefHtml(r){
+  const link = r.pm ? `<a href="https://pubmed.ncbi.nlm.nih.gov/${r.pm}/" target="_blank" rel="noopener">PubMed ${r.pm} ↗</a>${r.doi ? ` · <a href="https://doi.org/${r.doi}" target="_blank" rel="noopener">DOI ↗</a>` : ""}` : `<a href="${r.url}" target="_blank" rel="noopener">원문(PDF) ↗</a>`;
+  return `<div class="wy-ref"><div>${r.t}</div><div class="wy-rl">${link} <span class="wy-ver">${r.ver}</span></div></div>`;
+}
+function renderWyPanel(){
+  const L = wyState.les >= 0 && wyState.les < WY_LESSONS.length ? WY_LESSONS[wyState.les] : null, sum = wyState.les === 99;
+  const C = L ? L.color : WY_COLOR;
+  const head = `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:8px"><div><div class="display" style="font-size:19px;margin-bottom:2px">🩺 닭은 왜 아플까?</div><div style="font-size:13.5px;color:#777">병이 생기는 원리를 그림으로 — 육계·산란계 농장주 기초교실 5강</div></div><button id="wy-back" style="border:1px solid #ddd;border-radius:9px;background:#fff;color:#777;padding:9px 15px;font-size:13px;font-weight:700;cursor:pointer">← 메뉴로</button></div>`;
+  const chip = (k, t, on, c) => `<button type="button" class="wy-go" data-l="${k}" style="flex:none;border:2px solid ${on ? c : "#e5e5e5"};background:${on ? c : "#fff"};color:${on ? "#fff" : "#555"};border-radius:18px;padding:8px 13px;font-size:14px;font-weight:800;cursor:pointer;white-space:nowrap">${t}</button>`;
+  const nav = `<div style="display:flex;gap:6px;overflow-x:auto;padding:4px 0 8px;margin-bottom:6px">${chip(-1, "🏠 처음", !L && !sum, WY_COLOR)}${WY_LESSONS.map((x, i) => chip(i, `${x.icon} ${x.n}강${wyState.done[i] ? " ✓" : ""}`, L === x, x.color)).join("")}${chip(99, "📋 한 장 요약", sum, "#00695C")}</div>`;
+  const foot = `<div style="margin-top:14px;background:#FFF8E1;border-radius:9px;padding:9px 12px;font-size:12px;color:#6b5400;line-height:1.75"><b>유의</b> · 기초 교육 자료예요. 눈으로 본 증상만으로 병명을 확정할 수 없고, 진단·치료·투약은 담당 수의사가 정해요. 약품명·용량은 다루지 않아요. 그림은 이해를 돕는 단순화 도식이에요. 법정 가축전염병이 의심되면 즉시 방역기관(☎ 1588-9060)에 신고하세요.</div>`;
+  const body = sum ? wySummary() : L ? wyLesson(wyState.les) : wyHome();
+  return `<div class="card" id="wy-root" style="border-top:6px solid ${sum ? "#00695C" : C}">${head}${nav}${body}${foot}</div>`;
+}
+function wyHome(){
+  const seen = WY_LESSONS.filter((_, i) => wyState.done[i]).length;
+  const intro = `<div style="background:linear-gradient(135deg,#5E35B1,#9575CD);color:#fff;border-radius:16px;padding:16px">
+      <div style="font-size:22px;font-weight:900;margin-bottom:6px">병은 「왜」 생기는지 알면, 무엇을 볼지 보여요</div>
+      <div style="font-size:15.5px;line-height:1.75">병원체·닭의 상태·사육환경이 어떻게 만나 병이 되는지, 기침·묽은 변·증체 저하·산란 감소가 닭 몸의 어떤 변화에서 오는지 그림으로 배워요.</div>
+      <div style="margin-top:10px;background:#ffffff33;border-radius:10px;height:10px;overflow:hidden"><div style="width:${Math.round(seen / WY_LESSONS.length * 100)}%;height:100%;background:#FFEB3B"></div></div>
+      <div style="font-size:13px;margin-top:4px;opacity:.95">본 강의 ${seen} / ${WY_LESSONS.length} · 한 강 약 10분</div></div>`;
+  const goals = lcCard("🎯", "이 교실을 마치면 내 말로 설명할 수 있어요", WY_COLOR, [
+      "같은 병원체에 노출돼도 <b>나이·면역·사육환경</b>에 따라 피해가 왜 다르게 나타나는지",
+      "<b>기침·묽은 분변·증체 저하·산란율 감소</b>가 닭 몸의 어떤 변화에서 비롯될 수 있는지",
+      "이상을 발견하면 <b>무엇을 관찰·기록해 수의사에게 전달</b>해야 하는지"].map((t, i) => `<div style="display:flex;gap:9px;font-size:15.5px;line-height:1.7;margin:4px 0"><b style="flex:none;color:${WY_COLOR}">${i + 1}.</b><span>${t}</span></div>`).join(""));
+  const toc = WY_LESSONS.map((x, i) => `<button type="button" class="wy-go" data-l="${i}" style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:2px solid ${x.color}40;border-left:8px solid ${x.color};border-radius:14px;background:#fff;padding:12px 14px;margin-bottom:9px;cursor:pointer">
+      <span style="font-size:32px;line-height:1">${x.icon}</span>
+      <span style="flex:1;min-width:0"><span style="display:block;font-size:13px;color:${x.color};font-weight:800">${x.n}강 · 약 10분</span><span style="display:block;font-size:17px;font-weight:900;color:#222;line-height:1.4">${x.t}</span><span style="display:block;font-size:13.5px;color:#666;margin-top:2px">${x.s}</span></span>
+      <span style="flex:none;font-size:13px;font-weight:800;color:${wyState.done[i] ? "#2E7D32" : "#999"}">${wyState.done[i] ? "✅" : "›"}</span></button>`).join("")
+    + `<button type="button" class="wy-go" data-l="99" style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:2px solid #00695C40;border-left:8px solid #00695C;border-radius:14px;background:#F1F8F6;padding:12px 14px;margin-bottom:9px;cursor:pointer"><span style="font-size:32px;line-height:1">📋</span><span style="flex:1"><span style="display:block;font-size:13px;color:#00695C;font-weight:800">마무리 · 한 장 요약표</span><span style="display:block;font-size:17px;font-weight:900;color:#222">닭 상태가 평소와 다를 때 무엇부터 볼까?</span></span><span style="flex:none;color:#999">›</span></button>`;
+  const how = lcCard("📖", "매 강의는 같은 순서로 진행돼요", "#78909C", `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:6px;font-size:14px;line-height:1.5">${["① 농장 사례로 시작", "② 정상일 때 닭 몸", "③ 질병이 생기는 과정", "④ 볼 수 있는 것 · 확인이 필요한 것", "⑤ 육계·산란계 관찰 포인트", "⑥ 기록 예시와 복습 문제"].map(t => `<div style="background:#F5F7F9;border-radius:9px;padding:7px 10px;font-weight:700;color:#455A64">${t}</div>`).join("")}</div>`);
+  return intro + gmFig(wyFigMap(), "다섯 강의가 다루는 닭 몸의 자리") + goals + `<div style="font-size:17px;font-weight:900;color:#333;margin:14px 0 8px">📚 전체 목차</div>` + toc + how
+    + `<div style="text-align:right;margin-top:4px"><button type="button" id="wy-reset" style="border:none;background:none;color:#999;font-size:12.5px;text-decoration:underline;cursor:pointer">진도 지우기</button></div>`;
+}
+function wyLesson(i){
+  const L = WY_LESSONS[i], C = L.color;
+  wyState.done[i] = 1; wySave();
+  const title = `<div style="background:linear-gradient(135deg,${C},${C}cc);color:#fff;border-radius:16px;padding:14px 16px"><div style="font-size:13px;opacity:.9">${L.n}강 · 약 10분</div><div style="font-size:21px;font-weight:900;line-height:1.4;margin-top:2px">${L.icon} ${L.t}</div><div style="font-size:15px;margin-top:4px;opacity:.95">— ${L.s}</div></div>`;
+  const s1 = lcCard(1, "농장 사례로 시작", C, `<div class="wy-case">🐔 ${L.caseQ}</div>`);
+  const s2 = lcCard(2, "정상일 때 닭 몸에서 일어나는 일", C, L.normal.map(t => `<div class="wy-p">${t}</div>`).join("") + (L.fig ? gmFig(L.fig(), L.cap) : ""));
+  const steps = L.chain.map((t, k) => `<div class="wy-step" style="--wc:${C}"><div class="wy-sl">${k + 1} · ${wyStepLabel(k)}</div><div class="wy-st">${t}</div></div>${k < L.chain.length - 1 ? `<div class="wy-arrow" style="color:${C}">▼<span>${L.why[k]}</span></div>` : ""}`).join("");
+  const s3 = lcCard(3, "질병이 생기는 과정", C, `<div class="wy-line" style="border-color:${C}55">${L.chain.map(t => `<span>${t}</span>`).join(`<b style="color:${C}"> → </b>`)}</div><div style="font-size:14px;font-weight:900;color:${C};margin:10px 0 4px">왜 다음 단계로 이어질까?</div>${steps}`);
+  const topics = L.topics.map(T => lcCard(T.icon, T.t, C, T.html + (T.fig ? gmFig(T.fig(), T.cap) : ""))).join("");
+  const s4 = lcCard(4, "농장주가 볼 수 있는 것과 확인이 필요한 것", C, `<div class="wy-two">
+      <div class="wy-col" style="--wc:#2E7D32"><div class="wy-ct">👀 농장에서 볼 수 있는 것</div>${L.see.map(t => `<div>• ${t}</div>`).join("")}</div>
+      <div class="wy-col" style="--wc:#1565C0"><div class="wy-ct">🩺 수의사 진찰·검사가 필요한 판단</div>${L.check.map(t => `<div>• ${t}</div>`).join("")}</div></div>
+      <div style="font-size:14px;font-weight:900;color:#E65100;margin:10px 0 4px">🔁 비슷한 신호를 만드는 다른 원인</div>${L.alike.map(([a, b]) => `<div class="wy-alike"><b>${a}</b> ${b}</div>`).join("")}`);
+  const tb = L.tbl.map(r => `<tr><th>${r[0]}</th>${r[1] && !r[2] ? `<td colspan="2" class="wy-tc">${r[1]}</td>` : `<td>${r[2]}</td><td>${r[3]}</td>`}</tr>`).join("");
+  const s5 = lcCard(5, "육계와 산란계의 관찰 포인트", C, `<table class="wy-tbl"><thead><tr><th></th><th>🐥 육계</th><th>🥚 산란계</th></tr></thead><tbody>${tb}</tbody></table>`);
+  const quiz = L.quiz.map((Q, k) => `<details class="wy-q"><summary><b>Q${k + 1}.</b> ${Q.q}${k === 1 ? ` <span class="wy-qt">다음에 확인할 것</span>` : ""}<div class="wy-qo">${Q.o.map((o, j) => `<div>${"①②③④"[j]} ${o}</div>`).join("")}</div><span class="wy-qa">눌러서 정답 보기 ▼</span></summary><div class="wy-ans"><b>정답 ${"①②③④"[Q.a]}</b> · ${Q.ex}</div></details>`).join("");
+  const s6 = lcCard(6, "현장 기록 예시와 복습", C, `<div style="font-size:14px;font-weight:900;color:#455A64;margin-bottom:4px">📝 기록 예시 한 줄</div><div class="wy-rec">${L.rec}</div><div style="font-size:12.5px;color:#888;margin:4px 0 10px">숫자는 연습용 예시예요. 일령·시작 시점·동·사료·음수량·폐사 수·체중 또는 산란율을 같은 순서로 적으면 수의사가 빨리 이해해요.</div>${quiz}`);
+  const refs = `<div class="wy-refs"><div style="font-size:14px;font-weight:900;color:#555;margin-bottom:6px">📚 이 강의에서 실제로 확인한 출처</div>${L.refs.map(wyRefHtml).join("")}</div>`;
+  const prev = i > 0 ? `<button type="button" class="wy-go" data-l="${i - 1}" style="flex:none;border:1px solid #ccc;background:#fff;color:#555;border-radius:12px;padding:13px 14px;font-size:15px;font-weight:800;cursor:pointer">← ${i}강</button>` : `<button type="button" class="wy-go" data-l="-1" style="flex:none;border:1px solid #ccc;background:#fff;color:#555;border-radius:12px;padding:13px 14px;font-size:15px;font-weight:800;cursor:pointer">← 처음</button>`;
+  const nx = WY_LESSONS[i + 1];
+  const next = nx ? `<button type="button" class="wy-go" data-l="${i + 1}" style="border:none;background:${nx.color};color:#fff;border-radius:12px;padding:13px 16px;font-size:15px;font-weight:900;cursor:pointer">${nx.icon} ${nx.n}강으로 →</button>` : `<button type="button" class="wy-go" data-l="99" style="border:none;background:#00695C;color:#fff;border-radius:12px;padding:13px 16px;font-size:15px;font-weight:900;cursor:pointer">📋 한 장 요약표 →</button>`;
+  return title + s1 + s2 + s3 + topics + s4 + s5 + s6 + refs + `<div style="display:flex;justify-content:space-between;gap:8px;margin-top:12px">${prev}${next}</div>`;
+}
+function wySummary(){
+  const C = "#00695C";
+  const title = `<div style="background:linear-gradient(135deg,#00695C,#26A69A);color:#fff;border-radius:16px;padding:14px 16px"><div style="font-size:13px;opacity:.9">마무리 · 한 장 요약</div><div style="font-size:21px;font-weight:900;line-height:1.4;margin-top:2px">📋 닭 상태가 평소와 다를 때 무엇부터 볼까?</div><div style="font-size:14.5px;margin-top:6px;line-height:1.6">신호 하나로 병명을 정하지 말고, 몸의 기능 → 농장 기록 → 수의사 전달 순서로 정리해요.</div></div>`;
+  const basics = lcCard("📝", "어떤 신호든 먼저 적을 기본 7가지", C, `<div style="display:flex;flex-wrap:wrap;gap:6px">${["일령·주령", "시작 시점", "발생 동·위치", "사료 섭취량", "음수량", "폐사 수(추세)", "체중 또는 산란율"].map(t => `<span style="border:1.5px solid ${C}66;border-radius:16px;padding:5px 11px;font-size:14px;font-weight:800;color:${C};background:#fff">${t}</span>`).join("")}</div>`);
+  const head = ["", "관련될 수 있는 몸의 기능", "함께 볼 농장 기록", "수의사에게 전달할 내용"];
+  const table = `<div class="wy-sumwrap"><table class="wy-sum"><thead><tr><th>눈에 띈 신호</th><th>${head[1]}</th><th>${head[2]}</th><th>${head[3]}</th></tr></thead><tbody>${WY_SUMMARY.map(r => `<tr${r[0].startsWith("🚨") ? ` class="wy-red"` : ""}><th>${r[0]}<button type="button" class="wy-go wy-sl2" data-l="${r[4] - 1}">${r[4]}강 ↗</button></th><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join("")}</tbody></table></div>`;
+  const cards = `<div class="wy-sumcards">${lcRows(head, WY_SUMMARY.map(r => [`${r[0]}<button type="button" class="wy-go wy-sl2" data-l="${r[4] - 1}">${r[4]}강 다시 보기 ↗</button>`, r[1], r[2], r[3]]), C)}</div>`;
+  const close = `<div style="background:#E8F5E9;border:2px solid #A5D6A7;border-radius:14px;padding:12px 14px;margin-top:10px;font-size:15.5px;line-height:1.75;color:#1B5E20;font-weight:700">🎓 기억할 세 문장<br>① 병은 <b>병원체 × 닭의 상태 × 사육환경</b>이 겹칠 때 생겨요.<br>② 같은 신호도 원인은 여럿 — <b>몸의 어느 기능이 흔들렸는지</b>부터 생각해요.<br>③ 병명 추측보다 <b>기록과 빠른 연락</b>. 갑작스런 폐사·여러 증상은 즉시 ☎ 수의사·1588-9060.</div>`;
+  return title + basics + `<div style="font-size:12.5px;color:#888;margin:8px 0 2px">넓은 화면에서는 표로, 휴대폰에서는 신호별 카드로 보여요. 「○강」 버튼을 누르면 그 강의로 가요.</div>` + table + cards + close
+    + `<button type="button" id="wy-print" style="display:block;width:100%;border:1.5px solid ${C};background:#fff;color:${C};border-radius:12px;padding:12px;font-size:15px;font-weight:900;cursor:pointer;margin-top:10px">🖨️ 요약표 인쇄하기</button>`;
+}
+function wyBind(){
+  if(!(state.tab === "premium" && premiumState.view === "whysick")) return;
+  const go = l => { wyState.les = l; wySave(); render(); const r = document.getElementById("wy-root"); if(r) r.scrollIntoView({ block:"start" }); };
+  const back = document.getElementById("wy-back"); if(back) back.onclick = () => { premiumState.view = "menu"; render(); };
+  document.querySelectorAll("#wy-root .wy-go").forEach(b => b.onclick = e => { e.preventDefault(); go(Number(b.dataset.l)); });
+  const reset = document.getElementById("wy-reset"); if(reset) reset.onclick = () => { if(confirm("이 기기에 저장된 진도를 지울까요?")){ wyState.done = {}; wySave(); render(); } };
+  const pr = document.getElementById("wy-print"); if(pr) pr.onclick = () => {
+    const w = window.open("", "_blank"); if(!w){ alert("팝업이 막혀 있어요. 팝업을 허용한 뒤 다시 눌러 주세요."); return; }
+    const rows = WY_SUMMARY.map(r => `<tr><th>${r[0]}</th><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join("");
+    w.document.write(`<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>닭 상태가 평소와 다를 때 무엇부터 볼까?</title><style>body{font-family:sans-serif;margin:18px;color:#222}h1{font-size:19px;margin:0 0 4px}p{font-size:12px;color:#555;margin:0 0 10px}table{border-collapse:collapse;width:100%;font-size:12px}th,td{border:1px solid #999;padding:6px 7px;vertical-align:top;text-align:left;line-height:1.5}thead th{background:#E0F2F1}tbody th{width:19%;background:#FAFAFA}</style></head><body><h1>닭 상태가 평소와 다를 때 무엇부터 볼까?</h1><p>기본 기록 7가지: 일령·주령 / 시작 시점 / 발생 동·위치 / 사료 섭취량 / 음수량 / 폐사 수(추세) / 체중 또는 산란율 — 갑작스런 폐사·여러 증상은 즉시 수의사 + 가축방역 신고 1588-9060</p><table><thead><tr><th>눈에 띈 신호</th><th>관련될 수 있는 몸의 기능</th><th>함께 볼 농장 기록</th><th>수의사에게 전달할 내용</th></tr></thead><tbody>${rows}</tbody></table><p style="margin-top:10px">최꼬 아카데미 「닭은 왜 아플까?」 · 기초 교육 자료이며 진단·치료는 담당 수의사가 정합니다.</p></body></html>`);
+    w.document.close(); w.focus(); setTimeout(() => w.print(), 300);
+  };
 }
 
 // ── 유료서비스 「닭 키우기」 게임 ───────────────────────────────────────────────
@@ -30232,6 +30784,10 @@ function renderPremiumTab(){
   if(premiumState.view === "germclass"){
     return renderPremiumGateHeader() + logoutBar + renderGmPanel();
   }
+  // 닭은 왜 아플까? — 병이 생기는 원리 5강(정적 교육과정)
+  if(premiumState.view === "whysick"){
+    return renderPremiumGateHeader() + logoutBar + renderWyPanel();
+  }
   // 조류생리 아카데미(정적 교육과정)
   if(premiumState.view === "avianphys"){
     return renderPremiumGateHeader() + logoutBar + renderPhPanel();
@@ -30538,6 +31094,7 @@ function renderHeaderSolarTerm(now){
 // go: {tab} 일반 탭으로 / {premium:"메뉴key"} 유료서비스의 그 화면으로(승인·로그인 안내는 그 화면이 처리) / {premium:"vaccine", vaccineView:"guide"} 처럼 보기까지 지정.
 const NEW_FEATURE_DAYS = 21;
 const NEW_FEATURES = [
+  { key:"whysick",        date:"2026-11-14", label:"닭은 왜 아플까? — 병이 생기는 원리 5강(호흡기·소화기·콕시듐·AI·감보로·더위) 그림 교실", where:"유료서비스 · 최꼬 아카데미", go:{ premium:"whysick" } },
   { key:"genomap", date:"2026-11-14", label:"IB·AI·대장균 교실에 「유전형 지도」 추가 — 최근 국내 분리주 분류를 논문 근거로 그림 설명", where:"유료서비스 · 최꼬 아카데미", go:{ premium:"ibteam" } },
   { key:"disinfect2",     date:"2026-11-14", label:"질병별 소독제 선택과 소독요령 — 그림으로 새로 정리(한눈에·질병별 난이도·희석 계산·훈증)", where:"유료서비스 · 약품·투약·소독", go:{ premium:"disinfect" } },
   { key:"germclass",      date:"2026-11-13", label:"세균·바이러스 기초교실 — 항생제·백신·소독제까지 그림으로 (닭·돼지·소)", where:"유료서비스 · 최꼬 아카데미", go:{ premium:"germclass" } },
@@ -37871,6 +38428,7 @@ function attachEvents(){
   phBind();
   vcBind();
   gmBind();
+  wyBind();
   dilBind();
   dsBind();
   const disinfectBackBtn = document.getElementById("disinfect-back-btn");
