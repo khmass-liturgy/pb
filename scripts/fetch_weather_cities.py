@@ -43,13 +43,32 @@ CITIES = [
 
 DAILY = "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean"
 HOURLY = "temperature_2m,weather_code,precipitation,wind_speed_10m,relative_humidity_2m"
-HEADERS = {"User-Agent": "polcon-weather/1.0 (+https://polcon.cc)"}
+HEADERS = {"User-Agent": "Mozilla/5.0 (polcon-weather)"}
+
+# open-meteo 직접 호출이 러너(데이터센터 IP)에서 막히거나 느릴 수 있어, 공개 프록시로도 시도한다.
+PROXIES = [
+    lambda u: "https://api.codetabs.com/v1/proxy/?quest=" + urllib.parse.quote(u, safe=""),
+    lambda u: "https://api.allorigins.win/raw?url=" + urllib.parse.quote(u, safe=""),
+]
 
 
-def _get(url: str, timeout: int = 60):
+def _raw(url: str, timeout: int):
     req = urllib.request.Request(url, headers=HEADERS)
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return json.loads(r.read().decode("utf-8"))
+
+
+def _get(url: str, timeout: int = 40):
+    # ① 직접(재시도 2) → ② 공개 프록시들. 어느 하나라도 성공하면 그 값을 쓴다.
+    attempts = [("직접", url), ("직접(재시도)", url)] + [("프록시", f(url)) for f in PROXIES]
+    last = None
+    for label, u in attempts:
+        try:
+            return _raw(u, timeout)
+        except Exception as exc:
+            last = exc
+            print(f"::warning::{label} 실패: {exc}")
+    raise last if last else RuntimeError("조회 실패")
 
 
 def fetch_batch(cities):
