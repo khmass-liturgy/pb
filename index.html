@@ -6167,8 +6167,8 @@ async function fetchNews(channelId){
   if(state.tab==="news") render();
 }
 
-// ── Open-Meteo 날씨 연동 ───────────────────────────────────────────────────
-// 서버가 미리 받아 커밋한 전국 지점 예보(weather/kr_forecast.json) — 브라우저가 open-meteo에 직접 못 닿을 때의 대체 경로.
+// ── MET Norway(Yr.no) 날씨 연동 ─────────────────────────────────────────────
+// 서버가 미리 받아 커밋한 전국 지점 예보(weather/kr_forecast.json) — 브라우저가 api.met.no에 직접 못 닿을 때의 대체 경로.
 const WEATHER_CITIES_JSON_URL = DATA_RAW_PREFIX + "weather/kr_forecast.json";
 function pickNearestCity(cities, lat, lng){
   if(!Array.isArray(cities) || !cities.length) return null;
@@ -6182,14 +6182,113 @@ function pickNearestCity(cities, lat, lng){
   }
   return best;
 }
+// ── MET Norway(Yr.no) 응답 → Open-Meteo 모양의 {daily,hourly} 변환 ──────────────
+// 서버 스크립트 scripts/fetch_weather_cities.py 의 변환과 같은 규칙: 브라우저가 아는
+// WMO 코드만 만들고(아래 코드→아이콘 표에 있는 값), KST 기준으로 일별 집계한다.
+// 그래서 아래 파서(days.weather_code 등)는 이 모양을 그대로 읽을 수 있다.
+function metSymbolToWmo(code){
+  if(!code) return null;
+  const c = String(code).split("_")[0];           // _day/_night/_polartwilight 꼬리 제거
+  if(c.indexOf("thunder")>=0) return c.indexOf("heavy")>=0 ? 96 : 95;
+  if(c.indexOf("sleet")>=0){                       // 진눈깨비 → 눈 계열
+    if(c.indexOf("showers")>=0) return 85;
+    return c.indexOf("heavy")>=0 ? 73 : 71;
+  }
+  if(c.indexOf("snow")>=0){
+    const sh = c.indexOf("showers")>=0;
+    if(c.indexOf("heavy")>=0) return sh?86:75;
+    if(c.indexOf("light")>=0) return sh?85:71;
+    return sh?85:73;
+  }
+  if(c.indexOf("rain")>=0){
+    const sh = c.indexOf("showers")>=0;
+    if(c.indexOf("heavy")>=0) return sh?82:65;
+    if(c.indexOf("light")>=0) return sh?80:61;
+    return sh?81:63;
+  }
+  if(c==="fog") return 45;
+  if(c==="cloudy") return 3;
+  if(c==="partlycloudy") return 2;
+  if(c==="fair") return 1;
+  if(c==="clearsky") return 0;
+  return null;
+}
+const MET_SEVERITY = {0:0,1:1,2:2,3:3,45:4,48:4,51:5,53:6,55:7,61:8,63:9,65:11,80:8,81:9,82:12,71:8,73:9,75:11,77:7,85:8,86:11,95:13,96:14,99:14};
+function metEntrySymbol(e){
+  const data = (e && e.data) || {};
+  for(const k of ["next_1_hours","next_6_hours","next_12_hours"]){
+    const s = data[k] && data[k].summary && data[k].summary.symbol_code;
+    if(s) return s;
+  }
+  return null;
+}
+function metEntryPrecip(e){
+  const data = (e && e.data) || {};
+  for(const k of ["next_1_hours","next_6_hours"]){   // 겹치지 않는 예보창만 합산
+    const det = data[k] && data[k].details;
+    if(det && det.precipitation_amount != null) return det.precipitation_amount;
+  }
+  return null;
+}
+function metConvert(payload){
+  const ts = payload && payload.properties && payload.properties.timeseries;
+  if(!Array.isArray(ts) || !ts.length) return null;
+  const today = new Date(Date.now() + 9*3600e3).toISOString().slice(0,10);  // KST 오늘
+  const horizonMs = Date.parse(today+"T00:00:00Z") + 6*86400e3;             // 오늘+6일
+  const pad = n => (n<10?"0":"")+n;
+  const hourly = {time:[],temperature_2m:[],weather_code:[],precipitation:[],wind_speed_10m:[],relative_humidity_2m:[]};
+  const agg = {};
+  for(const e of ts){
+    if(!e || !e.time) continue;
+    const ms = Date.parse(e.time);
+    if(isNaN(ms)) continue;
+    const kst = new Date(ms + 9*3600e3);     // UTC → KST(절대 오프셋, 브라우저 시간대 무관)
+    const dstr = kst.toISOString().slice(0,10);
+    const hour = kst.getUTCHours();
+    if(dstr < today || Date.parse(dstr+"T00:00:00Z") > horizonMs) continue;
+    const inst = (((e.data||{}).instant||{}).details)||{};
+    const temp = inst.air_temperature, wind = inst.wind_speed, hum = inst.relative_humidity;
+    const wmo = metSymbolToWmo(metEntrySymbol(e));
+    const precip = metEntryPrecip(e);
+    hourly.time.push(dstr+"T"+pad(hour)+":00");
+    hourly.temperature_2m.push(temp!=null?Math.round(temp*10)/10:null);
+    hourly.weather_code.push(wmo);
+    hourly.precipitation.push(precip!=null?Math.round(precip*100)/100:0);
+    hourly.wind_speed_10m.push(wind!=null?Math.round(wind*10)/10:null);
+    hourly.relative_humidity_2m.push(hum!=null?Math.round(hum):null);
+    const b = agg[dstr] || (agg[dstr]={temps:[],winds:[],hums:[],precip:0,dsym:[],asym:[]});
+    if(temp!=null) b.temps.push(temp);
+    if(wind!=null) b.winds.push(wind);
+    if(hum!=null) b.hums.push(hum);
+    if(precip!=null) b.precip += precip;
+    if(wmo!=null){ const sev=MET_SEVERITY[wmo]||0; b.asym.push([sev,wmo]); if(hour>=6&&hour<18) b.dsym.push([sev,wmo]); }
+  }
+  const dates = Object.keys(agg).sort();
+  if(!dates.length) return null;
+  const daily = {time:[],weather_code:[],temperature_2m_max:[],temperature_2m_min:[],precipitation_sum:[],wind_speed_10m_max:[],relative_humidity_2m_mean:[]};
+  const pickMax = arr => arr.reduce((a,b)=> (b[0]>a[0]?b:a), arr[0]);
+  for(const d of dates){
+    const b = agg[d];
+    const syms = b.dsym.length?b.dsym:b.asym;
+    daily.time.push(d);
+    daily.weather_code.push(syms.length?pickMax(syms)[1]:null);
+    daily.temperature_2m_max.push(b.temps.length?Math.round(Math.max.apply(null,b.temps)*10)/10:null);
+    daily.temperature_2m_min.push(b.temps.length?Math.round(Math.min.apply(null,b.temps)*10)/10:null);
+    daily.precipitation_sum.push(Math.round(b.precip*10)/10);
+    daily.wind_speed_10m_max.push(b.winds.length?Math.round(Math.max.apply(null,b.winds)*10)/10:null);
+    daily.relative_humidity_2m_mean.push(b.hums.length?Math.round(b.hums.reduce((x,y)=>x+y,0)/b.hums.length):null);
+  }
+  return {daily, hourly};
+}
 async function fetchWeather(lat, lng, name){
   weatherState.fallbackNote = null; weatherState.cityUpdated = "";
   weatherState.status="loading"; weatherState.locationName=name;
   if(state.tab==="weather" || state.tab==="vent" || state.tab==="disease" || state.tab==="premium") render();
   try {
-    // Open-Meteo 공식 변수명(weather_code·wind_speed_10m·relative_humidity_2m, 단위는 wind_speed_unit).
-    // 옛 이름(weathercode/windspeed_10m/relativehumidity_2m)은 폐기돼 400으로 거절될 수 있다.
-    const fcstUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean&hourly=temperature_2m,weather_code,precipitation,wind_speed_10m,relative_humidity_2m&timezone=Asia%2FSeoul&forecast_days=7&wind_speed_unit=ms`;
+    // 날씨 출처: MET Norway(Yr.no, api.met.no) — 무료·키 불필요, CORS 허용(브라우저 직접 호출 가능).
+    // 응답은 시간대별(timeseries) 자료라, 아래 race에서 metConvert()로 Open-Meteo 모양({daily,hourly})으로
+    // 바꿔 파서가 그대로 읽게 한다. (서버가 미리 받아 둔 지점 예보도 같은 모양이라 대체 경로와 호환된다.)
+    const metUrl = `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${lat.toFixed(4)}&lon=${lng.toFixed(4)}`;
     // 직접 호출이 막히거나(429·네트워크 차단) 실패하면 CORS 프록시로 한 번 더 시도한다.
     // 순서: ① 직접 → ② 서버(Cloud Function fetchWeatherData, 배포돼 있으면 가장 안정적) → ③ CORS 프록시 2곳.
     // 어느 경로가 어떤 이유로 실패했는지 모두 모아 오류 화면에 보여준다.
@@ -6205,17 +6304,18 @@ async function fetchWeather(lat, lng, name){
     const viaFn = async ()=>{
       if(typeof firebaseReady === "undefined" || !firebaseReady) throw new Error("Firebase 미준비");
       const fn = firebase.app().functions().httpsCallable("fetchWeatherData", { timeout: 25000 });
-      const res = await fn({ url: fcstUrl });
+      const res = await fn({ url: metUrl });
       return res.data && res.data.json;
     };
     // 모든 경로를 동시에(병렬) 쏘고 가장 먼저 유효하게 돌아온 응답을 쓴다.
     // (예전처럼 직접→서버→프록시를 순서대로 기다리면 느린 경로의 타임아웃이 쌓여 전체가 수십 초 걸리고
     //  한 네트워크에서 다 같이 막히면 매번 실패했다. 병렬로 경주시키면 한 곳만 살아 있어도 빨리 성공한다.)
     const routeDefs = [
-      ["직접", ()=>viaUrl(fcstUrl, 15000)],
+      ["직접", ()=>viaUrl(metUrl, 15000)],
       ["서버", viaFn],
-    ].concat(proxyRoutes(fcstUrl).map((p,i)=>["프록시"+(i+1), ()=>viaUrl(p, 13000)]));
-    const race = routeDefs.map(([label, fn]) => Promise.resolve().then(fn).then(j => {
+    ].concat(proxyRoutes(metUrl).map((p,i)=>["프록시"+(i+1), ()=>viaUrl(p, 13000)]));
+    const race = routeDefs.map(([label, fn]) => Promise.resolve().then(fn).then(raw => {
+      const j = (raw && raw.daily) ? raw : metConvert(raw);   // met.no 원응답 → {daily,hourly}
       if(!j || !j.daily || !j.daily.time) throw new Error("응답 형식 오류");
       return j;
     }).catch(e => { errs.push(label+": "+((e && e.message) || e)); console.warn("예보 경로 "+label+" 실패:", e); throw e; }));
@@ -6309,9 +6409,9 @@ async function fetchWeather(lat, lng, name){
   }
   if(state.tab==="weather" || state.tab==="vent" || state.tab==="disease" || state.tab==="premium") render();
 
-  // 작년 같은 주 비교는 부가 정보라 별도로 받는다 — archive-api.open-meteo.com이
-  // 사용자 네트워크에 따라 아주 느리거나(수십 초) 아예 막히는 경우가 있는데,
-  // 예보(fcstUrl)와 한 Promise.all로 묶어서 기다리면 이것 하나 때문에 예보까지
+  // 작년 같은 주 비교는 부가 정보라 별도로 받는다 — 과거 기록은 MET Norway에 없어
+  // archive-api.open-meteo.com을 쓰는데, 사용자 네트워크에 따라 아주 느리거나(수십 초)
+  // 아예 막히는 경우가 있다. 예보(metUrl)와 한 Promise.all로 묶어서 기다리면 이것 하나 때문에 예보까지
   // 통째로 "조회 실패"가 되어 버렸다. 실패해도 예보는 이미 화면에 떠 있으니
   // "작년" 칸만 "데이터 없음"으로 남긴다.
   try {
