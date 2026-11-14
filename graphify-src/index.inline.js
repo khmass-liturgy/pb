@@ -365,6 +365,11 @@
 
 
 
+
+
+
+
+
 // ═══════════════════════════════════════════════════════════════════════════
 // 시세 데이터
 // ═══════════════════════════════════════════════════════════════════════════
@@ -15407,6 +15412,34 @@ function renderFinderAdminBox(admin){
   </div>`;
 }
 
+// 자가진단 설명 글을 읽기 쉽게 줄 단위로 나눈다 — 한 문단으로 붙은 설명을
+// 문장(". ")·「 — 」 구분마다 한 줄씩, 글머리 점과 함께 보여 준다. 관리자가 입력한
+// 줄바꿈도 그대로 줄로 쓴다. 신고·법정 가축전염병 문장은 빨간 경고 줄로 강조.
+function scNoteLines(text){
+  const out = [];
+  String(text || "").split(/\n+/).forEach(line => {
+    line.split(/\s+[—–]\s+|(?<=[.!?。])\s+/).forEach(seg => {
+      const t = seg.trim();
+      if(t) out.push(t);
+    });
+  });
+  return out;
+}
+function scNoteHtml(text, color){
+  // 이어지는 신고·법정 문장(「법정 가축전염병 — 의심되면 신고」)은 한 경고 줄로 합친다.
+  const lines = [];
+  scNoteLines(text).forEach(t => {
+    const warn = /법정|신고|1588-9060/.test(t);
+    const last = lines[lines.length-1];
+    if(warn && last && last.warn) last.t += " — " + t;
+    else lines.push({ t, warn });
+  });
+  if(!lines.length) return "";
+  return `<div class="sc-note">${lines.map(({t, warn}) => {
+    return `<div class="sc-note-line${warn?" warn":""}"><span class="sc-dot" style="${warn?"":`background:${color||"#888"}`}"></span><span>${warn?"🚨 ":""}${esc(t).replace(/\d{2,4}-\d{3,4}(-\d{4})?/g, m => `<span style="white-space:nowrap">${m}</span>`)}</span></div>`;
+  }).join("")}</div>`;
+}
+
 // 온라인 자가진단 — 닭 그림(SVG) 위에서 부위를 클릭하거나 아래 버튼 목록에서
 // 골라도 같은 곳(nav.part)으로 선택된다. 그림의 클릭 영역이 작아 정밀하게
 // 누르기 어려울 수 있어(특히 모바일) 버튼 목록을 항상 같이 보여준다 — 둘 다
@@ -15482,9 +15515,9 @@ function renderSelfCheckPanel(){
       <div class="display" style="font-size:14px;margin-bottom:10px">${esc(partInfo.num+". "+bodyPartLabel(nav.part))}</div>
       <div class="card" style="${pkgBoxStyle("#37474F","#F1F4F6","12px 16px")};display:flex;gap:10px;align-items:flex-start">
         ${pkgIconCircle(isSign?"👀":"🔧", "#37474F", 36)}
-        <div style="min-width:0">
+        <div style="flex:1;min-width:0">
           <div style="margin-bottom:3px">${pkgChip(isSign?"관찰 포인트":"기능", "#fff", "#37474F")}</div>
-          <div style="font-size:12.5px;color:#444;line-height:1.6">${func?esc(func):`<span style="color:#aaa">등록된 설명이 없습니다.${admin?"":""}</span>`}</div>
+          ${func?scNoteHtml(func,"#37474F"):`<div style="font-size:12.5px;color:#aaa">등록된 설명이 없습니다.</div>`}
         </div>
       </div>
       <div style="font-size:11px;font-weight:700;color:#666;margin:12px 0 8px">${(SELF_CHECK_SEED[nav.part]&&SELF_CHECK_SEED[nav.part].heading)||(isSign?"🩺 여기서 문제가 되는 질병":"🩺 이 장기에서 흔히 나타나는 질병")}</div>
@@ -15496,22 +15529,22 @@ function renderSelfCheckPanel(){
       ${admin && !seedMode ? renderSelfCheckImgBatchBar(list) : ""}
       ${list.length ? list.map((d, ci) => { const pc = pkgColorOf(d, ci); return `
       <div class="card" style="${pkgBoxStyle(pc.color,pc.tint,"12px 16px")}">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
           ${d.image && d.image.url ? `<a href="${esc(d.image.url)}" target="_blank" rel="noopener" title="눌러서 크게 보기" style="flex-shrink:0;display:block">
             <img src="${esc(d.image.thumb||d.image.url)}" alt="${esc(d.name)} 대표 사진" loading="lazy" style="width:88px;height:66px;object-fit:cover;border-radius:7px;display:block;border:1px solid #eee" />
           </a>` : pkgIconCircle(isSign?"👀":"🦠", pc.color, 40)}
           <div style="flex:1;min-width:0">
             <div style="margin-bottom:3px">${pkgChip(esc(bodyPartLabel(nav.part)), "#fff", pc.color)}</div>
-            <div style="font-size:13.5px;font-weight:800;color:#333">${esc(d.name)}</div>
-            <div style="font-size:12px;color:#666;margin-top:3px;line-height:1.6">${esc(d.note)}</div>
-            ${d.image && d.image.source === "commons" ? `<div style="font-size:9.5px;color:#aaa;margin-top:4px;line-height:1.5">${commonsImageCredit(d.image)}</div>` : ""}
+            <div style="font-size:14px;font-weight:800;color:#333;line-height:1.4;word-break:keep-all">${esc(d.name)}</div>
           </div>
           ${admin && !d.seed ? `
-          <div style="white-space:nowrap;flex-shrink:0">
+          <div style="white-space:nowrap;flex-shrink:0;align-self:flex-start">
             <button class="selfcheck-edit-btn" data-key="${d.key}" style="font-size:10px;border:1px solid ${pc.color};border-radius:5px;background:#fff;color:${pc.color};padding:3px 8px;margin-right:4px">편집</button>
             <button class="selfcheck-del-btn" data-key="${d.key}" style="font-size:10px;border:1px solid #eee;border-radius:5px;background:#fff;color:#bbb;padding:3px 8px">삭제</button>
           </div>` : ""}
         </div>
+        ${d.note ? `<div style="margin-top:10px;padding-top:9px;border-top:1px dashed ${pc.color}40">${scNoteHtml(d.note, pc.color)}</div>` : ""}
+        ${d.image && d.image.source === "commons" ? `<div style="font-size:9.5px;color:#aaa;margin-top:6px;line-height:1.5">${commonsImageCredit(d.image)}</div>` : ""}
         ${admin && !d.seed ? renderSelfCheckImgAdmin(d) : ""}
       </div>`; }).join("") : `<div class="card" style="padding:24px 16px;color:#aaa;text-align:center">등록된 질병이 없습니다.${admin?"":" 곧 추가됩니다."}</div>`}
       ${renderSelfCheckAdminBox(admin)}
