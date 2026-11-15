@@ -50,7 +50,18 @@ Two pieces are **not** static, both Firebase, both under the 유료서비스 tab
   and stores the admin's pick as each disease's `image`. Self-check items 21–26 (벼슬·정강이·
   깃털·활력·임상증상·분변상태) have no hotspot on the anatomy picture (`sign:true` in `BODY_PARTS`) and ship
   a default disease list in `SELF_CHECK_SEED` that shows until an admin publishes it.
-  `generateAiDraft` also has kind `disease` (`DISEASE_SYSTEM_PROMPT`: 병명 → 영문명·다른 이름·개요·원인·감수성·전파·임상증상·부검소견·진단·감별·예방·관리·법정 관리 lines, never drug names/doses, 「확인 필요」 when unsure) for the 질병 탭 「질병 사전」 admin add form (index.html `dzCustom`/`renderDzForm`/`attachDzCustomEvents`): admin-added diseases live in Firebase `public_content/disease_custom/latest.json` `{items:[{slug,title_ko,title_en,aliases,paras_ko,ai,reviewed,updated,by}]}` (world-readable, admin write), are merged after the 54 translated base entries (`dzMergeCustom`, `diseaseState.base`) so search/이달의 질병 see them, show 「🤖 AI 초안 · 수의사 검토 전」 until 수의사 검토 완료 is ticked, and can be edited/deleted by admins; duplicate names (title/aliases) are refused. `generateAiDraft` runs on **Sonnet 5.5** (`claude-sonnet-5-5`, lowered from the `callClaude` default Opus 5 in 2026-11 to cut cost; the other AI functions keep the default). These need the Firebase secret `ANTHROPIC_API_KEY` (a separate key from the GitHub Actions secret
+  `generateAiDraft` also has kind `disease` (`DISEASE_SYSTEM_PROMPT`: 병명 → 영문명·다른 이름·개요·원인·감수성·전파·임상증상·부검소견·진단·감별·예방·관리·법정 관리 lines, never drug names/doses, 「확인 필요」 when unsure) for the 질병 탭 「질병 사전」 admin add form (index.html `dzCustom`/`renderDzForm`/`attachDzCustomEvents`): admin-added diseases live in Firebase `public_content/disease_custom/latest.json` `{items:[{slug,title_ko,title_en,aliases,paras_ko,ai,reviewed,updated,by}]}` (world-readable, admin write), are merged after the 54 translated base entries (`dzMergeCustom`, `diseaseState.base`) so search/이달의 질병 see them, show 「🤖 AI 초안 · 수의사 검토 전」 until 수의사 검토 완료 is ticked, and can be edited/deleted by admins; duplicate names (title/aliases) are refused.
+  **질병 사전 추가 질병·분류 (2026-11)**: diseases the source site doesn't carry (조류인플루엔자, 전염성 코라이자, 닭진드기(와구모),
+  류코사이토준병, 고온 스트레스 … 39종) are hand-curated in `poultry_disease/extra.json` (`diseases:[{slug,title_ko,title_en,aliases,
+  cat,paras_ko:["개요: …","원인: …",…]}]`, plus `categories` and `base_cats` slug→category for the 54 base entries). That file is the
+  source of truth: `fetch_poultry_diseases.py` `with_extra()` appends them to `diseases.json` (`extra:true`, no `paras_en`/images) and
+  stamps `cat` on every entry on each save, so the weekly scrape can't drop them; after editing `extra.json` or `KO_ALIASES` run
+  `python scripts/fetch_poultry_diseases.py --merge-only` (offline) and commit both files (a push of `diseases.json` to main triggers
+  `sync-storage.yml`). Content rules match the admin form: 「항목: 내용」 lines, no drug names/doses, shown with a
+  「📘 해외 수의학 자료 요약 번역 · 수의사 검토 전」 badge. The 사전 screen is category-first (`diseaseState.cat`, `diseaseListing` modes
+  `index`/`cat`/`search`, `renderDzCatBar`, `renderDzIndex`): 전체 shows a per-category index of name chips (`.dz-jump` opens the card
+  inside its category), a category chip lists that category's cards, and search runs inside the selected category. Admin-added entries
+  get the extra `custom` category. Old-format data without `categories` falls back to the flat 가나다 list. `generateAiDraft` runs on **Sonnet 5.5** (`claude-sonnet-5-5`, lowered from the `callClaude` default Opus 5 in 2026-11 to cut cost; the other AI functions keep the default). These need the Firebase secret `ANTHROPIC_API_KEY` (a separate key from the GitHub Actions secret
   of the same name used by `fetch_research_papers.py`; set with
   `firebase functions:secrets:set ANTHROPIC_API_KEY --project chicken-dx`).
   It also holds `sendDirectSms` — the 📤 바로 보내기 button on the 점등/환우 program SMS boxes (index.html

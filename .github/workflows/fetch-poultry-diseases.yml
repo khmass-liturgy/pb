@@ -38,8 +38,21 @@ jobs:
           import json, re
           from pathlib import Path
           d = json.loads(Path("poultry_disease/diseases.json").read_text(encoding="utf-8"))
-          ds = d["diseases"]
-          assert d["count"] == len(ds)
+          allds = d["diseases"]
+          assert d["count"] == len(allds)
+          # 추가 질병(poultry_disease/extra.json에서 합친 것, extra=true)은 원문·사진이 없는 한글 정리본이라
+          # 아래 원문 기준 검사에서 빼고 따로 확인한다.
+          extra = [x for x in allds if x.get("extra")]
+          ds = [x for x in allds if not x.get("extra")]
+          src = json.loads(Path("poultry_disease/extra.json").read_text(encoding="utf-8"))
+          assert len(extra) >= len(src["diseases"]) - 5, "추가 질병이 %d/%d종만 합쳐짐" % (len(extra), len(src["diseases"]))
+          cats = {c["key"] for c in d["categories"]}
+          assert cats, "분류 목록이 비어 있음"
+          for x in allds:
+              assert x.get("cat") in cats, (x["slug"], x.get("cat"))
+          for x in extra:
+              assert x["slug"] and x["title_ko"] and x["paras_ko"], x["slug"]
+          assert len({x["slug"] for x in allds}) == len(allds), "slug 중복"
           # 사이트에 61종이 실려 있고 칠면조 전용 4종을 빼 57종이다.
           # 크게 줄면 목록 파싱이 깨진 것이므로 막는다.
           assert len(ds) >= 50, len(ds)

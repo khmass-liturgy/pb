@@ -11,6 +11,7 @@ on:
     paths:
       - "import_status/latest.json"
       - "farm_density/sigun.json"
+      - "poultry_disease/diseases.json"   # extra.json(손으로 정리한 추가 질병)을 합쳐 PR로 올렸을 때
 
 jobs:
   sync-storage:
