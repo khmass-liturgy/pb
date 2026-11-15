@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 250" font-family="'Noto Sans KR','Malgun Gothic','Apple SD Gothic Neo',sans-serif">
+<defs><clipPath id="egg"><path d="M235 52 C272 52 292 120 292 150 C292 184 266 204 235 204 C204 204 178 184 178 150 C178 120 198 52 235 52Z"/></clipPath></defs>
+<rect width="320" height="250" fill="#FBFDFC"/>
+<text x="160" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#00695C">난각 첨단부 이상 — 뾰족한 끝을 본다</text>
+<g transform="translate(62 132) scale(.8) translate(-85 -128)">
+<path d="M85 52 C122 52 142 120 142 150 C142 184 116 204 85 204 C54 204 28 184 28 150 C28 120 48 52 85 52Z" fill="#D9A26E" stroke="#A9743F" stroke-width="2.5"/>
+</g>
+<g transform="translate(258 132) scale(.8) translate(-235 -128)">
+<path d="M235 52 C272 52 292 120 292 150 C292 184 266 204 235 204 C204 204 178 184 178 150 C178 120 198 52 235 52Z" fill="#D9A26E" stroke="#A9743F" stroke-width="2.5"/>
+<g clip-path="url(#egg)">
+<rect x="170" y="48" width="130" height="50" fill="#F1DDC2"/>
+<g fill="#C9B291"><circle cx="222" cy="70" r="2.4"/><circle cx="238" cy="62" r="2.4"/><circle cx="250" cy="76" r="2.4"/><circle cx="232" cy="84" r="2.4"/><circle cx="214" cy="88" r="2.4"/><circle cx="258" cy="90" r="2.4"/><circle cx="244" cy="90" r="2"/></g>
+<path d="M170 98 H300" stroke="#8E5A2B" stroke-width="3" stroke-dasharray="5 3"/>
+</g>
+</g>
+<text x="160" y="76" font-size="12" font-weight="700" fill="#B23B2E" text-anchor="middle">거칠고 얇고</text>
+<text x="160" y="92" font-size="12" font-weight="700" fill="#B23B2E" text-anchor="middle">비쳐 보임</text>
+<path d="M196 86 H232" stroke="#B23B2E" stroke-width="1.8"/><path d="M236 86 l-8 -4.5 v9z" fill="#B23B2E"/>
+<text x="160" y="122" font-size="12" font-weight="700" fill="#8E5A2B" text-anchor="middle">경계선 뚜렷</text>
+<path d="M196 118 L216 110" stroke="#8E5A2B" stroke-width="1.8"/>
+<text x="62" y="214" text-anchor="middle" font-size="13" font-weight="700" fill="#333">정상 달걀</text>
+<text x="252" y="214" text-anchor="middle" font-size="13" font-weight="700" fill="#B23B2E">첨단부 이상 달걀</text>
+<rect x="10" y="222" width="300" height="24" rx="8" fill="#FFF4D6" stroke="#E6C766"/>
+<text x="160" y="239" text-anchor="middle" font-size="12" font-weight="700" fill="#7a5a00">끝에서 약 2cm 이내 · 잘 깨져 파란↑</text>
+</svg>
