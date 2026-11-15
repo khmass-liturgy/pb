@@ -78,7 +78,7 @@ EXCLUDE_SLUGS = {
 # 키는 URL 슬러그(고정값)라 사이트 제목이 바뀌어도 매칭이 유지된다.
 KO_ALIASES = {
     "escherichia-coli-infections": ["대장균증", "대장균 감염", "콜리바실로시스"],
-    "salmonelloses": ["살모넬라증", "살모넬라"],
+    "salmonelloses": ["살모넬라증", "살모넬라", "추백리", "가금티푸스"],
     "paratyphoid-infections": ["파라티푸스"],
     "fowl-cholera": ["가금 콜레라", "닭콜레라"],
     "mycoplasma": ["마이코플라스마", "만성호흡기병", "CRD", "MG", "MS"],
@@ -90,7 +90,7 @@ KO_ALIASES = {
     "infectious-bronchitis-ib": ["전염성 기관지염", "IB"],
     "fowl-pox": ["계두", "가금 두창"],
     "laryngotracheitis": ["전염성 후두기관염", "ILT"],
-    "swollen-head-syndrome": ["종창두증후군", "부어오른 머리 증후군", "SHS"],
+    "swollen-head-syndrome": ["종창두증후군", "부어오른 머리 증후군", "SHS", "조류메타뉴모바이러스", "aMPV"],
     "infectious-encephalomyelitis": ["전염성 뇌척수염", "AE"],
     "newcastle-disease": ["뉴캐슬병", "뉴캣슬병", "ND", "가금 뉴캐슬"],
     "reovirus-infections": ["레오바이러스", "바이러스성 관절염"],
@@ -111,7 +111,26 @@ KO_ALIASES = {
     "cage-layer-fatigue": ["케이지 산란계 피로증", "골연화"],
     "deep-pectoral-myopathy": ["심부 흉근병증", "녹색근육병"],
     "amyloidosis": ["아밀로이드증"],
-    "pulmonary-hypertension-ascitis-syndrome-in": ["복수증", "폐동맥고혈압증후군"],
+    "pulmonary-hypertension-ascitis-syndrome-in-broiler-chickens": ["복수증", "폐동맥 고혈압 증후군", "복수증후군"],
+    # 아래는 기계번역 제목이 틀리거나 어색했던 항목(2026-11) — 현장 용어로 바로잡는다.
+    "raillietinosis": ["조충증", "라일리에티나 조충증", "촌충"],            # 기계번역 "난소증"은 오역
+    "thyperkeratosis": ["과각화증"],                                       # "갑상선각화증"은 오역
+    "vitamin-bi-deficiency": ["비타민 B1 결핍", "티아민 결핍"],
+    "vitamin-b2-deficiency": ["비타민 B2 결핍", "리보플라빈 결핍", "발가락 굽음 마비"],
+    "rupture-of-the-gastrocnemius-tendon-in-broiler-breeders": ["육용종계의 비복근 건 파열", "아킬레스건 파열"],
+    "adenovirus-group-i-associated-infections": ["아데노바이러스 1군 감염"],
+    "hyperandrogenism-in-broiler-chickens": ["육계의 안드로겐 과다증"],
+    "effect-of-stickywilly-galium-aparine-seeds-on-healthy-status-and-production-traits-in-broiler-chickens":
+        ["갈퀴덩굴 종자 중독", "갈퀴덩굴"],
+    "cholangiohepatitis-in-broiler-chickens": ["육계의 담관간염"],
+    "myelocytomatosis": ["골수세포종증", "J형 백혈병", "ALV-J"],
+    "erythroblastosis": ["적혈구모세포증", "적아구증"],
+    "gangrenous-dermatitis": ["괴저성 피부염", "괴사성 피부염"],
+    "viral-inclusion-body-hepatitis": ["바이러스성 봉입체 간염", "봉입체 간염", "IBH", "심낭수종"],
+    "subcutaneous-emphysema": ["피하 기종", "피하 폐기종"],
+    "malformations": ["기형"],
+    "acute-selenium-intoxication": ["급성 셀레늄 중독"],
+    "aspergillus-granulomatous-dermatitis": ["아스페르길루스 육아종성 피부염"],
     "dyschondroplasia": ["연골이형성증", "TD"],
     "gizzard-impaction-in-turkey-poults": ["근위 폐색"],
     "gastrointestinal-impaction": ["소화관 폐색"],
@@ -247,6 +266,52 @@ def translate(text, session):
     return None
 
 
+EXTRA_PATH = Path("poultry_disease/extra.json")
+
+
+def load_extra():
+    """손으로 정리한 추가 질병·분류표(poultry_disease/extra.json)를 읽는다. 없거나 깨졌으면 빈 값."""
+    try:
+        return json.loads(EXTRA_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def with_extra(diseases):
+    """수집한 기본 항목에 분류(cat)를 붙이고, extra.json의 추가 질병을 뒤에 합친다.
+
+    The Poultry Site 원문에 없는 질병(조류인플루엔자·전염성 코라이자·닭진드기 등)은 수집으로는
+    채울 수 없어 extra.json에 한글로 정리해 둔다. 이 파일이 원본이고, 여기서 매번 diseases.json에
+    합쳐 넣으므로 주간 수집이 덮어써도 사라지지 않는다. 기본 항목과 slug·병명이 겹치는 추가 항목은
+    넣지 않는다(원문 쪽에 같은 병이 새로 실렸을 때 중복되지 않게).
+    반환: (합친 목록, 분류 목록)
+    """
+    extra = load_extra()
+    base_cats = extra.get("base_cats") or {}
+    base = [dict(d, cat=base_cats.get(d.get("slug"), d.get("cat") or "etc"))
+            for d in diseases if not d.get("extra")]
+    norm = lambda t: re.sub(r"\s+", "", t or "").lower()
+    slugs = {d["slug"] for d in base}
+    names = {norm(n) for d in base for n in [d.get("title_ko")] + (d.get("aliases") or [])}
+    added = []
+    for e in extra.get("diseases") or []:
+        if not e.get("slug") or not e.get("title_ko") or not e.get("paras_ko"):
+            continue
+        if e["slug"] in slugs or norm(e["title_ko"]) in names:
+            print("  ※ 추가 질병 %s 은(는) 기본 항목과 겹쳐 건너뜀" % e["slug"])
+            continue
+        slugs.add(e["slug"])
+        added.append({
+            "id": "", "slug": e["slug"], "url": "",
+            "title_en": e.get("title_en", ""), "title_ko": e["title_ko"],
+            "aliases": e.get("aliases") or [],
+            "paras_en": [], "paras_ko": e["paras_ko"],
+            "figs": [], "images": [],
+            "extra": True, "cat": e.get("cat") or "etc",
+        })
+    return base + added, (extra.get("categories") or [])
+
+
 def save(diseases):
     """지금까지 모은 것을 파일로 쓴다.
 
@@ -254,12 +319,17 @@ def save(diseases):
     저장하면 중간에 끊겼을 때 전부 날아가고, 다음 실행도 재사용할 번역이 없어
     처음부터 다시 하게 된다.
     """
+    diseases, categories = with_extra(diseases)
+    n_extra = sum(1 for d in diseases if d.get("extra"))
     payload = {
         "updated": datetime.now(KST).strftime("%Y-%m-%d %H:%M KST"),
         "source": "The Poultry Site — Diseases of Poultry",
         "url": INDEX_URL,
         "note": "영문 원문을 기계번역한 것으로, 진단·처방의 근거로 쓰기 전에 원문 확인이 필요합니다.",
         "count": len(diseases),
+        "base_count": len(diseases) - n_extra,     # The Poultry Site 번역본
+        "extra_count": n_extra,                    # extra.json에서 합친 추가 질병
+        "categories": categories,
         "diseases": diseases,
     }
     OUT_PATH.parent.mkdir(exist_ok=True)
@@ -276,10 +346,33 @@ def load_previous():
     except Exception:
         return {}
     # slug → 이전 항목. 영문이 그대로면 번역을 재사용하기 위한 캐시.
-    return {d["slug"]: d for d in prev.get("diseases", []) if d.get("slug")}
+    # 추가 질병(extra)은 extra.json에서 매번 새로 합치므로 캐시에 넣지 않는다.
+    return {d["slug"]: d for d in prev.get("diseases", []) if d.get("slug") and not d.get("extra")}
+
+
+def merge_only():
+    """원문 수집 없이, 지금 diseases.json의 기본 항목에 extra.json·별칭만 다시 반영한다.
+
+    extra.json이나 KO_ALIASES를 손으로 고친 뒤 `python scripts/fetch_poultry_diseases.py --merge-only`로 쓴다
+    (네트워크 불필요). 수집 시각(updated)은 원문 수집 시각이므로 바꾸지 않는다.
+    """
+    prev = json.loads(OUT_PATH.read_text(encoding="utf-8"))
+    base = [d for d in prev.get("diseases", []) if not d.get("extra")]
+    for d in base:
+        al = KO_ALIASES.get(d["slug"])
+        if al:
+            d["aliases"], d["title_ko"] = al, al[0]
+    save(base)
+    out = json.loads(OUT_PATH.read_text(encoding="utf-8"))
+    if prev.get("updated"):
+        out["updated"] = prev["updated"]
+        OUT_PATH.write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
+    print("✅ 기본 %d종 + 추가 %d종 = %d종 저장" % (out["base_count"], out["extra_count"], out["count"]))
 
 
 def main():
+    if "--merge-only" in sys.argv:
+        return merge_only()
     print("🐔 양계질병 자료 수집 시작\n")
     session = requests.Session()
     session.headers.update(HEADERS)

@@ -5268,7 +5268,7 @@ async function fetchEggReport(){
   if(state.tab === "price") render();
 }
 // 양계질병: 검색어(query)와 펼친 항목(openSlug)은 화면 상태라 여기 함께 둔다.
-let diseaseState = { status: "idle", data: null, query: "", openSlug: null, showEn: {}, showAll: false };
+let diseaseState = { status: "idle", data: null, query: "", openSlug: null, showEn: {}, cat: "all" };
 
 async function fetchDiseases(){
   if(diseaseState.status === "loading") return;
@@ -5290,7 +5290,8 @@ async function fetchDiseases(){
 }
 
 // ── 양계질병 사전: 관리자가 추가하는 질병 ──────────────────────────────────────
-// 기본 54종은 The Poultry Site 번역본(poultry_disease/diseases.json, 수집 스크립트가 덮어씀)이라 손대지 않고,
+// 기본 54종은 The Poultry Site 번역본이고, 원문에 없는 질병(조류인플루엔자·코라이자·닭진드기 등)은 poultry_disease/extra.json에
+// 한글로 정리해 둔 것을 수집 스크립트가 diseases.json에 합쳐 내려준다(extra:true, 분류 cat 포함). 둘 다 화면에서는 손대지 않고,
 // 관리자가 추가한 질병은 Firebase public_content/disease_custom/latest.json {items:[…]}에 따로 둔다(누구나 읽기, 관리자만 쓰기).
 // 「🤖 AI로 기본정보 채우기」는 generateAiDraft(kind "disease", functions/index.js DISEASE_SYSTEM_PROMPT)로 개요·원인·증상·
 // 부검소견·진단·예방 줄을 채운다 — 약품·용량은 쓰지 않고, 수의사 검토 완료 체크 전에는 「AI 초안」으로 표시한다.
@@ -5414,7 +5415,7 @@ function attachDzCustomEvents(){
     dzCustom.busy = true; dzCustom.msg = "저장 중…"; render();
     try {
       await saveDiseaseCustom(dzCustom.items.filter(x => x.slug !== item.slug).concat([item]));
-      dzCustom.form = null; dzCustom.msg = ""; diseaseState.query = item.title_ko; diseaseState.openSlug = item.slug;
+      dzCustom.form = null; dzCustom.msg = ""; diseaseState.query = item.title_ko; diseaseState.cat = "all"; diseaseState.openSlug = item.slug;
     } catch(e){ dzCustom.msg = "저장 실패: " + (e.message || e); }
     dzCustom.busy = false; render();
   };
@@ -6921,6 +6922,9 @@ function diseaseMatches(list, q){
   const hit = list.filter(d => terms.every(t => (d.search||"").includes(t)));
   const score = d => {
     const name = [d.title_ko, d.title_en].concat(d.aliases||[]).join(" ").toLowerCase();
+    // 병명·별칭 가운데 하나와 정확히 일치 ("AI" → 조류인플루엔자가 "…ai…"가 든 다른 병명보다 앞에)
+    const names = [d.title_ko, d.title_en].concat(d.aliases||[]).map(n => String(n||"").toLowerCase());
+    if(terms.length === 1 && names.includes(terms[0])) return 0;
     if(terms.every(t => name === t)) return 0;              // 병명이 정확히 일치
     if(terms.every(t => name.includes(t))) return 1;        // 병명에 포함
     if(terms.some(t => name.includes(t))) return 2;         // 병명에 일부 포함
@@ -7201,21 +7205,68 @@ function googleImageBtn(x){
 // 검색 결과만 따로 그린다. 검색창까지 다시 그리면 한글 조합(IME)이 끊겨
 // 글자가 안 쳐지므로, 입력 중에는 이 부분만 교체한다.
 // 목록에 무엇을 보여줄지 정한다.
-//  - 검색 중이면 검색 결과(관련도순)
-//  - '전체보기'면 57종 전부를 가나다순으로
-//  - 평소에는 이달의 질병만. 57종을 늘어놓기보다 이번 달 짚어준 것부터
-//    보는 편이 쓰임에 맞는다.
+//  - 검색 중이면 검색 결과(관련도순) — 분류를 골라 둔 상태면 그 분류 안에서만
+//  - 분류를 고르면 그 분류의 질병을 가나다순으로
+//  - 평소(전체)에는 분류별 병명 색인. 90종 넘는 카드를 늘어놓는 것보다 분류 → 병명으로
+//    찾아 들어가는 편이 빠르다. (이달의 질병은 따로 있는 「이달의 질병」 메뉴에서 본다)
+// 분류(cat)와 분류 목록(categories)은 diseases.json에 담겨 온다. 예전 형식(분류 없음)이면
+// 색인 없이 전체를 가나다순으로 보여준다.
+const DZ_CUSTOM_CAT = { key:"custom", label:"관리자 추가", icon:"➕" };
+function dzCatOf(x){ return x.custom ? "custom" : (x.cat || "etc"); }
+function dzCategories(data){
+  const cats = (data && Array.isArray(data.categories) ? data.categories : []).slice();
+  if(cats.length && data.diseases.some(x => x.custom)) cats.push(DZ_CUSTOM_CAT);
+  return cats;
+}
 function diseaseListing(){
   const d = diseaseState, data = d.data, q = (d.query || "").trim();
-  if(q) return {mode:"search", items: diseaseMatches(data.diseases, q)};
-
+  const cats = dzCategories(data);
+  const cat = cats.some(c => c.key === d.cat) ? d.cat : "all";
+  const pool = cat === "all" ? data.diseases : data.diseases.filter(x => dzCatOf(x) === cat);
+  if(q) return {mode:"search", cat, cats, items: diseaseMatches(pool, q)};
+  if(cat === "all" && cats.length) return {mode:"index", cat, cats, items: []};
   const byName = arr => arr.slice()
     .sort((a,b) => (a.title_ko||"").localeCompare(b.title_ko||"", "ko"));
-  if(d.showAll) return {mode:"all", items: byName(data.diseases)};
+  return {mode: cat === "all" ? "all" : "cat", cat, cats, items: byName(pool)};
+}
 
-  const picks = (currentPicks()[monthKey()] || []);
-  const items = picks.map(p => data.diseases.find(x => x.slug === p.slug)).filter(Boolean);
-  return {mode:"pick", items: items, picks: picks};
+// 분류 고르기 줄 — 전체 + 분류별(종 수). 검색 중에도 보여 분류 안에서만 찾을 수 있다.
+function renderDzCatBar(listing){
+  const data = diseaseState.data;
+  if(!listing.cats.length) return "";
+  const n = k => data.diseases.filter(x => dzCatOf(x) === k).length;
+  const chip = (key, label, cnt) => {
+    const on = listing.cat === key;
+    return '<button class="dz-cat" data-cat="'+esc(key)+'" style="font-size:12px;font-weight:'+(on?800:600)+';border:1.5px solid '
+      + (on?"#00695C":"#d5dedb")+';background:'+(on?"#00695C":"#fff")+';color:'+(on?"#fff":"#35504a")
+      + ';border-radius:16px;padding:6px 11px;cursor:pointer;white-space:nowrap">'+label
+      + ' <span style="font-size:10.5px;font-weight:600;opacity:.75">'+cnt+'</span></button>';
+  };
+  return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px">'
+    + chip("all", "전체", data.diseases.length)
+    + listing.cats.map(c => chip(c.key, esc((c.icon?c.icon+" ":"")+c.label), n(c.key))).join("")
+    + '</div>';
+}
+
+// 전체 화면의 분류별 병명 색인 — 병명을 누르면 그 분류로 들어가 해당 카드를 펼친다.
+function renderDzIndex(listing){
+  const data = diseaseState.data;
+  return listing.cats.map(c => {
+    const items = data.diseases.filter(x => dzCatOf(x) === c.key)
+      .sort((a,b) => (a.title_ko||"").localeCompare(b.title_ko||"", "ko"));
+    if(!items.length) return "";
+    return '<div class="card" style="margin-bottom:8px;padding:12px 14px">'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">'
+      +   '<div style="font-size:13.5px;font-weight:800;color:#1a1a1a">'+esc((c.icon?c.icon+" ":"")+c.label)
+      +     ' <span style="font-size:11px;font-weight:600;color:#00695C">'+items.length+'종</span></div>'
+      +   '<button class="dz-cat" data-cat="'+esc(c.key)+'" style="font-size:11px;border:1px solid #00695C;border-radius:6px;background:#fff;color:#00695C;padding:3px 9px;cursor:pointer;white-space:nowrap">설명 펼쳐 보기 ›</button>'
+      + '</div>'
+      + '<div style="display:flex;gap:6px;flex-wrap:wrap">'
+      + items.map(x => '<button class="dz-jump" data-slug="'+esc(x.slug)+'" title="'+esc(x.title_en||"")+'" '
+          + 'style="font-size:12.5px;border:1px solid #e1e6e4;background:#F7FAF9;color:#222;border-radius:8px;padding:6px 10px;cursor:pointer;text-align:left">'
+          + esc(x.title_ko||x.title_en)+'</button>').join("")
+      + '</div></div>';
+  }).join("");
 }
 
 function renderDiseaseResults(){
@@ -7223,6 +7274,8 @@ function renderDiseaseResults(){
   const listing = diseaseListing();
   const hits = listing.items;
 
+  const catByKey = {};
+  listing.cats.forEach(c => { catByKey[c.key] = c; });
   const rows = hits.map(x => {
     const open = d.openSlug === x.slug;
     const showEn = !!d.showEn[x.slug];
@@ -7253,10 +7306,22 @@ function renderDiseaseResults(){
         + (isBoardAdmin() ? '<button class="dz-cedit" data-slug="'+esc(x.slug)+'" style="font-size:11px;border:1px solid #00695C;border-radius:6px;padding:3px 9px;background:#fff;color:#00695C">✏️ 고치기</button><button class="dz-cdel" data-slug="'+esc(x.slug)+'" style="font-size:11px;border:1px solid #C62828;border-radius:6px;padding:3px 9px;background:#fff;color:#C62828">🗑 지우기</button>' : '')
         + '</div>'
       : '';
-    const body = open && x.custom
-      ? '<div style="padding:10px 0 4px;border-top:1px dashed #e5e5e5;margin-top:8px">' + customBar
+    // 추가 질병(extra.json 정리본)은 원문 페이지가 없어 영문 전환 대신 영문 자료 검색 링크를 둔다.
+    const extraBar = x.extra
+      ? '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px">'
+        + '<span style="font-size:11px;font-weight:800;color:#7a5a00;background:#FFE9A8;border-radius:6px;padding:2px 8px">📘 해외 수의학 자료 요약 번역 · 수의사 검토 전</span>'
+        + (x.title_en ? '<a href="https://www.google.com/search?q='+encodeURIComponent(x.title_en+" poultry Merck Veterinary Manual")+'" target="_blank" rel="noopener" '
+          + 'style="font-size:11px;border:1px solid #bbb;border-radius:6px;padding:3px 9px;color:#666;text-decoration:none">영문 자료 검색 ↗</a>' : '')
+        + googleImageBtn(x)
+        + '</div>'
+      : '';
+    const body = open && (x.custom || x.extra)
+      ? '<div style="padding:10px 0 4px;border-top:1px dashed #e5e5e5;margin-top:8px">' + customBar + extraBar
         + (x.paras_ko||[]).map(p => { const m = p.match(/^([^:：]{1,12})\s*[:：]\s*(.*)$/);
-            return '<div style="font-size:12.5px;line-height:1.75;color:#333;margin:0 0 7px">' + (m ? '<b style="color:#00695C">'+hlDisease(m[1],q)+'</b> · '+hlDisease(m[2],q) : hlDisease(p,q)) + '</div>'; }).join("")
+            return m
+              ? '<div style="display:flex;gap:10px;align-items:flex-start;font-size:12.5px;line-height:1.75;color:#333;margin:0;padding:7px 0;border-bottom:1px solid #f1f3f2">'
+                + '<b style="flex:0 0 64px;color:#00695C">'+hlDisease(m[1],q)+'</b><span style="flex:1;min-width:0">'+hlDisease(m[2],q)+'</span></div>'
+              : '<div style="font-size:12.5px;line-height:1.75;color:#333;margin:0;padding:7px 0;border-bottom:1px solid #f1f3f2">'+hlDisease(p,q)+'</div>'; }).join("")
         + '</div>'
       : open
       ? '<div style="padding:10px 0 4px;border-top:1px dashed #e5e5e5;margin-top:8px">'
@@ -7273,14 +7338,16 @@ function renderDiseaseResults(){
 
     const thumb = (!open && firstImg)
       ? '<img src="'+esc(firstImg)+'" alt="" loading="lazy" style="width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid #eee;flex-shrink:0" onerror="this.style.display=\'none\'" />'
-      : '<span style="font-size:15px;flex-shrink:0">🦠</span>';
+      : '<span style="font-size:15px;flex-shrink:0">'+esc((catByKey[dzCatOf(x)]||{}).icon||"🦠")+'</span>';
 
     return '<div class="card" style="margin-bottom:8px;padding:12px 14px" id="dz-card-'+esc(x.slug)+'">'
       + '<div class="dz-head" data-slug="'+esc(x.slug)+'" style="cursor:pointer;display:flex;align-items:flex-start;gap:9px">'
       +   thumb
       +   '<div style="flex:1;min-width:0">'
       +     '<div style="font-size:13.5px;font-weight:700;color:#1a1a1a;line-height:1.4">'+hlDisease(x.title_ko||x.title_en, q)+'</div>'
-      +     '<div style="font-size:10px;color:#aaa;margin-top:2px">'+esc(x.title_en)+(x.custom ? ' <span style="color:#00695C;font-weight:700">· 추가'+(x.ai && !x.reviewed ? '(AI 초안)' : '')+'</span>' : '')+'</div>'
+      +     '<div style="font-size:10px;color:#aaa;margin-top:2px">'
+      +       (listing.mode!=="cat" && catByKey[dzCatOf(x)] ? '<span style="color:#00695C;font-weight:700;background:#EAF4F1;border-radius:4px;padding:1px 5px;margin-right:5px">'+esc(catByKey[dzCatOf(x)].label)+'</span>' : '')
+      +       esc(x.title_en)+(x.custom ? ' <span style="color:#00695C;font-weight:700">· 추가'+(x.ai && !x.reviewed ? '(AI 초안)' : '')+'</span>' : '')+'</div>'
       +     ((x.aliases&&x.aliases.length)?'<div style="font-size:10px;color:#00695C;margin-top:3px">'+x.aliases.map(a=>hlDisease(a,q)).join(" · ")+'</div>':"")
       +     (!open?'<div style="font-size:11px;color:#777;margin-top:5px;line-height:1.6">'+hlDisease(diseaseSnippet(x,q), q)+'…</div>':"")
       +   '</div>'
@@ -7288,31 +7355,28 @@ function renderDiseaseResults(){
       + body + '</div>';
   }).join("");
 
-  const toggle = '<button id="dz-showall" style="font-size:11px;border:1px solid #00695C;border-radius:6px;'
-    + 'background:'+(listing.mode==="all"?"#00695C":"#fff")+';color:'+(listing.mode==="all"?"#fff":"#00695C")+';padding:3px 10px">'
-    + (listing.mode==="all" ? "이달의 질병만" : "전체보기 "+data.count+"종") + '</button>';
-
+  const curCat = catByKey[listing.cat];
+  const catName = curCat ? esc((curCat.icon?curCat.icon+" ":"")+curCat.label) : "";
   const label = listing.mode==="search"
-      ? '‘'+esc(q)+'’ 검색결과 <b style="color:#00695C">'+hits.length+'</b>종'
-    : listing.mode==="all"
-      ? '전체 <b style="color:#00695C">'+data.count+'</b>종 · 가나다순'
-      : '📌 이달의 질병 <b style="color:#B8860B">'+hits.length+'</b>종';
+      ? (catName ? catName+' 안에서 ' : '')+'‘'+esc(q)+'’ 검색결과 <b style="color:#00695C">'+hits.length+'</b>종'
+    : listing.mode==="index"
+      ? '전체 <b style="color:#00695C">'+data.count+'</b>종 · 분류에서 병명을 누르면 설명이 열립니다'
+    : listing.mode==="cat"
+      ? catName+' <b style="color:#00695C">'+hits.length+'</b>종 · 가나다순'
+      : '전체 <b style="color:#00695C">'+data.count+'</b>종 · 가나다순';
 
-  const countLine = '<div style="display:flex;align-items:center;justify-content:space-between;'
-    + 'flex-wrap:wrap;gap:8px;margin:0 2px 10px">'
-    + '<span style="font-size:11px;color:#888">' + label
-    + ' · 병명뿐 아니라 <b>증상 본문</b>도 함께 검색됩니다</span>'
-    + (listing.mode==="search" ? "" : toggle) + '</div>';
+  const countLine = '<div style="margin:0 2px 10px;font-size:11px;color:#888">' + label
+    + (listing.mode==="index" ? '' : ' · 병명뿐 아니라 <b>증상 본문</b>도 함께 검색됩니다') + '</div>';
 
   const empty = listing.mode==="search"
     ? '<div class="card" style="text-align:center;padding:26px;color:#aaa;font-size:12.5px">'
       + '‘'+esc(q)+'’ 에 해당하는 질병을 찾지 못했습니다.<br>'
-      + '<span style="font-size:11px">다른 이름으로 검색해 보세요 (예: 기관지염, 장염, 백혈병)</span></div>'
-    : '<div class="card" style="text-align:center;padding:26px;color:#999;font-size:12.5px">'
-      + '이번 달 짚어준 질병이 아직 없습니다.<br>'
-      + '<span style="font-size:11px">위에서 검색하거나 ‘전체보기’로 '+data.count+'종을 볼 수 있습니다</span></div>';
+      + '<span style="font-size:11px">다른 이름으로 검색해 보세요 (예: 기관지염, 장염, 백혈병)'
+      + (listing.cat!=="all" ? ' · 지금은 '+catName+' 안에서만 찾고 있습니다. <b>전체</b>를 누르면 모든 분류에서 찾습니다' : '')+'</span></div>'
+    : '<div class="card" style="text-align:center;padding:26px;color:#999;font-size:12.5px">이 분류에 실린 질병이 없습니다.</div>';
 
-  return countLine + (hits.length ? rows : empty);
+  return renderDzCatBar(listing) + countLine
+    + (listing.mode==="index" ? renderDzIndex(listing) : (hits.length ? rows : empty));
 }
 
 // ── 🔬 최신 연구되는 질병 (양계질병 탭) ──────────────────────────────────────
@@ -7991,7 +8055,7 @@ function renderDiseaseTab(){
   if(sub === "pick") return renderMonthlyPick(data.diseases);
   return '<div class="card" style="margin-bottom:12px;border-top:6px solid #00695C">'
     +   '<div class="display" style="font-size:16px;margin-bottom:4px">🩺 양계질병 사전</div>'
-    +   '<div style="font-size:11px;color:#888;margin-bottom:10px">한글 병명으로 검색하세요 — 뉴캐슬병, 콕시듐, 마렉, 감보로, 대장균증 …</div>'
+    +   '<div style="font-size:11px;color:#888;margin-bottom:10px">한글 병명·증상으로 검색하거나, 아래 분류에서 골라 보세요 — 뉴캐슬병, 조류인플루엔자, 코라이자, 닭진드기 …</div>'
     +   '<div style="display:flex;gap:6px;align-items:center">'
     +     '<input id="dz-search" type="search" value="'+esc(q)+'" placeholder="예: 뉴캐슬병 / 호흡기 / 설사" style="flex:1;min-width:0;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px" />'
     +     '<button id="dz-clear" style="border:1px solid #ddd;border-radius:8px;background:#fff;padding:9px 11px;font-size:12px;color:#666">지우기</button>'
@@ -8001,7 +8065,8 @@ function renderDiseaseTab(){
     + (isBoardAdmin() ? renderDzForm() : '')
     + '<div id="dz-results">' + renderDiseaseResults() + '</div>'
     + '<div class="card" style="margin-top:4px"><div style="font-size:11px;color:#777;line-height:1.7">'
-    +   '<b>'+esc(data.note||"")+'</b><br>출처: '+esc(data.source||"")+' · '+(data.count - dzCustom.items.length)+'종 · 수집 '+esc(data.updated||"")
+    +   '<b>'+esc(data.note||"")+'</b><br>출처: '+esc(data.source||"")+' · '+(data.base_count || (data.count - dzCustom.items.length))+'종 · 수집 '+esc(data.updated||"")
+    +   (data.extra_count ? '<br><b style="color:#7a5a00">📘 추가 '+data.extra_count+'종</b>은 위 원문에 없는 질병(조류인플루엔자·전염성 코라이자·닭진드기 등)을 해외 수의학 자료(MSD 수의학 매뉴얼·WOAH 등)의 일반적인 내용으로 요약 번역한 것입니다. 수의사 검토 전이며 약품명·용량은 싣지 않았습니다.' : '')
     +   (dzCustom.items.length ? ' · <b style="color:#00695C">관리자 추가 '+dzCustom.items.length+'종</b>(수의사 검토 표시 확인)' : '')
     +   ' <a href="'+esc(data.url||"")+'" target="_blank" rel="noopener" style="color:#00695C;margin-left:4px">원문 ↗</a>'
     + '</div></div>';
@@ -37486,12 +37551,21 @@ function updateDiseaseResults(){
 // 결과 카드 안의 이벤트 (결과를 다시 그릴 때마다 새로 걸어줘야 한다)
 function attachDiseaseResultEvents(){
   attachDzCustomEvents();
-  const sa = document.getElementById("dz-showall");
-  if(sa) sa.onclick = () => {
-    diseaseState.showAll = !diseaseState.showAll;
+  document.querySelectorAll(".dz-cat").forEach(el => el.onclick = () => {
+    diseaseState.cat = el.dataset.cat || "all";
     diseaseState.openSlug = null;
     updateDiseaseResults();
-  };
+  });
+  // 색인의 병명 — 그 분류 목록으로 들어가 해당 카드를 펼치고 그 자리로 이동
+  document.querySelectorAll(".dz-jump").forEach(el => el.onclick = () => {
+    const x = diseaseState.data.diseases.find(y => y.slug === el.dataset.slug);
+    if(!x) return;
+    diseaseState.cat = dzCatOf(x);
+    diseaseState.openSlug = x.slug;
+    updateDiseaseResults();
+    const card = document.getElementById("dz-card-" + x.slug);
+    if(card) card.scrollIntoView({behavior:"smooth", block:"start"});
+  });
 
   document.querySelectorAll(".dz-head").forEach(el => el.onclick = () => {
     const s = el.dataset.slug;
@@ -37510,9 +37584,9 @@ function attachDiseaseResultEvents(){
 function gotoDisease(slug){
   diseaseState.query = "";
   diseaseState.openSlug = slug;
-  // 이달의 질병 목록에 없는 항목(지난달 선택 등)이면 전체보기로 바꿔야 카드가 보인다
-  const inPick = (currentPicks()[monthKey()] || []).some(p => p.slug === slug);
-  if(!inPick) diseaseState.showAll = true;
+  // 사전은 분류별로 보여주므로, 그 질병이 속한 분류로 바꿔야 카드가 보인다
+  const hit = diseaseState.data && (diseaseState.data.diseases || []).find(x => x.slug === slug);
+  diseaseState.cat = hit && dzCategories(diseaseState.data).length ? dzCatOf(hit) : "all";
   render();
   const el = document.getElementById("dz-card-" + slug);
   if(el) el.scrollIntoView({behavior:"smooth", block:"center"});
