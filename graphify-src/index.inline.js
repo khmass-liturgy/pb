@@ -31394,7 +31394,7 @@ function renderHeaderSolarTerm(now){
 // go: {tab} 일반 탭으로 / {premium:"메뉴key"} 유료서비스의 그 화면으로(승인·로그인 안내는 그 화면이 처리) / {premium:"vaccine", vaccineView:"guide"} 처럼 보기까지 지정.
 const NEW_FEATURE_DAYS = 21;
 const NEW_FEATURES = [
-  { key:"dzextra2", date:"2026-11-15", label:"질병 사전에 질병 17종 추가 — 심낭수종-간염·전염성 선위염·무산란계 증후군·봉와직염·제대염·쌓임·압사 등(논문 사진·근거 포함)", where:"질병 탭 · 질병 사전", go:{ tab:"disease" } },
+  { key:"dzextra2", date:"2026-11-15", label:"질병 사전에 질병 23종 추가 — 심낭수종-간염·전염성 선위염·무산란계 증후군·봉와직염·제대염·쌓임·압사 등(논문 사진·근거 포함)", where:"질병 탭 · 질병 사전", go:{ tab:"disease" } },
   { key:"whysick",        date:"2026-11-14", label:"닭은 왜 아플까? — 병이 생기는 원리 5강(호흡기·소화기·콕시듐·AI·감보로·더위) 그림 교실", where:"유료서비스 · 최꼬 아카데미", go:{ premium:"whysick" } },
   { key:"genomap", date:"2026-11-14", label:"IB·AI·대장균 교실에 「유전형 지도」 추가 — 최근 국내 분리주 분류를 논문 근거로 그림 설명", where:"유료서비스 · 최꼬 아카데미", go:{ premium:"ibteam" } },
   { key:"disinfect2",     date:"2026-11-14", label:"질병별 소독제 선택과 소독요령 — 그림으로 새로 정리(한눈에·질병별 난이도·희석 계산·훈증)", where:"유료서비스 · 약품·투약·소독", go:{ premium:"disinfect" } },
