@@ -3491,9 +3491,24 @@
     "법정 관리: 가축전염병예방법상 제3종 가축전염병이다. 의심되면 가축방역기관에 신고하고 검사로 고병원성 여부를 확인받아야 한다."
    ],
    "figs": [],
-   "images": [],
-   "imgs": [],
-   "refs": [],
+   "images": [
+    "assets/dz/h9n2.jpg"
+   ],
+   "imgs": [
+    {
+     "src": "assets/dz/h9n2.jpg",
+     "cap": "H9N2 감염과 저온 스트레스를 함께 준 실험 육계의 부검 소견(화살표) — (A) 기관 분기부를 막은 섬유소 덩어리 (B) 충혈된 기관 (C) 섬유소성 기낭염과 간포막염",
+     "credit": "Arbani 등 (2025) PLOS ONE",
+     "license": "CC BY 4.0",
+     "url": "https://doi.org/10.1371/journal.pone.0320666"
+    }
+   ],
+   "refs": [
+    {
+     "t": "(2025) 저온 스트레스를 이용한 모로코 H9N2 분리주의 육계 병원성 평가 모델 — PLoS One",
+     "url": "https://pubmed.ncbi.nlm.nih.gov/40184370/"
+    }
+   ],
    "extra": true,
    "cat": "virus",
    "fig": {
@@ -3544,9 +3559,24 @@
     "예방·관리: 종계가 산란 시작 전에 충분한 항체를 갖도록 백신 접종하거나 항체 형성을 확인해 병아리에 모체이행항체를 물려주는 것이 핵심이다. 다른 면역억제 질병(전염성 F낭병, 마렉병)도 함께 관리한다. 치료법은 없다."
    ],
    "figs": [],
-   "images": [],
-   "imgs": [],
-   "refs": [],
+   "images": [
+    "assets/dz/cia-thymus.jpg"
+   ],
+   "imgs": [
+    {
+     "src": "assets/dz/cia-thymus.jpg",
+     "cap": "실험 감염 14일 뒤 흉선(목 양옆) — (a) 대조군, (b)·(c) 감염 닭은 흉선 소엽이 작아지고 붉게 변함",
+     "credit": "Rimondi 등 (2014) Veterinary Research",
+     "license": "CC BY 4.0",
+     "url": "https://doi.org/10.1186/s13567-014-0102-y"
+    }
+   ],
+   "refs": [
+    {
+     "t": "(2014) 아르헨티나 닭전염성빈혈 바이러스 야외주의 병리·면역 비교 — Vet Res",
+     "url": "https://pubmed.ncbi.nlm.nih.gov/25294222/"
+    }
+   ],
    "extra": true,
    "cat": "virus",
    "fig": {
@@ -3649,9 +3679,36 @@
     "예방·관리: 입추 전 철저한 세척·소독과 충분한 휴지기간, 깔짚 교체, 초기 육추 온도·급수·사료 접근성 확보가 중요하다. 백신은 없다. 심한 왜소 개체는 조기에 도태한다."
    ],
    "figs": [],
-   "images": [],
-   "imgs": [],
-   "refs": [],
+   "images": [
+    "assets/dz/rss-chick.jpg",
+    "assets/dz/rss-lesions.jpg"
+   ],
+   "imgs": [
+    {
+     "src": "assets/dz/rss-chick.jpg",
+     "cap": "(1) 다리가 벌어진 왜소한 초생추 (2) 같은 계군의 닭보다 훨씬 작은 육계",
+     "credit": "Adebiyi 등 (2019) Frontiers in Veterinary Science",
+     "license": "CC BY 4.0",
+     "url": "https://doi.org/10.3389/fvets.2019.00239"
+    },
+    {
+     "src": "assets/dz/rss-lesions.jpg",
+     "cap": "왜소증후군 닭의 부검 소견 — (1-A) 장 출혈 (1-B) 난황 흡수 불량 (1-C) 간포막염 (1-D) 선위염",
+     "credit": "Zhang 등 (2015) PLOS ONE",
+     "license": "CC BY 4.0",
+     "url": "https://doi.org/10.1371/journal.pone.0127342"
+    }
+   ],
+   "refs": [
+    {
+     "t": "(2019) 나이지리아 상업 육계의 왜소증후군 관련 장 바이러스 조사 — Front Vet Sci",
+     "url": "https://pubmed.ncbi.nlm.nih.gov/31380402/"
+    },
+    {
+     "t": "(2015) 왜소증후군 닭의 mRNA·마이크로RNA 발현 분석 — PLoS One",
+     "url": "https://pubmed.ncbi.nlm.nih.gov/26010155/"
+    }
+   ],
    "extra": true,
    "cat": "virus",
    "fig": {
@@ -3755,9 +3812,24 @@
     "예방·관리: 감염이 없는 종계에서 병아리를 받고, 세척·소독과 차단방역을 강화한다. 사료 원료(어분) 품질과 곰팡이독소를 관리한다. 치료법은 없다."
    ],
    "figs": [],
-   "images": [],
-   "imgs": [],
-   "refs": [],
+   "images": [
+    "assets/dz/gizzard-erosion.jpg"
+   ],
+   "imgs": [
+    {
+     "src": "assets/dz/gizzard-erosion.jpg",
+     "cap": "근위 병변 — (A)~(C) 16일령 육계 야외 발생: 근위 앞쪽의 검붉은 액체, 각질층(코일린층)의 벗겨짐·변색·조각남, 아래 점막의 미란 (D)~(F) FAdV-1 실험 감염 산란계의 각질층 벗겨짐과 천공",
+     "credit": "Mirzazadeh 등 (2021) Frontiers in Veterinary Science",
+     "license": "CC BY 4.0",
+     "url": "https://doi.org/10.3389/fvets.2021.635186"
+    }
+   ],
+   "refs": [
+    {
+     "t": "(2021) 16일령 육계의 아데노바이러스성 근위 미란과 성적 저하 — Front Vet Sci",
+     "url": "https://pubmed.ncbi.nlm.nih.gov/33598489/"
+    }
+   ],
    "extra": true,
    "cat": "virus",
    "fig": {
@@ -3803,9 +3875,24 @@
     "예방·관리: 올인올아웃과 일령별 분리 사육으로 보균계와의 접촉을 끊는 것이 가장 중요하다. 발생 지역에서는 유행 혈청형이 포함된 불활화 백신을 산란 전에 접종한다. 발병 시에는 수의사 처방에 따라 항생제를 쓰되, 회복 후에도 보균 상태가 남는다."
    ],
    "figs": [],
-   "images": [],
-   "imgs": [],
-   "refs": [],
+   "images": [
+    "assets/dz/coryza.jpg"
+   ],
+   "imgs": [
+    {
+     "src": "assets/dz/coryza.jpg",
+     "cap": "공격 접종 뒤 임상증상 — (a) 대조(증상 없음) (b) 가벼운 콧물 (c) 중등도의 양쪽 얼굴 부종 (d) 심한 얼굴 부종과 결막염·출혈",
+     "credit": "Wahyuni 등 (2019) Veterinary World",
+     "license": "CC BY 4.0",
+     "url": "https://doi.org/10.14202/vetworld.2019.972-977"
+    }
+   ],
+   "refs": [
+    {
+     "t": "(2019) 4가 코라이자 백신의 공격 접종 방어 효능 — Vet World",
+     "url": "https://pubmed.ncbi.nlm.nih.gov/31528020/"
+    }
+   ],
    "extra": true,
    "cat": "bacteria",
    "fig": {
@@ -3908,9 +3995,24 @@
     "예방·관리: 상처를 줄이는 것이 기본이다. 깔짚을 건조하게 유지하고 날카로운 시설물을 손보며, 부리 자르기와 접종 때 위생을 지킨다. 면역억제 질병을 관리한다. 치료는 수의사 처방에 따르되 만성 관절 병변은 반응이 나빠 도태가 낫다."
    ],
    "figs": [],
-   "images": [],
-   "imgs": [],
-   "refs": [],
+   "images": [
+    "assets/dz/staph.jpg"
+   ],
+   "imgs": [
+    {
+     "src": "assets/dz/staph.jpg",
+     "cap": "포도상구균 관련 골격 질환 — (A) 비절과 정강이가 부은 수탉의 관절염·건초염 (B) 육계 비절 관절염의 누런 섬유소성 삼출물 (C)·(D) 칠면조의 발바닥 종창(범블풋)과 검은 딱지 (E)·(F) 육계 정강이뼈의 세균성 골수염 (G) 조직 사진",
+     "credit": "Szafraniec 등 (2022) Veterinary Quarterly",
+     "license": "CC BY 4.0",
+     "url": "https://doi.org/10.1080/01652176.2022.2033880"
+    }
+   ],
+   "refs": [
+    {
+     "t": "(2022) 가금의 포도상구균성 골격 질환 총설 — Vet Q",
+     "url": "https://pubmed.ncbi.nlm.nih.gov/35076352/"
+    }
+   ],
    "extra": true,
    "cat": "bacteria",
    "fig": {
@@ -3961,9 +4063,32 @@
     "예방·관리: 출하 후 철저한 청소·소독과 음수 라인 세척, 첫 주 장 건강과 초기 사양관리가 중요하다. 발생 농장은 수의사와 초기 관리 프로그램을 조정한다. 마비가 온 닭은 회복하지 못하므로 도태한다."
    ],
    "figs": [],
-   "images": [],
-   "imgs": [],
-   "refs": [],
+   "images": [
+    "assets/dz/cecorum-spine.jpg",
+    "assets/dz/cecorum-heart.jpg"
+   ],
+   "imgs": [
+    {
+     "src": "assets/dz/cecorum-spine.jpg",
+     "cap": "31일령 감염 육계 — 뒤쪽 흉추가 혹처럼 커진 병변(화살표). 척수를 눌러 주저앉게 된다",
+     "credit": "Jung 등 (2014) BMC Veterinary Research",
+     "license": "CC BY 4.0",
+     "url": "https://doi.org/10.1186/s12917-014-0311-7"
+    },
+    {
+     "src": "assets/dz/cecorum-heart.jpg",
+     "cap": "24일령 감염 육계 — 심낭염과 간의 섬유소성 괴사(화살표)",
+     "credit": "Jung 등 (2014) BMC Veterinary Research",
+     "license": "CC BY 4.0",
+     "url": "https://doi.org/10.1186/s12917-014-0311-7"
+    }
+   ],
+   "refs": [
+    {
+     "t": "(2014) 육계군의 엔테로코커스 세코룸 감염 종합 보고 — BMC Vet Res",
+     "url": "https://pubmed.ncbi.nlm.nih.gov/25539747/"
+    }
+   ],
    "extra": true,
    "cat": "bacteria",
    "fig": {
@@ -4014,9 +4139,24 @@
     "예방·관리: 초기 성장 속도 조절(점등·사료 프로그램), 장 건강 유지, 종계·부화장 위생, 면역억제 질병 예방, 건조한 깔짚이 도움이 된다. 발병 개체는 회복이 어렵다."
    ],
    "figs": [],
-   "images": [],
-   "imgs": [],
-   "refs": [],
+   "images": [
+    "assets/dz/bco.jpg"
+   ],
+   "imgs": [
+    {
+     "src": "assets/dz/bco.jpg",
+     "cap": "(A) 정상 대퇴골 머리 (B) 골단이 떨어져 나가며 드러난 세균성 괴사(n) (C) 골간까지 번진 괴사 (D) 정상 경골 머리 단면 (E)·(F) 경골 성장판 아래의 괴사(nm)와 병변(화살표)",
+     "credit": "Wideman 등 (2013) Frontiers in Endocrinology",
+     "license": "CC BY 3.0",
+     "url": "https://doi.org/10.3389/fendo.2012.00183"
+    }
+   ],
+   "refs": [
+    {
+     "t": "(2013) 육계 세균성 연골괴사·골수염 발생에서 뼈 혈류 장애 — Front Endocrinol",
+     "url": "https://pubmed.ncbi.nlm.nih.gov/23346077/"
+    }
+   ],
    "extra": true,
    "cat": "bacteria",
    "fig": {
@@ -4579,9 +4719,24 @@
     "예방·관리: 매개 곤충 차단이 핵심이다. 방충망 설치, 계사 주변 물웅덩이와 잡초 제거, 유문등·살충등, 발생철 계사 주변 방제. 상습 발생 지역은 발생 시기 전에 수의사와 상의해 허가된 예방 약제를 사료에 쓰되, 산란계는 사용 가능 여부와 휴약기간을 반드시 확인한다."
    ],
    "figs": [],
-   "images": [],
-   "imgs": [],
-   "refs": [],
+   "images": [
+    "assets/dz/leuco.jpg"
+   ],
+   "imgs": [
+    {
+     "src": "assets/dz/leuco.jpg",
+     "cap": "류코사이토준 감염 닭의 부검 소견(화살표) — (a) 가슴 피하 출혈 (b) 췌장·장의 출혈과 원충 덩어리 (c) 흉선 (d) 가슴 근육 출혈 (e) 심장 외막 점상 출혈 (f) 선위·근위 출혈 (g) 복강 출혈 (h) 부은 간의 피막 밑 출혈",
+     "credit": "Pohuang 등 (2021) Veterinary World",
+     "license": "CC BY 4.0",
+     "url": "https://doi.org/10.14202/vetworld.2021.2634-2639"
+    }
+   ],
+   "refs": [
+    {
+     "t": "(2021) 태국 뒷마당 닭의 류코사이토준 카울레리 병리와 분자 특성 — Vet World",
+     "url": "https://pubmed.ncbi.nlm.nih.gov/34903919/"
+    }
+   ],
    "extra": true,
    "cat": "parasite",
    "fig": {
@@ -4681,9 +4836,24 @@
     "예방·관리: 야생조류·설치류 차단, 난좌와 장비 관리, 정기 검사(주 1회 표본 닭 확인). 발생 시 허가된 외부기생충 구제제를 닭 몸의 총배설강 주변까지 닿도록 처리하고 용법과 휴약기간을 지킨다."
    ],
    "figs": [],
-   "images": [],
-   "imgs": [],
-   "refs": [],
+   "images": [
+    "assets/dz/nfm.jpg"
+   ],
+   "imgs": [
+    {
+     "src": "assets/dz/nfm.jpg",
+     "cap": "감염된 암탉의 항문 주위 — 깃털과 피부에 모여 흡혈하는 닭털진드기 떼(화살표)",
+     "credit": "Mullens 등 (2017) Parasites & Vectors",
+     "license": "CC BY 4.0",
+     "url": "https://doi.org/10.1186/s13071-017-2289-z"
+    }
+   ],
+   "refs": [
+    {
+     "t": "(2017) 닭진드기·닭털진드기에 대한 살비 성분의 접촉 효력 비교 — Parasit Vectors",
+     "url": "https://pubmed.ncbi.nlm.nih.gov/28768553/"
+    }
+   ],
    "extra": true,
    "cat": "parasite",
    "fig": {
@@ -5390,9 +5560,24 @@
     "예방·관리: 출하 직후 계사가 식기 전에 방제하는 것이 가장 효과적이다. 깔짚 반출과 청소, 벽체 하단과 기둥 주변 처리, 허가된 살충제의 계열 교체 사용, 사료 흘림 방지, 폐사체 즉시 제거. 닭이 있을 때는 닭과 사료·음수에 닿지 않게 허가 용법대로만 쓴다."
    ],
    "figs": [],
-   "images": [],
-   "imgs": [],
-   "refs": [],
+   "images": [
+    "assets/dz/darkling.jpg"
+   ],
+   "imgs": [
+    {
+     "src": "assets/dz/darkling.jpg",
+     "cap": "(a) 거저리 유충이 갉아 구멍 낸 폴리우레탄 단열재 — 위: 3개월 뒤, 아래: 3일 뒤 (b) 포장된 도체에 섞여 들어간 거저리 유충",
+     "credit": "Polat 등 (2024) Veterinary Sciences",
+     "license": "CC BY 4.0",
+     "url": "https://doi.org/10.3390/vetsci11110567"
+    }
+   ],
+   "refs": [
+    {
+     "t": "(2024) 양계장 거저리에 대한 곤충병원성 선충의 효과 — Vet Sci",
+     "url": "https://pubmed.ncbi.nlm.nih.gov/39591341/"
+    }
+   ],
    "extra": true,
    "cat": "etc",
    "fig": {
