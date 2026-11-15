@@ -90,7 +90,7 @@ KO_ALIASES = {
     "infectious-bronchitis-ib": ["전염성 기관지염", "IB"],
     "fowl-pox": ["계두", "가금 두창"],
     "laryngotracheitis": ["전염성 후두기관염", "ILT"],
-    "swollen-head-syndrome": ["종창두증후군", "부어오른 머리 증후군", "SHS", "조류메타뉴모바이러스", "aMPV"],
+    "swollen-head-syndrome": ["두부종창증후군", "종창두증후군", "부어오른 머리 증후군", "SHS", "조류메타뉴모바이러스", "aMPV"],
     "infectious-encephalomyelitis": ["전염성 뇌척수염", "AE"],
     "newcastle-disease": ["뉴캐슬병", "뉴캣슬병", "ND", "가금 뉴캐슬"],
     "reovirus-infections": ["레오바이러스", "바이러스성 관절염"],
@@ -312,6 +312,7 @@ def with_extra(diseases):
             "images": [i["src"] for i in (e.get("imgs") or []) if i.get("src")],
             "imgs": e.get("imgs") or [], "refs": e.get("refs") or [],
             "extra": True, "cat": e.get("cat") or "etc",
+            "added": e.get("added", ""),   # 추가한 날(YYYY-MM-DD) — 화면에서 한동안 NEW 표시
         })
     return base + added, (extra.get("categories") or [])
 

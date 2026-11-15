@@ -7249,6 +7249,17 @@ function renderDzCatBar(listing){
 }
 
 // 전체 화면의 분류별 병명 색인 — 병명을 누르면 그 분류로 들어가 해당 카드를 펼친다.
+// 새로 추가한 질병(extra.json의 added 날짜)에 DZ_NEW_DAYS일 동안 NEW 표시를 붙인다.
+const DZ_NEW_DAYS = 30;
+function dzIsNew(x){
+  if(!x || !/^\d{4}-\d{2}-\d{2}$/.test(x.added||"")) return false;
+  const days = (Date.now() - new Date(x.added+"T00:00:00+09:00").getTime()) / 86400000;
+  return days >= 0 && days <= DZ_NEW_DAYS;
+}
+function dzNewBadge(x){
+  return dzIsNew(x) ? ' <span title="'+esc(x.added)+' 추가" style="display:inline-block;font-size:9.5px;font-weight:800;letter-spacing:.3px;color:#fff;background:#E53935;border-radius:5px;padding:1px 5px;vertical-align:middle;line-height:1.5">NEW</span>' : '';
+}
+
 function renderDzIndex(listing){
   const data = diseaseState.data;
   return listing.cats.map(c => {
@@ -7264,7 +7275,7 @@ function renderDzIndex(listing){
       + '<div style="display:flex;gap:6px;flex-wrap:wrap">'
       + items.map(x => '<button class="dz-jump" data-slug="'+esc(x.slug)+'" title="'+esc(x.title_en||"")+'" '
           + 'style="font-size:12.5px;border:1px solid #e1e6e4;background:#F7FAF9;color:#222;border-radius:8px;padding:6px 10px;cursor:pointer;text-align:left">'
-          + esc(x.title_ko||x.title_en)+'</button>').join("")
+          + esc(x.title_ko||x.title_en)+dzNewBadge(x)+'</button>').join("")
       + '</div></div>';
   }).join("");
 }
@@ -7369,7 +7380,7 @@ function renderDiseaseResults(){
       + '<div class="dz-head" data-slug="'+esc(x.slug)+'" style="cursor:pointer;display:flex;align-items:flex-start;gap:9px">'
       +   thumb
       +   '<div style="flex:1;min-width:0">'
-      +     '<div style="font-size:13.5px;font-weight:700;color:#1a1a1a;line-height:1.4">'+hlDisease(x.title_ko||x.title_en, q)+'</div>'
+      +     '<div style="font-size:13.5px;font-weight:700;color:#1a1a1a;line-height:1.4">'+hlDisease(x.title_ko||x.title_en, q)+dzNewBadge(x)+'</div>'
       +     '<div style="font-size:10px;color:#aaa;margin-top:2px">'
       +       (listing.mode!=="cat" && catByKey[dzCatOf(x)] ? '<span style="color:#00695C;font-weight:700;background:#EAF4F1;border-radius:4px;padding:1px 5px;margin-right:5px">'+esc(catByKey[dzCatOf(x)].label)+'</span>' : '')
       +       esc(x.title_en)+(x.custom ? ' <span style="color:#00695C;font-weight:700">· 추가'+(x.ai && !x.reviewed ? '(AI 초안)' : '')+'</span>' : '')+'</div>'
