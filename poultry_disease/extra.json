@@ -1,6 +1,6 @@
 {
  "updated": "2026-11-15",
- "note": "The Poultry Site 번역본(diseases.json 기본 항목)에 없는 양계질병을 해외 수의학 표준 자료(MSD/Merck Veterinary Manual, Diseases of Poultry, WOAH 등)의 일반적인 내용을 바탕으로 한글로 요약·정리한 것입니다. 수의사 검토 전 자료이며 약품명·용량은 싣지 않습니다. 이 파일이 원본이고, scripts/fetch_poultry_diseases.py가 diseases.json에 합쳐 넣습니다.",
+ "note": "The Poultry Site 번역본(diseases.json 기본 항목)에 없는 양계질병을 해외 수의학 표준 자료(MSD/Merck Veterinary Manual, Diseases of Poultry, WOAH 등)의 일반적인 내용을 바탕으로 한글로 요약·정리한 것입니다. 약품명·용량은 싣지 않습니다. 이 파일이 원본이고, scripts/fetch_poultry_diseases.py가 diseases.json에 합쳐 넣습니다.",
  "categories": [
   {
    "key": "virus",
@@ -134,7 +134,36 @@
       "다리 비늘 출혈"
      ]
     ]
-   }
+   },
+   "imgs": [
+    {
+     "src": "assets/dz/hpai-signs.jpg",
+     "cap": "자연 감염 닭 — (a) 비틀거림·다리 마비로 쓰러진 닭 (b) 볏과 육수의 청색증(위: H5N8, 아래: H5N1 감염)",
+     "credit": "Djurdjević 등 (2023) Animals",
+     "license": "CC BY 4.0",
+     "url": "https://doi.org/10.3390/ani13040700"
+    },
+    {
+     "src": "assets/dz/hpai-fat.jpg",
+     "cap": "자연 감염 닭의 복강 지방 점상 출혈 — (a) H5N8 (b) H5N1 감염 닭의 넓게 퍼진 출혈",
+     "credit": "Djurdjević 등 (2023) Animals",
+     "license": "CC BY 4.0",
+     "url": "https://doi.org/10.3390/ani13040700"
+    },
+    {
+     "src": "assets/dz/hpai-pancreas.jpg",
+     "cap": "H5N1 자연 감염 닭의 췌장 — (a) 여러 곳의 출혈 (b) 0.1~0.5mm 크기의 괴사 반점",
+     "credit": "Djurdjević 등 (2023) Animals",
+     "license": "CC BY 4.0",
+     "url": "https://doi.org/10.3390/ani13040700"
+    }
+   ],
+   "refs": [
+    {
+     "t": "(2023) 세르비아 뒷마당 닭의 고병원성 AI H5N8 발생: 임상·부검 소견 — Animals",
+     "url": "https://pubmed.ncbi.nlm.nih.gov/36830487/"
+    }
+   ]
   },
   {
    "slug": "low-pathogenic-avian-influenza-h9n2",
@@ -903,7 +932,22 @@
       "산란 저하·혈반란"
      ]
     ]
-   }
+   },
+   "imgs": [
+    {
+     "src": "assets/dz/red-mite.jpg",
+     "cap": "계사 안의 닭진드기 — (a) 산란계 케이지 천장에 빽빽하게 모인 진드기 떼 (b) 깔짚 짚 속에 숨은 진드기와 알",
+     "credit": "Sigognault Flochlay 등 (2017) Parasites & Vectors",
+     "license": "CC BY 4.0",
+     "url": "https://doi.org/10.1186/s13071-017-2292-4"
+    }
+   ],
+   "refs": [
+    {
+     "t": "(2017) 닭진드기 감염: 유럽 채란업계의 과제 — Parasit Vectors",
+     "url": "https://pubmed.ncbi.nlm.nih.gov/28760144/"
+    }
+   ]
   },
   {
    "slug": "lice-infestation",

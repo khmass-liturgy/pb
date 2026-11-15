@@ -3407,9 +3407,40 @@
     "법정 관리: 가축전염병예방법상 제1종 가축전염병이다. 폐사 급증·산란 급감 등 의심 증상이 보이면 즉시 가축방역기관(1588-9060 / 1588-4060)에 신고해야 하며, 발생 농장은 살처분과 이동제한 대상이 된다. 사람에게도 감염될 수 있는 인수공통전염병이므로 폐사체를 맨손으로 만지지 않는다."
    ],
    "figs": [],
-   "images": [],
-   "imgs": [],
-   "refs": [],
+   "images": [
+    "assets/dz/hpai-signs.jpg",
+    "assets/dz/hpai-fat.jpg",
+    "assets/dz/hpai-pancreas.jpg"
+   ],
+   "imgs": [
+    {
+     "src": "assets/dz/hpai-signs.jpg",
+     "cap": "자연 감염 닭 — (a) 비틀거림·다리 마비로 쓰러진 닭 (b) 볏과 육수의 청색증(위: H5N8, 아래: H5N1 감염)",
+     "credit": "Djurdjević 등 (2023) Animals",
+     "license": "CC BY 4.0",
+     "url": "https://doi.org/10.3390/ani13040700"
+    },
+    {
+     "src": "assets/dz/hpai-fat.jpg",
+     "cap": "자연 감염 닭의 복강 지방 점상 출혈 — (a) H5N8 (b) H5N1 감염 닭의 넓게 퍼진 출혈",
+     "credit": "Djurdjević 등 (2023) Animals",
+     "license": "CC BY 4.0",
+     "url": "https://doi.org/10.3390/ani13040700"
+    },
+    {
+     "src": "assets/dz/hpai-pancreas.jpg",
+     "cap": "H5N1 자연 감염 닭의 췌장 — (a) 여러 곳의 출혈 (b) 0.1~0.5mm 크기의 괴사 반점",
+     "credit": "Djurdjević 등 (2023) Animals",
+     "license": "CC BY 4.0",
+     "url": "https://doi.org/10.3390/ani13040700"
+    }
+   ],
+   "refs": [
+    {
+     "t": "(2023) 세르비아 뒷마당 닭의 고병원성 AI H5N8 발생: 임상·부검 소견 — Animals",
+     "url": "https://pubmed.ncbi.nlm.nih.gov/36830487/"
+    }
+   ],
    "extra": true,
    "cat": "virus",
    "fig": {
@@ -4338,9 +4369,24 @@
     "예방·관리: 계군 교체기의 철저한 청소·세척·건조와 틈새 처리가 가장 효과적이다. 사육 중에는 정기 모니터링으로 밀도가 낮을 때 대응하고, 닭이 있는 상태에서는 허가된 동물용의약품·의약외품만 용법과 휴약기간을 지켜 사용한다. 허가되지 않은 살충제를 닭이나 계사에 뿌리면 달걀에 잔류하므로 절대 쓰지 않는다. 약제 저항성을 막기 위해 계열을 바꿔 가며 쓰고, 규조토·실리카 같은 물리적 방제와 병행한다. 난좌·차량 관리, 야생조류 차단으로 유입을 막는다."
    ],
    "figs": [],
-   "images": [],
-   "imgs": [],
-   "refs": [],
+   "images": [
+    "assets/dz/red-mite.jpg"
+   ],
+   "imgs": [
+    {
+     "src": "assets/dz/red-mite.jpg",
+     "cap": "계사 안의 닭진드기 — (a) 산란계 케이지 천장에 빽빽하게 모인 진드기 떼 (b) 깔짚 짚 속에 숨은 진드기와 알",
+     "credit": "Sigognault Flochlay 등 (2017) Parasites & Vectors",
+     "license": "CC BY 4.0",
+     "url": "https://doi.org/10.1186/s13071-017-2292-4"
+    }
+   ],
+   "refs": [
+    {
+     "t": "(2017) 닭진드기 감염: 유럽 채란업계의 과제 — Parasit Vectors",
+     "url": "https://pubmed.ncbi.nlm.nih.gov/28760144/"
+    }
+   ],
    "extra": true,
    "cat": "parasite",
    "fig": {
