@@ -312,6 +312,7 @@ def with_extra(diseases):
             "images": [i["src"] for i in (e.get("imgs") or []) if i.get("src")],
             "imgs": e.get("imgs") or [], "refs": e.get("refs") or [],
             "extra": True, "cat": e.get("cat") or "etc",
+            "fig": e.get("fig") or None,   # 사진이 없을 때 그리는 설명 그림(원인·주요 부위)
             "added": e.get("added", ""),   # 추가한 날(YYYY-MM-DD) — 화면에서 한동안 NEW 표시
         })
     return base + added, (extra.get("categories") or [])

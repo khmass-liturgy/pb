@@ -7280,6 +7280,68 @@ function renderDzIndex(listing){
   }).join("");
 }
 
+// 사진이 없는 질병의 설명 그림 — 닭 옆모습에 주로 이상이 보이는 부위를 번호로 찍고, 원인을 아래에 적는다.
+// extra.json의 fig({cause:[종류,이름], parts:[[부위,설명],…]})가 있으면 그대로, 없으면(관리자 추가 등) 본문 낱말에서 부위를 고른다.
+const DZ_FIG_PARTS = {   // 이름, 닭 몸통 가운데 기준 위치(dx, dy)
+  head:["머리·얼굴", 25, -31], eye:["눈", 28, -33], beak:["부리", 38, -29], comb:["볏", 25, -42], nerve:["신경", 21, -34],
+  resp:["호흡기", 19, -12], heart:["심장", 13, 1], liver:["간·비장", 4, 7], gizz:["근위", 3, 11], gut:["장", -7, 9],
+  kidney:["신장", -11, -7], repro:["난소·난관", -18, 5], vent:["총배설강", -29, 6], skin:["피부·깃털", -4, -15],
+  spine:["척추", -8, -13], muscle:["가슴 근육", 17, 10], leg:["다리·뼈", 5, 21], foot:["발바닥", 13, 36], whole:["계군 전체", 0, 0]
+};
+const DZ_FIG_WORDS = [["resp",/호흡|기침|재채기|콧물|기낭|기관/],["gut",/설사|장염|장 |소장|맹장/],["liver",/간 |간이|간의|비장/],["repro",/산란|난관|난각/],
+  ["leg",/절뚝|관절|다리|파행/],["skin",/피부|깃털/],["nerve",/신경|마비|사경/],["kidney",/신장|요산/],["head",/얼굴|볏|육수/],["eye",/결막|눈/]];
+const DZ_FIG_CAUSE = { virus:"바이러스", bacteria:"세균", parasite:"기생충·원충", toxin:"곰팡이·독소·중독", metabolic:"영양·대사", etc:"사양관리", custom:"" };
+function dzFigSpec(x){
+  if(x.fig && Array.isArray(x.fig.parts) && x.fig.parts.length) return x.fig;
+  const txt = (x.paras_ko||[]).filter(p => /^(임상증상|부검소견)/.test(p)).join(" ");
+  const parts = DZ_FIG_WORDS.filter(w => w[1].test(txt)).slice(0, 3).map(w => [w[0], ""]);
+  if(!parts.length) return null;
+  const cat = dzCatOf(x), kind = { virus:"virus", bacteria:"bacteria", parasite:"worm", toxin:"toxin", metabolic:"nutri" }[cat] || "manage";
+  const cause = ((x.paras_ko||[]).find(p => /^원인\s*[:：]/.test(p)) || "").replace(/^원인\s*[:：]\s*/, "").split(/[.。]/)[0];
+  return { cause:[kind, cause.length > 24 ? (DZ_FIG_CAUSE[cat] || "") : cause], parts };
+}
+// 오른쪽 설명은 9자 안팎에서 두 줄로 나눈다(가운뎃점·빈칸에서 끊음).
+function dzFigWrap(t){
+  if(t.length <= 9) return [t];
+  let cut = -1;
+  for(let i = Math.min(9, t.length - 1); i >= 3; i--){ if(/[·\s(]/.test(t[i])){ cut = i; break; } }
+  if(cut < 0) cut = 9;
+  const a = t.slice(0, t[cut] === "(" ? cut : cut + 1).trim(), b = t.slice(t[cut] === "(" ? cut : cut + 1).trim();
+  return b ? [a, b.slice(0, 10)] : [a];
+}
+function dzFigCauseIcon(kind, x, y){
+  if(kind === "virus") return gmVirus(x, y, 9, "#8E24AA", { n:10 });
+  if(kind === "bacteria") return gmRod(x, y, 24, 11, "#43A047", -15);
+  if(kind === "coccus") return gmCoccus(x - 6, y, 6, "#FB8C00") + gmCoccus(x + 5, y - 3, 6, "#FB8C00") + gmCoccus(x + 3, y + 7, 6, "#FB8C00");
+  if(kind === "spiral") return gmSpiral(x, y, 26, "#00897B", 5, 2);
+  return gmE(x, y, { mite:"🕷️", worm:"🪱", proto:"🦟", toxin:"🍄", nutri:"🥣", beetle:"🪲" }[kind] || "🏠", 20);
+}
+function dzAutoFig(x){
+  const sp = dzFigSpec(x);
+  if(!sp) return "";
+  const parts = sp.parts.filter(p => DZ_FIG_PARTS[p[0]]).slice(0, 3);
+  if(!parts.length) return "";
+  const s = 1.75, hx = 88, hy = 108, cols = ["#E53935", "#1E88E5", "#F57C00"];
+  let g = gmBox(2, 2, 316, 226, "#F7FAF9", "#DCE8E4", 14) + gmT(160, 22, "주로 이상이 보이는 곳", { s:13, w:800, c:"#00695C" }) + wyHen(hx, hy, s);
+  parts.forEach((p, i) => {
+    const P = DZ_FIG_PARTS[p[0]], c = cols[i], y = 46 + i * 49;
+    if(p[0] === "whole"){
+      g += `<ellipse cx="${hx - 4}" cy="${hy - 6}" rx="80" ry="72" fill="none" stroke="${c}" stroke-width="2.2" stroke-dasharray="6 5"/>` + wyNum(hx - 70, hy - 52, i + 1, c);
+    } else {
+      const px = gmR(hx + P[1] * s), py = gmR(hy + P[2] * s);
+      g += `<circle cx="${px}" cy="${py}" r="14" fill="${c}22" stroke="${c}" stroke-width="2"/>` + wyNum(px, py, i + 1, c);
+    }
+    g += wyNum(186, y, i + 1, c) + gmT(202, y - 2, esc(P[0]), { s:13, w:800, c:c, a:"start" })
+      + (p[1] ? gmT(202, y + 14, dzFigWrap(String(p[1])).map(esc), { s:12, w:600, c:"#444", a:"start", lh:14 }) : "");
+  });
+  const cz = sp.cause || [];
+  if(cz[1]) g += gmBox(10, 190, 300, 30, "#fff", "#DCE8E4", 9) + gmT(20, 210, "원인", { s:12, w:800, c:"#00695C", a:"start" })
+    + dzFigCauseIcon(cz[0], 66, 205) + gmT(86, 210, esc(String(cz[1]).slice(0, 20)), { s:12.5, w:700, c:"#333", a:"start" });
+  return '<figure style="margin:0 0 10px;border:1px solid #e6ebe9;border-radius:10px;overflow:hidden;background:#fafcfb;max-width:440px">'
+    + gmSvg(cz[1] ? 230 : 190, g, esc(x.title_ko)+" 설명 그림")
+    + '<figcaption style="padding:6px 9px;font-size:10.5px;color:#777">설명 그림(자동 생성 · 실제 사진 아님) — 번호는 본문의 임상증상·부검소견에서 주로 이상이 보이는 부위</figcaption></figure>';
+}
+
 // 추가 질병(extra.json)의 사진 — 자유 이용 허락(CC BY) 논문 그림만 싣고, 사진마다 출처·라이선스를 표시한다.
 function dzExtraFigs(x){
   const imgs = (x.imgs||[]).filter(i => i && i.src);
@@ -7351,7 +7413,7 @@ function renderDiseaseResults(){
       : '';
     const body = open && (x.custom || x.extra)
       ? '<div style="padding:10px 0 4px;border-top:1px dashed #e5e5e5;margin-top:8px">' + customBar + extraBar
-        + dzExtraFigs(x)
+        + (dzExtraFigs(x) || dzAutoFig(x))
         + (x.paras_ko||[]).map(p => { const m = p.match(/^([^:：]{1,12})\s*[:：]\s*(.*)$/);
             return m
               ? '<div style="display:flex;gap:10px;align-items:flex-start;font-size:12.5px;line-height:1.75;color:#333;margin:0;padding:7px 0;border-bottom:1px solid #f1f3f2">'
