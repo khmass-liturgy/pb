@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 250" font-family="'Noto Sans KR','Malgun Gothic','Apple SD Gothic Neo',sans-serif">
+<rect width="320" height="250" fill="#FBFDFC"/>
+<text x="160" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#00695C">변이형 F낭병 — F낭만 조용히 작아진다</text>
+<!-- 정상 -->
+<g>
+<ellipse cx="85" cy="92" rx="46" ry="42" fill="#F6C9B8" stroke="#C97C63" stroke-width="2"/>
+<path d="M52 80 Q85 62 118 80 M48 95 Q85 78 122 95 M52 110 Q85 95 118 110" fill="none" stroke="#D99A84" stroke-width="2"/>
+<path d="M85 134 L85 150" stroke="#C97C63" stroke-width="5" stroke-linecap="round"/>
+<text x="85" y="170" text-anchor="middle" font-size="13" font-weight="700" fill="#333">정상 F낭</text>
+<text x="85" y="187" text-anchor="middle" font-size="12" fill="#555">체중 대비 0.35</text>
+</g>
+<path d="M142 92 H176" stroke="#888" stroke-width="2.5"/><path d="M176 92 l-8 -5 v10z" fill="#888"/>
+<text x="160" y="82" text-anchor="middle" font-size="12" fill="#666">21일 뒤</text>
+<!-- 위축 -->
+<g>
+<ellipse cx="235" cy="104" rx="19" ry="17" fill="#E2D3A8" stroke="#A08A4A" stroke-width="2"/>
+<path d="M222 101 Q235 94 248 101 M222 109 Q235 103 248 109" fill="none" stroke="#B9A56A" stroke-width="1.5"/>
+<path d="M235 121 L235 150" stroke="#A08A4A" stroke-width="5" stroke-linecap="round"/>
+<ellipse cx="235" cy="92" rx="46" ry="42" fill="none" stroke="#bbb" stroke-width="1.5" stroke-dasharray="4 4"/>
+<text x="235" y="170" text-anchor="middle" font-size="13" font-weight="700" fill="#B23B2E">감염된 F낭 (위축)</text>
+<text x="235" y="187" text-anchor="middle" font-size="12" fill="#555">체중 대비 0.06</text>
+</g>
+<rect x="10" y="198" width="300" height="44" rx="8" fill="#FFF4D6" stroke="#E6C766"/>
+<text x="160" y="216" text-anchor="middle" font-size="12" font-weight="700" fill="#7a5a00">겉 증상·폐사는 거의 없음</text>
+<text x="160" y="234" text-anchor="middle" font-size="12" fill="#7a5a00">→ 면역 저하 → 2차 감염↑ · 백신 효과↓</text>
+</svg>

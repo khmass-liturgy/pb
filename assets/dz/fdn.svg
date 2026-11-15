@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 250" font-family="'Noto Sans KR','Malgun Gothic','Apple SD Gothic Neo',sans-serif">
+<rect width="320" height="250" fill="#FBFDFC"/>
+<text x="160" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#00695C">국소성 십이지장 괴사 — 어디를 볼까</text>
+<!-- 근위 -->
+<ellipse cx="48" cy="62" rx="30" ry="24" fill="#B5544A" stroke="#8A3A32" stroke-width="2"/>
+<text x="48" y="67" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">근위</text>
+<!-- 십이지장 고리 (U자) -->
+<path d="M70 78 C92 96 96 120 96 150 C96 196 150 196 150 150 C150 120 150 96 150 62" fill="none" stroke="#D98E7A" stroke-width="20" stroke-linecap="round"/>
+<path d="M70 78 C92 96 96 120 96 150 C96 196 150 196 150 150 C150 120 150 96 150 62" fill="none" stroke="#F3C4B5" stroke-width="13" stroke-linecap="round"/>
+<!-- 췌장 -->
+<path d="M123 92 V160" stroke="#F1E3A6" stroke-width="12" stroke-linecap="round"/>
+<text x="123" y="84" text-anchor="middle" font-size="12" fill="#8a7420">췌장</text>
+<text x="100" y="212" text-anchor="middle" font-size="13" font-weight="700" fill="#333">십이지장 고리</text>
+<!-- 확대 선 -->
+<circle cx="97" cy="150" r="13" fill="none" stroke="#00695C" stroke-width="2"/>
+<path d="M110 146 L186 78 M108 158 L186 180" stroke="#00695C" stroke-width="1.5" stroke-dasharray="4 3"/>
+<!-- 점막 확대 -->
+<rect x="186" y="62" width="124" height="118" rx="10" fill="#F6CFC2" stroke="#00695C" stroke-width="2"/>
+<path d="M192 86 Q248 76 304 86 M192 110 Q248 100 304 110 M192 134 Q248 124 304 134 M192 158 Q248 148 304 158" fill="none" stroke="#E5AD9C" stroke-width="2"/>
+<g stroke="#8E2A22" stroke-width="1.5">
+<ellipse cx="214" cy="92" rx="9" ry="6" fill="#C2473B"/><ellipse cx="262" cy="104" rx="11" ry="7" fill="#9A9088"/>
+<ellipse cx="232" cy="130" rx="8" ry="6" fill="#C2473B"/><ellipse cx="284" cy="142" rx="9" ry="6" fill="#C2473B"/>
+<ellipse cx="208" cy="160" rx="8" ry="5" fill="#9A9088"/><ellipse cx="256" cy="164" rx="7" ry="5" fill="#C2473B"/>
+</g>
+<text x="248" y="54" text-anchor="middle" font-size="12" font-weight="700" fill="#00695C">갈라 본 점막 (확대)</text>
+<text x="248" y="198" text-anchor="middle" font-size="12" fill="#8E2A22">붉은·회색 괴사 반점</text>
+<rect x="10" y="220" width="300" height="24" rx="8" fill="#FFF4D6" stroke="#E6C766"/>
+<text x="160" y="237" text-anchor="middle" font-size="12" font-weight="700" fill="#7a5a00">갓 도태한 닭을 바로 열어야 보인다</text>
+</svg>
