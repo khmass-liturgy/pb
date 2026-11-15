@@ -7316,13 +7316,117 @@ function dzFigCauseIcon(kind, x, y){
   if(kind === "spiral") return gmSpiral(x, y, 26, "#00897B", 5, 2);
   return gmE(x, y, { mite:"🕷️", worm:"🪱", proto:"🦟", toxin:"🍄", nutri:"🥣", beetle:"🪲" }[kind] || "🏠", 20);
 }
+// 설명 그림 아래에 붙이는 「눈여겨볼 모습」 조각 그림(96×64 칸). extra.json fig.tiles = [[조각, 옵션, 설명], …]
+const DZ_TILES = {
+  gut(o){ let s = `<rect x="4" y="16" width="88" height="32" rx="16" fill="#F6C6B8" stroke="#C98572" stroke-width="2"/><rect x="10" y="22" width="76" height="20" rx="10" fill="${o.watery ? "#CFE9F5" : "#FBE3DA"}"/>`;
+    if(o.ulcer) s += [[24,30],[44,36],[60,27],[76,35]].map(p => `<ellipse cx="${p[0]}" cy="${p[1]}" rx="6" ry="4.5" fill="#EBD572" stroke="#7A4B2A" stroke-width="1.6"/>`).join("");
+    if(o.worm) s += [[16,28],[34,36],[50,27],[66,35]].map(p => `<path d="M${p[0]} ${p[1]}q5 -6 10 0t10 0" fill="none" stroke="#8D6E63" stroke-width="1.6" stroke-linecap="round"/>`).join("");
+    if(o.watery) s += [[26,30],[48,35],[68,29]].map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="2.6" fill="#fff" stroke="#8CC5E0"/>`).join("");
+    return s; },
+  liver(o){ let s = `<path d="M8 40Q6 14 40 11Q80 6 90 30Q92 50 60 53Q28 60 8 40Z" fill="${o.dark ? "#5E2A2A" : "#96463A"}" stroke="#4E1F1B" stroke-width="1.6"/><path d="M48 12Q46 34 52 54" fill="none" stroke="#4E1F1B" stroke-width="1.3"/>`;
+    if(o.spots) s += [[22,30],[34,42],[40,22],[62,30],[74,40],[70,20],[56,44]].map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="3.2" fill="#F3E3A0"/>`).join("");
+    if(o.big) s += `<path d="M4 44Q0 8 40 5Q86 0 95 30" fill="none" stroke="#E53935" stroke-width="1.6" stroke-dasharray="4 3"/>`;
+    return s; },
+  airsac(){ return `<ellipse cx="30" cy="30" rx="16" ry="22" fill="#F4A9A0" stroke="#C0655A" stroke-width="1.6"/><ellipse cx="62" cy="34" rx="28" ry="24" fill="#EEF7FB" stroke="#9CC3D5" stroke-width="1.8"/>`
+    + [[52,28,7],[66,40,8],[74,26,6],[58,46,5]].map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="${p[2]}" fill="#F2DC7E" stroke="#C9A93A" stroke-width="1.2"/>`).join(""); },
+  head(o){ const comb = o.pale ? "#F1C7C7" : "#E53935";
+    let s = [[34,12,6],[44,9,7],[54,13,6]].map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="${p[2]}" fill="${comb}"/>`).join("")
+      + `<circle cx="44" cy="34" r="20" fill="#FFF3E0" stroke="#A1887F" stroke-width="1.8"/><ellipse cx="58" cy="52" rx="5" ry="8" fill="${comb}"/>`
+      + (o.open ? `<polygon points="62,28 82,26 63,34" fill="#FFA000"/><polygon points="62,38 78,44 62,43" fill="#FFA000"/>` : `<polygon points="62,29 82,35 62,41" fill="#FFA000"/>`);
+    if(o.eyeSwollen) s += `<ellipse cx="50" cy="29" rx="10" ry="8" fill="#F8B4B4" stroke="#E57373" stroke-width="1.4"/>`;
+    s += o.eyeClosed || o.eyeSwollen ? `<path d="M45 30q5 3 10 0" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round"/>` : `<circle cx="50" cy="29" r="3.4" fill="${o.cloudy ? "#CFD8DC" : "#333"}" stroke="#333" stroke-width="1"/>`;
+    if(o.discharge) s += `<path d="M64 34q4 8 0 13q-4 -5 0 -13z" fill="#7EC8E3" stroke="#3E97B8" stroke-width="1"/>`;
+    if(o.tear) s += `<path d="M48 35q3 7 0 11q-3 -4 0 -11z" fill="#7EC8E3" stroke="#3E97B8" stroke-width="1"/>`;
+    if(o.wound) s += `<path d="M36 10l5 5M47 6l4 6" stroke="#6D1B1B" stroke-width="2.2" stroke-linecap="round"/><circle cx="33" cy="26" r="3" fill="#B71C1C"/>`;
+    return s; },
+  dropping(o){ let s = (o.watery ? `<ellipse cx="48" cy="48" rx="42" ry="10" fill="#CFE9F5" stroke="#8CC5E0"/>` : "")
+      + `<path d="M22 48Q24 30 40 30Q44 16 56 24Q72 26 74 48Z" fill="${o.green ? "#7C9A4A" : "#8D6E4B"}" stroke="#5D4630" stroke-width="1.4"/><path d="M44 30q6 -8 10 -4" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>`;
+    if(o.froth) s += [[30,40,4],[40,36,5],[52,40,4],[62,36,5],[46,44,3.5],[66,44,3]].map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="${p[2]}" fill="#ffffffcc" stroke="#BCAAA4"/>`).join("");
+    if(o.feed) s += [[32,42],[42,38],[50,44],[60,40],[66,45],[38,46]].map(p => `<rect x="${p[0]}" y="${p[1]}" width="5" height="3.4" rx="1.2" fill="#F6B63C"/>`).join("");
+    return s; },
+  egg(o){ let s = `<path d="M48 6C66 6 76 30 76 42C76 54 64 60 48 60C32 60 20 54 20 42C20 30 30 6 48 6Z" fill="${o.thin ? "#F3E3CF" : "#D9A26E"}" stroke="#A9743F" stroke-width="2"/>`;
+    if(o.dirty) s += `<path d="M30 40q8 -6 14 0t12 2" fill="none" stroke="#6D4C2A" stroke-width="5" stroke-linecap="round"/><circle cx="58" cy="26" r="4" fill="#6D4C2A"/>`;
+    if(o.thin) s += `<path d="M40 14l6 10l-7 8l8 9" fill="none" stroke="#8D6E63" stroke-width="1.6"/>`;
+    if(o.big) s += `<path d="M10 62V8M6 12l4 -6l4 6M6 58l4 6l4 -6" fill="none" stroke="#E53935" stroke-width="1.6"/>`;
+    return s; },
+  louse(){ return `<path d="M6 54L90 10" stroke="#BCAAA4" stroke-width="3"/>` + [20,36,52,68].map(x => `<path d="M${x} ${gmR(47 - (x - 6) * .52)}l10 12M${x} ${gmR(47 - (x - 6) * .52)}l-4 -14" stroke="#D7CCC8" stroke-width="1.4"/>`).join("")
+    + `<g transform="rotate(-28 48 32)"><ellipse cx="48" cy="34" rx="16" ry="8" fill="#D9B36C" stroke="#8D6E3A" stroke-width="1.5"/><circle cx="67" cy="34" r="6" fill="#C79A4A" stroke="#8D6E3A" stroke-width="1.5"/>`
+    + [38,46,54].map(x => `<path d="M${x} 28l-3 -8M${x} 40l-3 8" stroke="#8D6E3A" stroke-width="1.6" stroke-linecap="round"/><path d="M${x + 4} 27v14" stroke="#8D6E3A" stroke-width="1"/>`).join("") + `</g>`; },
+  nits(){ return `<path d="M48 4V60" stroke="#A1887F" stroke-width="4" stroke-linecap="round"/>` + [12,22,32].map(y => `<path d="M48 ${y}l-26 -8M48 ${y}l26 -8" stroke="#D7CCC8" stroke-width="1.6"/>`).join("")
+    + [[40,44],[56,44],[42,52],[54,52],[38,50],[58,50],[48,48],[46,56],[51,56]].map(p => `<ellipse cx="${p[0]}" cy="${p[1]}" rx="3" ry="4.2" fill="#fff" stroke="#9E9E9E"/>`).join(""); },
+  oocyst(){ return [8,28,48,68].map(x => `<rect x="${x}" y="30" width="20" height="30" fill="#F9D5C9" stroke="#D79A88"/><ellipse cx="${x + 10}" cy="48" rx="5" ry="6" fill="#B39DDB"/>`).join("")
+    + [[14,24],[30,23],[44,25],[58,23],[74,24],[84,25]].map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="5.5" fill="#C5E1A5" stroke="#558B2F" stroke-width="1.5"/><circle cx="${p[0]}" cy="${p[1]}" r="1.8" fill="#33691E"/>`).join(""); },
+  kidney(o){ const c = o.pale ? "#EBCDB4" : "#8E4A3A", lobes = x => [[x,14,10,9],[x,32,12,10],[x,50,10,9]].map(p => `<ellipse cx="${p[0]}" cy="${p[1]}" rx="${p[2] + (o.pale ? 3 : 0)}" ry="${p[3]}" fill="${c}" stroke="#6D3A2E" stroke-width="1.5"/>`).join("");
+    let s = `<path d="M48 4V60" stroke="#C9B8A8" stroke-width="5" stroke-linecap="round"/>` + lobes(30) + lobes(66);
+    if(o.urate) s += [[26,12],[34,18],[28,30],[36,36],[30,50],[62,14],[70,30],[64,36],[68,50],[60,48]].map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="2" fill="#fff"/>`).join("");
+    return s; },
+  hen(o){ let s = o.flip ? `<g transform="rotate(180 48 30)">${wyHen(48, 26, .78)}</g>` : wyHen(o.sit ? 50 : 44, o.sit ? 36 : 30, .78);
+    if(o.sit) s += `<rect x="24" y="48" width="56" height="16" fill="#FBFDFC"/><path d="M34 50H4M36 55H8" stroke="#FB8C00" stroke-width="2.6" stroke-linecap="round"/><path d="M0 60H96" stroke="#BCAAA4" stroke-width="2"/>`;
+    if(o.pant) s += `<polygon points="70,10 80,14 70,16" fill="#FFA000"/><path d="M26 22q-12 -4 -18 6M58 34q10 4 12 14" fill="none" stroke="#A1887F" stroke-width="2.2" stroke-linecap="round"/>`
+      + [80,87].map(x => `<path d="M${x} 20q4 3 0 6t0 6" fill="none" stroke="#E53935" stroke-width="1.6" stroke-linecap="round"/>`).join("");
+    return s; },
+  muscle(){ return `<path d="M48 58C20 50 8 34 14 18C20 6 40 8 48 20C56 8 76 6 82 18C88 34 76 50 48 58Z" fill="#F2A7A0" stroke="#C0655A" stroke-width="1.8"/>`
+    + [[26,20,34,44],[36,18,42,48],[58,18,54,48],[68,20,62,44]].map(p => `<path d="M${p[0]} ${p[1]}L${p[2]} ${p[3]}" stroke="#FBEFEA" stroke-width="4" stroke-linecap="round"/>`).join(""); },
+  drinker(){ return `<path d="M48 2V12" stroke="#78909C" stroke-width="3"/><path d="M26 34Q28 12 48 12Q68 12 70 34Z" fill="#E53935" stroke="#B71C1C" stroke-width="1.5"/><path d="M18 34H78L72 46H24Z" fill="#90CAF9" stroke="#1E88E5" stroke-width="1.5"/>`
+    + [[30,52],[48,56],[66,52]].map(p => `<path d="M${p[0]} ${p[1] - 6}q4 6 0 10q-4 -4 0 -10z" fill="#64B5F6"/>`).join(""); },
+  heart(o){ return (o.fluid ? `<ellipse cx="48" cy="33" rx="34" ry="30" fill="#FFF6C9" stroke="#D8B94A" stroke-width="1.6" stroke-dasharray="4 3"/>` : "")
+    + `<path d="M48 56C28 44 22 30 28 20C34 11 44 13 48 22C52 13 62 11 68 20C74 30 68 44 48 56Z" fill="#C62828" stroke="#7F1A1A" stroke-width="1.8"/><path d="M38 24q-4 6 0 14" fill="none" stroke="#EF9A9A" stroke-width="2.4" stroke-linecap="round"/>`
+    + (o.pale ? `<path d="M44 30l10 12M52 26l8 10" stroke="#F8D7D2" stroke-width="3.4" stroke-linecap="round"/>` : ""); },
+  bone(){ const b = (d, c) => `<path d="${d}" fill="none" stroke="${c}" stroke-width="7" stroke-linecap="round"/>`;
+    return b("M24 8V56", "#CFD8DC") + `<circle cx="24" cy="7" r="6" fill="#CFD8DC"/><circle cx="24" cy="57" r="6" fill="#CFD8DC"/>` + b("M62 8Q86 32 62 56", "#F3D9A8") + `<circle cx="62" cy="7" r="6" fill="#F3D9A8"/><circle cx="62" cy="57" r="6" fill="#F3D9A8"/>`
+      + `<path d="M36 32H50" stroke="#888" stroke-width="2"/><path d="M52 32l-6 -4v8z" fill="#888"/>`; },
+  ribs(){ return [10,24,38,52].map(y => `<path d="M10 ${y}Q48 ${y + 14} 86 ${y}" fill="none" stroke="#E8DCC8" stroke-width="5" stroke-linecap="round"/><circle cx="48" cy="${y + 7}" r="5.5" fill="#F6C56B" stroke="#C48A1E" stroke-width="1.4"/>`).join(""); },
+  eye(o){ let s = `<path d="M8 34Q48 2 88 34Q48 62 8 34Z" fill="#fff" stroke="#8D6E63" stroke-width="2"/><circle cx="48" cy="33" r="13" fill="${o.cloudy ? "#B0BEC5" : "#C98A2B"}"/><circle cx="48" cy="33" r="6" fill="${o.cloudy ? "#ECEFF1" : "#222"}"/>`;
+    if(o.cloudy) s += `<circle cx="54" cy="30" r="4" fill="#fff" stroke="#90A4AE"/><path d="M8 30Q48 6 88 30" fill="none" stroke="#E57373" stroke-width="4"/>`;
+    if(o.cheesy) s += `<path d="M14 36Q48 60 82 36Q66 50 48 50Q30 50 14 36Z" fill="#F3E08A" stroke="#C9A93A" stroke-width="1.4"/><path d="M6 32Q48 -4 90 32" fill="none" stroke="#F4A9A0" stroke-width="6" stroke-linecap="round"/>`;
+    if(o.tear) s += `<path d="M24 46q4 8 0 13q-4 -5 0 -13z" fill="#7EC8E3" stroke="#3E97B8"/>`;
+    return s; },
+  pustule(){ return `<rect x="4" y="14" width="88" height="36" rx="10" fill="#F7D9CF" stroke="#C98572" stroke-width="2"/>` + [[18,26],[30,38],[42,24],[54,36],[66,26],[78,38],[24,32],[60,30]].map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="#fff" stroke="#C9B8A8" stroke-width="1.2"/>`).join(""); },
+  back(){ return `<ellipse cx="48" cy="34" rx="42" ry="24" fill="#B9773F" stroke="#7A4B22" stroke-width="1.8"/>` + [[14,30],[20,44],[76,28],[80,42],[30,52],[66,52]].map(p => `<path d="M${p[0]} ${p[1]}q5 -7 10 0" fill="none" stroke="#7A4B22" stroke-width="1.6"/>`).join("")
+    + `<ellipse cx="48" cy="30" rx="22" ry="14" fill="#F7C8BE" stroke="#D98E7A" stroke-width="1.4"/><ellipse cx="52" cy="30" rx="8" ry="5" fill="#B71C1C"/><path d="M34 26l4 3M38 36l3 -2" stroke="#B71C1C" stroke-width="1.8" stroke-linecap="round"/>`; },
+  foot(o){ return [[48,30,20,2],[48,30,76,2],[48,30,48,-2]].map(p => `<path d="M${p[0]} ${p[1]}L${p[2]} ${p[3] < 0 ? 4 : 8}" stroke="#F6B63C" stroke-width="9" stroke-linecap="round"/>`).join("")
+    + `<path d="M48 34V62" stroke="#F6B63C" stroke-width="9" stroke-linecap="round"/><circle cx="48" cy="34" r="16" fill="#F9CC6B" stroke="#C48A1E" stroke-width="1.6"/>`
+    + (o.scab ? `<path d="M38 30q4 -8 12 -6q10 0 8 10q0 9 -10 8q-10 0 -10 -12z" fill="#3E2723"/><circle cx="26" cy="13" r="3.4" fill="#5D4037"/>` : ""); },
+  hock(){ return `<path d="M30 4L52 30L44 62" fill="none" stroke="#F6B63C" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="54" cy="30" rx="11" ry="9" fill="#6D4C41" stroke="#3E2723" stroke-width="1.4"/><path d="M0 62H96" stroke="#BCAAA4" stroke-width="3"/>`; },
+  litter(o){ let s = `<rect x="2" y="38" width="92" height="24" rx="5" fill="#B08D57" stroke="#7A5C2E" stroke-width="1.5"/>` + [[12,46],[26,54],[40,46],[54,54],[68,46],[82,54]].map(p => `<path d="M${p[0]} ${p[1]}l8 -3" stroke="#7A5C2E" stroke-width="2" stroke-linecap="round"/>`).join("");
+    if(o.wet) s += [[20,28],[46,24],[72,28]].map(p => `<path d="M${p[0]} ${p[1] - 8}q6 9 0 15q-6 -6 0 -15z" fill="#64B5F6" stroke="#1E88E5"/>`).join("");
+    if(o.gas) s += [18,44,70].map(x => `<path d="M${x} 34q6 -5 0 -10t0 -10t0 -8" fill="none" stroke="#9CCC65" stroke-width="2.4" stroke-linecap="round"/>`).join("") + `<text x="84" y="22" font-size="12" font-weight="800" fill="#558B2F" text-anchor="middle">NH₃</text>`;
+    return s; },
+  prolapse(){ return `<ellipse cx="58" cy="30" rx="36" ry="24" fill="#FFF3E0" stroke="#A1887F" stroke-width="1.8"/><path d="M30 14L10 2L22 22" fill="#FFF3E0" stroke="#A1887F" stroke-width="1.6" stroke-linejoin="round"/>`
+    + `<ellipse cx="20" cy="38" rx="13" ry="10" fill="#E53935" stroke="#8E1B1B" stroke-width="1.6"/><path d="M12 36q8 -5 14 2" fill="none" stroke="#FFCDD2" stroke-width="2"/>`; },
+  skin(){ return `<rect x="6" y="8" width="84" height="48" rx="12" fill="#F6DDC6" stroke="#C9A27E" stroke-width="1.6"/>` + [[26,24,12,8,-20],[58,22,13,8,15],[42,42,14,8,5],[74,44,9,6,-10]].map(p => `<ellipse cx="${p[0]}" cy="${p[1]}" rx="${p[2]}" ry="${p[3]}" transform="rotate(${p[4]} ${p[0]} ${p[1]})" fill="#7B1E3A" opacity=".85"/>`).join(""); },
+  thermo(){ return `<rect x="40" y="4" width="16" height="42" rx="8" fill="#fff" stroke="#90A4AE" stroke-width="2"/><rect x="45" y="12" width="6" height="36" fill="#E53935"/><circle cx="48" cy="52" r="10" fill="#E53935" stroke="#90A4AE" stroke-width="2"/>`
+    + [14,22,30].map(y => `<path d="M58 ${y}h7" stroke="#90A4AE" stroke-width="1.6"/>`).join("") + [[20,24],[76,24]].map(p => `<path d="M${p[0]} ${p[1] - 8}q6 9 0 15q-6 -6 0 -15z" fill="#64B5F6" stroke="#1E88E5"/>`).join(""); }
+};
+function dzFigWrapN(t, n){
+  if(t.length <= n) return [t];
+  let cut = -1;
+  for(let i = Math.min(n, t.length - 1); i >= 3; i--){ if(/[·\s(]/.test(t[i])){ cut = i; break; } }
+  if(cut < 0) cut = n;
+  const keep = t[cut] === "(" ? cut : cut + 1;
+  return [t.slice(0, keep).trim(), t.slice(keep).trim().slice(0, n + 1)].filter(Boolean);
+}
+function dzFigTiles(tiles, y0){
+  const list = tiles.filter(t => DZ_TILES[t[0]]).slice(0, 3);
+  if(!list.length) return "";
+  const w = 100, x0 = (320 - list.length * w) / 2;
+  let g = `<line x1="14" y1="${y0}" x2="306" y2="${y0}" stroke="#DCE8E4" stroke-width="1.5"/>` + gmT(160, y0 + 19, "눈여겨볼 모습", { s:13, w:800, c:"#00695C" });
+  list.forEach((t, i) => {
+    const x = x0 + i * w;
+    g += gmBox(x + 2, y0 + 28, 96, 68, "#fff", "#DCE8E4", 9) + `<g transform="translate(${x + 2} ${y0 + 30})">${DZ_TILES[t[0]](t[1] || {})}</g>`
+      + gmT(x + 50, y0 + 111, dzFigWrapN(String(t[2] || ""), 8).map(esc), { s:12, w:700, c:"#333", lh:14 });
+  });
+  return g;
+}
 function dzAutoFig(x){
   const sp = dzFigSpec(x);
   if(!sp) return "";
+  const cz0 = !!(sp.cause && sp.cause[1]);
   const parts = sp.parts.filter(p => DZ_FIG_PARTS[p[0]]).slice(0, 3);
   if(!parts.length) return "";
+  const tl = Array.isArray(sp.tiles) ? sp.tiles : [], th = tl.length ? 136 : 0;
   const s = 1.75, hx = 88, hy = 108, cols = ["#E53935", "#1E88E5", "#F57C00"];
-  let g = gmBox(2, 2, 316, 226, "#F7FAF9", "#DCE8E4", 14) + gmT(160, 22, "주로 이상이 보이는 곳", { s:13, w:800, c:"#00695C" }) + wyHen(hx, hy, s);
+  let g = gmBox(2, 2, 316, (cz0 ? 226 : 186) + th, "#F7FAF9", "#DCE8E4", 14) + gmT(160, 22, "주로 이상이 보이는 곳", { s:13, w:800, c:"#00695C" }) + wyHen(hx, hy, s);
   parts.forEach((p, i) => {
     const P = DZ_FIG_PARTS[p[0]], c = cols[i], y = 46 + i * 49;
     if(p[0] === "whole"){
@@ -7338,7 +7442,7 @@ function dzAutoFig(x){
   if(cz[1]) g += gmBox(10, 190, 300, 30, "#fff", "#DCE8E4", 9) + gmT(20, 210, "원인", { s:12, w:800, c:"#00695C", a:"start" })
     + dzFigCauseIcon(cz[0], 66, 205) + gmT(86, 210, esc(String(cz[1]).slice(0, 20)), { s:12.5, w:700, c:"#333", a:"start" });
   return '<figure style="margin:0 0 10px;border:1px solid #e6ebe9;border-radius:10px;overflow:hidden;background:#fafcfb;max-width:440px">'
-    + gmSvg(cz[1] ? 230 : 190, g, esc(x.title_ko)+" 설명 그림")
+    + gmSvg((cz[1] ? 230 : 190) + th, g + (th ? dzFigTiles(tl, cz[1] ? 228 : 188) : ""), esc(x.title_ko)+" 설명 그림")
     + '<figcaption style="padding:6px 9px;font-size:10.5px;color:#777">설명 그림(자동 생성 · 실제 사진 아님) — 번호는 본문의 임상증상·부검소견에서 주로 이상이 보이는 부위</figcaption></figure>';
 }
 
