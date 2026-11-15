@@ -306,7 +306,11 @@ def with_extra(diseases):
             "title_en": e.get("title_en", ""), "title_ko": e["title_ko"],
             "aliases": e.get("aliases") or [],
             "paras_en": [], "paras_ko": e["paras_ko"],
-            "figs": [], "images": [],
+            "figs": [],
+            # 사진은 자유 이용 허락(CC BY) 논문 그림만 assets/dz/에 두고 imgs에 출처와 함께 적는다.
+            # images는 목록의 작은 미리보기용(주소만).
+            "images": [i["src"] for i in (e.get("imgs") or []) if i.get("src")],
+            "imgs": e.get("imgs") or [], "refs": e.get("refs") or [],
             "extra": True, "cat": e.get("cat") or "etc",
         })
     return base + added, (extra.get("categories") or [])

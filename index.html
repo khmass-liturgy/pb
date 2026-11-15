@@ -7269,6 +7269,29 @@ function renderDzIndex(listing){
   }).join("");
 }
 
+// 추가 질병(extra.json)의 사진 — 자유 이용 허락(CC BY) 논문 그림만 싣고, 사진마다 출처·라이선스를 표시한다.
+function dzExtraFigs(x){
+  const imgs = (x.imgs||[]).filter(i => i && i.src);
+  if(!imgs.length) return "";
+  return '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin:0 0 10px">'
+    + imgs.map(i => '<figure style="margin:0;border:1px solid #e6ebe9;border-radius:10px;overflow:hidden;background:#fafcfb">'
+      + '<a href="'+esc(i.src)+'" target="_blank" rel="noopener" title="눌러서 크게 보기" style="display:block;background:#fff">'
+      + '<img src="'+esc(i.src)+'" alt="'+esc(x.title_ko)+' 사진" style="display:block;width:100%;max-height:340px;object-fit:contain" onerror="this.closest(\'figure\').style.display=\'none\'" /></a>'
+      + '<figcaption style="padding:7px 9px;font-size:11.5px;line-height:1.6;color:#333">'+esc(i.cap||"")
+      + '<div style="font-size:10.5px;color:#777;margin-top:3px">사진: '
+      + (/^https?:\/\//.test(i.url||"") ? '<a href="'+esc(i.url)+'" target="_blank" rel="noopener" style="color:#00695C">'+esc(i.credit||"출처")+' ↗</a>' : esc(i.credit||""))
+      + (i.license ? ' · '+esc(i.license) : '')+'</div></figcaption></figure>').join("")
+    + '</div>';
+}
+function dzExtraRefs(x){
+  const refs = (x.refs||[]).filter(r => r && r.t);
+  if(!refs.length) return "";
+  return '<div style="margin-top:9px;padding:8px 10px;background:#F4F8F7;border-radius:8px;font-size:11.5px;line-height:1.7;color:#444">'
+    + '<b style="color:#00695C">📄 근거 논문</b>'
+    + refs.map(r => '<div>· '+(/^https?:\/\//.test(r.url||"") ? '<a href="'+esc(r.url)+'" target="_blank" rel="noopener" style="color:#00695C">'+esc(r.t)+' ↗</a>' : esc(r.t))+'</div>').join("")
+    + '</div>';
+}
+
 function renderDiseaseResults(){
   const d = diseaseState, data = d.data, q = d.query || "";
   const listing = diseaseListing();
@@ -7317,11 +7340,13 @@ function renderDiseaseResults(){
       : '';
     const body = open && (x.custom || x.extra)
       ? '<div style="padding:10px 0 4px;border-top:1px dashed #e5e5e5;margin-top:8px">' + customBar + extraBar
+        + dzExtraFigs(x)
         + (x.paras_ko||[]).map(p => { const m = p.match(/^([^:：]{1,12})\s*[:：]\s*(.*)$/);
             return m
               ? '<div style="display:flex;gap:10px;align-items:flex-start;font-size:12.5px;line-height:1.75;color:#333;margin:0;padding:7px 0;border-bottom:1px solid #f1f3f2">'
                 + '<b style="flex:0 0 64px;color:#00695C">'+hlDisease(m[1],q)+'</b><span style="flex:1;min-width:0">'+hlDisease(m[2],q)+'</span></div>'
               : '<div style="font-size:12.5px;line-height:1.75;color:#333;margin:0;padding:7px 0;border-bottom:1px solid #f1f3f2">'+hlDisease(p,q)+'</div>'; }).join("")
+        + dzExtraRefs(x)
         + '</div>'
       : open
       ? '<div style="padding:10px 0 4px;border-top:1px dashed #e5e5e5;margin-top:8px">'
@@ -8066,7 +8091,7 @@ function renderDiseaseTab(){
     + '<div id="dz-results">' + renderDiseaseResults() + '</div>'
     + '<div class="card" style="margin-top:4px"><div style="font-size:11px;color:#777;line-height:1.7">'
     +   '<b>'+esc(data.note||"")+'</b><br>출처: '+esc(data.source||"")+' · '+(data.base_count || (data.count - dzCustom.items.length))+'종 · 수집 '+esc(data.updated||"")
-    +   (data.extra_count ? '<br><b style="color:#7a5a00">📘 추가 '+data.extra_count+'종</b>은 위 원문에 없는 질병(조류인플루엔자·전염성 코라이자·닭진드기 등)을 해외 수의학 자료(MSD 수의학 매뉴얼·WOAH 등)의 일반적인 내용으로 요약 번역한 것입니다. 수의사 검토 전이며 약품명·용량은 싣지 않았습니다.' : '')
+    +   (data.extra_count ? '<br><b style="color:#7a5a00">📘 추가 '+data.extra_count+'종</b>은 위 원문에 없는 질병(조류인플루엔자·전염성 코라이자·닭진드기 등)을 해외 수의학 자료(MSD 수의학 매뉴얼·WOAH 등)의 일반적인 내용으로 요약 번역한 것입니다. 최근 추가한 신흥 질병은 공개 논문(PubMed)을 근거로 정리했고 사진은 자유 이용 허락(CC BY) 논문 그림만 출처와 함께 실었습니다. 수의사 검토 전이며 약품명·용량은 싣지 않았습니다.' : '')
     +   (dzCustom.items.length ? ' · <b style="color:#00695C">관리자 추가 '+dzCustom.items.length+'종</b>(수의사 검토 표시 확인)' : '')
     +   ' <a href="'+esc(data.url||"")+'" target="_blank" rel="noopener" style="color:#00695C;margin-left:4px">원문 ↗</a>'
     + '</div></div>';
@@ -31192,6 +31217,7 @@ function renderHeaderSolarTerm(now){
 // go: {tab} 일반 탭으로 / {premium:"메뉴key"} 유료서비스의 그 화면으로(승인·로그인 안내는 그 화면이 처리) / {premium:"vaccine", vaccineView:"guide"} 처럼 보기까지 지정.
 const NEW_FEATURE_DAYS = 21;
 const NEW_FEATURES = [
+  { key:"dzextra2", date:"2026-11-15", label:"질병 사전에 최근 해외에서 떠오르는 질병 10종 추가 — 심낭수종-간염·전염성 선위염·무산란계 증후군·용골 골절 등(논문 사진·근거 포함)", where:"질병 탭 · 질병 사전", go:{ tab:"disease" } },
   { key:"whysick",        date:"2026-11-14", label:"닭은 왜 아플까? — 병이 생기는 원리 5강(호흡기·소화기·콕시듐·AI·감보로·더위) 그림 교실", where:"유료서비스 · 최꼬 아카데미", go:{ premium:"whysick" } },
   { key:"genomap", date:"2026-11-14", label:"IB·AI·대장균 교실에 「유전형 지도」 추가 — 최근 국내 분리주 분류를 논문 근거로 그림 설명", where:"유료서비스 · 최꼬 아카데미", go:{ premium:"ibteam" } },
   { key:"disinfect2",     date:"2026-11-14", label:"질병별 소독제 선택과 소독요령 — 그림으로 새로 정리(한눈에·질병별 난이도·희석 계산·훈증)", where:"유료서비스 · 약품·투약·소독", go:{ premium:"disinfect" } },
