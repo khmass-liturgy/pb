@@ -7396,7 +7396,7 @@ function renderDiseaseResults(){
 
     const customBar = x.custom
       ? '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px">'
-        + (x.ai && !x.reviewed ? '<span style="font-size:11px;font-weight:800;color:#7a5a00;background:#FFE9A8;border-radius:6px;padding:2px 8px">🤖 AI 초안 · 수의사 검토 전</span>' : '<span style="font-size:11px;font-weight:800;color:#1B5E20;background:#D7EFD9;border-radius:6px;padding:2px 8px">✔ 수의사 검토</span>')
+        + (x.ai && !x.reviewed ? '<span style="font-size:11px;font-weight:800;color:#7a5a00;background:#FFE9A8;border-radius:6px;padding:2px 8px">🤖 AI 초안</span>' : '<span style="font-size:11px;font-weight:800;color:#1B5E20;background:#D7EFD9;border-radius:6px;padding:2px 8px">✔ 수의사 검토</span>')
         + '<span style="font-size:11px;color:#888">관리자 추가 · '+esc(x.updated||"")+'</span>'
         + googleImageBtn(x)
         + (isBoardAdmin() ? '<button class="dz-cedit" data-slug="'+esc(x.slug)+'" style="font-size:11px;border:1px solid #00695C;border-radius:6px;padding:3px 9px;background:#fff;color:#00695C">✏️ 고치기</button><button class="dz-cdel" data-slug="'+esc(x.slug)+'" style="font-size:11px;border:1px solid #C62828;border-radius:6px;padding:3px 9px;background:#fff;color:#C62828">🗑 지우기</button>' : '')
@@ -7405,7 +7405,7 @@ function renderDiseaseResults(){
     // 추가 질병(extra.json 정리본)은 원문 페이지가 없어 영문 전환 대신 영문 자료 검색 링크를 둔다.
     const extraBar = x.extra
       ? '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px">'
-        + '<span style="font-size:11px;font-weight:800;color:#7a5a00;background:#FFE9A8;border-radius:6px;padding:2px 8px">📘 해외 수의학 자료 요약 번역 · 수의사 검토 전</span>'
+        + '<span style="font-size:11px;font-weight:800;color:#7a5a00;background:#FFE9A8;border-radius:6px;padding:2px 8px">📘 해외 수의학 자료 요약 번역</span>'
         + (x.title_en ? '<a href="https://www.google.com/search?q='+encodeURIComponent(x.title_en+" poultry Merck Veterinary Manual")+'" target="_blank" rel="noopener" '
           + 'style="font-size:11px;border:1px solid #bbb;border-radius:6px;padding:3px 9px;color:#666;text-decoration:none">영문 자료 검색 ↗</a>' : '')
         + googleImageBtn(x)
@@ -8164,7 +8164,7 @@ function renderDiseaseTab(){
     + '<div id="dz-results">' + renderDiseaseResults() + '</div>'
     + '<div class="card" style="margin-top:4px"><div style="font-size:11px;color:#777;line-height:1.7">'
     +   '<b>'+esc(data.note||"")+'</b><br>출처: '+esc(data.source||"")+' · '+(data.base_count || (data.count - dzCustom.items.length))+'종 · 수집 '+esc(data.updated||"")
-    +   (data.extra_count ? '<br><b style="color:#7a5a00">📘 추가 '+data.extra_count+'종</b>은 위 원문에 없는 질병(조류인플루엔자·전염성 코라이자·닭진드기 등)을 해외 수의학 자료(MSD 수의학 매뉴얼·WOAH 등)의 일반적인 내용으로 요약 번역한 것입니다. 최근 추가한 신흥 질병은 공개 논문(PubMed)을 근거로 정리했고 사진은 자유 이용 허락(CC BY) 논문 그림만 출처와 함께 실었습니다. 수의사 검토 전이며 약품명·용량은 싣지 않았습니다.' : '')
+    +   (data.extra_count ? '<br><b style="color:#7a5a00">📘 추가 '+data.extra_count+'종</b>은 위 원문에 없는 질병(조류인플루엔자·전염성 코라이자·닭진드기 등)을 해외 수의학 자료(MSD 수의학 매뉴얼·WOAH 등)의 일반적인 내용으로 요약 번역한 것입니다. 최근 추가한 신흥 질병은 공개 논문(PubMed)을 근거로 정리했고 사진은 자유 이용 허락(CC BY) 논문 그림만 출처와 함께 실었습니다. 약품명·용량은 싣지 않았습니다.' : '')
     +   (dzCustom.items.length ? ' · <b style="color:#00695C">관리자 추가 '+dzCustom.items.length+'종</b>(수의사 검토 표시 확인)' : '')
     +   ' <a href="'+esc(data.url||"")+'" target="_blank" rel="noopener" style="color:#00695C;margin-left:4px">원문 ↗</a>'
     + '</div></div>';
