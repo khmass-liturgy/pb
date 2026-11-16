@@ -29031,7 +29031,7 @@ async function fetchTradeStats(){
     if(!r.ok) throw new Error("HTTP " + r.status);
     tradeState.data = await r.json(); tradeState.status = "done";
   } catch(e){ tradeState.status = "error"; }
-  if(state.tab === "premium" && premiumState.view === "tradestats") render();
+  if((state.tab === "premium" && premiumState.view === "tradestats") || tradeOnPriceTab()) render();
 }
 // 월 목록(가장 이른 달~가장 늦은 달, 빈 달 포함)과 품목별 월 값
 function tradeModel(d){
@@ -29152,7 +29152,7 @@ function renderTradePanel(){
   return shell(chips + body + foot);
 }
 function tradeBind(){
-  if(!(state.tab === "premium" && premiumState.view === "tradestats")) return;
+  if(!((state.tab === "premium" && premiumState.view === "tradestats") || tradeOnPriceTab())) return;
   const back = document.getElementById("tradestats-back-btn"); if(back) back.onclick = () => { premiumState.view = "menu"; render(); };
   const retry = document.getElementById("tradestats-retry"); if(retry) retry.onclick = () => { tradeState.status = "idle"; render(); };
   document.querySelectorAll("[data-trade-tab]").forEach(b => b.onclick = () => { tradeState.tab = b.dataset.tradeTab; render(); });
@@ -31549,6 +31549,7 @@ function renderHeaderSolarTerm(now){
 // go: {tab} 일반 탭으로 / {premium:"메뉴key"} 유료서비스의 그 화면으로(승인·로그인 안내는 그 화면이 처리) / {premium:"vaccine", vaccineView:"guide"} 처럼 보기까지 지정.
 const NEW_FEATURE_DAYS = 21;
 const NEW_FEATURES = [
+  { key:"pricetrade", date:"2026-11-17", label:"시세,통계 탭에 「수출입 동향」 추가 — 계육·계란·종란 월별 수출입", where:"시세,통계", go:{ tab:"price" } },
   { key:"inpick", date:"2026-11-17", label:"양계 업계 소식 — 중복 기사를 묶고 업계 정보만 골라 「핵심 소식」으로", where:"유료서비스 · 게시판·기타", go:{ premium:"industrynews" } },
   { key:"dzphoto", date:"2026-11-16", label:"질병 사전 — 질병마다 직접 찍은 사진을 올릴 수 있어요(관리자)", where:"질병 탭 · 질병 사전", go:{ tab:"disease" } },
   { key:"dzextra2", date:"2026-11-15", label:"질병 사전에 질병 23종 추가 — 심낭수종-간염·전염성 선위염·무산란계 증후군·봉와직염·제대염·쌓임·압사 등(논문 사진·근거 포함)", where:"질병 탭 · 질병 사전", go:{ tab:"disease" } },
@@ -33063,12 +33064,19 @@ function renderTaxfreeFuelBlock(){
 }
 
 // 시세,통계 탭 하위 메뉴(가로 칩). 항목을 더 넣으려면 PRICE_SUBS에 한 줄, renderPriceTab의 body 분기에 한 줄을 추가한다.
-const PRICE_SUBS = [["today", "📌", "오늘 시세"], ["outlook", "🔮", "육계 전망"], ["feed", "🌾", "사료 생산잠재력"], ["breeder", "🐓", "육용종계"], ["layer", "🥚", "산란계 통계"], ["supply", "📋", "계란 수급"]];
+const PRICE_SUBS = [["today", "📌", "오늘 시세"], ["outlook", "🔮", "육계 전망"], ["feed", "🌾", "사료 생산잠재력"], ["breeder", "🐓", "육용종계"], ["layer", "🥚", "산란계 통계"], ["supply", "📋", "계란 수급"], ["trade", "🌐", "수출입 동향"]];
 let priceSub = (function(){ try { return localStorage.getItem("price_sub") || "today"; } catch(e){ return "today"; } })();
 function renderPriceTab(){
   const sub = PRICE_SUBS.some(x => x[0] === priceSub) ? priceSub : "today";
-  const body = sub === "today" ? renderPoultryPriceLine() + renderBroilerPriceTodayPanel() : sub === "outlook" ? renderBroilerOutlookPanel() : sub === "feed" ? renderFeedPotentialPanel() : sub === "breeder" ? renderBroilerBreederPanel() : sub === "layer" ? renderLayerStatsPanel() : renderEggSupplyPanel();
+  const body = sub === "today" ? renderPoultryPriceLine() + renderBroilerPriceTodayPanel() : sub === "outlook" ? renderBroilerOutlookPanel() : sub === "feed" ? renderFeedPotentialPanel() : sub === "breeder" ? renderBroilerBreederPanel() : sub === "layer" ? renderLayerStatsPanel() : sub === "trade" ? renderTradeInPriceTab() : renderEggSupplyPanel();
   return body;
+}
+
+// 계육·계란·종란 수출입 동향 — 유료서비스 카드와 같은 화면을 시세,통계 탭에서도 보여 준다(자료는 공개 통관 통계).
+function tradeOnPriceTab(){ return (state.tab === "price" || state.tab === "pig" || state.tab === "livestock") && priceSub === "trade"; }
+function renderTradeInPriceTab(){
+  if(tradeState.status === "idle") fetchTradeStats();
+  return renderTradePanel().replace(/<button[^>]*id="tradestats-back-btn"[^>]*>[\s\S]*?<\/button>/, "");
 }
 
 function renderPigTab(){
