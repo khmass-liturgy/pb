@@ -915,7 +915,6 @@ const PREMIUM_ITEMS = [
   { key:"diseasebrief", icon:"🧬", title:"가금 질병·백신 주간 브리핑", desc:"최근 새로 공개된 가금 질병·백신 논문, 정부·국제기구 보고서, 전문 분석 중 현장 컨설팅에 도움이 되는 핵심 3건을 매주 월요일 아침 한국어로 정리합니다. 무엇이 새로운지·현장 중요성·적용 시 주의점과 한계·원문 링크, 이번 주 체크포인트까지.", color:"#00796B", category:"질문·학습·교육" },
   { key:"magazine", icon:"📰", title:"양계잡지 학습정보", desc:"양계 전문지 지면을 사진으로 올리면 사진과 글을 분리해 게시판처럼 보여드립니다.", color:"#455A64", category:"질문·학습·교육" },
   { key:"industrynews", icon:"🗞️", title:"양계 업계관련 핵심키워드 검색소식", desc:"계란·조류인플루엔자·AI·육계·방역·양계 질병 등 양계 핵심 키워드로 국내 기사를 매일 아침 검색해 요약과 함께 카드로 보여드립니다.", color:"#455A64", category:"게시판·기타" },
-  { key:"tradestats", icon:"🌐", title:"계육·계란·종란 수출입 동향", desc:"관세청 통관 통계로 계육(닭고기)·계란·종란의 월별 수입·수출 물량, 금액, 수입 단가, 상대국 비중을 그래프와 표로 한눈에 보여드립니다. 매주 자동 갱신됩니다.", color:"#00695C", category:"게시판·기타" },
   { key:"kkoko", icon:"🐔", title:"최꼬박사랑 대화", desc:"무료 탭의 최꼬꼬가 유료회원님께는 더 똑똑해진 '최꼬박사'로 변신합니다 — 더 자세하고 깊이 있는 사양관리·질병 설명을 받아보세요. 텍스트는 물론 음성으로도 대화할 수 있습니다.", color:"#F57F17", category:"질문·학습·교육" },
   { key:"feature_board", icon:"💡", title:"기능 요청 게시판", desc:"필요한 기능을 자유롭게 제안해 주세요. 작성자는 다른 회원에게 익명으로 표시됩니다.", color:"#00838F", category:"게시판·기타" },
   { key:"consult", icon:"💬", title:"온라인 상담", desc:"농장 현안(사양·환기·질병 등)을 질문하면 최동명 수의사가 답변합니다. 사진 첨부 가능, 답변은 작성자만 볼 수 있습니다.", color:"#1565C0", category:"게시판·기타" },
@@ -1019,7 +1018,7 @@ const PREMIUM_MENU_LEGACY_PATH = "premium_menu/items.json";
 // 항목이라 목록에서 뺀다).
 const PREMIUM_MENU_KNOWN_KEYS = [
   "ibteam","hpaizero","farmgame_broiler","farmgame_layer","coliclass","avianphys","ventclass","germclass","whysick","drug","drugusage","treatment","seasonal","disinfect","newproducts","vaccine",
-  "ventfinder","lightguide","moltguide","feedstandard","feedgrain","grainprice","priceforecast","tradestats","supplement","selfcheck","diagnosis","specimen","faq","study",
+  "ventfinder","lightguide","moltguide","feedstandard","feedgrain","grainprice","priceforecast","supplement","selfcheck","diagnosis","specimen","faq","study",
   "research","diseasebrief","emerging","industrynews","drugnews","magazine","kkoko","feature_board","consult","consulting","smssub",
 ];
 let premiumMenuState = { status:"idle", data:null, busy:false, msg:"", adminOpen:false, formOpen:false,
@@ -1027,7 +1026,7 @@ let premiumMenuState = { status:"idle", data:null, busy:false, msg:"", adminOpen
 
 // 관리자가 저장한 메뉴가 있어도, 그 뒤에 새로 만든 기본 메뉴(PREMIUM_MENU_NEW_SEED_KEYS)는 빠져 보이지 않게
 // 저장된 메뉴에 없을 때만 기본 위치(앞 메뉴 뒤)에 끼워 보여 준다.
-const PREMIUM_MENU_NEW_SEED_KEYS = ["ibteam", "hpaizero", "farmgame_broiler", "farmgame_layer", "coliclass", "avianphys", "ventclass", "germclass", "whysick", "drugusage", "drugnews", "diseasebrief", "priceforecast", "tradestats", "supplement"];
+const PREMIUM_MENU_NEW_SEED_KEYS = ["ibteam", "hpaizero", "farmgame_broiler", "farmgame_layer", "coliclass", "avianphys", "ventclass", "germclass", "whysick", "drugusage", "drugnews", "diseasebrief", "priceforecast", "supplement"];
 // 관리자가 예전에 저장한 메뉴에는 두 항목이 「사양관리」로 들어 있으므로, 분류만 새 묶음으로 강제한다.
 // 분류 이름이 바뀐 경우(관리자가 예전에 저장한 메뉴에 옛 이름이 남아 있어도 새 이름으로 묶는다)
 const PREMIUM_MENU_CATEGORY_RENAME = { "백신관리": "백신·약품관리", "AI공동연구팀": "최꼬 아카데미", "인공지능 공동연구팀": "최꼬 아카데미" };
@@ -1037,7 +1036,7 @@ const PREMIUM_MENU_FORCE_TITLE = { farmgame_broiler:"육계 키우기 3D — 33�
 const PREMIUM_MENU_FORCE_DESC = { vaccine:"육계·산란계·삼계·토종닭·종계 일령별 백신 접종 프로그램을 관리자가 만들어 단계별로 보여드립니다.", coliclass:"육계·산란계를 나누어 대장균증을 쉽게 배웁니다. 기초 → 현장 판단 → 치료·재발 방지·백신, 그림과 사례를 카드로 한눈에." };
 const PREMIUM_MENU_FORCE_CATEGORY = { grainprice:"시세 예측·분석", priceforecast:"시세 예측·분석" };
 // 삭제된 메뉴 — 관리자가 예전에 저장한 메뉴에 남아 있어도 보이지 않게 한다.
-const PREMIUM_MENU_REMOVED_KEYS = ["finder", "farmgame"];
+const PREMIUM_MENU_REMOVED_KEYS = ["finder", "farmgame", "tradestats"];   // tradestats(수출입 동향)는 2026-11-17 시세,통계 탭으로 옮김
 function currentPremiumMenuItems(){
   const items = premiumMenuState.data && premiumMenuState.data.items;
   if(!(Array.isArray(items) && items.length)) return PREMIUM_ITEMS;
@@ -31578,7 +31577,7 @@ const NEW_FEATURES = [
   { key:"weather-news",   date:"2026-10-12", label:"오늘의 날씨 뉴스 카드",         where:"날씨예측 탭",               go:{ tab:"weather" } },
   { key:"vaccine-guide",  date:"2026-10-12", label:"백신 접종방법·백신 종류 안내", where:"유료서비스 · 백신·약품관리", go:{ premium:"vaccine", vaccineView:"guide" } },
   { key:"supplement",     date:"2026-10-11", label:"영양제 종류별 사용요령",       where:"유료서비스 · 백신·약품관리", go:{ premium:"supplement" } },
-  { key:"tradestats",     date:"2026-10-11", label:"계육·계란·종란 수출입 동향",   where:"유료서비스 · 게시판·기타",   go:{ premium:"tradestats" } },
+  { key:"tradestats",     date:"2026-10-11", label:"계육·계란·종란 수출입 동향",   where:"시세,통계 · 수출입 동향",   go:{ tab:"price" } },
   { key:"priceforecast",  date:"2026-10-08", label:"육계·계란 시세예측",           where:"유료서비스 · 시세 예측·분석", go:{ premium:"priceforecast" } },
 ];
 const NF_LS_KEY = "nf_seen_v1";

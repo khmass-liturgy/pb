@@ -1,7 +1,7 @@
 # Graph Report - pb  (2026-11-16)
 
 ## Corpus Check
-- 129 files · ~953,650 words
+- 129 files · ~953,630 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 6 file(s) not represented in the graph (top: (none) 4, .glb 1, .rules 1)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `bbe89861`
+- Built from commit: `7ca23a9e`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -638,7 +638,7 @@ _Questions this graph is uniquely positioned to answer:_
 - **Should `index.inline.js` be split into smaller, more focused modules?**
   _Cohesion score 0.0046184550118596075 - nodes in this community are weakly interconnected._
 - **Why does `decode_google_url()` connect `fetch_animal_drug_news.py` to `re`, `Architecture: the fetch-script → JSON → dashboard pipeline`, `fetch_poultry_disease_brief.py`, `json`, `requests`?**
-  _High betweenness centrality (0.024) - this node is a cross-community bridge._
+  _High betweenness centrality (0.025) - this node is a cross-community bridge._
 - **Are the 134 inferred relationships involving `Architecture: the fetch-script → JSON → dashboard pipeline` (e.g. with `analyzeNecropsyPhotos()` and `fetchRssItems()`) actually correct?**
   _`Architecture: the fetch-script → JSON → dashboard pipeline` has 134 INFERRED edges - model-reasoned connections that need verification._
 - **Should `attachEvents` be split into smaller, more focused modules?**
