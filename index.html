@@ -5282,11 +5282,122 @@ async function fetchDiseases(){
     buildDiseaseSearch(diseaseState.data);
     diseaseState.status = "done";
     if(!dzCustom.loaded) loadDiseaseCustom();
+    loadDzPhotos();
   } catch(e) {
     console.warn("양계질병 자료 로딩 실패:", e);
     diseaseState.status = "error";
   }
   if(state.tab === "disease") render();
+}
+
+// ── 양계질병 사전: 질병마다 관리자가 직접 올리는 사진 ─────────────────────────────
+// 기본·추가·관리자 추가 질병 모두에 쓸 수 있다. 목록은 Firebase public_content/disease_photos/latest.json
+// {photos:{slug:[{id,url,path,cap,credit,at}]}}, 사진 파일은 public_content/disease_photo_files/{slug}__{시각}.jpg
+// (누구나 읽기, 관리자만 쓰기 — storage.rules의 public_content 규칙). 목록 전체를 다시 쓰므로, 불러오기에 실패한
+// 상태(status !== "done")에서는 저장하지 않는다 — 빈 목록으로 덮어써 다른 질병 사진이 사라지는 것을 막는다.
+const dzPhotos = { status: "idle", map: {}, form: null, busy: false, msg: "" };
+async function loadDzPhotos(){
+  if(dzPhotos.status === "loading" || dzPhotos.status === "done") return;
+  if(!firebaseReady){ dzPhotos.status = "error"; return; }
+  dzPhotos.status = "loading";
+  try {
+    const j = await fetchPublicContentJson("disease_photos");
+    dzPhotos.map = (j && j.photos && typeof j.photos === "object") ? j.photos : {};
+    dzPhotos.status = "done";
+  } catch(e){
+    // 아직 한 번도 발행하지 않았으면 파일이 없다 — 빈 목록으로 시작한다. 그 밖의 오류는 저장을 막는다.
+    const m = String((e && (e.message || e.code)) || e);
+    if(/not[- ]?found|없|404/i.test(m)){ dzPhotos.map = {}; dzPhotos.status = "done"; }
+    else { console.warn("질병 사진 목록 로딩 실패:", m); dzPhotos.status = "error"; }
+  }
+  if(state.tab === "disease") render();
+}
+function dzPhotoList(x){ const l = x && dzPhotos.map[x.slug]; return Array.isArray(l) ? l.filter(p => p && /^https:\/\//.test(p.url || "")) : []; }
+async function dzPhotosPublish(){
+  if(dzPhotos.status !== "done") throw new Error("사진 목록을 불러오지 못한 상태라 저장하지 않았습니다. 새로고침 후 다시 해 주세요.");
+  await writePublicContentJson("disease_photos", { updated: new Date().toISOString(), photos: dzPhotos.map });
+}
+function dzUserBlock(x){
+  const list = dzPhotoList(x), admin = isBoardAdmin(), f = dzPhotos.form && dzPhotos.form.slug === x.slug ? dzPhotos.form : null;
+  let h = "";
+  if(list.length) h += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin:0 0 10px">'
+    + list.map(p => '<figure style="margin:0;border:1px solid #e6ebe9;border-radius:10px;overflow:hidden;background:#fafcfb">'
+      + '<a href="'+esc(p.url)+'" target="_blank" rel="noopener" title="눌러서 크게 보기" style="display:block;background:#fff">'
+      + '<img src="'+esc(p.url)+'" alt="'+esc(x.title_ko)+' 사진" style="display:block;width:100%;max-height:340px;object-fit:contain" onerror="this.closest(\'figure\').style.display=\'none\'" /></a>'
+      + '<figcaption style="padding:7px 9px;font-size:11.5px;line-height:1.6;color:#333">'+esc(p.cap || "")
+      + '<div style="font-size:10.5px;color:#777;margin-top:3px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span>사진: '+esc(p.credit || "직접 올린 사진")+'</span>'
+      + (admin ? '<button class="dzp-del" data-slug="'+esc(x.slug)+'" data-id="'+esc(p.id)+'" style="font-size:10.5px;border:1px solid #C62828;border-radius:6px;padding:1px 7px;background:#fff;color:#C62828;cursor:pointer">🗑 지우기</button>' : '')
+      + '</div></figcaption></figure>').join("") + '</div>';
+  if(!admin) return h;
+  if(!f) return h + '<div style="margin:0 0 10px"><button class="dzp-add" data-slug="'+esc(x.slug)+'" style="font-size:11.5px;border:1px dashed #00695C;border-radius:8px;padding:5px 11px;background:#F4F8F7;color:#00695C;cursor:pointer">📷 사진 추가</button>'
+    + (dzPhotos.status === "error" ? ' <span style="font-size:11px;color:#C62828">사진 목록을 불러오지 못했습니다(새로고침 필요)</span>' : '') + '</div>';
+  const inp = 'width:100%;box-sizing:border-box;border:1px solid #cfd8d5;border-radius:7px;padding:7px 9px;font-size:13px;margin-top:3px';
+  return h + '<div id="dzp-form" style="margin:0 0 12px;padding:10px 12px;border:1px solid #B2DFDB;border-radius:10px;background:#F4FBFA">'
+    + '<div style="font-size:12.5px;font-weight:800;color:#00695C;margin-bottom:6px">📷 「'+esc(x.title_ko)+'」 사진 추가</div>'
+    + '<label style="display:block;font-size:11.5px;color:#444">사진 파일(여러 장 선택 가능 · 큰 사진은 자동으로 줄여 올립니다)<input type="file" id="dzp-file" accept="image/jpeg,image/png,image/webp" multiple style="'+inp+';background:#fff" /></label>'
+    + '<label style="display:block;font-size:11.5px;color:#444;margin-top:7px">사진 설명<input type="text" id="dzp-cap" maxlength="200" value="'+esc(f.cap)+'" placeholder="예: 3주령 육계, 간 표면의 흰 괴사 반점" style="'+inp+'" /></label>'
+    + '<label style="display:block;font-size:11.5px;color:#444;margin-top:7px">출처·촬영자<input type="text" id="dzp-credit" maxlength="100" value="'+esc(f.credit)+'" placeholder="예: 농장 현장 촬영 (2026)" style="'+inp+'" /></label>'
+    + '<div style="font-size:10.5px;color:#888;margin-top:6px;line-height:1.6">직접 찍었거나 사용 허락을 받은 사진만 올려 주세요. 올린 사진은 로그인 없이 누구나 볼 수 있습니다.</div>'
+    + (dzPhotos.msg ? '<div style="font-size:11.5px;color:#C62828;margin-top:6px">'+esc(dzPhotos.msg)+'</div>' : '')
+    + '<div style="display:flex;gap:6px;margin-top:8px"><button id="dzp-save" '+(dzPhotos.busy ? "disabled" : "")+' style="font-size:12px;font-weight:700;border:0;border-radius:7px;padding:6px 14px;background:#00695C;color:#fff;cursor:pointer">'+(dzPhotos.busy ? "올리는 중…" : "올리기")+'</button>'
+    + '<button id="dzp-cancel" '+(dzPhotos.busy ? "disabled" : "")+' style="font-size:12px;border:1px solid #bbb;border-radius:7px;padding:6px 12px;background:#fff;color:#555;cursor:pointer">취소</button></div></div>';
+}
+function attachDzPhotoEvents(){
+  document.querySelectorAll(".dzp-add").forEach(b => b.onclick = ev => {
+    ev.stopPropagation();
+    dzPhotos.form = { slug: b.dataset.slug, cap: "", credit: "" }; dzPhotos.msg = ""; render();
+    const e = document.getElementById("dzp-form"); if(e) e.scrollIntoView({ block:"center" });
+  });
+  const keep = () => { const f = dzPhotos.form; if(!f) return;
+    const c = document.getElementById("dzp-cap"), r = document.getElementById("dzp-credit");
+    if(c) f.cap = c.value.trim(); if(r) f.credit = r.value.trim(); };
+  const cancel = document.getElementById("dzp-cancel");
+  if(cancel) cancel.onclick = ev => { ev.stopPropagation(); dzPhotos.form = null; dzPhotos.msg = ""; render(); };
+  const save = document.getElementById("dzp-save");
+  if(save) save.onclick = async ev => {
+    ev.stopPropagation();
+    const f = dzPhotos.form, fi = document.getElementById("dzp-file");
+    if(!f || dzPhotos.busy) return;
+    keep();
+    const files = fi ? Array.from(fi.files || []).filter(x => /^image\/(jpeg|png|webp)$/.test(x.type)).slice(0, 6) : [];
+    if(!isBoardAdmin()){ dzPhotos.msg = "관리자 로그인 후 올릴 수 있습니다."; render(); return; }
+    if(!files.length){ dzPhotos.msg = "사진 파일(JPG·PNG·WEBP)을 골라 주세요."; render(); return; }
+    if(dzPhotos.status !== "done"){ dzPhotos.msg = "사진 목록을 불러오지 못한 상태입니다. 새로고침 후 다시 해 주세요."; render(); return; }
+    dzPhotos.busy = true; dzPhotos.msg = ""; render();
+    const added = [], key = f.slug.replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 80);
+    try {
+      for(let i = 0; i < files.length; i++){
+        const small = await boardShrinkPhoto(files[i]);
+        const ext = small.type === "image/png" ? "png" : small.type === "image/webp" ? "webp" : "jpg";
+        const name = key + "__" + Date.now() + "_" + i + "." + ext;
+        const url = await uploadPublicImage("disease_photo_files", name, small);
+        added.push({ id: name, url, path: "public_content/disease_photo_files/" + name, cap: f.cap, credit: f.credit, at: new Date().toISOString().slice(0, 10) });
+      }
+      const before = dzPhotos.map[f.slug];
+      dzPhotos.map[f.slug] = (Array.isArray(before) ? before : []).concat(added);
+      try { await dzPhotosPublish(); }
+      catch(e){ if(before) dzPhotos.map[f.slug] = before; else delete dzPhotos.map[f.slug]; throw e; }
+      dzPhotos.form = null;
+    } catch(e){
+      dzPhotos.msg = "올리지 못했습니다: " + ((e && e.message) || e);
+      added.forEach(p => { try { firebase.storage().ref(p.path).delete().catch(() => {}); } catch(_){} });
+    }
+    dzPhotos.busy = false; render();
+  };
+  document.querySelectorAll(".dzp-del").forEach(b => b.onclick = async ev => {
+    ev.stopPropagation();
+    const slug = b.dataset.slug, id = b.dataset.id, list = dzPhotos.map[slug] || [], p = list.find(q => q.id === id);
+    if(!p || dzPhotos.busy || !confirm("이 사진을 지울까요?")) return;
+    if(dzPhotos.status !== "done"){ alert("사진 목록을 불러오지 못한 상태입니다. 새로고침 후 다시 해 주세요."); return; }
+    dzPhotos.busy = true;
+    dzPhotos.map[slug] = list.filter(q => q.id !== id);
+    if(!dzPhotos.map[slug].length) delete dzPhotos.map[slug];
+    try {
+      await dzPhotosPublish();
+      if(p.path) firebase.storage().ref(p.path).delete().catch(() => {});
+    } catch(e){ dzPhotos.map[slug] = list; alert("지우지 못했습니다: " + ((e && e.message) || e)); }
+    dzPhotos.busy = false; render();
+  });
 }
 
 // ── 양계질병 사전: 관리자가 추가하는 질병 ──────────────────────────────────────
@@ -5368,6 +5479,7 @@ function dzFormRead(){
   const rv = document.getElementById("dzf-rev"); if(rv) f.reviewed = rv.checked;
 }
 function attachDzCustomEvents(){
+  attachDzPhotoEvents();
   const add = document.getElementById("dz-add");
   if(add) add.onclick = () => { dzCustom.form = { slug: null, ko: "", en: "", al: "", body: "", reviewed: false, ai: false }; dzCustom.msg = ""; render();
     const e = document.getElementById("dzf-ko"); if(e){ e.focus(); e.scrollIntoView({ block:"center" }); } };
@@ -7481,7 +7593,7 @@ function renderDiseaseResults(){
     const showEn = !!d.showEn[x.slug];
     const paras = showEn ? (x.paras_en||[]) : (x.paras_ko||[]);
     const imgs = x.images || [];
-    const firstImg = imgs.find(Boolean);
+    const firstImg = imgs.find(Boolean) || (dzPhotoList(x)[0] || {}).url;
 
     // 펼친 카드의 사진은 loading=lazy를 쓰지 않는다 — 사용자가 직접 연 내용이라
     // 스크롤을 기다릴 이유가 없고, 지연 로딩이 안 걸리는 환경에서 빈칸이 남는다.
@@ -7517,7 +7629,7 @@ function renderDiseaseResults(){
       : '';
     const body = open && (x.custom || x.extra)
       ? '<div style="padding:10px 0 4px;border-top:1px dashed #e5e5e5;margin-top:8px">' + customBar + extraBar
-        + (dzExtraFigs(x) || dzAutoFig(x))
+        + dzUserBlock(x) + (dzExtraFigs(x) || (dzPhotoList(x).length ? "" : dzAutoFig(x)))
         + (x.paras_ko||[]).map(p => { const m = p.match(/^([^:：]{1,12})\s*[:：]\s*(.*)$/);
             return m
               ? '<div style="display:flex;gap:10px;align-items:flex-start;font-size:12.5px;line-height:1.75;color:#333;margin:0;padding:7px 0;border-bottom:1px solid #f1f3f2">'
@@ -7534,6 +7646,7 @@ function renderDiseaseResults(){
         +   '<a href="'+esc(x.url)+'" target="_blank" rel="noopener" style="font-size:11px;border:1px solid #bbb;border-radius:6px;padding:3px 9px;color:#666;text-decoration:none">원문 페이지 ↗</a>'
         +   googleImageBtn(x)
         +   '</div>'
+        + dzUserBlock(x)
         + (paras.length ? paraBlocks : '<div style="font-size:12px;color:#bbb">본문 없음</div>')
         + '</div>'
       : "";
@@ -31394,6 +31507,7 @@ function renderHeaderSolarTerm(now){
 // go: {tab} 일반 탭으로 / {premium:"메뉴key"} 유료서비스의 그 화면으로(승인·로그인 안내는 그 화면이 처리) / {premium:"vaccine", vaccineView:"guide"} 처럼 보기까지 지정.
 const NEW_FEATURE_DAYS = 21;
 const NEW_FEATURES = [
+  { key:"dzphoto", date:"2026-11-16", label:"질병 사전 — 질병마다 직접 찍은 사진을 올릴 수 있어요(관리자)", where:"질병 탭 · 질병 사전", go:{ tab:"disease" } },
   { key:"dzextra2", date:"2026-11-15", label:"질병 사전에 질병 23종 추가 — 심낭수종-간염·전염성 선위염·무산란계 증후군·봉와직염·제대염·쌓임·압사 등(논문 사진·근거 포함)", where:"질병 탭 · 질병 사전", go:{ tab:"disease" } },
   { key:"whysick",        date:"2026-11-14", label:"닭은 왜 아플까? — 병이 생기는 원리 5강(호흡기·소화기·콕시듐·AI·감보로·더위) 그림 교실", where:"유료서비스 · 최꼬 아카데미", go:{ premium:"whysick" } },
   { key:"genomap", date:"2026-11-14", label:"IB·AI·대장균 교실에 「유전형 지도」 추가 — 최근 국내 분리주 분류를 논문 근거로 그림 설명", where:"유료서비스 · 최꼬 아카데미", go:{ premium:"ibteam" } },
