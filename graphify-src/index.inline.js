@@ -5282,11 +5282,122 @@ async function fetchDiseases(){
     buildDiseaseSearch(diseaseState.data);
     diseaseState.status = "done";
     if(!dzCustom.loaded) loadDiseaseCustom();
+    loadDzPhotos();
   } catch(e) {
     console.warn("양계질병 자료 로딩 실패:", e);
     diseaseState.status = "error";
   }
   if(state.tab === "disease") render();
+}
+
+// ── 양계질병 사전: 질병마다 관리자가 직접 올리는 사진 ─────────────────────────────
+// 기본·추가·관리자 추가 질병 모두에 쓸 수 있다. 목록은 Firebase public_content/disease_photos/latest.json
+// {photos:{slug:[{id,url,path,cap,credit,at}]}}, 사진 파일은 public_content/disease_photo_files/{slug}__{시각}.jpg
+// (누구나 읽기, 관리자만 쓰기 — storage.rules의 public_content 규칙). 목록 전체를 다시 쓰므로, 불러오기에 실패한
+// 상태(status !== "done")에서는 저장하지 않는다 — 빈 목록으로 덮어써 다른 질병 사진이 사라지는 것을 막는다.
+const dzPhotos = { status: "idle", map: {}, form: null, busy: false, msg: "" };
+async function loadDzPhotos(){
+  if(dzPhotos.status === "loading" || dzPhotos.status === "done") return;
+  if(!firebaseReady){ dzPhotos.status = "error"; return; }
+  dzPhotos.status = "loading";
+  try {
+    const j = await fetchPublicContentJson("disease_photos");
+    dzPhotos.map = (j && j.photos && typeof j.photos === "object") ? j.photos : {};
+    dzPhotos.status = "done";
+  } catch(e){
+    // 아직 한 번도 발행하지 않았으면 파일이 없다 — 빈 목록으로 시작한다. 그 밖의 오류는 저장을 막는다.
+    const m = String((e && (e.message || e.code)) || e);
+    if(/not[- ]?found|없|404/i.test(m)){ dzPhotos.map = {}; dzPhotos.status = "done"; }
+    else { console.warn("질병 사진 목록 로딩 실패:", m); dzPhotos.status = "error"; }
+  }
+  if(state.tab === "disease") render();
+}
+function dzPhotoList(x){ const l = x && dzPhotos.map[x.slug]; return Array.isArray(l) ? l.filter(p => p && /^https:\/\//.test(p.url || "")) : []; }
+async function dzPhotosPublish(){
+  if(dzPhotos.status !== "done") throw new Error("사진 목록을 불러오지 못한 상태라 저장하지 않았습니다. 새로고침 후 다시 해 주세요.");
+  await writePublicContentJson("disease_photos", { updated: new Date().toISOString(), photos: dzPhotos.map });
+}
+function dzUserBlock(x){
+  const list = dzPhotoList(x), admin = isBoardAdmin(), f = dzPhotos.form && dzPhotos.form.slug === x.slug ? dzPhotos.form : null;
+  let h = "";
+  if(list.length) h += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin:0 0 10px">'
+    + list.map(p => '<figure style="margin:0;border:1px solid #e6ebe9;border-radius:10px;overflow:hidden;background:#fafcfb">'
+      + '<a href="'+esc(p.url)+'" target="_blank" rel="noopener" title="눌러서 크게 보기" style="display:block;background:#fff">'
+      + '<img src="'+esc(p.url)+'" alt="'+esc(x.title_ko)+' 사진" style="display:block;width:100%;max-height:340px;object-fit:contain" onerror="this.closest(\'figure\').style.display=\'none\'" /></a>'
+      + '<figcaption style="padding:7px 9px;font-size:11.5px;line-height:1.6;color:#333">'+esc(p.cap || "")
+      + '<div style="font-size:10.5px;color:#777;margin-top:3px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span>사진: '+esc(p.credit || "직접 올린 사진")+'</span>'
+      + (admin ? '<button class="dzp-del" data-slug="'+esc(x.slug)+'" data-id="'+esc(p.id)+'" style="font-size:10.5px;border:1px solid #C62828;border-radius:6px;padding:1px 7px;background:#fff;color:#C62828;cursor:pointer">🗑 지우기</button>' : '')
+      + '</div></figcaption></figure>').join("") + '</div>';
+  if(!admin) return h;
+  if(!f) return h + '<div style="margin:0 0 10px"><button class="dzp-add" data-slug="'+esc(x.slug)+'" style="font-size:11.5px;border:1px dashed #00695C;border-radius:8px;padding:5px 11px;background:#F4F8F7;color:#00695C;cursor:pointer">📷 사진 추가</button>'
+    + (dzPhotos.status === "error" ? ' <span style="font-size:11px;color:#C62828">사진 목록을 불러오지 못했습니다(새로고침 필요)</span>' : '') + '</div>';
+  const inp = 'width:100%;box-sizing:border-box;border:1px solid #cfd8d5;border-radius:7px;padding:7px 9px;font-size:13px;margin-top:3px';
+  return h + '<div id="dzp-form" style="margin:0 0 12px;padding:10px 12px;border:1px solid #B2DFDB;border-radius:10px;background:#F4FBFA">'
+    + '<div style="font-size:12.5px;font-weight:800;color:#00695C;margin-bottom:6px">📷 「'+esc(x.title_ko)+'」 사진 추가</div>'
+    + '<label style="display:block;font-size:11.5px;color:#444">사진 파일(여러 장 선택 가능 · 큰 사진은 자동으로 줄여 올립니다)<input type="file" id="dzp-file" accept="image/jpeg,image/png,image/webp" multiple style="'+inp+';background:#fff" /></label>'
+    + '<label style="display:block;font-size:11.5px;color:#444;margin-top:7px">사진 설명<input type="text" id="dzp-cap" maxlength="200" value="'+esc(f.cap)+'" placeholder="예: 3주령 육계, 간 표면의 흰 괴사 반점" style="'+inp+'" /></label>'
+    + '<label style="display:block;font-size:11.5px;color:#444;margin-top:7px">출처·촬영자<input type="text" id="dzp-credit" maxlength="100" value="'+esc(f.credit)+'" placeholder="예: 농장 현장 촬영 (2026)" style="'+inp+'" /></label>'
+    + '<div style="font-size:10.5px;color:#888;margin-top:6px;line-height:1.6">직접 찍었거나 사용 허락을 받은 사진만 올려 주세요. 올린 사진은 로그인 없이 누구나 볼 수 있습니다.</div>'
+    + (dzPhotos.msg ? '<div style="font-size:11.5px;color:#C62828;margin-top:6px">'+esc(dzPhotos.msg)+'</div>' : '')
+    + '<div style="display:flex;gap:6px;margin-top:8px"><button id="dzp-save" '+(dzPhotos.busy ? "disabled" : "")+' style="font-size:12px;font-weight:700;border:0;border-radius:7px;padding:6px 14px;background:#00695C;color:#fff;cursor:pointer">'+(dzPhotos.busy ? "올리는 중…" : "올리기")+'</button>'
+    + '<button id="dzp-cancel" '+(dzPhotos.busy ? "disabled" : "")+' style="font-size:12px;border:1px solid #bbb;border-radius:7px;padding:6px 12px;background:#fff;color:#555;cursor:pointer">취소</button></div></div>';
+}
+function attachDzPhotoEvents(){
+  document.querySelectorAll(".dzp-add").forEach(b => b.onclick = ev => {
+    ev.stopPropagation();
+    dzPhotos.form = { slug: b.dataset.slug, cap: "", credit: "" }; dzPhotos.msg = ""; render();
+    const e = document.getElementById("dzp-form"); if(e) e.scrollIntoView({ block:"center" });
+  });
+  const keep = () => { const f = dzPhotos.form; if(!f) return;
+    const c = document.getElementById("dzp-cap"), r = document.getElementById("dzp-credit");
+    if(c) f.cap = c.value.trim(); if(r) f.credit = r.value.trim(); };
+  const cancel = document.getElementById("dzp-cancel");
+  if(cancel) cancel.onclick = ev => { ev.stopPropagation(); dzPhotos.form = null; dzPhotos.msg = ""; render(); };
+  const save = document.getElementById("dzp-save");
+  if(save) save.onclick = async ev => {
+    ev.stopPropagation();
+    const f = dzPhotos.form, fi = document.getElementById("dzp-file");
+    if(!f || dzPhotos.busy) return;
+    keep();
+    const files = fi ? Array.from(fi.files || []).filter(x => /^image\/(jpeg|png|webp)$/.test(x.type)).slice(0, 6) : [];
+    if(!isBoardAdmin()){ dzPhotos.msg = "관리자 로그인 후 올릴 수 있습니다."; render(); return; }
+    if(!files.length){ dzPhotos.msg = "사진 파일(JPG·PNG·WEBP)을 골라 주세요."; render(); return; }
+    if(dzPhotos.status !== "done"){ dzPhotos.msg = "사진 목록을 불러오지 못한 상태입니다. 새로고침 후 다시 해 주세요."; render(); return; }
+    dzPhotos.busy = true; dzPhotos.msg = ""; render();
+    const added = [], key = f.slug.replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 80);
+    try {
+      for(let i = 0; i < files.length; i++){
+        const small = await boardShrinkPhoto(files[i]);
+        const ext = small.type === "image/png" ? "png" : small.type === "image/webp" ? "webp" : "jpg";
+        const name = key + "__" + Date.now() + "_" + i + "." + ext;
+        const url = await uploadPublicImage("disease_photo_files", name, small);
+        added.push({ id: name, url, path: "public_content/disease_photo_files/" + name, cap: f.cap, credit: f.credit, at: new Date().toISOString().slice(0, 10) });
+      }
+      const before = dzPhotos.map[f.slug];
+      dzPhotos.map[f.slug] = (Array.isArray(before) ? before : []).concat(added);
+      try { await dzPhotosPublish(); }
+      catch(e){ if(before) dzPhotos.map[f.slug] = before; else delete dzPhotos.map[f.slug]; throw e; }
+      dzPhotos.form = null;
+    } catch(e){
+      dzPhotos.msg = "올리지 못했습니다: " + ((e && e.message) || e);
+      added.forEach(p => { try { firebase.storage().ref(p.path).delete().catch(() => {}); } catch(_){} });
+    }
+    dzPhotos.busy = false; render();
+  };
+  document.querySelectorAll(".dzp-del").forEach(b => b.onclick = async ev => {
+    ev.stopPropagation();
+    const slug = b.dataset.slug, id = b.dataset.id, list = dzPhotos.map[slug] || [], p = list.find(q => q.id === id);
+    if(!p || dzPhotos.busy || !confirm("이 사진을 지울까요?")) return;
+    if(dzPhotos.status !== "done"){ alert("사진 목록을 불러오지 못한 상태입니다. 새로고침 후 다시 해 주세요."); return; }
+    dzPhotos.busy = true;
+    dzPhotos.map[slug] = list.filter(q => q.id !== id);
+    if(!dzPhotos.map[slug].length) delete dzPhotos.map[slug];
+    try {
+      await dzPhotosPublish();
+      if(p.path) firebase.storage().ref(p.path).delete().catch(() => {});
+    } catch(e){ dzPhotos.map[slug] = list; alert("지우지 못했습니다: " + ((e && e.message) || e)); }
+    dzPhotos.busy = false; render();
+  });
 }
 
 // ── 양계질병 사전: 관리자가 추가하는 질병 ──────────────────────────────────────
@@ -5368,6 +5479,7 @@ function dzFormRead(){
   const rv = document.getElementById("dzf-rev"); if(rv) f.reviewed = rv.checked;
 }
 function attachDzCustomEvents(){
+  attachDzPhotoEvents();
   const add = document.getElementById("dz-add");
   if(add) add.onclick = () => { dzCustom.form = { slug: null, ko: "", en: "", al: "", body: "", reviewed: false, ai: false }; dzCustom.msg = ""; render();
     const e = document.getElementById("dzf-ko"); if(e){ e.focus(); e.scrollIntoView({ block:"center" }); } };
@@ -7481,7 +7593,7 @@ function renderDiseaseResults(){
     const showEn = !!d.showEn[x.slug];
     const paras = showEn ? (x.paras_en||[]) : (x.paras_ko||[]);
     const imgs = x.images || [];
-    const firstImg = imgs.find(Boolean);
+    const firstImg = imgs.find(Boolean) || (dzPhotoList(x)[0] || {}).url;
 
     // 펼친 카드의 사진은 loading=lazy를 쓰지 않는다 — 사용자가 직접 연 내용이라
     // 스크롤을 기다릴 이유가 없고, 지연 로딩이 안 걸리는 환경에서 빈칸이 남는다.
@@ -7517,7 +7629,7 @@ function renderDiseaseResults(){
       : '';
     const body = open && (x.custom || x.extra)
       ? '<div style="padding:10px 0 4px;border-top:1px dashed #e5e5e5;margin-top:8px">' + customBar + extraBar
-        + (dzExtraFigs(x) || dzAutoFig(x))
+        + dzUserBlock(x) + (dzExtraFigs(x) || (dzPhotoList(x).length ? "" : dzAutoFig(x)))
         + (x.paras_ko||[]).map(p => { const m = p.match(/^([^:：]{1,12})\s*[:：]\s*(.*)$/);
             return m
               ? '<div style="display:flex;gap:10px;align-items:flex-start;font-size:12.5px;line-height:1.75;color:#333;margin:0;padding:7px 0;border-bottom:1px solid #f1f3f2">'
@@ -7534,6 +7646,7 @@ function renderDiseaseResults(){
         +   '<a href="'+esc(x.url)+'" target="_blank" rel="noopener" style="font-size:11px;border:1px solid #bbb;border-radius:6px;padding:3px 9px;color:#666;text-decoration:none">원문 페이지 ↗</a>'
         +   googleImageBtn(x)
         +   '</div>'
+        + dzUserBlock(x)
         + (paras.length ? paraBlocks : '<div style="font-size:12px;color:#bbb">본문 없음</div>')
         + '</div>'
       : "";
@@ -31394,6 +31507,7 @@ function renderHeaderSolarTerm(now){
 // go: {tab} 일반 탭으로 / {premium:"메뉴key"} 유료서비스의 그 화면으로(승인·로그인 안내는 그 화면이 처리) / {premium:"vaccine", vaccineView:"guide"} 처럼 보기까지 지정.
 const NEW_FEATURE_DAYS = 21;
 const NEW_FEATURES = [
+  { key:"dzphoto", date:"2026-11-16", label:"질병 사전 — 질병마다 직접 찍은 사진을 올릴 수 있어요(관리자)", where:"질병 탭 · 질병 사전", go:{ tab:"disease" } },
   { key:"dzextra2", date:"2026-11-15", label:"질병 사전에 질병 23종 추가 — 심낭수종-간염·전염성 선위염·무산란계 증후군·봉와직염·제대염·쌓임·압사 등(논문 사진·근거 포함)", where:"질병 탭 · 질병 사전", go:{ tab:"disease" } },
   { key:"whysick",        date:"2026-11-14", label:"닭은 왜 아플까? — 병이 생기는 원리 5강(호흡기·소화기·콕시듐·AI·감보로·더위) 그림 교실", where:"유료서비스 · 최꼬 아카데미", go:{ premium:"whysick" } },
   { key:"genomap", date:"2026-11-14", label:"IB·AI·대장균 교실에 「유전형 지도」 추가 — 최근 국내 분리주 분류를 논문 근거로 그림 설명", where:"유료서비스 · 최꼬 아카데미", go:{ premium:"ibteam" } },
@@ -36078,6 +36192,53 @@ const POULTRY_VENDORS = [
     summary:"가금 계사 환기·기후를 올인원으로 제공한다고 소개하는 덴마크 회사.",
     lines:[["팬", "BlueFan BF 50(터널·콤비터널), BF 55(대형 계사 터널)"], ["난방·냉방", "Spiraflex 핀 튜브(온수 난방), DA 65-600 냉각 유닛"], ["제어", "BlueControl, 실시간 모니터링·조절"], ["기타", "입기구 · 냉방 · 공기 정화 · 공기 여과 분류"]],
     features:["컨트롤러를 모두 덴마크에서 생산(Made in Denmark)", "고객 사례: 새 제어 기술로 생산지수(PEF) 50점 상승이라는 증언", "서비스 24/7/365, 현장 교육과 SKOV Academy 과정", "프로젝트 단일 창구로 일정·납품 관리"] },
+  // ── 2026-11-16 추가: 웹 검색 결과 요약 기준(공식 사이트는 이 환경에서 접속 불가 → 직접 확인 필요) ──
+  { id:"hellmann", name:"Hellmann Poultry", scope:"해외", country:"독일", hq:"독일 페흐타(Vechta) 지역", color:"#AD1457", basis:"공식 사이트", url:"https://hellmannpoultry.com/",
+    cats:["housing", "feed", "climate", "egg", "manure"],
+    summary:"산란계 설비 전문 업체. 1968년 빌리 헬만(Willi Hellmann)이 창업했고 「55년 이상 산란계 사육 전문」이라고 소개한다(회사 설명).",
+    lines:[["산란계", "에비어리(Legevolieren) · 엔리치드 케이지"], ["육성", "산란 육성 설비(Aufzucht)"], ["주변 설비", "계란 수집 · 급이 · 분뇨 제거 · 기후 시스템 · 계사 부속"]],
+    features:["「Eggcellence. Made in Germany」를 내세우고 제품 대부분을 자사 생산한다고 소개(회사 설명)", "1972년 유럽 전역 판매망 구축, 2026년 생산·물류 확장(4번 홀) 소식", "산란계 전용 — 육계 설비는 사이트에 없음"] },
+  { id:"salmet", name:"Salmet (Salmet-Fienhage)", scope:"해외", country:"독일", hq:"독일 루텐(Lutten)", color:"#00695C", basis:"공식 사이트", url:"https://salmet.de/en/",
+    cats:["housing", "manure"],
+    summary:"1962년부터 양계 설비를 개발·제조·판매해 왔다고 소개하는 독일 업체. 케이지프리(에비어리·엔리치드)부터 일반 케이지, 육계 콜로니까지 폭넓다(회사 설명).",
+    lines:[["케이지프리", "Fienhage 에비어리 시스템 · 엔리치드 시스템"], ["산란계", "자동화 산란계 시스템 · 일반(전통) 케이지"], ["육성·종계", "자동화 육성 시스템 · 산란 종계(Layer breeder) 시스템"], ["육계", "육계 콜로니 사육 시스템"], ["보조", "분뇨 처리"]],
+    features:["산란계·종계·육계를 모두 다루는 몇 안 되는 업체(사이트 제품군 기준)", "독일 공장에서 제조한다고 소개(회사 설명)", "남미(LatAm) 시장 소식 등 수출 중심"] },
+  { id:"tigsa", name:"TIGSA", scope:"해외", country:"스페인", hq:"스페인 빌라프랑카 델 페네데스(바르셀로나)", color:"#F9A825", basis:"공식 사이트", url:"https://tigsa.com/en/",
+    cats:["housing", "feed", "climate", "control"],
+    summary:"가금·양돈 농장 자동화 장비를 40년 이상 만들어 왔다고 소개하는 스페인 업체. 농장 건축과 프로젝트 엔지니어링까지 제공한다(회사 설명).",
+    lines:[["가금 설비", "종계 · 육계 · 칠면조 · 오리 · 수렵조 · 산란계"], ["이송·저장", "스파이럴·체인 이송, 사료 사일로, 사일로 충전기"], ["계량", "전자식 사일로·연속 계량, 가금 체중 관리"], ["환기·냉난방", "팬, 입기구, 폴리카보네이트 창, 쿨링패드, 안개 분무, 난방, 제어기"], ["서비스", "프로젝트 엔지니어링 · 규모 산정 · 사업계획 · 유지보수"]],
+    features:["급이·환기·계량을 한 회사에서 묶어 공급(사이트 제품 분류 기준)", "양돈 설비도 함께 취급", "이전 카드의 Avematic·CABI Air는 Tigsa 제품이라는 근거를 확인하지 못해 삭제"] },
+  { id:"lubing", name:"LUBING", scope:"해외", country:"독일", hq:"독일 반스토르프(Barnstorf)", color:"#0277BD", basis:"공식 사이트", url:"https://www.lubing.de/",
+    cats:["feed", "climate"],
+    summary:"1949년 루트비히 베닝(Ludwig Bening)이 창업한 급수·이송·환기 시스템 업체. 가금·양돈용을 모두 만들며 시장 선도 기업이라고 소개한다(회사 설명).",
+    lines:[["급수", "가금 급수 시스템 · 급수 니플"], ["이송", "사료 등 이송(Förder) 시스템"], ["환기", "가금·양돈 기후 시스템, 양돈 배기 정화"]],
+    features:["1967년 산란계·돼지용 급수 니플을 처음 생산, 이후 복합 니플 특허", "자회사 9곳, 해외 대리점 34곳으로 87개국에 공급, 독일 내 직원 250명 이상(회사 설명)", "케이지·계란 수집 같은 사육설비는 사이트 가금 메뉴에 없음"] },
+  { id:"roxell", name:"Roxell", scope:"해외", country:"벨기에", hq:"벨기에 말데헴(Maldegem)", color:"#558B2F", basis:"검색 자료", url:"https://www.ctbinc.com/brands/",
+    cats:["egg", "housing"],
+    summary:"둥지 시스템(육계 종계용 공동 둥지, 상업 산란계용)과 양계·양돈 사육 설비를 만드는 벨기에 업체. 현재 CTB 계열 브랜드로 소개된다.",
+    lines:[["둥지", "육계 종계 공동 둥지 · 상업 산란계 둥지"], ["계란", "계란 수집(CTB 브랜드 목록 기준)"]],
+    features:["CTB 그룹의 브랜드 중 하나 — 같은 그룹 제품과 연계"] },
+  { id:"rotem", name:"ROTEM", scope:"해외", country:"이스라엘", hq:"이스라엘", color:"#37474F", basis:"공식 사이트", url:"https://rotem.com/",
+    cats:["control", "climate", "feed"],
+    summary:"가금·양돈·온실용 농장 제어 시스템을 만드는 업체. 온도·환기·습도·급이·급수·조명·경보를 하나로 묶어 관리한다고 소개한다(회사 설명).",
+    lines:[["가금 제어기", "Trio, Trio 20, Trio Air"], ["급이 제어", "RFS-6: 사료·물 섭취량, 사료요구율, 평균 체중 기록(검색 자료 기준)"], ["기타", "센서·액세서리, 양돈·온실 제어, 교육 사이트(Academy)"]],
+    features:["하드웨어(케이지 등) 없이 제어·모니터링에 집중", "디렉터리에는 Munters 계열(Rotem Control and Management - a Munters company)로 표기"] },
+  { id:"ap-cumberland", name:"AP | Cumberland", scope:"해외", country:"캐나다(목록 기준)", hq:"캐나다 온타리오(목록 주소)", color:"#5D4037", basis:"검색 자료", url:"https://www.canadianpoultrymag.com/company/salmet-gmbh-co-kg/",
+    cats:["climate", "control"],
+    summary:"컨트롤러·액추에이터·경보·원격 관리 시스템, 팬, 입기구를 제공하는 것으로 목록에 올라 있는 업체.",
+    lines:[["제어·환기", "컨트롤러 · 액추에이터 · 경보 · 원격 관리 · 팬 · 입기구"]],
+    features:["환기·제어 위주 — 사육 설비는 확인 못함", "소재 정보는 디렉터리 목록 기준이라 업체 확인 필요"] },
+  // ── 국내: 양계 전용 제조사는 검색으로 거의 확인되지 않음. 아래 2곳만 국내 B2B 디렉터리에서 확인 ──
+  { id:"kr-sungkwang", name:"(주)성광시스템(Sungkwang)", scope:"국내", country:"한국", hq:"한국", color:"#455A64", basis:"검색 자료", url:"https://www.komachine.com/companies/sung-kwang-system",
+    cats:["feed", "climate"],
+    summary:"축산 자동화 설비 업체로, 가금 자동 급이기와 환기 설비를 올린 것으로 소개된다. 육계 평사 사육장용 팬(Pan) 급이 시스템 제품이 있고, 2001년 농림부 우수 기자재 제조업체 표창을 받았다는 기록이 있다.",
+    lines:[["급이", "가금·육계 자동 급이기, 육계 평사용 팬 급이 시스템"], ["환기", "환풍기·환기 설비(디렉터리 기준)"]],
+    features:["양계 급이기를 직접 만드는 국내 업체로 확인된 드문 사례", "현재 영업 상태·규모·연락처는 확인하지 못함 — 업체에 직접 확인"] },
+  { id:"kr-samwoo", name:"(주)삼우(SAMWOO)", scope:"국내", country:"한국", hq:"한국", color:"#455A64", basis:"검색 자료", url:"https://www.jobploy.kr/en/company/samwoo-inc",
+    cats:["climate", "control"],
+    summary:"축사 환기 설비 업체로 목록에 나온다: 고효율 환풍기와 자동 환기 제어기.",
+    lines:[["환기", "고효율 환풍기 · 자동 환기 제어기"]],
+    features:["케이지·급이기 취급은 확인하지 못함", "구직 사이트 정보 기준이라 최신 사업 내용은 확인 필요"] },
   // ── 국내: 양돈·축산 기자재 쇼핑몰 쿨링패드 목록 기준 ──
   ...[["(주)씨아이티시스템", "쿨링패드(시스템 루바 · 윈치커튼)"], ["(주)금보", "쿨링패드"], ["(주)보원이엔지", "쿨링패드"], ["(주)세원", "Cooling Pad"], ["(주)하나시스템", "쿨링패드 시공"], ["(주)바로텍", "MIK 쿨링패드"], ["(주)근옥", "KOC 쿨링 냉방시스템"], ["하이테크창신", "쿨링패드"]].map(([name, prod]) => ({ id:"kr-" + name, name, scope:"국내", country:"한국", hq:"한국", color:"#455A64", basis:"쇼핑몰 목록", url:"https://www.pignporkmall.com/list.php?category=5r05r02", cats:["climate"],
     summary:"축산 기자재 쇼핑몰 쿨링패드 목록에 올라 있는 국내 업체예요.", lines:[["제품(목록 표기)", prod]],
@@ -36091,14 +36252,14 @@ function renderMakerPanel(){
   const list = POULTRY_VENDORS.filter(v => (sc === "all" || v.scope === sc) && (ct === "all" || v.cats.includes(ct)));
   const head = `<div class="card" style="border-top:6px solid #455A64;margin-bottom:12px">
     <div class="display" style="font-size:16px;margin-bottom:3px">🏭 국내외 양계 시설업체</div>
-    <div style="font-size:12.5px;color:#666;line-height:1.7">사육설비·급이·환기·계란 처리 업체의 <b>특징을 한눈에</b> 비교해요. 내용은 각 업체 공식 사이트에 적힌 것만 정리했고, 회사가 스스로 한 주장은 「회사 설명」으로 표시했어요.</div>
+    <div style="font-size:12.5px;color:#666;line-height:1.7">사육설비·급이·환기·계란 처리 업체의 <b>특징을 한눈에</b> 비교해요. 내용은 공식 사이트(✔) 또는 검색 자료(ⓘ)에 적힌 것만 정리했고, 회사가 스스로 한 주장은 「회사 설명」으로 표시했어요.</div>
     <div style="display:flex;gap:6px;overflow-x:auto;padding:10px 0 4px">${scopes.map(([k, l]) => chip("mk-scope", k, l, sc === k, "#455A64")).join("")}</div>
     <div style="display:flex;gap:6px;overflow-x:auto;padding:4px 0">${chip("mk-cat", "all", "전체 분야", ct === "all", "#00897B")}${VENDOR_CATS.map(c => chip("mk-cat", c[0], `${c[1]} ${c[2]}`, ct === c[0], "#00897B")).join("")}</div></div>`;
   const matrix = `<div class="card" style="margin-bottom:12px"><div style="font-size:14.5px;font-weight:900;margin-bottom:6px">📋 한눈에 비교표</div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px;text-align:center;min-width:520px"><thead><tr style="background:#ECEFF1"><th style="padding:6px;text-align:left">업체</th><th>국가</th>${VENDOR_CATS.map(c => `<th>${c[1]}<br>${c[2]}</th>`).join("")}</tr></thead><tbody>${POULTRY_VENDORS.filter(v => sc === "all" || v.scope === sc).map(v => `<tr style="border-top:1px solid #eee"><td style="text-align:left;padding:6px;font-weight:800;color:${v.color}">${esc(v.name)}</td><td>${esc(v.country)}</td>${VENDOR_CATS.map(c => `<td>${v.cats.includes(c[0]) ? `<b style="color:${v.color}">●</b>` : `<span style="color:#ccc">–</span>`}</td>`).join("")}</tr>`).join("")}</tbody></table></div><div style="font-size:11.5px;color:#888;margin-top:5px">● = 공식 사이트(또는 목록)에서 해당 분야 제품이 확인된 경우. 표시가 없어도 취급하지 않는다는 뜻은 아니에요.</div></div>`;
   const cards = list.map(v => {
     const open = !!vendorState.open[v.id];
     const tags = v.cats.map(k => { const c = VENDOR_CATS.find(x => x[0] === k); return `<span style="background:${v.color}18;color:${v.color};border-radius:10px;padding:2px 9px;font-size:12px;font-weight:800">${c[1]} ${c[2]}</span>`; }).join(" ");
-    const basis = `<span style="background:${v.basis === "공식 사이트" ? "#E8F5E9" : "#FFF3E0"};color:${v.basis === "공식 사이트" ? "#2E7D32" : "#E65100"};border-radius:10px;padding:2px 9px;font-size:11.5px;font-weight:800">${v.basis === "공식 사이트" ? "✔ 공식 사이트 확인" : "ⓘ 쇼핑몰 목록 기준"}</span>`;
+    const basis = `<span style="background:${v.basis === "공식 사이트" ? "#E8F5E9" : "#FFF3E0"};color:${v.basis === "공식 사이트" ? "#2E7D32" : "#E65100"};border-radius:10px;padding:2px 9px;font-size:11.5px;font-weight:800">${v.basis === "공식 사이트" ? "✔ 공식 사이트 확인" : v.basis === "검색 자료" ? "ⓘ 검색 자료 기준(공식 사이트 미확인)" : "ⓘ 쇼핑몰 목록 기준"}</span>`;
     return `<div class="card" style="border-left:7px solid ${v.color};margin-bottom:10px">
       <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:flex-start"><div><div style="font-size:17px;font-weight:900;color:${v.color}">${esc(v.name)}</div><div style="font-size:12.5px;color:#777;margin-top:2px">${v.scope === "해외" ? "🌍" : "🇰🇷"} ${esc(v.hq)}</div></div>${basis}</div>
       <div style="font-size:13.5px;line-height:1.75;color:#333;margin-top:8px">${esc(v.summary)}</div>
@@ -36106,7 +36267,7 @@ function renderMakerPanel(){
       <button type="button" class="mk-open" data-k="${v.id}" style="margin-top:9px;border:1.5px solid ${v.color};background:#fff;color:${v.color};border-radius:10px;padding:7px 12px;font-size:13px;font-weight:800;cursor:pointer">${open ? "접기 ▲" : "제품·특징 자세히 ▼"}</button>
       ${open ? `<div style="margin-top:9px"><div style="display:grid;gap:6px">${v.lines.map(l => `<div style="display:flex;gap:8px;font-size:13px;line-height:1.65"><b style="flex:none;min-width:74px;color:${v.color}">${esc(l[0])}</b><span style="color:#333">${esc(l[1])}</span></div>`).join("")}</div>
         <div style="margin-top:9px;background:${v.color}0f;border-radius:10px;padding:9px 12px"><div style="font-size:13px;font-weight:900;color:${v.color};margin-bottom:4px">✨ 특징</div>${v.features.map(f => `<div style="display:flex;gap:7px;font-size:13px;line-height:1.7;color:#333"><span style="color:${v.color}">●</span><span>${esc(f)}</span></div>`).join("")}</div>
-        <a href="${esc(v.url)}" target="_blank" rel="noopener" style="display:inline-block;margin-top:9px;font-size:13px;font-weight:800;color:#1565C0">🔗 ${v.basis === "공식 사이트" ? "공식 사이트 보기" : "목록 페이지 보기"} ↗</a></div>` : ""}
+        <a href="${esc(v.url)}" target="_blank" rel="noopener" style="display:inline-block;margin-top:9px;font-size:13px;font-weight:800;color:#1565C0">🔗 ${v.basis === "공식 사이트" ? "공식 사이트 보기" : v.basis === "검색 자료" ? "출처 페이지 보기" : "목록 페이지 보기"} ↗</a></div>` : ""}
     </div>`;
   }).join("") || `<div class="card" style="text-align:center;color:#999;padding:22px;font-size:13px">조건에 맞는 업체가 없어요. 필터를 바꿔 보세요.</div>`;
   const foot = `<div style="background:#FFF8E1;border-radius:9px;padding:9px 12px;font-size:11.5px;color:#6b5400;line-height:1.75"><b>유의</b> · 업체 소개는 정보 제공용이며 특정 업체를 추천·보증하지 않아요. 국내 양계 전용 케이지·급이기 제조사는 이번 조사에서 공식 자료로 확인하지 못했고, 국내 업체는 쿨링패드 목록 기준이에요. 가격·시공 실적·AS 범위·국내 대리점은 업체에 직접 확인하세요. 빠진 업체는 알려 주시면 추가해요.</div>`;
