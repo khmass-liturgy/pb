@@ -29268,7 +29268,9 @@ function renderGrainPricePanel(){
 // scripts/fetch_industry_news.py 가 매일 아침 Google 뉴스(국내판)에서 계란·조류인플루엔자·AI·육계·방역·양계 질병 등
 // 양계 키워드 기사를 모아 industry_news/latest.json 에 쌓는다(최근 14일). 여기서는 그 목록을 카드로 그린다.
 const INDUSTRY_NEWS_JSON_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/industry_news/latest.json";
-const industryNewsState = { status:"idle", data:null, group:"전체", limit:30, showKw:false };
+const industryNewsState = { status:"idle", data:null, group:"전체", limit:30, showKw:false, mode:"pick", cat:"전체" };
+// 핵심 소식(picks) — 수집 스크립트가 같은 사건 기사를 하나로 묶고 업계 정보만 골라 분류·이유를 붙인 목록
+const IN_PICK_COLORS = { "수급·가격":"#F57F17", "정책·제도":"#00695C", "기업·단체 동향":"#455A64", "기술·연구":"#6A1B9A", "질병·방역 분석":"#C62828", "해외 동향":"#1565C0", "기타 업계":"#6D4C41" };
 const IN_COLORS = { "계란":"#F9A825", "조류인플루엔자·AI":"#C62828", "육계":"#6D4C41", "방역":"#00838F", "양계 질병":"#6A1B9A", "양계 산업":"#455A64" };
 async function fetchIndustryNews(){
   if(industryNewsState.status === "loading") return;
@@ -29286,7 +29288,10 @@ function renderIndustryNewsPanel(){
   const head = `<div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><div class="display" style="font-size:16px;margin-bottom:3px">📰 양계 업계관련 핵심키워드 검색소식</div><div style="font-size:11px;color:#aaa">계란·조류인플루엔자·AI·육계·방역·양계 질병 등 핵심 키워드로 매일 아침 국내 기사를 검색해 요약과 함께 보여드립니다</div></div><button id="industrynews-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button></div>`;
   if(st.status === "idle" || st.status === "loading") return head + `<div class="card" style="text-align:center;padding:32px;color:#aaa">⏳ 소식을 불러오는 중...</div>`;
   if(st.status === "error" || !st.data) return head + `<div class="card" style="text-align:center;padding:28px;color:#C62828;font-size:13px">⚠️ 소식을 불러오지 못했습니다.<div><button id="industrynews-retry" style="margin-top:10px;border:1px solid #0277BD;border-radius:8px;background:#0277BD;color:#fff;padding:7px 14px;font-size:12px;font-weight:700">다시 불러오기</button></div></div>`;
-  const d = st.data, items = d.items || [], groups = d.groups || [];
+  const hasPicks = Array.isArray(st.data.picks);
+  const pickMode = hasPicks && st.mode === "pick";
+  const d = st.data, items = pickMode ? d.picks : (d.items || []), groups = pickMode ? (d.pick_cats || []).filter(c => d.picks.some(p => p.cat === c)) : (d.groups || []);
+  if(pickMode) return head + renderIndustryPicks(d, items, groups);
   const count = g => g === "전체" ? items.length : items.filter(i => (i.tags || []).includes(g)).length;
   const chip = g => { const on = st.group === g, c = IN_COLORS[g] || "#37474F"; return `<button class="in-group" data-g="${esc(g)}" style="border:1.5px solid ${on ? c : "#ddd"};background:${on ? c : "#fff"};color:${on ? "#fff" : "#555"};border-radius:16px;padding:5px 11px;font-size:11.5px;font-weight:700;cursor:pointer">${esc(g)} <span style="opacity:.75">${count(g)}</span></button>`; };
   const list = items.filter(i => st.group === "전체" || (i.tags || []).includes(st.group));
@@ -29314,12 +29319,49 @@ function renderIndustryNewsPanel(){
       <div style="text-align:right;margin-top:12px"><a href="${esc(orig)}" target="_blank" rel="noopener" style="display:inline-block;font-size:14px;font-weight:800;color:#fff;background:${c};border-radius:10px;padding:9px 18px;text-decoration:none">📄 원문 보기 ↗</a></div></div>`;
   });
   return head + `
+    ${hasPicks ? inModeBar(false, (d.picks || []).length, (d.items || []).length) : ""}
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px">${chip("전체")}${groups.map(chip).join("")}</div>
     <div style="font-size:10.5px;color:#aaa;margin:6px 0 0">최근 14일 · 갱신 ${esc(d.updated || "")} · 총 ${list.length}건 <span class="in-kw" style="cursor:pointer;color:#0277BD;font-weight:700">· 검색 키워드 ${st.showKw ? "닫기 ▲" : "보기 ▼"}</span></div>
     ${st.showKw ? `<div style="font-size:11px;color:#666;line-height:1.7;background:#F7F9FC;border-radius:8px;padding:8px 10px;margin-top:6px">${(d.keywords || []).map(k => esc(k)).join(" · ")}<br><span style="color:#999">'AI'는 인공지능 기사가 섞이지 않도록 제목에 가금·방역 맥락이 있는 기사만 담습니다.</span></div>` : ""}
     ${cards || `<div class="card" style="text-align:center;padding:24px;color:#aaa;margin-top:10px">해당하는 기사가 없습니다.</div>`}
     ${list.length > shown.length ? `<div style="text-align:center;margin-top:6px"><button id="in-more" style="border:1px solid #0277BD;border-radius:8px;background:#fff;color:#0277BD;padding:8px 18px;font-size:12px;font-weight:700;cursor:pointer">더 보기 (${list.length - shown.length}건 남음)</button></div>` : ""}
     <div style="font-size:9.5px;color:#aaa;line-height:1.6;margin-top:12px">※ 요약은 기사 내용을 짧게 줄인 참고용이며(AI 요약은 오류가 있을 수 있음) 기사의 저작권은 각 언론사에 있습니다. 정확한 내용은 「원문 보기」로 확인하세요.</div>`;
+}
+
+function inModeBar(pick, nPick, nAll){
+  const b = (on, mode, label) => `<button class="in-mode" data-m="${mode}" style="flex:1;border:0;border-radius:9px;padding:8px 6px;font-size:12.5px;font-weight:800;cursor:pointer;background:${on ? "#0277BD" : "transparent"};color:${on ? "#fff" : "#555"}">${label}</button>`;
+  return `<div style="display:flex;gap:4px;background:#EEF3F7;border-radius:11px;padding:4px;margin-bottom:10px">${b(pick, "pick", "⭐ 핵심 소식 " + nPick)}${b(!pick, "all", "전체 기사 " + nAll + " (중복 포함)")}</div>`;
+}
+function renderIndustryPicks(d, picks, cats){
+  const st = industryNewsState;
+  if(st.cat !== "전체" && !cats.includes(st.cat)) st.cat = "전체";
+  const count = c => c === "전체" ? picks.length : picks.filter(p => p.cat === c).length;
+  const chip = c => { const on = st.cat === c, col = IN_PICK_COLORS[c] || "#37474F"; return `<button class="in-cat" data-c="${esc(c)}" style="border:1.5px solid ${on ? col : "#ddd"};background:${on ? col : "#fff"};color:${on ? "#fff" : "#555"};border-radius:16px;padding:5px 11px;font-size:11.5px;font-weight:700;cursor:pointer">${esc(c)} <span style="opacity:.75">${count(c)}</span></button>`; };
+  const list = picks.filter(p => st.cat === "전체" || p.cat === st.cat), shown = list.slice(0, st.limit);
+  const todayStr = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10), yStr = new Date(Date.now() + 9 * 3600000 - 86400000).toISOString().slice(0, 10);
+  let lastDay = "", cards = "";
+  shown.forEach(i => {
+    const day = (i.ts || "").slice(0, 10);
+    if(day !== lastDay){ lastDay = day; cards += `<div style="font-size:12px;font-weight:800;color:#37474F;margin:14px 0 6px">${day === todayStr ? "오늘" : day === yStr ? "어제" : day.slice(5).replace("-", "월 ") + "일"} <span style="font-weight:500;color:#aaa;font-size:11px">${day}</span></div>`; }
+    const c = IN_PICK_COLORS[i.cat] || "#37474F", orig = i.url || i.link;
+    const sents = (i.summary || "").split(/(?<=[.。!?]|다\.|요\.)\s+/).map(x => x.trim()).filter(Boolean);
+    cards += `<div style="background:#fff;border:1px solid #e8e8e8;border-left:6px solid ${c};border-radius:14px;padding:14px 15px 12px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.05)">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:7px"><span style="font-size:11px;color:#fff;background:${c};border-radius:10px;padding:2px 9px;font-weight:800">${esc(i.cat || "")}</span>${i.dup ? `<span style="font-size:11px;color:#555;background:#EEF1F3;border-radius:10px;padding:2px 9px;font-weight:700" title="${esc((i.also || []).join(", "))}">같은 소식 ${i.dup}건 묶음</span>` : ""}</div>
+      <div style="font-size:17px;font-weight:900;color:#111;line-height:1.5;letter-spacing:-.2px">${esc(i.title)}</div>
+      <div style="font-size:12px;color:#888;margin-top:4px">${esc(i.source || "")} · ${esc((i.ts || "").slice(11))}${(i.also || []).length ? ` <span style="color:#aaa">· 다른 매체: ${esc(i.also.join(", "))}</span>` : ""}</div>
+      ${i.why ? `<div style="margin-top:9px;font-size:13.5px;line-height:1.6;color:#0D47A1;background:#EAF3FB;border-radius:9px;padding:8px 11px"><b>💡 왜 중요한가</b> — ${esc(i.why)}</div>` : ""}
+      ${sents.length ? `<div style="margin-top:9px;background:#FFFCF2;border:1px solid #F1E2B5;border-radius:11px;padding:10px 13px">
+          <div style="font-size:11px;font-weight:800;color:${i.summary_ai ? "#6A1B9A" : "#8D6E00"};margin-bottom:5px">${i.summary_ai ? "🤖 AI 핵심 요약" : "📌 본문 발췌"}</div>
+          ${sents.map(x => `<div style="display:flex;gap:8px;font-size:15px;line-height:1.7;color:#222;margin:2px 0"><span style="color:${c};font-weight:900">•</span><span>${esc(x)}</span></div>`).join("")}</div>` : ""}
+      <div style="text-align:right;margin-top:10px"><a href="${esc(orig)}" target="_blank" rel="noopener" style="display:inline-block;font-size:13px;font-weight:800;color:#fff;background:${c};border-radius:10px;padding:8px 16px;text-decoration:none">📄 원문 보기 ↗</a></div></div>`;
+  });
+  const anyAi = picks.some(p => p.ai);
+  return inModeBar(true, picks.length, (d.items || []).length) + `
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px">${chip("전체")}${cats.map(chip).join("")}</div>
+    <div style="font-size:10.5px;color:#aaa;margin:6px 0 0">최근 14일 · 갱신 ${esc(d.updated || "")} · 같은 사건을 다룬 기사는 하나로 묶고, 발생 속보·지자체 방역 보도는 뺐습니다(${anyAi ? "AI 선별" : "낱말 규칙 선별"}). AI 발생 현황은 AI 탭에서 보세요.</div>
+    ${cards || `<div class="card" style="text-align:center;padding:24px;color:#aaa;margin-top:10px">해당하는 소식이 없습니다.</div>`}
+    ${list.length > shown.length ? `<div style="text-align:center;margin-top:6px"><button id="in-more" style="border:1px solid #0277BD;border-radius:8px;background:#fff;color:#0277BD;padding:8px 18px;font-size:12px;font-weight:700;cursor:pointer">더 보기 (${list.length - shown.length}건 남음)</button></div>` : ""}
+    <div style="font-size:9.5px;color:#aaa;line-height:1.6;margin-top:12px">※ 선별과 요약은 자동으로 만든 참고용이며 오류가 있을 수 있습니다. 기사의 저작권은 각 언론사에 있고, 정확한 내용은 「원문 보기」로 확인하세요.</div>`;
 }
 
 // ── 동물약품 주간 소식 (유료서비스 · 약품·투약·소독) ─────────────────────────────────────
@@ -31507,6 +31549,7 @@ function renderHeaderSolarTerm(now){
 // go: {tab} 일반 탭으로 / {premium:"메뉴key"} 유료서비스의 그 화면으로(승인·로그인 안내는 그 화면이 처리) / {premium:"vaccine", vaccineView:"guide"} 처럼 보기까지 지정.
 const NEW_FEATURE_DAYS = 21;
 const NEW_FEATURES = [
+  { key:"inpick", date:"2026-11-17", label:"양계 업계 소식 — 중복 기사를 묶고 업계 정보만 골라 「핵심 소식」으로", where:"유료서비스 · 게시판·기타", go:{ premium:"industrynews" } },
   { key:"dzphoto", date:"2026-11-16", label:"질병 사전 — 질병마다 직접 찍은 사진을 올릴 수 있어요(관리자)", where:"질병 탭 · 질병 사전", go:{ tab:"disease" } },
   { key:"dzextra2", date:"2026-11-15", label:"질병 사전에 질병 23종 추가 — 심낭수종-간염·전염성 선위염·무산란계 증후군·봉와직염·제대염·쌓임·압사 등(논문 사진·근거 포함)", where:"질병 탭 · 질병 사전", go:{ tab:"disease" } },
   { key:"whysick",        date:"2026-11-14", label:"닭은 왜 아플까? — 병이 생기는 원리 5강(호흡기·소화기·콕시듐·AI·감보로·더위) 그림 교실", where:"유료서비스 · 최꼬 아카데미", go:{ premium:"whysick" } },
@@ -38296,6 +38339,8 @@ function attachDiseaseEvents(){
   const inRetry = document.getElementById("industrynews-retry");
   if(inRetry) inRetry.onclick = () => { industryNewsState.status = "idle"; render(); };
   document.querySelectorAll(".in-group").forEach(b => b.onclick = () => { industryNewsState.group = b.dataset.g; industryNewsState.limit = 30; render(); });
+  document.querySelectorAll(".in-mode").forEach(b => b.onclick = () => { industryNewsState.mode = b.dataset.m; industryNewsState.limit = 30; render(); });
+  document.querySelectorAll(".in-cat").forEach(b => b.onclick = () => { industryNewsState.cat = b.dataset.c; industryNewsState.limit = 30; render(); });
   const inMore = document.getElementById("in-more"); if(inMore) inMore.onclick = () => { industryNewsState.limit += 30; render(); };
   const inKw = document.querySelector(".in-kw"); if(inKw) inKw.onclick = () => { industryNewsState.showKw = !industryNewsState.showKw; render(); };
   const dbBack = document.getElementById("diseasebrief-back-btn");
