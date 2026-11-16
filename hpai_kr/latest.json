@@ -1,7 +1,7 @@
 {
- "as_of": "2026-11-07 17:00 KST",
- "title": "고병원성 조류인플루엔자 발생·검출 현황('26.11.7. 17시 기준)",
- "url": "https://www.mafra.go.kr/bbs/FMD-AI2/851/582193/artclView.do",
+ "as_of": "2026-11-15 17:00 KST",
+ "title": "고병원성 조류인플루엔자 발생·검출 현황('26.11.15. 17시 기준)  새글",
+ "url": "https://www.mafra.go.kr/bbs/FMD-AI2/851/582279/artclView.do",
  "farms": [
   {
    "n": 1,
@@ -38,6 +38,54 @@
    "cnt": 260000,
    "sero": "H5N1",
    "conf": "2026-11-07"
+  },
+  {
+   "n": 4,
+   "kind": "예찰",
+   "rep": "2026-11-11",
+   "sido": "인천",
+   "sgg": "강화군",
+   "sp": "닭",
+   "breed": "산란계",
+   "cnt": 48160,
+   "sero": "H5N9",
+   "conf": "2026-11-12"
+  },
+  {
+   "n": 5,
+   "kind": "신고",
+   "rep": "2026-11-12",
+   "sido": "충북",
+   "sgg": "진천군",
+   "sp": "오리",
+   "breed": "종오리",
+   "cnt": 2000,
+   "sero": "H5N1",
+   "conf": "2026-11-13"
+  },
+  {
+   "n": 6,
+   "kind": "신고",
+   "rep": "2026-11-12",
+   "sido": "경기",
+   "sgg": "파주시",
+   "sp": "기타",
+   "breed": "메추리",
+   "cnt": 466000,
+   "sero": "H5N9",
+   "conf": "2026-11-13"
+  },
+  {
+   "n": 7,
+   "kind": "예찰",
+   "rep": "2026-11-15",
+   "sido": "경북",
+   "sgg": "경주시",
+   "sp": "기타",
+   "breed": "거위",
+   "cnt": 48,
+   "sero": "H5N9",
+   "conf": "2026-11-16"
   }
  ],
  "wild": [
@@ -100,15 +148,55 @@
    "sero": "H5N9",
    "conf": "2026-11-06",
    "sample": "포획"
+  },
+  {
+   "n": 7,
+   "date": "2026-11-03",
+   "sido": "경기",
+   "sgg": "여주",
+   "spot": "남한강",
+   "sero": "H5N9",
+   "conf": "2026-11-10",
+   "sample": "분변"
+  },
+  {
+   "n": 8,
+   "date": "2026-11-04",
+   "sido": "충남",
+   "sgg": "논산",
+   "spot": "연산천",
+   "sero": "H5N1",
+   "conf": "2026-11-10",
+   "sample": "포획"
+  },
+  {
+   "n": 9,
+   "date": "2026-11-09",
+   "sido": "전북",
+   "sgg": "정읍",
+   "spot": "동진강",
+   "sero": "H5N9",
+   "conf": "2026-11-13",
+   "sample": "포획"
+  },
+  {
+   "n": 10,
+   "date": "2026-11-09",
+   "sido": "강원",
+   "sgg": "홍천",
+   "spot": "양덕원천",
+   "sero": "H5N9",
+   "conf": "2026-11-13",
+   "sample": "분변"
   }
  ],
  "table_stale": false,
  "news": [
   {
-   "title": "진천 종오리 농장서 고병원성 AI 확진…2천200마리 살처분 - 충청매일",
-   "link": "https://news.google.com/rss/articles/CBMiakFVX3lxTE1lQmdFZW9HRU1QbUdWZEVBRlBvX29jV2ZwRTZqR2RqdkctSlMyQ1k2SlBaRjFnN1ZmQ0l0X0RvcVFac2p0UGFicnFodnotdk1zLXE3VzdoMWtiVThzbTJiVnFVbHR0SWlpNXc?oc=5",
-   "date": "Sun, 15 Nov 2026 08:40:07 GMT",
-   "source": "충청매일"
+   "title": "경주 산내면 관상용 거위 사육시설 고병원성 AI 확진…차단방역 총력 - 뉴스핌",
+   "link": "https://news.google.com/rss/articles/CBMiXEFVX3lxTFBzS0JJaHBWY0d1cWxjZmFWVVcwaEp4TlNfbDVSSXRFTVBib1NSeW5aYmZoWHBfdFdfeGYyTE9QbWNRVm9WRnBSSWdWVDl1bkNoaUlaM25tVzZ0YXRO?oc=5",
+   "date": "Mon, 16 Nov 2026 02:03:00 GMT",
+   "source": "뉴스핌"
   },
   {
    "title": "고병원성 AI 가금농장 발생 6건째…검역본부 ‘위험주의보’ 발령 - 농민신문",
@@ -117,10 +205,10 @@
    "source": "농민신문"
   },
   {
-   "title": "경주 조류학습장서 H5형 AI 항원 검출…거위 48마리 사육 - 아주경제",
-   "link": "https://news.google.com/rss/articles/CBMiWEFVX3lxTE9aOWdvMHFUUV9nQjEwYzV6OXRBRnJRS0VkN0ZmYk5hMnEwUXlRc09fdXpQRllWS1YwLVpwZnd0QlBCOUZRQnNxN21aZ2pBWDVQN3hZQXp2UEbSAVhBVV95cUxPWjlnbzBxVFFfZ0IxMGM1ejl0QUZyUUtFZDdGZmJOYTJxMFF5UXNPX3V6UEZZVktWMC1acGZ3dEJQQjlGUUJzcTdtWmdqQVg1UDd4WUF6dlBG?oc=5",
-   "date": "Sun, 15 Nov 2026 03:15:18 GMT",
-   "source": "아주경제"
+   "title": "진천 종오리농장 고병원성 AI 확진…군, 방역 강화 - 뉴시스",
+   "link": "https://news.google.com/rss/articles/CBMiYEFVX3lxTE56RTJhZjNZZ1ZrazRQUTZwcVJtXzhod182a2gzV2hERTNzQnNLbU93UUxmNHFTWEk3dGxhenZlZTI2MU03M1VyamVUeFNzUWU5Y1J2ZGUyU3QxX21vVzV1ZdIBeEFVX3lxTE5SeVNxYVZRQlZxd1dzWmtVVVZvTzhOTzVYU2pqZU1ZNEt5WGw0b3RwOTFnX191TGI5VTVTb1BSUENpR3lWS0tpejV5UTBLdnRMN2tDSENPeXk4QVhyZFNEY2hZX2dSMDNGeGQybnQ3TlpYTGpRbjdmNw?oc=5",
+   "date": "Mon, 16 Nov 2026 01:11:28 GMT",
+   "source": "뉴시스"
   },
   {
    "title": "강화 산란계농장 고병원성 AI 확진… 파주·진천도 항원 검출 '방역 비상’ - 한국농어민신문",
@@ -130,104 +218,31 @@
   },
   {
    "title": "진천·파주에서도 고병원성AI 확진…”방역강화” - 뉴스웍스",
-   "link": "https://news.google.com/rss/articles/CBMic0FVX3lxTE5XTmZjX3RkaGtDbWR3Rmlaa3RXdTlUM3d4ZzA4eUZKN3NqZm85VWVfLWtSeHZZVjZCeU9RMUI0ZkxCT0RoZGVQUy11Wm5ZbTN3bVRIQXVJQlQwUWxaaHV5ZS1NZV9tS25sak4wYllrQ3VBMVHSAXNBVV95cUxOV05mY190ZGhrQ21kd0ZpWmt0V3U5VDN3eGcwOHlGSjdzamZvOVVlXy1rUnh2WVY2QnlPUTFCNGZMQk9EaGRlUFMtdVpuWW0zd21USEF1SUJUMFFsWmh1eWUtTWVfbUtubGpOMGJZa0N1QTFR?oc=5",
+   "link": "https://news.google.com/rss/articles/CBMib0FVX3lxTE55MGk1bFFHWkJaaEEzQmhkQWVneHJHNUoyX3FJNGlieTNzMTZEdkhGV1JOVnZNemVkMGRGcng3ZGVWZnNTYUZ5emRpOWU5OVNpVkdYa1FUa25LSlViYm1qLXFJbE02VGx1X0x0VUdKQdIBc0FVX3lxTE5XTmZjX3RkaGtDbWR3Rmlaa3RXdTlUM3d4ZzA4eUZKN3NqZm85VWVfLWtSeHZZVjZCeU9RMUI0ZkxCT0RoZGVQUy11Wm5ZbTN3bVRIQXVJQlQwUWxaaHV5ZS1NZV9tS25sak4wYllrQ3VBMVE?oc=5",
    "date": "Fri, 13 Nov 2026 11:08:24 GMT",
    "source": "뉴스웍스"
   },
   {
-   "title": "강화군 산란계 농장서 고병원성 AI 발생…방역당국 초비상 - 경인방송 뉴스",
-   "link": "https://news.google.com/rss/articles/CBMiZEFVX3lxTFBOUEp4TVFlR1ZURFR1Q21nOGZWZDNMY2FlT1ZTZWdqMGtGSGZvTU5GQ0NYd3NNa0NfLXZDeEtRejRiX3ZBS0QxakRXXzdYZlduTi02OWFVSzFjdDA3d1NLVXp0UHPSAWhBVV95cUxOOXJYRjFzZktiLW5jenI1dVh3RkJqRENtbjlZREczSnVvdDVWdzRJTHhZV3p2dlNyRkI5bHV1NDRMdWtpYzV1aGVwOV9oTlBDVEctTkhLSmhCXy05bXA2UmRyQl84Y3FCWA?oc=5",
-   "date": "Thu, 12 Nov 2026 23:58:44 GMT",
-   "source": "경인방송 뉴스"
-  },
-  {
-   "title": "경주 조류학습장서 H5형 AI 항원 검출…고병원성 여부 검사 중 - 이데일리",
-   "link": "https://news.google.com/rss/articles/CBMigAFBVV95cUxQZlJUS0VKVnNieEZLcVZPQ0w2bURzN1J3OFNfTzduUFluYkhqMFJ2emU3TWRlQklNcmNxdUhJWkRNamdiYzlyelkyYVdMUlNGcTVkRjNEUjlLNFNWM0llN1lPdWIzYWdGZTlVY21CV1NCbE8tU1pUbXVXR3dBNG1pOA?oc=5",
-   "date": "Sun, 15 Nov 2026 03:10:20 GMT",
-   "source": "이데일리"
-  },
-  {
-   "title": "강화서 고병원성 AI 발생…수도권 24시간 이동중지 - 애드뉴스인천",
-   "link": "https://news.google.com/rss/articles/CBMia0FVX3lxTE5reURlc25yTXcweTJfc0dhdHZtS1VtdDhVa0dVNldfX3l4VXVjUVo0aDVuZXl5YzBzSWwtN3ltOXFBelNqRVRSdDJPU09oNm5tamM3QU5PQ2dFQlV3bzBBamNVQ0wzcFkxVmE4?oc=5",
-   "date": "Fri, 13 Nov 2026 00:41:00 GMT",
-   "source": "애드뉴스인천"
-  }
- ],
- "checked": "2026-11-16 04:06 KST",
- "quick": [
-  {
-   "kind": "예찰",
-   "rep": "",
-   "approx": true,
-   "sido": "인천",
-   "sgg": "강화군",
-   "sp": "닭",
-   "breed": "산란계",
-   "cnt": 48000,
-   "sero": "H5N9",
-   "conf": "2026-11-12",
-   "nth": 4,
-   "pending": false,
-   "src": "농식품부 보도자료",
-   "title": "인천 강화 산란계 농장에 대한 정기 예찰 검사에서 H5형 조류인플루엔자 항원 확인  새글",
-   "link": "https://www.mafra.go.kr/bbs/home/792/582248/artclView.do",
-   "found": "2026-11-12 16:30"
-  },
-  {
-   "kind": "예찰",
-   "rep": "2026-11-13",
-   "approx": true,
-   "sido": "경기",
-   "sgg": "파주시",
-   "sp": "메추리",
-   "breed": "메추리",
-   "cnt": 466000,
-   "sero": "H5N1",
-   "conf": "2026-11-13",
-   "nth": 6,
-   "pending": false,
-   "src": "농식품부 보도자료",
-   "title": "경기 파주 메추리 농장에서 H5형 조류인플루엔자 항원 확인  새글",
-   "link": "https://www.mafra.go.kr/bbs/home/792/582257/artclView.do",
-   "found": "2026-11-13 02:02"
-  },
-  {
-   "kind": "예찰",
-   "rep": "2026-11-12",
-   "approx": true,
-   "sido": "충북",
-   "sgg": "진천군",
-   "sp": "기타",
-   "breed": "종오리",
-   "cnt": 2000,
-   "sero": "H5N1",
-   "conf": "2026-11-13",
-   "nth": 6,
-   "pending": false,
-   "src": "농식품부 보도자료",
-   "title": "충북 진천 종오리 농장에서 H5형 조류인플루엔자 항원 확인  새글",
-   "link": "https://www.mafra.go.kr/bbs/home/792/582258/artclView.do",
-   "found": "2026-11-13 02:02"
-  },
-  {
-   "kind": "예찰",
-   "rep": "",
-   "approx": false,
-   "sido": "경북",
-   "sgg": "경주시",
-   "sp": "기타",
-   "breed": "거위",
-   "cnt": 48,
-   "sero": "H5",
-   "conf": "2026-11-15",
-   "nth": null,
-   "pending": true,
-   "src": "아주경제",
    "title": "경주 조류학습장서 H5형 AI 항원 검출…거위 48마리 사육 - 아주경제",
    "link": "https://news.google.com/rss/articles/CBMiWEFVX3lxTE9aOWdvMHFUUV9nQjEwYzV6OXRBRnJRS0VkN0ZmYk5hMnEwUXlRc09fdXpQRllWS1YwLVpwZnd0QlBCOUZRQnNxN21aZ2pBWDVQN3hZQXp2UEbSAVhBVV95cUxPWjlnbzBxVFFfZ0IxMGM1ejl0QUZyUUtFZDdGZmJOYTJxMFF5UXNPX3V6UEZZVktWMC1acGZ3dEJQQjlGUUJzcTdtWmdqQVg1UDd4WUF6dlBG?oc=5",
-   "found": "2026-11-15 20:28"
+   "date": "Sun, 15 Nov 2026 03:15:18 GMT",
+   "source": "아주경제"
+  },
+  {
+   "title": "진천 종오리 농장서 고병원성 AI 확진…오리 2200마리 살처분 - 뉴스핌",
+   "link": "https://news.google.com/rss/articles/CBMiXEFVX3lxTFBRcjQ3bVJXb3dWZkF6TXRCS2ZPM1Y2R044NnVXRGMzblZOYWUyZFNXcUhTR3BabmQ4Q01EUklVRTBwaWZMbWdjZk45cG1La0g0dUI5d3REVEU4bjFK?oc=5",
+   "date": "Fri, 13 Nov 2026 10:46:00 GMT",
+   "source": "뉴스핌"
+  },
+  {
+   "title": "인천 강화서 4번째 고병원성 AI 확진···경기 파주 메추리·충북 진천 오리서도 H5형 검 - 더경남뉴스",
+   "link": "https://news.google.com/rss/articles/CBMiVEFVX3lxTFBMS3pkVnJVeFlweVJGMHFoSEFrTnI2Zk5kSkJzVV9aZHNnOW9DR2ctRTc5SWZTMXM4WHZwa3FwSzFSd2RVTmQyd3NLeDFaUi1DWEZtWQ?oc=5",
+   "date": "Fri, 13 Nov 2026 14:19:25 GMT",
+   "source": "더경남뉴스"
   }
  ],
+ "checked": "2026-11-16 12:06 KST",
+ "quick": [],
  "quick_seen": [
   "p577385",
   "p577364",
@@ -384,7 +399,12 @@
   "n충북도진천종오리농장AI항원검출에긴급방역충청도민일보",
   "n경주민간조류학습장서H5형AI검출방역조치실시뉴시스",
   "n거위48마리키우는경주조류학습장서H5형AI항원검출이투데이",
-  "n진천종오리농장서고병원성AI확진2천200마리살처분충청매일"
+  "n진천종오리농장서고병원성AI확진2천200마리살처분충청매일",
+  "p582275",
+  "p582273",
+  "n경주산내면관상용거위사육시설고병원성AI확진차단방역총력뉴스핌",
+  "n진천종오리농장고병원성AI확진군방역강화뉴시스",
+  "n진천군종오리농장서조류인플루엔자항원검출아이뉴스24"
  ],
  "quick_wild": [
   {
