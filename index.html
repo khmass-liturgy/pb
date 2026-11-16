@@ -29016,9 +29016,10 @@ function ibBind(){
 // ── 계육·계란·종란 수출입 동향 — import_status/stats.json(관세청 품목별 국가별 수출입실적, 매주 자동 수집) ─────────────
 // 수입은 UN Comtrade로도 받지만 수출(ex_*)은 관세청 값에만 있다. 월 값이 없는 달(수집 범위 안)은 수출입이 없던 달이라 0으로 본다.
 const TRADE_ITEMS = {
-  chicken:      { label: "계육(닭고기)", short: "계육", icon: "🍗", color: "#E65100", soft: "#FFF3E0", line: "#FFCC80", hs: "HS 0207" },
-  egg_fresh:    { label: "계란(신선란)", short: "계란", icon: "🥚", color: "#F9A825", soft: "#FFF8E1", line: "#FFE082", hs: "HS 040721" },
-  egg_hatching: { label: "종란(부화용)", short: "종란", icon: "🐣", color: "#8D6E63", soft: "#EFEBE9", line: "#BCAAA4", hs: "HS 040711" },
+  // color는 흰 바탕·옅은 바탕 위 글자로도 읽히는 진한 색으로 둔다(예전 노랑 #F9A825는 옅은 노랑 바탕에서 잘 안 보였다).
+  chicken:      { label: "계육(닭고기)", short: "계육", icon: "🍗", color: "#C2410C", soft: "#FFF4EC", line: "#F6C9A8", hs: "HS 0207" },
+  egg_fresh:    { label: "계란(신선란)", short: "계란", icon: "🥚", color: "#A16207", soft: "#FFF9E6", line: "#EAD38A", hs: "HS 040721" },
+  egg_hatching: { label: "종란(부화용)", short: "종란", icon: "🐣", color: "#0F766E", soft: "#EEF8F6", line: "#A9D8D1", hs: "HS 040711" },
 };
 const TRADE_PALETTE = ["#1565C0", "#2E7D32", "#C62828", "#6A1B9A", "#00838F", "#EF6C00"];
 const tradeState = { status: "idle", data: null, tab: "all" };
@@ -29077,21 +29078,25 @@ function tradeKpi(label, val, sub, color){
 }
 function tradeOverview(M){
   const i = M.ks.length - 1;
+  // 흰 카드에 품목 색은 윗줄·이름표·막대에만 쓰고, 숫자와 설명은 진한 글자로 둔다(폰에서 읽기 쉽게).
+  const row = (label, val) => `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:6px 0;border-top:1px solid #EEF1F3;font-size:13px"><span style="color:#5B6670">${label}</span><span style="color:#1F2933;font-weight:700;text-align:right;font-variant-numeric:tabular-nums">${val}</span></div>`;
   const cards = Object.entries(TRADE_ITEMS).map(([key, meta]) => {
     const it = M.items[key], cur = it.t[i], prv = it.t[i - 12], ex = it.ex[i], y12 = tradeSum(it.t, i, 12), y12p = tradeSum(it.t, i - 12, 12);
     const top = Object.entries(it.cells[i].by || {})[0], last24 = it.t.slice(-24);
-    const eggs = key === "egg_fresh" && cur > 0 ? `<div style="font-size:10.5px;color:#888">60g 가정 시 약 ${Math.round(cur * 1e6 / 60 / 1e4).toLocaleString()}만 개</div>` : "";
-    return `<button type="button" data-trade-tab="${key}" style="all:unset;box-sizing:border-box;cursor:pointer;display:block;flex:1 1 220px;min-width:210px;background:${meta.soft};border:1px solid ${meta.line};border-radius:12px;padding:12px 13px">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:6px"><span style="font-size:13.5px;font-weight:800;color:${meta.color}">${meta.icon} ${meta.label}</span><span style="font-size:10px;color:#999">${meta.hs}</span></div>
-      <div style="font-size:10.5px;color:#888;margin-top:6px">${tradeYm(M.ks[i])} 수입</div>
-      <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><span style="font-size:24px;font-weight:900;color:${meta.color};font-variant-numeric:tabular-nums">${pfTon(cur)}<span style="font-size:12px;font-weight:700"> t</span></span>${tradeBadge(tradePct(cur, prv))}</div>
+    const eggs = key === "egg_fresh" && cur > 0 ? `<div style="font-size:12px;color:#5B6670;margin-top:2px">60g 가정 시 약 ${Math.round(cur * 1e6 / 60 / 1e4).toLocaleString()}만 개</div>` : "";
+    return `<button type="button" data-trade-tab="${key}" style="all:unset;box-sizing:border-box;cursor:pointer;display:block;flex:1 1 240px;min-width:220px;background:#fff;border:1px solid #DDE3E8;border-top:5px solid ${meta.color};border-radius:14px;padding:13px 14px 11px;box-shadow:0 2px 8px rgba(15,23,42,.06)">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:6px"><span style="font-size:14px;font-weight:800;color:#fff;background:${meta.color};border-radius:999px;padding:3px 12px">${meta.icon} ${meta.label}</span><span style="font-size:11px;color:#7B8794">${meta.hs}</span></div>
+      <div style="font-size:12px;color:#5B6670;margin-top:10px">${tradeYm(M.ks[i])} 수입</div>
+      <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><span style="font-size:28px;font-weight:900;color:#111827;font-variant-numeric:tabular-nums;letter-spacing:-.5px">${pfTon(cur)}<span style="font-size:14px;font-weight:700;color:#5B6670"> t</span></span>${tradeBadge(tradePct(cur, prv))}</div>
       ${eggs}
-      <div style="margin:8px 0 4px">${tradeSpark(last24, meta.color, 240, 38)}<div style="display:flex;justify-content:space-between;font-size:9px;color:#aaa"><span>${tradeYm(M.ks[Math.max(0, M.ks.length - 24)])}</span><span>${tradeYm(M.ks[i])}</span></div></div>
-      <div style="font-size:11px;color:#555;line-height:1.7">최근 12개월 수입 <b>${y12 == null ? "-" : pfTon(y12) + "t"}</b> ${y12 != null && y12p ? tradeBadge(tradePct(y12, y12p)) : ""}<br>${it.hasEx ? `수출 ${tradeYm(M.ks[i])} <b>${pfTon(ex)}t</b>` : '<span style="color:#aaa">수출 자료 수집 대기</span>'}${top ? `<br>수입 1위 ${esc(top[0])} ${pfTon(top[1])}t` : ""}</div>
-      <div style="font-size:10.5px;font-weight:700;color:${meta.color};margin-top:6px">자세히 보기 ›</div></button>`;
+      <div style="margin:10px 0 8px;background:${meta.soft};border-radius:9px;padding:8px 8px 4px">${tradeSpark(last24, meta.color, 240, 40)}<div style="display:flex;justify-content:space-between;font-size:10.5px;color:#7B8794;margin-top:2px"><span>${tradeYm(M.ks[Math.max(0, M.ks.length - 24)])}</span><span>${tradeYm(M.ks[i])}</span></div></div>
+      ${row("최근 12개월 수입", (y12 == null ? "-" : pfTon(y12) + "t") + (y12 != null && y12p ? " " + tradeBadge(tradePct(y12, y12p)) : ""))}
+      ${row(tradeYm(M.ks[i]) + " 수출", it.hasEx ? pfTon(ex) + "t" : '<span style="color:#9AA5B1;font-weight:500">수집 대기</span>')}
+      ${top ? row("수입 1위", esc(top[0]) + " " + pfTon(top[1]) + "t") : ""}
+      <div style="font-size:12.5px;font-weight:800;color:${meta.color};margin-top:8px;text-align:right">자세히 보기 ›</div></button>`;
   }).join("");
-  return `<div style="display:flex;gap:10px;flex-wrap:wrap">${cards}</div>
-    <div style="margin-top:12px;font-size:11px;color:#666;line-height:1.75;background:#F5F5F5;border-radius:8px;padding:8px 11px">카드를 누르면 품목별 월별 수입·수출 추이, 수입 단가, 수입국·수출국 비중, 월별 표를 볼 수 있습니다. 수입이 없는 달은 0톤으로 표시합니다.</div>`;
+  return `<div style="display:flex;gap:12px;flex-wrap:wrap">${cards}</div>
+    <div style="margin-top:12px;font-size:12px;color:#5B6670;line-height:1.75;background:#F4F6F8;border-radius:10px;padding:9px 12px">카드를 누르면 품목별 월별 수입·수출 추이, 수입 단가, 수입국·수출국 비중, 월별 표를 볼 수 있습니다. 수입이 없는 달은 0톤으로 표시합니다.</div>`;
 }
 function tradeItem(M, key){
   const meta = TRADE_ITEMS[key], it = M.items[key], i = M.ks.length - 1, c = it.cells[i];
@@ -29131,7 +29136,7 @@ function tradeItem(M, key){
   if(key === "egg_fresh" && cur > 0) notes.push(`신선란은 중량 통계라, 개당 60g으로 보면 ${tradeYm(M.ks[i])} 수입은 약 ${Math.round(cur * 1e6 / 60 / 1e4).toLocaleString()}만 개입니다.`);
   if(key === "egg_hatching") notes.push("종란은 수입 시기가 드문드문하고 월별 변동이 커서, 한 달 값보다 12개월 누적을 보는 것이 좋습니다.");
   if(it.hasEx && it.ex[i] > 0) notes.push(`같은 달 수출은 ${pfTon(it.ex[i])}t, 수출입 금액 차이(무역수지)는 ${tradeMoney(bal)}입니다.`);
-  const sum = `<div style="background:${meta.soft};border:1px solid ${meta.line};border-radius:10px;padding:9px 12px;margin-bottom:12px;font-size:12px;color:#444;line-height:1.8"><b style="color:${meta.color}">${meta.icon} 한눈에 보기</b><ul style="margin:3px 0 0 16px;padding:0">${notes.map(t => `<li>${t}</li>`).join("")}</ul></div>`;
+  const sum = `<div style="background:${meta.soft};border:1px solid ${meta.line};border-radius:10px;padding:9px 12px;margin-bottom:12px;font-size:13px;color:#1F2933;line-height:1.8"><b style="color:${meta.color};font-size:13.5px">${meta.icon} 한눈에 보기</b><ul style="margin:3px 0 0 16px;padding:0">${notes.map(t => `<li>${t}</li>`).join("")}</ul></div>`;
   return sum + kpis + chart1 + chart2 + partners + table;
 }
 function renderTradePanel(){
@@ -38483,11 +38488,24 @@ function switchTab(tab, opts){
 // 화면(탭 + 유료서비스 하위 화면)이 바뀔 때마다 기록을 하나 쌓아서, 뒤로가기가 창을 닫지 않고
 // 직전에 보던 화면으로 가게 한다. 같은 화면을 다시 그릴 때는 쌓지 않는다.
 let navLast = null, navPopping = false;
-function navKey(){ return state.tab + "|" + (state.tab === "premium" ? (premiumState.view || "menu") : "") + (fgWinOpen ? "|win" : ""); }
+// 하위 메뉴 칩(시세·날씨·환기·사양·질병·AI·뉴스·유료서비스 분류)과 수출입 동향의 품목 탭도 한 단계로 센다 —
+// 안 그러면 첫 탭에서 칩만 바꿔 보던 사람이 뒤로가기를 누를 때 직전 화면이 아니라 사이트가 닫힌다.
+function navSub(){
+  const t = state.tab;
+  return t === "price" ? priceSub : t === "weather" ? wxSub : t === "vent" ? ventSub : t === "consult" ? consultState.sub : t === "disease" ? dzSub
+    : t === "hpai" ? hpaiSub : t === "briefing" ? newsSub : (t === "premium" && (premiumState.view || "menu") === "menu") ? premiumSub : "";
+}
+function navSetSub(tab, v){
+  if(!v) return;
+  if(tab === "price") priceSub = v; else if(tab === "weather") wxSub = v; else if(tab === "vent") ventSub = v; else if(tab === "consult") consultState.sub = v;
+  else if(tab === "disease") dzSub = v; else if(tab === "hpai") hpaiSub = v; else if(tab === "briefing") newsSub = v; else if(tab === "premium") premiumSub = v;
+}
+function navInner(){ return tradeOnPriceTab() ? (tradeState.tab || "all") : ""; }
+function navKey(){ return state.tab + "|" + (state.tab === "premium" ? (premiumState.view || "menu") : "") + "|" + (navSub() || "") + "|" + navInner() + (fgWinOpen ? "|win" : ""); }
 function navSync(){
   const key = navKey();
   if(key === navLast) return;
-  const st = { pbNav:1, tab:state.tab, view: state.tab === "premium" ? (premiumState.view || "menu") : null, fgwin: fgWinOpen ? 1 : 0 };
+  const st = { pbNav:1, tab:state.tab, view: state.tab === "premium" ? (premiumState.view || "menu") : null, sub: navSub() || null, inner: navInner() || null, fgwin: fgWinOpen ? 1 : 0 };
   try {
     if(navLast === null || navPopping) history.replaceState(st, "", "#" + state.tab);
     else history.pushState(st, "", "#" + state.tab);
@@ -38504,7 +38522,10 @@ window.addEventListener("popstate", e => {
   const tab = st && st.pbNav ? st.tab : location.hash.replace(/^#/, "");
   if(!TAB_IDS.includes(tab)) return;
   navPopping = true;
-  try { switchTab(tab, { view: st && st.pbNav ? st.view : null }); } finally { navPopping = false; }
+  try {
+    if(st && st.pbNav){ navSetSub(tab, st.sub); if(tab === "price" && st.sub === "trade") tradeState.tab = st.inner || "all"; }
+    switchTab(tab, { view: st && st.pbNav ? st.view : null });
+  } finally { navPopping = false; }
 });
 
 // 상단 탭 줄 화살표 — 넘쳐서 가려진 쪽이 있을 때만 ‹ ›를 보이고, 누르면 그쪽으로 넘긴다.
