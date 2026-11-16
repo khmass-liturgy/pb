@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-15 13:06 KST",
+  "updated": "2026-11-16 13:05 KST",
   "stale": {},
   "egg": {
     "label": "계란 산지가격",
@@ -91,10 +91,6 @@
       {
         "date": "2026-10-16",
         "value": 1834
-      },
-      {
-        "date": "2026-10-15",
-        "value": 1837
       }
     ]
   },
@@ -188,10 +184,6 @@
       {
         "date": "2026-10-16",
         "value": 1788
-      },
-      {
-        "date": "2026-10-15",
-        "value": 1798
       }
     ]
   },
@@ -200,6 +192,10 @@
     "unit": "원/kg",
     "latest": 1200,
     "rows": [
+      {
+        "date": "2026-11-16",
+        "value": 1200
+      },
       {
         "date": "2026-11-13",
         "value": 1200
@@ -283,10 +279,6 @@
       {
         "date": "2026-10-16",
         "value": 1500
-      },
-      {
-        "date": "2026-10-15",
-        "value": 1500
       }
     ]
   },
@@ -297,7 +289,7 @@
         "label": "대",
         "spec": "1.6kg 이상",
         "value": 1200,
-        "date": "2026-11-13"
+        "date": "2026-11-16"
       },
       "medium": {
         "label": "중",
@@ -313,6 +305,12 @@
       }
     },
     "rows": [
+      {
+        "date": "2026-11-16",
+        "large": 1200,
+        "medium": null,
+        "small": null
+      },
       {
         "date": "2026-11-13",
         "large": 1200,
@@ -438,12 +436,6 @@
         "large": 1500,
         "medium": null,
         "small": null
-      },
-      {
-        "date": "2026-10-15",
-        "large": 1500,
-        "medium": null,
-        "small": null
       }
     ]
   },
@@ -484,6 +476,12 @@
       }
     },
     "rows": [
+      {
+        "date": "2026-11-16",
+        "female_calf": null,
+        "male_calf": null,
+        "farm_receipt_600kg": null
+      },
       {
         "date": "2026-11-13",
         "female_calf": null,
@@ -609,12 +607,6 @@
         "female_calf": null,
         "male_calf": null,
         "farm_receipt_600kg": 8271
-      },
-      {
-        "date": "2026-10-15",
-        "female_calf": 4040,
-        "male_calf": 5590,
-        "farm_receipt_600kg": 8410
       }
     ]
   },
