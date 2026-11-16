@@ -36078,6 +36078,53 @@ const POULTRY_VENDORS = [
     summary:"가금 계사 환기·기후를 올인원으로 제공한다고 소개하는 덴마크 회사.",
     lines:[["팬", "BlueFan BF 50(터널·콤비터널), BF 55(대형 계사 터널)"], ["난방·냉방", "Spiraflex 핀 튜브(온수 난방), DA 65-600 냉각 유닛"], ["제어", "BlueControl, 실시간 모니터링·조절"], ["기타", "입기구 · 냉방 · 공기 정화 · 공기 여과 분류"]],
     features:["컨트롤러를 모두 덴마크에서 생산(Made in Denmark)", "고객 사례: 새 제어 기술로 생산지수(PEF) 50점 상승이라는 증언", "서비스 24/7/365, 현장 교육과 SKOV Academy 과정", "프로젝트 단일 창구로 일정·납품 관리"] },
+  // ── 2026-11-16 추가: 웹 검색 결과 요약 기준(공식 사이트는 이 환경에서 접속 불가 → 직접 확인 필요) ──
+  { id:"hellmann", name:"Hellmann Poultry", scope:"해외", country:"독일", hq:"독일", color:"#AD1457", basis:"검색 자료", url:"https://www.agriculture-xprt.com/companies/hellmann-poultry-gmbh-co-kg-65995",
+    cats:["housing", "feed", "climate", "egg", "manure"],
+    summary:"산란계용 배터리·엔리치드 케이지·에비어리, 육성 설비, 계란 수집·급이·분뇨 제거·기후제어까지 다루는 독일 업체. 50년 이상 전문이라고 소개한다(회사 설명).",
+    lines:[["산란계", "배터리 케이지 · 엔리치드 케이지 · 비케이지 에비어리 · 육성 설비"], ["주변 설비", "계란 수집 · 급이 · 분뇨 제거 · 기후제어"]],
+    features:["대부분의 제품을 자사 생산한다고 소개(회사 설명)", "산란계 중심 — 육계 설비는 확인하지 못함", "공식 사이트는 확인하지 못함 — 최신 제품·가격은 업체에 문의"] },
+  { id:"salmet", name:"Salmet", scope:"해외", country:"독일", hq:"독일 디첸바흐(Dietzenbach)", color:"#00695C", basis:"검색 자료", url:"https://www.canadianpoultrymag.com/company/salmet-gmbh-co-kg/",
+    cats:["housing"],
+    summary:"일반 케이지·에비어리·콜로니 시스템, 종계 설비를 만드는 독일 산란계 설비 업체.",
+    lines:[["산란계", "일반(컨벤셔널) 케이지 · 에비어리 · 콜로니 시스템"], ["종계·육성", "산란 종계 시스템, 육성(Pullet) 설비"]],
+    features:["케이지·케이지프리(엔리치드 포함) 계란 생산과 육성 계군 모두를 대상으로 소개", "공식 사이트는 확인하지 못함 — 제품 사양은 업체 확인 필요"] },
+  { id:"tigsa", name:"Tigsa", scope:"해외", country:"스페인", hq:"스페인", color:"#F9A825", basis:"검색 자료", url:"https://www.agriexpo.online/cat/livestock-equipments/other-poultry-equipment-AZ-1040.html",
+    cats:["housing", "feed"],
+    summary:"급이기(Avematic), 산란계·종계 둥지 시스템, 육계 에비어리(CABI AIR) 등을 만드는 스페인 업체(전시·디렉터리 목록 기준).",
+    lines:[["급이", "Avematic 급이기"], ["산란·종계", "산란계·종계 둥지 시스템"], ["육계", "육계 에비어리 CABI AIR"]],
+    features:["육계 다단(에비어리)과 종계 둥지를 함께 다루는 점이 특징으로 보임", "공식 사이트는 확인하지 못함"] },
+  { id:"lubing", name:"Lubing", scope:"해외", country:"독일", hq:"독일", color:"#0277BD", basis:"검색 자료", url:"https://issuu.com/annexbusinessmedia/docs/buyers_guide_2022",
+    cats:["feed"],
+    summary:"닭 급수(니플·컵 드링커) 설비로 알려진 업체. 거의 70년 경력을 내세운다고 바이어 가이드에 소개(회사 설명).",
+    lines:[["급수", "가금용 드링커 시스템(바이어 가이드 기준)"]],
+    features:["급수 설비 전문 — 케이지·환기 등은 취급 여부 확인 못함", "공식 사이트는 확인하지 못함"] },
+  { id:"roxell", name:"Roxell", scope:"해외", country:"벨기에", hq:"벨기에 말데헴(Maldegem)", color:"#558B2F", basis:"검색 자료", url:"https://www.ctbinc.com/brands/",
+    cats:["egg", "housing"],
+    summary:"둥지 시스템(육계 종계용 공동 둥지, 상업 산란계용)과 양계·양돈 사육 설비를 만드는 벨기에 업체. 현재 CTB 계열 브랜드로 소개된다.",
+    lines:[["둥지", "육계 종계 공동 둥지 · 상업 산란계 둥지"], ["계란", "계란 수집(CTB 브랜드 목록 기준)"]],
+    features:["CTB 그룹의 브랜드 중 하나 — 같은 그룹 제품과 연계"] },
+  { id:"rotem", name:"Rotem", scope:"해외", country:"이스라엘", hq:"이스라엘", color:"#37474F", basis:"검색 자료", url:"https://www.agriexpo.online/cat/livestock-equipments/other-poultry-equipment-AZ-1040.html",
+    cats:["control", "feed"],
+    summary:"계사 환경·급이 제어기로 알려진 업체. 급이·급수량, 사료요구율, 평균 체중을 기록하는 RFS-6 급이 제어 시스템이 목록에 나온다.",
+    lines:[["제어", "RFS-6: 사료·물 섭취량, 사료요구율(FCR), 평균 체중 기록(육계·종계)"]],
+    features:["기록·제어 중심 — 케이지 같은 하드웨어는 취급 여부 확인 못함", "공식 사이트는 확인하지 못함"] },
+  { id:"ap-cumberland", name:"AP | Cumberland", scope:"해외", country:"캐나다(목록 기준)", hq:"캐나다 온타리오(목록 주소)", color:"#5D4037", basis:"검색 자료", url:"https://www.canadianpoultrymag.com/company/salmet-gmbh-co-kg/",
+    cats:["climate", "control"],
+    summary:"컨트롤러·액추에이터·경보·원격 관리 시스템, 팬, 입기구를 제공하는 것으로 목록에 올라 있는 업체.",
+    lines:[["제어·환기", "컨트롤러 · 액추에이터 · 경보 · 원격 관리 · 팬 · 입기구"]],
+    features:["환기·제어 위주 — 사육 설비는 확인 못함", "소재 정보는 디렉터리 목록 기준이라 업체 확인 필요"] },
+  // ── 국내: 양계 전용 제조사는 검색으로 거의 확인되지 않음. 아래 2곳만 국내 B2B 디렉터리에서 확인 ──
+  { id:"kr-sungkwang", name:"(주)성광시스템(Sungkwang)", scope:"국내", country:"한국", hq:"한국", color:"#455A64", basis:"검색 자료", url:"https://www.komachine.com/companies/sung-kwang-system",
+    cats:["feed", "climate"],
+    summary:"축산 자동화 설비 업체로, 가금 자동 급이기와 환기 설비를 올린 것으로 소개된다. 육계 평사 사육장용 팬(Pan) 급이 시스템 제품이 있고, 2001년 농림부 우수 기자재 제조업체 표창을 받았다는 기록이 있다.",
+    lines:[["급이", "가금·육계 자동 급이기, 육계 평사용 팬 급이 시스템"], ["환기", "환풍기·환기 설비(디렉터리 기준)"]],
+    features:["양계 급이기를 직접 만드는 국내 업체로 확인된 드문 사례", "현재 영업 상태·규모·연락처는 확인하지 못함 — 업체에 직접 확인"] },
+  { id:"kr-samwoo", name:"(주)삼우(SAMWOO)", scope:"국내", country:"한국", hq:"한국", color:"#455A64", basis:"검색 자료", url:"https://www.jobploy.kr/en/company/samwoo-inc",
+    cats:["climate", "control"],
+    summary:"축사 환기 설비 업체로 목록에 나온다: 고효율 환풍기와 자동 환기 제어기.",
+    lines:[["환기", "고효율 환풍기 · 자동 환기 제어기"]],
+    features:["케이지·급이기 취급은 확인하지 못함", "구직 사이트 정보 기준이라 최신 사업 내용은 확인 필요"] },
   // ── 국내: 양돈·축산 기자재 쇼핑몰 쿨링패드 목록 기준 ──
   ...[["(주)씨아이티시스템", "쿨링패드(시스템 루바 · 윈치커튼)"], ["(주)금보", "쿨링패드"], ["(주)보원이엔지", "쿨링패드"], ["(주)세원", "Cooling Pad"], ["(주)하나시스템", "쿨링패드 시공"], ["(주)바로텍", "MIK 쿨링패드"], ["(주)근옥", "KOC 쿨링 냉방시스템"], ["하이테크창신", "쿨링패드"]].map(([name, prod]) => ({ id:"kr-" + name, name, scope:"국내", country:"한국", hq:"한국", color:"#455A64", basis:"쇼핑몰 목록", url:"https://www.pignporkmall.com/list.php?category=5r05r02", cats:["climate"],
     summary:"축산 기자재 쇼핑몰 쿨링패드 목록에 올라 있는 국내 업체예요.", lines:[["제품(목록 표기)", prod]],
@@ -36091,14 +36138,14 @@ function renderMakerPanel(){
   const list = POULTRY_VENDORS.filter(v => (sc === "all" || v.scope === sc) && (ct === "all" || v.cats.includes(ct)));
   const head = `<div class="card" style="border-top:6px solid #455A64;margin-bottom:12px">
     <div class="display" style="font-size:16px;margin-bottom:3px">🏭 국내외 양계 시설업체</div>
-    <div style="font-size:12.5px;color:#666;line-height:1.7">사육설비·급이·환기·계란 처리 업체의 <b>특징을 한눈에</b> 비교해요. 내용은 각 업체 공식 사이트에 적힌 것만 정리했고, 회사가 스스로 한 주장은 「회사 설명」으로 표시했어요.</div>
+    <div style="font-size:12.5px;color:#666;line-height:1.7">사육설비·급이·환기·계란 처리 업체의 <b>특징을 한눈에</b> 비교해요. 내용은 공식 사이트(✔) 또는 검색 자료(ⓘ)에 적힌 것만 정리했고, 회사가 스스로 한 주장은 「회사 설명」으로 표시했어요.</div>
     <div style="display:flex;gap:6px;overflow-x:auto;padding:10px 0 4px">${scopes.map(([k, l]) => chip("mk-scope", k, l, sc === k, "#455A64")).join("")}</div>
     <div style="display:flex;gap:6px;overflow-x:auto;padding:4px 0">${chip("mk-cat", "all", "전체 분야", ct === "all", "#00897B")}${VENDOR_CATS.map(c => chip("mk-cat", c[0], `${c[1]} ${c[2]}`, ct === c[0], "#00897B")).join("")}</div></div>`;
   const matrix = `<div class="card" style="margin-bottom:12px"><div style="font-size:14.5px;font-weight:900;margin-bottom:6px">📋 한눈에 비교표</div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px;text-align:center;min-width:520px"><thead><tr style="background:#ECEFF1"><th style="padding:6px;text-align:left">업체</th><th>국가</th>${VENDOR_CATS.map(c => `<th>${c[1]}<br>${c[2]}</th>`).join("")}</tr></thead><tbody>${POULTRY_VENDORS.filter(v => sc === "all" || v.scope === sc).map(v => `<tr style="border-top:1px solid #eee"><td style="text-align:left;padding:6px;font-weight:800;color:${v.color}">${esc(v.name)}</td><td>${esc(v.country)}</td>${VENDOR_CATS.map(c => `<td>${v.cats.includes(c[0]) ? `<b style="color:${v.color}">●</b>` : `<span style="color:#ccc">–</span>`}</td>`).join("")}</tr>`).join("")}</tbody></table></div><div style="font-size:11.5px;color:#888;margin-top:5px">● = 공식 사이트(또는 목록)에서 해당 분야 제품이 확인된 경우. 표시가 없어도 취급하지 않는다는 뜻은 아니에요.</div></div>`;
   const cards = list.map(v => {
     const open = !!vendorState.open[v.id];
     const tags = v.cats.map(k => { const c = VENDOR_CATS.find(x => x[0] === k); return `<span style="background:${v.color}18;color:${v.color};border-radius:10px;padding:2px 9px;font-size:12px;font-weight:800">${c[1]} ${c[2]}</span>`; }).join(" ");
-    const basis = `<span style="background:${v.basis === "공식 사이트" ? "#E8F5E9" : "#FFF3E0"};color:${v.basis === "공식 사이트" ? "#2E7D32" : "#E65100"};border-radius:10px;padding:2px 9px;font-size:11.5px;font-weight:800">${v.basis === "공식 사이트" ? "✔ 공식 사이트 확인" : "ⓘ 쇼핑몰 목록 기준"}</span>`;
+    const basis = `<span style="background:${v.basis === "공식 사이트" ? "#E8F5E9" : "#FFF3E0"};color:${v.basis === "공식 사이트" ? "#2E7D32" : "#E65100"};border-radius:10px;padding:2px 9px;font-size:11.5px;font-weight:800">${v.basis === "공식 사이트" ? "✔ 공식 사이트 확인" : v.basis === "검색 자료" ? "ⓘ 검색 자료 기준(공식 사이트 미확인)" : "ⓘ 쇼핑몰 목록 기준"}</span>`;
     return `<div class="card" style="border-left:7px solid ${v.color};margin-bottom:10px">
       <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:flex-start"><div><div style="font-size:17px;font-weight:900;color:${v.color}">${esc(v.name)}</div><div style="font-size:12.5px;color:#777;margin-top:2px">${v.scope === "해외" ? "🌍" : "🇰🇷"} ${esc(v.hq)}</div></div>${basis}</div>
       <div style="font-size:13.5px;line-height:1.75;color:#333;margin-top:8px">${esc(v.summary)}</div>
@@ -36106,7 +36153,7 @@ function renderMakerPanel(){
       <button type="button" class="mk-open" data-k="${v.id}" style="margin-top:9px;border:1.5px solid ${v.color};background:#fff;color:${v.color};border-radius:10px;padding:7px 12px;font-size:13px;font-weight:800;cursor:pointer">${open ? "접기 ▲" : "제품·특징 자세히 ▼"}</button>
       ${open ? `<div style="margin-top:9px"><div style="display:grid;gap:6px">${v.lines.map(l => `<div style="display:flex;gap:8px;font-size:13px;line-height:1.65"><b style="flex:none;min-width:74px;color:${v.color}">${esc(l[0])}</b><span style="color:#333">${esc(l[1])}</span></div>`).join("")}</div>
         <div style="margin-top:9px;background:${v.color}0f;border-radius:10px;padding:9px 12px"><div style="font-size:13px;font-weight:900;color:${v.color};margin-bottom:4px">✨ 특징</div>${v.features.map(f => `<div style="display:flex;gap:7px;font-size:13px;line-height:1.7;color:#333"><span style="color:${v.color}">●</span><span>${esc(f)}</span></div>`).join("")}</div>
-        <a href="${esc(v.url)}" target="_blank" rel="noopener" style="display:inline-block;margin-top:9px;font-size:13px;font-weight:800;color:#1565C0">🔗 ${v.basis === "공식 사이트" ? "공식 사이트 보기" : "목록 페이지 보기"} ↗</a></div>` : ""}
+        <a href="${esc(v.url)}" target="_blank" rel="noopener" style="display:inline-block;margin-top:9px;font-size:13px;font-weight:800;color:#1565C0">🔗 ${v.basis === "공식 사이트" ? "공식 사이트 보기" : v.basis === "검색 자료" ? "출처 페이지 보기" : "목록 페이지 보기"} ↗</a></div>` : ""}
     </div>`;
   }).join("") || `<div class="card" style="text-align:center;color:#999;padding:22px;font-size:13px">조건에 맞는 업체가 없어요. 필터를 바꿔 보세요.</div>`;
   const foot = `<div style="background:#FFF8E1;border-radius:9px;padding:9px 12px;font-size:11.5px;color:#6b5400;line-height:1.75"><b>유의</b> · 업체 소개는 정보 제공용이며 특정 업체를 추천·보증하지 않아요. 국내 양계 전용 케이지·급이기 제조사는 이번 조사에서 공식 자료로 확인하지 못했고, 국내 업체는 쿨링패드 목록 기준이에요. 가격·시공 실적·AS 범위·국내 대리점은 업체에 직접 확인하세요. 빠진 업체는 알려 주시면 추가해요.</div>`;
