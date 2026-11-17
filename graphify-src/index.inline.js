@@ -9504,8 +9504,7 @@ function drugUseSlug(name){ return "d" + Date.now().toString(36) + Math.random()
 // QIA 상세 페이지 → 효능효과·용법용량·주의사항·휴약기간·저장방법. 상세 본문은 항상 이 순서로 붙어 있다
 // (효능효과 → 용법용량 → 주의사항(가~사 소항목 중 ‘휴약기간’ 포함) → [권고사항]).
 async function qiaFullDetail(link){
-  const res = await fetch(link);
-  if(!res.ok) throw new Error("QIA 상세 조회 실패 (" + res.status + ")");
+  const res = await qiaFetch(link);
   const html = await res.text();
   const doc = new DOMParser().parseFromString(html, "text/html");
   const text = ((doc.body && doc.body.textContent) || "").replace(/\s+/g, " ");
@@ -9535,7 +9534,7 @@ function drugUseParseAi(text){
 function drugUseSearchLinks(name){
   const q = encodeURIComponent(name);
   return [
-    ["QIA 제품 검색", "https://medi.qia.go.kr/searchMedicine?searchDivision=detail&itemName=" + q],
+    ["QIA 제품 검색", qiaUrl("/searchMedicine?searchDivision=detail&itemName=" + q)],
     ["구글 — 사용설명서", "https://www.google.com/search?q=" + encodeURIComponent(name + " 동물용의약품 사용설명서")],
     ["구글 — 제조사 제품정보", "https://www.google.com/search?q=" + encodeURIComponent(name + " 동물약품 제조사 제품정보")],
     ["네이버 검색", "https://search.naver.com/search.naver?query=" + encodeURIComponent(name + " 동물약품")],
@@ -9559,8 +9558,8 @@ function drugUseCard(it, admin){
       ${drugUseSection("💧 용법·용량 (공식 설명서)", it.dosage, "#1565C0")}
       ${drugUseSection("🎯 효능·효과 (공식 설명서)", it.efficacy, "#455A64")}
       ${drugUseSection("📝 메모", it.memo, "#607D8B")}
-      ${links.length ? `<div style="margin-top:10px"><div style="font-size:11.5px;font-weight:800;color:#455A64;margin-bottom:3px">🔗 약품 정보 링크</div><div style="display:flex;flex-direction:column;gap:3px">${links.map(l => `<a href="${esc(drugUseSafeUrl(l.url))}" target="_blank" rel="noopener" style="font-size:12.3px;color:#1565C0;word-break:break-all">${esc(l.title || l.url)} ↗</a>`).join("")}</div></div>` : ""}
-      <div style="font-size:10.5px;color:#999;line-height:1.7;margin-top:10px">출처: ${it.qia ? `<a href="${esc(drugUseSafeUrl(it.qia))}" target="_blank" rel="noopener" style="color:#888">QIA 동물용의약품통합정보시스템</a>${it.qiaAt ? " (" + esc(it.qiaAt.slice(0, 10)) + " 확인)" : ""}` : "관리자 입력"}${it.aiAt ? " · 요점 정리: 인공지능 초안" + (it.reviewed ? "(수의사 검토 완료)" : "(검토 전)") : ""} · 이 카드는 참고용이며 제품 설명서·수의사 지시가 우선합니다. 수의사 처방 대상 약품은 처방에 따르세요.</div>
+      ${links.length ? `<div style="margin-top:10px"><div style="font-size:11.5px;font-weight:800;color:#455A64;margin-bottom:3px">🔗 약품 정보 링크</div><div style="display:flex;flex-direction:column;gap:3px">${links.map(l => `<a href="${esc(drugUseSafeUrl(qiaUrl(l.url)))}" target="_blank" rel="noopener" style="font-size:12.3px;color:#1565C0;word-break:break-all">${esc(l.title || l.url)} ↗</a>`).join("")}</div></div>` : ""}
+      <div style="font-size:10.5px;color:#999;line-height:1.7;margin-top:10px">출처: ${it.qia ? `<a href="${esc(drugUseSafeUrl(qiaUrl(it.qia)))}" target="_blank" rel="noopener" style="color:#888">QIA 동물용의약품통합정보시스템</a>${it.qiaAt ? " (" + esc(it.qiaAt.slice(0, 10)) + " 확인)" : ""}` : "관리자 입력"}${it.aiAt ? " · 요점 정리: 인공지능 초안" + (it.reviewed ? "(수의사 검토 완료)" : "(검토 전)") : ""} · 이 카드는 참고용이며 제품 설명서·수의사 지시가 우선합니다. 수의사 처방 대상 약품은 처방에 따르세요.</div>
       ${admin ? `<div style="display:flex;gap:6px;margin-top:8px"><button type="button" class="dua-edit" data-key="${esc(it.key)}" style="border:1px solid #1565C0;background:#fff;color:#1565C0;border-radius:7px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer">✏️ 수정</button><button type="button" class="dua-del" data-key="${esc(it.key)}" style="border:1px solid #C62828;background:#fff;color:#C62828;border-radius:7px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer">🗑 삭제</button></div>` : ""}
     </div>`;
   return `<div style="border:1.5px solid ${open ? "#00838F" : "#e3e3e3"};background:#fff;border-radius:11px;padding:10px 12px;margin:8px 0">
@@ -9672,7 +9671,7 @@ function drugUseBind(){
       d.name = d.name || r.제품명; d.ingredient = r.주성분 || d.ingredient; d.maker = r.업체명 || d.maker; d.approval = x.approval || d.approval;
       d.efficacy = x.efficacy || d.efficacy; d.dosage = x.dosage || d.dosage; d.withdrawal = x.withdrawal || d.withdrawal;
       d.qia = r.링크; d.qiaAt = new Date().toISOString();
-      if(!d.links.some(l => l.url === r.링크)) d.links.unshift({ title:"QIA 동물용의약품통합정보시스템 — " + r.제품명, url:r.링크 });
+      if(!d.links.some(l => l.url === r.링크 || (qiaPath(l.url) != null && qiaPath(l.url) === qiaPath(r.링크)))) d.links.unshift({ title:"QIA 동물용의약품통합정보시스템 — " + r.제품명, url:r.링크 });
       st.qiaRows = null; st.linkMsg = "✅ ‘" + r.제품명 + "’의 공식 설명서 내용을 채웠습니다. 이어서 「AI로 사용요령 정리」를 눌러 현장 요점을 만들 수 있습니다.";
     } catch(e){ st.linkMsg = "공식 설명서를 가져오지 못했습니다: " + (e.message || e); st.ok = false; }
     st.qiaBusy = false; render();
@@ -12727,7 +12726,51 @@ function renderBriefingTab(){
 // "우리 제품 목록 일괄 조회(wd 탭)"는 가져오지 않고, 사용자가 이름을 직접 입력해
 // 검색하는 "동물약품 검색" 쪽만 이식한다 — 결과 표의 휴약기간 열이 곧
 // "휴약기간 검색" 기능이다.
-const QIA_BASE = "https://medi.qia.go.kr";
+// 2026-11-18(수) 21:00부터 QIA 동물용의약품통합정보시스템 도메인이 medi.qia.go.kr → medi.apqa.go.kr로 바뀐다
+// (공지: 옛 주소는 일정 기간 새 주소로 자동 이동, 18:00~21:00 전환 작업 중 접속 중단). 브라우저가 QIA에 직접
+// fetch하므로 리다이렉트·CORS 동작에 기대지 않고 두 주소를 차례로 시도한다 — 전환 시각 전에는 옛 주소부터,
+// 이후에는 새 주소부터. 한 번 응답한 주소는 qiaBaseOk에 기억해 다음 요청부터 먼저 쓴다.
+// 저장된 옛 링크(약품별 사용요령 카드의 it.qia·links)는 qiaUrl()로 지금 주소로 바꿔 보여 준다.
+const QIA_NEW_BASE = "https://medi.apqa.go.kr";
+const QIA_OLD_BASE = "https://medi.qia.go.kr";
+const QIA_SWITCH_AT = Date.parse("2026-11-18T21:00:00+09:00");
+const QIA_MAINT_FROM = Date.parse("2026-11-18T18:00:00+09:00");
+let qiaBaseOk = "";
+function qiaBases(){
+  const order = Date.now() >= QIA_SWITCH_AT ? [QIA_NEW_BASE, QIA_OLD_BASE] : [QIA_OLD_BASE, QIA_NEW_BASE];
+  return qiaBaseOk ? [qiaBaseOk, ...order.filter(b => b !== qiaBaseOk)] : order;
+}
+// 화면에 보여 줄(새 탭으로 여는) 기본 주소 — 전환 뒤에는 새 주소.
+function qiaPublicBase(){ return qiaBaseOk || (Date.now() >= QIA_SWITCH_AT ? QIA_NEW_BASE : QIA_OLD_BASE); }
+// QIA 주소(옛·새 도메인 또는 "/..." 경로) → 경로("/searchMedicine?..."). QIA 주소가 아니면 null.
+function qiaPath(u){
+  u = String(u || "").trim();
+  if(u.startsWith("/")) return u;
+  const m = u.match(/^https?:\/\/medi\.(?:qia|apqa)\.go\.kr(\/.*)?$/i);
+  return m ? (m[1] || "/") : null;
+}
+// 링크 표시용: 옛 도메인 링크를 지금 주소로 바꾼다(QIA 주소가 아니면 그대로).
+function qiaUrl(u){ const p = qiaPath(u); return p == null ? u : qiaPublicBase() + p; }
+// 전환 작업 시간대(공지 18:00~21:00, 변동 가능해 앞뒤 여유를 둔다)인지 — 오류 문구에 안내를 붙인다.
+function qiaInMaintenance(){ const t = Date.now(); return t >= QIA_MAINT_FROM - 30*60e3 && t < QIA_SWITCH_AT + 3*3600e3; }
+async function qiaFetch(pathOrUrl, timeoutMs){
+  const path = qiaPath(pathOrUrl);
+  if(path == null) return fetch(pathOrUrl);
+  let lastErr = null;
+  for(const base of qiaBases()){
+    const ctl = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const tm = ctl ? setTimeout(() => ctl.abort(), timeoutMs || 45000) : null;
+    try {
+      const res = await fetch(base + path, ctl ? { signal: ctl.signal } : undefined);
+      if(res.ok){ qiaBaseOk = base; return res; }
+      lastErr = new Error("QIA 서버 오류 (" + res.status + ")");
+    } catch(e){
+      lastErr = e && e.name === "AbortError" ? new Error("QIA 서버 응답 시간 초과") : e;
+    } finally { if(tm) clearTimeout(tm); }
+  }
+  if(qiaInMaintenance()) lastErr = new Error((lastErr && lastErr.message || "연결 실패") + " · QIA가 11월 18일 18~21시 도메인 전환(medi.apqa.go.kr) 작업 중일 수 있습니다");
+  throw lastErr || new Error("QIA 연결 실패");
+}
 
 let drugState = {
   mode: "name",   // name | entp | ingr | species | symptom — 제품명/업체명/성분명/축종별/증상별 검색
@@ -12896,8 +12939,7 @@ function drugFormCategory(r){
 function qiaDetailInfo(link){
   if(qiaDetailCache.has(link)) return qiaDetailCache.get(link);
   const job = (async () => {
-    const res = await fetch(link);
-    if(!res.ok) throw new Error("상세 조회 실패 (" + res.status + ")");
+    const res = await qiaFetch(link);
     const html = await res.text();
     const doc = new DOMParser().parseFromString(html, "text/html");
     const text = ((doc.body && doc.body.textContent) || "").replace(/\s+/g, " ");
@@ -13100,7 +13142,7 @@ function parseQiaHtml(html){
     const link = tds[1].querySelector("a");
     return {
       제품명: getVal(tds[1]),
-      링크: link ? (QIA_BASE + link.getAttribute("href")) : "",
+      링크: link ? qiaUrl(link.getAttribute("href")) : "",
       제품영문명: getVal(tds[2]),
       업체명: getVal(tds[3]),
       허가일: getVal(tds[6]),
@@ -13123,8 +13165,7 @@ async function fetchQiaSearch(term, page, field){
   else if(field === "ee") params.set("eeDocData", term); // 효능효과 본문 — 축종별·증상별 검색
   else params.set("ingrMainName", term); // 성분명 — QIA 폼에는 노출 안 되는 비공식 파라미터
   if(drugState.kind) params.set("indutyClassCode", drugState.kind);
-  const res = await fetch(QIA_BASE + "/searchMedicine?" + params.toString());
-  if(!res.ok) throw new Error("QIA 서버 오류 (" + res.status + ")");
+  const res = await qiaFetch("/searchMedicine?" + params.toString());
   return parseQiaHtml(await res.text());
 }
 
@@ -13568,7 +13609,7 @@ function renderDrugSearchPanel(){
   </div>
 
   <div style="font-size:9px;color:#aaa;margin-top:10px;line-height:1.6">
-    ※ 이 검색은 농림축산검역본부(QIA) 동물용의약품통합정보시스템(medi.qia.go.kr) 데이터를 그때그때 실시간으로 가져와 보여줍니다.
+    ※ 이 검색은 농림축산검역본부(QIA) 동물용의약품통합정보시스템(${Date.now() >= QIA_SWITCH_AT ? "medi.apqa.go.kr" : "medi.qia.go.kr → 11.18 21시부터 medi.apqa.go.kr"}) 데이터를 그때그때 실시간으로 가져와 보여줍니다.
     휴약기간은 각 품목 상세페이지의 "휴약기간" 항목을 그대로 옮긴 것이며, 실제 처방·투약 시에는 반드시 제품 라벨과 QIA 원문을 함께 확인하세요.
   </div>`;
 }
