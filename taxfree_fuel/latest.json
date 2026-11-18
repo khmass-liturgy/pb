@@ -1,43 +1,43 @@
 {
- "updated": "2026-11-17 14:01 KST",
+ "updated": "2026-11-18 13:11 KST",
  "scope": "전국",
  "unit": "원/리터",
  "source": "한국석유공사 오피넷 면세유 평균판매가격",
  "url": "https://www.opinet.co.kr/user/dopospdrg/dopOsPdrgTaxfreeSelect.do",
  "note": "지역(시·도)별 면세유 평균은 오피넷이 2026년 2월까지만 공개해 전국 평균만 제공합니다.",
- "date": "2026-11-16",
- "prev_date": "2026-11-15",
+ "date": "2026-11-17",
+ "prev_date": "2026-11-16",
  "prices": {
+  "gasoline": 1187.41,
+  "diesel": 1396.77,
+  "kerosene": 1379.0
+ },
+ "prev": {
   "gasoline": 1182.84,
   "diesel": 1393.47,
   "kerosene": 1382.17
  },
- "prev": {
-  "gasoline": 1183.71,
-  "diesel": 1394.29,
-  "kerosene": 1381.65
- },
  "diff": {
-  "gasoline": -0.87,
-  "diesel": -0.82,
-  "kerosene": 0.52
+  "gasoline": 4.57,
+  "diesel": 3.3,
+  "kerosene": -3.17
  },
  "year_ago": {
-  "date": "2025-11-16",
+  "date": "2025-11-17",
   "prices": {
-   "gasoline": 1034.08,
-   "diesel": 1125.26,
-   "kerosene": 1117.71
+   "gasoline": 1035.46,
+   "diesel": 1127.04,
+   "kerosene": 1117.45
   }
  },
  "yoy": {
-  "gasoline": 148.76,
-  "diesel": 268.21,
-  "kerosene": 264.46
+  "gasoline": 151.95,
+  "diesel": 269.73,
+  "kerosene": 261.55
  },
  "yoy_pct": {
-  "gasoline": 14.4,
-  "diesel": 23.8,
-  "kerosene": 23.7
+  "gasoline": 14.7,
+  "diesel": 23.9,
+  "kerosene": 23.4
  }
 }
