@@ -11,7 +11,8 @@ on:
     paths:
       - "import_status/latest.json"
       - "farm_density/sigun.json"
-      - "poultry_disease/diseases.json"   # extra.json(손으로 정리한 추가 질병)을 합쳐 PR로 올렸을 때
+      - "poultry_disease/diseases.json"
+      - "disease_stats/monthly.json"        # 양계질병 월별 발생현황(손으로 옮긴 통계)   # extra.json(손으로 정리한 추가 질병)을 합쳐 PR로 올렸을 때
 
 jobs:
   sync-storage:
@@ -34,4 +35,4 @@ jobs:
             poultry_price broiler_price_today prices egg_report layer_stats feed_production \
             jungchu_price hpai_risk hpai_kr poultry_disease research_papers market news notices \
             grain_quality grain_price import_status industry_news animal_drug_news \
-            poultry_disease_brief price_history weather_news farm_density broiler_breeder/latest.json usda_crop_progress h5n1_human
+            poultry_disease_brief price_history weather_news farm_density broiler_breeder/latest.json usda_crop_progress h5n1_human disease_stats

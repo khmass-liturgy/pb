@@ -6055,7 +6055,7 @@ let coinFetchStatus = "idle"; // idle | loading | done | error
 // 저장소 기준 경로에서 .json을 떼고 영문·숫자 이외를 _로 바꾼 것(market/quotes.json → market_quotes).
 // Storage에 아직 없거나 함수가 실패하면 예전처럼 raw를 시도한다(저장소가 공개인 동안의 안전망).
 const DATA_RAW_PREFIX = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/";
-const DATA_DIRS_RE = /^(poultry_price|broiler_price_today|taxfree_fuel|prices|egg_report|layer_stats|feed_production|jungchu_price|hpai_risk|hpai_kr|poultry_disease|research_papers|market|news|notices|grain_quality|grain_price|import_status|industry_news|animal_drug_news|poultry_disease_brief|price_history|weather_news|farm_density|broiler_breeder|usda_crop_progress|h5n1_human|weather)\//;
+const DATA_DIRS_RE = /^(poultry_price|broiler_price_today|taxfree_fuel|prices|egg_report|layer_stats|feed_production|jungchu_price|hpai_risk|hpai_kr|poultry_disease|research_papers|market|news|notices|grain_quality|grain_price|import_status|industry_news|animal_drug_news|poultry_disease_brief|price_history|weather_news|farm_density|broiler_breeder|usda_crop_progress|h5n1_human|disease_stats|weather)\//;
 function dataDatasetOf(url){
   if(typeof url !== "string" || url.indexOf(DATA_RAW_PREFIX) !== 0) return null;
   const rel = url.slice(DATA_RAW_PREFIX.length).split("?")[0];
@@ -8350,7 +8350,90 @@ function renderLifeMiracleCard(){
 }
 
 // 질병 탭 하위 메뉴(고정 머리글의 가로 칩)
-const DZ_SUBS = [["dict", "🔎", "질병 사전"], ["pick", "⭐", "이달의 질병"], ["today", "📋", "오늘 사양 포인트"], ["life", "🥚", "생명탄생의 신비"]];
+// ── 양계질병 월별 발생현황(질병 탭 · 📊 발생 통계) ─────────────────────────────────────
+// disease_stats/monthly.json — 농림축산검역본부 역학조사과 집계(월간양계 질병월보에 실리는 표)를 옮겨 둔 것.
+// 칸 = [발생 수수, 발생 농장수]. 수수가 null이면 「–」(고병원성 AI는 수수를 싣지 않음), 칸 자체가 null이면 아직 집계 전.
+const DZ_STATS_URL = "https://raw.githubusercontent.com/khmass-liturgy/pb/main/disease_stats/monthly.json";
+const dzStats = { status:"idle", data:null, sel:"all" };
+async function fetchDzStats(){
+  if(dzStats.status === "loading") return;
+  dzStats.status = "loading";
+  try {
+    const r = await fetchWithTimeout(DZ_STATS_URL + "?t=" + Math.floor(Date.now() / 600000), 10000);
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    dzStats.data = await r.json(); dzStats.status = "done";
+  } catch(e){ console.warn("질병 발생 통계 로딩 실패:", e); dzStats.status = "error"; }
+  if(state.tab === "disease" && dzSub === "stats") render();
+}
+// as_of 이전까지(같은 해 기준) 월 수 — 올해 몇 월까지 집계됐는지
+function dzStatsLastMonth(d, y){ const a = d.diseases[d.order[0]][y] || []; let m = 0; a.forEach((c, i) => { if(c) m = i + 1; }); return m; }
+function dzStatsSum(arr, upto){ let b = 0, f = 0, hasB = false; (arr || []).slice(0, upto).forEach(c => { if(!c) return; if(c[0] != null){ b += c[0]; hasB = true; } f += c[1]; }); return { b: hasB ? b : null, f }; }
+const dzN = v => v == null ? "–" : Number(v).toLocaleString();
+function dzStatsCell(c){
+  if(c === null) return '<span style="color:#C4CCD4">·</span>';
+  if(!c[1]) return '<span style="color:#B8C1CA">–</span>';
+  return '<b style="color:#1F2933">' + (c[0] == null ? "–" : dzN(c[0])) + '</b><div style="font-size:11px;color:#5B6670">(' + c[1] + '농장)</div>';
+}
+// 월별 농장수 막대(작년 회색 · 올해 질병 색)
+function dzStatsBars(dz, y0, y1){
+  const a = dz[y0] || [], b = dz[y1] || [], mx = Math.max(1, ...a.concat(b).map(c => c ? c[1] : 0));
+  const W = 320, H = 150, L = 22, B = 128, bw = (W - L - 6) / 12;
+  let g = '<line x1="'+L+'" y1="'+B+'" x2="'+(W-4)+'" y2="'+B+'" stroke="#CBD2D9"/>';
+  for(let t = 0; t <= mx; t += Math.max(1, Math.ceil(mx / 4))){ const yy = B - t / mx * 104; g += '<text x="'+(L-4)+'" y="'+(yy+4)+'" font-size="10" fill="#7B8794" text-anchor="end">'+t+'</text><line x1="'+L+'" y1="'+yy+'" x2="'+(W-4)+'" y2="'+yy+'" stroke="#EEF1F4"/>'; }
+  for(let i = 0; i < 12; i++){
+    const x = L + i * bw, h0 = a[i] ? a[i][1] / mx * 104 : 0, h1 = b[i] ? b[i][1] / mx * 104 : 0;
+    g += '<rect x="'+(x+bw*.12).toFixed(1)+'" y="'+(B-h0).toFixed(1)+'" width="'+(bw*.36).toFixed(1)+'" height="'+h0.toFixed(1)+'" rx="1.5" fill="#B8C1CA"/>';
+    if(b[i] !== null) g += '<rect x="'+(x+bw*.5).toFixed(1)+'" y="'+(B-h1).toFixed(1)+'" width="'+(bw*.36).toFixed(1)+'" height="'+h1.toFixed(1)+'" rx="1.5" fill="'+dz.color+'"/>';
+    g += '<text x="'+(x+bw/2).toFixed(1)+'" y="'+(B+15)+'" font-size="11" fill="#5B6670" text-anchor="middle">'+(i+1)+'</text>';
+  }
+  return '<svg viewBox="0 0 '+W+' '+(H+4)+'" role="img" aria-label="월별 발생 농장수" style="width:100%;max-width:520px;display:block">'+g+'</svg>'
+    + '<div style="display:flex;gap:12px;font-size:11.5px;color:#5B6670;margin-top:2px"><span><i style="display:inline-block;width:10px;height:10px;background:#B8C1CA;border-radius:2px;margin-right:4px"></i>'+y0+'년</span><span><i style="display:inline-block;width:10px;height:10px;background:'+dz.color+';border-radius:2px;margin-right:4px"></i>'+y1+'년</span><span style="color:#9AA5B1">막대 = 발생 농장수 · 가로 = 월</span></div>';
+}
+function renderDzStatsPanel(){
+  const st = dzStats;
+  const head = '<div style="margin-bottom:10px"><div class="display" style="font-size:16px;margin-bottom:3px">📊 양계질병 월별 발생현황</div><div style="font-size:11.5px;color:#7B8794">농림축산검역본부 집계 · 가금티푸스·고병원성 AI·F낭병·전염성기관지염·마렉병</div></div>';
+  const shell = inner => '<div class="card" style="margin-bottom:16px;border-top:6px solid #0F766E">' + head + inner + '</div>';
+  if(st.status === "idle" || st.status === "loading") return shell('<div style="text-align:center;padding:26px;color:#aaa">⏳ 불러오는 중...</div>');
+  if(st.status === "error" || !st.data) return shell('<div style="text-align:center;padding:20px;color:#888;font-size:12.5px">통계를 불러오지 못했습니다.<br><button id="dzs-retry" style="margin-top:8px;border:1px solid #0F766E;color:#0F766E;background:#fff;border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer">다시 불러오기</button></div>');
+  const d = st.data, [y0, y1] = d.years, lm = dzStatsLastMonth(d, y1);
+  const sel = d.diseases[st.sel] ? st.sel : "all";
+  const chip = (k, label, c) => '<button class="dzs-sel" data-k="'+k+'" style="border:1.5px solid '+(sel===k?c:"#DDE3E8")+';background:'+(sel===k?c:"#fff")+';color:'+(sel===k?"#fff":"#3E4C59")+';border-radius:16px;padding:5px 11px;font-size:12px;font-weight:700;cursor:pointer">'+esc(label)+'</button>';
+  const chips = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">' + chip("all", "📋 한눈에", "#0F766E") + d.order.map(k => chip(k, d.diseases[k].short || d.diseases[k].name, d.diseases[k].color)).join("") + '</div>';
+  const meta = '<div style="font-size:11.5px;color:#5B6670;margin:-4px 0 12px">' + esc(d.as_of) + ' 기준 · ' + y1 + '년은 1~' + lm + '월 집계' + (lm ? ' (' + lm + '월은 집계 중일 수 있음)' : '') + '</div>';
+  let body;
+  if(sel === "all"){
+    body = '<div style="display:flex;gap:10px;flex-wrap:wrap">' + d.order.map(k => {
+      const z = d.diseases[k], cur = dzStatsSum(z[y1], lm), prv = dzStatsSum(z[y0], lm), full = z.total && z.total[y0];
+      const diff = cur.f - prv.f, dTxt = diff === 0 ? "작년 같은 기간과 같음" : (diff > 0 ? "▲ " + diff : "▼ " + (-diff)) + "농장 (작년 같은 기간 " + prv.f + ")";
+      return '<button type="button" class="dzs-sel" data-k="'+k+'" style="all:unset;box-sizing:border-box;cursor:pointer;flex:1 1 230px;min-width:220px;background:#fff;border:1px solid #DDE3E8;border-top:5px solid '+z.color+';border-radius:13px;padding:12px 13px;box-shadow:0 2px 6px rgba(15,23,42,.05)">'
+        + '<div style="font-size:14px;font-weight:800;color:'+z.color+'">'+esc(z.name)+'</div>'
+        + '<div style="font-size:12px;color:#5B6670;margin-top:6px">'+y1+'년 1~'+lm+'월 발생</div>'
+        + '<div style="display:flex;align-items:baseline;gap:6px"><span style="font-size:27px;font-weight:900;color:#111827">'+cur.f+'</span><span style="font-size:13px;color:#5B6670;font-weight:700">농장</span>'+(cur.b != null && z.birds !== false ? '<span style="font-size:13px;color:#3E4C59;margin-left:4px">· '+dzN(cur.b)+'마리</span>' : '')+'</div>'
+        + '<div style="font-size:12px;font-weight:700;color:'+(diff>0?"#B91C1C":diff<0?"#15803D":"#5B6670")+';margin-top:2px">'+dTxt+'</div>'
+        + '<div style="font-size:11.5px;color:#7B8794;margin-top:6px;border-top:1px solid #EEF1F3;padding-top:6px">'+y0+'년 한 해: '+(full ? full[1] + '농장' + (full[0] != null ? ' · ' + dzN(full[0]) + '마리' : '') : '-')+'</div>'
+        + '<div style="font-size:12px;font-weight:800;color:'+z.color+';text-align:right;margin-top:4px">월별 보기 ›</div></button>';
+    }).join("") + '</div>';
+  } else {
+    const z = d.diseases[sel], months = Array.from({length:12}, (_, i) => i);
+    const tot = y => { const t = z.total && z.total[y]; return t ? (t[1] + '농장' + (t[0] != null ? ' · ' + dzN(t[0]) + '마리' : '')) : '-'; };
+    body = '<div style="background:#F8FAFB;border-radius:11px;padding:10px 10px 6px;margin-bottom:12px">' + dzStatsBars(z, y0, y1) + '</div>'
+      + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">'
+      + [[y0, "#5B6670"], [y1, z.color]].map(([y, c]) => '<div style="flex:1 1 140px;background:#fff;border:1px solid #E4E7EB;border-left:4px solid '+c+';border-radius:10px;padding:8px 11px"><div style="font-size:11.5px;color:#5B6670">'+y+'년 연누계'+(y===y1?' (1~'+lm+'월)':'')+'</div><div style="font-size:16px;font-weight:900;color:#111827">'+tot(y)+'</div></div>').join("") + '</div>'
+      + '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px;text-align:center;font-variant-numeric:tabular-nums">'
+      + '<thead><tr style="background:#F1F5F9;color:#3E4C59"><th style="padding:7px 6px;border-bottom:1px solid #DDE3E8">월</th><th style="padding:7px 6px;border-bottom:1px solid #DDE3E8">'+y0+'</th><th style="padding:7px 6px;border-bottom:1px solid #DDE3E8;color:'+z.color+'">'+y1+'</th></tr></thead><tbody>'
+      + months.map(i => '<tr style="border-bottom:1px solid #F0F2F4"><td style="padding:6px;font-weight:700;color:#3E4C59">'+(i+1)+'월</td><td style="padding:6px">'+dzStatsCell(z[y0][i])+'</td><td style="padding:6px;background:'+(z[y1][i]&&z[y1][i][1]?z.color+"0F":"transparent")+'">'+dzStatsCell(z[y1][i])+'</td></tr>').join("")
+      + '</tbody></table></div>'
+      + (z.birds === false ? '<div style="font-size:11.5px;color:#7B8794;margin-top:6px">고병원성 AI는 발생 수수를 싣지 않고 농장수만 표시합니다(살처분 마릿수는 「AI」 탭 참고).</div>' : '');
+  }
+  const foot = '<div style="margin-top:14px;background:#F4F6F8;border-radius:9px;padding:9px 12px;font-size:11.5px;color:#5B6670;line-height:1.75"><b>자료</b> · '+esc(d.source)+(d.published_in ? ' (' + esc(d.published_in) + ' 게재)' : '')+' · '+esc(d.as_of)+' 기준.<br>'+esc(d.note || "")+'<br>숫자 = 발생 수수(마리), 괄호 = 발생 농장수 · 「–」 = 발생 없음 · 「·」 = 아직 집계 전.</div>';
+  return shell(chips + meta + body + foot);
+}
+function dzStatsBind(){
+  document.querySelectorAll(".dzs-sel").forEach(b => b.onclick = () => { dzStats.sel = b.dataset.k; render(); });
+  const r = document.getElementById("dzs-retry"); if(r) r.onclick = () => { dzStats.status = "idle"; fetchDzStats(); render(); };
+}
+
+const DZ_SUBS = [["dict", "🔎", "질병 사전"], ["stats", "📊", "발생 통계"], ["pick", "⭐", "이달의 질병"], ["today", "📋", "오늘 사양 포인트"], ["life", "🥚", "생명탄생의 신비"]];
 let dzSub = (function(){ try { return localStorage.getItem("dz_sub") || "dict"; } catch(e){ return "dict"; } })();
 function renderDiseaseTab(){
   const d = diseaseState;
@@ -8359,6 +8442,7 @@ function renderDiseaseTab(){
   // 오늘 기상 기준 사양관리 포인트·생명탄생의 신비는 질병 자료 로딩 상태와 무관하게 보인다.
   if(sub === "today") return renderHusbandryPointsCard({title:"📋 오늘의 사양관리 포인트", poultryOnly:true});
   if(sub === "life") return renderLifeMiracleCard();
+  if(sub === "stats"){ if(dzStats.status === "idle") fetchDzStats(); return renderDzStatsPanel(); }
   if(d.status === "loading" || d.status === "idle")
     return shell('<div style="text-align:center;padding:28px;color:#aaa">⏳ 질병 자료를 불러오는 중...</div>');
   if(d.status === "error" || !d.data || !d.data.diseases)
@@ -31594,6 +31678,7 @@ function renderHeaderSolarTerm(now){
 // go: {tab} 일반 탭으로 / {premium:"메뉴key"} 유료서비스의 그 화면으로(승인·로그인 안내는 그 화면이 처리) / {premium:"vaccine", vaccineView:"guide"} 처럼 보기까지 지정.
 const NEW_FEATURE_DAYS = 21;
 const NEW_FEATURES = [
+  { key:"dzstats", date:"2026-11-19", label:"질병 탭 「발생 통계」 — 양계질병 월별 발생현황(가금티푸스·AI·F낭병·IB·마렉병, 농림축산검역본부)", where:"질병 탭 · 발생 통계", go:{ tab:"disease" } },
   { key:"pricetrade", date:"2026-11-17", label:"시세,통계 탭에 「수출입 동향」 추가 — 계육·계란·종란 월별 수출입", where:"시세,통계", go:{ tab:"price" } },
   { key:"inpick", date:"2026-11-17", label:"양계 업계 소식 — 중복 기사를 묶고 업계 정보만 골라 「핵심 소식」으로", where:"유료서비스 · 게시판·기타", go:{ premium:"industrynews" } },
   { key:"dzphoto", date:"2026-11-16", label:"질병 사전 — 질병마다 직접 찍은 사진을 올릴 수 있어요(관리자)", where:"질병 탭 · 질병 사전", go:{ tab:"disease" } },
@@ -38053,6 +38138,7 @@ function gotoDisease(slug){
 }
 
 function attachDiseaseEvents(){
+  dzStatsBind();
   // 생명탄생의 신비(21일 부화 과정) 카드
   document.querySelectorAll(".lm-toggle").forEach(b => b.onclick = () => { LM_STATE.open = !LM_STATE.open; render(); });
   document.querySelectorAll(".lm-stage").forEach(b => b.onclick = () => { LM_STATE.stage = parseInt(b.dataset.i, 10) || 0; render(); });
@@ -38541,7 +38627,7 @@ function navSetSub(tab, v){
   if(tab === "price") priceSub = v; else if(tab === "weather") wxSub = v; else if(tab === "vent") ventSub = v; else if(tab === "consult") consultState.sub = v;
   else if(tab === "disease") dzSub = v; else if(tab === "hpai") hpaiSub = v; else if(tab === "briefing") newsSub = v; else if(tab === "premium") premiumSub = v;
 }
-function navInner(){ return tradeOnPriceTab() ? (tradeState.tab || "all") : ""; }
+function navInner(){ return tradeOnPriceTab() ? (tradeState.tab || "all") : (state.tab === "disease" && dzSub === "stats") ? (dzStats.sel || "all") : ""; }
 function navKey(){ return state.tab + "|" + (state.tab === "premium" ? (premiumState.view || "menu") : "") + "|" + (navSub() || "") + "|" + navInner() + (fgWinOpen ? "|win" : ""); }
 function navSync(){
   const key = navKey();
@@ -38564,7 +38650,7 @@ window.addEventListener("popstate", e => {
   if(!TAB_IDS.includes(tab)) return;
   navPopping = true;
   try {
-    if(st && st.pbNav){ navSetSub(tab, st.sub); if(tab === "price" && st.sub === "trade") tradeState.tab = st.inner || "all"; }
+    if(st && st.pbNav){ navSetSub(tab, st.sub); if(tab === "price" && st.sub === "trade") tradeState.tab = st.inner || "all"; if(tab === "disease" && st.sub === "stats") dzStats.sel = st.inner || "all"; }
     switchTab(tab, { view: st && st.pbNav ? st.view : null });
   } finally { navPopping = false; }
 });

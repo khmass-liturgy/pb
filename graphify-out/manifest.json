@@ -1,1231 +1,1237 @@
 {
   ".github/workflows/accumulate-price-history.yml": {
-    "mtime": 1794916705.076238,
-    "seen": 1794916904.4026845,
+    "mtime": 1794656330.0795512,
+    "seen": 1795068852.6652563,
     "ast_hash": "3e4f92cb3ba0bf3a4b7d2cbe826e506d",
     "semantic_hash": ""
   },
   ".github/workflows/backfill-feed-production.yml": {
-    "mtime": 1794916705.0763009,
-    "seen": 1794916904.4026887,
+    "mtime": 1794656330.0795913,
+    "seen": 1795068852.6652615,
     "ast_hash": "842476481f15661d30beab08198425f8",
     "semantic_hash": ""
   },
   ".github/workflows/backfill-price-history.yml": {
-    "mtime": 1794916705.0763009,
-    "seen": 1794916904.402691,
+    "mtime": 1794656330.0795913,
+    "seen": 1795068852.6652646,
     "ast_hash": "33e6693d45a9265baa1d3d423a7fbd74",
     "semantic_hash": ""
   },
   ".github/workflows/deploy-pages.yml": {
-    "mtime": 1794916705.0763009,
-    "seen": 1794916904.4026926,
+    "mtime": 1794656330.0795913,
+    "seen": 1795068852.665267,
     "ast_hash": "c28868cf51a97e7aaec18bd0b66b35ae",
     "semantic_hash": ""
   },
   ".github/workflows/fetch-animal-drug-news.yml": {
-    "mtime": 1794916705.0763009,
-    "seen": 1794916904.4026947,
+    "mtime": 1794656330.0795913,
+    "seen": 1795068852.665269,
     "ast_hash": "b5eea2b14956395633a31a70444c5b9e",
     "semantic_hash": ""
   },
   ".github/workflows/fetch-briefing-news.yml": {
-    "mtime": 1794916705.0763009,
-    "seen": 1794916904.4026961,
+    "mtime": 1794656330.0795913,
+    "seen": 1795068852.6652708,
     "ast_hash": "4dd2368df5a12b71dfe8b6c6bba63797",
     "semantic_hash": ""
   },
   ".github/workflows/fetch-broiler-breeder.yml": {
-    "mtime": 1794916705.0763009,
-    "seen": 1794916904.4026978,
+    "mtime": 1794656330.0795913,
+    "seen": 1795068852.6652732,
     "ast_hash": "920dcd9897056ad8063cd97a51e9fb07",
     "semantic_hash": ""
   },
   ".github/workflows/fetch-broiler-price-today.yml": {
-    "mtime": 1794916705.0763009,
-    "seen": 1794916904.4026988,
+    "mtime": 1794656330.0795913,
+    "seen": 1795068852.6652753,
     "ast_hash": "caab7596a3b286873e309d9fdc8277f5",
     "semantic_hash": ""
   },
   ".github/workflows/fetch-egg-report.yml": {
-    "mtime": 1794916705.0763009,
-    "seen": 1794916904.4027007,
+    "mtime": 1794656330.0795913,
+    "seen": 1795068852.6652775,
     "ast_hash": "f254bd6bfbbbba225d994f9cae35b9f6",
     "semantic_hash": ""
   },
   ".github/workflows/fetch-feed-production.yml": {
-    "mtime": 1794916705.0763009,
-    "seen": 1794916904.4027019,
+    "mtime": 1794656330.0795913,
+    "seen": 1795068852.6652794,
     "ast_hash": "35df65724e87d56fd88d166347d805c4",
     "semantic_hash": ""
   },
   ".github/workflows/fetch-grain-price.yml": {
-    "mtime": 1794916705.0763009,
-    "seen": 1794916904.402703,
+    "mtime": 1794656330.0795913,
+    "seen": 1795068852.6652813,
     "ast_hash": "3b97e55c5c736bd698f95a98d93edc12",
     "semantic_hash": ""
   },
   ".github/workflows/fetch-grain-quality.yml": {
-    "mtime": 1794916705.0763009,
-    "seen": 1794916904.402705,
+    "mtime": 1794656330.0795913,
+    "seen": 1795068852.6652827,
     "ast_hash": "802a1db99629aa66bd7295a7d85e86b6",
     "semantic_hash": ""
   },
   ".github/workflows/fetch-h5n1-human.yml": {
-    "mtime": 1794916705.0763009,
-    "seen": 1794916904.4027064,
+    "mtime": 1794656330.0795913,
+    "seen": 1795068852.6652844,
     "ast_hash": "66481d99a972ad51072945581c19d9b0",
     "semantic_hash": ""
   },
   ".github/workflows/fetch-hpai-kr.yml": {
-    "mtime": 1794916705.0763009,
-    "seen": 1794916904.4027078,
+    "mtime": 1794656330.0795913,
+    "seen": 1795068852.6652858,
     "ast_hash": "b22e34de3d820a4861b6501dd2a42900",
     "semantic_hash": ""
   },
   ".github/workflows/fetch-hpai-risk.yml": {
-    "mtime": 1794916705.0763009,
-    "seen": 1794916904.402709,
+    "mtime": 1794656330.0795913,
+    "seen": 1795068852.6652877,
     "ast_hash": "ebf8e41c3e2345d9ab0436ad2a489700",
     "semantic_hash": ""
   },
   ".github/workflows/fetch-import-stats.yml": {
-    "mtime": 1794916705.0763009,
-    "seen": 1794916904.4027104,
+    "mtime": 1794656330.0795913,
+    "seen": 1795068852.6652892,
     "ast_hash": "29f0880132dfa2649aa1714bffcdebea",
     "semantic_hash": ""
   },
   ".github/workflows/fetch-industry-news.yml": {
-    "mtime": 1794916705.0763009,
-    "seen": 1794916904.4027119,
+    "mtime": 1794656330.0795913,
+    "seen": 1795068852.665291,
     "ast_hash": "0a7139e325fd0e16266aa2719bae92d9",
     "semantic_hash": ""
   },
   ".github/workflows/fetch-jungchu-price.yml": {
-    "mtime": 1794916705.0763009,
-    "seen": 1794916904.402713,
+    "mtime": 1794656330.0795913,
+    "seen": 1795068852.6652927,
     "ast_hash": "6f3762f65f2821bcb9ae4643bb1788ae",
     "semantic_hash": ""
   },
   ".github/workflows/fetch-layer-stats.yml": {
-    "mtime": 1794916705.0763009,
-    "seen": 1794916904.4027147,
+    "mtime": 1794656330.0795913,
+    "seen": 1795068852.6652946,
     "ast_hash": "906f5caca4079f18cd8f7df4bfb0a3ed",
     "semantic_hash": ""
   },
   ".github/workflows/fetch-market.yml": {
-    "mtime": 1794916705.0763009,
-    "seen": 1794916904.402716,
+    "mtime": 1794656330.0795913,
+    "seen": 1795068852.6652973,
     "ast_hash": "114569a925ae291da9ba2f989d152392",
     "semantic_hash": ""
   },
   ".github/workflows/fetch-news.yml": {
-    "mtime": 1794916705.0763009,
-    "seen": 1794916904.402717,
+    "mtime": 1794656330.0795913,
+    "seen": 1795068852.665299,
     "ast_hash": "d443dfa224d1da672c20e417216abdc2",
     "semantic_hash": ""
   },
   ".github/workflows/fetch-notices.yml": {
-    "mtime": 1794916705.0763009,
-    "seen": 1794916904.4027183,
+    "mtime": 1794656330.0795913,
+    "seen": 1795068852.665301,
     "ast_hash": "9824e0c742c68ddc597154ef655f4978",
     "semantic_hash": ""
   },
   ".github/workflows/fetch-poultry-disease-brief.yml": {
-    "mtime": 1794916705.0763009,
-    "seen": 1794916904.4027195,
+    "mtime": 1794656330.0795913,
+    "seen": 1795068852.6653025,
     "ast_hash": "478f95e2f650389761754c99669d096c",
     "semantic_hash": ""
   },
   ".github/workflows/fetch-poultry-diseases.yml": {
-    "mtime": 1794916705.0763009,
-    "seen": 1794916904.402721,
+    "mtime": 1794717400.7556217,
+    "seen": 1795068852.6653037,
     "ast_hash": "3b86c7f989f1b570a220dda1eb977ea3",
     "semantic_hash": ""
   },
   ".github/workflows/fetch-poultry-price.yml": {
-    "mtime": 1794916705.0763009,
-    "seen": 1794916904.4027224,
+    "mtime": 1794656330.0795913,
+    "seen": 1795068852.6653054,
     "ast_hash": "54f835c643cabb6812b5d1d84e65c23e",
     "semantic_hash": ""
   },
   ".github/workflows/fetch-prices.yml": {
-    "mtime": 1794916705.0763009,
-    "seen": 1794916904.402724,
+    "mtime": 1794656330.0795913,
+    "seen": 1795068852.6653068,
     "ast_hash": "568287a1ba86756da0f8bf8ecaccc387",
     "semantic_hash": ""
   },
   ".github/workflows/fetch-research-papers.yml": {
-    "mtime": 1794916705.0763009,
-    "seen": 1794916904.4027252,
+    "mtime": 1794656330.0795913,
+    "seen": 1795068852.6653087,
     "ast_hash": "253e7da51d759331f4fd0b0b0ae8fdfd",
     "semantic_hash": ""
   },
   ".github/workflows/fetch-taxfree-fuel.yml": {
-    "mtime": 1794916705.0763009,
-    "seen": 1794916904.4027264,
+    "mtime": 1794656330.0795913,
+    "seen": 1795068852.6653101,
     "ast_hash": "dee708e60ab583432751db5d3a56497e",
     "semantic_hash": ""
   },
   ".github/workflows/fetch-usda-crop-progress.yml": {
-    "mtime": 1794916705.0763009,
-    "seen": 1794916904.4027274,
+    "mtime": 1794656330.0795913,
+    "seen": 1795068852.6653118,
     "ast_hash": "b9276a072b071edf543ed1db4ca52f69",
     "semantic_hash": ""
   },
   ".github/workflows/fetch-weather-news.yml": {
-    "mtime": 1794916705.0763009,
-    "seen": 1794916904.4027305,
+    "mtime": 1794656330.0795913,
+    "seen": 1795068852.6653156,
     "ast_hash": "b91dcb234a465381bbfd2636d99c7ae9",
     "semantic_hash": ""
   },
   ".github/workflows/post-hpai-news-daily.yml": {
-    "mtime": 1794916705.0763009,
-    "seen": 1794916904.4027317,
+    "mtime": 1794656330.0795913,
+    "seen": 1795068852.665317,
     "ast_hash": "4ca3087c8f90b70ece0179095acbf4c4",
     "semantic_hash": ""
   },
   ".github/workflows/send-sms-subscriptions.yml": {
-    "mtime": 1794916705.0763009,
-    "seen": 1794916904.4027326,
+    "mtime": 1794656330.0795913,
+    "seen": 1795068852.6653187,
     "ast_hash": "a4b8becc36cfa0c975061cf759695e41",
     "semantic_hash": ""
   },
   ".github/workflows/sync-storage.yml": {
-    "mtime": 1794916705.0763009,
-    "seen": 1794916904.4027338,
-    "ast_hash": "976c225f09e7cbecae632fa421079b4b",
+    "mtime": 1795068766.884238,
+    "seen": 1795068852.6653202,
+    "ast_hash": "ed7224f8c419e34103038313187fa526",
     "semantic_hash": ""
   },
   ".github/workflows/telegram-notify.yml": {
-    "mtime": 1794916705.0763009,
-    "seen": 1794916904.4027348,
+    "mtime": 1794656330.0795913,
+    "seen": 1795068852.665322,
     "ast_hash": "fcc5a8db2a6c59c71f0d9d3b3e02170a",
     "semantic_hash": ""
   },
   ".github/workflows/telegram-price-daily.yml": {
-    "mtime": 1794916705.0763009,
-    "seen": 1794916904.4027362,
+    "mtime": 1794656330.0795913,
+    "seen": 1795068852.6653233,
     "ast_hash": "24c36337cf4e333b8b45281d2f4ca5ac",
     "semantic_hash": ""
   },
   "animal_drug_news/latest.json": {
-    "mtime": 1794916705.0763009,
-    "seen": 1794916904.4027371,
+    "mtime": 1794656330.0795913,
+    "seen": 1795068852.6653252,
     "ast_hash": "e57d341f96393707224b4268b25cc4c9",
     "semantic_hash": ""
   },
   "broiler_breeder/data.json": {
-    "mtime": 1794916705.1161413,
-    "seen": 1794916904.4027383,
+    "mtime": 1794656330.0975192,
+    "seen": 1795068852.6653268,
     "ast_hash": "04f4f069e226942fc8fae80e785b0f18",
     "semantic_hash": ""
   },
   "broiler_breeder/latest.json": {
-    "mtime": 1794916705.1193578,
-    "seen": 1794916904.4027395,
+    "mtime": 1794656330.0998118,
+    "seen": 1795068852.665328,
     "ast_hash": "1711df457b522b3e23149bebf45dfe2d",
     "semantic_hash": ""
   },
   "broiler_price_today/latest.json": {
-    "mtime": 1794916705.1193578,
-    "seen": 1794916904.4027407,
-    "ast_hash": "fb53db4eaa9d9218d6245e002bf902b7",
+    "mtime": 1795068693.3685124,
+    "seen": 1795068852.6653297,
+    "ast_hash": "228efacba3283015edc91a1e4fffa987",
     "semantic_hash": ""
   },
   "chicken_price/latest.json": {
-    "mtime": 1794916705.1193578,
-    "seen": 1794916904.4027414,
+    "mtime": 1794656330.0998118,
+    "seen": 1795068852.6653311,
     "ast_hash": "024692c13232963c34218ebe4c359922",
     "semantic_hash": ""
   },
   "egg_report/latest.json": {
-    "mtime": 1794916705.1200047,
-    "seen": 1794916904.402743,
-    "ast_hash": "9f37d950375fe67e918585be0746086a",
+    "mtime": 1795068693.3685124,
+    "seen": 1795068852.665335,
+    "ast_hash": "c57b2d7338ca413b71fad27b56368091",
     "semantic_hash": ""
   },
   "farm_density/sigun.json": {
-    "mtime": 1794916705.1200047,
-    "seen": 1794916904.4027443,
+    "mtime": 1794656330.100391,
+    "seen": 1795068852.6653364,
     "ast_hash": "ef6cc2f4023e3fdd145e918dbbb8aef4",
     "semantic_hash": ""
   },
   "farm_finder/latest.json": {
-    "mtime": 1794916705.1200047,
-    "seen": 1794916904.402746,
+    "mtime": 1794656330.100391,
+    "seen": 1795068852.6653378,
     "ast_hash": "b83d3e284867489c6d2925dc35f8625a",
     "semantic_hash": ""
   },
   "feed_production/history.json": {
-    "mtime": 1794916705.140268,
-    "seen": 1794916904.4027472,
+    "mtime": 1794656330.121519,
+    "seen": 1795068852.6653392,
     "ast_hash": "e01a0d608fe664f002ad0103fccdaac7",
     "semantic_hash": ""
   },
   "feed_production/latest.json": {
-    "mtime": 1794916705.1464264,
-    "seen": 1794916904.402748,
+    "mtime": 1794656330.1227572,
+    "seen": 1795068852.6653407,
     "ast_hash": "5a73f5d466cb7589518673be62f26468",
     "semantic_hash": ""
   },
   "firebase.json": {
-    "mtime": 1794916705.1464264,
-    "seen": 1794916904.4027498,
+    "mtime": 1794656330.1227572,
+    "seen": 1795068852.6653419,
     "ast_hash": "844f1f69a7787b3db825af9b099f0ea5",
     "semantic_hash": ""
   },
   "functions/commons.js": {
-    "mtime": 1794916705.1464264,
-    "seen": 1794916904.4027507,
+    "mtime": 1794656330.1227572,
+    "seen": 1795068852.6653435,
     "ast_hash": "83d4487cc5c83a2b038db0c403d43472",
     "semantic_hash": ""
   },
   "functions/index.js": {
-    "mtime": 1794916705.146563,
-    "seen": 1794916904.4027522,
+    "mtime": 1794656330.122873,
+    "seen": 1795068852.665345,
     "ast_hash": "69e6b34fa7668e09033a60db0793ec5d",
     "semantic_hash": ""
   },
   "functions/package.json": {
-    "mtime": 1794916705.146563,
-    "seen": 1794916904.4027536,
+    "mtime": 1794656330.122873,
+    "seen": 1795068852.6653464,
     "ast_hash": "fa26cd4b20fc0c605a21244ac1fcfa95",
     "semantic_hash": ""
   },
   "grain_price/latest.json": {
-    "mtime": 1794916705.146563,
-    "seen": 1794916904.402755,
-    "ast_hash": "b0bdcefeed5a9052fbf54a0db8fecc77",
+    "mtime": 1795068693.3725123,
+    "seen": 1795068852.6653476,
+    "ast_hash": "9215c8ac83dd14fb4bbf8b8bf8542ac6",
     "semantic_hash": ""
   },
   "grain_quality/baseline.json": {
-    "mtime": 1794916705.146563,
-    "seen": 1794916904.402757,
+    "mtime": 1794656330.122873,
+    "seen": 1795068852.66535,
     "ast_hash": "f1a2efdd81b7c87b4f2e8b97097cf287",
     "semantic_hash": ""
   },
   "grain_quality/latest.json": {
-    "mtime": 1794916705.1491716,
-    "seen": 1794916904.4027584,
+    "mtime": 1795068693.3725123,
+    "seen": 1795068852.6653512,
     "ast_hash": "530554a5540c6850e9f1b9480adbd990",
     "semantic_hash": ""
   },
   "graphify-src/index.inline.js": {
-    "mtime": 1794916889.292279,
-    "seen": 1794916904.4027593,
-    "ast_hash": "5095c57629a01ba12d0fe23761c45d5f",
+    "mtime": 1795068837.036521,
+    "seen": 1795068852.6653528,
+    "ast_hash": "03d739458b9d2cf86b54dbc6f35a79f5",
     "semantic_hash": ""
   },
   "h5n1_human/latest.json": {
-    "mtime": 1794916705.200268,
-    "seen": 1794916904.4027605,
+    "mtime": 1794656330.141519,
+    "seen": 1795068852.6653543,
     "ast_hash": "bd9f883867eb55c2c4f5b8d50775487f",
     "semantic_hash": ""
   },
   "hpai_kr/latest.json": {
-    "mtime": 1794916705.200268,
-    "seen": 1794916904.402762,
-    "ast_hash": "92ad5983a8a02a963e0f90108bad53c6",
+    "mtime": 1795068693.4205124,
+    "seen": 1795068852.6653554,
+    "ast_hash": "10adaea7b57b18b822f85937b35e8e05",
     "semantic_hash": ""
   },
   "hpai_news/news.json": {
-    "mtime": 1794916705.200268,
-    "seen": 1794916904.402763,
+    "mtime": 1794656330.141519,
+    "seen": 1795068852.665357,
     "ast_hash": "c9428377b02d8466dfd31f0ce9fb4fcd",
     "semantic_hash": ""
   },
   "hpai_risk/latest.json": {
-    "mtime": 1794916705.200268,
-    "seen": 1794916904.402764,
-    "ast_hash": "32fa4a61151b6eaed4476b4513aa2fca",
+    "mtime": 1795068693.4205124,
+    "seen": 1795068852.6653583,
+    "ast_hash": "a8a2bb1b57a38bd34f1245ecfc5f23f8",
     "semantic_hash": ""
   },
   "import_status/latest.json": {
-    "mtime": 1794916705.200268,
-    "seen": 1794916904.4027653,
+    "mtime": 1794656330.141519,
+    "seen": 1795068852.66536,
     "ast_hash": "d72a226ea6b5a18eb2a66a34c016f1b3",
     "semantic_hash": ""
   },
   "import_status/stats.json": {
-    "mtime": 1794916705.2056653,
-    "seen": 1794916904.4027662,
+    "mtime": 1794656330.145351,
+    "seen": 1795068852.6653612,
     "ast_hash": "a91fdb399ce933764ad6c9ecbcbc5eb8",
     "semantic_hash": ""
   },
   "industry_news/latest.json": {
-    "mtime": 1794916705.228268,
-    "seen": 1794916904.4027674,
-    "ast_hash": "7017bd9e852e304297e64483f606ed18",
+    "mtime": 1795068693.4485126,
+    "seen": 1795068852.6653624,
+    "ast_hash": "9328cad19217faa0ab7850dc5d3ddf49",
     "semantic_hash": ""
   },
   "jungchu_price/latest.json": {
-    "mtime": 1794916705.2334397,
-    "seen": 1794916904.4027684,
-    "ast_hash": "ef8fac7756b39449d9a93ff6164ca0aa",
+    "mtime": 1795068693.4485126,
+    "seen": 1795068852.6653638,
+    "ast_hash": "65a6e5cda07a47c610d78d287bbfa285",
     "semantic_hash": ""
   },
   "layer_stats/latest.json": {
-    "mtime": 1794916705.2334397,
-    "seen": 1794916904.4027693,
+    "mtime": 1794656330.152057,
+    "seen": 1795068852.6653652,
     "ast_hash": "1277d09759a9ecba6707e1451f4b1558",
     "semantic_hash": ""
   },
   "market/quotes.json": {
-    "mtime": 1794916705.2334397,
-    "seen": 1794916904.4027708,
-    "ast_hash": "05d092d4ae7a0243dfa178a32973f387",
+    "mtime": 1795068693.4525125,
+    "seen": 1795068852.6653662,
+    "ast_hash": "73a9a216b564071cd7c4672cf8ee7ccf",
     "semantic_hash": ""
   },
   "monthly_pick/picks.json": {
-    "mtime": 1794916705.2334397,
-    "seen": 1794916904.4027717,
+    "mtime": 1794656330.152057,
+    "seen": 1795068852.6653676,
     "ast_hash": "919880cb3cb39f7b62d7e102fd4113ca",
     "semantic_hash": ""
   },
   "news/briefing.json": {
-    "mtime": 1794916705.2334397,
-    "seen": 1794916904.402773,
-    "ast_hash": "3e5273da4d2127b4ca10b29699f0d0ff",
+    "mtime": 1795068693.4525125,
+    "seen": 1795068852.6653688,
+    "ast_hash": "50acc9a1cda354ba0419ba056d28e211",
     "semantic_hash": ""
   },
   "news/news.json": {
-    "mtime": 1794916705.2339637,
-    "seen": 1794916904.402774,
-    "ast_hash": "208d8edb4c25a275bf756266ba8bd49d",
+    "mtime": 1795068693.4525125,
+    "seen": 1795068852.6653697,
+    "ast_hash": "f187e11ff08aad7425b43afc2313edd5",
     "semantic_hash": ""
   },
   "notices/notices.json": {
-    "mtime": 1794916705.2339637,
-    "seen": 1794916904.402775,
-    "ast_hash": "6017583f2a2364b5e26d6fafd22881d7",
+    "mtime": 1795068693.4525125,
+    "seen": 1795068852.665371,
+    "ast_hash": "671a69f1f1488aa2f18513582863815a",
     "semantic_hash": ""
   },
   "poultry_disease/diseases.json": {
-    "mtime": 1794916705.2339637,
-    "seen": 1794916904.4027762,
+    "mtime": 1794804137.8120031,
+    "seen": 1795068852.665372,
     "ast_hash": "5791cc3f3cf64a1313fbf85c80eef64c",
     "semantic_hash": ""
   },
   "poultry_disease_brief/latest.json": {
-    "mtime": 1794916705.236375,
-    "seen": 1794916904.4027796,
+    "mtime": 1794804137.8120031,
+    "seen": 1795068852.6653748,
     "ast_hash": "0eab7b340b9ced851e2215e1d5ed09e7",
     "semantic_hash": ""
   },
   "poultry_price/latest.json": {
-    "mtime": 1794916705.236375,
-    "seen": 1794916904.402781,
-    "ast_hash": "22b44366872b2db667679901e34e8db9",
+    "mtime": 1795068693.4525125,
+    "seen": 1795068852.6653757,
+    "ast_hash": "a5a03bcb3773f497c830c763cf6fb3b3",
     "semantic_hash": ""
   },
   "price_history/daily.json": {
-    "mtime": 1794916705.236375,
-    "seen": 1794916904.402782,
-    "ast_hash": "902a99f1b010d823529e6255fee3cf86",
+    "mtime": 1795068693.4525125,
+    "seen": 1795068852.6653767,
+    "ast_hash": "4b0627d584be49c39fcf4a1d5f4c8476",
     "semantic_hash": ""
   },
   "prices/prices.json": {
-    "mtime": 1794916705.236375,
-    "seen": 1794916904.4027832,
-    "ast_hash": "d589d77835b3cee39a9ef3098f3a7627",
+    "mtime": 1795068693.4525125,
+    "seen": 1795068852.6653779,
+    "ast_hash": "3d4d1bd5e204bf7f478ad516ac3fd2af",
     "semantic_hash": ""
   },
   "research_papers/latest.json": {
-    "mtime": 1794916705.236375,
-    "seen": 1794916904.4027846,
+    "mtime": 1794717400.8436217,
+    "seen": 1795068852.665379,
     "ast_hash": "873012e6bac6ea85f41ddce95d718b08",
     "semantic_hash": ""
   },
   "scripts/accumulate_price_history.py": {
-    "mtime": 1794916705.236375,
-    "seen": 1794916904.4027858,
+    "mtime": 1794656330.1535192,
+    "seen": 1795068852.66538,
     "ast_hash": "2c9c8cdcd01fcc272ed86eeda8b9ace8",
     "semantic_hash": ""
   },
   "scripts/backfill_feed_production.py": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.4027867,
+    "mtime": 1794656330.1547165,
+    "seen": 1795068852.6653812,
     "ast_hash": "71bd99ca4588928c21a284d891daef9c",
     "semantic_hash": ""
   },
   "scripts/backfill_price_history.py": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.4027882,
+    "mtime": 1794656330.1547165,
+    "seen": 1795068852.6653824,
     "ast_hash": "a94b405df30bab0df8b3db969e5aec62",
     "semantic_hash": ""
   },
   "scripts/build_farmgame.py": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.4027894,
+    "mtime": 1794656330.1547165,
+    "seen": 1795068852.6653833,
     "ast_hash": "5a478d77df0e9ca6d4aeb150aea80f64",
     "semantic_hash": ""
   },
   "scripts/fetch_animal_drug_news.py": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.4027905,
+    "mtime": 1794656330.1547165,
+    "seen": 1795068852.6653845,
     "ast_hash": "c4229e1b011fa969ae0d7392823028ab",
     "semantic_hash": ""
   },
   "scripts/fetch_briefing_news.py": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.402792,
+    "mtime": 1794656330.1547165,
+    "seen": 1795068852.6653855,
     "ast_hash": "794fc7d003e0e48397b882a860dcc49d",
     "semantic_hash": ""
   },
   "scripts/fetch_broiler_breeder.py": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.402793,
+    "mtime": 1794656330.1547165,
+    "seen": 1795068852.6653867,
     "ast_hash": "bf0409f3bde28e53d9c3c800b5ce31fb",
     "semantic_hash": ""
   },
   "scripts/fetch_broiler_price_today.py": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.4027946,
+    "mtime": 1794656330.1547165,
+    "seen": 1795068852.6653879,
     "ast_hash": "de2328a4833e0e9d574756b6084d570c",
     "semantic_hash": ""
   },
   "scripts/fetch_egg_price.py": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.4027958,
+    "mtime": 1794656330.1547165,
+    "seen": 1795068852.6653888,
     "ast_hash": "831760484e79115c022fbaeb09b4e312",
     "semantic_hash": ""
   },
   "scripts/fetch_egg_report.py": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.4027967,
+    "mtime": 1794656330.1547165,
+    "seen": 1795068852.6653898,
     "ast_hash": "cbd6de9bcdd1a9c42fee65feebb93b5c",
     "semantic_hash": ""
   },
   "scripts/fetch_farm_density.py": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.402798,
+    "mtime": 1794656330.1547165,
+    "seen": 1795068852.6653907,
     "ast_hash": "765a7d305bb4ccb0d3f435b70d9e0ec5",
     "semantic_hash": ""
   },
   "scripts/fetch_feed_production.py": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.4027991,
+    "mtime": 1794656330.1547165,
+    "seen": 1795068852.665392,
     "ast_hash": "fd057612315c3d986bfa528c6de90c21",
     "semantic_hash": ""
   },
   "scripts/fetch_grain_price.py": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.4028,
+    "mtime": 1794656330.1547165,
+    "seen": 1795068852.6653929,
     "ast_hash": "c7e45fb74a8a1c4b9571e04e4903c5a5",
     "semantic_hash": ""
   },
   "scripts/fetch_grain_quality.py": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.4028015,
+    "mtime": 1794656330.1547165,
+    "seen": 1795068852.6653938,
     "ast_hash": "4e6b136221e3fa84d2ca08d7646dbae5",
     "semantic_hash": ""
   },
   "scripts/fetch_h5n1_human.py": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.4028027,
+    "mtime": 1794656330.1547165,
+    "seen": 1795068852.665395,
     "ast_hash": "b13a5fcf61f85d9b66795ca0c01ab3fe",
     "semantic_hash": ""
   },
   "scripts/fetch_hpai_kr.py": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.4028037,
+    "mtime": 1794656330.1547165,
+    "seen": 1795068852.6653957,
     "ast_hash": "8171188f9b2d8e4567c6c9147ab7d200",
     "semantic_hash": ""
   },
   "scripts/fetch_hpai_risk.py": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.4028049,
+    "mtime": 1794656330.1547165,
+    "seen": 1795068852.6653967,
     "ast_hash": "87104b34a9bfdedeee8bd3c09b4ded9b",
     "semantic_hash": ""
   },
   "scripts/fetch_import_stats.py": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.4028058,
+    "mtime": 1794656330.1547165,
+    "seen": 1795068852.6653976,
     "ast_hash": "09a7defd37d5fe5c493340738b037757",
     "semantic_hash": ""
   },
   "scripts/fetch_industry_news.py": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.4028068,
+    "mtime": 1794866118.406252,
+    "seen": 1795068852.6653988,
     "ast_hash": "b9165072a38a63fb630320b21a340dbb",
     "semantic_hash": ""
   },
   "scripts/fetch_jungchu_price.py": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.4028077,
+    "mtime": 1794656330.1547165,
+    "seen": 1795068852.6654,
     "ast_hash": "c6f40dea6d56b0076df31895884945f8",
     "semantic_hash": ""
   },
   "scripts/fetch_layer_stats.py": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.402809,
+    "mtime": 1794656330.1547165,
+    "seen": 1795068852.665401,
     "ast_hash": "c7da8fcea621a90ca511a3c266eca38e",
     "semantic_hash": ""
   },
   "scripts/fetch_market.py": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.40281,
+    "mtime": 1794656330.1547165,
+    "seen": 1795068852.6654024,
     "ast_hash": "85fbca4a1059c17740967074334bdf96",
     "semantic_hash": ""
   },
   "scripts/fetch_news.py": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.402811,
+    "mtime": 1794656330.1547165,
+    "seen": 1795068852.6654034,
     "ast_hash": "bbaec253863a32dbc661ebaaeb18239c",
     "semantic_hash": ""
   },
   "scripts/fetch_notices.py": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.4028125,
+    "mtime": 1794656330.1547165,
+    "seen": 1795068852.6654043,
     "ast_hash": "16d682fc09b2fc0a4ae8d03d55f86d53",
     "semantic_hash": ""
   },
   "scripts/fetch_poultry_disease_brief.py": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.4028134,
+    "mtime": 1794656330.1547165,
+    "seen": 1795068852.6654058,
     "ast_hash": "30bff4cc31b5da61aa0adf4ad7b2f0ab",
     "semantic_hash": ""
   },
   "scripts/fetch_poultry_diseases.py": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.4028146,
+    "mtime": 1794747531.1687274,
+    "seen": 1795068852.6654065,
     "ast_hash": "41225c05eeb36754ad4940412aa2257c",
     "semantic_hash": ""
   },
   "scripts/fetch_poultry_price.py": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.402816,
+    "mtime": 1794656330.1547165,
+    "seen": 1795068852.6654074,
     "ast_hash": "1f74a17c18dfe28a65945c371527a156",
     "semantic_hash": ""
   },
   "scripts/fetch_prices.py": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.4028172,
+    "mtime": 1794656330.1547165,
+    "seen": 1795068852.6654084,
     "ast_hash": "9f637e58efab32730b3ee854e9f210eb",
     "semantic_hash": ""
   },
   "scripts/fetch_research_papers.py": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.4028182,
+    "mtime": 1794656330.1547165,
+    "seen": 1795068852.6654093,
     "ast_hash": "26482c3af36f2a8b821440e83d80d7fc",
     "semantic_hash": ""
   },
   "scripts/fetch_taxfree_fuel.py": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.4028199,
+    "mtime": 1794656330.1547165,
+    "seen": 1795068852.66541,
     "ast_hash": "f918824b2e69f9fb69ed0e7cd20ba45a",
     "semantic_hash": ""
   },
   "scripts/fetch_usda_crop_progress.py": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.402821,
+    "mtime": 1794656330.1547165,
+    "seen": 1795068852.6654112,
     "ast_hash": "4ef1c7e6535a4a472560f6b98bc90755",
     "semantic_hash": ""
   },
   "scripts/fetch_weather_news.py": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.402824,
+    "mtime": 1794656330.1547165,
+    "seen": 1795068852.6654136,
     "ast_hash": "b63394e964e741e930c5294d708ef13b",
     "semantic_hash": ""
   },
   "scripts/graphify_prepare.py": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.4028249,
+    "mtime": 1794656330.1547165,
+    "seen": 1795068852.6654148,
     "ast_hash": "dcf9662a2269e374377e55c2e5b67b98",
     "semantic_hash": ""
   },
   "scripts/ocr_jungchu_table.js": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.4028265,
+    "mtime": 1794656330.1547165,
+    "seen": 1795068852.665416,
     "ast_hash": "748b2e7daf147d0eb4bb38d4528b787a",
     "semantic_hash": ""
   },
   "scripts/package.json": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.4028275,
+    "mtime": 1794656330.1547165,
+    "seen": 1795068852.665417,
     "ast_hash": "09fdb468cf7014d8adf50ac4f9fe0219",
     "semantic_hash": ""
   },
   "scripts/post_hpai_news_daily.py": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.4028287,
+    "mtime": 1794656330.1547165,
+    "seen": 1795068852.6654181,
     "ast_hash": "c7c1d9c9a2bc6aba01a46639c996afc6",
     "semantic_hash": ""
   },
   "scripts/send_sms_subscriptions.py": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.4028301,
+    "mtime": 1794656330.1547165,
+    "seen": 1795068852.6654193,
     "ast_hash": "1bd88c2686c97a007d48c91408e43bda",
     "semantic_hash": ""
   },
   "scripts/send_telegram_price.py": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.402831,
+    "mtime": 1794656330.1547165,
+    "seen": 1795068852.6654203,
     "ast_hash": "0c6695124cc7f5c800dfd7fbf3c259cc",
     "semantic_hash": ""
   },
   "scripts/translation_glossary.py": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.402832,
+    "mtime": 1794656330.1547165,
+    "seen": 1795068852.6654212,
     "ast_hash": "57d17a31a41135b7723ad63a1b5ce371",
     "semantic_hash": ""
   },
   "scripts/upload_to_storage.py": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.4028332,
+    "mtime": 1794656330.157519,
+    "seen": 1795068852.6654224,
     "ast_hash": "18c26611d3d9e06d57832b7ba00b060e",
     "semantic_hash": ""
   },
   "seasonal_packages/latest.json": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.4028344,
+    "mtime": 1794656330.157519,
+    "seen": 1795068852.6654234,
     "ast_hash": "ca06a208c92f4feb31896a886cc0b1a2",
     "semantic_hash": ""
   },
   "self_check/latest.json": {
-    "mtime": 1794916705.242643,
-    "seen": 1794916904.4028356,
+    "mtime": 1794656330.1584945,
+    "seen": 1795068852.6654243,
     "ast_hash": "2f737518ef1d17014f69ebf673993fad",
     "semantic_hash": ""
   },
   "sw.js": {
-    "mtime": 1794916705.242643,
-    "seen": 1794916904.402837,
+    "mtime": 1794656330.1584945,
+    "seen": 1795068852.6654253,
     "ast_hash": "5c4256a75c444c6836dfaf2021490350",
     "semantic_hash": ""
   },
   "taxfree_fuel/latest.json": {
-    "mtime": 1794916705.242643,
-    "seen": 1794916904.402838,
-    "ast_hash": "51bfc62642f1615728694c3a420b2822",
+    "mtime": 1795068693.4525125,
+    "seen": 1795068852.6654263,
+    "ast_hash": "24614fc7c1e9835467b7c3afbb5999cc",
     "semantic_hash": ""
   },
   "tests/__init__.py": {
-    "mtime": 1794916705.242643,
-    "seen": 1794916904.4028392,
+    "mtime": 1794656330.1584945,
+    "seen": 1795068852.6654272,
     "ast_hash": "109a4cf153fe30aa327cc239c10bce8d",
     "semantic_hash": ""
   },
   "tests/test_fetch_poultry_price.py": {
-    "mtime": 1794916705.2428737,
-    "seen": 1794916904.4028404,
+    "mtime": 1794656330.1586878,
+    "seen": 1795068852.6654282,
     "ast_hash": "2f5d278cd45a87c2146fbe303df1ff29",
     "semantic_hash": ""
   },
   "treatment_packages/latest.json": {
-    "mtime": 1794916705.2428737,
-    "seen": 1794916904.4028413,
+    "mtime": 1794656330.1586878,
+    "seen": 1795068852.6654294,
     "ast_hash": "b323de811394f9f0efdefc0512694fa9",
     "semantic_hash": ""
   },
   "usda_crop_progress/latest.json": {
-    "mtime": 1794916705.2428737,
-    "seen": 1794916904.4028425,
+    "mtime": 1795068693.4525125,
+    "seen": 1795068852.66543,
     "ast_hash": "0949be448121fbc872225597c40ba2b2",
     "semantic_hash": ""
   },
   "weather_news/latest.json": {
-    "mtime": 1794916705.2428737,
-    "seen": 1794916904.402845,
-    "ast_hash": "c33f33dbabf908306e9f9c5fdc357141",
+    "mtime": 1795068693.4565125,
+    "seen": 1795068852.6654322,
+    "ast_hash": "431692ee146ae09f220c0e424474f34c",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1794916863.694989,
-    "seen": 1794916904.4028459,
-    "ast_hash": "4da2194a07bf27385f952b5ba887bac5",
+    "mtime": 1795068836.9512672,
+    "seen": 1795068852.6654336,
+    "ast_hash": "477afb6cf462214556a6fc9a9202e0eb",
     "semantic_hash": ""
   },
   "docs/HANDOFF.md": {
-    "mtime": 1794916705.1193578,
-    "seen": 1794916904.4028473,
+    "mtime": 1794656330.0998118,
+    "seen": 1795068852.6654346,
     "ast_hash": "47d5aa1b118dae808c7d35da2dc4f51d",
     "semantic_hash": ""
   },
   "egg_report/debug.html": {
-    "mtime": 1794916705.1193578,
-    "seen": 1794916904.4028485,
+    "mtime": 1794656330.0998118,
+    "seen": 1795068852.6654356,
     "ast_hash": "a55b634ac89115fa3598b96454381fc6",
     "semantic_hash": ""
   },
   "farmgame/game.html": {
-    "mtime": 1794916705.140268,
-    "seen": 1794916904.4028497,
+    "mtime": 1794656330.121519,
+    "seen": 1795068852.6654367,
     "ast_hash": "9ebe815d236839e40d8d1f46f7d8a048",
     "semantic_hash": ""
   },
   "index.html": {
-    "mtime": 1794916863.6842775,
-    "seen": 1794916904.4028509,
-    "ast_hash": "2cc5a075884b8ce014c1c40bd370c52c",
+    "mtime": 1795068800.3365188,
+    "seen": 1795068852.6654377,
+    "ast_hash": "0724f80dd6062381d914d0c2394cae14",
     "semantic_hash": ""
   },
   "egg_report/latest.pdf": {
-    "mtime": 1794916705.1200047,
-    "seen": 1794916904.4028518,
+    "mtime": 1795068693.3725123,
+    "seen": 1795068852.6654384,
     "ast_hash": "75da3c11dc80b204f2aad08584df1237",
     "semantic_hash": ""
   },
   "assets/corn/zea_mays_types.jpg": {
-    "mtime": 1794916705.0799336,
-    "seen": 1794916904.4028535,
+    "mtime": 1794656330.0813065,
+    "seen": 1795068852.6654396,
     "ast_hash": "a6db3e38bd28f866f086f58181c6c4df",
     "semantic_hash": ""
   },
   "assets/embryo/candling_demo.jpg": {
-    "mtime": 1794916705.092268,
-    "seen": 1794916904.4029207,
+    "mtime": 1794656330.0813065,
+    "seen": 1795068852.665499,
     "ast_hash": "a408cb0193e571a2659fb6dded606329",
     "semantic_hash": ""
   },
   "assets/embryo/candling_nonviable.jpg": {
-    "mtime": 1794916705.099336,
-    "seen": 1794916904.4029217,
+    "mtime": 1794656330.0816085,
+    "seen": 1795068852.6655,
     "ast_hash": "abc5f43262c333a7a3b9e6cb2d9f6d3e",
     "semantic_hash": ""
   },
   "assets/embryo/d10_inside.jpg": {
-    "mtime": 1794916705.099336,
-    "seen": 1794916904.402923,
+    "mtime": 1794656330.0816085,
+    "seen": 1795068852.6655006,
     "ast_hash": "8903d98090e663c3e87948551be92b20",
     "semantic_hash": ""
   },
   "assets/embryo/d11_candling.jpg": {
-    "mtime": 1794916705.099336,
-    "seen": 1794916904.402924,
+    "mtime": 1794656330.0816085,
+    "seen": 1795068852.6655016,
     "ast_hash": "1ad44081e1825f6bfbe9688772cd2760",
     "semantic_hash": ""
   },
   "assets/embryo/d3_window.jpg": {
-    "mtime": 1794916705.099336,
-    "seen": 1794916904.4029253,
+    "mtime": 1794656330.0816085,
+    "seen": 1795068852.6655028,
     "ast_hash": "8434faada2073c26fa71e1c86459dcca",
     "semantic_hash": ""
   },
   "assets/embryo/d3_yolk.jpg": {
-    "mtime": 1794916705.099336,
-    "seen": 1794916904.402927,
+    "mtime": 1794656330.0816085,
+    "seen": 1795068852.665504,
     "ast_hash": "dbe9ab0380b2a22e7cc2c1206cc1e18d",
     "semantic_hash": ""
   },
   "assets/embryo/egg_anatomy.jpg": {
-    "mtime": 1794916705.099336,
-    "seen": 1794916904.402928,
+    "mtime": 1794656330.0816085,
+    "seen": 1795068852.665505,
     "ast_hash": "39a2718d7e7b64e0a174c00d692f2d78",
     "semantic_hash": ""
   },
   "assets/embryo/hatching_a.jpg": {
-    "mtime": 1794916705.099336,
-    "seen": 1794916904.402929,
+    "mtime": 1794656330.0816085,
+    "seen": 1795068852.6655061,
     "ast_hash": "96ab2eca2b6b9eee2ef4831511250e32",
     "semantic_hash": ""
   },
   "assets/embryo/hatching_b.jpg": {
-    "mtime": 1794916705.099336,
-    "seen": 1794916904.4029303,
+    "mtime": 1794656330.0816085,
+    "seen": 1795068852.665507,
     "ast_hash": "4d69576eb82fe9c5ba46edd801922c82",
     "semantic_hash": ""
   },
   "assets/embryo/hatching_c.jpg": {
-    "mtime": 1794916705.099336,
-    "seen": 1794916904.4029315,
+    "mtime": 1794656330.0816085,
+    "seen": 1795068852.6655078,
     "ast_hash": "0cacca1c2f51b26187a39cb8da341814",
     "semantic_hash": ""
   },
   "assets/embryo/late_embryo_a.jpg": {
-    "mtime": 1794916705.099336,
-    "seen": 1794916904.4029324,
+    "mtime": 1794656330.0816085,
+    "seen": 1795068852.6655087,
     "ast_hash": "7d2568679a3a0afd2aa4050dadad3c10",
     "semantic_hash": ""
   },
   "assets/embryo/late_embryo_b.jpg": {
-    "mtime": 1794916705.099336,
-    "seen": 1794916904.4029336,
+    "mtime": 1794656330.0816085,
+    "seen": 1795068852.6655097,
     "ast_hash": "29d7c7c7e0bd42081592687e5d951bc5",
     "semantic_hash": ""
   },
   "assets/embryo/pipping_tray.jpg": {
-    "mtime": 1794916705.099336,
-    "seen": 1794916904.4029346,
+    "mtime": 1794656330.0816085,
+    "seen": 1795068852.6655107,
     "ast_hash": "39d6ba2b8b689e07c144e94feea132f3",
     "semantic_hash": ""
   },
   "assets/embryo/yolk_sac.jpg": {
-    "mtime": 1794916705.099336,
-    "seen": 1794916904.4029355,
+    "mtime": 1794656330.0816085,
+    "seen": 1795068852.6655114,
     "ast_hash": "324d94b93bbf0c9f2a3bd72b731fff33",
     "semantic_hash": ""
   },
   "assets/hpai/hpai_comb.jpg": {
-    "mtime": 1794916705.099336,
-    "seen": 1794916904.4029365,
+    "mtime": 1794656330.0816085,
+    "seen": 1795068852.6655126,
     "ast_hash": "7095cce77471d4eb8b2785091f19db94",
     "semantic_hash": ""
   },
   "assets/hpai/hpai_shank_hemorrhage.jpg": {
-    "mtime": 1794916705.1020525,
-    "seen": 1794916904.402938,
+    "mtime": 1794656330.08401,
+    "seen": 1795068852.6655135,
     "ast_hash": "85ee5d4d3e313c9e43bfb745e2c2aa2b",
     "semantic_hash": ""
   },
   "assets/hpai/hpai_swollen_head.jpg": {
-    "mtime": 1794916705.1020525,
-    "seen": 1794916904.402939,
+    "mtime": 1794656330.08401,
+    "seen": 1795068852.6655145,
     "ast_hash": "b702a243082261aa01de1395e3cc28cf",
     "semantic_hash": ""
   },
   "assets/kkoko/kkoko_doctor.png": {
-    "mtime": 1794916705.108268,
-    "seen": 1794916904.4029405,
+    "mtime": 1794656330.093519,
+    "seen": 1795068852.6655157,
     "ast_hash": "e3ec4fa0c3a1fd508fccd74aad13a7d4",
     "semantic_hash": ""
   },
   "assets/kkoko/kkoko_idle.png": {
-    "mtime": 1794916705.108268,
-    "seen": 1794916904.4029417,
+    "mtime": 1794656330.093519,
+    "seen": 1795068852.6655169,
     "ast_hash": "f01470394c25df411888054977321e2c",
     "semantic_hash": ""
   },
   "jungchu_price/latest.jpg": {
-    "mtime": 1794916705.228268,
-    "seen": 1794916904.402943,
+    "mtime": 1794656330.1495192,
+    "seen": 1795068852.6655178,
     "ast_hash": "c566b6343bc6229294955ff1d6606eed",
     "semantic_hash": ""
   },
   "self_check/chicken_anatomy.jpg": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.402944,
+    "mtime": 1794656330.157519,
+    "seen": 1795068852.6655188,
     "ast_hash": "b2d3795cc06e61a0b1ce8f83a3f921b1",
     "semantic_hash": ""
   },
   ".claude/settings.json": {
-    "mtime": 1794916705.0752263,
-    "seen": 1794916904.4026752,
+    "mtime": 1794656330.0775192,
+    "seen": 1795068852.6652448,
     "ast_hash": "a440882d3105da08f78f3368d5ac5555",
     "semantic_hash": ""
   },
   ".github/workflows/fetch-weather-cities.yml": {
-    "mtime": 1794916705.0763009,
-    "seen": 1794916904.4027293,
+    "mtime": 1794656330.0795913,
+    "seen": 1795068852.665314,
     "ast_hash": "100ac7abeed9bc4fd0b5f4ac7ff4316c",
     "semantic_hash": ""
   },
   "scripts/fetch_weather_cities.py": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.4028227,
+    "mtime": 1794656330.1547165,
+    "seen": 1795068852.6654127,
     "ast_hash": "7bc1f2602b8a7e7cbd806d9cdaa358e9",
     "semantic_hash": ""
   },
   "weather/kr_forecast.json": {
-    "mtime": 1794916705.2428737,
-    "seen": 1794916904.402844,
-    "ast_hash": "3964f9a0c603fd7f882cdd01cb02017d",
+    "mtime": 1795068693.4565125,
+    "seen": 1795068852.6654315,
+    "ast_hash": "fb7b7b24def2d18c5013ac8edf43da3c",
     "semantic_hash": ""
   },
   "poultry_disease/extra.json": {
-    "mtime": 1794916705.236375,
-    "seen": 1794916904.4027786,
+    "mtime": 1794749520.787403,
+    "seen": 1795068852.6653733,
     "ast_hash": "3d13388e7f0ea8f5e0b47680db9bc702",
     "semantic_hash": ""
   },
   "assets/dz/bed-bug.jpg": {
-    "mtime": 1794916705.0809226,
-    "seen": 1794916904.4028566,
+    "mtime": 1794717833.5956373,
+    "seen": 1795068852.6654427,
     "ast_hash": "8cf1e1f6372f1a50fed48a504b223bbc",
     "semantic_hash": ""
   },
   "assets/dz/false-layer.jpg": {
-    "mtime": 1794916705.0809226,
-    "seen": 1794916904.4028711,
+    "mtime": 1794717833.5836372,
+    "seen": 1795068852.6654544,
     "ast_hash": "a5b6f8d3bacfe4237d4118fddb6e2e66",
     "semantic_hash": ""
   },
   "assets/dz/hhs.jpg": {
-    "mtime": 1794916705.084268,
-    "seen": 1794916904.4028835,
+    "mtime": 1794717833.5556371,
+    "seen": 1795068852.6654654,
     "ast_hash": "ea2eb7a3bacb1cd7c4519e6c7292c917",
     "semantic_hash": ""
   },
   "assets/dz/keel-fracture.jpg": {
-    "mtime": 1794916705.084268,
-    "seen": 1794916904.4028885,
+    "mtime": 1794717833.5636373,
+    "seen": 1795068852.6654704,
     "ast_hash": "f8c058bd8e8212417c2cf73f028e3f5b",
     "semantic_hash": ""
   },
   "assets/dz/riemerella.jpg": {
-    "mtime": 1794916705.088268,
-    "seen": 1794916904.4029012,
+    "mtime": 1794717833.575637,
+    "seen": 1795068852.6654823,
     "ast_hash": "97316dd3f0b48dca4077c6780a6a1de0",
     "semantic_hash": ""
   },
   "assets/dz/tembusu-embryo.jpg": {
-    "mtime": 1794916705.092268,
-    "seen": 1794916904.402911,
+    "mtime": 1794717833.6023343,
+    "seen": 1795068852.6654902,
     "ast_hash": "06dcdffea151f769e0a76d12ea4e9a8d",
     "semantic_hash": ""
   },
   "assets/dz/tvp-plant.jpg": {
-    "mtime": 1794916705.092268,
-    "seen": 1794916904.4029121,
+    "mtime": 1794717833.5676372,
+    "seen": 1795068852.6654913,
     "ast_hash": "eb5ce0071e5fcf4ebaf10da5e5160539",
     "semantic_hash": ""
   },
   "assets/dz/tvp-section.jpg": {
-    "mtime": 1794916705.092268,
-    "seen": 1794916904.4029138,
+    "mtime": 1794717833.5716372,
+    "seen": 1795068852.6654925,
     "ast_hash": "b779e650756d44504968a4835443cedf",
     "semantic_hash": ""
   },
   "assets/dz/white-chick.jpg": {
-    "mtime": 1794916705.092268,
-    "seen": 1794916904.4029171,
+    "mtime": 1794717833.5796373,
+    "seen": 1795068852.665496,
     "ast_hash": "3c79db2a372f4a575978a806cea2a1c5",
     "semantic_hash": ""
   },
   "assets/dz/fdn.svg": {
-    "mtime": 1794916705.0809226,
-    "seen": 1794916904.4028726,
+    "mtime": 1794718181.1970584,
+    "seen": 1795068852.6654553,
     "ast_hash": "9cc52a57d71f0f91d17ebd581aaad3fe",
     "semantic_hash": ""
   },
   "assets/dz/nvar-ibd.svg": {
-    "mtime": 1794916705.084268,
-    "seen": 1794916904.4028935,
+    "mtime": 1794718141.3836482,
+    "seen": 1795068852.6654756,
     "ast_hash": "9dc527b0d23df135a2d5cd4016f97d14",
     "semantic_hash": ""
   },
   "assets/dz/cellulitis.jpg": {
-    "mtime": 1794916705.0809226,
-    "seen": 1794916904.4028625,
+    "mtime": 1794718557.0196116,
+    "seen": 1795068852.6654468,
     "ast_hash": "3b65df7b1c3277d30a18159225d21793",
     "semantic_hash": ""
   },
   "assets/dz/eaa.svg": {
-    "mtime": 1794916705.0809226,
-    "seen": 1794916904.4028678,
+    "mtime": 1794718600.7608967,
+    "seen": 1795068852.6654513,
     "ast_hash": "153953e17c2804e9437a5efcf9b06825",
     "semantic_hash": ""
   },
   "assets/dz/malaria.jpg": {
-    "mtime": 1794916705.084268,
-    "seen": 1794916904.402891,
+    "mtime": 1794718557.0103843,
+    "seen": 1795068852.665473,
     "ast_hash": "828f651bbc2d279bb1932a2721dd16ea",
     "semantic_hash": ""
   },
   "assets/dz/omphalitis.jpg": {
-    "mtime": 1794916705.084268,
-    "seen": 1794916904.4028955,
+    "mtime": 1794718557.0231602,
+    "seen": 1795068852.6654768,
     "ast_hash": "9d422baf1c63fb543057bc53bb071ad3",
     "semantic_hash": ""
   },
   "assets/dz/piling.jpg": {
-    "mtime": 1794916705.084268,
-    "seen": 1794916904.4028964,
+    "mtime": 1794718557.007663,
+    "seen": 1795068852.6654775,
     "ast_hash": "af6e545e7e1cdfa825c595e496407e26",
     "semantic_hash": ""
   },
   "assets/dz/salpingitis.jpg": {
-    "mtime": 1794916705.088268,
-    "seen": 1794916904.402905,
+    "mtime": 1794718557.003663,
+    "seen": 1795068852.6654854,
     "ast_hash": "c255ac70cdcd8cacadca4b9d20b1eb75",
     "semantic_hash": ""
   },
   "assets/dz/vvd.jpg": {
-    "mtime": 1794916705.092268,
-    "seen": 1794916904.4029162,
+    "mtime": 1794718557.027663,
+    "seen": 1795068852.6654952,
     "ast_hash": "483b1c7ab3a187abbeaf3645afd73db0",
     "semantic_hash": ""
   },
   "assets/dz/hpai-fat.jpg": {
-    "mtime": 1794916705.084268,
-    "seen": 1794916904.402885,
+    "mtime": 1794747795.7009246,
+    "seen": 1795068852.6654665,
     "ast_hash": "1ffcd911e0da2c1ef9fa23a7b9360624",
     "semantic_hash": ""
   },
   "assets/dz/hpai-pancreas.jpg": {
-    "mtime": 1794916705.084268,
-    "seen": 1794916904.4028862,
+    "mtime": 1794747795.7018883,
+    "seen": 1795068852.665468,
     "ast_hash": "df232d4a2b8cc77a76301c0a01896916",
     "semantic_hash": ""
   },
   "assets/dz/hpai-signs.jpg": {
-    "mtime": 1794916705.084268,
-    "seen": 1794916904.402887,
+    "mtime": 1794747795.6898882,
+    "seen": 1795068852.6654692,
     "ast_hash": "7630a7589caf7a069f0682240fe54064",
     "semantic_hash": ""
   },
   "assets/dz/red-mite.jpg": {
-    "mtime": 1794916705.088268,
-    "seen": 1794916904.4028986,
+    "mtime": 1794747795.7081509,
+    "seen": 1795068852.6654797,
     "ast_hash": "3f9369be22266fa376ae42f8de7bb3cb",
     "semantic_hash": ""
   },
   "assets/dz/bco.jpg": {
-    "mtime": 1794916705.0799336,
-    "seen": 1794916904.4028552,
+    "mtime": 1794748472.7659125,
+    "seen": 1795068852.665441,
     "ast_hash": "083f4e2757b16f9aa0bb001f31ad38bf",
     "semantic_hash": ""
   },
   "assets/dz/cecorum-heart.jpg": {
-    "mtime": 1794916705.0809226,
-    "seen": 1794916904.4028587,
+    "mtime": 1794748472.7641087,
+    "seen": 1795068852.665444,
     "ast_hash": "bce66b7a81b8d5039ed2754dfb2b588b",
     "semantic_hash": ""
   },
   "assets/dz/cecorum-spine.jpg": {
-    "mtime": 1794916705.0809226,
-    "seen": 1794916904.4028606,
+    "mtime": 1794748472.7579124,
+    "seen": 1795068852.6654449,
     "ast_hash": "033ac3099cb3f4708c0ad477d0651724",
     "semantic_hash": ""
   },
   "assets/dz/cia-thymus.jpg": {
-    "mtime": 1794916705.0809226,
-    "seen": 1794916904.402864,
+    "mtime": 1794748472.724427,
+    "seen": 1795068852.6654477,
     "ast_hash": "2880a226a8cf956d650b6e207c9a9158",
     "semantic_hash": ""
   },
   "assets/dz/coryza.jpg": {
-    "mtime": 1794916705.0809226,
-    "seen": 1794916904.4028652,
+    "mtime": 1794748472.7484365,
+    "seen": 1795068852.665449,
     "ast_hash": "3989827c5a9de81af04375618c4932c2",
     "semantic_hash": ""
   },
   "assets/dz/darkling.jpg": {
-    "mtime": 1794916705.0809226,
-    "seen": 1794916904.4028664,
+    "mtime": 1794748472.7859125,
+    "seen": 1795068852.6654503,
     "ast_hash": "f26f2f42c97f26a3ee309d161c74d2bd",
     "semantic_hash": ""
   },
   "assets/dz/gizzard-erosion.jpg": {
-    "mtime": 1794916705.0809226,
-    "seen": 1794916904.4028766,
+    "mtime": 1794748472.7419124,
+    "seen": 1795068852.665459,
     "ast_hash": "30bed007cb51e7db4d2fc1fb1e2ce9ca",
     "semantic_hash": ""
   },
   "assets/dz/h9n2.jpg": {
-    "mtime": 1794916705.0809226,
-    "seen": 1794916904.402879,
+    "mtime": 1794748472.7139125,
+    "seen": 1795068852.6654608,
     "ast_hash": "f0c81ba083e495d9d6f0945acb53c81f",
     "semantic_hash": ""
   },
   "assets/dz/leuco.jpg": {
-    "mtime": 1794916705.084268,
-    "seen": 1794916904.4028897,
+    "mtime": 1794748472.7739124,
+    "seen": 1795068852.6654716,
     "ast_hash": "6df091e937961bc6c782289a86422466",
     "semantic_hash": ""
   },
   "assets/dz/nfm.jpg": {
-    "mtime": 1794916705.084268,
-    "seen": 1794916904.4028926,
+    "mtime": 1794748472.7832952,
+    "seen": 1795068852.665474,
     "ast_hash": "06cd886d43cf53c13fcd0f4916556f21",
     "semantic_hash": ""
   },
   "assets/dz/rss-chick.jpg": {
-    "mtime": 1794916705.088268,
-    "seen": 1794916904.4029026,
+    "mtime": 1794748472.7259126,
+    "seen": 1795068852.6654832,
     "ast_hash": "ece29109acbaf50240c6e9f3a5271a1f",
     "semantic_hash": ""
   },
   "assets/dz/rss-lesions.jpg": {
-    "mtime": 1794916705.088268,
-    "seen": 1794916904.4029036,
+    "mtime": 1794748472.7369869,
+    "seen": 1795068852.6654842,
     "ast_hash": "fdf30dc96eaeeb202b0aa2795a1c01e1",
     "semantic_hash": ""
   },
   "assets/dz/staph.jpg": {
-    "mtime": 1794916705.092268,
-    "seen": 1794916904.4029098,
+    "mtime": 1794748472.7499125,
+    "seen": 1795068852.665489,
     "ast_hash": "ed7d0ecc97d919d9bdde4b281448d292",
     "semantic_hash": ""
   },
   "assets/dz/gallibacterium.jpg": {
-    "mtime": 1794916705.0809226,
-    "seen": 1794916904.402874,
+    "mtime": 1794748673.4405718,
+    "seen": 1795068852.6654565,
     "ast_hash": "c037d899017f74b03bf73c9f625c043d",
     "semantic_hash": ""
   },
   "assets/dz/hepatitis-e.jpg": {
-    "mtime": 1794916705.0809226,
-    "seen": 1794916904.4028804,
+    "mtime": 1794748673.4299197,
+    "seen": 1795068852.6654623,
     "ast_hash": "8000b24bb71b9caa31610fde8df64e2b",
     "semantic_hash": ""
   },
   "assets/dz/heterakis.jpg": {
-    "mtime": 1794916705.0809226,
-    "seen": 1794916904.402882,
+    "mtime": 1794748673.4259198,
+    "seen": 1795068852.6654634,
     "ast_hash": "7371d1927c5108daff944435b6185d36",
     "semantic_hash": ""
   },
   "assets/dz/rev.jpg": {
-    "mtime": 1794916705.088268,
-    "seen": 1794916904.4029,
+    "mtime": 1794748673.4739196,
+    "seen": 1795068852.6654813,
     "ast_hash": "86f27c79b017ed6b516836b998444d18",
     "semantic_hash": ""
   },
   "assets/dz/spaghetti-meat.jpg": {
-    "mtime": 1794916705.088268,
-    "seen": 1794916904.402907,
+    "mtime": 1794748806.2082188,
+    "seen": 1795068852.665487,
     "ast_hash": "ca949eec9767a756df3ff4b09383859c",
     "semantic_hash": ""
   },
   "assets/dz/spotty-liver.jpg": {
-    "mtime": 1794916705.092268,
-    "seen": 1794916904.4029083,
+    "mtime": 1794748673.4179196,
+    "seen": 1795068852.6654882,
     "ast_hash": "da4c3ec9981642a71c58059195df8738",
     "semantic_hash": ""
   },
   "assets/dz/white-striping.jpg": {
-    "mtime": 1794916705.092268,
-    "seen": 1794916904.4029183,
+    "mtime": 1794748806.2025168,
+    "seen": 1795068852.665497,
     "ast_hash": "734c8f7fa838e87374e2c7952fabd095",
     "semantic_hash": ""
   },
   "assets/dz/wooden-breast.jpg": {
-    "mtime": 1794916705.092268,
-    "seen": 1794916904.4029198,
+    "mtime": 1794748806.1994622,
+    "seen": 1795068852.665498,
     "ast_hash": "41b109a7a296b417796ad692eba6704f",
     "semantic_hash": ""
   },
   "assets/dz/endocarditis.jpg": {
-    "mtime": 1794916705.0809226,
-    "seen": 1794916904.4028697,
+    "mtime": 1794749520.76195,
+    "seen": 1795068852.6654527,
     "ast_hash": "418bbd987848a4d25644720e24f05239",
     "semantic_hash": ""
   },
   "assets/dz/gapeworm.jpg": {
-    "mtime": 1794916705.0809226,
-    "seen": 1794916904.4028754,
+    "mtime": 1794749520.7852292,
+    "seen": 1795068852.665458,
     "ast_hash": "50c5831ad1aab141ff460474486d15b0",
     "semantic_hash": ""
   },
   "assets/dz/gizzard-worm.jpg": {
-    "mtime": 1794916705.0809226,
-    "seen": 1794916904.4028778,
+    "mtime": 1794749520.75795,
+    "seen": 1795068852.6654596,
     "ast_hash": "0c0e880ad27f77ca1fcd52ed0d3140d0",
     "semantic_hash": ""
   },
   "assets/dz/pseudomonas.jpg": {
-    "mtime": 1794916705.084268,
-    "seen": 1794916904.4028974,
+    "mtime": 1794749520.7739499,
+    "seen": 1795068852.6654787,
     "ast_hash": "ad6399c081688dafae8f229fa9cbf203",
     "semantic_hash": ""
   },
   "assets/dz/visceral-gout.jpg": {
-    "mtime": 1794916705.092268,
-    "seen": 1794916904.4029148,
+    "mtime": 1794749520.76595,
+    "seen": 1795068852.6654937,
     "ast_hash": "55673275361d67aba945a918a9fbf48d",
     "semantic_hash": ""
   },
+  "disease_stats/monthly.json": {
+    "mtime": 1795068715.4725137,
+    "seen": 1795068852.6653335,
+    "ast_hash": "96c8b495afd57fcfc4e087592b7ab90d",
+    "semantic_hash": ""
+  },
   "functions/package-lock.json": {
-    "mtime": 1794916705.146563,
-    "seen": 1794916904.402945,
+    "mtime": 1794656330.122873,
+    "seen": 1795068852.66552,
     "ast_hash": "8921cb33f09aaa30df0f63a513a0042c",
     "semantic_hash": ""
   },
   "scripts/package-lock.json": {
-    "mtime": 1794916705.2374773,
-    "seen": 1794916904.4029462,
+    "mtime": 1794656330.1547165,
+    "seen": 1795068852.665521,
     "ast_hash": "581d75d744bd44a4c83b2c21fc68eb6c",
     "semantic_hash": ""
   }
