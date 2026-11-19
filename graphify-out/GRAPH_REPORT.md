@@ -1,17 +1,17 @@
 # Graph Report - pb  (2026-11-19)
 
 ## Corpus Check
-- 130 files · ~959,186 words
+- 130 files · ~959,317 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 6 file(s) not represented in the graph (top: (none) 4, .glb 1, .rules 1)
 
 ## Summary
-- 3301 nodes · 7690 edges · 118 communities (114 shown, 4 thin omitted)
-- Extraction: 96% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 338 edges (avg confidence: 0.92)
+- 3301 nodes · 7692 edges · 118 communities (114 shown, 4 thin omitted)
+- Extraction: 96% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 340 edges (avg confidence: 0.92)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `df73bbfa`
+- Built from commit: `840aa36b`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -135,7 +135,7 @@
 ## God Nodes (most connected - your core abstractions)
 1. `esc()` - 208 edges
 2. `attachEvents()` - 161 edges
-3. `Architecture: the fetch-script → JSON → dashboard pipeline` - 149 edges
+3. `Architecture: the fetch-script → JSON → dashboard pipeline` - 151 edges
 4. `render()` - 127 edges
 5. `renderPremiumTab()` - 85 edges
 6. `gmT()` - 69 edges
@@ -625,8 +625,8 @@ Nodes (16): dsBind(), GM_DIRT(), gmBind(), gmDilBox(), gmDilOut(), gmFig(), gmFi
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Architecture: the fetch-script → JSON → dashboard pipeline` connect `Architecture: the fetch-script → JSON → dashboard pipeline` to `ibTag`, `attachEvents`, `index.js`, `gmFig`, `fetch_animal_drug_news.py`, `render`, `pathlib`, `esc`, `isBoardAdmin`, `attachDiseaseEvents`, `renderConsultTab`, `re`, `coliFigFor`, `send_sms_subscriptions.py`, `gmVirus`, `fetchQiaSearch`, `renderFeedGrainFlow`, `gmVirus`, `renderFeedPotentialPanel`, `fetch_broiler_breeder.py`, `pfForecast`, `pfTabSpecies`, `renderDisinfectPanel`, `switchTab`, `tradeItem`, `What this is`, `callClaude`, `renderDzStatsPanel`, `vcFigPress`, `CLAUDE.md`, `metConvert`, `renderSeasonalPanel`, `vcBind`, `gmT`, `renderHpaiKrCard`, `isPremiumApproved`?**
-  _High betweenness centrality (0.182) - this node is a cross-community bridge._
+- **Why does `Architecture: the fetch-script → JSON → dashboard pipeline` connect `Architecture: the fetch-script → JSON → dashboard pipeline` to `ibTag`, `attachEvents`, `index.js`, `gmFig`, `fetch_animal_drug_news.py`, `render`, `pathlib`, `esc`, `isBoardAdmin`, `attachDiseaseEvents`, `renderConsultTab`, `re`, `coliFigFor`, `send_sms_subscriptions.py`, `gmVirus`, `fetchQiaSearch`, `renderFeedGrainFlow`, `gmVirus`, `renderFeedPotentialPanel`, `fetch_broiler_breeder.py`, `renderHusbandryPointsCard`, `pfForecast`, `pfTabSpecies`, `renderDisinfectPanel`, `switchTab`, `tradeItem`, `What this is`, `callClaude`, `renderDzStatsPanel`, `vcFigPress`, `CLAUDE.md`, `metConvert`, `renderSeasonalPanel`, `vcBind`, `gmT`, `renderHpaiKrCard`, `isPremiumApproved`?**
+  _High betweenness centrality (0.174) - this node is a cross-community bridge._
 - **Are the 2 inferred relationships involving `esc()` (e.g. with `dzFigTiles()` and `renderBizFooterLine()`) actually correct?**
   _`esc()` has 2 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `RFC-822` to the rest of the system?**
@@ -635,7 +635,7 @@ _Questions this graph is uniquely positioned to answer:_
   _Cohesion score 0.004597414214539062 - nodes in this community are weakly interconnected._
 - **Why does `decode_google_url()` connect `fetch_animal_drug_news.py` to `Architecture: the fetch-script → JSON → dashboard pipeline`, `json`, `re`?**
   _High betweenness centrality (0.026) - this node is a cross-community bridge._
-- **Are the 145 inferred relationships involving `Architecture: the fetch-script → JSON → dashboard pipeline` (e.g. with `analyzeNecropsyPhotos()` and `fetchRssItems()`) actually correct?**
-  _`Architecture: the fetch-script → JSON → dashboard pipeline` has 145 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 147 inferred relationships involving `Architecture: the fetch-script → JSON → dashboard pipeline` (e.g. with `analyzeNecropsyPhotos()` and `fetchRssItems()`) actually correct?**
+  _`Architecture: the fetch-script → JSON → dashboard pipeline` has 147 INFERRED edges - model-reasoned connections that need verification._
 - **Should `attachEvents` be split into smaller, more focused modules?**
   _Cohesion score 0.030154277699859747 - nodes in this community are weakly interconnected._
