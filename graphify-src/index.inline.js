@@ -37411,7 +37411,7 @@ function anomTodayLine(f0, compact){
   const todayStr = new Date().toISOString().slice(0, 10), t0 = days.find(d => d.date === (f0 && f0.date)) || days.find(d => d.date === todayStr) || days[0];
   const hasF = f0 && f0.tMax != null && f0.tMin != null, mean = hasF ? (f0.tMax + f0.tMin) / 2 : t0.mean, diff = mean - t0.clim, sd = Math.max(t0.sd || 2, 0.5), z = diff / sd;
   let c = "#2E7D32", bg = "#E8F5E9", head, tip = "";
-  if(z >= ANOM_Z){ c = "#B71C1C"; bg = "#FFEBEE"; head = `<b style="color:${c}">이상고온</b> — 오늘 평균 ${mean.toFixed(1)}°C로 평년(${t0.clim.toFixed(1)}°C)보다 <b>+${diff.toFixed(1)}°C</b> 높습니다`; tip = " 환기량·급수·사료 급이 시간을 점검하세요."; }
+  if(z >= ANOM_Z){ c = "#B71C1C"; bg = "#FFEBEE"; head = `<b style="color:${c}">이상고온</b> — 오늘 평균 ${mean.toFixed(1)}°C로 평년(${t0.clim.toFixed(1)}°C)보다 <b>+${diff.toFixed(1)}°C</b> 높습니다`; tip = ventIsWinter(t0.date) ? " 한낮 계사 온도가 올라가면 환기량을 조금 늘리고, 저녁 기온이 떨어질 때 다시 줄이세요." : " 환기량·급수·사료 급이 시간을 점검하세요."; }
   else if(z <= -ANOM_Z){ c = "#0D47A1"; bg = "#E3F2FD"; head = `<b style="color:${c}">이상저온</b> — 오늘 평균 ${mean.toFixed(1)}°C로 평년(${t0.clim.toFixed(1)}°C)보다 <b>${diff.toFixed(1)}°C</b> 낮습니다`; tip = " 보온·최소환기·급수라인 동결을 점검하세요."; }
   else if(z >= 0.7){ c = "#E65100"; bg = "#FFF3E0"; head = `평년(${t0.clim.toFixed(1)}°C)보다 <b>+${diff.toFixed(1)}°C</b> 다소 높습니다 — 이상기온까지는 아닙니다`; }
   else if(z <= -0.7){ c = "#1565C0"; bg = "#E3F2FD"; head = `평년(${t0.clim.toFixed(1)}°C)보다 <b>${diff.toFixed(1)}°C</b> 다소 낮습니다 — 이상기온까지는 아닙니다`; }
@@ -37460,13 +37460,13 @@ function anomPointsHtml(bullet){
   const hot = near.filter(d=>d.pHot>=0.4), cold = near.filter(d=>d.pCold>=0.4);
   if(hot.length){
     const pk = hot.reduce((a,b)=>b.pHot>a.pHot?b:a);
-    out.push(bullet(`🔥 <b>이상고온 예상</b> — ${list(hot, d=>fmt(d.date))} (최고 확률 ${Math.round(pk.pHot*100)}%, ${fmt(pk.date)} 평년보다 <b>+${(pk.mean-pk.clim).toFixed(1)}°C</b>). 계절에 맞지 않는 더위는 계군이 적응하기 전에 닥칩니다 — 환기팬·쿨링·냉방 가동 점검, 전해질·음수라인 점검을 <b>미리</b> 해 두고, 입추·이동·백신 같은 스트레스 작업은 피하세요`, "#D84315"));
+    out.push(bullet(`🔥 <b>이상고온 예상</b> — ${list(hot, d=>fmt(d.date))} (최고 확률 ${Math.round(pk.pHot*100)}%, ${fmt(pk.date)} 평년보다 <b>+${(pk.mean-pk.clim).toFixed(1)}°C</b>). ${ventIsWinter(pk.date) ? "겨울철 포근한 날은 낮·밤 일교차가 커집니다 — 한낮엔 환기량을 조금 늘려 습기·암모니아를 빼고, 해 질 무렵 다시 줄여 보온하세요" : "계절에 맞지 않는 더위는 계군이 적응하기 전에 닥칩니다 — 환기팬·쿨링·냉방 가동 점검, 전해질·음수라인 점검을 <b>미리</b> 해 두고, 입추·이동·백신 같은 스트레스 작업은 피하세요"}`, "#D84315"));
   }
   if(cold.length){
     const pk = cold.reduce((a,b)=>b.pCold>a.pCold?b:a);
     out.push(bullet(`🥶 <b>이상저온 예상</b> — ${list(cold, d=>fmt(d.date))} (최고 확률 ${Math.round(pk.pCold*100)}%, ${fmt(pk.date)} 평년보다 <b>${(pk.mean-pk.clim).toFixed(1)}°C</b>). 보온·난방기 사전 점검, 틈새풍 차단, 육추계사는 예열 시간을 앞당기고 최소환기량은 유지하세요`, "#1565C0"));
   }
-  const heat = near.filter(d=>d.pHeat>=0.3), frz = near.filter(d=>d.pFreeze>=0.3), heavy = near.filter(d=>d.pHeavy!=null && d.pHeavy>=0.3);
+  const heat = near.filter(d=>d.pHeat>=0.3 && !ventIsWinter(d.date)), frz = near.filter(d=>d.pFreeze>=0.3), heavy = near.filter(d=>d.pHeavy!=null && d.pHeavy>=0.3);
   if(heat.length) out.push(bullet(`☀️ <b>폭염(최고 33°C↑) 가능성</b> — ${list(heat, d=>`${fmt(d.date)} ${Math.round(d.pHeat*100)}%`)}. 산란계는 난각질·산란율, 육계는 출하체중·폐사 관리에 직접 영향`, "#C62828"));
   if(frz.length) out.push(bullet(`❄️ <b>한파(최저 -12°C↓) 가능성</b> — ${list(frz, d=>`${fmt(d.date)} ${Math.round(d.pFreeze*100)}%`)}. 급수라인·니플 동결, 난방 연료 잔량 확인`, "#1565C0"));
   if(heavy.length) out.push(bullet(`🌧️ <b>호우(일 30mm↑) 가능성</b> — ${list(heavy, d=>`${fmt(d.date)} ${Math.round(d.pHeavy*100)}%`)}. 배수로·지붕·발전기 점검, 깔짚 습기 관리`, "#0277BD"));
@@ -37504,7 +37504,7 @@ function renderAnomalyPanel(){
   // 요약 문장
   const bestHot = near.reduce((a,b)=>b.pHot>a.pHot?b:a, near[0]);
   const bestCold = near.reduce((a,b)=>b.pCold>a.pCold?b:a, near[0]);
-  const heat = near.filter(d=>d.pHeat>=0.3), frz = near.filter(d=>d.pFreeze>=0.3), heavy = near.filter(d=>d.pHeavy!=null && d.pHeavy>=0.3);
+  const heat = near.filter(d=>d.pHeat>=0.3 && !ventIsWinter(d.date)), frz = near.filter(d=>d.pFreeze>=0.3), heavy = near.filter(d=>d.pHeavy!=null && d.pHeavy>=0.3);
   const msgs = [];
   if(bestHot && bestHot.pHot>=0.3) msgs.push(`🔥 <b>${fmt(bestHot.date)}</b> 전후 평년보다 매우 따뜻할 가능성 ${pc(bestHot.pHot)}% (평년 ${bestHot.clim.toFixed(1)}° → 예측 ${bestHot.mean.toFixed(1)}°)`);
   if(bestCold && bestCold.pCold>=0.3) msgs.push(`🥶 <b>${fmt(bestCold.date)}</b> 전후 평년보다 매우 추울 가능성 ${pc(bestCold.pCold)}% (평년 ${bestCold.clim.toFixed(1)}° → 예측 ${bestCold.mean.toFixed(1)}°)`);
@@ -37518,7 +37518,7 @@ function renderAnomalyPanel(){
       <div style="font-size:19px;font-weight:900;line-height:1.4;color:${calm?"#2E7D32":"#6A1B9A"}">${calm ? "앞으로 2주 뚜렷한 이상기온 신호는 없습니다" : "앞으로 2주 이상기온 신호가 있습니다"}</div>
     </div>
     ${msgs.length ? `<div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">${msgs.map(m=>`<div style="background:#fff;border-radius:11px;padding:10px 12px;font-size:16px;color:#333;line-height:1.6">${m}</div>`).join("")}</div>` : ""}
-    ${bestHot && bestHot.pHot>=0.3 ? `<div style="font-size:15px;color:#555;margin-top:12px;line-height:1.6;background:#FFF3E0;border-radius:11px;padding:9px 12px">🐔 <b>고온 대비</b> · 환기·냉방 점검, 음수·전해질 준비, 입추·출하 시간 조정 검토</div>` : ""}
+    ${bestHot && bestHot.pHot>=0.3 ? `<div style="font-size:15px;color:#555;margin-top:12px;line-height:1.6;background:#FFF3E0;border-radius:11px;padding:9px 12px">🐔 ${ventIsWinter(bestHot.date) ? "<b>포근한 날 대비</b> · 한낮 환기량 소폭 상향(습기·암모니아 배출), 저녁 보온 복귀, 일교차 관리" : "<b>고온 대비</b> · 환기·냉방 점검, 음수·전해질 준비, 입추·출하 시간 조정 검토"}</div>` : ""}
     ${bestCold && bestCold.pCold>=0.3 ? `<div style="font-size:15px;color:#555;margin-top:8px;line-height:1.6;background:#E3F2FD;border-radius:11px;padding:9px 12px">🐔 <b>저온 대비</b> · 보온·난방 점검, 틈새풍 차단, 급수 동결 방지</div>` : ""}
     <div style="font-size:13px;color:#6A1B9A;margin-top:10px;font-weight:700">ⓘ 눌러서 예측 기준 보기</div>
   </div>`;
@@ -37526,7 +37526,7 @@ function renderAnomalyPanel(){
   const rows = near.map(d=>{
     const dv = d.mean - d.clim;
     const dc = dv>=0 ? "#D32F2F" : "#1565C0";
-    const flags = [d.pHeat>=0.3?"☀️폭염":"", d.pFreeze>=0.3?"❄️한파":"", d.pHeavy!=null&&d.pHeavy>=0.3?"🌧️호우":""].filter(Boolean).join(" ");
+    const flags = [d.pHeat>=0.3 && !ventIsWinter(d.date)?"☀️폭염":"", d.pFreeze>=0.3?"❄️한파":"", d.pHeavy!=null&&d.pHeavy>=0.3?"🌧️호우":""].filter(Boolean).join(" ");
     const hi = d.pHot>=0.3 || d.pCold>=0.3;
     return `<tr style="${hi?"background:#FAF3FC":""}">
       <td style="padding:6px 6px;font-weight:700;white-space:nowrap">${fmt(d.date)}</td>
