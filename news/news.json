@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-18 13:01 KST",
+  "updated": "2026-11-19 12:58 KST",
   "channels": {
     "livestock": {
       "label": "축산·농업",
@@ -8,8 +8,15 @@
     },
     "vet": {
       "label": "수의·방역",
-      "items": [],
-      "count": 0
+      "items": [
+        {
+          "title": "충남 수의사 \"공직 수의사 처우 개선·가축방역 지원\" 한목소리 - 농수축산신문",
+          "link": "https://news.google.com/rss/articles/CBMibEFVX3lxTE94ZXhka21ScEp6Nm5nNlVEMlh2c1c5dHlHUkJOaml6LXhCbXZ0SThFNVZEalZVMGZUWkxEWU5nT0hSRFhKb0ZLbE1laUpNaEJsVk1NVGNYV3dPUng3TklpbUk4RXFPTWc5X0pSUQ?oc=5",
+          "date": "11/16 07:00",
+          "source": "농수축산신문"
+        }
+      ],
+      "count": 1
     },
     "disease": {
       "label": "가축질병",
@@ -18,15 +25,8 @@
     },
     "feed": {
       "label": "사료·약품",
-      "items": [
-        {
-          "title": "농식품부산물 TMR 사료로 사료비 30% 절감 - 농축유통신문",
-          "link": "https://news.google.com/rss/articles/CBMiakFVX3lxTE52Q3ViN2JPb2xjWkZjaWo5bDFUai1nRG1FSndEbFQxSE5kM1JlNmZpX3Zrbi1naTZrQ3U0T3JTT2kxZU5GT2VsQVhvcU9ZVXFWYWZrRzh3SDNnWjEzNHJQY21DNndSNkRsLVE?oc=5",
-          "date": "11/11 13:20",
-          "source": "농축유통신문"
-        }
-      ],
-      "count": 1
+      "items": [],
+      "count": 0
     },
     "economy": {
       "label": "경제",
@@ -35,8 +35,51 @@
     },
     "world": {
       "label": "국제",
-      "items": [],
-      "count": 0
+      "items": [
+        {
+          "title": "미중러 정상 오늘 사상 첫 3자회담…세계질서 중대 분수령 - 연합뉴스",
+          "link": "https://news.google.com/rss/articles/CBMiW0FVX3lxTE1IU1hCRlV0WjRuRkR0XzVLMDA1RTVQeWZiUExJMWJwN01zdVdCWV9zTnhOdnEtUHF0UnVUd2xiTUVqbGRaV0ZJWkVsNk1fdDllOV9JY25NNFYxdWPSAWBBVV95cUxNZXY0ckFZNmFJRzc4LVk2ekZPdGpRcG8yeTV0SmkxZGhVN3ZSZkdleG0tT1otRzRHTFVYeHBHQ1VTOG54ekV6a0xKQTFDZW5MdzZBYXM0MXJFTnpBRVdCY00?oc=5",
+          "date": "11/19 05:00",
+          "source": "연합뉴스"
+        },
+        {
+          "title": "미중러 19일 첫 3자 정상회담…中 \"세계평화·전략적 안정 논의\"(종합2보) - 연합뉴스 한민족센터",
+          "link": "https://news.google.com/rss/articles/CBMidEFVX3lxTE9hMjllVWhTTHpVekFhRnk4NnZVTU5FS0ZkdlFqZUZVSTNERDh5SXNXLW5nd210dWR0aWFoNVF0RlZ0M1NvTHhoUk5BWGlNQ2trNVd4MDl5RXZDQ2FIeGVYNTZUMkhBSDRpV0VFYXNKRlc1dGVR?oc=5",
+          "date": "11/16 16:54",
+          "source": "연합뉴스 한민족센터"
+        },
+        {
+          "title": "미중러 정상, 19일 첫 회동…세계 안보 논의 주목 : 국제 - 재경일보",
+          "link": "https://news.google.com/rss/articles/CBMiS0FVX3lxTE1keVJkdjRUdERPaDJnUEtWaHB6dnpiY3dKUGhMTzNNa2w1cUNmUlp1NjdtM0N6TnM3UHBfcWJwODNKVDg5ZkRZRW52MA?oc=5",
+          "date": "11/18 06:40",
+          "source": "재경일보"
+        },
+        {
+          "title": "미국·중국·일본·프랑스 대입 시험서도 “AI 커닝 차단” 총력전 - 한겨레",
+          "link": "https://news.google.com/rss/articles/CBMiggFBVV95cUxNbVhaTWpJZ1NGYUNhRGlpdTI3T3VJOFh6MXJyelFhaW12YWxYVEpMU3BLQ001XzAteE9wQnljcVdDazhHLTRZLUZyYkliWFZudTlCdXIxWjcwejJhOFI1anBrVGRSd1c5cUd4VFFkYkVwQTZQMG9XM3Z5enRBaEpRT3lB?oc=5",
+          "date": "11/17 20:36",
+          "source": "한겨레"
+        },
+        {
+          "title": "前주미中대사 \"미중, APEC서 협력신호 보내야…최대현안은 대만\" - 연합뉴스 한민족센터",
+          "link": "https://news.google.com/rss/articles/CBMidEFVX3lxTE1xc2lJUHZDQ0J6TXFUeE1OR1l4VjhxbTVFejI2cjNLa3VoQUxLV2pHZFZNQkl0Tm1BN2JoVUYybWx6Vkdzbi1RX1pNNTBma3lFNGpyUm1wUFgxa0ptajB1ZjNlZTZEdUNJLUUwZTVrak12Mkxu?oc=5",
+          "date": "11/18 16:45",
+          "source": "연합뉴스 한민족센터"
+        },
+        {
+          "title": "中선전 APEC 정상회의 오늘 돌입…사상 첫 미중러 3자회담 주목 - 연합뉴스",
+          "link": "https://news.google.com/rss/articles/CBMiW0FVX3lxTE9YUzlpaU5NdjlQNHg0cWxxZW5UaFBsa25jdmdmOHZyMkdKdUMyLUJfQWk3RkRNY1NhMkV6ajhTV0NHbXhiZWduclRDZkRZLXJ2RTZDRFdUdkxna2PSAWBBVV95cUxQbnJwWHNNRFBoM25YVUliZnRPY294UlF5N0lzQkZUYk9qYTRBeW5sUF93dmtETm9ibk01eXRPX3JTajZWVldneTYzS2VzaUtlbE02dE1aSUdNNmQzZkY5b2g?oc=5",
+          "date": "11/18 06:10",
+          "source": "연합뉴스"
+        },
+        {
+          "title": "미중러 '빅딜'에 소외될라…'신얄타 체제' 우려에 속 타는 일본 - 연합뉴스",
+          "link": "https://news.google.com/rss/articles/CBMiW0FVX3lxTE9mVWZVVXlWX2h1T0tvRktwNjdwRU5odTR0aW9FczZWRzZRYkxXQUR0MURlRUdzZFBVMmtKUXUzb3NRMWpkWTNib2hlS3ozMm1zYlQtRUxhR3k3UDDSAWBBVV95cUxPVkZYd1dwVkItMVhzS1JZVUZ1eGgtaXZoVm80THlnallPb2lYc1pYdlRkV0V0TTl1OFAzNHlyTzVJaU03ZE1OV2tOSF9aYkFKaVBuYzlsbkdJTW9OTWpBR1c?oc=5",
+          "date": "11/18 12:23",
+          "source": "연합뉴스"
+        }
+      ],
+      "count": 7
     }
   }
 }
