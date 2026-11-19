@@ -1,13 +1,17 @@
 {
-  "updated": "2026-11-18 14:23 KST",
+  "updated": "2026-11-19 14:19 KST",
   "stale": {},
   "egg": {
     "label": "계란 산지가격",
     "region": "전국",
     "grade": "특란 (XL)",
     "unit": "원/10개",
-    "latest": 1659,
+    "latest": 1655,
     "rows": [
+      {
+        "date": "2026-11-19",
+        "value": 1655
+      },
       {
         "date": "2026-11-18",
         "value": 1659
@@ -107,8 +111,12 @@
     "region": "수도권",
     "grade": "특란 (XL)",
     "unit": "원/10개",
-    "latest": 1626,
+    "latest": 1594,
     "rows": [
+      {
+        "date": "2026-11-19",
+        "value": 1594
+      },
       {
         "date": "2026-11-18",
         "value": 1626
@@ -208,6 +216,10 @@
     "unit": "원/kg",
     "latest": 1100,
     "rows": [
+      {
+        "date": "2026-11-19",
+        "value": 1100
+      },
       {
         "date": "2026-11-18",
         "value": 1100
@@ -309,7 +321,7 @@
         "label": "대",
         "spec": "1.6kg 이상",
         "value": 1100,
-        "date": "2026-11-18"
+        "date": "2026-11-19"
       },
       "medium": {
         "label": "중",
@@ -325,6 +337,12 @@
       }
     },
     "rows": [
+      {
+        "date": "2026-11-19",
+        "large": 1100,
+        "medium": null,
+        "small": null
+      },
       {
         "date": "2026-11-18",
         "large": 1100,
@@ -468,15 +486,15 @@
   "pig": {
     "label": "농가수취 평균",
     "unit": "원/kg",
-    "latest": 5941,
+    "latest": 5951,
     "rows": [
+      {
+        "date": "2026-11-18",
+        "value": 5951
+      },
       {
         "date": "2026-11-17",
         "value": 5941
-      },
-      {
-        "date": "2026-11-16",
-        "value": 5892
       }
     ]
   },
@@ -497,16 +515,22 @@
       "farm_receipt_600kg": {
         "label": "농가수취가격(600kg)",
         "unit": "천원/마리",
-        "value": 8253,
-        "date": "2026-11-17"
+        "value": 8201,
+        "date": "2026-11-18"
       }
     },
     "rows": [
       {
-        "date": "2026-11-18",
+        "date": "2026-11-19",
         "female_calf": null,
         "male_calf": null,
         "farm_receipt_600kg": null
+      },
+      {
+        "date": "2026-11-18",
+        "female_calf": null,
+        "male_calf": null,
+        "farm_receipt_600kg": 8201
       },
       {
         "date": "2026-11-17",
