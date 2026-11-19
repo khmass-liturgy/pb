@@ -36648,6 +36648,25 @@ function st0name(sp, i){ return sp.stages[i] ? sp.stages[i].name : ""; }
 // 환기 탭 하위 메뉴(고정 머리글의 가로 칩)
 const VENT_SUBS = [["rec", "🎯", "오늘 환기 추천"], ["week", "📅", "주간 미리보기"], ["basis", "📖", "근거·원리"]];
 let ventSub = (function(){ try { return localStorage.getItem("vent_sub") || "rec"; } catch(e){ return "rec"; } })();
+// 동절기(11~3월) — 오늘 사양관리 포인트와 같은 기준. 이 기간에는 습도·이상고온만으로 터널환기(냉방)까지 올리지 않고,
+// 열스트레스·헐떡임·쿨링패드 같은 더위 문구를 보이지 않는다(소유자 요청 2026-11-19).
+function ventIsWinter(dateStr){
+  const m = Number(String(dateStr || "").slice(5, 7)) || (new Date().getMonth() + 1);
+  return m >= 11 || m <= 3;
+}
+// 동절기에 기온만으로 터널환기 단계가 나온 드문 날 — 냉방·열스트레스 대신 겨울에 맞는 설명으로 바꾼다.
+function ventWinterStage(st){
+  if(!st || st.id !== "tunnel") return st;
+  return Object.assign({}, st, {
+    method: "터널팬을 가동해 공기를 계사 길이 방향으로 흐르게 한다. 겨울에는 찬바람이 계군에 바로 닿지 않도록 팬 수를 단계적으로 늘린다.",
+    purpose: "외기온이 목표온도보다 크게 높을 때의 최대 환기 단계 — 동절기에는 드물게 쓰인다.",
+    checks: [
+      "닭이 웅크리거나 한쪽으로 몰리면 바로 전이환기로 복귀",
+      "찬바람이 계군 높이로 직접 흐르지 않는지 확인",
+      "해가 지면 외기온이 빠르게 떨어지므로 저녁 전에 단계를 낮출 준비",
+    ],
+  });
+}
 function renderVentTab(){
   if(!VENT_SUBS.some(x => x[0] === ventSub)) ventSub = "rec";
   const speciesInfo = {
@@ -36664,6 +36683,7 @@ function renderVentTab(){
   const wx = weatherState;
   const fc = wx.forecast || [];
   const today = fc[0];
+  const winter = ventIsWinter(today && today.date);
   const todayHigh = today?.tMax != null ? Math.round(today.tMax) : null;
   const todayHum  = today?.hum != null ? Math.round(today.hum) : null;
   const diff = todayHigh != null ? todayHigh - targetT : null;
@@ -36672,9 +36692,10 @@ function renderVentTab(){
   // Munters Rotem Trio 이중제어 로직: 온도요구·습도요구 중 더 큰 쪽을 따른다.
   // 단, 추운 날(최소환기 구간)에는 습도가 높아도 터널·냉방 단계로 올리지 않는다 — 겨울·육추 초기에
   // 습도만 높다고 터널환기(찬바람)를 틀면 병아리가 위험하다. 추울 땐 "최소환기량을 늘리고 난방"으로 습기를 뺀다.
-  const humStage = tempStageIdx == null ? humStageIdx
+  // 동절기에는 습도만으로 전이환기 위(터널)로 올리지 않는다.
+  const humStage = tempStageIdx == null ? (winter ? Math.min(humStageIdx, 1) : humStageIdx)
     : tempStageIdx === 0 ? 0
-    : Math.min(humStageIdx, tempStageIdx + 1);
+    : Math.min(humStageIdx, winter ? Math.max(tempStageIdx, 1) : tempStageIdx + 1);
   const recIdxBase = tempStageIdx != null ? Math.max(tempStageIdx, humStage) : null;
   // 춥지만 습도만 높은 날 — 단계는 최소환기 그대로 두고 별도 안내만 띄운다.
   const coldHumid = tempStageIdx === 0 && todayHum != null && todayHum > VENT_HUMIDITY_THRESHOLD;
@@ -36686,7 +36707,7 @@ function renderVentTab(){
   // 이상저온이면 한 단계 내린다 — 다만 습도 기준(humStageIdx) 아래로는 내리지 않는다(환기를 줄이면 계사 습도가 올라가므로).
   const anomCold = !anomHot && anomIsCold(anomJ), anomColdByZ = !!(anomJ && anomJ.z <= -ANOM_Z), anomColdByProb = !!(anomJ && anomJ.pCold >= ANOM_HOT_PROB);
   const anomColdWhy = anomCold ? [anomColdByZ ? `평년보다 ${anomJ.diff.toFixed(1)}°C` : "", anomColdByProb ? `앙상블 예보 이상저온 가능성 ${Math.round(anomJ.pCold * 100)}%` : ""].filter(Boolean).join(", ") : "";
-  const recIdx = recIdxBase == null ? null : anomHot ? Math.min(sp.stages.length - 1, recIdxBase + 1) : anomCold ? Math.max(humStage, recIdxBase - 1, 0) : recIdxBase;
+  const recIdx = recIdxBase == null ? null : anomHot ? Math.min(winter ? Math.max(recIdxBase, 1) : sp.stages.length - 1, recIdxBase + 1) : anomCold ? Math.max(humStage, recIdxBase - 1, 0) : recIdxBase;
   const anomRaised = recIdxBase != null && recIdx > recIdxBase, anomLowered = recIdxBase != null && recIdx < recIdxBase;
   const humDrivenUp = tempStageIdx != null && humStage > tempStageIdx;
   // PIC 규칙: 외기온이 이미 목표온도를 넘어선 상태에서 습도까지 높으면
@@ -36734,7 +36755,7 @@ function renderVentTab(){
         <button id="vent-goto-weather" style="border:none;border-radius:10px;background:#1a2744;color:#fff;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer">🌤️ 날씨예측 탭에서 위치 설정하기</button>
       </div>`;
 
-    const st = sp.stages[recIdx];
+    const st = winter ? ventWinterStage(sp.stages[recIdx]) : sp.stages[recIdx];
     const diffLabel = diff>0 ? `목표 대비 <b style="color:#C62828">+${diff}°C</b> 높음` :
                        diff<0 ? `목표 대비 <b style="color:#1565C0">${diff}°C</b> 낮음` : `목표와 동일`;
     return `
@@ -36767,7 +36788,7 @@ function renderVentTab(){
         <div style="font-size:12px;font-weight:700;color:#01579B;margin-bottom:4px">💧 습도 기준 판정 (Munters 이중제어 로직)</div>
         <div style="font-size:11px;color:#333;line-height:1.7">
           ${humDrivenUp?`오늘 습도 ${todayHum}%는 기준치(${VENT_HUMIDITY_THRESHOLD}%)를 초과해, 온도만 보면 ${sp.stages[tempStageIdx].name}이지만 습도 요구량이 더 커서 <b>${st.name}</b>으로 상향했습니다.`:""}
-          ${humVentIneffective?`<br>⚠️ 외기온이 이미 목표온도를 초과한 상태에서 습도까지 높으므로, 환기를 더 늘려도 습도가 잘 안 떨어질 수 있습니다(바깥 공기 자체가 덥고 습함). 제습·쿨링패드 등 별도 조치를 함께 검토하세요.`:""}
+          ${humVentIneffective?`<br>⚠️ 외기온이 이미 목표온도를 초과한 상태에서 습도까지 높으므로, 환기를 더 늘려도 습도가 잘 안 떨어질 수 있습니다(바깥 공기 자체가 덥고 습함). ${winter ? "난방과 함께 최소환기 시간을 늘려 습기를 빼는 방법을 함께 검토하세요." : "제습·쿨링패드 등 별도 조치를 함께 검토하세요."}`:""}
         </div>
         <div style="font-size:9px;color:#0277BD;margin-top:6px">출처: Munters Rotem Trio 환기컨트롤러(온도·습도·CO₂ 복합 제어) · PIC "습도 65% 이하 유지" 규정</div>
       </div>` : ""}
@@ -36818,9 +36839,10 @@ function renderVentTab(){
         const dfi = hi!=null ? hi - targetT : null;
         const tsi = dfi!=null ? determineVentStage(dfi) : null;
         const hsi = determineHumidityStage(dh);
-        const hstage = tsi==null ? hsi : tsi===0 ? 0 : Math.min(hsi, tsi+1);   // 추운 날은 습도로 단계 안 올림
+        const wd = ventIsWinter(d.date);
+        const hstage = tsi==null ? (wd ? Math.min(hsi, 1) : hsi) : tsi===0 ? 0 : Math.min(hsi, wd ? Math.max(tsi, 1) : tsi+1);   // 추운 날은 습도로 단계 안 올림, 동절기엔 습도로 터널까지 안 올림
         let si = tsi!=null ? Math.max(tsi, hstage) : null;
-        const hotUp = si!=null && anomIsHot(anomTodayJudge(d)) && si < sp.stages.length-1;   // 그날이 이상고온이면(예보 평균기온 평년 대비 또는 앙상블 확률 40%↑ — 오늘 추천과 같은 기준) 한 단계 상향
+        const hotUp = si!=null && anomIsHot(anomTodayJudge(d)) && si < (wd ? Math.max(tsi, 1) : sp.stages.length-1);   // 그날이 이상고온이면(예보 평균기온 평년 대비 또는 앙상블 확률 40%↑ — 오늘 추천과 같은 기준) 한 단계 상향
         if(hotUp) si += 1;
         const jd = anomTodayJudge(d), coldDown = !hotUp && si!=null && !anomIsHot(jd) && anomIsCold(jd) && si > 0 && si - 1 >= hstage;   // 이상저온이면 한 단계 하향(습도 기준 아래로는 내리지 않음)
         if(coldDown) si -= 1;
@@ -36856,7 +36878,7 @@ function renderVentTab(){
     PIC「Wean to Finish Guidelines Appendix A」, 미네소타대 확장연구소(L. Jacobson) 자료를 재구성했습니다.
     습도 기준 판정은 글로벌 계사환경제어 1위 업체 Munters의 상업용 컨트롤러(Rotem Trio)가 쓰는
     "온도요구·습도요구 환기량 중 더 큰 값을 따르는" 이중제어 로직과 PIC의 습도 65% 관리 기준을 결합해 구성했습니다.
-    실제 전환 시점은 수치뿐 아니라 계군의 행동(헐떡임, 웅크림, 피딩 활동 등)을 함께 관찰해 판단하는 것이 원 지침의 핵심입니다.
+    실제 전환 시점은 수치뿐 아니라 계군의 행동(${winter ? "" : "헐떡임, "}웅크림, 피딩 활동 등)을 함께 관찰해 판단하는 것이 원 지침의 핵심입니다.
   </div>`;
 }
 
