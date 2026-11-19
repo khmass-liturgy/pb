@@ -33900,7 +33900,7 @@ const HSI_ACTIONS = {
 function comfortActions(month){
   if(month >= 5 && month <= 9) return HSI_ACTIONS.comfort;
   if(month >= 10 && month <= 11) return [
-    "열스트레스 걱정이 없는 쾌적 구간 — 월동 준비를 시작하기 좋은 시점입니다",
+    "월동 준비를 시작하기 좋은 시점입니다",
     "계사 틈새·커튼·환기구를 보수하고 보온·난방기를 미리 시운전하세요 (연료도 미리 확보)",
     "일교차가 커지는 환절기입니다 — 새벽 보온과 최소환기량을 함께 지켜 호흡기 질병(CRD 등)을 예방하세요",
     "철새가 도래하는 시기입니다 — 야생조류·차량 출입을 막는 차단방역과 소독을 한 단계 강화하세요",
@@ -33911,7 +33911,7 @@ function comfortActions(month){
     "음수 결빙·급수라인 동파와 깔짚 건조 상태를 점검하세요",
   ];
   return [ // 3~4월
-    "열스트레스 걱정이 없는 쾌적 구간 — 봄 환절기 일교차와 호흡기 질병에 유의하세요",
+    "봄 환절기입니다 — 일교차와 호흡기 질병에 유의하세요",
     "겨우내 닫아 둔 환기구·팬·쿨링패드를 점검·청소해 다가올 여름을 미리 대비하세요",
     "깔짚 수분과 콕시듐(Eimeria) 위험이 오르는 때입니다 — 환기량과 급수라인 누수를 점검하세요",
   ];
@@ -34023,13 +34023,16 @@ function renderHusbandryPointsCard(opts){
   // 20°C 미만은 Hy-Line 표의 판정 범위 밖 — 지수를 억지로 들이대지 않고
   // 저온 관리로 분기한다. 카드에도 숫자 대신 그 사실을 적는다.
   const inRange = hsiInRange(c.peakTemp);
-  const lv = inRange ? hsiLevel(c.hsi)
-    : {key:"cold", label:"저온", short:"Below range", icon:"❄️", color:"#1565C0", bg:"#E3F2FD"};
   const month = Number(String(c.date || "").slice(5,7)) || (new Date().getMonth() + 1);
+  // 동절기(11~3월)에는 열스트레스 지수·더위 관련 코멘트를 아예 보이지 않는다(소유자 요청 2026-11-19).
+  const winter = month >= 11 || month <= 3;
+  let lv = inRange ? hsiLevel(c.hsi)
+    : {key:"cold", label:"저온", short:"Below range", icon:"❄️", color:"#1565C0", bg:"#E3F2FD"};
+  if(winter && !["comfort", "cold"].includes(lv.key)) lv = HSI_LEVELS.find(l => l.key === "comfort") || lv;
   const seasonalComfort = lv.key === "comfort" && !(month >= 5 && month <= 9);
   const actions = lv.key === "comfort" ? comfortActions(month) : (HSI_ACTIONS[lv.key] || []);
   const rhInt = Math.round(c.peakHum);
-  const hot = inRange && c.hsi >= 70;
+  const hot = !winter && inRange && c.hsi >= 70;
 
   // 오늘 습도에서 다시 잡은 목표 계사온도 (육계) — 컨설턴트가 컨트롤러에
   // 실제로 입력하는 숫자. 체중대는 육추~출하까지 고르게 4개만 보여준다.
@@ -34058,7 +34061,7 @@ function renderHusbandryPointsCard(opts){
     // "칼슘을 더 넣으면 되지 않느냐"는 현장의 흔한 오해를 짚어주는 항목이다.
     extras.push(bullet(`🥚 <b>산란계 난각질</b> — 헐떡임(과호흡)으로 혈중 CO₂가 빠지면 혈액이 알칼리로 기울어(호흡성 알칼리증) 난각선으로 가는 칼슘이 줄고 난각이 얇아집니다. <b>사료 칼슘만 올려서는 교정되지 않으니</b> 환기·냉방으로 헐떡임 자체를 줄이는 것이 우선입니다`, "#D4A012"));
   }
-  if(c.nightHsi != null && c.nightHsi >= 70){
+  if(!winter && c.nightHsi != null && c.nightHsi >= 70){
     extras.push(bullet(`🌙 <b>야간에도 식지 않습니다 (새벽 HSI ${c.nightHsi})</b> — 팬을 밤새 연속 가동해 야간 냉각을 확보하세요. 밤에 열을 못 빼면 다음날 열부하가 누적됩니다`, "#5E35B1"));
   }
   if(c.dt != null && c.dt >= 12){
@@ -34114,7 +34117,7 @@ function renderHusbandryPointsCard(opts){
         <div style="flex:1;min-width:140px">
           <div style="font-size:14.5px;font-weight:800;color:${lv.color};line-height:1.35">${msg}</div>
           <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px">
-            ${chip(`🌡️ 한낮 ${c.peakTemp != null ? Math.round(c.peakTemp) + "°C" : "-"}`)}${chip(`💧 습도 ${rhInt}%`)}${inRange ? chip(`열스트레스 지수 ${c.hsi} · ${lv.label}`) : chip("열스트레스 판정범위 밖(20°C↓)")}
+            ${chip(`🌡️ 한낮 ${c.peakTemp != null ? Math.round(c.peakTemp) + "°C" : "-"}`)}${chip(`💧 습도 ${rhInt}%`)}${winter ? "" : inRange ? chip(`열스트레스 지수 ${c.hsi} · ${lv.label}`) : chip("열스트레스 판정범위 밖(20°C↓)")}
           </div>
         </div>
       </div>
@@ -34135,7 +34138,7 @@ function renderHusbandryPointsCard(opts){
 
     <details style="margin-top:8px"><summary style="cursor:pointer;font-size:10px;color:#aaa">판정 기준·출처</summary>
       <div style="font-size:9.5px;color:#aaa;margin-top:4px;line-height:1.65">
-        열스트레스 지수: Hy-Line Technical Update 「Understanding Heat Stress in Layers」 Figure 2의 온도×습도 표 조회값(원전 Xin &amp; Harmon, Iowa State Univ. 1998) ·
+        ${winter ? "" : "열스트레스 지수: Hy-Line Technical Update 「Understanding Heat Stress in Layers」 Figure 2의 온도×습도 표 조회값(원전 Xin &amp; Harmon, Iowa State Univ. 1998) · "}
         목표 계사온도: Aviagen 「Ross Broiler Management Handbook 2025」 Table 2.5. 계군 행동 관찰이 최종 판단 기준입니다.
       </div>
     </details>
