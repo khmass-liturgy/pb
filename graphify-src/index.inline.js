@@ -7329,11 +7329,15 @@ function dzCategories(data){
   if(cats.length && data.diseases.some(x => x.custom)) cats.push(DZ_CUSTOM_CAT);
   return cats;
 }
+// 동절기(11~3월)에는 더위 전용 항목(고온 스트레스)을 사전 목록·색인·검색에서 숨긴다(소유자 요청 2026-11-19).
+const DZ_SUMMER_ONLY = ["heat-stress"];
+function dzSeasonHidden(x){ const m = new Date().getMonth() + 1; return (m >= 11 || m <= 3) && DZ_SUMMER_ONLY.includes(x.slug); }
+function dzShown(data){ return (data && data.diseases || []).filter(x => !dzSeasonHidden(x)); }
 function diseaseListing(){
   const d = diseaseState, data = d.data, q = (d.query || "").trim();
   const cats = dzCategories(data);
   const cat = cats.some(c => c.key === d.cat) ? d.cat : "all";
-  const pool = cat === "all" ? data.diseases : data.diseases.filter(x => dzCatOf(x) === cat);
+  const all = dzShown(data), pool = cat === "all" ? all : all.filter(x => dzCatOf(x) === cat);
   if(q) return {mode:"search", cat, cats, items: diseaseMatches(pool, q)};
   if(cat === "all" && cats.length) return {mode:"index", cat, cats, items: []};
   const byName = arr => arr.slice()
@@ -7345,7 +7349,7 @@ function diseaseListing(){
 function renderDzCatBar(listing){
   const data = diseaseState.data;
   if(!listing.cats.length) return "";
-  const n = k => data.diseases.filter(x => dzCatOf(x) === k).length;
+  const all = dzShown(data), n = k => all.filter(x => dzCatOf(x) === k).length;
   const chip = (key, label, cnt) => {
     const on = listing.cat === key;
     return '<button class="dz-cat" data-cat="'+esc(key)+'" style="font-size:12px;font-weight:'+(on?800:600)+';border:1.5px solid '
@@ -7354,7 +7358,7 @@ function renderDzCatBar(listing){
       + ' <span style="font-size:10.5px;font-weight:600;opacity:.75">'+cnt+'</span></button>';
   };
   return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px">'
-    + chip("all", "전체", data.diseases.length)
+    + chip("all", "전체", all.length)
     + listing.cats.map(c => chip(c.key, esc((c.icon?c.icon+" ":"")+c.label), n(c.key))).join("")
     + '</div>';
 }
@@ -7374,7 +7378,7 @@ function dzNewBadge(x){
 function renderDzIndex(listing){
   const data = diseaseState.data;
   return listing.cats.map(c => {
-    const items = data.diseases.filter(x => dzCatOf(x) === c.key)
+    const items = dzShown(data).filter(x => dzCatOf(x) === c.key)
       .sort((a,b) => (a.title_ko||"").localeCompare(b.title_ko||"", "ko"));
     if(!items.length) return "";
     return '<div class="card" style="margin-bottom:8px;padding:12px 14px">'
