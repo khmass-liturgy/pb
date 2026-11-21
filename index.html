@@ -1419,7 +1419,7 @@ let lightGuideState = (function(){
   try { const s = JSON.parse(localStorage.getItem(LG_STATE_KEY) || "null"); if(s) return Object.assign(base, s, { tab:"calc", openKey:"principle" }); } catch(e){}
   return base;
 })();
-function saveLightGuide(){ try { const s = lightGuideState; localStorage.setItem(LG_STATE_KEY, JSON.stringify({ company:s.company, hatch:s.hatch, lat:s.lat, latMode:s.latMode, house:s.house, stim:s.stim, phone:s.phone })); } catch(e){} }
+function saveLightGuide(){ try { const s = lightGuideState; localStorage.setItem(LG_STATE_KEY, JSON.stringify({ company:s.company, hatch:s.hatch, lat:s.lat, latMode:s.latMode, house:s.house, stim:s.stim, phone:s.phone, clk:s.clk })); } catch(e){} }
 
 function lgChartSvg(rows){
   const W = 600, H = 220, L = 34, R = 10, T = 10, B = 26;
@@ -1629,6 +1629,187 @@ function renderLightCards(){
     </div>`;
   }).join("");
 }
+// ── 산란계 점등 시계표 (2026-11-21, 소유자 요청) ─────────────────────────────────
+// 농장 위치(날씨예측 탭 위치 → 저장 위치 → 지역 목록)의 일출·일몰(KST)을 계산하고, 계절별 계산기와 같은 가이드 점등시간
+// (lgCompute: 개방계사는 자연광 이하로 줄이지 않고 광자극 후 줄이지 않음)을 언제 켜고 끌지로 바꿔 24시간 시계 그림으로 보여 준다.
+// 자동 배치 = 가이드 원칙: 일장 증가는 아침 쪽(ISA), 오전 4시 이전에는 켜지 않음(LOHMANN 개방계사 예시) — 넘치는 만큼 저녁으로.
+// 「직접 조정」은 하루 점등시간·보충 방식·켜는 시각·가장 이른 점등을 바꾼다(이 기기에만 저장, lightGuideState.clk).
+const LG_SPOT_LNG = { 37.5:127.0, 37.3:126.9, 36.4:127.4, 35.8:127.1, 35.9:128.6, 35.2:126.9, 35.1:129.1, 33.5:126.5 };
+let lgClkLast = null;
+const LG_CLK_DEF = { hrsMode:"guide", hrs:16, split:"morning", onMode:"auto", on:"04:00", earliest:"04:00", sel:0 };
+function lgClk(){ const s = lightGuideState; s.clk = Object.assign({}, LG_CLK_DEF, s.clk || {}); return s.clk; }
+function lgEffectiveLng(st){
+  if(st.latMode !== "manual"){
+    if(typeof weatherState !== "undefined" && weatherState && weatherState.status === "done" && Number.isFinite(Number(weatherState.lng)) && weatherState.lng != null) return Number(weatherState.lng);
+    const sv = (typeof loadWeatherLocation === "function") ? loadWeatherLocation() : null;
+    if(sv && Number.isFinite(Number(sv.lng))) return Number(sv.lng);
+  }
+  return LG_SPOT_LNG[Number(st.lat)] || 127.5;
+}
+// 일출·일몰(분, KST 0~1440) — 균시차(NOAA 근사) + 경도 보정, 낮 길이는 lgDayLength(태양 고도 -0.833°)와 같은 식
+function lgSunTimes(lat, lng, d){
+  const N = Math.floor((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - Date.UTC(d.getFullYear(), 0, 0)) / 86400000);
+  const B = 2 * Math.PI * (N - 81) / 364;
+  const eot = 9.87 * Math.sin(2 * B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B);
+  const noon = 720 - 4 * (lng - 135) - eot, dl = lgDayLength(lat, d), half = dl * 30;
+  return { sr: noon - half, ss: noon + half, nat: dl };
+}
+const lgHm = m => { m = ((Math.round(m) % 1440) + 1440) % 1440; return String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0"); };
+const lgHmToMin = s => { const m = /^(\d{1,2}):(\d{2})$/.exec(String(s || "")); return m ? Number(m[1]) * 60 + Number(m[2]) : null; };
+const lgDur = h => { const t = Math.round(h * 60), hh = Math.floor(t / 60), mm = t % 60; return !hh ? `${mm}분` : mm ? `${hh}시간 ${mm}분` : `${hh}시간`; };
+// 하루 점등 일정 — 목표 시간 T(h), 일출 sr·일몰 ss(분). 반환: on/off(분), 인공 보충 구간, 실제 밝은 시간, 경고
+function lgDaySchedule(st, clk, T, sun){
+  const dark = st.house === "dark", Tm = T * 60;
+  const res = { T, on:0, off:0, seg:[], light:T, warn:"", natOnly:false };
+  if(dark){
+    const on = clk.onMode === "manual" && lgHmToMin(clk.on) != null ? lgHmToMin(clk.on) : lgHmToMin(clk.earliest) ?? 240;
+    res.on = on; res.off = on + Tm; res.seg = [[on, on + Tm]];
+    return res;
+  }
+  const natM = sun.ss - sun.sr;
+  if(clk.onMode === "manual" && lgHmToMin(clk.on) != null){
+    const on = lgHmToMin(clk.on), off = on + Tm;
+    res.on = on; res.off = off;
+    if(on < sun.sr) res.seg.push([on, Math.min(off, sun.sr)]);
+    if(off > sun.ss) res.seg.push([Math.max(on, sun.ss), off]);
+    const lightStart = Math.min(on, sun.sr), lightEnd = Math.max(off, sun.ss);
+    res.light = (lightEnd - lightStart) / 60;
+    if(res.light > T + 0.1) res.warn = `개방계사라 자연광까지 합치면 실제로 약 ${lgDur(res.light)} 밝습니다(${on > sun.sr ? "켜기 전 아침 햇빛" : ""}${on > sun.sr && off < sun.ss ? "·" : ""}${off < sun.ss ? "끈 뒤 저녁 햇빛" : ""}). 켜는 시각을 일출 전으로, 끄는 시각을 일몰 이후로 맞추세요.`;
+    return res;
+  }
+  if(Tm <= natM + 1){
+    res.on = sun.sr; res.off = sun.ss; res.light = natM / 60; res.natOnly = true;
+    if(Tm < natM - 10) res.warn = `자연 일장(${lgDur(natM / 60)})이 목표보다 깁니다 — 개방계사는 자연광 이하로 줄일 수 없어 인공조명 없이 자연광만으로 지냅니다.`;
+    return res;
+  }
+  const add = Tm - natM, earliest = lgHmToMin(clk.earliest) ?? 240;
+  let am = clk.split === "evening" ? 0 : clk.split === "both" ? add / 2 : add;
+  let on = sun.sr - am;
+  if(clk.split !== "evening" && on < earliest){ on = Math.min(sun.sr, earliest); am = sun.sr - on; }
+  const pm = add - am, off = sun.ss + pm;
+  res.on = on; res.off = off;
+  if(am > 0.5) res.seg.push([on, sun.sr]);
+  if(pm > 0.5) res.seg.push([sun.ss, off]);
+  return res;
+}
+function lgTargetFor(st, clk, rows, d){
+  if(clk.hrsMode === "manual") return { T: Math.max(6, Math.min(20, Number(clk.hrs) || 16)), wk:null, manual:true };
+  if(!rows) return null;
+  const hatch = new Date(st.hatch + "T00:00:00");
+  const wk = Math.floor((d.getTime() - hatch.getTime()) / (7 * 86400000));
+  if(wk < 0) return { T:null, wk };
+  const r = rows[Math.min(40, wk)];
+  const T = st.house === "dark" ? r.prog : r.eff;
+  return { T: Math.round(T * 12) / 12, wk };   // 5분 단위
+}
+// 24시간 시계 — 0시가 위, 12시가 아래. 밤(남색)·자연광(노랑)·인공조명(주황) 부채꼴
+function lgClockSvg(sun, sch, opt){
+  opt = opt || {};
+  const S = opt.size || 320, c = S / 2, R = S * 0.42, mini = !!opt.mini;
+  const ang = m => (m / 1440) * 2 * Math.PI - Math.PI / 2;
+  const pt = (m, r) => [c + r * Math.cos(ang(m)), c + r * Math.sin(ang(m))];
+  const sector = (a, b, r, col) => {
+    let span = b - a; if(span <= 0) span += 1440; if(span >= 1439) return `<circle cx="${c}" cy="${c}" r="${r}" fill="${col}"/>`;
+    const p1 = pt(a, r), p2 = pt(a + span, r);
+    return `<path d="M${c},${c} L${p1[0].toFixed(1)},${p1[1].toFixed(1)} A${r},${r} 0 ${span > 720 ? 1 : 0} 1 ${p2[0].toFixed(1)},${p2[1].toFixed(1)} Z" fill="${col}"/>`;
+  };
+  const dark = opt.dark;
+  let g = `<circle cx="${c}" cy="${c}" r="${R}" fill="#263859"/>`;
+  if(!dark) g += sector(sun.sr, sun.ss, R, "#FFE082");
+  sch.seg.forEach(s => { g += sector(s[0], s[1], R, "#FF9800"); });
+  if(mini) return `<svg viewBox="0 0 ${S} ${S}" width="${S}" height="${S}" aria-hidden="true" style="display:block">${g}<circle cx="${c}" cy="${c}" r="${R}" fill="none" stroke="#90A4AE" stroke-width="1"/></svg>`;
+  for(let h = 0; h < 24; h++){
+    const a = pt(h * 60, R), b = pt(h * 60, R - (h % 3 ? 6 : 11));
+    g += `<line x1="${a[0].toFixed(1)}" y1="${a[1].toFixed(1)}" x2="${b[0].toFixed(1)}" y2="${b[1].toFixed(1)}" stroke="#fff" stroke-opacity=".75" stroke-width="${h % 3 ? 1 : 2}"/>`;
+    if(h % 3 === 0){ const t = pt(h * 60, R + 14); g += `<text x="${t[0].toFixed(1)}" y="${(t[1] + 4.5).toFixed(1)}" font-size="13" font-weight="700" fill="#455A64" text-anchor="middle">${h}시</text>`; }
+  }
+  const hand = (m, col, label, r) => { const p = pt(m, R + 2), q = pt(m, r); return `<line x1="${c}" y1="${c}" x2="${p[0].toFixed(1)}" y2="${p[1].toFixed(1)}" stroke="${col}" stroke-width="3" stroke-linecap="round"/><g><rect x="${(q[0] - 31).toFixed(1)}" y="${(q[1] - 11).toFixed(1)}" width="62" height="22" rx="11" fill="${col}"/><text x="${q[0].toFixed(1)}" y="${(q[1] + 4.5).toFixed(1)}" font-size="12" font-weight="800" fill="#fff" text-anchor="middle">${label}</text></g>`; };
+  if(!sch.natOnly){ g += hand(sch.on, "#E65100", "켜기 " + lgHm(sch.on), R * 0.66); g += hand(sch.off, "#37474F", "끄기 " + lgHm(sch.off), R * 0.66); }
+  if(!dark){
+    const s1 = pt(sun.sr, R * 0.47), s2 = pt(sun.ss, R * 0.47);
+    g += `<text x="${s1[0].toFixed(1)}" y="${(s1[1] + 6).toFixed(1)}" font-size="16" text-anchor="middle">🌅</text><text x="${s2[0].toFixed(1)}" y="${(s2[1] + 6).toFixed(1)}" font-size="16" text-anchor="middle">🌇</text>`;
+  }
+  if(opt.now != null){ const p = pt(opt.now, R - 2); g += `<line x1="${c}" y1="${c}" x2="${p[0].toFixed(1)}" y2="${p[1].toFixed(1)}" stroke="#C62828" stroke-width="2" stroke-dasharray="4 3"/>`; }
+  g += `<circle cx="${c}" cy="${c}" r="${R * 0.34}" fill="#fff" stroke="#CFD8DC"/><text x="${c}" y="${c - 4}" font-size="12" fill="#78909C" text-anchor="middle">밝은 시간</text><text x="${c}" y="${c + 15}" font-size="16" font-weight="900" fill="#E65100" text-anchor="middle">${esc(lgDur(sch.light))}</text>`;
+  return `<svg viewBox="-12 -12 ${S + 24} ${S + 24}" style="width:100%;max-width:340px;height:auto;display:block;margin:0 auto" role="img" aria-label="24시간 점등 시계: 켜기 ${lgHm(sch.on)}, 끄기 ${lgHm(sch.off)}">${g}</svg>`;
+}
+function renderLightClock(){
+  const st = lightGuideState, clk = lgClk(), res = lgCompute(st);
+  const lat = lgEffectiveLat(st), lng = lgEffectiveLng(st), wloc = lgWeatherLoc(), useAuto = st.latMode !== "manual" && !!wloc;
+  const placeName = useAuto ? wloc.name : ((LG_SPOTS.find(s => s[1] === Number(st.lat)) || [])[0] || "선택 지역");
+  const inp = "padding:8px 9px;border:1px solid #ddd;border-radius:8px;font-size:13px;background:#fff;width:100%;box-sizing:border-box";
+  const lab = (t, inner) => `<label style="display:block"><div style="font-size:11.5px;color:#666;margin-bottom:3px">${t}</div>${inner}</label>`;
+  const spot = (wloc ? `<option value="auto" ${useAuto ? "selected" : ""}>📍 ${esc(wloc.name)}</option>` : "")
+    + LG_SPOTS.map(s => `<option value="${s[1]}" ${!useAuto && Number(st.lat) === s[1] ? "selected" : ""}>${s[0]}</option>`).join("");
+  const base = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:10px">
+    ${lab("병아리 입식(부화)일", `<input class="lg-in" data-k="hatch" type="date" value="${esc(st.hatch)}" style="${inp}" />`)}
+    ${lab("농장 위치", `<select class="lg-in" data-k="lat" style="${inp}">${spot}</select>`)}
+    ${lab("계사 형태", `<select class="lg-in" data-k="house" style="${inp}"><option value="open" ${st.house === "open" ? "selected" : ""}>개방·유창</option><option value="dark" ${st.house === "dark" ? "selected" : ""}>무창·암막</option></select>`)}
+    ${lab("육종회사 점등표", `<select class="lg-in" data-k="company" style="${inp}"><option value="lohmann" ${st.company === "lohmann" ? "selected" : ""}>로만 브라운</option><option value="hyline" ${st.company === "hyline" ? "selected" : ""}>하이라인 브라운</option></select>`)}
+  </div>`;
+  const locNote = wloc ? "" : `<div style="font-size:12px;color:#8D6E00;background:#FFF8E1;border-radius:8px;padding:8px 10px;margin-bottom:10px;line-height:1.6">📍 농장 위치가 아직 없어 ${esc(placeName)} 기준으로 계산했습니다. <button id="lg-gps" style="border:none;border-radius:8px;background:#1a2744;color:#fff;padding:5px 11px;font-size:12px;font-weight:700;cursor:pointer;margin-left:4px">📍 현재 위치로 설정</button></div>`;
+  // 오늘부터 12주, 1주 간격
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const days = [];
+  for(let k = 0; k <= 12; k++){
+    const d = new Date(today.getTime() + k * 7 * 86400000), sun = lgSunTimes(lat, lng, d), tg = lgTargetFor(st, clk, res && res.rows, d);
+    days.push({ k, d, sun, tg, sch: tg && tg.T != null ? lgDaySchedule(st, clk, tg.T, sun) : null });
+  }
+  const sel = days[Math.max(0, Math.min(12, clk.sel || 0))] || days[0];
+  lgClkLast = sel.sch ? { on: sel.sch.on, T: sel.sch.T } : null;
+  const fmtD = d => `${d.getMonth() + 1}/${d.getDate()}(${"일월화수목금토"[d.getDay()]})`;
+  const dark = st.house === "dark";
+  const nowMin = (() => { const n = new Date(); return n.getHours() * 60 + n.getMinutes(); })();
+  // 큰 시계 + 요약
+  let big;
+  if(!sel.sch){
+    big = `<div style="padding:20px;text-align:center;color:#888;font-size:13px">${sel.tg && sel.tg.wk < 0 ? "입식 전 날짜입니다 — 입식일을 확인하세요." : "입식일을 입력하세요."}</div>`;
+  } else {
+    const s = sel.sch, art = s.seg.map(x => (x[1] - x[0]) / 60);
+    const am = s.seg.filter(x => x[1] <= sel.sun.sr + 1 && !dark), pm = s.seg.filter(x => x[0] >= sel.sun.ss - 1 && !dark);
+    const line = (ic, t, v, col) => `<div style="display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid #f3f3f3"><span style="font-size:13px;color:#555">${ic} ${t}</span><b style="font-size:14px;color:${col || "#333"}">${v}</b></div>`;
+    big = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;align-items:center">
+      <div>${lgClockSvg(sel.sun, s, { dark, now: sel.k === 0 ? nowMin : null })}</div>
+      <div>
+        <div style="font-size:15px;font-weight:900;color:#333;margin-bottom:4px">${sel.k === 0 ? "오늘" : sel.k + "주 뒤"} ${fmtD(sel.d)} ${sel.tg.wk != null ? `· <span style="color:#F57F17">${sel.tg.wk}주령</span>` : ""}</div>
+        ${line("🎯", clk.hrsMode === "manual" ? "목표 점등시간 (직접)" : "목표 점등시간 (가이드)", lgDur(s.T), "#1565C0")}
+        ${dark ? "" : line("🌅", "일출", lgHm(sel.sun.sr)) + line("🌇", "일몰", lgHm(sel.sun.ss)) + line("☀️", "자연 일장", lgDur(sel.sun.nat))}
+        ${s.natOnly ? line("💡", "인공조명", "필요 없음 (자연광)", "#2E7D32") : line("💡", "켜는 시각", lgHm(s.on), "#E65100") + line("🌑", "끄는 시각", lgHm(s.off), "#37474F")}
+        ${!dark && !s.natOnly ? line("➕", "인공 보충", [am.length ? `아침 ${lgDur((am[0][1] - am[0][0]) / 60)}` : "", pm.length ? `저녁 ${lgDur((pm[0][1] - pm[0][0]) / 60)}` : ""].filter(Boolean).join(" · ") || "없음", "#E65100") : ""}
+        ${dark ? line("⏱️", "타이머", `${lgHm(s.on)} 켜기 → ${lgHm(s.off)} 끄기`, "#E65100") : ""}
+        ${s.warn ? `<div style="font-size:12px;color:#C62828;background:#FFEBEE;border-radius:8px;padding:7px 10px;margin-top:8px;line-height:1.6">⚠️ ${esc(s.warn)}</div>` : ""}
+      </div></div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;font-size:12px;color:#555;margin-top:6px"><span><b style="color:#263859">■</b> 어두운 시간</span>${dark ? "" : `<span><b style="color:#F2C94C">■</b> 자연광(일출~일몰)</span>`}<span><b style="color:#FF9800">■</b> 인공조명</span>${sel.k === 0 ? `<span><b style="color:#C62828">┅</b> 지금</span>` : ""}</div>`;
+  }
+  // 직접 조정
+  const seg = (k, val, opts) => `<div style="display:flex;gap:6px;flex-wrap:wrap">${opts.map(o => `<button class="lgc-set" data-k="${k}" data-v="${o[0]}" style="border:1.5px solid ${val === o[0] ? "#F57F17" : "#ddd"};background:${val === o[0] ? "#F57F17" : "#fff"};color:${val === o[0] ? "#fff" : "#555"};border-radius:16px;padding:6px 12px;font-size:12.5px;font-weight:700;cursor:pointer">${o[1]}</button>`).join("")}</div>`;
+  const step = (k, label) => `<div style="display:flex;align-items:center;gap:8px"><button class="lgc-step" data-k="${k}" data-d="-15" style="width:38px;height:36px;border:1px solid #ccc;border-radius:8px;background:#fff;font-size:18px;font-weight:800;cursor:pointer" aria-label="15분 줄이기">−</button><b style="min-width:92px;text-align:center;font-size:15px;color:#E65100">${label}</b><button class="lgc-step" data-k="${k}" data-d="15" style="width:38px;height:36px;border:1px solid #ccc;border-radius:8px;background:#fff;font-size:18px;font-weight:800;cursor:pointer" aria-label="15분 늘리기">＋</button></div>`;
+  const row = (t, inner, note) => `<div style="padding:10px 0;border-top:1px dashed #eee"><div style="font-size:13px;font-weight:800;color:#333;margin-bottom:6px">${t}</div>${inner}${note ? `<div style="font-size:11.5px;color:#888;margin-top:5px;line-height:1.6">${note}</div>` : ""}</div>`;
+  const earlyOpts = ["03:00", "03:30", "04:00", "04:30", "05:00", "05:30"].map(v => [v, v]);
+  const adjust = `<div style="background:#FFFDF5;border:1px solid #FFE082;border-radius:12px;padding:4px 14px 10px;margin-top:14px">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0 4px"><b style="font-size:14px;color:#8D6E00">🛠️ 직접 조정</b><button id="lgc-reset" style="border:1px solid #ccc;border-radius:8px;background:#fff;color:#666;padding:5px 10px;font-size:12px;cursor:pointer">↺ 가이드대로 되돌리기</button></div>
+    ${row("하루 점등시간", seg("hrsMode", clk.hrsMode, [["guide", "가이드대로 (주령별)"], ["manual", "직접 정하기"]]) + (clk.hrsMode === "manual" ? `<div style="margin-top:8px">${step("hrs", lgDur(clk.hrs))}</div>` : ""), clk.hrsMode === "manual" ? "직접 정한 시간은 아래 표의 모든 주에 똑같이 적용됩니다. 산란이 시작된 뒤에는 점등시간을 줄이지 마세요." : "계절별 계산기 탭과 같은 회사 점등표·광자극 주령을 씁니다.")}
+    ${row("켜는 시각", seg("onMode", clk.onMode, [["auto", dark ? "기본 (가장 이른 점등 시각)" : "자동 (일출·일몰에 맞춤)"], ["manual", "직접 정하기"]]) + (clk.onMode === "manual" ? `<div style="margin-top:8px">${step("on", lgHm(lgHmToMin(clk.on) ?? 240))}</div>` : ""), clk.onMode === "manual" ? `끄는 시각 = 켜는 시각 + 하루 점등시간으로 정해집니다.${dark ? "" : " 개방계사는 일출 전에 켜고 일몰 뒤에 꺼야 목표 시간이 지켜집니다."}` : "")}
+    ${!dark && clk.onMode === "auto" ? row("모자란 빛은 언제 보충할까요?", seg("split", clk.split, [["morning", "🌅 아침에 (권장)"], ["both", "아침·저녁 나눠서"], ["evening", "🌇 저녁에"]]), "가이드: 일장을 늘릴 때는 아침 쪽(켜는 시각을 앞당김)으로 늘립니다(ISA). 아침만으로 모자라면 나머지는 저녁에 붙입니다.") : ""}
+    ${(dark && clk.onMode === "auto") || (!dark && clk.onMode === "auto" && clk.split !== "evening") ? row(dark ? "켜는 시각(기본)" : "가장 이른 점등 시각", seg("earliest", clk.earliest, earlyOpts), dark ? "" : "LOHMANN 개방계사 예시는 오전 4시 이전에는 켜지 않습니다 — 이보다 일찍 켜야 할 만큼은 저녁으로 넘깁니다.") : ""}
+  </div>`;
+  // 주별 표 (작은 시계 포함)
+  const trs = days.map(x => {
+    const on = x.k === (clk.sel || 0), s = x.sch;
+    return `<tr class="lgc-row" data-k="${x.k}" style="cursor:pointer;border-top:1px solid #f1f1f1;${on ? "background:#FFF8E1" : ""}">
+      <td style="padding:5px 4px">${s ? lgClockSvg(x.sun, s, { mini:true, size:40, dark }) : ""}</td>
+      <td style="padding:5px 4px;font-weight:700;white-space:nowrap">${x.k === 0 ? "오늘" : fmtD(x.d)}<div style="font-size:11px;color:#F57F17;font-weight:700">${x.tg && x.tg.wk != null ? (x.tg.wk < 0 ? "입식 전" : x.tg.wk + "주령") : ""}</div></td>
+      ${dark ? "" : `<td style="padding:5px 4px;color:#78909C;white-space:nowrap">${lgHm(x.sun.sr)}<br>${lgHm(x.sun.ss)}</td>`}
+      <td style="padding:5px 4px;color:#1565C0;font-weight:700;white-space:nowrap">${s ? lgDur(s.T) : "-"}</td>
+      <td style="padding:5px 4px;font-weight:800;white-space:nowrap">${!s ? "-" : s.natOnly ? `<span style="color:#2E7D32;font-size:12px">자연광만</span>` : `<span style="color:#E65100">${lgHm(s.on)}</span><br><span style="color:#37474F">${lgHm(s.off)}</span>`}${s && s.warn ? " ⚠️" : ""}</td></tr>`;
+  }).join("");
+  const table = `<div style="font-size:14px;font-weight:900;color:#333;margin:16px 0 6px">📅 앞으로 12주 점등 시간표 <span style="font-size:11.5px;font-weight:600;color:#999">줄을 누르면 위 시계가 그 날로 바뀝니다</span></div>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px;min-width:320px">
+      <thead><tr style="text-align:left;color:#999;font-size:11.5px;border-bottom:2px solid #eee"><th style="padding:5px 4px">시계</th><th style="padding:5px 4px">날짜</th>${dark ? "" : `<th style="padding:5px 4px">일출<br>일몰</th>`}<th style="padding:5px 4px">목표</th><th style="padding:5px 4px">켜기<br>끄기</th></tr></thead>
+      <tbody>${trs}</tbody></table></div>`;
+  const head = `<div style="font-size:12.5px;color:#555;background:#F5F9FF;border-radius:10px;padding:9px 12px;margin-bottom:12px;line-height:1.65">📍 <b>${esc(placeName)}</b> (${lat.toFixed(2)}°N, ${lng.toFixed(2)}°E) 기준 일출·일몰로 계산한 ${dark ? "무창계사 타이머" : "개방계사"} 점등 시간입니다.${dark ? " 무창·암막 계사는 햇빛과 상관없이 회사 점등표 시간만큼 타이머로 켭니다." : ""}</div>`;
+  return head + locNote + base + big + adjust + table + `<div style="font-size:11px;color:#999;line-height:1.7;margin-top:10px">※ 일출·일몰은 위도·경도·날짜로 계산한 값(태양 고도 −0.833°, 한국 표준시)이라 기상청 발표와 1~2분 다를 수 있고, 새벽·저녁 박명은 포함하지 않습니다. 목표 점등시간은 육종회사 점등표를 옮긴 참고값입니다 — 계군 체중·균일도와 병아리 구입처의 최신 가이드를 우선하세요. 직접 조정한 값은 이 기기에만 저장됩니다.</div>`;
+}
 // ── 육계 점등 계산기 ─────────────────────────────────────────────────────────
 // 입식일·출하일령·소등 시각을 넣으면 일령별 점등/암기 시간, 소등·점등 시각, 조도를 뽑는다.
 // Ross: 2025 핸드북 Typical Lighting Program / Cobb: 관리 가이드 5.3(표를 1시간 단계로 단순화) / 동물복지: 명기 8h·암기 6h·20 lux 이상.
@@ -1744,9 +1925,10 @@ function renderLightGuidePanel(){
     </div>
     <button id="lightguide-back-btn" style="border:1px solid #ddd;border-radius:8px;background:#fff;color:#888;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">← 메뉴로</button>
   </div>`;
-  const tabs = [["calc", "🌤️ 산란계 계절별 계산기"], ["broiler", "🍗 육계 점등 계산기"], ["guide", "📚 육종회사별 가이드"]];
+  const tabs = [["calc", "🌤️ 산란계 계절별 계산기"], ["clock", "⏰ 산란계 점등 시계표"], ["broiler", "🍗 육계 점등 계산기"], ["guide", "📚 육종회사별 가이드"]];
   const bar = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">${tabs.map(t => `<button class="lg-tab" data-tab="${t[0]}" style="border:2px solid ${st.tab === t[0] ? "#F9A825" : "#eee"};background:${st.tab === t[0] ? "#F9A825" : "#fff"};color:${st.tab === t[0] ? "#fff" : "#444"};border-radius:10px;padding:8px 14px;font-size:12.5px;font-weight:700;cursor:pointer">${t[1]}</button>`).join("")}</div>`;
   const body = st.tab === "guide" ? renderLightCards() + `<div style="font-size:9px;color:#aaa;line-height:1.6;margin-top:6px">※ 실제 병아리를 구입한 육종회사·사료회사의 최신 공식 가이드가 우선합니다. 가이드 판·세대에 따라 수치가 바뀔 수 있습니다.</div>`
+    : st.tab === "clock" ? `<div class="card" style="padding:14px 14px 10px;border-top:6px solid #F9A825"><div id="lg-clock">${renderLightClock()}</div></div>`
     : st.tab === "broiler" ? `<div class="card" style="padding:14px 14px 10px;border-top:6px solid #F9A825"><div id="br-calc">${renderBroilerCalc()}</div></div>`
     : `<div class="card" style="padding:14px 14px 10px;border-top:6px solid #F9A825"><div id="lg-calc">${renderLightCalc()}</div></div>`;
   return head + bar + body;
@@ -31682,6 +31864,7 @@ function renderHeaderSolarTerm(now){
 // go: {tab} 일반 탭으로 / {premium:"메뉴key"} 유료서비스의 그 화면으로(승인·로그인 안내는 그 화면이 처리) / {premium:"vaccine", vaccineView:"guide"} 처럼 보기까지 지정.
 const NEW_FEATURE_DAYS = 21;
 const NEW_FEATURES = [
+  { key:"lgclock", date:"2026-11-21", label:"산란계 점등 시계표 — 내 농장 일출·일몰로 켜고 끌 시각을 시계 그림으로, 직접 조정도", where:"유료서비스 · 점등 프로그램", go:{ premium:"lightguide", lgTab:"clock" } },
   { key:"dzstats", date:"2026-11-19", label:"질병 탭 「발생 통계」 — 양계질병 월별 발생현황(가금티푸스·AI·F낭병·IB·마렉병, 농림축산검역본부)", where:"질병 탭 · 발생 통계", go:{ tab:"disease" } },
   { key:"pricetrade", date:"2026-11-17", label:"시세,통계 탭에 「수출입 동향」 추가 — 계육·계란·종란 월별 수출입", where:"시세,통계", go:{ tab:"price" } },
   { key:"inpick", date:"2026-11-17", label:"양계 업계 소식 — 중복 기사를 묶고 업계 정보만 골라 「핵심 소식」으로", where:"유료서비스 · 게시판·기타", go:{ premium:"industrynews" } },
@@ -31737,6 +31920,7 @@ function nfGo(key){
     switchTab("premium");
     premiumState.view = f.go.premium;
     if(f.go.vaccineView) vaccineTabState.view = f.go.vaccineView;
+    if(f.go.lgTab) lightGuideState.tab = f.go.lgTab;
     render(); window.scrollTo(0, 0);
   } else if(f.go && f.go.tab){ switchTab(f.go.tab); window.scrollTo(0, 0); }
   else render();
@@ -39158,6 +39342,20 @@ function attachEvents(){
     saveLightGuide(); render();
   });
   bindSmsBox("lg", v => { lightGuideState.phone = v; saveLightGuide(); });
+  // 산란계 점등 시계표 — 직접 조정
+  document.querySelectorAll(".lgc-set").forEach(b => b.onclick = () => { const c = lgClk(); const k = b.dataset.k, v = b.dataset.v;
+    // 「직접 정하기」로 바꾸면 지금 보이는 자동 값에서 시작한다
+    if(v === "manual" && c[k] !== "manual" && lgClkLast){ if(k === "onMode") c.on = lgHm(lgClkLast.on); if(k === "hrsMode") c.hrs = Math.round(lgClkLast.T * 4) / 4; }
+    c[k] = v; saveLightGuide(); render(); });
+  document.querySelectorAll(".lgc-step").forEach(b => b.onclick = () => {
+    const c = lgClk(), d = Number(b.dataset.d);
+    if(b.dataset.k === "hrs") c.hrs = Math.max(6, Math.min(20, (Number(c.hrs) || 16) + d / 60));
+    else { const m = (lgHmToMin(c.on) ?? 240) + d; c.on = lgHm(m); }
+    saveLightGuide(); render();
+  });
+  document.querySelectorAll(".lgc-row").forEach(r => r.onclick = () => { lgClk().sel = Number(r.dataset.k); saveLightGuide(); render(); });
+  const lgcReset = document.getElementById("lgc-reset");
+  if(lgcReset) lgcReset.onclick = () => { lightGuideState.clk = Object.assign({}, LG_CLK_DEF); saveLightGuide(); render(); };
   document.querySelectorAll(".br-in").forEach(el => el.onchange = () => {
     broilerLightState[el.dataset.k] = el.dataset.k === "days" ? Number(el.value) : el.value;
     saveBroilerLight(); render();
