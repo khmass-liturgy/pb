@@ -1,17 +1,17 @@
-# Graph Report - pb  (2026-11-21)
+# Graph Report - pb  (2026-11-22)
 
 ## Corpus Check
-- 130 files · ~966,994 words
+- 130 files · ~967,980 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 6 file(s) not represented in the graph (top: (none) 4, .glb 1, .rules 1)
 
 ## Summary
-- 3318 nodes · 7757 edges · 130 communities (126 shown, 4 thin omitted)
-- Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 355 edges (avg confidence: 0.92)
+- 3323 nodes · 7792 edges · 127 communities (123 shown, 4 thin omitted)
+- Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 361 edges (avg confidence: 0.92)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `4f585f3c`
+- Built from commit: `d203a9ff`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -26,7 +26,7 @@
 - gmVirus
 - time
 - esc
-- renderDrugUsePanel
+- fetch_poultry_disease_brief.py
 - attachDiseaseEvents
 - renderConsultTab
 - re
@@ -42,7 +42,7 @@
 - fetch_egg_report.py
 - renderHpaiTab
 - steps
-- gmFig
+- gmHome
 - json
 - pfTabSpecies
 - renderSelfCheckPanel
@@ -85,8 +85,8 @@
 - steps
 - steps
 - fmtFull
-- fetch_prices.py
-- renderHpaiTab
+- sys
+- time
 - steps
 - isBoardAdmin
 - steps
@@ -113,7 +113,7 @@
 - renderGrainPriceCard
 - renderDisinfectPanel
 - renderSeasonalPanel
-- metConvert
+- renderVaccinePanel
 - switchTab
 - gmT
 - fetchQiaSearch
@@ -123,30 +123,27 @@
 - sgDraftToGuide
 - farmGameCall
 - urllib_parse
-- renderDiseaseResults
-- pfSeries
+- dzCatOf
+- pfSign
 - PriceTableParser
 - renderEmergingDiseaseCard
 - renderHpaiKrCard
 - renderFeatureBoardPanel
-- hzBind
+- fetch_usda_crop_progress.py
+- pfTabData
 - sgOpenEdit
-- pfBind
+- pfSeries
+- renderDiseaseResults
 - isPremiumApproved
-- sendDirectSms
-- renderHpaiZeroPanel
+- fetchDiseases
+- dilResultHtml
+- renderWeatherNewsCard
+- gmBind
 - renderColiEasy
-- hzBox
-- 작업 인계 노트 (2026-10-13)
-- pfSign
-- hzRegion
-- renderHzTasks
-- pfBuildModel
-- hzLocate
 
 ## God Nodes (most connected - your core abstractions)
-1. `esc()` - 210 edges
-2. `Architecture: the fetch-script → JSON → dashboard pipeline` - 166 edges
+1. `esc()` - 211 edges
+2. `Architecture: the fetch-script → JSON → dashboard pipeline` - 172 edges
 3. `attachEvents()` - 164 edges
 4. `render()` - 127 edges
 5. `renderPremiumTab()` - 85 edges
@@ -159,19 +156,19 @@
 ## Surprising Connections (you probably didn't know these)
 - `graphify (토큰 절약용 코드 지식 그래프)` --references--> `renderHpaiKrLiveStrip()`  [INFERRED]
   CLAUDE.md → graphify-src/index.inline.js
-- `What this is` --references--> `getApprovedMembers()`  [INFERRED]
-  CLAUDE.md → functions/index.js
 - `Architecture: the fetch-script → JSON → dashboard pipeline` --references--> `fetchWeatherData()`  [INFERRED]
   CLAUDE.md → functions/index.js
 - `Conventions shared across all fetch scripts` --references--> `apply_glossary()`  [INFERRED]
   CLAUDE.md → scripts/translation_glossary.py
-- `Working in index.html` --references--> `fetchPoultryPrices()`  [INFERRED]
+- `Architecture: the fetch-script → JSON → dashboard pipeline` --references--> `premiumMenuItemsFull()`  [INFERRED]
+  CLAUDE.md → graphify-src/index.inline.js
+- `Architecture: the fetch-script → JSON → dashboard pipeline` --references--> `renderPremiumMenuItems()`  [INFERRED]
   CLAUDE.md → graphify-src/index.inline.js
 
 ## Import Cycles
 - None detected.
 
-## Communities (130 total, 4 thin omitted)
+## Communities (127 total, 4 thin omitted)
 
 ### Community 0 - "index.inline.js"
 Cohesion: 0.00
@@ -183,51 +180,51 @@ Nodes (62): 1. 전염성기관지염(IB) 차단 AI공동연구팀 (유료서비�
 
 ### Community 2 - "attachEvents"
 Cohesion: 0.04
-Nodes (73): ageDays(), attachEvents(), callMemberFunction(), coliBind(), coliSave(), createFirebaseMemberAccount(), currentDiseaseDisinfectants(), currentNewProducts() (+65 more)
+Nodes (77): attachEvents(), bodyPartLabel(), callMemberFunction(), cardCandToBackImage(), coliBind(), coliSave(), createFirebaseMemberAccount(), currentBoardCfg() (+69 more)
 
 ### Community 3 - "index.js"
-Cohesion: 0.10
-Nodes (20): admin, ADMIN_EMAILS, AI_DRAFT_KINDS, ANTHROPIC_API_KEY, BOARD_TYPES, { defineSecret }, fetchRssItems(), fetchWeatherData() (+12 more)
+Cohesion: 0.09
+Nodes (29): admin, ADMIN_EMAILS, AI_DRAFT_KINDS, ANTHROPIC_API_KEY, BOARD_TYPES, casUsage(), { defineSecret }, fetchRssItems() (+21 more)
 
 ### Community 4 - "hzNearBox"
-Cohesion: 0.22
-Nodes (24): hkAllFarms(), hkAllWild(), hzAddDays(), hzBacktest(), hzBacktest2(), hzBtDates(), hzBtSummary(), hzDensBacktest() (+16 more)
+Cohesion: 0.06
+Nodes (72): 0. 이어받는 세션이 먼저 할 일, 1-2. HPAI ZERO FARM (유료서비스 · AI공동연구팀, `hpaizero`), 2. 최근 완료된 기능(이 세션, 2026-10-08 ~ 10-13, 모두 main 병합), 3. 환경 메모, 작업 인계 노트 (2026-10-13), hkAllFarms(), hkAllWild(), hzAddDays() (+64 more)
 
 ### Community 5 - "fetch_animal_drug_news.py"
-Cohesion: 0.05
-Nodes (58): build_item(), category_guess(), claude(), collect(), friday_of(), main(), parse_json(), pick_with_claude() (+50 more)
+Cohesion: 0.06
+Nodes (46): build_item(), category_guess(), claude(), collect(), friday_of(), main(), parse_json(), pick_with_claude() (+38 more)
 
 ### Community 6 - "withStorageTimeout"
-Cohesion: 0.10
-Nodes (25): boardPostPath(), currentBoardCfg(), deleteFeatureRequest(), deleteMemberProfile(), featureRequestPostPath(), featureRequestRepliesPrefix(), fetchInboxBoardPosts(), fetchMyBoardPosts() (+17 more)
+Cohesion: 0.07
+Nodes (32): boardPostPath(), deleteFeatureRequest(), deleteMemberProfile(), featureRequestPostPath(), featureRequestRepliesPrefix(), fetchAllSmsSubscriptions(), fetchInboxBoardPosts(), fetchMyBoardPosts() (+24 more)
 
 ### Community 7 - "gmVirus"
-Cohesion: 0.16
-Nodes (24): dsFigTypes(), dzAutoFig(), dzFigCauseIcon(), dzFigWrap(), gmAb(), gmCellInner(), gmCoccus(), gmFigGrow() (+16 more)
+Cohesion: 0.15
+Nodes (23): dsFigTypes(), dzAutoFig(), dzFigCauseIcon(), dzFigTiles(), dzFigWrap(), dzFigWrapN(), gmCellInner(), gmCoccus() (+15 more)
 
 ### Community 8 - "time"
-Cohesion: 0.10
-Nodes (19): build_baseline(), build_region(), ensure_baseline(), fetch_rows(), load_json(), main(), mean_sd(), mold_scores() (+11 more)
+Cohesion: 0.08
+Nodes (24): annual_vol(), build_grain(), change(), clamp(), fetch(), fetch_news(), main(), pct() (+16 more)
 
 ### Community 9 - "esc"
-Cohesion: 0.06
-Nodes (48): allSites(), boardStatusBadge(), disinfectFlowHtml(), esc(), inModeBar(), lmEggSvg(), lmPhotosHtml(), pfImportHtml() (+40 more)
+Cohesion: 0.07
+Nodes (43): allSites(), boardStatusBadge(), disinfectFlowHtml(), esc(), lmEggSvg(), lmPhotosHtml(), priceDeltaHtml(), renderBizFooterLine() (+35 more)
 
-### Community 10 - "renderDrugUsePanel"
-Cohesion: 0.25
-Nodes (9): drugUseAllKinds(), drugUseCard(), drugUseForm(), drugUseItems(), drugUseKindBadge(), drugUseKindColor(), drugUseSafeUrl(), drugUseSection() (+1 more)
+### Community 10 - "fetch_poultry_disease_brief.py"
+Cohesion: 0.13
+Nodes (16): analyze(), choose(), claude(), clean_list(), listing(), main(), monday_of(), parse_json() (+8 more)
 
 ### Community 11 - "attachDiseaseEvents"
-Cohesion: 0.08
-Nodes (33): attachDiseaseEvents(), attachDiseaseResultEvents(), countPicks(), currentHpaiAuto(), currentHpaiNews(), currentPicks(), emergNewsSearch(), fetchPortalNews() (+25 more)
+Cohesion: 0.05
+Nodes (51): attachDiseaseEvents(), countPicks(), currentHpaiAuto(), currentHpaiNews(), currentPicks(), dzStatsBind(), emergAnalyze(), emergEsearch() (+43 more)
 
 ### Community 12 - "renderConsultTab"
-Cohesion: 0.06
-Nodes (45): broilerEquivDay(), calcDewPointC(), calcHeatStressIndex(), calcHumidityRatio(), calcProductionIndex(), calcRequiredAdg(), calcVentilationRate(), calcWetBulbC() (+37 more)
+Cohesion: 0.08
+Nodes (34): broilerEquivDay(), calcProductionIndex(), calcRequiredAdg(), fcAlertOn(), fcInputBox(), fcNum(), fcResultCard(), fcVerdict() (+26 more)
 
 ### Community 13 - "re"
-Cohesion: 0.08
-Nodes (35): ai_extract(), _candidates(), clean_quick(), clean_wild(), _date(), fetch_news(), fetch_quick_news(), fetch_table_data() (+27 more)
+Cohesion: 0.11
+Nodes (26): ai_extract(), _candidates(), clean_quick(), clean_wild(), _date(), fetch_news(), fetch_quick_news(), fetch_table_data() (+18 more)
 
 ### Community 14 - "fetch_poultry_price.py"
 Cohesion: 0.07
@@ -239,15 +236,15 @@ Nodes (15): clean_text(), fetch_source(), get_with_proxy_fallback(), kst_label()
 
 ### Community 16 - "coliFigFor"
 Cohesion: 0.07
-Nodes (35): autumnFig(), autumnSvgChain(), autumnSvgEggRule(), autumnSvgLayerSign(), autumnSvgResp(), coliBox(), coliFig(), coliFig2For() (+27 more)
+Nodes (37): autumnFig(), autumnSvgChain(), autumnSvgEggRule(), autumnSvgLayerSign(), autumnSvgResp(), coliBox(), coliFig(), coliFig2For() (+29 more)
 
 ### Community 17 - "renderHusbandryPointsCard"
-Cohesion: 0.06
-Nodes (37): anomIsCold(), anomIsHot(), anomPointsHtml(), anomTodayJudge(), anomTodayLine(), aviagenTargetTemp(), comfortActions(), determineHumidityStage() (+29 more)
+Cohesion: 0.07
+Nodes (40): anomIsCold(), anomIsHot(), anomPointsHtml(), anomTodayJudge(), anomTodayLine(), aviagenTargetTemp(), calcDewPointC(), calcHeatStressIndex() (+32 more)
 
 ### Community 18 - "Architecture: the fetch-script → JSON → dashboard pipeline"
-Cohesion: 0.10
-Nodes (36): Architecture: the fetch-script → JSON → dashboard pipeline, Conventions shared across all fetch scripts, coliTable(), dzSeasonHidden(), farmGameBind(), farmGameCloseWin(), farmGameOpenWin(), ibCardify() (+28 more)
+Cohesion: 0.07
+Nodes (49): Architecture: the fetch-script → JSON → dashboard pipeline, Conventions shared across all fetch scripts, farmGameBind(), farmGameCloseWin(), farmGameOpenWin(), ibCardify(), ibIsHead(), ibSlim() (+41 more)
 
 ### Community 19 - "steps"
 Cohesion: 0.06
@@ -258,8 +255,8 @@ Cohesion: 0.06
 Nodes (33): description, required, CUSTOMS_ONLY, DATA_GO_KR_KEY, FIREBASE_SERVICE_ACCOUNT_JSON, FULL, SMS_RELAY_SECRET, SMS_RELAY_URL (+25 more)
 
 ### Community 21 - "fetch_feed_production.py"
-Cohesion: 0.10
-Nodes (15): list_all_posts(), main(), _candidates(), fetch_year(), find_attachment(), _get(), group_series(), keep_previous() (+7 more)
+Cohesion: 0.15
+Nodes (12): list_all_posts(), main(), _candidates(), fetch_year(), find_attachment(), _get(), group_series(), keep_previous() (+4 more)
 
 ### Community 22 - "send_sms_subscriptions.py"
 Cohesion: 0.15
@@ -270,28 +267,28 @@ Cohesion: 0.13
 Nodes (11): _diag_dump(), download_pdf(), _extract_board_nos(), fetch_detail(), find_latest_board_no_from_list(), find_latest_board_no_via_browser(), get_latest(), load_previous() (+3 more)
 
 ### Community 24 - "renderHpaiTab"
-Cohesion: 0.14
-Nodes (21): hg(), hgAdminBar(), hgCircled(), hgDefaults(), hgFmt(), hgHtml2Md(), hgItemLocs(), hgPlain() (+13 more)
+Cohesion: 0.12
+Nodes (24): flySrcLinks(), h5hYearChart(), hgAdminBar(), hgCircled(), hgFmt(), hgItemLocs(), hgPosByKey(), hgPositions() (+16 more)
 
 ### Community 25 - "steps"
 Cohesion: 0.07
 Nodes (29): ANTHROPIC_API_KEY, FIREBASE_SERVICE_ACCOUNT_JSON, QUICK_EXTRA_URLS, SMS_RELAY_SECRET, SMS_RELAY_URL, runs-on, steps, urls (+21 more)
 
-### Community 26 - "gmFig"
-Cohesion: 0.12
-Nodes (22): dsBind(), gmBind(), gmDilBox(), gmDilOut(), gmFig(), gmFinal(), gmHome(), gmLesson() (+14 more)
+### Community 26 - "gmHome"
+Cohesion: 0.21
+Nodes (12): dsBind(), GM_DIRT(), gmFigFarm(), gmFinal(), gmHome(), gmLesson(), gmLessonKey(), gmPartDone() (+4 more)
 
 ### Community 27 - "json"
-Cohesion: 0.09
-Nodes (26): base_params(), build(), slot(), species(), fetch_periods(), fetch_table(), keep_previous(), label_period() (+18 more)
+Cohesion: 0.18
+Nodes (14): base_params(), build(), slot(), species(), fetch_periods(), fetch_table(), keep_previous(), label_period() (+6 more)
 
 ### Community 28 - "pfTabSpecies"
-Cohesion: 0.21
-Nodes (20): pfChips(), pfControls(), pfHz(), pfImportBrief(), pfInsufficientHtml(), pfKpi(), pfPct1(), pfPriceChart() (+12 more)
+Cohesion: 0.14
+Nodes (23): pfBar(), pfBuildModel(), pfChips(), pfClip(), pfControls(), pfImportBrief(), pfInsufficientHtml(), pfKpi() (+15 more)
 
 ### Community 29 - "renderSelfCheckPanel"
-Cohesion: 0.11
-Nodes (27): bodyPartByKey(), bodyPartLabel(), cardCandToBackImage(), commonsImageCredit(), currentOrganFunctions(), currentSelfCheckDiseases(), currentStudyDecks(), findCardImage() (+19 more)
+Cohesion: 0.17
+Nodes (19): bodyPartByKey(), commonsImageCredit(), newProductItemImages(), pkgBoxStyle(), pkgChip(), pkgColor(), pkgColorOf(), pkgIconCircle() (+11 more)
 
 ### Community 30 - "renderFeedGrainFlow"
 Cohesion: 0.08
@@ -322,16 +319,16 @@ Cohesion: 0.11
 Nodes (26): bbChartSvg(), bbDelta(), bbMan(), bbMonth(), bbPctOf(), bbYm(), fpBirds(), fpChart() (+18 more)
 
 ### Community 37 - "renderLightCalc"
-Cohesion: 0.14
-Nodes (16): bindSmsBox(), brClock(), brDark(), brFmtDate(), brLux(), brSchedule(), brSmsText(), moltSmsText() (+8 more)
+Cohesion: 0.15
+Nodes (15): bindSmsBox(), brClock(), brDark(), brFmtDate(), brLux(), brSchedule(), brSmsText(), moltSmsText() (+7 more)
 
 ### Community 38 - "fetch_jungchu_price.py"
 Cohesion: 0.13
 Nodes (9): find_image_url(), find_post_url(), _get_bytes(), _get_text(), main(), run_ocr(), collect(), dataset_of() (+1 more)
 
 ### Community 39 - "fetch_broiler_breeder.py"
-Cohesion: 0.09
-Nodes (28): ask_claude(), build_forecast(), clean_outlook(), fit_adult(), _img_b64(), kreI_get(), _lstsq2(), main() (+20 more)
+Cohesion: 0.13
+Nodes (16): ask_claude(), build_forecast(), clean_outlook(), fit_adult(), _img_b64(), kreI_get(), _lstsq2(), main() (+8 more)
 
 ### Community 40 - "steps"
 Cohesion: 0.08
@@ -370,8 +367,8 @@ Cohesion: 0.10
 Nodes (20): FIREBASE_SERVICE_ACCOUNT_JSON, runs-on, steps, jobs, fetch-weather-cities, name, on, schedule (+12 more)
 
 ### Community 49 - "renderLightClock"
-Cohesion: 0.17
-Nodes (20): lgChartSvg(), lgClk(), lgClockSvg(), lgCompute(), lgDayLength(), lgDaySchedule(), lgDur(), lgEffectiveLat() (+12 more)
+Cohesion: 0.16
+Nodes (21): lgChartSvg(), lgClk(), lgClockSvg(), lgCompute(), lgDayLength(), lgDaySchedule(), lgDur(), lgEffectiveLat() (+13 more)
 
 ### Community 50 - "pfForecast"
 Cohesion: 0.15
@@ -449,21 +446,21 @@ Nodes (20): FIREBASE_SERVICE_ACCOUNT_JSON, runs-on, steps, jobs, fetch-poultry-p
 Cohesion: 0.13
 Nodes (21): allCoins(), allStocks(), fmtDate(), fmtFull(), genLivestock7(), genWeekData(), getLast7Days(), last7DayInfos() (+13 more)
 
-### Community 69 - "fetch_prices.py"
-Cohesion: 0.29
-Nodes (9): call_api(), diff(), get_api_key(), ival(), main(), filter_type(), probe_url(), sval() (+1 more)
+### Community 69 - "sys"
+Cohesion: 0.11
+Nodes (16): day_key(), fetch_one(), main(), call_api(), diff(), get_api_key(), ival(), main() (+8 more)
 
-### Community 70 - "renderHpaiTab"
-Cohesion: 0.24
-Nodes (10): flySrcLinks(), h5hYearChart(), hpaiBadge(), hpaiSplitBar(), hpaiTagline(), renderFlywayCard(), renderHpaiDataCards(), renderHpaiHumanCard() (+2 more)
+### Community 70 - "time"
+Cohesion: 0.15
+Nodes (15): customs_get(), customs_variants(), fetch_comtrade(), fetch_customs(), http_get(), main(), month_list(), convert() (+7 more)
 
 ### Community 71 - "steps"
 Cohesion: 0.10
 Nodes (19): FIREBASE_SERVICE_ACCOUNT_JSON, SMS_RELAY_SECRET, SMS_RELAY_URL, jobs, send, name, on, schedule (+11 more)
 
 ### Community 72 - "isBoardAdmin"
-Cohesion: 0.07
-Nodes (32): attachDzCustomEvents(), attachDzPhotoEvents(), boardShrinkPhoto(), currentFarmFaq(), currentMagazineNotes(), currentPremiumMenuItems(), drugUseBind(), drugUseNewDraft() (+24 more)
+Cohesion: 0.06
+Nodes (39): attachDzCustomEvents(), attachDzPhotoEvents(), boardShrinkPhoto(), currentFarmFaq(), currentMagazineNotes(), currentPremiumMenuItems(), currentStudyDecks(), drugUseAllKinds() (+31 more)
 
 ### Community 73 - "steps"
 Cohesion: 0.11
@@ -478,32 +475,32 @@ Cohesion: 0.11
 Nodes (17): TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, jobs, send, name, on, schedule, workflow_dispatch (+9 more)
 
 ### Community 76 - "fetch_research_papers.py"
-Cohesion: 0.13
-Nodes (14): build_category(), efetch_articles(), esearch_pmids(), fallback_translation(), google_translate(), load_previous(), main(), _text() (+6 more)
+Cohesion: 0.20
+Nodes (10): build_category(), efetch_articles(), esearch_pmids(), fallback_translation(), google_translate(), load_previous(), main(), _text() (+2 more)
 
 ### Community 77 - "render"
-Cohesion: 0.06
-Nodes (76): Data is also mirrored to Firebase Storage (so the repo can go private), getPublicContent(), buildSmsDigestTextAsync(), dataDatasetOf(), dzStatsBind(), emergAnalyze(), emergEsearch(), emergEsummary() (+68 more)
+Cohesion: 0.08
+Nodes (59): Data is also mirrored to Firebase Storage (so the repo can go private), getPublicContent(), buildSmsDigestTextAsync(), dataDatasetOf(), fetchBroilerBreeder(), fetchBroilerPriceToday(), fetchDataset(), fetchDiseaseBrief() (+51 more)
 
 ### Community 78 - "ocr_jungchu_table.js"
 Cohesion: 0.17
 Nodes (15): sharp, tesseract.js, { createWorker }, isRowValid(), main(), ocrTableRows(), parseRow(), sharp (+7 more)
 
 ### Community 79 - "renderDrugSearchPanel"
-Cohesion: 0.29
-Nodes (8): drugEfficacySnippet(), drugFormCategory(), drugModePlaceholder(), drugStandardPacks(), drugWithdrawalForPoultry(), renderDrugKindSelect(), renderDrugSearchPanel(), renderDrugUseForm()
+Cohesion: 0.25
+Nodes (9): drugEfficacySnippet(), drugFormCategory(), drugModePlaceholder(), drugStandardPacks(), drugWithdrawalForPoultry(), renderDrugKindSelect(), renderDrugSearchPanel(), renderDrugSuggestions() (+1 more)
 
 ### Community 80 - "fetch_h5n1_human.py"
-Cohesion: 0.21
+Cohesion: 0.17
 Nodes (11): download(), main(), read_csv_bytes(), to_int(), build(), _clean_name(), find_table_page(), _int() (+3 more)
 
 ### Community 81 - "fetchNotices"
-Cohesion: 0.12
-Nodes (24): Working in index.html, fetchChickenPrices(), fetchDabomPrices(), fetchEconNews(), fetchEggReport(), fetchNotices(), fetchOneSite(), fetchPolicyNews() (+16 more)
+Cohesion: 0.18
+Nodes (18): Working in index.html, fetchDabomPrices(), fetchEconNews(), fetchNotices(), fetchOneSite(), fetchPolicyNews(), fetchPoultryPrices(), fmtKST() (+10 more)
 
 ### Community 82 - "tradeItem"
-Cohesion: 0.16
-Nodes (17): pfImportStatsHtml(), pfTon(), renderTradeInPriceTab(), renderTradePanel(), tradeBadge(), tradeItem(), tradeKpi(), tradeModel() (+9 more)
+Cohesion: 0.17
+Nodes (16): pfTon(), renderTradeInPriceTab(), renderTradePanel(), tradeBadge(), tradeItem(), tradeKpi(), tradeModel(), tradeMoney() (+8 more)
 
 ### Community 83 - "fetch_hpai_risk.py"
 Cohesion: 0.22
@@ -514,8 +511,8 @@ Cohesion: 0.47
 Nodes (6): anomCompute(), anomDoy(), anomLoadClimatology(), anomMean(), anomPct(), anomSd()
 
 ### Community 85 - "What this is"
-Cohesion: 0.29
-Nodes (8): assertAdmin(), deleteMemberAccount(), getBoardPosts(), getMemberProfiles(), getSmsSubscriptions(), readJsonFile(), resetMemberAccount(), setMemberApproval()
+Cohesion: 0.21
+Nodes (15): What this is, assertAdmin(), deleteMemberAccount(), getApprovedMembers(), getBoardPosts(), getMemberProfiles(), getSmsSubscriptions(), readJsonFile() (+7 more)
 
 ### Community 86 - "callClaude"
 Cohesion: 0.24
@@ -554,28 +551,28 @@ Cohesion: 0.48
 Nodes (7): gpCol(), gpDir(), gpPct(), gpRange(), gpSpark(), renderGrainPriceCard(), renderGrainPricePanel()
 
 ### Community 95 - "renderDisinfectPanel"
-Cohesion: 0.16
-Nodes (20): dilBind(), dilCalc(), dilFmt(), dilResultHtml(), disinfectProductsToText(), dsBanner(), dsBasic(), dsBug() (+12 more)
+Cohesion: 0.25
+Nodes (15): disinfectProductsToText(), dsBanner(), dsBasic(), dsBug(), dsDisease(), dsFigThree(), dsGeneral(), dsHome() (+7 more)
 
 ### Community 96 - "renderSeasonalPanel"
-Cohesion: 0.07
-Nodes (52): buildSmsDigestText(), currentFinderCases(), currentSeasonalPackages(), currentTreatmentPackages(), currentVaccinePrograms(), finderCasesForCategory(), finderCasesForSpecies(), finderCategoriesFor() (+44 more)
+Cohesion: 0.14
+Nodes (25): buildSmsDigestText(), currentFinderCases(), currentSeasonalPackages(), currentTreatmentPackages(), finderCasesForCategory(), finderCasesForSpecies(), finderCategoriesFor(), finderSpeciesLabel() (+17 more)
 
-### Community 97 - "metConvert"
-Cohesion: 0.50
-Nodes (4): metConvert(), metEntryPrecip(), metEntrySymbol(), metSymbolToWmo()
+### Community 97 - "renderVaccinePanel"
+Cohesion: 0.14
+Nodes (19): ageDays(), currentVaccinePrograms(), pkgColorPickerHtml(), pkgReadColor(), pkgValidColor(), renderVaccineGuide(), renderVaccinePanel(), resetVaccineForm() (+11 more)
 
 ### Community 98 - "switchTab"
-Cohesion: 0.10
-Nodes (22): anomLoadEnsemble(), anomRun(), buildDiseaseSearch(), dzCustomToEntry(), dzMergeCustom(), emergSendToNews(), fetchDiseases(), fetchNews() (+14 more)
+Cohesion: 0.09
+Nodes (24): anomLoadEnsemble(), anomRun(), emergSendToNews(), fetchChickenPrices(), fetchNews(), fetchStockPrices(), fetchUpbitData(), fetchWeather() (+16 more)
 
 ### Community 99 - "gmT"
-Cohesion: 0.15
-Nodes (53): dsFigBirds(), dsFigFlow(), dsFigFume(), GM_DIRT(), gmArrow(), gmBox(), gmE(), gmFigAbAg() (+45 more)
+Cohesion: 0.14
+Nodes (56): dsFigBirds(), dsFigFlow(), dsFigFume(), gmAb(), gmArrow(), gmBox(), gmE(), gmFigAbAg() (+48 more)
 
 ### Community 100 - "fetchQiaSearch"
-Cohesion: 0.07
-Nodes (39): attachDrugDetails(), bindDrugPickerEvents(), choseongMatchIndex(), closeDrugPicker(), dropExportOnly(), drugPickerOverlayHtml(), drugSymptomSuggestions(), drugUseSearchLinks() (+31 more)
+Cohesion: 0.06
+Nodes (43): attachDrugDetails(), bindDrugPickerEvents(), choseongMatchIndex(), closeDrugPicker(), dropExportOnly(), drugPickerOverlayHtml(), drugSymptomSuggestions(), drugUseCard() (+35 more)
 
 ### Community 101 - "fetch_taxfree_fuel.py"
 Cohesion: 0.25
@@ -601,13 +598,13 @@ Nodes (8): farmGameCall(), farmGameErrMsg(), farmGameNickKey(), farmGameUser(), 
 Cohesion: 0.12
 Nodes (8): fetch_html(), main(), parse_price_table(), fetch_html(), main(), normalize_date(), parse_egg_price_html(), RowParser
 
-### Community 107 - "renderDiseaseResults"
-Cohesion: 0.14
-Nodes (24): What this is, diseaseListing(), diseaseMatches(), diseaseSnippet(), dzCategories(), dzCatOf(), dzExtraFigs(), dzExtraRefs() (+16 more)
+### Community 107 - "dzCatOf"
+Cohesion: 0.22
+Nodes (11): attachDiseaseResultEvents(), diseaseListing(), diseaseMatches(), dzCategories(), dzCatOf(), dzFigSpec(), dzSeasonHidden(), dzShown() (+3 more)
 
-### Community 108 - "pfSeries"
-Cohesion: 0.17
-Nodes (17): pfAdminHtml(), pfBanner(), pfClean(), pfDemoData(), pfFeedMonths(), pfFmtN(), pfHeatmaps(), pfMA() (+9 more)
+### Community 108 - "pfSign"
+Cohesion: 0.18
+Nodes (14): pfDiagram(), pfEvidence(), pfFeedMonths(), pfFmtN(), pfImportHtml(), pfImportItem(), pfImportStatsHtml(), pfMA() (+6 more)
 
 ### Community 110 - "renderEmergingDiseaseCard"
 Cohesion: 0.67
@@ -621,61 +618,49 @@ Nodes (13): hkCount(), hkFarms(), hkFmt(), hkInPeriod(), hkMonth(), hkNumLabel()
 Cohesion: 0.67
 Nodes (3): featureBoardAuthorLabel(), featureBoardReplyLabel(), renderFeatureBoardPanel()
 
-### Community 115 - "hzBind"
-Cohesion: 0.27
-Nodes (13): hzBind(), hzBtSummaryLine(), hzFarmReport(), hzNearLevel1(), hzReportHtml(), hzReportPrintDoc(), hzReportText(), hzToday() (+5 more)
+### Community 115 - "fetch_usda_crop_progress.py"
+Cohesion: 0.23
+Nodes (9): fetch_text(), history_point(), list_releases(), main(), _num(), parse_report(), split_sections(), table_rows() (+1 more)
+
+### Community 116 - "pfTabData"
+Cohesion: 0.20
+Nodes (10): pfAdminHtml(), pfHeatmaps(), pfIngest(), pfMethodHtml(), pfMonthly(), pfNormDate(), pfNum(), pfParseTable() (+2 more)
 
 ### Community 117 - "sgOpenEdit"
 Cohesion: 0.29
 Nodes (7): sgAutumnSeed(), sgBase(), sgEffective(), sgHusbToText(), sgIssuesToText(), sgOpenEdit(), sgRowsToText()
 
-### Community 118 - "pfBind"
-Cohesion: 0.21
-Nodes (13): pfApplyLocal(), pfBind(), pfDownload(), pfIngest(), pfLog(), pfMergeRows(), pfNormDate(), pfNum() (+5 more)
+### Community 118 - "pfSeries"
+Cohesion: 0.17
+Nodes (20): pfApplyLocal(), pfBanner(), pfBind(), pfClean(), pfDemoData(), pfDownload(), pfHz(), pfLog() (+12 more)
+
+### Community 119 - "renderDiseaseResults"
+Cohesion: 0.29
+Nodes (8): diseaseSnippet(), dzExtraFigs(), dzExtraRefs(), dzPhotoList(), dzUserBlock(), googleImageBtn(), hlDisease(), renderDiseaseResults()
 
 ### Community 120 - "isPremiumApproved"
-Cohesion: 0.09
-Nodes (31): fmtLunar(), isEmbedded(), isPremiumApproved(), kkokoBumpUsage(), kkokoCharacterBlock(), kkokoDailyLimit(), kkokoDisplayName(), kkokoGreeting() (+23 more)
+Cohesion: 0.07
+Nodes (39): fmtLunar(), isEmbedded(), isPremiumApproved(), kkokoBumpUsage(), kkokoCharacterBlock(), kkokoDailyLimit(), kkokoDisplayName(), kkokoGreeting() (+31 more)
 
-### Community 125 - "sendDirectSms"
-Cohesion: 0.22
-Nodes (10): casUsage(), getFarmGameSaves(), getFeatureRequests(), getPremiumContent(), isApprovedOrAdmin(), kstDateString(), memberActiveToday(), sendDirectSms() (+2 more)
+### Community 121 - "fetchDiseases"
+Cohesion: 0.43
+Nodes (7): buildDiseaseSearch(), dzCustomToEntry(), dzMergeCustom(), fetchDiseases(), fetchPublicContentJson(), loadDiseaseCustom(), loadDzPhotos()
 
-### Community 126 - "renderHpaiZeroPanel"
-Cohesion: 0.29
-Nodes (10): hzCard(), hzGrid(), hzSection(), hzSteps(), hzTabs(), renderHpaiZeroPanel(), renderHzCheck(), renderHzIntro() (+2 more)
+### Community 122 - "dilResultHtml"
+Cohesion: 0.50
+Nodes (5): dilBind(), dilCalc(), dilFmt(), dilResultHtml(), renderDilutionCard()
+
+### Community 124 - "renderWeatherNewsCard"
+Cohesion: 0.40
+Nodes (5): renderWeatherNewsCard(), wnAgo(), wnCard(), wnLink(), wnThin()
+
+### Community 125 - "gmBind"
+Cohesion: 0.67
+Nodes (3): gmBind(), gmDilBox(), gmDilOut()
 
 ### Community 127 - "renderColiEasy"
 Cohesion: 0.39
 Nodes (8): easyBtn(), easyCard(), easyHero(), easyList(), easyStep(), easyTwo(), renderColiEasy(), renderHzEasy()
-
-### Community 128 - "hzBox"
-Cohesion: 0.36
-Nodes (8): hzBacktestBox(), hzBacktestBox2(), hzBox(), hzClass(), hzDensEnsure(), hzDensityBox(), hzScore(), renderHzSim()
-
-### Community 129 - "작업 인계 노트 (2026-10-13)"
-Cohesion: 0.33
-Nodes (5): 0. 이어받는 세션이 먼저 할 일, 1-2. HPAI ZERO FARM (유료서비스 · AI공동연구팀, `hpaizero`), 2. 최근 완료된 기능(이 세션, 2026-10-08 ~ 10-13, 모두 main 병합), 3. 환경 메모, 작업 인계 노트 (2026-10-13)
-
-### Community 133 - "pfSign"
-Cohesion: 0.31
-Nodes (9): pfBar(), pfDiagram(), pfEvidence(), pfProbRows(), pfRuleBody(), pfRuleSpeciesCard(), pfSign(), pfSpeciesCard() (+1 more)
-
-### Community 135 - "hzRegion"
-Cohesion: 0.40
-Nodes (5): hzDaysAgo(), hzHomeStatus(), hzRegion(), hzRegionBox(), renderHzHome()
-
-### Community 137 - "renderHzTasks"
-Cohesion: 0.83
-Nodes (4): hzStageProgress(), hzTaskId(), renderHzTaskCard(), renderHzTasks()
-
-### Community 138 - "pfBuildModel"
-Cohesion: 0.50
-Nodes (4): pfBuildModel(), pfClip(), pfProbs(), pfYoY()
-
-### Community 142 - "hzLocate"
-Cohesion: 0.67
-Nodes (3): hzLocate(), hzNearestSgg(), hzSave()
 
 ## Knowledge Gaps
 - **1 isolated node(s):** `RFC-822`
@@ -685,17 +670,17 @@ Nodes (3): hzLocate(), hzNearestSgg(), hzSave()
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Architecture: the fetch-script → JSON → dashboard pipeline` connect `Architecture: the fetch-script → JSON → dashboard pipeline` to `ibTag`, `attachEvents`, `index.js`, `fetch_animal_drug_news.py`, `gmVirus`, `esc`, `pfBuildModel`, `attachDiseaseEvents`, `renderConsultTab`, `renderDrugUsePanel`, `re`, `coliFigFor`, `renderHusbandryPointsCard`, `send_sms_subscriptions.py`, `gmFig`, `json`, `pfTabSpecies`, `renderFeedGrainFlow`, `gmVirus`, `renderFeedPotentialPanel`, `fetch_broiler_breeder.py`, `renderLightClock`, `pfForecast`, `renderHpaiTab`, `isBoardAdmin`, `render`, `tradeItem`, `What this is`, `callClaude`, `renderDzStatsPanel`, `vcFigPress`, `CLAUDE.md`, `renderDisinfectPanel`, `renderSeasonalPanel`, `metConvert`, `switchTab`, `gmT`, `fetchQiaSearch`, `renderDiseaseResults`, `pfSeries`, `renderHpaiKrCard`, `isPremiumApproved`, `sendDirectSms`?**
-  _High betweenness centrality (0.168) - this node is a cross-community bridge._
+- **Why does `Architecture: the fetch-script → JSON → dashboard pipeline` connect `Architecture: the fetch-script → JSON → dashboard pipeline` to `ibTag`, `attachEvents`, `index.js`, `fetch_animal_drug_news.py`, `gmVirus`, `esc`, `attachDiseaseEvents`, `renderConsultTab`, `re`, `coliFigFor`, `renderHusbandryPointsCard`, `send_sms_subscriptions.py`, `renderHpaiTab`, `gmHome`, `pfTabSpecies`, `renderFeedGrainFlow`, `gmVirus`, `renderFeedPotentialPanel`, `fetch_broiler_breeder.py`, `renderLightClock`, `pfForecast`, `time`, `isBoardAdmin`, `render`, `tradeItem`, `What this is`, `callClaude`, `renderDzStatsPanel`, `vcFigPress`, `CLAUDE.md`, `renderDisinfectPanel`, `renderVaccinePanel`, `switchTab`, `gmT`, `fetchQiaSearch`, `dzCatOf`, `renderHpaiKrCard`, `pfSeries`, `isPremiumApproved`, `dilResultHtml`, `gmBind`?**
+  _High betweenness centrality (0.177) - this node is a cross-community bridge._
 - **Are the 2 inferred relationships involving `esc()` (e.g. with `dzFigTiles()` and `renderBizFooterLine()`) actually correct?**
   _`esc()` has 2 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `RFC-822` to the rest of the system?**
   _1 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `index.inline.js` be split into smaller, more focused modules?**
   _Cohesion score 0.004544767471154331 - nodes in this community are weakly interconnected._
-- **Why does `decode_google_url()` connect `fetch_animal_drug_news.py` to `Architecture: the fetch-script → JSON → dashboard pipeline`, `json`, `re`?**
-  _High betweenness centrality (0.024) - this node is a cross-community bridge._
-- **Are the 162 inferred relationships involving `Architecture: the fetch-script → JSON → dashboard pipeline` (e.g. with `analyzeNecropsyPhotos()` and `fetchRssItems()`) actually correct?**
-  _`Architecture: the fetch-script → JSON → dashboard pipeline` has 162 INFERRED edges - model-reasoned connections that need verification._
+- **Why does `decode_google_url()` connect `fetch_animal_drug_news.py` to `fetch_poultry_disease_brief.py`, `Architecture: the fetch-script → JSON → dashboard pipeline`, `json`, `re`?**
+  _High betweenness centrality (0.027) - this node is a cross-community bridge._
+- **Are the 168 inferred relationships involving `Architecture: the fetch-script → JSON → dashboard pipeline` (e.g. with `analyzeNecropsyPhotos()` and `fetchRssItems()`) actually correct?**
+  _`Architecture: the fetch-script → JSON → dashboard pipeline` has 168 INFERRED edges - model-reasoned connections that need verification._
 - **Should `attachEvents` be split into smaller, more focused modules?**
-  _Cohesion score 0.0350076103500761 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.03691045796308954 - nodes in this community are weakly interconnected._
