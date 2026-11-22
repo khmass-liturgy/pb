@@ -6633,7 +6633,7 @@ function metConvert(payload){
 async function fetchWeather(lat, lng, name){
   weatherState.fallbackNote = null; weatherState.cityUpdated = "";
   weatherState.status="loading"; weatherState.locationName=name;
-  if(state.tab==="weather" || state.tab==="vent" || state.tab==="disease" || state.tab==="premium") render();
+  if(state.tab==="weather" || state.tab==="vent" || state.tab==="disease" || state.tab==="premium" || state.tab==="consult") render();
   try {
     // 날씨 출처: MET Norway(Yr.no, api.met.no) — 무료·키 불필요, CORS 허용(브라우저 직접 호출 가능).
     // 응답은 시간대별(timeseries) 자료라, 아래 race에서 metConvert()로 Open-Meteo 모양({daily,hourly})으로
@@ -6698,7 +6698,7 @@ async function fetchWeather(lat, lng, name){
         weatherState.staleAt = cache.savedAt || null;
         weatherState.status = "done";
         weatherState.errMsg = errs.join(" / ");
-        if(state.tab==="weather" || state.tab==="vent" || state.tab==="disease" || state.tab==="premium") render();
+        if(state.tab==="weather" || state.tab==="vent" || state.tab==="disease" || state.tab==="premium" || state.tab==="consult") render();
         return;
       }
       throw new Error(errs.join(" / ") || "예보 조회 실패");
@@ -6754,10 +6754,10 @@ async function fetchWeather(lat, lng, name){
   } catch(e){
     console.error("날씨 조회 실패:", e);
     weatherState.status="error"; weatherState.errMsg = (e && e.message) || "";
-    if(state.tab==="weather" || state.tab==="vent" || state.tab==="disease" || state.tab==="premium") render();
+    if(state.tab==="weather" || state.tab==="vent" || state.tab==="disease" || state.tab==="premium" || state.tab==="consult") render();
     return;
   }
-  if(state.tab==="weather" || state.tab==="vent" || state.tab==="disease" || state.tab==="premium") render();
+  if(state.tab==="weather" || state.tab==="vent" || state.tab==="disease" || state.tab==="premium" || state.tab==="consult") render();
 
   // 작년 같은 주 비교는 부가 정보라 별도로 받는다 — 과거 기록은 MET Norway에 없어
   // archive-api.open-meteo.com을 쓰는데, 사용자 네트워크에 따라 아주 느리거나(수십 초)
@@ -6786,7 +6786,7 @@ async function fetchWeather(lat, lng, name){
   } catch(e){
     console.warn("작년 비교 날씨 로딩 실패(예보는 정상 표시됨):", e);
   }
-  if(state.tab==="weather" || state.tab==="vent" || state.tab==="disease" || state.tab==="premium") render();
+  if(state.tab==="weather" || state.tab==="vent" || state.tab==="disease" || state.tab==="premium" || state.tab==="consult") render();
 }
 
 async function searchLocation(query){
@@ -35065,6 +35065,34 @@ function getTargetTempForAge(species, age){
   return table[table.length-1].t;
 }
 
+// ── 사양/복지 탭 날씨 준비 (2026-11-22) ─────────────────────────────────────────
+// 습구·이슬점·환기 계산 카드는 오늘 예보가 있어야 계산되는데, 이 탭은 날씨를 불러오지 않아 다른 탭을 먼저 들르지 않으면
+// 카드가 통째로 비어 보였다. 탭을 열 때 저장된 위치로 날씨를 받아 오고, 받아 오기 전·실패·위치 없음은 안내 카드로 보인다.
+function consultEnsureWeather(){
+  if(weatherState.status !== "idle") return;
+  const saved = loadWeatherLocation();
+  if(saved) setTimeout(() => { if(weatherState.status === "idle") fetchWeather(saved.lat, saved.lng, saved.name); }, 0);
+}
+function consultWxGate(what){
+  if((weatherState.forecast || []).length) return "";
+  consultEnsureWeather();
+  const st = weatherState.status, saved = loadWeatherLocation();
+  const btn = (id, t, solid) => `<button id="${id}" style="border:${solid ? "none" : "1px solid #1a2744"};border-radius:10px;background:${solid ? "#1a2744" : "#fff"};color:${solid ? "#fff" : "#1a2744"};padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer">${t}</button>`;
+  const btns = `<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px">${btn("btn-wx-gps", "📍 현재 위치로", true)}${btn("consult-wx-seoul", "서울 기준으로 보기")}${btn("consult-wx-goto", "🌤️ 날씨 탭에서 정하기")}</div>`;
+  const box = (ic, t, sub, extra) => `<div class="card" style="text-align:center;padding:24px 16px;border-top:6px solid #0288D1"><div style="font-size:36px">${ic}</div><div style="font-size:15px;font-weight:800;color:#333;margin-top:6px">${t}</div><div style="font-size:12.5px;color:#777;margin-top:4px;line-height:1.6">${sub}</div>${extra || ""}</div>`;
+  if(st === "loading" || (st === "idle" && saved)) return box("⏳", "오늘 날씨를 불러오는 중이에요", `${esc(weatherState.locationName || (saved && saved.name) || "")} 예보로 ${what}을(를) 계산합니다`);
+  if(st === "error") return box("⚠️", "날씨를 불러오지 못했어요", `잠시 뒤 다시 시도하거나 위치를 다시 정해 주세요`, `<div style="margin-top:12px">${btn("consult-wx-retry", "🔄 다시 불러오기", true)}</div>${btns}`);
+  return box("📍", "농장 위치를 정하면 계산해 드려요", `${what}은(는) 오늘 기온·습도로 계산합니다`, btns);
+}
+function consultWxBind(){
+  const seoul = document.getElementById("consult-wx-seoul");
+  if(seoul) seoul.onclick = () => fetchWeather(37.5665, 126.978, "서울");
+  const go = document.getElementById("consult-wx-goto");
+  if(go) go.onclick = () => switchTab("weather");
+  const retry = document.getElementById("consult-wx-retry");
+  if(retry) retry.onclick = () => { const s = loadWeatherLocation(); if(s) fetchWeather(s.lat, s.lng, s.name); else fetchWeather(37.5665, 126.978, "서울"); };
+}
+
 function renderWetBulbPanel(){
   const fc = weatherState.forecast || [];
   if(fc.length===0) return "";
@@ -36919,7 +36947,7 @@ function renderConsultTab(){
 
   const sub = CONSULT_SUBS.some(x => x[0] === consultState.sub) ? consultState.sub : "std";
   const needCtl = ["std", "intake", "air", "vent", "pi", "mgmt"].includes(sub);
-  const body = sub === "std" ? card + renderFarmComparePanel(breed, age) : sub === "intake" ? renderIntakePanel() : sub === "air" ? renderHumIndexCard() + renderWetBulbPanel() + renderDewPointPanel() : sub === "vent" ? renderVentCalcPanel() : sub === "pi" ? (renderProductionIndexPanel() || `<div class="card" style="text-align:center;color:#999;padding:22px;font-size:13px">생산지수는 육계에서만 계산해요. 위에서 🐔 육계를 선택하세요.</div>`) : sub === "mgmt" ? renderMgmtPointsPanel() + renderHumIndexCard() : sub === "welfare" ? renderWelfarePanel() : sub === "haccp" ? renderHaccpPanel() : renderMakerPanel();
+  const body = sub === "std" ? card + renderFarmComparePanel(breed, age) : sub === "intake" ? renderIntakePanel() : sub === "air" ? (consultWxGate("습구온도·이슬점") || renderHumIndexCard() + renderWetBulbPanel() + renderDewPointPanel()) : sub === "vent" ? (consultWxGate("환기량") || renderVentCalcPanel() || `<div class="card" style="text-align:center;color:#888;padding:22px;font-size:13px;line-height:1.7">이 ${consultState.species === "broiler" ? "일령" : "주령"}에는 사양표의 목표온도·사료섭취량 자료가 없어 환기량을 계산하지 못했어요.<br>위에서 ${consultState.species === "broiler" ? "일령" : "주령"}을 바꿔 보세요.</div>`) : sub === "pi" ? (renderProductionIndexPanel() || `<div class="card" style="text-align:center;color:#999;padding:22px;font-size:13px">생산지수는 육계에서만 계산해요. 위에서 🐔 육계를 선택하세요.</div>`) : sub === "mgmt" ? renderMgmtPointsPanel() + renderHumIndexCard() : sub === "welfare" ? renderWelfarePanel() : sub === "haccp" ? renderHaccpPanel() : renderMakerPanel();
   const controls = needCtl ? `<div style="display:flex;gap:8px;margin-bottom:10px">${speciesBtns}</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">${breedBtns}</div>
   ${ageInput}` : "";
@@ -38951,6 +38979,8 @@ function switchTab(tab, opts){
       const saved=loadWeatherLocation();
       if(saved) fetchWeather(saved.lat, saved.lng, saved.name);
     }
+    // 사양/복지 탭의 습구·이슬점·환기 계산·습도 지수표도 오늘 날씨로 계산한다(2026-11-22 빈 화면 수정)
+    if(state.tab==="consult") consultEnsureWeather();
     if(state.tab==="news" && newsState.status==="idle") fetchNews(newsState.activeChannel);
     // 경제동향 섹션을 뺀 뒤로 브리핑 탭은 주가·코인을 쓰지 않는다
     if(state.tab==="briefing" && noticesState.status==="idle") fetchNotices();
@@ -41577,6 +41607,7 @@ function attachEvents(){
   // 날씨 GPS 버튼
   const wxRetryStale=document.getElementById("btn-wx-retry-stale");
   if(wxRetryStale) wxRetryStale.onclick=()=>{ if(weatherState.lat!=null) fetchWeather(weatherState.lat, weatherState.lng, weatherState.locationName); };
+  consultWxBind();
   const wxGpsBtn=document.getElementById("btn-wx-gps");
   if(wxGpsBtn) wxGpsBtn.onclick=()=>{
     if(!navigator.geolocation){ alert("이 브라우저는 위치 감지를 지원하지 않습니다."); return; }
