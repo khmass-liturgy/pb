@@ -37551,7 +37551,7 @@ function renderWeatherSobakCard(){
 function renderWeatherTab(){
   if(weatherNewsState.status === "idle") fetchWeatherNews();
   const sub = WX_SUBS.some(x => x[0] === wxSub) ? wxSub : "week";
-  return sub === "solar" ? renderSolarTermPanel() : sub === "anomaly" ? (subAutoOpen("wx-anomaly", anomState, () => { if(weatherState.lat != null && anomState.status !== "loading" && (anomState.status === "idle" || anomState.quick || anomState.key !== weatherState.lat + "," + weatherState.lng)) anomRun(); else render(); }), renderAnomalyPanel()) : sub === "news" ? renderWeatherNewsCard() + renderWeatherSobakCard() : renderWeatherBody(sub);
+  return sub === "solar" ? renderSolarTermPanel() : sub === "anomaly" ? (consultWxGate("이상기온 예측") || (subAutoOpen("wx-anomaly", anomState, () => { if(weatherState.lat != null && anomState.status !== "loading" && (anomState.status === "idle" || anomState.quick || anomState.key !== weatherState.lat + "," + weatherState.lng)) anomRun(); else render(); }), renderAnomalyPanel())) : sub === "news" ? renderWeatherNewsCard() + renderWeatherSobakCard() : renderWeatherBody(sub);
 }
 
 // ── 🔮 이상기온 예측 (날씨 탭) ───────────────────────────────────────────────
