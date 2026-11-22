@@ -34148,6 +34148,42 @@ function layerWaterFeedRatio(tempC){
   return lo.r + (hi.r - lo.r) * (tempC - lo.t) / (hi.t - lo.t);
 }
 
+// ── 건조주의 (습도 40% 이하, 소유자 요청 2026-11-22) ─────────────────────────────
+// 날씨·환기·사양관리 화면이 같은 기준·같은 문구를 쓰도록 한곳에 둔다. 하루 습도는 낮 평균(humDay)과 일 평균(hum) 중 낮은 값.
+const DRY_RH = 40;
+function dryRhOfDay(d){ if(!d) return null; const v = [d.humDay, d.hum].filter(x => x != null && isFinite(x)); return v.length ? Math.min(...v) : null; }
+function isDryRh(rh){ return rh != null && isFinite(rh) && Math.round(rh) <= DRY_RH; }
+function dryBadge(rh, small){ return isDryRh(rh) ? `<span style="display:inline-block;background:#FFF3E0;color:#BF360C;border:1px solid #FFB74D;border-radius:8px;padding:${small ? "0 4px" : "1px 6px"};font-size:${small ? 10 : 11.5}px;font-weight:800;white-space:nowrap">🏜️ 건조주의</span>` : ""; }
+// opts.when: "오늘" 등 · opts.ctx: "vent"(환기 화면 — 과환기 줄이기를 앞에) · opts.extra: 덧붙일 한 줄
+function dryWarnBox(rh, opts){
+  if(!isDryRh(rh)) return "";
+  opts = opts || {};
+  const vent = opts.ctx === "vent";
+  const li = t => `<li style="margin:3px 0">${t}</li>`;
+  const tips = [
+    "💨 <b>먼지</b>가 많이 날려 호흡기 질병(IB·마이코플라스마·대장균증 등)이 심해지기 쉬워요 — 깔짚·사료 먼지를 줄이고 계군의 기침·콧물을 살피세요.",
+    "💧 <b>급수</b> — 니플·급수기 물이 잘 나오는지, 음수량이 줄지 않았는지 확인하세요.",
+    "🐣 <b>육추 중이면 병아리 탈수 주의</b> — 첫 주 계사 습도 60~70%가 목표예요. 통로에 물 뿌리기·분무로 보충하되 깔짚은 젖지 않게 하세요.",
+    "🌀 <b>환기</b> — 최소환기량은 지키되 과환기는 피하세요. 필요 이상 환기하면 계사가 더 마르고 난방비도 늘어요.",
+    "🔥 난방기·전기 설비 주변 먼지를 털고 화재·정전기를 점검하세요.",
+  ];
+  if(vent) tips.unshift(tips.splice(3, 1)[0]);
+  return `<div style="background:#FFF3E0;border-left:6px solid #E65100;border-radius:10px;padding:11px 13px;margin:0 0 12px">
+    <div style="font-size:14px;font-weight:900;color:#BF360C">🏜️ 건조주의 — ${opts.when ? esc(opts.when) + " " : ""}습도 ${Math.round(rh)}% (${DRY_RH}% 이하)</div>
+    <ul style="margin:6px 0 0;padding-left:18px;font-size:12.5px;color:#4E342E;line-height:1.65">${tips.map(li).join("")}</ul>
+    ${opts.extra ? `<div style="font-size:12px;color:#6D4C41;margin-top:4px">${opts.extra}</div>` : ""}
+    <div style="font-size:10.5px;color:#A1887F;margin-top:5px">기준: 바깥 상대습도 ${DRY_RH}% 이하(예보 낮 평균·일 평균 중 낮은 값). 계사 안 습도계 실측값을 함께 보세요 — 계사 적정 습도는 대략 50~70%입니다.</div>
+  </div>`;
+}
+// 앞으로 며칠 중 건조한 날 한 줄 — 오늘이 건조하지 않을 때 미리 알린다
+function dryUpcomingLine(fc, from){
+  const days = (fc || []).slice(from || 1, 7).filter(d => isDryRh(dryRhOfDay(d)));
+  if(!days.length) return "";
+  const dn = ["일","월","화","수","목","금","토"];
+  const f = d => { const x = new Date(d.date + "T00:00:00"); return `${x.getMonth() + 1}/${x.getDate()}(${dn[x.getDay()]}) ${Math.round(dryRhOfDay(d))}%`; };
+  return `<div style="background:#FFF8E1;border-radius:8px;padding:7px 11px;margin:0 0 12px;font-size:12.5px;color:#BF360C;line-height:1.6">🏜️ <b>건조주의 예상</b> — ${days.map(f).join(", ")} · 습도 ${DRY_RH}% 이하로 먼지·탈수에 대비하세요.</div>`;
+}
+
 // 두 탭이 공유하는 오늘 기후 요약. weatherState에서 직접 뽑으므로
 // 날씨 탭을 거치지 않고 양계질병 탭으로 바로 들어와도 동일하게 동작한다.
 function getTodayClimate(){
@@ -34166,6 +34202,7 @@ function getTodayClimate(){
     const w = worstBy(peakRows);
     peakTemp = w.temp; peakHum = w.humidity;
   }
+  const peakHumReal = peakHum;
   if(peakHum == null) peakHum = 70; // 습도 결측 시 국내 여름 평균 수준으로 가정
 
   // 야간 최저(새벽 3~5시) — 야간에 식지 않으면 다음날 누적 열부하가 커진다.
@@ -34179,7 +34216,7 @@ function getTodayClimate(){
   return {
     date: today.date,
     tMax: today.tMax, tMin: today.tMin,
-    peakTemp, peakHum,
+    peakTemp, peakHum, peakHumReal,
     hsi: calcHeatStressIndex(peakTemp, peakHum),
     wetBulb: calcWetBulbC(peakTemp, peakHum),
     nightTemp, nightHsi: calcHeatStressIndex(nightTemp, nightHum),
@@ -34220,6 +34257,9 @@ function renderHusbandryPointsCard(opts){
   const seasonalComfort = lv.key === "comfort" && !(month >= 5 && month <= 9);
   const actions = lv.key === "comfort" ? comfortActions(month) : (HSI_ACTIONS[lv.key] || []);
   const rhInt = Math.round(c.peakHum);
+  const fc0 = (weatherState.forecast || [])[0];
+  const dryVals = [dryRhOfDay(fc0), c.peakHumReal].filter(x => x != null);
+  const dryRh = dryVals.length ? Math.min(...dryVals) : null;
   const hot = !winter && inRange && c.hsi >= 70;
 
   // 오늘 습도에서 다시 잡은 목표 계사온도 (육계) — 컨설턴트가 컨트롤러에
@@ -34305,12 +34345,13 @@ function renderHusbandryPointsCard(opts){
         <div style="flex:1;min-width:140px">
           <div style="font-size:14.5px;font-weight:800;color:${lv.color};line-height:1.35">${msg}</div>
           <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px">
-            ${chip(`🌡️ 한낮 ${c.peakTemp != null ? Math.round(c.peakTemp) + "°C" : "-"}`)}${chip(`💧 습도 ${rhInt}%`)}${winter ? "" : inRange ? chip(`열스트레스 지수 ${c.hsi} · ${lv.label}`) : chip("열스트레스 판정범위 밖(20°C↓)")}
+            ${chip(`🌡️ 한낮 ${c.peakTemp != null ? Math.round(c.peakTemp) + "°C" : "-"}`)}${chip(`💧 습도 ${rhInt}%`)}${dryBadge(dryRh)}${winter ? "" : inRange ? chip(`열스트레스 지수 ${c.hsi} · ${lv.label}`) : chip("열스트레스 판정범위 밖(20°C↓)")}
           </div>
         </div>
       </div>
     </div>
 
+    ${dryWarnBox(dryRh, {when:"오늘"}) || dryUpcomingLine(weatherState.forecast)}
     <div style="margin-bottom:10px">
       <div style="font-size:11.5px;font-weight:800;color:${lv.color};margin-bottom:6px">${seasonalComfort ? "🍂 이 계절 관리 포인트" : "✅ 지금 할 일"}</div>
       ${num(actions)}
@@ -35074,9 +35115,10 @@ function renderDewPointPanel(){
       <div style="font-size:11px;color:#333;line-height:1.6">${riskMsg}</div>
     </div>
 
-    <div style="background:${rhInBand?"#E8F5E9":"#FFF8E1"};border-radius:8px;padding:9px 12px">
+    <div style="background:${rhInBand?"#E8F5E9":"#FFF8E1"};border-radius:8px;padding:9px 12px;margin-bottom:${isDryRh(dryRhOfDay(today)) ? 10 : 0}px">
       <div style="font-size:11px;color:#333;line-height:1.6">💧 <b>깔짚 적정습도(50~70%) 기준:</b> ${rhNote}</div>
     </div>
+    ${dryWarnBox(dryRhOfDay(today), {when:"오늘"})}
 
     <div style="font-size:9px;color:#aaa;margin-top:8px;line-height:1.6">
       ※ 이슬점은 Magnus-Tetens 근사식으로 계산했습니다. 결로 판단 기준과 깔짚 적정습도(50~70%) 범위는
@@ -35173,7 +35215,7 @@ function renderVentCalcPanel(){
   <div class="card" style="border-top:6px solid #00838F;margin-top:16px">
     <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:3px">🌀 환기량 계산 (습도수지 방식)</div>
     <div style="font-size:10px;color:#aaa;margin-bottom:12px">오늘 섭취 사료 ${Math.round(feedG)}g/일·마리 기준 — UGA 익스텐션(Czarick·Fairchild)의 습도수지 계산법</div>
-
+    ${dryWarnBox(dryRhOfDay(today), {when:"오늘 바깥", ctx:"vent"})}
     ${r.ineffective ? `
     <div style="background:#FFEBEE;border-left:6px solid #C62828;border-radius:8px;padding:11px 13px">
       <div style="font-size:12px;font-weight:700;color:#B71C1C;margin-bottom:3px">⚠️ 환기로는 수분 제거 불가한 조건</div>
@@ -35584,7 +35626,7 @@ function renderVentFinderPanel(){
 
   return head + modeBtns + (isMax
     ? houseSizeCard + fanCard + maxResultCard + maxFootnote
-    : flockCard + weatherCard + fanCard + resultCard + footnote);
+    : flockCard + weatherCard + dryWarnBox(outRH, {when:"바깥", ctx:"vent"}) + fanCard + resultCard + footnote);
 }
 
 // ── 일령(주령)별 음수량·사료섭취량 표 ────────────────────────────────────────
@@ -36966,6 +37008,7 @@ function renderVentTab(){
 
       <div style="margin:-2px 0 12px">${anomTodayLine(today, true)}${anomRaised ? `<div style="font-size:11.5px;color:#B71C1C;background:#FFEBEE;border-radius:8px;padding:7px 10px;margin-top:6px;line-height:1.65">🌡️ <b>이상고온(${anomWhy})</b>이라 환기 단계를 <b>${sp.stages[recIdxBase].name}</b>에서 <b>${st0name(sp, recIdx)}</b>로 한 단계 올렸습니다. 외기가 평소보다 훨씬 더워 같은 단계로는 열 배출이 모자랄 수 있습니다.</div>` : (anomHot && recIdxBase != null ? `<div style="font-size:11.5px;color:#B71C1C;background:#FFEBEE;border-radius:8px;padding:7px 10px;margin-top:6px;line-height:1.65">🌡️ 이상고온이지만 이미 <b>가장 높은 환기 단계</b>입니다. 환기량을 최대로 유지하고 냉각·급수·밀도를 점검하세요.</div>` : "")}${anomLowered ? `<div style="font-size:11.5px;color:#0D47A1;background:#E3F2FD;border-radius:8px;padding:7px 10px;margin-top:6px;line-height:1.65">❄️ <b>이상저온(${anomColdWhy})</b>이라 환기 단계를 <b>${sp.stages[recIdxBase].name}</b>에서 <b>${st0name(sp, recIdx)}</b>로 한 단계 낮췄습니다. 외기가 평소보다 훨씬 차서 같은 단계로는 열이 너무 빠져 보온이 어려울 수 있습니다.</div>` : (anomCold && recIdxBase != null ? `<div style="font-size:11.5px;color:#0D47A1;background:#E3F2FD;border-radius:8px;padding:7px 10px;margin-top:6px;line-height:1.65">❄️ 이상저온이지만 ${recIdxBase === 0 ? "이미 <b>가장 낮은 환기 단계</b>(최소환기)입니다" : "<b>습도 기준</b> 때문에 더 낮출 수 없습니다"}. 최소환기량은 유지하면서 보온·급수라인 동결을 점검하세요.</div>` : "")}</div>
 
+      ${dryWarnBox(dryRhOfDay(today), {when:"오늘", ctx:"vent", extra:"환기 단계는 온도 기준 그대로 두고, 습도를 올리려고 환기를 줄이더라도 <b>최소환기량 아래로는 내리지 마세요</b>(암모니아·CO₂)."}) || dryUpcomingLine(fc)}
       ${coldHumid ? `
       <div style="background:#E1F5FE;border-left:6px solid #0288D1;border-radius:8px;padding:11px 13px;margin-bottom:10px">
         <div style="font-size:12px;font-weight:700;color:#01579B;margin-bottom:4px">💧 춥지만 습도가 높아요 (${todayHum}%)</div>
@@ -37017,7 +37060,7 @@ function renderVentTab(){
   // 7일 예보 기준 단계 변화 미리보기
   const weekPreview = !noWeather ? `
   <div class="card" style="margin-bottom:16px">
-    <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:10px">📅 7일 환기단계 예보 <span style="font-size:9px;color:#0288D1;font-weight:500">· 💧는 습도(${VENT_HUMIDITY_THRESHOLD}%↑), 🌡️는 이상고온, ❄️는 이상저온(평년 대비·앙상블 확률 40%↑)으로 단계가 상향·하향된 날</span></div>
+    <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:10px">📅 7일 환기단계 예보 <span style="font-size:9px;color:#0288D1;font-weight:500">· 💧는 습도(${VENT_HUMIDITY_THRESHOLD}%↑), 🏜️는 건조(${DRY_RH}%↓), 🌡️는 이상고온, ❄️는 이상저온(평년 대비·앙상블 확률 40%↑)으로 단계가 상향·하향된 날</span></div>
     <div style="display:flex;gap:5px;overflow-x:auto;padding-bottom:2px">
       ${fc.slice(0,7).map((d,i)=>{
         const dn=["일","월","화","수","목","금","토"];
@@ -37039,7 +37082,7 @@ function renderVentTab(){
         return `<div style="flex:1;min-width:58px;text-align:center;background:${stg?stg.color+"14":"#f5f5f5"};border-radius:8px;padding:7px 3px">
           <div style="font-size:9px;color:#888;font-weight:600">${i===0?"오늘":dn[dd.getDay()]+" "+(dd.getMonth()+1)+"/"+dd.getDate()}</div>
           <div style="font-size:14px;font-weight:800;margin:3px 0;color:#333">${hi!=null?hi+"°":"-"}</div>
-          <div style="font-size:9px;font-weight:700;color:${stg?stg.color:"#aaa"}">${stg?stg.icon+" "+stg.name.replace(/\(.*?\)/,""):"-"}${humUp?" 💧":""}${hotUp?" 🌡️":""}${coldDown?" ❄️":""}</div>
+          <div style="font-size:9px;font-weight:700;color:${stg?stg.color:"#aaa"}">${stg?stg.icon+" "+stg.name.replace(/\(.*?\)/,""):"-"}${humUp?" 💧":""}${hotUp?" 🌡️":""}${coldDown?" ❄️":""}${isDryRh(dryRhOfDay(d))?" 🏜️":""}</div>
         </div>`;
       }).join("")}
     </div>
@@ -37860,7 +37903,7 @@ function renderWeatherBody(sub){
           <div style="font-size:13px;color:#666;margin-bottom:3px">${desc(d.code)}</div>
           <div style="font-size:32px;font-weight:800;color:#D32F2F;line-height:1.1">${tStr(d.tMax)}</div>
           <div style="font-size:22px;font-weight:700;color:#1565C0">${tStr(d.tMin)}</div>
-          ${humStr(d)?`<div style="font-size:13px;color:#0288D1;font-weight:600;margin-top:5px">💦 ${humStr(d)}</div>`:""}
+          ${humStr(d)?`<div style="font-size:13px;color:#0288D1;font-weight:600;margin-top:5px">💦 ${humStr(d)} ${dryBadge(dryRhOfDay(d))}</div>`:""}
           ${windStr(d)?`<div style="font-size:13px;font-weight:600;margin-top:2px">💨 ${windStr(d)}</div>`:""}
           ${d.rain>0?`<div style="font-size:15px;color:#1565C0;font-weight:800;margin-top:3px">💧 ${d.rain.toFixed(1)}mm</div>`:""}
         </div>
@@ -37889,7 +37932,7 @@ function renderWeatherBody(sub){
         <div style="font-size:11px;color:#888">${desc(d.code)}</div>
         <div style="font-size:17px;font-weight:800;color:#D32F2F;line-height:1.15">${tStr(d.tMax)}</div>
         <div style="font-size:14px;font-weight:700;color:#1565C0">${tStr(d.tMin)}</div>
-        ${d.humDay!=null?`<div style="font-size:11px;color:#0288D1;margin-top:2px">💦${Math.round(d.humDay)}%</div>`:""}
+        ${d.humDay!=null?`<div style="font-size:11px;color:#0288D1;margin-top:2px">💦${Math.round(d.humDay)}%</div>`:""}${isDryRh(dryRhOfDay(d))?`<div style="margin-top:2px">${dryBadge(dryRhOfDay(d), true)}</div>`:""}
         ${d.rain>0?`<div style="font-size:12px;color:#1565C0;font-weight:700">💧${d.rain.toFixed(1)}mm</div>`:""}
       </div>
       <div style="background:#fafafa;padding:6px 3px;text-align:center;border-top:1px dashed #e6e6e6;font-size:11px;color:#777;line-height:1.7">
@@ -38001,6 +38044,7 @@ function renderWeatherBody(sub){
     </div>
     ${anomTodayLine(fc[0])}
   </div>` : ""}
+  ${dryWarnBox(dryRhOfDay(fc[0]), {when:"오늘"}) || dryUpcomingLine(fc)}
 
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(285px,1fr));gap:10px;margin-bottom:10px">
     ${bigCards}
