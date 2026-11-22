@@ -31864,6 +31864,7 @@ function renderHeaderSolarTerm(now){
 // go: {tab} 일반 탭으로 / {premium:"메뉴key"} 유료서비스의 그 화면으로(승인·로그인 안내는 그 화면이 처리) / {premium:"vaccine", vaccineView:"guide"} 처럼 보기까지 지정.
 const NEW_FEATURE_DAYS = 21;
 const NEW_FEATURES = [
+  { key:"humindex", date:"2026-11-22", label:"💧 습도 경고 지수표 — 매우 건조~매우 다습 6단계, 날씨·환기·사양관리 화면에 단계별 경고", where:"사양/복지/HACCP · 습구·이슬점", go:{ tab:"consult", consultSub:"air" } },
   { key:"lgclock", date:"2026-11-21", label:"산란계 점등 시계표 — 내 농장 일출·일몰로 켜고 끌 시각을 시계 그림으로, 직접 조정도", where:"유료서비스 · 점등 프로그램", go:{ premium:"lightguide", lgTab:"clock" } },
   { key:"dzstats", date:"2026-11-19", label:"질병 탭 「발생 통계」 — 양계질병 월별 발생현황(가금티푸스·AI·F낭병·IB·마렉병, 농림축산검역본부)", where:"질병 탭 · 발생 통계", go:{ tab:"disease" } },
   { key:"pricetrade", date:"2026-11-17", label:"시세,통계 탭에 「수출입 동향」 추가 — 계육·계란·종란 월별 수출입", where:"시세,통계", go:{ tab:"price" } },
@@ -31922,7 +31923,7 @@ function nfGo(key){
     if(f.go.vaccineView) vaccineTabState.view = f.go.vaccineView;
     if(f.go.lgTab) lightGuideState.tab = f.go.lgTab;
     render(); window.scrollTo(0, 0);
-  } else if(f.go && f.go.tab){ switchTab(f.go.tab); window.scrollTo(0, 0); }
+  } else if(f.go && f.go.tab){ if(f.go.consultSub) consultState.sub = f.go.consultSub; switchTab(f.go.tab); window.scrollTo(0, 0); }
   else render();
 }
 
@@ -34148,40 +34149,112 @@ function layerWaterFeedRatio(tempC){
   return lo.r + (hi.r - lo.r) * (tempC - lo.t) / (hi.t - lo.t);
 }
 
-// ── 건조주의 (습도 40% 이하, 소유자 요청 2026-11-22) ─────────────────────────────
-// 날씨·환기·사양관리 화면이 같은 기준·같은 문구를 쓰도록 한곳에 둔다. 하루 습도는 낮 평균(humDay)과 일 평균(hum) 중 낮은 값.
+// ── 습도 경고 지수 (2026-11-22, 소유자 요청: 40% 이하 건조주의 → 6단계 지수표로 확장) ──────────────
+// 날씨·사양관리 포인트·환기·사양 계산 화면이 같은 단계·문구를 쓴다. 기준: 계사 적정 50~70%(UGA·Auburn 익스텐션 — 습구·이슬점 화면과 같음),
+// 육추 첫 주 60~70%, 40% 이하 건조주의(소유자 기준), 80% 초과 매우 다습. 바깥 예보 습도로 판정하므로 계사 안 습도계 실측이 우선이다.
 const DRY_RH = 40;
+function humWinterNow(){ const m = new Date().getMonth() + 1; return m >= 11 || m <= 3; }
+function humLevels(){
+  const w = humWinterNow();
+  return [
+    { k:"vdry", max:30, ic:"🔴", t:"매우 건조", tag:"위험", c:"#B71C1C", bg:"#FFEBEE", range:"30% 이하",
+      risk:"먼지가 크게 늘어 호흡기 점막이 상하기 쉽고, 병아리는 탈수·발육 저하가 옵니다",
+      act:"통로 물 뿌리기·분무로 바로 가습, 과환기 금지(최소환기만), 음수량 확인, 육추사는 60% 이상으로 올리기" },
+    { k:"dry", max:40, ic:"🟠", t:"건조", tag:"주의", c:"#E65100", bg:"#FFF3E0", range:"31~40%",
+      risk:"먼지로 IB·마이코플라스마·대장균증 같은 호흡기 증상이 심해지기 쉽고, 정전기·화재 위험이 커집니다",
+      act:"깔짚·사료 먼지 줄이기, 니플·급수기 점검, 육추 중이면 분무로 보충, 난방기 주변 먼지 털기" },
+    { k:"ldry", max:49, ic:"🟡", t:"다소 건조", tag:"관찰", c:"#B28704", bg:"#FFFDE7", range:"41~49%",
+      risk:"먼지가 늘기 시작합니다",
+      act:"기침·콧물 등 호흡기 증상 관찰, 육추 첫 주라면 습도 보충 시작" },
+    { k:"ok", max:70, ic:"🟢", t:"적정", tag:"양호", c:"#2E7D32", bg:"#E8F5E9", range:"50~70%",
+      risk:"깔짚 수분 균형이 맞는 범위입니다",
+      act:"지금 관리 유지 — 계사 안 습도계로 함께 확인" },
+    { k:"wet", max:80, ic:"🔵", t:"다습", tag:"주의", c:"#1565C0", bg:"#E3F2FD", range:"71~80%",
+      risk:"깔짚이 눅눅해지고 암모니아가 늘기 시작합니다",
+      act:"최소환기량 확보, 급수기·니플 누수 점검, 젖은 깔짚 뒤집기·부분 교체" },
+    { k:"vwet", max:101, ic:"🟣", t:"매우 다습", tag:"위험", c:"#6A1B9A", bg:"#F3E5F5", range:"81% 이상",
+      risk:"깔짚이 젖어 암모니아·발바닥 피부염·콕시듐 위험이 커집니다" + (w ? "" : ". 더운 날엔 닭이 더 덥게 느낍니다"),
+      act:"환기량을 늘리고" + (w ? " 난방을 함께 돌려 습기 빼기" : "(추운 날은 난방 병행), 더운 날은 포거·쿨링패드 가동 줄이기") + ", 결로·누수 점검, 젖은 깔짚 즉시 교체" },
+  ];
+}
+function humLevel(rh){ if(rh == null || !isFinite(rh)) return null; const r = Math.round(rh); return humLevels().find(l => r <= l.max) || null; }
+// 하루 습도 — 건조 쪽은 낮 평균·일 평균 중 낮은 값, 다습 쪽은 일 평균
 function dryRhOfDay(d){ if(!d) return null; const v = [d.humDay, d.hum].filter(x => x != null && isFinite(x)); return v.length ? Math.min(...v) : null; }
+function humRhOfDay(d){ const lo = dryRhOfDay(d); if(lo == null) return null; if(Math.round(lo) <= 49) return lo; return (d.hum != null && isFinite(d.hum)) ? d.hum : lo; }
 function isDryRh(rh){ return rh != null && isFinite(rh) && Math.round(rh) <= DRY_RH; }
-function dryBadge(rh, small){ return isDryRh(rh) ? `<span style="display:inline-block;background:#FFF3E0;color:#BF360C;border:1px solid #FFB74D;border-radius:8px;padding:${small ? "0 4px" : "1px 6px"};font-size:${small ? 10 : 11.5}px;font-weight:800;white-space:nowrap">🏜️ 건조주의</span>` : ""; }
-// opts.when: "오늘" 등 · opts.ctx: "vent"(환기 화면 — 과환기 줄이기를 앞에) · opts.extra: 덧붙일 한 줄
+function humAlert(rh){ const l = humLevel(rh); return !!l && (l.k === "vdry" || l.k === "dry" || l.k === "vwet"); }
+// 단계 배지 — 적정이면 아무 것도 안 보인다(화면이 어지럽지 않게)
+function humBadge(rh, small){
+  const l = humLevel(rh); if(!l || l.k === "ok") return "";
+  return `<span title="습도 ${Math.round(rh)}% · ${l.t}" style="display:inline-block;background:${l.bg};color:${l.c};border:1px solid ${l.c}55;border-radius:8px;padding:${small ? "0 4px" : "1px 6px"};font-size:${small ? 10 : 11.5}px;font-weight:800;white-space:nowrap">${l.ic} ${l.t}</span>`;
+}
+const dryBadge = humBadge;
+// 지수표 — cur(습도 %)가 있으면 그 단계 줄을 굵게 표시. 휴대폰에서도 읽히게 한 단계 = 한 줄 카드
+function humIndexTable(cur){
+  const L = humLevels(), now = humLevel(cur);
+  return `<div style="display:flex;flex-direction:column;gap:6px">${L.map(l => {
+    const on = now && now.k === l.k;
+    return `<div style="display:flex;gap:10px;align-items:flex-start;background:${l.bg};border:${on ? 2.5 : 1}px solid ${on ? l.c : l.c + "33"};border-radius:10px;padding:8px 10px">
+      <div style="flex:0 0 84px;text-align:center"><div style="font-size:20px;line-height:1.1">${l.ic}</div><div style="font-size:13px;font-weight:900;color:${l.c}">${l.t}</div><div style="font-size:12px;font-weight:700;color:#555">${l.range}</div>${on ? `<div style="font-size:11px;font-weight:800;color:#fff;background:${l.c};border-radius:8px;padding:0 6px;margin-top:3px">지금 ${Math.round(cur)}%</div>` : `<div style="font-size:11px;color:${l.c};font-weight:700">${l.tag}</div>`}</div>
+      <div style="flex:1;min-width:0;font-size:12.5px;color:#333;line-height:1.6"><div>⚠️ ${l.risk}</div><div style="margin-top:3px">✅ <b>${l.act}</b></div></div>
+    </div>`; }).join("")}</div>`;
+}
+function humIndexNote(){
+  return `기준: 계사 적정 습도 50~70%(UGA·Auburn 익스텐션 깔짚 수분 기준), 육추 첫 주 60~70%, 40% 이하 건조주의, 80% 초과 매우 다습. 화면의 값은 바깥 예보 습도(건조 쪽은 낮 평균·일 평균 중 낮은 값, 다습 쪽은 일 평균)라 계사 안 습도계 실측값이 우선입니다${humWinterNow() ? " — 겨울엔 찬 바깥 공기를 데우면 계사 안 상대습도가 바깥보다 더 낮아집니다" : ""}.`;
+}
+// 경고 — 매우 건조·건조·매우 다습은 상자, 다소 건조·다습은 한 줄, 적정은 없음. 모두 「지수표 보기」를 펼칠 수 있다.
+// opts.when: "오늘" 등 · opts.ctx: "vent"(환기 화면 — 환기 조언을 앞에, 다습 상자는 환기 화면 자체 안내와 겹쳐 한 줄로) · opts.extra
 function dryWarnBox(rh, opts){
-  if(!isDryRh(rh)) return "";
+  const l = humLevel(rh); if(!l || l.k === "ok") return "";
   opts = opts || {};
   const vent = opts.ctx === "vent";
-  const li = t => `<li style="margin:3px 0">${t}</li>`;
-  const tips = [
-    "💨 <b>먼지</b>가 많이 날려 호흡기 질병(IB·마이코플라스마·대장균증 등)이 심해지기 쉬워요 — 깔짚·사료 먼지를 줄이고 계군의 기침·콧물을 살피세요.",
-    "💧 <b>급수</b> — 니플·급수기 물이 잘 나오는지, 음수량이 줄지 않았는지 확인하세요.",
-    "🐣 <b>육추 중이면 병아리 탈수 주의</b> — 첫 주 계사 습도 60~70%가 목표예요. 통로에 물 뿌리기·분무로 보충하되 깔짚은 젖지 않게 하세요.",
-    "🌀 <b>환기</b> — 최소환기량은 지키되 과환기는 피하세요. 필요 이상 환기하면 계사가 더 마르고 난방비도 늘어요.",
-    "🔥 난방기·전기 설비 주변 먼지를 털고 화재·정전기를 점검하세요.",
+  const when = opts.when ? esc(opts.when) + " " : "";
+  const table = `<details style="margin-top:6px"><summary style="cursor:pointer;font-size:12px;font-weight:700;color:${l.c}">💧 습도 경고 지수표 보기</summary><div style="margin-top:6px">${humIndexTable(rh)}</div><div style="font-size:10.5px;color:#999;margin-top:5px;line-height:1.6">${humIndexNote()}</div></details>`;
+  const boxed = l.k === "vdry" || l.k === "dry" || (l.k === "vwet" && !vent);
+  if(!boxed) return `<div style="background:${l.bg};border-radius:8px;padding:8px 11px;margin:0 0 12px;font-size:12.5px;color:#333;line-height:1.6"><b style="color:${l.c}">${l.ic} ${l.t} — ${when}습도 ${Math.round(rh)}%</b> · ${l.act}${table}</div>`;
+  let tips;
+  if(l.k === "vwet") tips = [
+    "💦 <b>깔짚</b>이 젖기 쉬워요 — 급수기·니플 누수, 지붕·벽 결로를 점검하고 젖은 부분은 바로 교체하세요.",
+    "🌀 <b>환기</b> — 습기를 빼도록 환기량을 늘리세요" + (humWinterNow() ? "(추운 날은 난방을 함께 돌려 계사 온도 유지)." : ". 추운 날은 난방을 함께, 더운 날은 포거·쿨링패드 가동을 줄이세요."),
+    "🧪 <b>암모니아</b> — 눈·코가 따가우면 이미 높은 상태예요. 깔짚 뒤집기·교체를 앞당기세요.",
+    "🦶 발바닥 피부염·콕시듐이 늘기 쉬운 조건이에요 — 계군을 살펴보세요.",
   ];
-  if(vent) tips.unshift(tips.splice(3, 1)[0]);
-  return `<div style="background:#FFF3E0;border-left:6px solid #E65100;border-radius:10px;padding:11px 13px;margin:0 0 12px">
-    <div style="font-size:14px;font-weight:900;color:#BF360C">🏜️ 건조주의 — ${opts.when ? esc(opts.when) + " " : ""}습도 ${Math.round(rh)}% (${DRY_RH}% 이하)</div>
-    <ul style="margin:6px 0 0;padding-left:18px;font-size:12.5px;color:#4E342E;line-height:1.65">${tips.map(li).join("")}</ul>
-    ${opts.extra ? `<div style="font-size:12px;color:#6D4C41;margin-top:4px">${opts.extra}</div>` : ""}
-    <div style="font-size:10.5px;color:#A1887F;margin-top:5px">기준: 바깥 상대습도 ${DRY_RH}% 이하(예보 낮 평균·일 평균 중 낮은 값). 계사 안 습도계 실측값을 함께 보세요 — 계사 적정 습도는 대략 50~70%입니다.</div>
+  else {
+    tips = [
+      "💨 <b>먼지</b>가 많이 날려 호흡기 질병(IB·마이코플라스마·대장균증 등)이 심해지기 쉬워요 — 깔짚·사료 먼지를 줄이고 계군의 기침·콧물을 살피세요.",
+      "💧 <b>급수</b> — 니플·급수기 물이 잘 나오는지, 음수량이 줄지 않았는지 확인하세요.",
+      "🐣 <b>육추 중이면 병아리 탈수 주의</b> — 첫 주 계사 습도 60~70%가 목표예요. 통로에 물 뿌리기·분무로 보충하되 깔짚은 젖지 않게 하세요.",
+      "🌀 <b>환기</b> — 최소환기량은 지키되 과환기는 피하세요. 필요 이상 환기하면 계사가 더 마르고 난방비도 늘어요.",
+      "🔥 난방기·전기 설비 주변 먼지를 털고 화재·정전기를 점검하세요.",
+    ];
+    if(l.k === "vdry") tips.unshift("🔴 <b>매우 건조</b> — 오늘은 가습을 바로 시작하세요(통로 물 뿌리기·분무). 육추사는 60% 이상이 될 때까지 보충하세요.");
+    if(vent) tips.splice(1, 0, tips.splice(l.k === "vdry" ? 4 : 3, 1)[0]);
+  }
+  const title = l.k === "vwet" ? `${l.ic} 다습주의 — ${when}습도 ${Math.round(rh)}% (80% 초과 · 매우 다습)` : `🏜️ 건조주의 — ${when}습도 ${Math.round(rh)}% (${l.t} · ${DRY_RH}% 이하)`;
+  return `<div style="background:${l.bg};border-left:6px solid ${l.c};border-radius:10px;padding:11px 13px;margin:0 0 12px">
+    <div style="font-size:14px;font-weight:900;color:${l.c}">${title}</div>
+    <ul style="margin:6px 0 0;padding-left:18px;font-size:12.5px;color:#333;line-height:1.65">${tips.map(t => `<li style="margin:3px 0">${t}</li>`).join("")}</ul>
+    ${opts.extra ? `<div style="font-size:12px;color:#555;margin-top:4px">${opts.extra}</div>` : ""}
+    ${table}
   </div>`;
 }
-// 앞으로 며칠 중 건조한 날 한 줄 — 오늘이 건조하지 않을 때 미리 알린다
+// 앞으로 며칠 중 건조(40%↓)·매우 다습(80%↑)한 날 한 줄 — 오늘 경고가 없을 때 미리 알린다
 function dryUpcomingLine(fc, from){
-  const days = (fc || []).slice(from || 1, 7).filter(d => isDryRh(dryRhOfDay(d)));
+  const days = (fc || []).slice(from || 1, 7).map(d => ({ d, rh: humRhOfDay(d) })).filter(x => humAlert(x.rh));
   if(!days.length) return "";
   const dn = ["일","월","화","수","목","금","토"];
-  const f = d => { const x = new Date(d.date + "T00:00:00"); return `${x.getMonth() + 1}/${x.getDate()}(${dn[x.getDay()]}) ${Math.round(dryRhOfDay(d))}%`; };
-  return `<div style="background:#FFF8E1;border-radius:8px;padding:7px 11px;margin:0 0 12px;font-size:12.5px;color:#BF360C;line-height:1.6">🏜️ <b>건조주의 예상</b> — ${days.map(f).join(", ")} · 습도 ${DRY_RH}% 이하로 먼지·탈수에 대비하세요.</div>`;
+  const f = x => { const t = new Date(x.d.date + "T00:00:00"), l = humLevel(x.rh); return `${t.getMonth() + 1}/${t.getDate()}(${dn[t.getDay()]}) ${l.ic}${l.t} ${Math.round(x.rh)}%`; };
+  return `<div style="background:#FFF8E1;border-radius:8px;padding:7px 11px;margin:0 0 12px;font-size:12.5px;color:#5D4037;line-height:1.6">💧 <b>습도 주의 예상</b> — ${days.map(f).join(", ")}</div>`;
+}
+// 지수표 카드 — 사양 탭(습구·이슬점, 관리 포인트)·날씨 축산 날씨에 둔다
+function renderHumIndexCard(){
+  const d = (weatherState.forecast || [])[0], rh = humRhOfDay(d), l = humLevel(rh);
+  return `<div class="card" style="border-top:6px solid #0288D1;margin:0 0 14px">
+    <div style="font-size:14px;font-weight:800;color:#333">💧 습도 경고 지수표 <span style="font-size:11px;font-weight:600;color:#999">사양관리 참고</span></div>
+    <div style="font-size:12px;color:#666;margin:3px 0 10px">${l ? `${esc(weatherState.locationName || "내 위치")} 오늘 습도 <b style="color:${l.c}">${Math.round(rh)}% · ${l.ic} ${l.t}</b>` : "날씨예측 탭에서 위치를 정하면 오늘 습도 단계가 표시됩니다"}</div>
+    ${humIndexTable(rh)}
+    <div style="font-size:10.5px;color:#999;margin-top:8px;line-height:1.6">${humIndexNote()}</div>
+  </div>`;
 }
 
 // 두 탭이 공유하는 오늘 기후 요약. weatherState에서 직접 뽑으므로
@@ -34259,7 +34332,8 @@ function renderHusbandryPointsCard(opts){
   const rhInt = Math.round(c.peakHum);
   const fc0 = (weatherState.forecast || [])[0];
   const dryVals = [dryRhOfDay(fc0), c.peakHumReal].filter(x => x != null);
-  const dryRh = dryVals.length ? Math.min(...dryVals) : null;
+  const dryLo = dryVals.length ? Math.min(...dryVals) : null;
+  const dryRh = dryLo != null && Math.round(dryLo) <= 49 ? dryLo : (humRhOfDay(fc0) ?? dryLo);   // 건조 쪽은 낮은 값, 다습 쪽은 일 평균
   const hot = !winter && inRange && c.hsi >= 70;
 
   // 오늘 습도에서 다시 잡은 목표 계사온도 (육계) — 컨설턴트가 컨트롤러에
@@ -34345,7 +34419,7 @@ function renderHusbandryPointsCard(opts){
         <div style="flex:1;min-width:140px">
           <div style="font-size:14.5px;font-weight:800;color:${lv.color};line-height:1.35">${msg}</div>
           <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px">
-            ${chip(`🌡️ 한낮 ${c.peakTemp != null ? Math.round(c.peakTemp) + "°C" : "-"}`)}${chip(`💧 습도 ${rhInt}%`)}${dryBadge(dryRh)}${winter ? "" : inRange ? chip(`열스트레스 지수 ${c.hsi} · ${lv.label}`) : chip("열스트레스 판정범위 밖(20°C↓)")}
+            ${chip(`🌡️ 한낮 ${c.peakTemp != null ? Math.round(c.peakTemp) + "°C" : "-"}`)}${chip(`💧 습도 ${rhInt}%`)}${humBadge(dryRh)}${winter ? "" : inRange ? chip(`열스트레스 지수 ${c.hsi} · ${lv.label}`) : chip("열스트레스 판정범위 밖(20°C↓)")}
           </div>
         </div>
       </div>
@@ -34621,6 +34695,7 @@ function renderLivestockWeatherPanel(fc, hourlyByDate){
 
     <!-- 오늘의 축산 관리 포인트 — 세계 양계 컨설팅 표준 판정도구(HSI + Aviagen 체감온도) -->
     ${renderHusbandryPointsCard({title:"📋 오늘의 축산 관리 포인트"})}
+    ${renderHumIndexCard()}
 
     <div style="font-size:10px;color:#aaa;margin-top:8px;text-align:right">
       체감온도(윈드칠): 미국 NWS·캐나다 기상청 공식 · 육계: Aviagen Broiler Guide · 산란계: Hy-Line Layer Management Guide
@@ -35115,10 +35190,10 @@ function renderDewPointPanel(){
       <div style="font-size:11px;color:#333;line-height:1.6">${riskMsg}</div>
     </div>
 
-    <div style="background:${rhInBand?"#E8F5E9":"#FFF8E1"};border-radius:8px;padding:9px 12px;margin-bottom:${isDryRh(dryRhOfDay(today)) ? 10 : 0}px">
+    <div style="background:${rhInBand?"#E8F5E9":"#FFF8E1"};border-radius:8px;padding:9px 12px;margin-bottom:${humLevel(humRhOfDay(today)) && humLevel(humRhOfDay(today)).k !== "ok" ? 10 : 0}px">
       <div style="font-size:11px;color:#333;line-height:1.6">💧 <b>깔짚 적정습도(50~70%) 기준:</b> ${rhNote}</div>
     </div>
-    ${dryWarnBox(dryRhOfDay(today), {when:"오늘"})}
+    ${dryWarnBox(humRhOfDay(today), {when:"오늘"})}
 
     <div style="font-size:9px;color:#aaa;margin-top:8px;line-height:1.6">
       ※ 이슬점은 Magnus-Tetens 근사식으로 계산했습니다. 결로 판단 기준과 깔짚 적정습도(50~70%) 범위는
@@ -35215,7 +35290,7 @@ function renderVentCalcPanel(){
   <div class="card" style="border-top:6px solid #00838F;margin-top:16px">
     <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:3px">🌀 환기량 계산 (습도수지 방식)</div>
     <div style="font-size:10px;color:#aaa;margin-bottom:12px">오늘 섭취 사료 ${Math.round(feedG)}g/일·마리 기준 — UGA 익스텐션(Czarick·Fairchild)의 습도수지 계산법</div>
-    ${dryWarnBox(dryRhOfDay(today), {when:"오늘 바깥", ctx:"vent"})}
+    ${dryWarnBox(humRhOfDay(today), {when:"오늘 바깥", ctx:"vent"})}
     ${r.ineffective ? `
     <div style="background:#FFEBEE;border-left:6px solid #C62828;border-radius:8px;padding:11px 13px">
       <div style="font-size:12px;font-weight:700;color:#B71C1C;margin-bottom:3px">⚠️ 환기로는 수분 제거 불가한 조건</div>
@@ -36828,7 +36903,7 @@ function renderConsultTab(){
 
   const sub = CONSULT_SUBS.some(x => x[0] === consultState.sub) ? consultState.sub : "std";
   const needCtl = ["std", "intake", "air", "vent", "pi", "mgmt"].includes(sub);
-  const body = sub === "std" ? card + renderFarmComparePanel(breed, age) : sub === "intake" ? renderIntakePanel() : sub === "air" ? renderWetBulbPanel() + renderDewPointPanel() : sub === "vent" ? renderVentCalcPanel() : sub === "pi" ? (renderProductionIndexPanel() || `<div class="card" style="text-align:center;color:#999;padding:22px;font-size:13px">생산지수는 육계에서만 계산해요. 위에서 🐔 육계를 선택하세요.</div>`) : sub === "mgmt" ? renderMgmtPointsPanel() : sub === "welfare" ? renderWelfarePanel() : sub === "haccp" ? renderHaccpPanel() : renderMakerPanel();
+  const body = sub === "std" ? card + renderFarmComparePanel(breed, age) : sub === "intake" ? renderIntakePanel() : sub === "air" ? renderHumIndexCard() + renderWetBulbPanel() + renderDewPointPanel() : sub === "vent" ? renderVentCalcPanel() : sub === "pi" ? (renderProductionIndexPanel() || `<div class="card" style="text-align:center;color:#999;padding:22px;font-size:13px">생산지수는 육계에서만 계산해요. 위에서 🐔 육계를 선택하세요.</div>`) : sub === "mgmt" ? renderMgmtPointsPanel() + renderHumIndexCard() : sub === "welfare" ? renderWelfarePanel() : sub === "haccp" ? renderHaccpPanel() : renderMakerPanel();
   const controls = needCtl ? `<div style="display:flex;gap:8px;margin-bottom:10px">${speciesBtns}</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">${breedBtns}</div>
   ${ageInput}` : "";
@@ -37008,7 +37083,7 @@ function renderVentTab(){
 
       <div style="margin:-2px 0 12px">${anomTodayLine(today, true)}${anomRaised ? `<div style="font-size:11.5px;color:#B71C1C;background:#FFEBEE;border-radius:8px;padding:7px 10px;margin-top:6px;line-height:1.65">🌡️ <b>이상고온(${anomWhy})</b>이라 환기 단계를 <b>${sp.stages[recIdxBase].name}</b>에서 <b>${st0name(sp, recIdx)}</b>로 한 단계 올렸습니다. 외기가 평소보다 훨씬 더워 같은 단계로는 열 배출이 모자랄 수 있습니다.</div>` : (anomHot && recIdxBase != null ? `<div style="font-size:11.5px;color:#B71C1C;background:#FFEBEE;border-radius:8px;padding:7px 10px;margin-top:6px;line-height:1.65">🌡️ 이상고온이지만 이미 <b>가장 높은 환기 단계</b>입니다. 환기량을 최대로 유지하고 냉각·급수·밀도를 점검하세요.</div>` : "")}${anomLowered ? `<div style="font-size:11.5px;color:#0D47A1;background:#E3F2FD;border-radius:8px;padding:7px 10px;margin-top:6px;line-height:1.65">❄️ <b>이상저온(${anomColdWhy})</b>이라 환기 단계를 <b>${sp.stages[recIdxBase].name}</b>에서 <b>${st0name(sp, recIdx)}</b>로 한 단계 낮췄습니다. 외기가 평소보다 훨씬 차서 같은 단계로는 열이 너무 빠져 보온이 어려울 수 있습니다.</div>` : (anomCold && recIdxBase != null ? `<div style="font-size:11.5px;color:#0D47A1;background:#E3F2FD;border-radius:8px;padding:7px 10px;margin-top:6px;line-height:1.65">❄️ 이상저온이지만 ${recIdxBase === 0 ? "이미 <b>가장 낮은 환기 단계</b>(최소환기)입니다" : "<b>습도 기준</b> 때문에 더 낮출 수 없습니다"}. 최소환기량은 유지하면서 보온·급수라인 동결을 점검하세요.</div>` : "")}</div>
 
-      ${dryWarnBox(dryRhOfDay(today), {when:"오늘", ctx:"vent", extra:"환기 단계는 온도 기준 그대로 두고, 습도를 올리려고 환기를 줄이더라도 <b>최소환기량 아래로는 내리지 마세요</b>(암모니아·CO₂)."}) || dryUpcomingLine(fc)}
+      ${dryWarnBox(humRhOfDay(today), {when:"오늘", ctx:"vent", extra:"환기 단계는 온도 기준 그대로 두고, 습도를 올리려고 환기를 줄이더라도 <b>최소환기량 아래로는 내리지 마세요</b>(암모니아·CO₂)."}) || dryUpcomingLine(fc)}
       ${coldHumid ? `
       <div style="background:#E1F5FE;border-left:6px solid #0288D1;border-radius:8px;padding:11px 13px;margin-bottom:10px">
         <div style="font-size:12px;font-weight:700;color:#01579B;margin-bottom:4px">💧 춥지만 습도가 높아요 (${todayHum}%)</div>
@@ -37060,7 +37135,7 @@ function renderVentTab(){
   // 7일 예보 기준 단계 변화 미리보기
   const weekPreview = !noWeather ? `
   <div class="card" style="margin-bottom:16px">
-    <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:10px">📅 7일 환기단계 예보 <span style="font-size:9px;color:#0288D1;font-weight:500">· 💧는 습도(${VENT_HUMIDITY_THRESHOLD}%↑), 🏜️는 건조(${DRY_RH}%↓), 🌡️는 이상고온, ❄️는 이상저온(평년 대비·앙상블 확률 40%↑)으로 단계가 상향·하향된 날</span></div>
+    <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:10px">📅 7일 환기단계 예보 <span style="font-size:9px;color:#0288D1;font-weight:500">· 💧는 습도(${VENT_HUMIDITY_THRESHOLD}%↑), 🔴🟠🟡🔵🟣는 습도 지수(적정 50~70% 밖), 🌡️는 이상고온, ❄️는 이상저온(평년 대비·앙상블 확률 40%↑)으로 단계가 상향·하향된 날</span></div>
     <div style="display:flex;gap:5px;overflow-x:auto;padding-bottom:2px">
       ${fc.slice(0,7).map((d,i)=>{
         const dn=["일","월","화","수","목","금","토"];
@@ -37082,7 +37157,7 @@ function renderVentTab(){
         return `<div style="flex:1;min-width:58px;text-align:center;background:${stg?stg.color+"14":"#f5f5f5"};border-radius:8px;padding:7px 3px">
           <div style="font-size:9px;color:#888;font-weight:600">${i===0?"오늘":dn[dd.getDay()]+" "+(dd.getMonth()+1)+"/"+dd.getDate()}</div>
           <div style="font-size:14px;font-weight:800;margin:3px 0;color:#333">${hi!=null?hi+"°":"-"}</div>
-          <div style="font-size:9px;font-weight:700;color:${stg?stg.color:"#aaa"}">${stg?stg.icon+" "+stg.name.replace(/\(.*?\)/,""):"-"}${humUp?" 💧":""}${hotUp?" 🌡️":""}${coldDown?" ❄️":""}${isDryRh(dryRhOfDay(d))?" 🏜️":""}</div>
+          <div style="font-size:9px;font-weight:700;color:${stg?stg.color:"#aaa"}">${stg?stg.icon+" "+stg.name.replace(/\(.*?\)/,""):"-"}${humUp?" 💧":""}${hotUp?" 🌡️":""}${coldDown?" ❄️":""}${(l=>l&&l.k!=="ok"?" "+l.ic:"")(humLevel(humRhOfDay(d)))}</div>
         </div>`;
       }).join("")}
     </div>
@@ -37104,6 +37179,7 @@ function renderVentTab(){
 
   ${ventSub === "rec" ? recommendCard : ventSub === "week" ? weekPreview : ""}
 
+  ${ventSub === "basis" ? renderHumIndexCard() : ""}
   <div style="${ventSub === "basis" ? "" : "display:none;"}font-size:12px;color:#666;line-height:1.8;background:#fff;border-radius:12px;padding:12px 14px">
     ※ 온도 기준 3단계 체계는 Aviagen「Environmental Management in the Broiler House」,
     PIC「Wean to Finish Guidelines Appendix A」, 미네소타대 확장연구소(L. Jacobson) 자료를 재구성했습니다.
@@ -37903,7 +37979,7 @@ function renderWeatherBody(sub){
           <div style="font-size:13px;color:#666;margin-bottom:3px">${desc(d.code)}</div>
           <div style="font-size:32px;font-weight:800;color:#D32F2F;line-height:1.1">${tStr(d.tMax)}</div>
           <div style="font-size:22px;font-weight:700;color:#1565C0">${tStr(d.tMin)}</div>
-          ${humStr(d)?`<div style="font-size:13px;color:#0288D1;font-weight:600;margin-top:5px">💦 ${humStr(d)} ${dryBadge(dryRhOfDay(d))}</div>`:""}
+          ${humStr(d)?`<div style="font-size:13px;color:#0288D1;font-weight:600;margin-top:5px">💦 ${humStr(d)} ${humBadge(humRhOfDay(d))}</div>`:""}
           ${windStr(d)?`<div style="font-size:13px;font-weight:600;margin-top:2px">💨 ${windStr(d)}</div>`:""}
           ${d.rain>0?`<div style="font-size:15px;color:#1565C0;font-weight:800;margin-top:3px">💧 ${d.rain.toFixed(1)}mm</div>`:""}
         </div>
@@ -37932,7 +38008,7 @@ function renderWeatherBody(sub){
         <div style="font-size:11px;color:#888">${desc(d.code)}</div>
         <div style="font-size:17px;font-weight:800;color:#D32F2F;line-height:1.15">${tStr(d.tMax)}</div>
         <div style="font-size:14px;font-weight:700;color:#1565C0">${tStr(d.tMin)}</div>
-        ${d.humDay!=null?`<div style="font-size:11px;color:#0288D1;margin-top:2px">💦${Math.round(d.humDay)}%</div>`:""}${isDryRh(dryRhOfDay(d))?`<div style="margin-top:2px">${dryBadge(dryRhOfDay(d), true)}</div>`:""}
+        ${d.humDay!=null?`<div style="font-size:11px;color:#0288D1;margin-top:2px">💦${Math.round(d.humDay)}%</div>`:""}${humLevel(humRhOfDay(d))&&humLevel(humRhOfDay(d)).k!=="ok"?`<div style="margin-top:2px">${humBadge(humRhOfDay(d), true)}</div>`:""}
         ${d.rain>0?`<div style="font-size:12px;color:#1565C0;font-weight:700">💧${d.rain.toFixed(1)}mm</div>`:""}
       </div>
       <div style="background:#fafafa;padding:6px 3px;text-align:center;border-top:1px dashed #e6e6e6;font-size:11px;color:#777;line-height:1.7">
@@ -38044,7 +38120,7 @@ function renderWeatherBody(sub){
     </div>
     ${anomTodayLine(fc[0])}
   </div>` : ""}
-  ${dryWarnBox(dryRhOfDay(fc[0]), {when:"오늘"}) || dryUpcomingLine(fc)}
+  ${dryWarnBox(humRhOfDay(fc[0]), {when:"오늘"}) || dryUpcomingLine(fc)}
 
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(285px,1fr));gap:10px;margin-bottom:10px">
     ${bigCards}
