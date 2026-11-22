@@ -1,116 +1,134 @@
 {
-  "updated": "2026-11-15 10:47 KST",
+  "updated": "2026-11-22 11:07 KST",
   "stale": {},
   "categories": {
     "disease": {
       "label": "질병논문",
       "papers": [
         {
-          "title_en": "Discovery of Two Potential and Novel Toll-like Receptor 7 Antagonists via Molecular Docking, Molecular Dynamics Simulation and In Vitro Biological Evaluation.",
-          "title_ko": "분자 도킹, 분자동역학 시뮬레이션 및 시험관내 생물학적 평가를 통한 두 가지 신규 Toll-like receptor 7 길항제 후보물질의 발굴",
-          "summary_ko": "본 연구는 돼지 Toll-like receptor 7(TLR7)을 표적으로 하여 상동모델링을 통해 수용체 구조를 예측하고, 분자 도킹 기반 가상 스크리닝과 ADMET 및 독성 예측을 통해 약리학적 특성이 우수한 50종의 화합물을 선별하였다. 이후 마우스 TLR7 리포터 세포주를 이용해 R848로 유도된 TLR7 활성화에 대한 억제 효과와 세포독성을 시험관내에서 평가하였다. 그 결과 신규 구조를 가진 두 개의 히트 화합물(HY02-35, HY02-46)이 유의한 TLR7 길항 활성을 나타냈으며, HY02-35는 IC50 중앙값 14.73 µM(범위 10.25~38.23 µM), HY02-46은 IC50 중앙값 26.61 µM(범위 21.92~36.00 µM)을 보였다. 두 화합물은 돼지 TLR7과 안정적인 복합체를 형성하였고 IFN-β 및 TNF-α mRNA 발현을 유의하게 감소시켰다. 이는 향후 구조 최적화 및 돼지 대상 생체내 약리연구를 위한 출발점이 될 수 있는 결과이다.",
-          "journal": "Molecules (Basel, Switzerland)",
-          "pub_date": "2026-Oct",
+          "title_en": "Recombinant NDV-vectored vaccine expressing mosaic HA and M2e confers broad and early protection against H9N2 avian influenza virus.",
+          "title_ko": "모자이크 HA와 M2e를 발현하는 재조합 NDV 벡터 백신의 H9N2 조류인플루엔자 바이러스에 대한 광범위 조기 방어 효과",
+          "summary_ko": "연구진은 뉴캐슬병바이러스(NDV) 약독화주 TS09-C를 기반으로 키메라 모자이크 H9 HA와 H9N2 조류인플루엔자바이러스(AIV) M2e 3카피를 발현하는 재조합 백신 rTS-mH9-3M2e를 개발하였다. 1일령 병아리에 접종한 결과 H9N2 AIV에 대한 광범위 중화항체 반응이 유도되었고, 바이러스 배출 및 바이러스량과 임상증상·조직손상이 효과적으로 감소하였다. 또한 이 백신은 이종 아형인 H3N2 AIV에 대해서도 교차중화반응과 교차방어능을 보였다. 무란(in ovo) 백신으로 투여 시 부화 후 접종보다 더 빠른 방어능을 나타냈으며, 7일령 병아리의 비장 CD8+ T세포 수준을 유의하게 증가시켜 H9N2 AIV에 대해 100%, 강독 NDV에 대해 80%의 방어율을 제공하였다. 이러한 결과는 rTS-mH9-3M2e가 광범위 H9N2 조류인플루엔자 백신 및 무란 백신 후보로서 유망함을 뒷받침한다.",
+          "journal": "Frontiers in immunology",
+          "pub_date": "2026",
+          "author": "Jiang 외",
+          "url": "https://doi.org/10.3389/fimmu.2026.1985015"
+        },
+        {
+          "title_en": "Genetic characterization, antimicrobial susceptibility, and pathogenicity of Mycoplasma synoviae strains.",
+          "title_ko": "마이코플라즈마 시노비애 균주의 유전적 특성, 항균제 감수성 및 병원성 분석",
+          "summary_ko": "2018년부터 2023년까지 중국 북부지역에서 분리된 마이코플라즈마 시노비애(Mycoplasma synoviae) 야외 균주 11주를 대상으로 유전형, 항균제 감수성 프로파일 및 내성 관련 돌연변이를 종합 분석하였다. 다중좌위서열분석(MLST) 결과 11개 분리주는 6개의 서로 다른 서열형(ST)으로 분류되었으며, 이 중 2개는 신규 서열형(ST273, ST274)이었다. 항균제 감수성 검사에서 대부분의 균주가 엔로플록사신과 플로르페니콜에 대해 높은 최소억제농도(MIC)를 보인 반면, 틸미코신·틸발로신 등 다른 약제에는 낮은 MIC를 나타냈으며, 높은 엔로플록사신 MIC는 ParC Thr85Ile, GyrB Ser417Asn 등 특정 아미노산 치환과 강한 연관성을 보였다. 대표 균주 4종(3S, GJZ, JB913, YFS)에 대한 정맥·발바닥·비강·기관 내 접종 병원성 평가에서 정맥 및 발바닥 접종이 가장 심한 전신 병변을 유발했으며, 특히 GJZ 균주는 비강 접종 시 임상증상 없이 염증성 사이토카인(IL-6, IL-17A)과 면역조절 사이토카인(IL-4, IFN-γ)을 유의하게 상향조절하여 MS-H 백신주와 유사한 약독화 면역원성 표현형을 보여 신규 백신 후보로서의 가능성을 시사하였다.",
+          "journal": "BMC veterinary research",
+          "pub_date": "2026-Aug",
+          "author": "Yuan 외",
+          "url": "https://doi.org/10.1186/s12917-026-05842-9"
+        },
+        {
+          "title_en": "Establishment of a RAA-CRISPR/Cas12a system-based nucleic acid detection method for avian reticuloendotheliosis virus.",
+          "title_ko": "RAA-CRISPR/Cas12a 시스템 기반 조류 망상내피증바이러스 핵산 검출법 개발",
+          "summary_ko": "면역억제성 종양원성 병원체인 망상내피증바이러스(REV)의 조기 정확한 검출을 위해 pol 유전자의 보존된 552bp 영역을 표적으로 하는 시각적 RAA-CRISPR/Cas12a 검출법을 개발하였다. 37°C에서 RAA 증폭 20분, Cas12a 반응 40분으로 완료되며 청색광/자외선 하에서 육안 판독이 가능하고, 검출한계는 10copies/μL였다. 본 검출법은 다른 조류 병원체와 교차반응이 없었으며 재현성이 우수하였다. 임상시료 90건을 대상으로 한 검증에서 RAA-CRISPR/Cas12a 검출법은 50건(55.55%)을 양성으로 판정한 반면 qPCR은 43건(47.77%)을 양성으로 판정하였으며, 전체 일치율은 85.56%(77/90), 양성 일치율 93.02%, 음성 일치율 78.72%, Cohen's kappa 값은 0.713으로 나타나 REV 선별을 위한 신속하고 특이적인 보완적 진단법임을 확인하였다.",
+          "journal": "Veterinary journal (London, England : 1997)",
+          "pub_date": "2026-Nov",
+          "author": "Lumu 외",
+          "url": "https://doi.org/10.1016/j.tvjl.2026.106978"
+        },
+        {
+          "title_en": "Genome-wide characterization of copy number variations reveals candidate loci associated with Marek's disease resistance in chickens.",
+          "title_ko": "닭의 마렉병 저항성 관련 후보 유전자좌 발굴을 위한 전장유전체 카피수변이 특성 분석",
+          "summary_ko": "마렉병(MD) 저항성에 대한 카피수변이(CNV)의 기여도를 규명하기 위해 마렉병 저항성 White Leghorn 63 계통과 감수성 RCS-M 근교계통의 F0 개체 및 F2 자손을 포함한 닭 188수를 대상으로 Illumina Chicken 60K SNP 어레이 데이터를 이용하여 전장유전체 CNV를 분석하였다. 총 561개의 CNV 이벤트를 확인하여 191개의 CNV 영역(CNVR)으로 통합하였으며, CNVR 내 유전자들은 T세포 활성화를 포함한 면역 관련 생물학적 과정에 농축되어 있었다. F0와 F2 세대에서 공통으로 발견된 CNVR에는 UMPS와 ITGB5가 포함되었고, 탐색적 CNV 기반 전장유전체연관분석(GWAS)에서 GLCCI1을 포함하는 38.68kb 중복 영역이 마렉병 저항성 후보 유전자좌로 확인되었다. 해당 중복 영역은 파브리시우스낭에서 강력한 활성 인핸서와 중첩되었고 GLCCI1 프로모터와 염색질 상호작용으로 연결되어 있었으며, GLCCI1은 파브리시우스낭에서 높은 발현을 보여 마렉병 저항성 육종을 위한 후보 유전자좌로서의 가능성을 제시하였다.",
+          "journal": "Poultry science",
+          "pub_date": "2026-Nov",
+          "author": "Du 외",
+          "url": "https://doi.org/10.1016/j.psj.2026.108058"
+        },
+        {
+          "title_en": "Drinking-water Chinese herbal formula as an antibiotic alternative for broiler necrotic enteritis: efficacy and mechanism.",
+          "title_ko": "육계 괴사성장염에 대한 항생제 대체제로서 음수용 한약복합처방의 효능 및 작용기전",
+          "summary_ko": "클로스트리디움 퍼프린젠스(Clostridium perfringens)에 의한 괴사성장염(NE)에 대한 항생제 대체 전략을 개발하기 위해 한약재 40종을 억제환 및 MIC 시험으로 스크리닝하고 FICI 값 기반 상승효과 조합을 통해 황백·백선피·소목·가자·정향·감초(2.5:2.5:1.5:1.5:1:1)로 구성된 6성분 한약복합처방(CHF)을 개발하였다. CHF는 병원균에 대해 억제환 22.17±0.29mm, MIC 15.63mg/mL, MBC 31.25mg/mL를 나타냈으며, 체외시험에서 세균 세포막 손상은 거의 없었으나 용혈·바이오필름 형성·운동성·상피세포 부착능을 현저히 억제하였고 1/2 MIC 이하 농도에서 Caco-2 세포에 안전하였다. 체내시험은 SPF 병아리 150수를 대조군, NE 모델군, 아목시실린 대조군 및 CHF 3개 용량군(1.5, 2.5, 3.5g/L, 음수투여)으로 나누어 수행하였으며, 질병대조군 대비 3.5g/L CHF군에서 일당증체량(ADG)이 1.90g 증가하고 사료요구율(FCR)이 0.33 감소하였으며 공장 병변이 완화되었다. 고용량 CHF군은 비장·파브리시우스낭 지수를 정상화하고 염증성 사이토카인 TNF-α, IL-6을 하향조절하면서 항염증성 IL-10을 상승시켰고 장관 밀착연접단백질(MUC2, Occludin, Claudin-1, ZO-1) 발현을 증가시켜, 3.5g/L CHF가 가장 뚜렷한 보호효과를 보임으로써 가금 괴사성장염 관리를 위한 대체전략 개발의 근거를 제공하였다.",
+          "journal": "Frontiers in veterinary science",
+          "pub_date": "2026",
           "author": "Liu 외",
-          "url": "https://doi.org/10.3390/molecules31213903"
-        },
-        {
-          "title_en": "Antibacterial and Antibiofilm Activity of AMP-15 Against Staphylococcus aureus and Its Potential Application in Food Matrices.",
-          "title_ko": "황색포도상구균에 대한 AMP-15의 항균 및 항바이오필름 활성과 식품 매트릭스 내 적용 가능성",
-          "summary_ko": "본 연구는 신규 양이온성 항균펩타이드 AMP-15(18개 아미노산, 순전하 +6, 양친매성 α-나선 구조)의 황색포도상구균(S. aureus)에 대한 살균 및 항바이오필름 효과를 생존율 분석, SYTO9/PI 염색, 주사 및 투과전자현미경, 활성산소종(ROS) 측정, 분자도킹(티미딜레이트 키나아제 대상) 등을 통해 평가하였다. AMP-15의 최소억제농도(MIC)는 12.5 μg/mL였으며, 1~2배 MIC 농도에서 2시간 내 생균수를 약 2.0~2.5 log10 CFU/mL 감소시켰고, 세포막 파괴와 세포 내 구조 붕괴, ROS 증가가 관찰되었으며 티미딜레이트 키나아제에 대한 결합친화도는 -6.4 kcal/mol로 예측되었다. 2배 MIC 농도에서 바이오필름 형성을 약 80%까지 억제하고 성숙 바이오필름을 40~60% 제거하였으며, 50 μg/mL 이하에서는 용혈 활성이 낮았으나 고농도에서는 293T 세포에 대해 IC50 58.55 μg/mL의 세포독성을 보였다. 또한 다양한 pH 및 온도 조건에서 활성을 유지하였고, 닭고기에서는 약 1.4~1.5 log10 CFU/g, 멸균우유에서는 약 1.2 log10 CFU/mL의 유의한 황색포도상구균 감소 효과를 나타내어 식품 보존제로서의 가능성을 시사하였다.",
-          "journal": "Foods (Basel, Switzerland)",
-          "pub_date": "2026-Nov",
-          "author": "Aini 외",
-          "url": "https://doi.org/10.3390/foods15213990"
-        },
-        {
-          "title_en": "Incomplete Protection by Maternally Derived Antibody Against H9N2 Low-Pathogenic Avian Influenza in Commercial Broiler Chickens.",
-          "title_ko": "육계에서 H9N2 저병원성 조류인플루엔자에 대한 모체이행항체의 불완전한 방어 효과",
-          "summary_ko": "H9N2 저병원성 조류인플루엔자는 한국 가금 산업에서 풍토병으로 남아있으며, 상업용 육계는 백신접종된 종계로부터 전달된 모체이행항체(MDA)에 크게 의존한다. 이 연구는 6개 상업 농장에서 종계와 1일령 자손의 쌍체 혈청을 채취하여 MDA 전이율과 감소 양상을 정량화하고, 동종 Y280 계통 H9N2 공격접종에 대한 방어 효과를 평가하였다. 90수의 육계를 대상으로 1일령부터 22일령까지 MDA 감소를 모니터링하였으며, HI 역가가 0, 2, 4, 6 log2인 32수를 7일령에 비강 내 공격접종하였다. 평균 전이 효율은 18.2 ± 11.5%였고, MDA의 반감기는 약 3.2일로 추정되었다. 임상증상은 MDA 0, 2, 4, 6군에서 각각 8/8, 8/8, 7/8, 0/8수에서 나타났으며, 맹장편도 바이러스 검출률은 MDA 0군 87.5%에서 MDA 6군 37.5%로 감소하였으나 통계적으로 유의하지는 않았다(p=0.119). 구인두 배출은 공격접종된 모든 개체에서 유사한 역가로 발생하였다. 이러한 결과는 높은 MDA 수준이 임상질병 감소 및 맹장편도 내 바이러스 검출 감소와 관련이 있으나, 실험 조건 하에서 구인두 배출을 방지하지는 못함을 시사한다.",
-          "journal": "Animals : an open access journal from MDPI",
-          "pub_date": "2026-Nov",
-          "author": "Park 외",
-          "url": "https://doi.org/10.3390/ani16213505"
-        },
-        {
-          "title_en": "Comprehensive Genetic Characterization of Salmonella enterica Serovar Gallinarum Biovar Gallinarum from the Poultry Industry in South Korea.",
-          "title_ko": "한국 가금산업 유래 Salmonella enterica Gallinarum biovar Gallinarum의 포괄적 유전학적 특성 분석",
-          "summary_ko": "이 연구는 가금티푸스(fowl typhoid)의 원인균인 Salmonella Gallinarum(SG)의 국내 분리주에 대한 유전적 다양성과 계통학적 관계를 규명하기 위해 수행되었다. 2002년부터 2026년까지 수집된 한국 분리주 26주를 전장유전체 시퀀싱(whole-genome sequencing)으로 분석하고, 해외 공개 SG 유전체 57주와 비교하였다. 핵심 유전체 SNP 100개를 기준으로 전체 83개 분리주를 8개 클러스터와 10개 단일균주(singleton)로 분류하였으며, 모든 한국 분리주는 하나의 동일한 클러스터에 속하였다. 5개의 서열형(ST78, ST331, ST13540, ST14504, ST14529)이 확인되었고 ST78이 우세하였으며, ST14504와 ST14529는 한국 분리주에서만 발견되었다. 베이지안 계통분석 결과 한국 분리주의 최근 공통조상 추정 시기는 약 1990년이었으며, aac(3)-VIa, aadA1, sul1, qacEΔ1 내성유전자 조합은 한국 분리주 12주에서만 확인되어 가금티푸스 방역에 중요한 유전체·역학적 정보를 제공한다.",
-          "journal": "Animals : an open access journal from MDPI",
-          "pub_date": "2026-Oct",
-          "author": "Kim 외",
-          "url": "https://doi.org/10.3390/ani16213404"
-        },
-        {
-          "title_en": "UL45-46 as the preferred insertion site for herpesvirus-of-turkeys-vectored H9N2 avian influenza vaccines: comparative analysis of immunogenicity and protection.",
-          "title_ko": "칠면조 헤르페스 바이러스 벡터 H9N2 조류 인플루엔자 백신에 대한 선호 삽입 부위인 UL45-46: 면역원성 및 보호에 대한 비교 분석.",
-          "summary_ko": "(자동 기계번역 초록) H9N2 조류 인플루엔자 바이러스(AIV)는 전 세계 가금류 산업에 대한 위협으로 발전하여 막대한 경제적 손실과 지속적인 공중 보건 위험을 초래했습니다. 부적절한 세포 및 점막 면역으로 인해 현재 비활성화된 백신은 감염을 예방하고 바이러스 전파를 차단하지 못합니다. 재조합 칠면조 헤르페스바이러스(HVT) 벡터 백신은 유망한 방제 전략이지만, 헤마글루티닌(HA) 유전자의 면역원성이 더 높은 삽입 부위는 여전히 불분명합니다. 본 연구에서는 독특한 긴(UL)45-46 부위와 독특한 짧은(US)2 부위에서 H9N2 HA 유전자를 발현하는 재조합 HVT 백신의 면역원성과 보호 효능을 비교했습니다. HVT-HAUL45-46 바이러스는 모 HVT와 일치하는 복제 역학을 유지했으며 20번의 연속 계대를 통해 유전적 안정성을 입증했습니다. HVT-HAUS2와 비교하여, HVT-HAUL45-46은 상당히 더 높은 적혈구응집 억제(HI) 항체 역가와 더 강한 HA 특이적 세포 면역을 유도했습니다. H9N2 공격 이후 UL45-46 백신은 장내 바이러스 배출을 완전히 방지하고 폐 바이러스 부하 및 조직병리학적 병변을 크게 감소시켰습니다. 이러한 발견은 UL45-46이 HVT 기반 H9N2 백신의 더 나은 삽입 부위로 확립되었습니다.",
-          "journal": "Veterinary research",
-          "pub_date": "2026-Nov",
-          "author": "Yang 외",
-          "url": "https://doi.org/10.1186/s13567-026-01850-7"
+          "url": "https://doi.org/10.3389/fvets.2026.1899410"
         }
       ],
-      "translated": false
+      "translated": true
     },
     "management": {
       "label": "사양관리기술",
       "papers": [
         {
-          "title_en": "Poor-Laying Hen Identification by Integrating HVI Color-Space Transformation and Differentiable Histogram.",
-          "title_ko": "HVI 색공간 변환과 미분 가능 히스토그램을 결합한 저산란계 식별 기법",
-          "summary_ko": "본 연구는 사료 낭비 감소를 위해 저산란계를 자동으로 식별하는 경량 모델 CHIC(Color-Histogram Integrated Classifier)를 제안하였으며, HVI(수평·수직·명도) 색공간 변환과 학습된 특징 활성값의 미분 가능 히스토그램 인코딩, 전역평균풀링 특징을 결합하였다. 단일 농장 6개 케이지에서 사육된 닭 20수를 대상으로 수집한 머리·다리 패치 영상(4개 클래스) 데이터셋과 케이지 단위 산란 상태 라벨을 이용해 평가를 수행했다. 서로 다른 개발 데이터 폴드로 10회 반복 학습하고 고정된 프레임 단위 테스트셋에서 평가한 결과, CHIC는 머리 패치에서 평균 이진 F1-score 92.21%, 다리 패치에서 96.06%를 달성하여 MobileNetV4-S 기준모델을 능가했다. 모델은 269만 개 파라미터로 NVIDIA Jetson Orin Nano Super에서 패치당 평균 순전파 지연시간 21.87ms를 기록했다. 머리·다리 영역 예측을 통합해 닭 개체 단위로 판정했을 때도 분류 성능 우위가 유지되었으나, 미학습 케이지에 적용했을 때는 성능이 크게 저하되어 추가적인 농장 간 검증이 필요함을 시사했다.",
-          "journal": "Sensors (Basel, Switzerland)",
-          "pub_date": "2026-Oct",
-          "author": "Seo 외",
-          "url": "https://doi.org/10.3390/s26216730"
+          "title_en": "Dietary coated calcium butyrate and coated pomegranate peel powder modulate growth performance, blood biochemical parameters, cecal microflora, intestinal morphology, and meat quality in broiler chickens.",
+          "title_ko": "코팅 부티르산칼슘과 코팅 석류껍질 분말이 육계의 생산성, 혈액 생화학 지표, 맹장 미생물총, 장관 형태 및 육질에 미치는 영향",
+          "summary_ko": "1일령 Ross 308 수컷 병아리 288수를 2×2 요인설계로 대조구, 코팅 부티르산칼슘(CCB, 400mg/kg), 코팅 석류껍질 분말(CPPP, 400mg/kg), 병용구(각 400mg/kg)의 4개 처리(처리당 6펜, 펜당 12수)로 나누어 42일간 사육하며 생산성, 도체 특성, 혈액 생화학, 맹장 미생물총, 장 형태, 육질을 평가했다. CCB는 육성기 사료요구율(FCR)을 유의하게 개선했고(P<0.001), CPPP는 전체 사육기간 FCR을 개선했다(P=0.05); 반면 병용 급여는 초생추기·육성기 사료섭취량과 증체량, 전체 사료섭취량을 감소시키고 초생추기 FCR을 오히려 악화시켰다(P≤0.05). 도체 특성은 처리 간 유의차가 없었으며, CCB 또는 CPPP 단독 급여군은 대조구 및 병용구보다 혈청 ALT 활성이 낮았고(P<0.001), CCB는 혈청 카탈라아제 활성(P=0.02)과 맹장 유산균 수(P=0.004)를 증가시켰다. CCB는 회장 소와 깊이를 감소시키고(P=0.004) 융모 높이 대 소와 깊이 비를 가장 높였으나(P=0.002), 병용구는 융모 높이를 감소시켰다(P=0.004). CPPP는 가슴육이 아닌 다리육의 명도(L*, P=0.01)와 황색도(b*, P=0.006)를 증가시켰으며 b*에서 CCB×CPPP 상호작용이 유의했다(P=0.01). 종합적으로 두 첨가제는 단독 급여 시 사료효율을 개선했으며, 특히 CCB는 항산화 상태, 맹장 미생물총, 회장 점막 형태 개선에도 효과적이었다.",
+          "journal": "Veterinary and animal science",
+          "pub_date": "2026-Dec",
+          "author": "Shirangi 외",
+          "url": "https://doi.org/10.1016/j.vas.2026.100938"
         },
         {
-          "title_en": "Beyond Antimicrobial Activity: Plant-Derived Bioactive Compounds as Modulators of Antimicrobial Resistance in Broiler Chickens-Mechanisms, Resistome Dynamics, and One Health Implications.",
-          "title_ko": "항균 활성을 넘어서: 육계의 항생제 내성 조절인자로서 식물 유래 생리활성 화합물 - 작용기전, 저항체(resistome) 동태 및 원헬스적 함의",
-          "summary_ko": "이 비평적 내러티브 리뷰는 육계 생산에서 항생제 내성(AMR)이 단순히 내성균 발생을 넘어 장내 및 환경 미생물 군집 내 항생제 내성 유전자(ARG)의 지속·이동·확산 문제로 이어지는 원헬스적 쟁점임을 다루며, 식물 유래 생리활성 화합물을 내성 조절제로서 평가하였다. 리뷰는 직접적 항균 작용과 항생제 상승효과, 내성 기전 간섭, ARG 및 이동성 유전요소(MGE) 조절, 수평적 유전자 전달 억제, 군집 수준 저항체 효과를 구분하여 분석하였다. 선별된 식물 화합물 및 식물성 제제 관련 연구들은 항생제 감수성, 유출펌프 관련 활성, 내성 효소, 플라스미드 전달, ARG 전사체 양 및 저항체 조성에 대한 다양한 균종·실험모델에서의 영향을 보고하였으나, 그 결과는 화합물·모델·평가지표에 따라 특이적이며 육계 대상 직접적 근거는 제한적이고 이질적이었다. 결과는 식물화합물의 조성, 용량, 제형, 장내 노출, 일령, 미생물 생태, 분석법에 크게 의존하며, 반복적인 저해농도 이하 노출이 오히려 내성 또는 교차내성을 촉진할 가능성도 제기되었다. 저자들은 장내 ARG 감소나 내성균 감소를 AMR 완화의 확정적 증거가 아닌 초기 단서로 간주해야 하며, 향후 표준화된 화합물에 대한 표현형·유전체·전사체·내성 이동성 통합 연구와 생산 전주기에 걸친 종단적 연구가 필요하다고 제언하였다.",
-          "journal": "Plants (Basel, Switzerland)",
-          "pub_date": "2026-Oct",
-          "author": "Nadăş 외",
-          "url": "https://doi.org/10.3390/plants15213285"
+          "title_en": "Effects of a high-quality protein diet on glycemic control in patients with prediabetes: a systematic review and network meta-analysis.",
+          "title_ko": "당뇨병 전단계 환자에서 고품질 단백질 식이가 혈당 조절에 미치는 영향: 체계적 문헌고찰 및 네트워크 메타분석",
+          "summary_ko": "이 연구는 당뇨병 전단계 성인을 대상으로 다양한 단백질 공급원이 혈당 및 지질 대사 지표에 미치는 효과를 비교한 베이즈 네트워크 메타분석으로, Cochrane Library, Embase, PubMed, Web of Science에서 2026년 2월 10일까지 검색된 총 18편의 연구(환자 956명)를 포함하였다. 주요 결과변수는 공복혈당(FPG, mmol/L)과 당화혈색소(HbA1c, %)였으며, 공복인슐린, HOMA-IR, 체질량지수(BMI), 총콜레스테롤, LDL-콜레스테롤, 중성지방을 부차 결과변수로 분석하였다. 분석 결과 혼합 동물성 단백질(MAP)이 공복혈당 감소에 가장 효과적이었고(MD -0.30, 95% CrI -0.57~-0.029), 콩과식물 단백질(LP)은 HOMA-IR 개선에(MD -0.49, 95% CrI -0.55~-0.43), 양고기+닭고기 단백질(LCP)은 총콜레스테롤 감소에(MD -7.6, 95% CrI -14~-1.4), 생선 단백질(FP)은 LDL-콜레스테롤 감소에(MD -7.7, 95% CrI -15~-0.64) 가장 효과적이었다. 반면 HbA1c, 공복인슐린, BMI, 중성지방에서는 어떤 식이도 유의한 효과를 보이지 않았다. 연구진은 포함된 1차 연구 수가 적고 일부 중재 간 이질성이 있으며 중재 기간이 짧다는 한계를 지적하며, 근거와 임상 실무 간 간극을 메우기 위한 추가적인 양질의 임상시험과 실행 연구가 필요하다고 결론지었다.",
+          "journal": "Frontiers in endocrinology",
+          "pub_date": "2026",
+          "author": "Zeng 외",
+          "url": "https://doi.org/10.3389/fendo.2026.1985127"
         },
         {
-          "title_en": "Identification of Functional SNPs in CTGF Regulating Fat Deposition in Broilers.",
-          "title_ko": "육계의 지방 축적을 조절하는 CTGF 유전자 내 기능적 SNP 동정",
-          "summary_ko": "본 연구는 복부지방 축적과 관련된 결합조직성장인자(CTGF) 유전자 내 기능적 단일염기다형성(SNP)을 동정하고 그 조절기전을 규명하고자 하였다. 복부지방 함량에 대해 19세대에 걸쳐 분기선발된 육계 계통의 전장유전체 재서열분석 데이터를 이용하여 CTGF 유전자 및 인접 영역(±3kb) 내 SNP를 탐색하고, 복부지방중량(AFW) 및 복부지방률(AFP)과의 연관분석을 수행하였다. 그 결과 7개 SNP가 AFW 및 AFP와 유의한 연관성을 보였으며, 이 중 g+516T>C, g+954T>C, g-982A>G, g*2702A>T 등 4개가 RT-qPCR 및 루시퍼라제 리포터 분석을 통해 기능적 SNP로 검증되었다. 엑손 내 SNP(g+516T>C, g+954T>C)는 mRNA 2차구조 안정성 변화를 통해, 5' 측면의 g-982A>G는 전사인자 C/EBPα, USF1, MAX에 대한 대립유전자 특이적 반응을 통해 CTGF 발현을 조절하는 것으로 나타났다. 3' 측면의 g*2702A>T는 gga-miR-1812-5p 반응요소에 영향을 미쳐 CTGF 조절에 관여할 가능성이 제시되었으며, 이들 SNP는 복부지방 함량에 대한 분자표지 기반 육종 선발에 활용 가능한 후보 마커로 평가된다.",
-          "journal": "Cells",
-          "pub_date": "2026-Oct",
-          "author": "Zhou 외",
-          "url": "https://doi.org/10.3390/cells15211930"
-        },
-        {
-          "title_en": "Movement Patterns of Laying Hens Across Production Stages in a Commercial Aviary System.",
-          "title_ko": "상업용 조류사(aviary) 시스템에서 산란 단계별 산란계의 이동 패턴 분석",
-          "summary_ko": "본 연구는 상업용 다단식 조류사(aviary)에서 Lohmann Brown 산란계 2,162수를 4개 생산단계 코호트로 구분하여 RFID 기반 구역 간 이동(transition) 패턴을 분석하였다. 2016년 11월 21일부터 2017년 11월 15일까지(약 18~70주령) 204일의 데이터를 이용하였으며, 10초 미만의 체류(bout)는 제외하고 10초 이내 간격으로 연속된 동일 구역 체류는 병합 처리하였다. 총 23,756,706건의 기록된 이동 중 73.9%가 동일 구역 내 반복(self-loop)이었고 주로 급이기 주변에 집중되었다. 산란 전·정점·후기·말기 단계별 닭 1마리·1일당 비반복 이동 건수는 각각 9.65, 13.54, 17.77, 15.10건으로 나타났으며, 하단 급이기가 구역 간 연결성이 가장 강하였고 후기에는 출입구(pop-hole) 연결이 더 두드러졌다. 실내 급이기·둥지상자 6개 위치로 연결을 제한하자 정점기-후기 간 증가율이 31.2%에서 2.7%로 감소하여, 관찰된 차이가 모니터링된 위치 구성에 크게 의존함을 보여주었다. 연구진은 일령, 계절, 관리, 모니터링 범위가 동시에 변동하여 각 요인의 개별적 영향이나 지속적 점유·실외 이동 여부는 확인할 수 없음을 한계로 지적하였다.",
-          "journal": "Animals : an open access journal from MDPI",
+          "title_en": "Effect of enrichment, stocking density and breed on feather corticosterone, feather dehydroepiandrosterone (sulphate) and their ratio in broiler chickens.",
+          "title_ko": "환경 보강, 사육 밀도 및 품종이 육계의 깃털 코르티코스테론, 깃털 디하이드로에피안드로스테론(황산염) 및 그 비율에 미치는 영향",
+          "summary_ko": "본 연구는 환경 보강(enrichment), 사육 밀도, 품종이 육계의 만성 스트레스 지표인 깃털 코르티코스테론과 디하이드로에피안드로스테론(황산염, DHEA(S))에 미치는 개별 및 복합 효과를 조사하였다. 폴란드에서 4건, 네덜란드에서 2건의 2×2 요인설계 실험을 수행하여, 성장 속도가 다른 육계 품종들을 보강 유형과 사육 밀도가 상이한 환경(관행 사육 및 저집약 사육 조건 포함)에서 사육하였다. 환경 보강이 없거나 사육 밀도가 높은 조건에서 사육된 육계는 깃털 코르티코스테론 농도가 유의하게 높게 나타났다. 반면 성장 속도가 빠른 품종에서는 코르티코스테론이 오히려 낮거나 품종에 따른 차이가 없었으며, 깃털 DHEA(S) 농도 및 코르티코스테론/DHEA(S) 비율에 대한 보강, 밀도, 품종의 효과와 상호작용은 뚜렷하지 않았다. 이러한 결과는 환경 보강과 사육 밀도가 스트레스에 명확한 영향을 미치는 반면, DHEA(S)의 역할은 복잡하며 추가 연구를 통해 깃털 내 DHEA(S)가 육계의 만성 스트레스에 대한 신뢰할 수 있는 생체지표인지 확인할 필요가 있음을 시사한다.",
+          "journal": "British poultry science",
           "pub_date": "2026-Nov",
-          "author": "Omrani 외",
-          "url": "https://doi.org/10.3390/ani16213533"
+          "author": "Reimert 외",
+          "url": "https://doi.org/10.1080/00071668.2026.2731586"
         },
         {
-          "title_en": "Different Formulations and Concentrations of Sweet Chestnut Tannins Differentially Modulate Gut Microbiota in Broiler Chickens.",
-          "title_ko": "서양밤 탄닌의 제형 및 농도 차이에 따른 육계 장내 미생물총의 차별적 조절 효과",
-          "summary_ko": "본 연구는 식물성 사료첨가제로 사용되는 서양밤 탄닌(SCT)의 제형과 농도가 육계 장내 미생물총에 미치는 영향을 평가하였다. Ross 308 육계 60수(그룹당 6수, 무첨가 대조군 포함)를 대상으로 분말형, 대두단백 결합형, 미세캡슐형, 인산 결합형 SCT를 서로 다른 사료 내 농도로 급여하고, 16S rRNA 유전자 시퀀싱으로 회장 및 맹장 미생물총을 분석하였다. 회장에서는 처리군 간 풍부도, 계통학적 다양성, 베타다양성에 차이가 있었으나 Shannon 다양성과 균등도는 변화가 없었으며, Lactobacillaceae가 우점한 가운데 다중검정 보정 후 대조군 대비 과·속 수준의 유의한 차이는 남지 않았다. 반면 맹장에서는 평가된 모든 알파·베타다양성 지표가 처리군 간 유의하게 달랐고 처리별로 다양한 분류군 변화가 관찰되었으며, 여러 처리에서 Firmicutes/Bacteroidota 비율이 증가하고 대부분의 첨가군에서 Muribaculaceae가 감소하였다. 대두단백 결합형 SCT 1000mg/kg은 Parabacteroides와 Odoribacter를, 미세캡슐형 1000mg/kg은 Romboutsia와 Peptostreptococcaceae를 증가시켰으며, Fournierella는 대두단백 결합형 SCT 2000mg/kg에서 증가하였으나 전반적으로 용량 의존적 경향은 일관되지 않았다.",
-          "journal": "Animals : an open access journal from MDPI",
-          "pub_date": "2026-Nov",
-          "author": "Prošić 외",
-          "url": "https://doi.org/10.3390/ani16213514"
+          "title_en": "Family Food Choice of Animal-Source Foods: Role of the Intra-Household Allocation and Prioritization With Maternal and Child Nutrition in Informal Settlements in Nairobi, Kenya.",
+          "title_ko": "동물성 식품에 대한 가족의 식품 선택: 케냐 나이로비 비공식 정착지에서 모자 영양과 관련된 가구 내 배분 및 우선순위의 역할",
+          "summary_ko": "본 연구는 케냐 나이로비의 가축 사육이 많은 7개 구역에서 생후 6~59개월 자녀를 둔 모자(母子) 304쌍을 대상으로 2019년 9~11월에 실시된 단면조사(cross-sectional survey) 연구이다. 어머니는 모유수유, 보완식이, 자원이 부족할 때 가구원별 동물성 식품(ASF) 우선순위를 자가보고하였으며, 점토 모형(육류)과 물 모형(우유)을 이용해 가구원별 실제 배분량을 평가하였고, 신체계측, 식이 회상, 헤모글로빈 수치도 함께 수집하여 회귀분석 및 인과매개분석을 수행하였다. 가구당 평균 구성원은 4.3명이었고 소득의 38%를 식비에 지출하였으며, 어머니의 88%와 자녀의 92%가 전날 동물성 식품(주로 유제품)을 섭취하였다. 동물 우유는 생후 6개월에, 가금육·적색육·달걀은 생후 8~9개월에 처음 도입되었고, 어머니의 97%가 식품 분배를 주도하며 에너지 요구량을 고려해 성인보다 자녀에게 더 많은 동물성 식품을 우선 배분하였다. 동물성 식품 우선순위는 모자의 낮은 헤모글로빈 수치와 관련이 있었던 반면, 실제 배분량은 자녀의 전날 동물성 식품 섭취 가능성 증가와 관련이 있어, 여성의 의사결정권이 가구 내 자원의 공평한 분배와 건강한 식단 접근성 확보에 중요함을 시사한다.",
+          "journal": "Maternal & child nutrition",
+          "pub_date": "2026-Oct",
+          "author": "Boncyk 외",
+          "url": "https://doi.org/10.1111/mcn.70255"
+        },
+        {
+          "title_en": "AFB1 promotes H3N8 replication in chickens by impairing gut colonization of protective segmented filamentous bacteria.",
+          "title_ko": "AFB1은 보호 분절 사상균의 장내 정착을 손상시켜 닭의 H3N8 복제를 촉진합니다.",
+          "summary_ko": "(자동 기계번역 초록) 아플라톡신 B1(AFB1)은 가금류 사료에 널리 퍼져 있는 곰팡이 독소이지만 조류 인플루엔자 바이러스 H3N8 감염에 미치는 영향은 아직 잘 알려져 있지 않습니다. 여기에서 우리는 AFB1(25-100 μg/kg)의 환경적으로 관련된 농도가 닭 세포주(DF-1 및 CEF)와 특정 병원균이 없는(SPF) 닭 모두에서 H3N8 복제를 크게 향상시킨다는 것을 보여줍니다. 조직병리학, 16S rRNA 시퀀싱 및 비표적 대사체학을 통합한 다중 오믹스 접근 방식을 사용하여 우리는 AFB1 노출이 장 장벽 무결성을 방해하고 장내 미생물 불균형을 유도하며 특히 회장 상피에서 유익한 분절 사상균(SFB)의 집락화를 감소시킨다는 것을 입증합니다. 이는 변경된 지질 대사, 특히 생체 외에서 바이러스 복제를 촉진하기에 충분한 도데칸디오산 수준의 증가와 관련이 있었습니다. 기계적으로 AFB1은 밀착연접 단백질 발현(Occludin, Claudin-1, ZO-1)을 손상시키고 인터페론 자극 유전자(MX1, OAS1 및 ISG15)의 발현을 감소시키며 Th17 편향 염증 반응을 촉진합니다. 놀랍게도 SFB의 경구 보충은 AFB1 매개 H3N8 복제 강화를 역전시키고 장 염증을 개선했습니다. 우리의 연구 결과는 장내 미생물 불균형과 보호 SFB의 손실에 의해 유발된 이전에 인식되지 않은 마이코톡신-바이러스 상호 작용 축을 확인하고, 가금류 생산에서 인플루엔자 위험을 완화하기 위한 긴급 우선순위로 AFB1 제어를 강조합니다.",
+          "journal": "NPJ biofilms and microbiomes",
+          "pub_date": "2026-Aug",
+          "author": "Dai 외",
+          "url": "https://doi.org/10.1038/s41522-026-01114-4"
         }
       ],
-      "translated": true
+      "translated": false
     },
     "consulting": {
       "label": "컨설팅도구",
       "papers": [
         {
+          "title_en": "Probiotic potential of Blautia producta L1 in mitigating Eimeria tenella-induced intestinal inflammation and dysbiosis in chickens.",
+          "title_ko": "닭에서 아일메리아 테넬라(Eimeria tenella) 유발 장염증 및 장내미생물불균형 개선을 위한 Blautia producta L1의 프로바이오틱 잠재력",
+          "summary_ko": "1일령 수컷 하이라인(Hy-Line) 산란계 병아리 75수를 대조군, 공격접종 대조군, B. producta L1 단독투여군, B. producta L1 투여 후 공격접종군, 불활화 B. producta L1 투여 후 공격접종군 등 5개 군(군당 15수)으로 나누어 1일령부터 22일령까지 생균 또는 열처리 사균 B. producta L1을 2×10⁸ CFU/mL 농도로 1일 1회 경구투여하고, 14일령에 아일메리아 테넬라 포자화 난포낭 3×10⁴개를 경구접종하여 효과를 평가했다. 그 결과 생균 및 사균 투여군 모두에서 체중증가량이 공격접종 대조군보다 유의하게 높았고(p<0.01), 맹장병변점수와 분변 내 난포낭 배출량도 유의하게 감소했으며(p<0.001), 항콕시듐지수(ACI)는 생균군 162.0, 사균군 151.6으로 공격접종 대조군(102.2)보다 우수했다. 또한 혈청 내 IL-1β, IL-6, TNF-α 등 염증성 사이토카인은 유의하게 감소하고 항염증성 IL-10은 증가했으며(각각 p<0.01, p<0.05), 맹장조직 내 TLR4, MYD88, NF-κB, NLRP3, P65, Caspase-3 mRNA 발현이 하향조절되었다(p<0.05). 16S rRNA 유전자 시퀀싱 결과 맹장 내 미생물 다양성이 증가하고 유익균(Blautia, Lactobacillus)은 늘고 잠재병원성균(Salmonella, Acinetobacter, Erysipelatoclostridium)은 감소하여(p<0.05), B. producta L1이 콕시듐증 보조관리용 프로바이오틱 후보로서 가능성을 보였다.",
+          "journal": "Parasites & vectors",
+          "pub_date": "2026-Aug",
+          "author": "Liu 외",
+          "url": "https://doi.org/10.1186/s13071-026-07640-6"
+        },
+        {
+          "title_en": "Mechanistic heat-transfer model for predicting skin and feather temperatures in broiler chickens.",
+          "title_ko": "육계의 피부 및 깃털 온도 예측을 위한 기전적 열전달 모델",
+          "summary_ko": "육계는 사육기간 동안 급격한 생리·형태학적 변화를 겪으며 이에 따라 열요구량과 열교환 기전이 크게 달라지는데, 본 연구는 사육 전 기간에 걸쳐 피부표면 및 깃털 온도를 예측하기 위한 기전적 열전달 모델을 개발했다. 모델은 피부층과 공기-깃털층의 2개 층으로 구성된 1차원 정상상태 열전달을 가정하였으며, 열전도, 대사열 생성, 혈류관류, 대류, 장파복사, 깃털 내 복사열 흡수 등을 포함했다. Cobb 계통 육계 24수를 대상으로 사육기간 중 6개 시점에서 측정한 실험값과 모델 예측값을 비교한 결과, 깃털표면 온도 예측값은 체중 구간과 환경조건 전반에 걸쳐 측정값의 95% 신뢰구간 내에 들었으나, 피부온도는 특히 체중이 가벼운 개체에서 체계적으로 과대추정되었다. 이는 해당 모델이 깃털온도 예측에는 유효하나 피부층 모델은 육계 특이적·연령별 열물성치를 반영한 추가 보완이 필요함을 시사하며, 현재로서는 의사결정 지원도구로서의 활용은 예비적 수준으로 간주되어야 한다.",
+          "journal": "Tropical animal health and production",
+          "pub_date": "2026-Nov",
+          "author": "Nascimento 외",
+          "url": "https://doi.org/10.1007/s11250-026-05465-0"
+        },
+        {
           "title_en": "Computer vision in precision poultry farming: evaluation of YOLO and transformer-based object detectors for dead broiler detection in farm inspection images.",
-          "title_ko": "정밀 양계에서의 컴퓨터 비전: 농장 점검 이미지 내 폐사 육계 탐지를 위한 YOLO 및 트랜스포머 기반 객체 탐지 모델 평가",
-          "summary_ko": "본 연구는 상업용 농장에서 33일간의 사육 주기 동안 수집한 1,068장의 농장 점검 이미지(생존 육계 7,222마리, 폐사 육계 1,016마리 개체)를 활용하여 YOLOv12-L, YOLOv12-X, YOLO26-L, YOLO26-X, RT-DETR-L, RT-DETR-X 등 6개 모델의 폐사 육계 탐지 성능을 평가하였다. 각 모델은 3개의 독립적인 시드로 학습되었으며, 정밀도, 재현율, mAP50, mAP50-95를 주요 평가지표로 사용하였다. YOLO26-L이 폐사 클래스 mAP50-95 0.912±0.003, 전체 클래스 mAP50-95 0.875±0.002로 가장 높은 성능을 보였고, RT-DETR-L은 폐사 육계 재현율 0.972±0.001로 가장 우수하였다. A100 환경에서 YOLO26-L은 이미지당 2.23±0.06ms의 낮은 추론 시간을 보여, 이미지 기반 폐사 육계 탐지의 기술적 실현 가능성을 뒷받침하였다. 다만 향후에는 편향 없는 음성 장면 샘플링, 이벤트 단위 식별, 외부 농장 검증 등이 추가로 필요하다.",
+          "title_ko": "정밀 양계에서의 컴퓨터 비전: 농장 점검 이미지 내 폐사 육계 탐지를 위한 YOLO 및 트랜스포머 기반 객체탐지 모델 평가",
+          "summary_ko": "육계 폐사 점검은 양계농장 관리의 중요한 요소로, 본 연구는 사건이 포함된 농장 점검 이미지에서 폐사 육계를 탐지하기 위한 최신 YOLO 및 트랜스포머 기반 객체탐지 모델의 기술적 타당성을 파일럿 수준에서 평가했다. 상업농장에서 33일간의 생산주기 동안 수집한 1,068장의 이미지(생존 육계 7,222개체, 폐사 육계 1,016개체 인스턴스)를 데이터셋으로 사용했으며, 폐사 확인 후 사체 제거 전 촬영된 이미지들로 구성되었다. YOLOv12-L, YOLOv12-X, YOLO26-L, YOLO26-X, RT-DETR-L, RT-DETR-X 등 6개 모델을 동일한 RGB 프로토콜 하에 3개 독립 시드로 훈련하여 평가한 결과, YOLO26-L이 폐사 클래스 mAP50-95(0.912±0.003) 및 전체 클래스 mAP50-95(0.875±0.002)에서 가장 우수했고, RT-DETR-L은 폐사 재현율(recall)에서 가장 높은 값(0.972±0.001)을 보였다. A100 GPU 환경에서 YOLO26-L은 추론시간도 2.23±0.06 ms/이미지로 낮게 나타나, 이미지 기반 폐사 육계 탐지의 기술적 실현가능성을 뒷받침했으나, 향후 비편향 음성 샘플링, 사건 단위 식별자, 외부 농장 검증 등 추가 연구가 필요함을 제시했다.",
           "journal": "Veterinary and animal science",
           "pub_date": "2026-Dec",
           "author": "Umurungi 외",
@@ -118,8 +136,8 @@
         },
         {
           "title_en": "Review and analysis of knowledge, tools, and implementation gaps for the control of cryptosporidiosis in livestock.",
-          "title_ko": "가축 크립토스포리디움증 관리를 위한 지식, 도구 및 실행 격차에 대한 고찰 및 분석",
-          "summary_ko": "본 종설은 크립토스포리디움(Cryptosporidium spp.) 감염에 의한 크립토스포리디움증이 인수공통감염병으로서 축산 및 공중보건에 미치는 영향을 다루며, 특히 어린 반추동물에서 가장 임상적으로 중요한 Cryptosporidium parvum과 가금류에서 호흡기 질환을 유발하는 Cryptosporidium baileyi를 중심으로 논의하였다. 현재 사용 가능한 두 가지 약물 치료제는 설사 및 난포낭 배출 감소에 일부 효과가 있으나 치료 가능 기간이 제한적이며, 최근 도입된 백신은 임신한 소에서 항체를 유도하여 초유를 통해 송아지에게 전달되는 방식으로 소에서만 사용 가능하다. 두 가지 대책 모두 난포낭 배출을 완전히 제거하지 못해 환경 오염이 지속적인 감염원으로 남으며, 이에 따라 바이오시큐리티 조치 및 분뇨·슬러리 관리 등 농장 운영 전반의 병행이 필요함을 강조하였다. 본 고찰은 최신 DISCONTOOLS 분석을 기반으로 지식 격차를 식별하고 향후 방역 도구 개발 방향을 제시하였다.",
+          "title_ko": "가축의 크립토스포리디움증 관리를 위한 지식, 도구 및 실행 격차에 대한 고찰 및 분석",
+          "summary_ko": "크립토스포리디움증은 Cryptosporidium 속 원충 감염에 의한 질병으로 인체 및 수의학적으로 중요한 위협이며, 특히 Cryptosporidium parvum은 인수공통감염병원체이다. 가금에서는 Cryptosporidium baileyi 감염에 의한 호흡기질환이, 어린 반추동물에서는 C. parvum에 의한 급성 설사병이 주로 나타나며 폐사율은 낮으나 이환율과 생산성 저하로 인한 경제적 손실이 상당하다. 본 리뷰는 최신 DISCONTOOLS 분석을 토대로 현재 사용 가능한 두 가지 약물치료가 설사와 난포낭 배출 감소에 일부 효과가 있으나 치료 가능 기간이 제한적이고 사용 제한이 있으며, 최근 도입된 백신은 임신우에서 항체를 유도해 초유를 통해 송아지에게 전달되는 방식으로 소에서만 사용 가능하고 전세계적으로 보급되지 않았음을 지적했다. 약물치료와 백신 모두 난포낭 배출을 완전히 제거하지 못해 환경오염이 지속적인 감염원이 되므로, 방역관리 및 분뇨·슬러리 관리 등 농장 위생관리가 약물치료·백신접종과 병행되어야 함을 강조했다.",
           "journal": "BMC veterinary research",
           "pub_date": "2026-Aug",
           "author": "Robertson 외",
@@ -127,30 +145,12 @@
         },
         {
           "title_en": "Integrating physiological indicators and Precision Livestock Farming to support European animal welfare frameworks: a systematic review.",
-          "title_ko": "유럽 동물복지 프레임워크 지원을 위한 생리학적 지표와 정밀축산기술의 통합: 체계적 문헌고찰",
-          "summary_ko": "본 연구는 PRISMA 가이드라인에 따라 Scopus 데이터베이스를 기반으로 소, 돼지, 가금류, 양, 염소 등 주요 축종에서 정밀축산기술(PLF)과 생리학적 지표의 통합을 다룬 문헌을 체계적으로 고찰하였다. 초기 1,386건의 문헌 중 선별 및 적격성 평가를 거쳐 최종 144건의 연구가 분석에 포함되었으며, 체표온도, 심박수, 호흡수가 가장 빈번히 조사된 생리학적 지표였고 컴퓨터 비전, 웨어러블 센서, 환경 센싱, 기계학습이 주요 모니터링 기술로 확인되었다. 분석된 연구들은 주로 동물 기반 복지 지표에 초점을 맞추었으며, 자원 및 관리 기반 지표에 대한 연구는 상대적으로 부족하였고, 항생제 사용이나 인간-동물 관계를 PLF 기술로 조사한 연구는 전무하여 중요한 연구 공백으로 지적되었다. 향후에는 생리, 행동, 환경, 관리 데이터를 통합한 다중모달 접근법이 필요함을 제언하였다.",
+          "title_ko": "유럽 동물복지 프레임워크 지원을 위한 생리학적 지표와 정밀축산(Precision Livestock Farming) 통합: 체계적 문헌고찰",
+          "summary_ko": "본 연구는 PRISMA 지침에 따라 Scopus 데이터베이스를 기반으로 수행된 체계적 문헌고찰로, 소·돼지·가금·양·염소 등 주요 축종에서 동물복지 평가에 활용되는 생리학적 지표와 정밀축산(PLF) 기술의 통합 현황을 서술적 방법으로 종합 분석했다. 초기 1,386건의 문헌 중 심사 및 적격성 평가를 거쳐 최종 144편의 연구가 선정되었으며, 체표온도, 심박수, 호흡수가 가장 빈번히 다루어진 생리지표였고 컴퓨터비전, 웨어러블센서, 환경센싱, 머신러닝이 비침습적 연속 모니터링을 가능케 하는 주요 기술로 확인되었다. 분석 대상 연구들은 주로 유럽 동물복지 평가 프레임워크 내 동물기반 지표를 다룬 반면, 자원기반 및 관리기반 지표에 대한 연구는 상대적으로 부족했으며, 항생제 사용이나 인간-동물 관계를 PLF 기술로 평가한 연구는 전혀 없어 중요한 연구 공백으로 지적되었다. 결과적으로 생리학적 지표는 행동 및 환경 모니터링과 결합될 때 동물기반 복지지표 해석을 보완하는 유용한 정보를 제공하며, 향후 연구는 생리·행동·환경·관리 데이터를 통합한 다중모달 접근을 우선시해야 함을 제안했다.",
           "journal": "The veterinary quarterly",
           "pub_date": "2026-Dec",
           "author": "Pastorelli 외",
           "url": "https://doi.org/10.1080/01652176.2026.2739038"
-        },
-        {
-          "title_en": "Temporal Trends and Associations of Antimicrobial Use and Resistance in Enterococcus Species From Broiler Farms in Canada.",
-          "title_ko": "캐나다 육계 농장의 엔테로코커스 균종에서 항생제 사용과 내성의 시간적 추이 및 연관성",
-          "summary_ko": "본 연구는 캐나다 가금산업의 단계적 항생제 사용 감축 전략이 엔테로코커스(Enterococcus) 균의 항생제 내성에 미치는 영향을 평가하기 위해, 5개 주의 419개 육계 농장에서 4년에 걸쳐 수집한 623개 분리주에 대해 최소억제농도(MIC) 검사를 실시하였다. 농장 관리 정보는 표준화된 설문지를 통해 수집되었으며, 일반화 선형 혼합모형을 이용하여 항생제 사용, 주(province), 연도, 품종, 사육밀도, 다운타임, 위생 관행 등과 내성 간의 연관성을 분석하였다. Avilamycin 사용은 E. faecalis 및 E. faecium 모두에서 avilamycin 내성과 유의한 연관성을 보였으며, 수의약품국(VDD) 카테고리 II 및 III 항생제에 대한 내성 분리주 비율이 3단계 감축 전략 시행 이후 뚜렷이 감소하였다. 이는 표적화된 항생제 사용 감축 전략이 캐나다 육계 농장의 엔테로코커스 내성률 감소와 연관되어 있음을 시사한다.",
-          "journal": "Zoonoses and public health",
-          "pub_date": "2026-Nov",
-          "author": "van den Bergh 외",
-          "url": "https://doi.org/10.1111/zph.70102"
-        },
-        {
-          "title_en": "Light preferences of broiler chickens across functional zones in the broiler house.",
-          "title_ko": "육계사 내 기능적 구역별 육계의 광 선호도",
-          "summary_ko": "본 연구는 동적 LED 조명 시스템을 이용하여 육계가 급이, 음수, 휴식, 긁기(스크래칭) 등 4개 기능적 구역에서 보이는 광색 선호도를 조사하였다. ROSS 308 수컷 병아리 총 1,680마리를 4회 연속 생산주기에 걸쳐 라운드당 4개 펜에서 사육하였으며, 각 펜의 구역마다 대조군(백색 3000K)과 두 가지 실험 광 레시피를 배치하고 YOLO 알고리즘 기반 영상 모니터링을 통해 5억 건 이상의 개체 탐지 데이터를 확보하였다. 결과적으로 급이 구역에서는 전 생육 단계에서 적색광을 일관되게 기피하고 대조군 및 청록색광을 선호하였으며, 휴식·털고르기 구역에서는 모든 시기에 걸쳐 냉백색광(8000K)을 뚜렷이 선호하는 것으로 나타났다. 긁기 구역에서는 일관된 선호가 관찰되지 않았으나 성장기에는 백색+UV광에 대한 상대적 선호 경향이 확인되었다. 이러한 결과는 육계의 복지와 행동을 증진하기 위해 구역별·연령별 맞춤형 조명 전략, 예컨대 급이 구역의 적색광 배제와 휴식 구역의 냉백색광 적용이 필요함을 시사한다.",
-          "journal": "Animal : an international journal of animal bioscience",
-          "pub_date": "2026-Nov",
-          "author": "Buyse 외",
-          "url": "https://doi.org/10.1016/j.animal.2026.101970"
         }
       ],
       "translated": true
