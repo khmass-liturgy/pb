@@ -689,7 +689,7 @@ async function fetchTaxfreeFuel(force){
     console.warn("면세유 평균가(오피넷) 로딩 실패:", e.message);
     taxfreeFuelState = { status:"error", data:null };
   }
-  if(state.tab==="price") render();
+  if(state.tab==="price" || state.tab==="consult") render();
 }
 
 async function fetchBroilerPriceToday(force){
@@ -35307,7 +35307,7 @@ function calcHumidityRatio(tempC, rh){
   return 622*e/(P-e); // g/kg
 }
 
-function calcVentilationRate(feedIntakeG, targetTempC, outTempC, outRH, targetRH){
+function calcVentilationRate(feedIntakeG, targetTempC, outTempC, outRH, targetRH, wOutOverride){
   // targetTempC: 계사 내부 목표온도(사양단계별) / targetRH를 안 주면 UGA 권장 60%로 가정
   if(feedIntakeG==null || targetTempC==null || outTempC==null || outRH==null) return null;
   if(targetRH==null) targetRH = 60;
@@ -35319,7 +35319,7 @@ function calcVentilationRate(feedIntakeG, targetTempC, outTempC, outRH, targetRH
   const moistureG = waterG * MOISTURE_TO_AIR_FRACTION;
 
   const wIn = calcHumidityRatio(targetTempC, targetRH);
-  const wOut = calcHumidityRatio(outTempC, outRH);
+  const wOut = wOutOverride != null ? wOutOverride : calcHumidityRatio(outTempC, outRH);   // 시간대별 평균 습도함량을 넘기면 그 값을 쓴다
   const diff = wIn - wOut; // g/kg
 
   if(diff <= 0){
@@ -35361,52 +35361,78 @@ function getFeedIntakeForCurrent(){
   return getFeedIntakeFor(consultState.species, breedKey, consultState.age);
 }
 
+// 바깥 공기 조건 — 습도수지는 하루 동안 나오는 수분을 따지므로 하루 평균 바깥 공기로 계산한다(2026-11-22 동절기 점검).
+// 예전엔 낮 최고기온에 하루 평균 습도를 짝지어 맞지 않는 조합이었다. 시간대별 예보가 있으면 시간마다 습도함량을 구해 평균한다.
+function ventCalcOutdoor(today){
+  const hrs = ((weatherState.hourly && weatherState.hourly[today.date]) || []).filter(h => h.temp != null && h.humidity != null);
+  if(hrs.length >= 6){
+    const avg = f => hrs.reduce((a, h) => a + f(h), 0) / hrs.length;
+    return { t:avg(h => h.temp), rh:avg(h => h.humidity), w:avg(h => calcHumidityRatio(h.temp, h.humidity)), tMin:Math.min(...hrs.map(h => h.temp)), src:"시간대별 예보 평균" };
+  }
+  const t = (today.tMax != null && today.tMin != null) ? (today.tMax + today.tMin) / 2 : today.tMax;
+  return { t, rh:today.hum, w:calcHumidityRatio(t, today.hum), tMin:today.tMin, src:"하루 평균" };
+}
 function renderVentCalcPanel(){
   const fc = weatherState.forecast || [];
   if(fc.length===0) return "";
   const today = fc[0];
-  const outT = today.tMax, outRH = today.hum;
-  if(outT==null || outRH==null) return "";
+  if(today.tMax==null || today.hum==null) return "";
+  const o = ventCalcOutdoor(today);
+  if(o.t == null || o.rh == null) return "";
+  const outT = Math.round(o.t * 10) / 10, outRH = Math.round(o.rh);
 
   const targetT = getTargetTempForAge(consultState.species, consultState.age);
   const feedG = getFeedIntakeForCurrent();
   if(targetT==null || feedG==null) return "";
 
-  const r = calcVentilationRate(feedG, targetT, outT, outRH);
+  const r = calcVentilationRate(feedG, targetT, o.t, o.rh, null, o.w);
   if(!r) return "";
+  const winter = ventIsWinter(today.date);
+  const hotDay = !winter && today.tMax > targetT;
+  // 찬 바깥 공기를 목표온도까지 데우는 열 — ρ·cp 0.33 W/(m³/h·K)(환기 기초교실·게임과 같은 값), 등유 9.6 kWh/L × 효율 0.85
+  if(taxfreeFuelState.status === "idle") fetchTaxfreeFuel();
+  const fuelP = taxfreeFuelState.data && taxfreeFuelState.data.prices && taxfreeFuelState.data.prices.kerosene;
+  const q10k = r.ineffective ? null : r.m3hrPerBird * 10000;
+  const dT = targetT - o.t;
+  const heatKw = q10k != null && dT > 0 ? q10k * 0.33 * dT / 1000 : null;
+  const keroL = heatKw != null ? heatKw * 24 / (9.6 * 0.85) : null;
+  const brooding = targetT >= 27;   // 육추기 — 난방이 실제로 필요한 구간. 큰 닭은 체열이 이 열의 상당 부분을 메운다
+  const fmt = n => Math.round(n).toLocaleString();
+  const tile = (l, v, u, sub, bg, c) => `<div style="background:${bg};border-radius:10px;padding:10px 12px"><div style="font-size:11px;color:${c}">${l}</div><div style="font-size:19px;font-weight:800;color:${c}">${v} <span style="font-size:11px;font-weight:600">${u}</span></div>${sub ? `<div style="font-size:10px;color:#888;margin-top:2px">${sub}</div>` : ""}</div>`;
 
   return `
   <div class="card" style="border-top:6px solid #00838F;margin-top:16px">
-    <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:3px">🌀 환기량 계산 (습도수지 방식)</div>
-    <div style="font-size:10px;color:#aaa;margin-bottom:12px">오늘 섭취 사료 ${Math.round(feedG)}g/일·마리 기준 — UGA 익스텐션(Czarick·Fairchild)의 습도수지 계산법</div>
+    <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:3px">🌀 최소환기량 계산 (습도수지 방식 · 습기 제거 기준)</div>
+    <div style="font-size:10px;color:#aaa;margin-bottom:12px">오늘 섭취 사료 ${Math.round(feedG)}g/일·마리 · 바깥 ${o.src} ${outT}°C·습도 ${outRH}% 기준 — UGA 익스텐션(Czarick·Fairchild)의 습도수지 계산법</div>
     ${dryWarnBox(humRhOfDay(today), {when:"오늘 바깥", ctx:"vent"})}
-    ${r.ineffective ? `
+    ${r.ineffective && hotDay ? `
+    <div style="background:#FFF8E1;border-left:6px solid #F9A825;border-radius:8px;padding:11px 13px">
+      <div style="font-size:12px;font-weight:700;color:#8D6E00;margin-bottom:3px">🌡️ 오늘은 습기 기준 최소환기 계산이 맞지 않는 날</div>
+      <div style="font-size:11px;color:#333;line-height:1.6">바깥 공기가 목표 계사 조건(${targetT}°C·습도 60%)보다 덥고 습해서 습도수지 계산이 성립하지 않아요. 이런 날은 더위를 빼는 환기량이 기준입니다 — 환기 탭의 오늘 추천 단계를 보세요.</div>
+    </div>` : r.ineffective ? `
     <div style="background:#FFEBEE;border-left:6px solid #C62828;border-radius:8px;padding:11px 13px">
       <div style="font-size:12px;font-weight:700;color:#B71C1C;margin-bottom:3px">⚠️ 환기로는 수분 제거 불가한 조건</div>
       <div style="font-size:11px;color:#333;line-height:1.6">오늘 바깥 공기가 목표 실내 조건보다 절대습도 기준으로 더 습합니다.
       환기를 늘려도 수분이 빠지지 않고 오히려 들어올 수 있습니다 — 제습·난방 병행을 검토하세요.</div>
     </div>` : `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-      <div style="background:#E0F7FA;border-radius:10px;padding:10px 12px">
-        <div style="font-size:10px;color:#00695C">필요 환기량(마리당)</div>
-        <div style="font-size:18px;font-weight:800;color:#004D40">${r.cfmPerBird.toFixed(2)} <span style="font-size:11px;font-weight:600">CFM</span></div>
-        <div style="font-size:9px;color:#888;margin-top:2px">= ${r.m3hrPerBird.toFixed(3)} m³/시간·마리</div>
-      </div>
-      <div style="background:#E0F7FA;border-radius:10px;padding:10px 12px">
-        <div style="font-size:10px;color:#00695C">제거해야 할 수분</div>
-        <div style="font-size:18px;font-weight:800;color:#004D40">${Math.round(r.moistureG)} g</div>
-        <div style="font-size:9px;color:#888;margin-top:2px">일일 음수량의 80% (마리당)</div>
-      </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:10px">
+      ${tile("최소환기량 (1만수당)", fmt(q10k), "m³/시간", `마리당 ${r.m3hrPerBird.toFixed(3)} m³/시간 · ${r.cfmPerBird.toFixed(2)} CFM`, "#E0F7FA", "#00695C")}
+      ${tile("빼내야 할 수분 (마리당)", Math.round(r.moistureG), "g/일", "음수량의 80%가 깔짚·공기로", "#E0F7FA", "#00695C")}
+      ${heatKw != null ? tile("이 환기로 나가는 열 (1만수당)", heatKw.toFixed(1), "kW", brooding ? `등유로 메우면 약 ${keroL.toFixed(0)} L/일${fuelP ? ` · 약 ₩${fmt(keroL * fuelP)}/일` : ""}` : "큰 닭은 체열이 상당 부분을 메워요", "#FFF3E0", "#E65100") : ""}
     </div>
     <div style="background:#fafafa;border-radius:8px;padding:9px 12px;font-size:10px;color:#666;line-height:1.7">
       실내 목표: ${targetT}°C·습도60%(가정) → 습도함량 ${r.wIn.toFixed(2)}g/kg &nbsp;|&nbsp;
-      바깥 현재: ${outT}°C·습도${outRH}% → 습도함량 ${r.wOut.toFixed(2)}g/kg
+      바깥(${o.src}): ${outT}°C·습도${outRH}% → 습도함량 ${r.wOut.toFixed(2)}g/kg
     </div>`}
+    ${winter && !r.ineffective ? `<div style="background:#E3F2FD;border-left:6px solid #1565C0;border-radius:8px;padding:10px 12px;margin-top:10px;font-size:12px;color:#0D47A1;line-height:1.65">
+      ❄️ <b>동절기 최소환기</b> — 이 값은 습기를 빼기 위한 <b>최소치</b>예요. 난방비를 아끼려고 이보다 줄이면 깔짚이 젖고 암모니아가 쌓입니다. 팬은 타이머로 짧게 자주 돌리고, 찬 바람이 닭에 바로 닿지 않게 입기구를 높게 여세요.${o.tMin != null ? ` 새벽 최저 ${Math.round(o.tMin)}°C 무렵엔 같은 환기에도 열이 더 많이 나갑니다.` : ""}
+    </div>` : ""}
+    ${hotDay && !r.ineffective ? `<div style="background:#FFF8E1;border-radius:8px;padding:9px 12px;margin-top:10px;font-size:12px;color:#6D4C41;line-height:1.6">🌡️ 오늘은 바깥 최고 ${Math.round(today.tMax)}°C가 목표 ${targetT}°C보다 더워요 — 이 값은 습기 기준 <b>최소치</b>일 뿐, 더위를 빼는 환기량은 훨씬 큽니다(환기 탭 참고).</div>` : ""}
 
     <div style="font-size:9px;color:#aaa;margin-top:8px;line-height:1.6">
       ※ UGA 자료(Czarick·Fairchild)의 "사료 1파운드당 물 1쿼트(≈사료의 2.1배), 그중 80%가 깔짚·공기 중 수분으로 남음" 기준과
       표준 습도함량(humidity ratio) 계산을 결합했습니다. 실내 목표습도는 UGA 권장 적정범위의 중간값인 60%로 가정했습니다.
-      실제 필요 환기량은 계사 밀폐도·사육밀도·설비에 따라 달라질 수 있는 참고치입니다.
+      ${heatKw != null ? `나가는 열 = 환기량 × 0.33 W/(m³/h·K) × (목표 ${targetT}°C − 바깥 평균 ${outT}°C)${brooding ? `, 등유 9.6 kWh/L·난방기 효율 85% 가정${fuelP ? `, 면세 등유 ₩${fmt(fuelP)}/L(오피넷 전국 평균)` : ""}` : ""} — 닭 체열이 일부를 메워 실제 난방 부담은 이보다 작고, 벽·지붕 열손실은 빠져 있습니다. ` : ""}실제 필요 환기량은 계사 밀폐도·사육밀도·설비에 따라 달라질 수 있는 참고치입니다.
     </div>
   </div>`;
 }
@@ -35558,11 +35584,13 @@ function renderVentFinderPanel(){
     : !hasLoc
       ? "위치가 설정되어 있지 않습니다 — 🌤️ 날씨예측 메뉴에서 위치를 설정하면 자동으로 채워집니다. 지금은 아래 값을 직접 입력해 주세요."
       : wxToday
-        ? `${esc(weatherState.locationName||"")} 오늘 예보 기준으로 채워 두었습니다. 계사 앞 온습도계 실측값이 있으면 그 값으로 바꿔 주세요.`
+        ? `${esc(weatherState.locationName||"")} 오늘 예보(${isMax ? "낮 최고기온" : "하루 평균 기온·습도"}) 기준으로 채워 두었습니다. 계사 앞 온습도계 실측값이 있으면 그 값으로 바꿔 주세요.`
         : "오늘 날씨를 아직 불러오지 못했습니다 — 아래 값을 직접 입력해 주세요.";
 
-  const outT = ventFinderState.outT!=null ? ventFinderState.outT : (wxToday ? wxToday.tMax : null);
-  const outRH = ventFinderState.outRH!=null ? ventFinderState.outRH : (wxToday ? wxToday.hum : null);
+  // 최소환기(습기 제거)는 하루 평균 바깥 공기로, 최대환기(더위)는 낮 최고기온으로 채운다(2026-11-22 동절기 점검)
+  const vfOut = wxToday && !isMax ? ventCalcOutdoor(wxToday) : null;
+  const outT = ventFinderState.outT!=null ? ventFinderState.outT : (wxToday ? (vfOut && vfOut.t != null ? Math.round(vfOut.t * 10) / 10 : wxToday.tMax) : null);
+  const outRH = ventFinderState.outRH!=null ? ventFinderState.outRH : (wxToday ? (vfOut && vfOut.rh != null ? Math.round(vfOut.rh) : wxToday.hum) : null);
   const stdInT = getTargetTempForAge(ventFinderState.species, age);
   const inT = ventFinderState.inT!=null ? ventFinderState.inT : stdInT;
   const inRH = ventFinderState.inRH!=null ? ventFinderState.inRH : 60;
