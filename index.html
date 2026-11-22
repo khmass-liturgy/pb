@@ -35115,6 +35115,28 @@ function renderWetBulbPanel(){
   if(T==null || RH==null) return "";
 
   const tw = calcWetBulbC(T, RH);
+  const targetT = getTargetTempForAge(consultState.species, consultState.age);
+  // 쿨링패드는 바깥이 목표 계사온도보다 더운 날에만 쓰는 냉각 장치다(2026-11-22 소유자 지적: 겨울·추운 날에 패드 계산이 맞지 않음).
+  // 동절기(11~3월) 또는 바깥 최고기온이 목표온도 이하인 날은 패드·터널 계산을 하지 않고 한 줄 안내만 보인다.
+  const winter = ventIsWinter(today.date);
+  const needCool = targetT != null ? T > targetT : T >= 27;
+  if(winter || !needCool){
+    const chip = (l, v, c) => `<div style="flex:1 1 90px;background:#F5F7FA;border-radius:10px;padding:8px 10px;text-align:center"><div style="font-size:11.5px;color:#78909C">${l}</div><div style="font-size:17px;font-weight:800;color:${c || "#37474F"}">${v}</div></div>`;
+    return `
+  <div class="card" style="border-top:6px solid #90A4AE;margin-top:16px">
+    <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:8px">💧 습구온도 · 쿨링패드</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+      ${chip("바깥 최고", Math.round(T) + "°C", "#1565C0")}${targetT != null ? chip("목표 계사온도", targetT + "°C", "#E65100") : ""}${chip("습구온도", tw.toFixed(1) + "°C")}
+    </div>
+    <div style="background:#ECEFF1;border-radius:10px;padding:10px 12px;font-size:13px;color:#37474F;line-height:1.6">
+      ${winter
+        ? "❄️ <b>동절기(11~3월)에는 쿨링패드·터널 냉각을 쓰지 않아요</b> — 보온과 최소환기가 우선입니다."
+        : `🌤️ <b>오늘은 쿨링패드가 필요 없는 날</b> — 바깥 최고 ${Math.round(T)}°C가 목표 계사온도${targetT != null ? " " + targetT + "°C" : ""}보다 낮아 냉각이 아니라 보온·최소환기가 필요해요.`}
+    </div>
+    <div style="font-size:11px;color:#999;margin-top:6px">쿨링패드 냉각 예측은 바깥 최고기온이 목표 계사온도보다 높은 날(동절기 제외)에 자동으로 나타납니다. 추운 날 결로·깔짚 습기는 아래 이슬점 카드를 보세요.</div>
+  </div>`;
+  }
+
   const EFF = 0.75; // UGA 권장 실무 효율(70~80% 구간의 중간값)
   const padOutTemp = T - (T - tw) * EFF;
   const padOutRH = Math.min(95, RH + (T - padOutTemp) * 4.5); // 1°C 냉각당 습도 약 4.5%p 상승(UGA 환산)
@@ -35124,15 +35146,17 @@ function renderWetBulbPanel(){
   // 12°F 낮추고, 터널풍속(설계기준 500ft/min)에서 체감 10°F가 추가로 낮아지면
   // 닭은 73°F로 느낀다"(UGA/Auburn 실사례). 500ft/min은 터널환기 설계 표준
   // 풍속이며, 이 조건에서의 체감냉각효과가 약 5.6°C(10°F)로 보고된다.
+  // 목표온도 27°C 이상(육추기)인 어린 닭은 바람 체감이 너무 커서 터널풍속 냉각을 계산에 넣지 않는다.
   const WIND_CHILL_C = 5.6; // 500ft/min 설계기준 풍속에서의 체감냉각효과(UGA/Auburn)
-  const effectiveTemp = padOutTemp - WIND_CHILL_C;
-
-  const targetT = getTargetTempForAge(consultState.species, consultState.age);
-  const stillHot = targetT!=null && effectiveTemp > targetT;
+  const young = targetT != null && targetT >= 27;
+  const effectiveTemp = young ? padOutTemp : padOutTemp - WIND_CHILL_C;
+  const stillHot = targetT != null && effectiveTemp > targetT;
+  const overCool = targetT != null && !stillHot && padOutTemp < targetT - 3;   // 패드만으로도 목표보다 많이 낮아짐
+  const humid = padOutRH >= 80;
 
   return `
   <div class="card" style="border-top:6px solid #0288D1;margin-top:16px">
-    <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:3px">💧 습구온도 기반 쿨링패드+풍속 체감냉각 예측</div>
+    <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:3px">💧 습구온도 기반 ${young ? "쿨링패드 냉각" : "쿨링패드+풍속 체감냉각"} 예측</div>
     <div style="font-size:10px;color:#aaa;margin-bottom:12px">오늘 날씨(${T}°C · 습도${RH}%) 기준 — 조지아대(UGA)·오번대(Auburn) 익스텐션 컨설턴트가 쓰는 방식</div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
@@ -35148,6 +35172,10 @@ function renderWetBulbPanel(){
       </div>
     </div>
 
+    ${young ? `
+    <div style="background:#FFF8E1;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:11.5px;color:#6D4C41;line-height:1.6">
+      🐣 <b>육추기(목표 ${targetT}°C)라 터널풍속 체감냉각은 계산에 넣지 않았어요</b> — 어린 닭은 바람 체감이 커서 터널풍속을 쓰지 않고, 패드도 조금씩 단계적으로 씁니다.
+    </div>` : `
     <div style="background:#EDE7F6;border-radius:10px;padding:10px 12px;margin-bottom:10px">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <div>
@@ -35156,20 +35184,23 @@ function renderWetBulbPanel(){
         </div>
         <div style="font-size:22px;font-weight:800;color:#311B92">${effectiveTemp.toFixed(1)}°C</div>
       </div>
-    </div>
+    </div>`}
 
     ${targetT!=null ? `
     <div style="background:${stillHot?"#FFEBEE":"#E8F5E9"};border-left:6px solid ${stillHot?"#C62828":"#2E7D32"};border-radius:8px;padding:11px 13px">
       <div style="font-size:12px;font-weight:700;color:${stillHot?"#B71C1C":"#1B5E20"};margin-bottom:3px">
-        ${stillHot ? "⚠️ 패드+풍속 냉각으로도 목표온도 도달 어려움" : "✅ 패드+풍속 냉각으로 목표온도 도달 가능"}
+        ${stillHot ? `⚠️ 패드${young ? "" : "+풍속"} 냉각으로도 목표온도 도달 어려움` : `✅ 패드${young ? "" : "+풍속"} 냉각으로 목표온도까지 낮출 수 있음`}
       </div>
       <div style="font-size:11px;color:#333;line-height:1.6">
-        현재 사양단계 목표온도는 <b>${targetT}°C</b>인데, 패드+풍속 적용 후 체감온도는 <b>${effectiveTemp.toFixed(1)}°C</b>입니다.
+        현재 사양단계 목표온도는 <b>${targetT}°C</b>인데, 냉각 후 ${young ? "예상온도" : "체감온도"}는 <b>${effectiveTemp.toFixed(1)}°C</b>입니다.
         ${stillHot
-          ? "습구온도 자체가 이미 높아 패드+풍속 조합으로도 한계가 있습니다 — 사육밀도 완화, 살수, 야간 집중관리 등 보조 수단을 함께 검토하세요."
-          : "오늘 조건에서는 패드+터널풍속 조합으로 목표온도 달성이 가능할 것으로 보입니다."}
+          ? "습구온도 자체가 이미 높아 냉각에 한계가 있습니다 — 사육밀도 완화, 살수, 야간 집중관리 등 보조 수단을 함께 검토하세요."
+          : overCool
+          ? `패드만 써도 목표보다 ${(targetT - padOutTemp).toFixed(1)}°C 낮아질 수 있어요 — 패드는 펌프 타이머로 단계적으로, ${young ? "" : "터널풍속은 낮게 시작해 "}계사온도를 보며 올리세요.`
+          : `오늘 조건에서는 패드${young ? "" : "+터널풍속"} 조합으로 목표온도 유지가 가능할 것으로 보입니다.`}
       </div>
     </div>` : ""}
+    ${humid ? `<div style="background:#E3F2FD;border-radius:8px;padding:9px 12px;margin-top:8px;font-size:11.5px;color:#0D47A1;line-height:1.6">💧 패드를 지난 공기 습도가 약 ${Math.round(padOutRH)}%까지 올라요 — 습도가 70~80%를 넘으면 패드 효과가 떨어지고 깔짚이 눅눅해지니 패드 가동을 줄이세요.</div>` : ""}
 
     <div style="font-size:9px;color:#aaa;margin-top:8px;line-height:1.6">
       ※ 습구온도는 Stull(2011) 근사식으로 계산했습니다(미국기상학회지 게재, 평균오차 0.3°C 이내).
