@@ -6248,7 +6248,8 @@ const _dataMemo = {};   // 같은 데이터를 한 화면에서 여러 번 부�
 function fetchDataset(ds){
   const m = _dataMemo[ds];
   if(m && Date.now() - m.t < 60000) return m.p;
-  const p = firebase.app().functions().httpsCallable("getPublicContent")({ dataset:ds }).then(res => {
+  // Firebase SDK가 덜 올라왔거나 함수 호출이 바로 예외를 내도 GitHub raw 대체로 넘어가게 Promise 안에서 부른다.
+  const p = Promise.resolve().then(() => firebase.app().functions().httpsCallable("getPublicContent")({ dataset:ds })).then(res => {
     const j = res.data && res.data.data;
     if(j == null) throw new Error("빈 응답");
     return j;
@@ -8627,7 +8628,7 @@ function renderDiseaseTab(){
   const sub = DZ_SUBS.some(x => x[0] === dzSub) ? dzSub : "dict";
   // 오늘 기상 기준 사양관리 포인트·생명탄생의 신비는 질병 자료 로딩 상태와 무관하게 보인다.
   if(sub === "today") return renderHusbandryPointsCard({title:"📋 오늘의 사양관리 포인트", poultryOnly:true});
-  if(sub === "life") return renderLifeMiracleCard();
+  if(sub === "life"){ subAutoOpen("dz-life", LM_STATE); return renderLifeMiracleCard(); }
   if(sub === "stats"){ if(dzStats.status === "idle") fetchDzStats(); return renderDzStatsPanel(); }
   if(d.status === "loading" || d.status === "idle")
     return shell('<div style="text-align:center;padding:28px;color:#aaa">⏳ 질병 자료를 불러오는 중...</div>');
@@ -12975,7 +12976,7 @@ const HPAI_SUBS = [["news", "📰", "AI 소식"], ["kr", "🗺️", "국내 발�
 let hpaiSub = (function(){ try { return localStorage.getItem("hpai_sub") || "news"; } catch(e){ return "news"; } })();
 function renderHpaiTab(){
   const sub = HPAI_SUBS.some(x => x[0] === hpaiSub) ? hpaiSub : "news";
-  const body = sub === "news" ? renderHpaiNewsCard() : sub === "kr" ? renderHpaiKrCard() : sub === "map" ? renderRiskMapCard() + renderFlywayCard() : sub === "stats" ? renderHpaiDataCards() : sub === "human" ? renderHpaiHumanCard() : sub === "symptom" ? renderHpaiSymptomCard() : renderHpaiPreventCard();
+  const body = sub === "news" ? renderHpaiNewsCard() : sub === "kr" ? renderHpaiKrCard() : sub === "map" ? renderRiskMapCard() + renderFlywayCard() : sub === "stats" ? renderHpaiDataCards() : sub === "human" ? renderHpaiHumanCard() : sub === "symptom" ? (subAutoOpen("hpai-symptom", hpaiSymState), renderHpaiSymptomCard()) : (subAutoOpen("hpai-prevent", hpaiPrevState), renderHpaiPreventCard());
   return body;
 }
 
@@ -34325,6 +34326,9 @@ function renderHusbandryPointsCard(opts){
   const c = getTodayClimate();
 
   if(!c || c.hsi == null){
+    // 예보가 없으면 위치 정하기 버튼이 있는 안내 카드(사양 탭과 같은 것)를 보인다 — 글만 있고 누를 곳이 없던 문제(2026-11-22)
+    const gate = consultWxGate("오늘 사양관리 포인트");
+    if(gate) return gate;
     const msg = weatherState.status === "loading"
       ? "날씨 정보를 불러오는 중입니다..."
       : "날씨예측 탭에서 농장 위치를 먼저 설정하면 오늘 기상 기준으로 포인트를 짚어드립니다.";
@@ -35063,6 +35067,16 @@ function getTargetTempForAge(species, age){
     if(age>=lo && age<=hi) return row.t;
   }
   return table[table.length-1].t;
+}
+
+// ── 하위 메뉴에 접힌 카드 하나만 있을 때 (2026-11-22 전체 점검) ─────────────────────────
+// 동물복지·HACCP·이상기온 예측·생명탄생의 신비·AI 증상·AI 예방처럼 하위 메뉴의 내용이 접힌 카드 하나뿐이면, 메뉴를 눌렀을 때
+// 제목과 「열기 ▼」만 보여 빈 화면처럼 보였다. 그 하위 메뉴를 처음 열 때 한 번 펼쳐 둔다(다시 접은 건 그대로 둔다).
+const SUB_AUTO_OPENED = {};
+function subAutoOpen(key, st, onOpen){
+  if(SUB_AUTO_OPENED[key] || !st) return;
+  SUB_AUTO_OPENED[key] = 1;
+  if(!st.open){ st.open = true; if(onOpen) setTimeout(onOpen, 0); }
 }
 
 // ── 사양/복지 탭 날씨 준비 (2026-11-22) ─────────────────────────────────────────
@@ -36947,7 +36961,7 @@ function renderConsultTab(){
 
   const sub = CONSULT_SUBS.some(x => x[0] === consultState.sub) ? consultState.sub : "std";
   const needCtl = ["std", "intake", "air", "vent", "pi", "mgmt"].includes(sub);
-  const body = sub === "std" ? card + renderFarmComparePanel(breed, age) : sub === "intake" ? renderIntakePanel() : sub === "air" ? (consultWxGate("습구온도·이슬점") || renderHumIndexCard() + renderWetBulbPanel() + renderDewPointPanel()) : sub === "vent" ? (consultWxGate("환기량") || renderVentCalcPanel() || `<div class="card" style="text-align:center;color:#888;padding:22px;font-size:13px;line-height:1.7">이 ${consultState.species === "broiler" ? "일령" : "주령"}에는 사양표의 목표온도·사료섭취량 자료가 없어 환기량을 계산하지 못했어요.<br>위에서 ${consultState.species === "broiler" ? "일령" : "주령"}을 바꿔 보세요.</div>`) : sub === "pi" ? (renderProductionIndexPanel() || `<div class="card" style="text-align:center;color:#999;padding:22px;font-size:13px">생산지수는 육계에서만 계산해요. 위에서 🐔 육계를 선택하세요.</div>`) : sub === "mgmt" ? renderMgmtPointsPanel() + renderHumIndexCard() : sub === "welfare" ? renderWelfarePanel() : sub === "haccp" ? renderHaccpPanel() : renderMakerPanel();
+  const body = sub === "std" ? card + renderFarmComparePanel(breed, age) : sub === "intake" ? renderIntakePanel() : sub === "air" ? (consultWxGate("습구온도·이슬점") || renderHumIndexCard() + renderWetBulbPanel() + renderDewPointPanel()) : sub === "vent" ? (consultWxGate("환기량") || renderVentCalcPanel() || `<div class="card" style="text-align:center;color:#888;padding:22px;font-size:13px;line-height:1.7">이 ${consultState.species === "broiler" ? "일령" : "주령"}에는 사양표의 목표온도·사료섭취량 자료가 없어 환기량을 계산하지 못했어요.<br>위에서 ${consultState.species === "broiler" ? "일령" : "주령"}을 바꿔 보세요.</div>`) : sub === "pi" ? (renderProductionIndexPanel() || `<div class="card" style="text-align:center;color:#999;padding:22px;font-size:13px">생산지수는 육계에서만 계산해요. 위에서 🐔 육계를 선택하세요.</div>`) : sub === "mgmt" ? renderMgmtPointsPanel() + renderHumIndexCard() : sub === "welfare" ? (subAutoOpen("c-welfare", welfareState), renderWelfarePanel()) : sub === "haccp" ? (subAutoOpen("c-haccp", haccpState), renderHaccpPanel()) : renderMakerPanel();
   const controls = needCtl ? `<div style="display:flex;gap:8px;margin-bottom:10px">${speciesBtns}</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">${breedBtns}</div>
   ${ageInput}` : "";
@@ -37537,7 +37551,7 @@ function renderWeatherSobakCard(){
 function renderWeatherTab(){
   if(weatherNewsState.status === "idle") fetchWeatherNews();
   const sub = WX_SUBS.some(x => x[0] === wxSub) ? wxSub : "week";
-  return sub === "solar" ? renderSolarTermPanel() : sub === "anomaly" ? renderAnomalyPanel() : sub === "news" ? renderWeatherNewsCard() + renderWeatherSobakCard() : renderWeatherBody(sub);
+  return sub === "solar" ? renderSolarTermPanel() : sub === "anomaly" ? (subAutoOpen("wx-anomaly", anomState, () => { if(weatherState.lat != null && anomState.status !== "loading" && (anomState.status === "idle" || anomState.quick || anomState.key !== weatherState.lat + "," + weatherState.lng)) anomRun(); else render(); }), renderAnomalyPanel()) : sub === "news" ? renderWeatherNewsCard() + renderWeatherSobakCard() : renderWeatherBody(sub);
 }
 
 // ── 🔮 이상기온 예측 (날씨 탭) ───────────────────────────────────────────────
