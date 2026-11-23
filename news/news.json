@@ -1,15 +1,35 @@
 {
-  "updated": "2026-11-22 11:49 KST",
+  "updated": "2026-11-23 12:30 KST",
   "channels": {
     "livestock": {
       "label": "축산·농업",
-      "items": [],
-      "count": 0
+      "items": [
+        {
+          "title": "한우값 왜 오르나? 돼지고기 공급은?…축평원, 축산물 수급정보 한눈에 - 머니투데이 - 머니투데이",
+          "link": "https://news.google.com/rss/articles/CBMia0FVX3lxTFAtRFRVYXVfLVUxZzgyTHRERXhzaXdtb3VfRW5BUlNqaDFJS19tY3lrdi1iWnNCZXpmUU5TU2tuYTVyVjd2Ny1SNDBTZjBVS1lKLTRlTDlBbUpxMFgwUmE0SjlGc2w5dGhYaEgw0gFwQVVfeXFMTzZaVUFvcUdndTZZenhqdTZPb2dRdEJ5YWZCRHh4OGpyaDA0QnZkM3FjNjhEZDlYLVlRQmRyS2NjZnZNdjNXWXYxOWRWb3ZCTXVCQnU2TDFaMjNBbmYwcFluM3hwNjNsWlpsMjk3VzJHcQ?oc=5",
+          "date": "11/18 20:53",
+          "source": "머니투데이"
+        }
+      ],
+      "count": 1
     },
     "vet": {
       "label": "수의·방역",
-      "items": [],
-      "count": 0
+      "items": [
+        {
+          "title": "경남도, 2026년 가축방역 강습회 개최... 현장 방역·수의 진료 역량 높인다 - sisakoreanews.kr",
+          "link": "https://news.google.com/rss/articles/CBMiSkFVX3lxTE5MMWNJd0E4YnItZmE4SDFyNjVxdmxDTXVESUJOZG1GOXZva08xbTlVRTFkbTU0SGV6TDVJekZOcHZGMU9UQWFLRVZ3?oc=5",
+          "date": "11/20 10:17",
+          "source": "sisakoreanews.kr"
+        },
+        {
+          "title": "[경남소식]도, 행안부 납세자 권익증진 우수사례 최우수 등 - 뉴시스",
+          "link": "https://news.google.com/rss/articles/CBMieEFVX3lxTE9kYmNUbnZHeG5zck11MDZYb2dkT1FPZmY2dmJPdFpETVlMQlM0ajBzcTYtTGRXbU9oUW1UN1J5TzZfNS1KM0MxTGt5cXVIQl9pQXJTbEl4NW5CQ09XWUhfMGNFOXdMQlBwQ0NBUlZoQjFzU3VhdG5hOdIBeEFVX3lxTE9kYmNUbnZHeG5zck11MDZYb2dkT1FPZmY2dmJPdFpETVlMQlM0ajBzcTYtTGRXbU9oUW1UN1J5TzZfNS1KM0MxTGt5cXVIQl9pQXJTbEl4NW5CQ09XWUhfMGNFOXdMQlBwQ0NBUlZoQjFzU3VhdG5hOQ?oc=5",
+          "date": "11/20 10:40",
+          "source": "뉴시스"
+        }
+      ],
+      "count": 2
     },
     "disease": {
       "label": "가축질병",
@@ -28,8 +48,39 @@
     },
     "world": {
       "label": "국제",
-      "items": [],
-      "count": 0
+      "items": [
+        {
+          "title": "중국, 슈퍼컴퓨터 세계 1위…미국 중심 변화오나? - YTN 사이언스",
+          "link": "https://news.google.com/rss/articles/CBMijAFBVV95cUxOX2dEUUIzOGNWU0UyZG4tdkNnc1dmWnl3LTltYzlMYmE4WTlJSlVWT0pROWFMQ2NUeTNQZlhPRkRsQ1h4RnJvMkZvWHlNdzdBUGtJdEhRVDFPWm5KeDdmd1hLY3FOQ3duOXJXQS0xR2YzcnJnalFpRE9QczhrSjltOGFqcFZsbzVsbmMxMg?oc=5",
+          "date": "11/20 16:00",
+          "source": "YTN 사이언스"
+        },
+        {
+          "title": "중국에 기댄 러시아와 거래주의 미국, 갈림길에 선 유럽의 안보 - 쿠쿠쿠뉴스",
+          "link": "https://news.google.com/rss/articles/CBMiWkFVX3lxTE5hZ19DSy0wVnZ5dVFjOThTekd6ME1vbFoxc2ZGalVjZXlzaC1WTE9TT2hneENNT1FmQlpIaVJwZWFpemFuclp3N0xtcW9EN0F5YzloQkNrQmstZw?oc=5",
+          "date": "11/21 00:38",
+          "source": "쿠쿠쿠뉴스"
+        },
+        {
+          "title": "미중러 정상 오늘 사상 첫 3자회담…세계질서 중대 분수령 - 연합뉴스 한민족센터",
+          "link": "https://news.google.com/rss/articles/CBMidEFVX3lxTE1Gamw4US1rWElLZWdxZ09OejhYdFN1dUVUaDhLU2dkN19kMVAyZlljd21WZjBxNjNDVzdCaFd0ektfQlF2cDZXU0hIelFLYnNLUi1TNzJqWHZWNUNCcDh3eVhZQzRvYVBHeFA1ZTlwaTRLQWRK?oc=5",
+          "date": "11/19 05:00",
+          "source": "연합뉴스 한민족센터"
+        },
+        {
+          "title": "중국이 그리는 세계질서 [PADO] - 머니투데이 - 머니투데이",
+          "link": "https://news.google.com/rss/articles/CBMiaEFVX3lxTE8wUDhhc3lLbDhhX2JRUmJzby03aTFGZ0t6VmxSUnhhRG5KTEVhS3ZnY2RZODhoWWFjTkRJUHFCUmFWLU5BMUdIcXpQaW5BNjlrMkNldnNMTmloZ3d0eTFKa0lYRUVJSi1y0gFuQVVfeXFMTmtmQXMxNzUzS2pYdmhkX1p6RHVYTlJEcGcwRng2SGFsZDVqS1F6Xy1sSEw0d0NabnRLRWhUWjJwSmZkdmMtSVl4MjhKOGhLb2FFSnZCSllfWVBOdGZxUWVncGVUZmxaaWFHbFIzWXc?oc=5",
+          "date": "11/21 06:00",
+          "source": "머니투데이"
+        },
+        {
+          "title": "미중러정상 자리배치 갑론을박…\"中중심 연출\" vs \"일반적 의전\" - 연합뉴스 한민족센터",
+          "link": "https://news.google.com/rss/articles/CBMidEFVX3lxTFA4eWJDcGk2RnROMm8tNGlocEJIT2FBUFZSZVVPSlZOMVRJYzRteWtrZFpEa2VNTmZZamhmRndWRy1UeG9FRVdzenZtRkZQTjZyMXk1anVKUEhKOVlOTlB0bkpvY1h6NHF5TWRFcHBUbUM3Y0hC?oc=5",
+          "date": "11/20 16:55",
+          "source": "연합뉴스 한민족센터"
+        }
+      ],
+      "count": 5
     }
   }
 }
