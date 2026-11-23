@@ -1,14 +1,14 @@
 {
- "updated": "2026-11-04 10:50 KST",
+ "updated": "2026-11-23 18:24 KST",
  "source": "WHO/GIP — Cumulative number of confirmed human cases for avian influenza A(H5N1) reported to WHO",
- "page_url": "https://www.who.int/publications/m/item/cumulative-number-of-confirmed-human-cases-for-avian-influenza-a(h5n1)-reported-to-who--2003-2026--6-september-2026",
- "pdf_url": "https://cdn.who.int/media/docs/default-source/influenza/h5n1-human-case-cumulative-table/cumulative-number-of-confirmed-human-cases-for-avian-influenza-a(h5n1)-reported-to-who--2003-20261829de76-a683-43fa-9b4c-b2a2872ef528.pdf?sfvrsn=eac338ba_3&download=true",
+ "page_url": "https://www.who.int/publications/m/item/cumulative-number-of-confirmed-human-cases-for-avian-influenza-a(h5n1)-reported-to-who--2003-2026--7-october-2026",
+ "pdf_url": "https://cdn.who.int/media/docs/default-source/influenza/h5n1-human-case-cumulative-table/cumulative-number-of-confirmed-human-cases-for-avian-influenza-a(h5n1)-reported-to-who--2003-20260a15ddae-c305-4e8c-9040-5e699327f991.pdf?sfvrsn=b6a485bf_1&download=true",
  "notes": [
   "WHO는 실험실에서 확진된 사례만 집계하며, 확진자 수(cases)에는 사망자(deaths)가 포함돼 있다. 모든 날짜는 발병 시점 기준이다.",
   "국가는 사례를 보고한 나라이며 노출이 일어난 나라와 다를 수 있다.",
   "일부 사례는 무증상 감염자의 검출을 포함한다. 미국의 2024~2025년 사례는 A(H5)로 보고된 것을 포함한다."
  ],
- "as_of": "2026-09-06",
+ "as_of": "2026-10-07",
  "years": [
   2003,
   2004,
@@ -237,7 +237,7 @@
     6,
     10,
     18,
-    5
+    6
    ],
    "deaths": [
     0,
@@ -265,7 +265,7 @@
     9,
     1
    ],
-   "total_cases": 95,
+   "total_cases": 96,
    "total_deaths": 53
   },
   {
@@ -584,7 +584,7 @@
     0,
     0,
     0,
-    3,
+    4,
     4
    ],
    "deaths": [
@@ -613,7 +613,7 @@
     0,
     1
    ],
-   "total_cases": 15,
+   "total_cases": 16,
    "total_deaths": 2
   },
   {
@@ -1510,8 +1510,8 @@
   6,
   12,
   81,
-  30,
-  10
+  31,
+  11
  ],
  "year_deaths": [
   4,
@@ -1539,6 +1539,6 @@
   12,
   2
  ],
- "total_cases": 1003,
+ "total_cases": 1005,
  "total_deaths": 479
 }
