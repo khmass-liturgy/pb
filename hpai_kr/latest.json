@@ -1,7 +1,7 @@
 {
- "as_of": "2026-11-20 17:00 KST",
- "title": "고병원성 조류인플루엔자 발생·검출 현황('26.11.20. 17시 기준)  새글",
- "url": "https://www.mafra.go.kr/bbs/FMD-AI2/851/582344/artclView.do",
+ "as_of": "2026-11-27 17:00 KST",
+ "title": "고병원성 조류인플루엔자 발생·검출 현황('26.11.27. 17시 기준)  새글",
+ "url": "https://www.mafra.go.kr/bbs/FMD-AI2/851/582398/artclView.do",
  "farms": [
   {
    "n": 1,
@@ -122,6 +122,18 @@
    "cnt": 16000,
    "sero": "H5N9",
    "conf": "2026-11-19"
+  },
+  {
+   "n": 11,
+   "kind": "신고",
+   "rep": "2026-11-26",
+   "sido": "전남",
+   "sgg": "나주",
+   "sp": "오리",
+   "breed": "육용오리",
+   "cnt": 19500,
+   "sero": "H5N9",
+   "conf": "2026-11-27"
   }
  ],
  "wild": [
@@ -243,16 +255,76 @@
    "spot": "일월지",
    "sero": "H5N9",
    "conf": "2026-11-20",
-   "sample": "황성철"
+   "sample": "폐사체"
+  },
+  {
+   "n": 13,
+   "date": "2026-11-14",
+   "sido": "전남",
+   "sgg": "강진",
+   "spot": "작천면 내기리",
+   "sero": "H5N9",
+   "conf": "2026-11-24",
+   "sample": "폐사체"
+  },
+  {
+   "n": 14,
+   "date": "2026-11-20",
+   "sido": "경기",
+   "sgg": "고양",
+   "spot": "한강하류",
+   "sero": "H5N1",
+   "conf": "2026-11-27",
+   "sample": "폐사체"
+  },
+  {
+   "n": 15,
+   "date": "2026-11-23",
+   "sido": "경기",
+   "sgg": "김포",
+   "spot": "한강하류",
+   "sero": "H5N9",
+   "conf": "2026-11-27",
+   "sample": "분변"
   }
  ],
  "table_stale": false,
  "news": [
   {
-   "title": "나주 오리농장서 AI 항원 검출…전남광주 오리농장 ‘이동중지’ - 농민신문",
-   "link": "https://news.google.com/rss/articles/CBMiWkFVX3lxTFA4aDEtaW9iUW9DclBJWFFCZEQxQUtXZjdta0U1bWJkSTUwNGFQMi1JN2RnYlo2VEY4UEZlRVJEY0c1T1g4RG9veUs1UEwyb3BpRGxfd1pjUTY5dw?oc=5",
-   "date": "Thu, 26 Nov 2026 23:31:00 GMT",
+   "title": "전남광주 나주 육용오리 농장서 고병원성 AI 확진 - KBS 뉴스",
+   "link": "https://news.google.com/rss/articles/CBMiW0FVX3lxTFBORzZxT1g4TjNSN3cxUnpHTGlEMnNCQ1RQNEhaNklqRTgwX1ZvZnVKV2paMGlYT3VpZWhGajJlTnJ6NnNPTjJEMmkzT2U4R1NiajAxQjBGcGV5U2c?oc=5",
+   "date": "Fri, 27 Nov 2026 08:24:00 GMT",
+   "source": "KBS 뉴스"
+  },
+  {
+   "title": "나주 오리농장 고병원성 AI 확진…올겨울 11번째 - 농민신문",
+   "link": "https://news.google.com/rss/articles/CBMiWkFVX3lxTE1tQ3h4THoxeFJBQl9JN0xmRDBUNGlUSld0TE1MT3FOa09tNXZfOVFHcmhWRWQxTmFyNDJyN3d4YXRXa2JQbHBlemF6RHpLcS1SZFdaS2hZS2V0QQ?oc=5",
+   "date": "Fri, 27 Nov 2026 09:49:00 GMT",
    "source": "농민신문"
+  },
+  {
+   "title": "나주 육용오리 농장서 고병원성 AI 확진…이달 들어 11번째 - 연합뉴스",
+   "link": "https://news.google.com/rss/articles/CBMiYEFVX3lxTE5LcWdVZkphZ01FME1tS3lnZm1BeENja0lfbFRmN0RGa1FsQzh0WWhOVXVEdkVEcUNneXZsTjRmeXNFWDZhOGNzZEpZM1JvMm9pTVF6QXZ4V005bmcyOGZZN9IBYEFVX3lxTE5LcWdVZkphZ01FME1tS3lnZm1BeENja0lfbFRmN0RGa1FsQzh0WWhOVXVEdkVEcUNneXZsTjRmeXNFWDZhOGNzZEpZM1JvMm9pTVF6QXZ4V005bmcyOGZZNw?oc=5",
+   "date": "Fri, 27 Nov 2026 08:49:19 GMT",
+   "source": "연합뉴스"
+  },
+  {
+   "title": "나주 오리농장서 고병원성 AI 확진…올겨울 11번째 - 뉴시스",
+   "link": "https://news.google.com/rss/articles/CBMieEFVX3lxTE5iajFfaXAtVW5iWmE4cE92Q0lCaVN1dHpxXzlwOU5DRTMtaUF1T0hLZm5FWVQ4ZHdHMDdfU0xOdnZCbUxOU2NkWVoxenBKejRlUFBqTXVLdTdfSkZndlVOVWhDSXpwUEpNVkZidHpkVGozSE11NmV3ZdIBeEFVX3lxTE5iajFfaXAtVW5iWmE4cE92Q0lCaVN1dHpxXzlwOU5DRTMtaUF1T0hLZm5FWVQ4ZHdHMDdfU0xOdnZCbUxOU2NkWVoxenBKejRlUFBqTXVLdTdfSkZndlVOVWhDSXpwUEpNVkZidHpkVGozSE11NmV3ZQ?oc=5",
+   "date": "Fri, 27 Nov 2026 08:50:10 GMT",
+   "source": "뉴시스"
+  },
+  {
+   "title": "오리농장 AI 확산세…나주서 5번째 확진, 가금농장 11건으로 - 뉴스1",
+   "link": "https://news.google.com/rss/articles/CBMiVEFVX3lxTE5iTDZ1RlNmNWRFWngxMVNWOE1kZjluMWFFMkItdXFiRVU2M253aGJXa3gycEk4TE05VU03VWN6QnhWMVVVWDU0NGN2ai1vX3JIb0dxMA?oc=5",
+   "date": "Fri, 27 Nov 2026 08:33:43 GMT",
+   "source": "뉴스1"
+  },
+  {
+   "title": "나주 육용오리 농장서 H5N9형 AI 확진…올겨울 11번째 : 사회 - 재경일보",
+   "link": "https://news.google.com/rss/articles/CBMiS0FVX3lxTFBnSm5RUGNxRjl6eS14VjRsc0JGR1VwZDdHSFdCWTVTZkw3eEZrcUJoMVM3Qy1JMElFdzdob3lQRlA4aWZaeGdFbF9qUQ?oc=5",
+   "date": "Fri, 27 Nov 2026 09:16:06 GMT",
+   "source": "재경일보"
   },
   {
    "title": "나주 오리농장서 조류인플루엔자 검출…광주 오리농장에 이동중지 명령 - 머니투데이 - 머니투데이",
@@ -261,39 +333,14 @@
    "source": "머니투데이"
   },
   {
-   "title": "함평군, 인접 시군 잇단 AI 확진에 비상…이남오 군수 방역 현장 점검 - 지이코노미",
-   "link": "https://news.google.com/rss/articles/CBMiZ0FVX3lxTE0tVWVNS0loeXBIZG1pYkhzRl9tZThlN1lxeUdaVlZtVUhQUEdEbU1jdDZtekgxOVgxdTZxOVR1dElZZkJuejFYa2RGakV2SlhRXzdmTFRVb0JFbHZfV0NJNDlaNVhoa28?oc=5",
-   "date": "Thu, 26 Nov 2026 02:33:07 GMT",
-   "source": "지이코노미"
-  },
-  {
-   "title": "함평군, 인접 시군 고병원성 AI 발생에 방역 강화…24시간 비상체계 가동 - 더파워",
-   "link": "https://news.google.com/rss/articles/CBMifkFVX3lxTFBRM2dhRzFlN0pOMDJXV05YWXZqWjdWN2s4UC1OaTI4OGFEb1o3MFhlVnMzek5BaGo4QnU2bU5zUHZNZjB3bmJBX1RtdDlUbmFiQzBOOXd3YXdLSEEtbXNvYWNOOEFTaEJ0dThBX0hwSEV4RHpaZEx3RldhZ2ppQQ?oc=5",
-   "date": "Wed, 25 Nov 2026 06:54:16 GMT",
-   "source": "더파워"
+   "title": "나주 오리농장서 AI 항원 검출…전남광주 오리농장 ‘이동중지’ - 농민신문",
+   "link": "https://news.google.com/rss/articles/CBMiWkFVX3lxTFA4aDEtaW9iUW9DclBJWFFCZEQxQUtXZjdta0U1bWJkSTUwNGFQMi1JN2RnYlo2VEY4UEZlRVJEY0c1T1g4RG9veUs1UEwyb3BpRGxfd1pjUTY5dw?oc=5",
+   "date": "Thu, 26 Nov 2026 23:31:00 GMT",
+   "source": "농민신문"
   }
  ],
- "checked": "2026-11-27 14:21 KST",
- "quick": [
-  {
-   "kind": "예찰",
-   "rep": "2026-11-26",
-   "approx": true,
-   "sido": "전남",
-   "sgg": "나주시",
-   "sp": "오리",
-   "breed": "육용오리",
-   "cnt": 19000,
-   "sero": "H5",
-   "conf": "2026-11-26",
-   "nth": 11,
-   "pending": true,
-   "src": "농식품부 보도자료",
-   "title": "전남광주통합특별시 나주 육용오리 농장에서 H5형 조류인플루엔자 항원 확인  새글",
-   "link": "https://www.mafra.go.kr/bbs/home/792/582392/artclView.do",
-   "found": "2026-11-26 22:06"
-  }
- ],
+ "checked": "2026-11-27 22:06 KST",
+ "quick": [],
  "quick_seen": [
   "p577385",
   "p577364",
@@ -566,7 +613,19 @@
   "n나주오리농장서H5형AI검출전남광주24시간이동중지명령더파워",
   "n나주오리농장서H5형조류인플루엔자검출긴급방역노컷뉴스",
   "n나주시육용오리농장서H5형조류인플루엔자항원검출서울신문",
-  "n신북고병원성조류인플루엔자확진오리3만3천마리살처분영암신문"
+  "n신북고병원성조류인플루엔자확진오리3만3천마리살처분영암신문",
+  "p582400",
+  "n전남광주나주육용오리농장서고병원성AI확진KBS뉴스",
+  "n나주오리농장고병원성AI확진올겨울11번째농민신문",
+  "n나주육용오리농장서고병원성AI확진이달들어11번째연합뉴스",
+  "n나주오리농장서고병원성AI확진올겨울11번째뉴시스",
+  "n오리농장AI확산세나주서5번째확진가금농장11건으로뉴스1",
+  "n나주육용오리농장서H5N9형AI확진올겨울11번째사회재경일보",
+  "n나주오리농장서H5형AI항원검출전남광주전역24시간일시이동중지스트레이트뉴스",
+  "n나주오리농장서H5형AI항원검출wwwgjdreamcom",
+  "n나주오리농장서H5형AI항원검출긴급방역남도방송",
+  "n나주오리농장서H5형AI항원검출반경10이동제한일등방송",
+  "n나주오리농장AI항원검출전남광주방역망총가동퍼블릭뉴스통신"
  ],
  "quick_wild": [
   {
